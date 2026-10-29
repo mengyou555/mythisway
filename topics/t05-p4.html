@@ -1,0 +1,1592 @@
+<section class="part" data-part="4">
+<h2 id="s5-4"><span class="sec-no">5.4</span>ส่วนเสริม: Mini Project, Cheat Sheet, Interview</h2>
+<p>ส่วนนี้รวมทุกอย่างที่เรียนมาใน Part 1–3 เป็นงานชิ้นเดียวที่ใส่ใน Portfolio ได้จริง คุณจะประเมินความปลอดภัยของเครื่องแล็บของตัวเองตั้งแต่ต้นจนจบ แล้วเขียนรายงานแบบที่ทีม Security ใช้ในที่ทำงาน ตามด้วย Cheat Sheet สำหรับทบทวน คำถามสัมภาษณ์งาน 5 ข้อ และแหล่งเรียนต่อ</p>
+
+<div class="callout sec"><span class="c-label sec">Security</span><p>โปรเจกต์นี้เป็นงานฝั่งป้องกัน (Defensive) และทำกับเครื่องของคุณเองเท่านั้น ทุกการสแกนชี้ไปที่ <code>127.0.0.1</code> ทุกบริการ bind ที่ <code>127.0.0.1</code> และไฟล์ log ที่ใช้เป็นข้อมูลจำลอง การสแกน ทดสอบเจาะ หรือเข้าถึงระบบของผู้อื่นโดยไม่ได้รับอนุญาตเป็นความผิดตาม พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์ (พ.ร.บ.คอมพิวเตอร์) ถ้าอยากฝึกฝั่ง Red Team ให้ใช้แพลตฟอร์มที่ถูกกฎหมาย เช่น TryHackMe, Hack The Box, OverTheWire Bandit และ picoCTF</p></div>
+
+<h3 id="s5-4-project">Mini Project: Home Lab Security Assessment</h3>
+<p><span class="lvl" data-lvl="a">Advanced</span> <span class="muted small">ใช้เวลาประมาณ 12–16 ชั่วโมง · ใช้ความรู้จากแนวคิดที่ 1–12 ใน Part 2</span></p>
+
+<h4>เป้าหมาย</h4>
+<p>สร้างการประเมินความปลอดภัย (Security Assessment) ของเครื่อง Ubuntu 24.04 LTS บน WSL2 ของคุณเอง ที่คนอื่นอ่านแล้วทำซ้ำได้ งานแบ่งเป็น 5 ส่วน ได้แก่ Hardening เครื่อง, สแกนก่อนและหลัง Hardening, ตรวจเว็บแอปที่ตั้งใจให้มีช่องโหว่ (OWASP Juice Shop) ในแล็บ, เขียนโปรแกรม Detection หา SSH Brute-force จาก log และเขียนรายงาน Findings แบบมืออาชีพ</p>
+<p>ผู้สัมภาษณ์สาย Security อยากเห็นว่าคุณ "ทำงานเป็นระบบ" มากกว่าเห็นว่าคุณรู้จักเครื่องมือกี่ตัว โปรเจกต์นี้จึงเน้นหลักฐาน (Evidence) ทุกข้อที่คุณเขียนในรายงานต้องมีไฟล์ผลลัพธ์จริงรองรับ</p>
+
+<h4>ฟีเจอร์ของโปรเจกต์</h4>
+<ul>
+<li><strong>hardening/</strong> ไฟล์ <code>99-hardening.conf</code> (sshd drop-in), <code>jail.local</code> (fail2ban), <code>ufw-rules.sh</code> และ <code>harden.sh</code> ที่มีโหมด <code>--check</code> (อ่านอย่างเดียว) กับ <code>--apply</code> ตรวจด้วย <code>sshd -t</code> และ <code>lynis audit system --quick</code></li>
+<li><strong>scans/</strong> ผล <code>nmap -sT -sV</code> ต่อ <code>127.0.0.1</code> ก่อนและหลัง Hardening ผล NSE script <code>ssh-auth-methods</code> และ <code>diff_scans.py</code> ที่บอกว่าพอร์ตไหนเปิดใหม่หรือถูกปิด</li>
+<li><strong>webapp/</strong> สคริปต์รัน OWASP Juice Shop ที่ปักหมุดด้วย Image digest บน <code>127.0.0.1:3000</code>, <code>check_headers.py</code> ที่ยอมตรวจเฉพาะ localhost และ <code>findings.md</code> ที่จับคู่สิ่งที่พบกับ OWASP Top 10 โดยไม่มีขั้นตอนโจมตี</li>
+<li><strong>detector/</strong> <code>log_analyzer.py</code> (กฎ 5 failures ใน 10 นาทีต่อ IP และยกระดับเป็น HIGH เมื่อ IP นั้น login สำเร็จภายหลัง) ส่งออกเป็น JSON และ Markdown พร้อม sample log และ pytest 8 tests</li>
+<li><strong>deps/</strong> ผล <code>pip-audit</code> ของ dependency ฝั่ง detector</li>
+<li><strong>report/findings-report.md</strong> มี Executive Summary, Scope and Rules of Engagement, Methodology, ตาราง Findings, Timeline และ Lessons Learned</li>
+<li><strong>README.md</strong> และ <strong>verify.sh</strong> ที่ให้คนอื่นตรวจผลซ้ำได้ด้วยคำสั่งเดียว แล้ว push ขึ้น GitHub</li>
+</ul>
+
+<h4>เครื่องมือและเวอร์ชันที่ใช้</h4>
+<div class="tbl mid"><table class="tools"><thead><tr><th>ชื่อ</th><th>ใช้ทำอะไร</th><th>ควรเริ่มใช้ในขั้นไหน</th></tr></thead><tbody>
+<tr><td class="nw">Ubuntu 24.04 LTS (WSL2)</td><td>เครื่องเป้าหมายที่เราประเมิน (ชื่อ host ในตัวอย่างคือ lab-ubuntu)</td><td>Step 1</td></tr>
+<tr><td class="nw">Python 3.12.3 + venv</td><td>รัน detector, diff_scans.py และ check_headers.py</td><td>Step 1</td></tr>
+<tr><td class="nw">pytest 9.1.1, pip-audit 2.10.1</td><td>ทดสอบ detector และตรวจ dependency</td><td>Step 7–8</td></tr>
+<tr><td class="nw">OpenSSH 9.6p1, ufw 0.36.2, fail2ban 1.0.2</td><td>ส่วนที่เรา Harden</td><td>Step 3</td></tr>
+<tr><td class="nw">unattended-upgrades 2.9.1, Lynis 3.0.9</td><td>Patch อัตโนมัติ และวัด Hardening index</td><td>Step 2–3</td></tr>
+<tr><td class="nw">nmap 7.94</td><td>สแกนพอร์ตของ 127.0.0.1 ก่อนและหลัง</td><td>Step 2, 4</td></tr>
+<tr><td class="nw">Docker Desktop 4.95.0 (WSL 2 backend)</td><td>รัน OWASP Juice Shop 20.3.0 แบบ bind ที่ 127.0.0.1</td><td>Step 5</td></tr>
+<tr><td class="nw">Git 2.43.0 + GitHub</td><td>เก็บงานและเผยแพร่เป็น Portfolio</td><td>Step 10</td></tr>
+</tbody></table></div>
+
+<h4>โครงสร้างโฟลเดอร์สุดท้าย</h4>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Text · โครงสร้างโปรเจกต์"><code class="language-plaintext">~/projects/home-lab-assessment/
+├── README.md
+├── verify.sh                  # ตรวจทุกส่วนที่ไม่ต้องใช้ sudo
+├── .gitignore
+├── hardening/
+│   ├── 99-hardening.conf      # วางที่ /etc/ssh/sshd_config.d/
+│   ├── jail.local             # วางที่ /etc/fail2ban/
+│   ├── ufw-rules.sh
+│   └── harden.sh              # --check / --apply
+├── scans/
+│   ├── nmap-before.txt / nmap-before.gnmap
+│   ├── nmap-after.txt  / nmap-after.gnmap
+│   ├── ssh-auth-before.txt / ssh-auth-after.txt
+│   ├── harden-check-before.txt / harden-check-after.txt
+│   ├── lynis-before.txt / lynis-after.txt   # เก็บในเครื่อง ไม่ push (.gitignore)
+│   └── diff_scans.py
+├── webapp/
+│   ├── run-juice-shop.sh
+│   ├── check_headers.py
+│   └── findings.md
+├── detector/
+│   ├── log_analyzer.py
+│   ├── requirements.txt
+│   ├── sample/auth.log        # log จำลอง
+│   └── tests/test_log_analyzer.py
+├── deps/
+│   └── pip-audit-report.txt
+└── report/
+    ├── findings-report.md
+    ├── alerts.json
+    └── alerts.md</code></pre>
+
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>โปรเจกต์นี้เหมือนการตรวจสภาพบ้านของตัวเองก่อนย้ายเข้า คุณเดินดูประตูหน้าต่าง (สแกนพอร์ต) เปลี่ยนกุญแจ (Hardening SSH) ติดกล้องวงจรปิด (Detector อ่าน log) แล้วจดรายงานว่าเจออะไร แก้แล้วหรือยัง พร้อมรูปถ่ายเป็นหลักฐาน (ไฟล์ผลสแกนและ alerts.json)</p></div>
+
+<h4>ขั้นตอนการทำ</h4>
+<ol class="proj-steps">
+<li>
+<h4>Step 1: เตรียมโปรเจกต์ เครื่องมือ และ sample log</h4>
+<p>สร้างโฟลเดอร์ตามโครงสร้างด้านบน เริ่ม Git repository สร้าง venv สำหรับเครื่องมือ Python และติดตั้งเครื่องมือระบบด้วย <code>apt</code> ถ้าคุณติดตั้งบางตัวไว้แล้วตั้งแต่ Part 2 คำสั่ง <code>apt-get install</code> จะข้ามตัวนั้นให้เอง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ติดตั้งเครื่องมือระบบ (ทำครั้งเดียว)
+sudo apt-get update
+sudo apt-get install -y nmap lynis openssh-server ufw fail2ban unattended-upgrades python3-venv git
+
+# สร้างโครงสร้างโปรเจกต์
+mkdir -p ~/projects/home-lab-assessment/{hardening,scans,webapp,detector/sample,detector/tests,deps,report}
+cd ~/projects/home-lab-assessment
+git init -b main
+
+# venv สำหรับเครื่องมือ Python (Ubuntu 24.04 ไม่ให้ pip ติดตั้งลงระบบ)
+python3 -m venv .venv
+printf 'pytest==9.1.1\n' &gt; detector/requirements.txt
+.venv/bin/python -m pip install -r detector/requirements.txt pip-audit==2.10.1
+
+# ตรวจเวอร์ชัน
+nmap --version | head -1
+lynis --version
+sshd -V
+fail2ban-client --version
+ufw version
+.venv/bin/python -m pytest --version
+.venv/bin/pip-audit --version</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Nmap version 7.94SVN ( https://nmap.org )
+3.0.9
+OpenSSH_9.6p1 Ubuntu-3ubuntu13.20, OpenSSL 3.0.13 30 Jan 2024
+Fail2Ban v1.0.2
+ufw 0.36.2
+Copyright 2008-2023 Canonical Ltd.
+pytest 9.1.1
+pip-audit 2.10.1</code></pre>
+<p class="muted small">เลข Patch ของแพ็กเกจ Ubuntu เช่น <code>3ubuntu13.20</code> บนเครื่องคุณอาจสูงกว่านี้ เพราะ Ubuntu ออก Security update ต่อเนื่อง</p>
+<p>ขั้นต่อมา สร้างไฟล์ log จำลอง <code>detector/sample/auth.log</code> ไฟล์นี้คือไฟล์เดียวกับที่ใช้ในแนวคิดที่ 6 และ 11 ของ Part 2 ถ้ามีอยู่แล้วให้คัดลอกมา ถ้ายังไม่มีให้สร้างใหม่ตามนี้ทุกบรรทัด เนื้อหาเป็นเหตุการณ์สมมติ: IP <code>203.0.113.45</code> พยายามเดารหัสผ่าน SSH แล้ว login สำเร็จเป็นผู้ใช้ <code>test</code> ส่วน <code>198.51.100.23</code> ล้มเหลวแค่ 3 ครั้ง และ somchai login ด้วย publickey จาก <code>192.0.2.10</code> ตามปกติ (ทุก IP อยู่ในช่วงสำหรับเอกสาร ไม่ใช่เครื่องจริง)</p>
+<pre class="code" data-env="file" data-label="Log · detector/sample/auth.log"><code class="language-plaintext">2026-10-20T02:05:11.204518+07:00 lab-ubuntu sshd[2101]: Accepted publickey for somchai from 192.0.2.10 port 50122 ssh2: ED25519 SHA256:8crCcnxjNoOqbG1/fvLKPBCGgztVFm/QS0cXPtEyqXg
+2026-10-20T02:05:11.219034+07:00 lab-ubuntu sshd[2101]: pam_unix(sshd:session): session opened for user somchai(uid=1000) by somchai(uid=0)
+2026-10-20T02:10:12.004211+07:00 lab-ubuntu sshd[2190]: Connection closed by 203.0.113.45 port 51190 [preauth]
+2026-10-20T02:10:13.118402+07:00 lab-ubuntu sshd[2192]: Connection closed by 203.0.113.45 port 51194 [preauth]
+2026-10-20T02:14:07.508909+07:00 lab-ubuntu sshd[2211]: Invalid user admin from 203.0.113.45 port 51234
+2026-10-20T02:14:07.508909+07:00 lab-ubuntu sshd[2211]: Failed password for invalid user admin from 203.0.113.45 port 51234 ssh2
+2026-10-20T02:14:15.532666+07:00 lab-ubuntu sshd[2214]: Invalid user admin from 203.0.113.45 port 51251
+2026-10-20T02:14:15.532666+07:00 lab-ubuntu sshd[2214]: Failed password for invalid user admin from 203.0.113.45 port 51251 ssh2
+2026-10-20T02:14:31.556423+07:00 lab-ubuntu sshd[2217]: Failed password for root from 203.0.113.45 port 51268 ssh2
+2026-10-20T02:15:02.580180+07:00 lab-ubuntu sshd[2220]: Failed password for root from 203.0.113.45 port 51285 ssh2
+2026-10-20T02:15:40.603937+07:00 lab-ubuntu sshd[2223]: Failed password for test from 203.0.113.45 port 51302 ssh2
+2026-10-20T02:16:18.627694+07:00 lab-ubuntu sshd[2226]: Invalid user admin from 203.0.113.45 port 51319
+2026-10-20T02:16:18.627694+07:00 lab-ubuntu sshd[2226]: Failed password for invalid user admin from 203.0.113.45 port 51319 ssh2
+2026-10-20T02:17:05.651451+07:00 lab-ubuntu sshd[2229]: Failed password for root from 203.0.113.45 port 51336 ssh2
+2026-10-20T02:18:22.675208+07:00 lab-ubuntu sshd[2232]: Failed password for test from 203.0.113.45 port 51353 ssh2
+2026-10-20T02:19:10.698965+07:00 lab-ubuntu sshd[2235]: Invalid user admin from 203.0.113.45 port 51370
+2026-10-20T02:19:10.698965+07:00 lab-ubuntu sshd[2235]: Failed password for invalid user admin from 203.0.113.45 port 51370 ssh2
+2026-10-20T02:20:01.100200+07:00 lab-ubuntu sshd[2260]: Failed password for root from 198.51.100.23 port 40100 ssh2
+2026-10-20T02:20:43.722722+07:00 lab-ubuntu sshd[2238]: Failed password for root from 203.0.113.45 port 51387 ssh2
+2026-10-20T02:21:12.101200+07:00 lab-ubuntu sshd[2261]: Failed password for root from 198.51.100.23 port 40101 ssh2
+2026-10-20T02:21:30.746479+07:00 lab-ubuntu sshd[2241]: Failed password for test from 203.0.113.45 port 51404 ssh2
+2026-10-20T02:22:30.102200+07:00 lab-ubuntu sshd[2262]: Failed password for root from 198.51.100.23 port 40102 ssh2
+2026-10-20T02:22:55.770236+07:00 lab-ubuntu sshd[2244]: Failed password for test from 203.0.113.45 port 51421 ssh2
+2026-10-20T02:24:12.793993+07:00 lab-ubuntu sshd[2247]: Invalid user admin from 203.0.113.45 port 51438
+2026-10-20T02:24:12.793993+07:00 lab-ubuntu sshd[2247]: Failed password for invalid user admin from 203.0.113.45 port 51438 ssh2
+2026-10-20T02:25:38.817750+07:00 lab-ubuntu sshd[2250]: Failed password for root from 203.0.113.45 port 51455 ssh2
+2026-10-20T02:26:47.841507+07:00 lab-ubuntu sshd[2253]: Failed password for test from 203.0.113.45 port 51472 ssh2
+2026-10-20T02:27:59.865264+07:00 lab-ubuntu sshd[2256]: Invalid user admin from 203.0.113.45 port 51489
+2026-10-20T02:27:59.865264+07:00 lab-ubuntu sshd[2256]: Failed password for invalid user admin from 203.0.113.45 port 51489 ssh2
+2026-10-20T02:29:02.889021+07:00 lab-ubuntu sshd[2259]: Failed password for root from 203.0.113.45 port 51506 ssh2
+2026-10-20T02:30:15.912778+07:00 lab-ubuntu sshd[2262]: Failed password for test from 203.0.113.45 port 51523 ssh2
+2026-10-20T02:31:40.512345+07:00 lab-ubuntu sshd[2299]: Accepted password for test from 203.0.113.45 port 51601 ssh2
+2026-10-20T02:31:40.530118+07:00 lab-ubuntu sshd[2299]: pam_unix(sshd:session): session opened for user test(uid=1001) by test(uid=0)
+2026-10-20T02:33:05.771020+07:00 lab-ubuntu useradd[2340]: new user: name=backup2, UID=1002, GID=1002, home=/home/backup2, shell=/bin/bash, from=/dev/pts/1
+2026-10-20T02:40:02.881230+07:00 lab-ubuntu sshd[2410]: Accepted publickey for somchai from 192.0.2.10 port 50388 ssh2: ED25519 SHA256:8crCcnxjNoOqbG1/fvLKPBCGgztVFm/QS0cXPtEyqXg</code></pre>
+<p>สุดท้าย สร้าง <code>.gitignore</code> เพื่อไม่ให้ venv, cache และไฟล์ลับหลุดขึ้น GitHub</p>
+<pre class="code" data-env="file" data-label="Text · .gitignore"><code class="language-plaintext">.venv/
+__pycache__/
+.pytest_cache/
+.lab/
+*.pyc
+.env
+# ผล Lynis มีรายละเอียดของเครื่องมากเกินไปสำหรับ repository สาธารณะ
+scans/lynis-*.txt</code></pre>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>คำสั่งตรวจเวอร์ชันทุกตัวแสดงผลได้ไม่มี error และ <code>wc -l detector/sample/auth.log</code> ได้ <code>35 detector/sample/auth.log</code></p></div>
+</li>
+
+<li>
+<h4>Step 2: เก็บ Baseline ก่อน Hardening</h4>
+<p>นักประเมินที่ดีจะถ่ายภาพสถานะ "ก่อนแก้" เสมอ ถ้าไม่มี Baseline คุณจะพิสูจน์ไม่ได้ว่างานของคุณทำให้อะไรดีขึ้น ในขั้นนี้เราจะเปิด SSH ด้วยค่าเริ่มต้นของ Ubuntu และจำลองความผิดพลาดที่พบบ่อยในชีวิตจริง คือ เปิด Web server ทดสอบทิ้งไว้แบบ bind ทุก Interface (<code>0.0.0.0</code>) จากนั้นสแกนจาก localhost</p>
+<div class="callout sec"><span class="c-label sec">Security</span><p>สแกนเฉพาะ <code>127.0.0.1</code> เท่านั้น ห้ามเปลี่ยนเป้าหมายเป็น IP ของเครื่องอื่นในบ้าน ที่ทำงาน หรือมหาวิทยาลัย แม้จะอยู่ในเครือข่ายเดียวกัน ถ้าเจ้าของไม่ได้อนุญาตเป็นลายลักษณ์อักษร</p></div>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/home-lab-assessment
+
+# เปิด SSH ด้วยค่าเริ่มต้น (ยังไม่ Harden)
+sudo systemctl enable --now ssh
+
+# จำลองความผิดพลาด: เปิด Web server ทดสอบแบบไม่ระบุ --bind (ฟังทุก Interface)
+(cd /tmp &amp;&amp; python3 -m http.server 8000 &gt; /dev/null 2&gt;&amp;1 &amp;)
+
+# ดูว่ามีอะไรฟังพอร์ตอยู่บ้าง ก่อนสแกน
+sudo ss -tlnp | grep -E ':(22|3000|8000)\s'
+
+# สแกนจาก localhost บันทึกทั้งแบบอ่านง่าย (-oN) และแบบ grepable (-oG)
+nmap -sT -sV -p 22,3000,5000,8000,8080 -oN scans/nmap-before.txt -oG scans/nmap-before.gnmap 127.0.0.1
+
+# ถาม SSH server ว่ายอมรับการยืนยันตัวตนแบบไหน (NSE script ที่ไม่เดารหัสผ่าน)
+nmap -sT -p 22 --script ssh-auth-methods -oN scans/ssh-auth-before.txt 127.0.0.1</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>LISTEN 0      5            0.0.0.0:8000       0.0.0.0:*    users:(("python3",pid=20039,fd=3))
+LISTEN 0      128        127.0.0.1:22         0.0.0.0:*    users:(("sshd",pid=20035,fd=3))
+Starting Nmap 7.94SVN ( https://nmap.org ) at 2026-10-22 20:23 +07
+Nmap scan report for localhost (127.0.0.1)
+Host is up (0.00015s latency).
+
+PORT     STATE  SERVICE    VERSION
+22/tcp   open   ssh        OpenSSH 9.6p1 Ubuntu 3ubuntu13.20 (Ubuntu Linux; protocol 2.0)
+3000/tcp closed ppp
+5000/tcp closed upnp
+8000/tcp open   http       SimpleHTTPServer 0.6 (Python 3.12.3)
+8080/tcp closed http-proxy
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 6.23 seconds
+Starting Nmap 7.94SVN ( https://nmap.org ) at 2026-10-22 20:24 +07
+Nmap scan report for localhost (127.0.0.1)
+Host is up (0.00013s latency).
+
+PORT   STATE SERVICE
+22/tcp open  ssh
+| ssh-auth-methods:
+|   Supported authentication methods:
+|     publickey
+|_    password
+
+Nmap done: 1 IP address (1 host up) scanned in 0.12 seconds</code></pre>
+<p class="muted small">เวลา, PID, latency และเวลาที่ใช้สแกนบนเครื่องคุณจะต่างจากนี้ เครื่องทดสอบของเราตั้ง sshd ให้ฟังที่ <code>127.0.0.1:22</code> ส่วนบน WSL ค่าเริ่มต้นของ sshd จะฟังที่ <code>0.0.0.0:22</code> และ <code>[::]:22</code> ซึ่งยิ่งย้ำว่าต้องมี Firewall ในขั้นนี้พอร์ต 3000 ยัง closed เพราะเรายังไม่ได้รัน Juice Shop (จะรันใน Step 5)</p>
+<p>ต่อด้วยการวัด Hardening index ของ Lynis และบันทึกเก็บไว้ในโฟลเดอร์ <code>scans/</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">sudo lynis audit system --quick --no-colors | tee scans/lynis-before.txt | grep -E 'Hardening index|Tests performed'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>  Hardening index : 62 [############        ]
+  Tests performed : 247</code></pre>
+<p>ตัวเลขนี้มาจากเครื่องทดสอบของเรา บนเครื่องคุณจะได้ค่าอื่น สิ่งสำคัญคือจดค่า "ก่อน" ไว้ในรายงาน แล้วรันซ้ำหลัง Step 3 เพื่อเทียบ</p>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>ss -tlnp</code></td><td>ดู Socket ที่ฟัง TCP อยู่ พร้อมชื่อโปรเซส ทำให้รู้ Attack surface ก่อนสแกน <code>0.0.0.0:8000</code> แปลว่าเครื่องอื่นในเครือข่ายเข้าถึงได้</td></tr>
+<tr><td><code>-sT -sV</code></td><td>TCP connect scan (ไม่ต้องใช้ root) และถามเวอร์ชันของบริการ</td></tr>
+<tr><td><code>-oN</code> / <code>-oG</code></td><td>บันทึกผลแบบอ่านง่ายสำหรับรายงาน และแบบบรรทัดเดียวสำหรับให้ <code>diff_scans.py</code> อ่าน</td></tr>
+<tr><td><code>--script ssh-auth-methods</code></td><td>ขอรายชื่อวิธียืนยันตัวตนที่ server รองรับ ไม่ได้ลองรหัสผ่านใด ๆ ผลที่มี <code>password</code> คือหลักฐานของ Finding F-01</td></tr>
+<tr><td><code>lynis ... | tee</code></td><td>เก็บผลเต็มลงไฟล์และแสดงเฉพาะบรรทัดสรุปบนจอ</td></tr>
+</tbody></table></div>
+</li>
+<li>
+<h4>Step 3: Hardening ด้วย SSH drop-in, fail2ban, ufw และ harden.sh</h4>
+<p>ขั้นนี้คือหัวใจของโปรเจกต์ เราจะเก็บ config ทุกไฟล์ไว้ใน repository ก่อน แล้วค่อยติดตั้งลงระบบ วิธีนี้ทำให้ทุกการเปลี่ยนแปลงตรวจสอบย้อนหลังได้ด้วย Git และนำไปใช้ซ้ำกับเครื่องอื่นได้ทันที แนวคิดนี้เรียกว่า Configuration as Code</p>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ก่อนปิด <code>PasswordAuthentication</code> คุณต้องมี SSH Key ที่ login ได้จริงแล้ว และต้องเปิด Terminal อีกหน้าต่างที่ login ค้างไว้ระหว่าง reload ถ้า config ผิด คุณยังมีหน้าต่างนั้นไว้แก้ไข บน WSL ถ้าพลาดยังเข้าได้ด้วยคำสั่ง <code>wsl</code> จาก Windows แต่บน Server จริงการพลาดขั้นนี้อาจทำให้ต้องขับรถไปที่ Data center</p></div>
+
+<h5>3.1 สร้าง Key และทดสอบก่อนปิดรหัสผ่าน</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้าง Key แบบ Ed25519 (ตั้ง passphrase ด้วยเมื่อโปรแกรมถาม)
+ssh-keygen -t ed25519 -C 'somchai@lab'
+
+# ใส่ Public key ลงใน authorized_keys ของตัวเอง แล้วตั้งสิทธิ์ให้ถูก
+cat ~/.ssh/id_ed25519.pub &gt;&gt; ~/.ssh/authorized_keys
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+
+# ทดสอบว่า login ด้วย Key ได้ (บังคับไม่ใช้รหัสผ่าน)
+ssh -o PasswordAuthentication=no somchai@127.0.0.1 'echo key-ok'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>key-ok</code></pre>
+<p class="muted small">ครั้งแรกที่เชื่อมต่อ ssh จะถามให้ยืนยัน Host key ของเครื่อง ให้ตอบ <code>yes</code> และ ssh จะถาม passphrase ของ Key ถ้าคุณตั้งไว้</p>
+
+<h5>3.2 SSH drop-in</h5>
+<p>Ubuntu 24.04 อ่านไฟล์ใน <code>/etc/ssh/sshd_config.d/*.conf</code> ก่อนเนื้อหาส่วนอื่นของ <code>sshd_config</code> และค่าแรกที่อ่านเจอจะชนะ การใช้ไฟล์ drop-in จึงทำให้ค่าของเรามีผล โดยไม่ต้องแก้ไฟล์หลักที่ apt อาจเขียนทับตอนอัปเดต</p>
+<pre class="code" data-env="file" data-label="Config · hardening/99-hardening.conf"><code class="language-ini"># /etc/ssh/sshd_config.d/99-hardening.conf — SSH Hardening ของ lab-ubuntu
+# ห้าม login ด้วย root โดยตรง
+PermitRootLogin no
+# ใช้ Key เท่านั้น ปิดการใช้รหัสผ่าน (ต้องมี Key ที่ใช้ได้ก่อนเปิดใช้!)
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+# จำกัดจำนวนครั้งที่ลองยืนยันตัวตนต่อ 1 การเชื่อมต่อ
+MaxAuthTries 3
+LoginGraceTime 30
+# อนุญาตเฉพาะผู้ใช้ที่ระบุ
+AllowUsers somchai
+X11Forwarding no
+# ตัดการเชื่อมต่อที่ค้างเงียบเกิน 10 นาที (300 วินาที x 2)
+ClientAliveInterval 300
+ClientAliveCountMax 2</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/home-lab-assessment
+sudo install -m 644 hardening/99-hardening.conf /etc/ssh/sshd_config.d/99-hardening.conf
+
+# ตรวจ syntax ก่อนเสมอ ถ้าไม่มีข้อความใดออกมาแปลว่าผ่าน
+sudo sshd -t &amp;&amp; echo "sshd -t OK"
+
+# ดูค่าที่มีผลจริงหลังรวมทุกไฟล์
+sudo sshd -T | grep -Ei 'permitrootlogin|passwordauthentication|maxauthtries'
+
+# Ubuntu 24.04 ใช้ ssh.socket เปิดบริการเมื่อมีคนเชื่อมต่อ การ reload ssh.service ทำให้ config ใหม่มีผล
+sudo systemctl reload ssh</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>sshd -t OK
+maxauthtries 3
+permitrootlogin no
+passwordauthentication no</code></pre>
+
+<h5>3.3 fail2ban</h5>
+<p>fail2ban อ่าน log ของ sshd แล้วสั่ง Firewall บล็อก IP ที่ล้มเหลวเกิน <code>maxretry</code> ครั้งภายใน <code>findtime</code> เราใส่ <code>ignoreip</code> ไว้ก่อนเพื่อกันการบล็อกตัวเอง</p>
+<pre class="code" data-env="file" data-label="Config · hardening/jail.local"><code class="language-ini"># /etc/fail2ban/jail.local — ตั้งค่า fail2ban ของ lab-ubuntu
+[DEFAULT]
+# ห้ามแบน localhost และเครือข่ายผู้ดูแล (กันล็อกตัวเองออก)
+ignoreip = 127.0.0.1/8 ::1 192.0.2.10
+bantime  = 1h
+findtime = 10m
+maxretry = 5
+
+[sshd]
+enabled = true
+# Ubuntu 24.04 อ่าน log ของ sshd จาก systemd journal
+backend = systemd
+port    = ssh</code></pre>
+<p>ก่อนติดตั้งจริง ให้ทดสอบ Filter <code>sshd</code> ของ fail2ban กับ sample log แบบออฟไลน์ด้วย <code>fail2ban-regex</code> วิธีนี้ไม่ต้องรอให้มีการโจมตีจริงก็รู้ว่า Filter จับบรรทัดที่ต้องการได้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">fail2ban-regex detector/sample/auth.log /etc/fail2ban/filter.d/sshd.conf | grep -E '^Lines:'
+
+# ติดตั้ง config และเริ่มบริการ
+sudo install -m 644 hardening/jail.local /etc/fail2ban/jail.local
+sudo systemctl enable --now fail2ban
+sudo systemctl restart fail2ban
+sudo fail2ban-client status sshd</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Lines: 35 lines, 5 ignored, 27 matched, 3 missed</code></pre>
+<p>27 บรรทัดที่ match คือบรรทัด <code>Invalid user</code> และ <code>Failed password</code> ทั้งหมด ส่วน 3 บรรทัดที่ missed คือ <code>pam_unix</code> และ <code>useradd</code> ที่ไม่ใช่สัญญาณการเดารหัสผ่าน คำสั่ง <code>fail2ban-client status sshd</code> ต้องขึ้นบรรทัด <code>Status for the jail: sshd</code> ถ้าขึ้นว่าไม่พบ jail ให้ตรวจชื่อ section <code>[sshd]</code> ใน <code>jail.local</code></p>
+
+<h5>3.4 ufw</h5>
+<pre class="code" data-env="file" data-label="Bash · hardening/ufw-rules.sh"><code class="language-bash">#!/usr/bin/env bash
+# ufw-rules.sh — ตั้ง Firewall ของ lab-ubuntu ด้วย ufw
+# ใช้: sudo ./ufw-rules.sh            (ใช้จริง)
+#      sudo DRY_RUN=1 ./ufw-rules.sh  (แสดงกฎที่จะเกิดขึ้น ไม่เปลี่ยนระบบ)
+set -euo pipefail
+
+UFW=(ufw)
+if [[ "${DRY_RUN:-0}" == "1" ]]; then
+  UFW=(ufw --dry-run)
+fi
+
+# 1) ค่าเริ่มต้น: ปฏิเสธขาเข้า อนุญาตขาออก
+"${UFW[@]}" default deny incoming
+"${UFW[@]}" default allow outgoing
+
+# 2) SSH เข้าได้เฉพาะจากเครือข่ายผู้ดูแล และจำกัดความถี่ (limit)
+"${UFW[@]}" limit from 192.0.2.0/24 to any port 22 proto tcp comment 'SSH from admin network'
+
+# 3) ไม่เปิดพอร์ต 3000 (Juice Shop) 5000 (Flask) 8000 ให้ภายนอก
+#    บริการพวกนี้ bind ที่ 127.0.0.1 อยู่แล้ว จึงไม่ต้องมีกฎ allow
+
+# 4) บันทึก log การบล็อกระดับ low และเปิดใช้งาน
+"${UFW[@]}" logging low
+"${UFW[@]}" --force enable
+
+if [[ "${DRY_RUN:-0}" != "1" ]]; then
+  ufw status verbose
+fi</code></pre>
+<p>รันแบบ <code>DRY_RUN=1</code> ก่อนเพื่อดูว่า ufw จะสร้างกฎอะไร โดยยังไม่เปลี่ยนระบบ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">chmod +x hardening/*.sh
+sudo DRY_RUN=1 ./hardening/ufw-rules.sh | grep -E '^(Default|### tuple|Rules|Logging|Firewall)'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Default incoming policy changed to 'deny'
+Default outgoing policy changed to 'allow'
+### tuple ### limit tcp 22 0.0.0.0/0 any 192.0.2.0/24 in comment=5353482066726f6d2061646d696e206e6574776f726b
+Rules updated
+Logging enabled
+Firewall is active and enabled on system startup</code></pre>
+<p>ข้อความ <code>Firewall is active</code> ในโหมด dry-run เป็นเพียงการจำลอง ตรวจได้ด้วย <code>sudo ufw status</code> ซึ่งยังเป็น <code>Status: inactive</code> ส่วน comment ที่เป็นเลขฐาน 16 คือข้อความ <code>SSH from admin network</code> ที่ ufw เก็บไว้ในรูป hex</p>
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>ufw ใน WSL2 ปกป้อง VM ของ Ubuntu ส่วนเครื่อง Windows ต้องพึ่ง Windows Firewall ตามที่เรียนในแนวคิดที่ 6 ถ้า ufw แจ้ง <code>ERROR: Couldn't determine iptables version</code> ให้ตรวจว่า WSL เปิด systemd แล้ว (<code>/etc/wsl.conf</code> มี <code>[boot]</code> และ <code>systemd=true</code>) แล้วรัน <code>wsl --shutdown</code> จาก PowerShell</p></div>
+
+<h5>3.5 harden.sh: ตรวจและปรับในสคริปต์เดียว</h5>
+<p>สคริปต์นี้มี 2 โหมด โหมด <code>--check</code> อ่านอย่างเดียวและพิมพ์ <code>[PASS]</code> หรือ <code>[FAIL]</code> ทีละข้อ โหมด <code>--apply</code> ติดตั้งแพ็กเกจ วาง config ทุกไฟล์ ตรวจ <code>sshd -t</code> ก่อน reload แล้วตรวจซ้ำ ตัวแปร <code>SSHD_CONFIG</code>, <code>AUTO_UPGRADES</code> และ <code>JAIL_LOCAL</code> ให้ชี้ไปไฟล์อื่นได้ เพื่อทดสอบสคริปต์กับ config ตัวอย่างโดยไม่แตะระบบจริง</p>
+<pre class="code" data-env="file" data-label="Bash · hardening/harden.sh"><code class="language-bash">#!/usr/bin/env bash
+# harden.sh — ตรวจ (--check) หรือปรับแต่ง (--apply) ความปลอดภัยพื้นฐานของ lab-ubuntu
+# ใช้กับเครื่องของตัวเองเท่านั้น
+#   sudo ./harden.sh --check   อ่านอย่างเดียว ไม่เปลี่ยนอะไร
+#   sudo ./harden.sh --apply   ติดตั้งแพ็กเกจ วางไฟล์ config แล้วตรวจซ้ำ
+set -uo pipefail
+
+MODE="${1:---check}"
+LAB_USER="${LAB_USER:-somchai}"
+HERE="$(cd "$(dirname "$0")" &amp;&amp; pwd)"
+SSHD_CONFIG="${SSHD_CONFIG:-/etc/ssh/sshd_config}"
+AUTO_UPGRADES="${AUTO_UPGRADES:-/etc/apt/apt.conf.d/20auto-upgrades}"
+JAIL_LOCAL="${JAIL_LOCAL:-/etc/fail2ban/jail.local}"
+PASS=0; FAIL=0
+
+if [[ $EUID -ne 0 ]]; then
+  echo "ต้องรันด้วย sudo" &gt;&amp;2
+  exit 1
+fi
+
+result() {  # result &lt;PASS|FAIL&gt; &lt;ข้อความ&gt;
+  if [[ "$1" == PASS ]]; then PASS=$((PASS + 1)); else FAIL=$((FAIL + 1)); fi
+  printf '[%s] %s\n' "$1" "$2"
+}
+
+check_sshd() {
+  local eff
+  if ! eff="$(sshd -T -f "$SSHD_CONFIG" 2&gt;&amp;1)"; then
+    result FAIL "sshd config ผิด: $eff"
+    return
+  fi
+  local key want
+  for pair in "permitrootlogin no" "passwordauthentication no" "kbdinteractiveauthentication no" \
+              "maxauthtries 3" "x11forwarding no"; do
+    key="${pair% *}"; want="${pair#* }"
+    if grep -qx "$key $want" &lt;&lt;&lt;"$eff"; then
+      result PASS "sshd $key = $want"
+    else
+      result FAIL "sshd $key ควรเป็น $want (ตอนนี้: $(grep "^$key " &lt;&lt;&lt;"$eff" | cut -d' ' -f2))"
+    fi
+  done
+}
+
+check_ufw() {
+  if ufw status 2&gt;/dev/null | grep -q "^Status: active"; then
+    result PASS "ufw เปิดใช้งานอยู่"
+  else
+    result FAIL "ufw ยังไม่เปิด (รัน sudo ./ufw-rules.sh)"
+  fi
+}
+
+check_fail2ban() {
+  if [[ -f "$JAIL_LOCAL" ]] &amp;&amp; grep -A3 '^\[sshd\]' "$JAIL_LOCAL" | grep -q 'enabled *= *true'; then
+    result PASS "fail2ban เปิด jail [sshd] ใน $JAIL_LOCAL"
+  else
+    result FAIL "fail2ban ยังไม่มี jail [sshd] ที่เปิดใช้"
+  fi
+}
+
+check_updates() {
+  if [[ -f "$AUTO_UPGRADES" ]] &amp;&amp; grep -q 'Unattended-Upgrade "1"' "$AUTO_UPGRADES"; then
+    result PASS "unattended-upgrades เปิดอยู่"
+  else
+    result FAIL "unattended-upgrades ยังไม่เปิด"
+  fi
+}
+
+check_accounts() {
+  local extra_root empty_pw
+  extra_root="$(awk -F: '$3 == 0 &amp;&amp; $1 != "root" {print $1}' /etc/passwd)"
+  [[ -z "$extra_root" ]] &amp;&amp; result PASS "ไม่มีบัญชี UID 0 อื่นนอกจาก root" \
+                         || result FAIL "บัญชี UID 0 แปลกปลอม: $extra_root"
+  empty_pw="$(awk -F: '$2 == "" {print $1}' /etc/shadow)"
+  [[ -z "$empty_pw" ]] &amp;&amp; result PASS "ไม่มีบัญชีที่รหัสผ่านว่าง" \
+                       || result FAIL "บัญชีรหัสผ่านว่าง: $empty_pw"
+}
+
+check_home() {
+  local home mode
+  home="$(getent passwd "$LAB_USER" | cut -d: -f6)"
+  if [[ -z "$home" ]]; then result FAIL "ไม่พบผู้ใช้ $LAB_USER"; return; fi
+  mode="$(stat -c %a "$home")"
+  (( (8#$mode &amp; 8#007) == 0 )) &amp;&amp; result PASS "$home mode $mode (คนอื่นเข้าไม่ได้)" \
+                               || result FAIL "$home mode $mode ควรเป็น 750 หรือ 700"
+  if [[ -d "$home/.ssh" ]]; then
+    mode="$(stat -c %a "$home/.ssh")"
+    [[ "$mode" == 700 ]] &amp;&amp; result PASS "$home/.ssh mode 700" \
+                         || result FAIL "$home/.ssh mode $mode ควรเป็น 700"
+  fi
+}
+
+apply() {
+  echo "== ติดตั้งแพ็กเกจ =="
+  apt-get update -qq &amp;&amp; apt-get install -y -qq ufw fail2ban unattended-upgrades lynis
+  echo "== SSH =="
+  install -m 644 "$HERE/99-hardening.conf" /etc/ssh/sshd_config.d/99-hardening.conf
+  # ตรวจ syntax ก่อน reload ทุกครั้ง ถ้าผิดจะไม่ reload
+  sshd -t &amp;&amp; systemctl reload ssh
+  echo "== fail2ban =="
+  install -m 644 "$HERE/jail.local" /etc/fail2ban/jail.local
+  systemctl enable --now fail2ban &amp;&amp; systemctl restart fail2ban
+  echo "== Patch อัตโนมัติ =="
+  printf 'APT::Periodic::Update-Package-Lists "1";\nAPT::Periodic::Unattended-Upgrade "1";\n' &gt; /etc/apt/apt.conf.d/20auto-upgrades
+  echo "== สิทธิ์ไฟล์ของ $LAB_USER =="
+  local home; home="$(getent passwd "$LAB_USER" | cut -d: -f6)"
+  chmod 750 "$home"
+  [[ -d "$home/.ssh" ]] &amp;&amp; chmod 700 "$home/.ssh"
+  [[ -f "$home/.ssh/authorized_keys" ]] &amp;&amp; chmod 600 "$home/.ssh/authorized_keys"
+  echo "== Firewall =="
+  "$HERE/ufw-rules.sh"
+}
+
+case "$MODE" in
+  --check) ;;
+  --apply) apply ;;
+  *) echo "ใช้: sudo $0 --check | --apply" &gt;&amp;2; exit 1 ;;
+esac
+
+echo "== ผลการตรวจ $(hostname) $(date -Iseconds) =="
+check_sshd
+check_ufw
+check_fail2ban
+check_updates
+check_accounts
+check_home
+echo "สรุป: PASS=$PASS FAIL=$FAIL"
+[[ $FAIL -eq 0 ]]</code></pre>
+<p>รัน <code>--check</code> บนเครื่องที่ยังไม่ได้ Harden เพื่อเก็บหลักฐาน "ก่อน"</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">sudo ./hardening/harden.sh --check | tee scans/harden-check-before.txt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>== ผลการตรวจ lab-ubuntu 2026-10-22T20:23:18+07:00 ==
+[FAIL] sshd permitrootlogin ควรเป็น no (ตอนนี้: without-password)
+[FAIL] sshd passwordauthentication ควรเป็น no (ตอนนี้: yes)
+[PASS] sshd kbdinteractiveauthentication = no
+[FAIL] sshd maxauthtries ควรเป็น 3 (ตอนนี้: 6)
+[FAIL] sshd x11forwarding ควรเป็น no (ตอนนี้: yes)
+[FAIL] ufw ยังไม่เปิด (รัน sudo ./ufw-rules.sh)
+[FAIL] fail2ban ยังไม่มี jail [sshd] ที่เปิดใช้
+[FAIL] unattended-upgrades ยังไม่เปิด
+[PASS] ไม่มีบัญชี UID 0 อื่นนอกจาก root
+[PASS] ไม่มีบัญชีที่รหัสผ่านว่าง
+[PASS] /home/somchai mode 750 (คนอื่นเข้าไม่ได้)
+[PASS] /home/somchai/.ssh mode 700
+สรุป: PASS=5 FAIL=7</code></pre>
+<p>จากนั้นรัน <code>--apply</code> สคริปต์จะเรียก <code>ufw-rules.sh</code> ให้เองตอนท้าย แล้วรัน <code>--check</code> อีกครั้ง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">sudo ./hardening/harden.sh --apply
+sudo ./hardening/harden.sh --check | tee scans/harden-check-after.txt
+sudo lynis audit system --quick --no-colors | tee scans/lynis-after.txt | grep -E 'Hardening index|Tests performed'</code></pre>
+<p>ผลด้านล่างมาจากเครื่องทดสอบของเรา ซึ่งเป็น container ที่ใช้ร่วมกับงานอื่น เราจึงไม่ได้เปิด ufw จริงในเครื่องนั้น บรรทัด ufw เลยยังเป็น <code>[FAIL]</code> บน WSL ของคุณเมื่อ <code>--apply</code> รัน <code>ufw-rules.sh</code> สำเร็จ บรรทัดนั้นจะเป็น <code>[PASS] ufw เปิดใช้งานอยู่</code> และสรุปจะเป็น <code>PASS=12 FAIL=0</code></p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>== ผลการตรวจ lab-ubuntu 2026-10-22T20:30:41+07:00 ==
+[PASS] sshd permitrootlogin = no
+[PASS] sshd passwordauthentication = no
+[PASS] sshd kbdinteractiveauthentication = no
+[PASS] sshd maxauthtries = 3
+[PASS] sshd x11forwarding = no
+[FAIL] ufw ยังไม่เปิด (รัน sudo ./ufw-rules.sh)
+[PASS] fail2ban เปิด jail [sshd] ใน /etc/fail2ban/jail.local
+[PASS] unattended-upgrades เปิดอยู่
+[PASS] ไม่มีบัญชี UID 0 อื่นนอกจาก root
+[PASS] ไม่มีบัญชีที่รหัสผ่านว่าง
+[PASS] /home/somchai mode 750 (คนอื่นเข้าไม่ได้)
+[PASS] /home/somchai/.ssh mode 700
+สรุป: PASS=11 FAIL=1
+  Hardening index : 65 [#############       ]
+  Tests performed : 251</code></pre>
+<p class="muted small">ชื่อเครื่อง เวลา และ Hardening index บนเครื่องคุณจะต่างจากนี้ Lynis ให้คะแนนจากการทดสอบหลายร้อยข้อ การเพิ่มขึ้นไม่กี่คะแนนถือว่าปกติ ให้อ่านหัวข้อ Suggestions ใน <code>scans/lynis-after.txt</code> เพื่อเลือกสิ่งที่ควรทำต่อ</p>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>set -uo pipefail</code></td><td>หยุดเมื่อใช้ตัวแปรที่ไม่ได้ตั้ง และให้ pipeline ล้มเมื่อคำสั่งใดล้ม เราไม่ใช้ <code>-e</code> เพราะต้องการให้ตรวจครบทุกข้อแม้บางข้อ FAIL</td></tr>
+<tr><td><code>sshd -T -f "$SSHD_CONFIG"</code></td><td>พิมพ์ค่าที่มีผลจริงหลังรวม drop-in ทุกไฟล์ ตรวจจากตรงนี้แม่นกว่าการ grep ไฟล์ config เอง</td></tr>
+<tr><td><code>grep -qx "$key $want"</code></td><td><code>-x</code> บังคับให้ตรงทั้งบรรทัด ป้องกันการจับผิดบรรทัดที่ขึ้นต้นเหมือนกัน</td></tr>
+<tr><td><code>(8#$mode &amp; 8#007) == 0</code></td><td>แปลงสิทธิ์เป็นเลขฐาน 8 แล้วดูว่ากลุ่ม others ไม่มีสิทธิ์ใดเลย</td></tr>
+<tr><td><code>sshd -t &amp;&amp; systemctl reload ssh</code></td><td>reload เฉพาะเมื่อ syntax ผ่าน ลดโอกาสล็อกตัวเองออกจากเครื่อง</td></tr>
+<tr><td><code>[[ $FAIL -eq 0 ]]</code></td><td>บรรทัดสุดท้ายกำหนด exit code: 0 เมื่อผ่านทุกข้อ 1 เมื่อมีข้อ FAIL ใช้ต่อใน CI หรือ cron ได้</td></tr>
+</tbody></table></div>
+<div class="callout"><span class="c-label check">Checkpoint</span><p><code>sudo sshd -t</code> ไม่มี error, <code>nmap --script ssh-auth-methods</code> เหลือแค่ <code>publickey</code> (จะตรวจใน Step 4) และ <code>harden.sh --check</code> บน WSL ได้ <code>FAIL=0</code></p></div>
+</li>
+<li>
+<h4>Step 4: สแกนซ้ำหลัง Hardening และเทียบผลด้วย diff_scans.py</h4>
+<p>หลังแก้ไขแล้วต้องพิสูจน์ด้วยหลักฐานชุดเดียวกับ Baseline ปิด Web server ทดสอบที่เปิดค้างไว้ แล้วสแกนด้วยคำสั่งเดิมทุกตัวอักษร เปลี่ยนแค่ชื่อไฟล์ผลลัพธ์</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/home-lab-assessment
+
+# ปิด http.server ที่เปิดไว้ใน Step 2 (หา PID จากพอร์ต 8000 แล้วส่ง kill)
+kill "$(sudo ss -tlnp | grep ':8000 ' | grep -o 'pid=[0-9]*' | cut -d= -f2)"
+
+nmap -sT -sV -p 22,3000,5000,8000,8080 -oN scans/nmap-after.txt -oG scans/nmap-after.gnmap 127.0.0.1
+nmap -sT -p 22 --script ssh-auth-methods -oN scans/ssh-auth-after.txt 127.0.0.1</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Starting Nmap 7.94SVN ( https://nmap.org ) at 2026-10-22 20:30 +07
+Nmap scan report for localhost (127.0.0.1)
+Host is up (0.00013s latency).
+
+PORT     STATE  SERVICE    VERSION
+22/tcp   open   ssh        OpenSSH 9.6p1 Ubuntu 3ubuntu13.20 (Ubuntu Linux; protocol 2.0)
+3000/tcp closed ppp
+5000/tcp closed upnp
+8000/tcp closed http-alt
+8080/tcp closed http-proxy
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 0.19 seconds
+Starting Nmap 7.94SVN ( https://nmap.org ) at 2026-10-22 20:30 +07
+Nmap scan report for localhost (127.0.0.1)
+Host is up (0.00035s latency).
+
+PORT   STATE SERVICE
+22/tcp open  ssh
+| ssh-auth-methods:
+|   Supported authentication methods:
+|_    publickey
+
+Nmap done: 1 IP address (1 host up) scanned in 0.09 seconds</code></pre>
+<p>หลักฐานสำคัญอยู่ที่ <code>ssh-auth-methods</code> เดิมมี <code>publickey</code> และ <code>password</code> ตอนนี้เหลือ <code>publickey</code> อย่างเดียว แปลว่าการเดารหัสผ่านผ่าน SSH เป็นไปไม่ได้แล้ว ส่วนพอร์ต 8000 เปลี่ยนจาก open เป็น closed</p>
+<p>การอ่านไฟล์สองไฟล์ด้วยตาเพื่อหาความต่างทำได้เมื่อมีไม่กี่พอร์ต แต่เมื่อสแกนเป็นประจำ เราต้องให้โปรแกรมเทียบให้ <code>diff_scans.py</code> อ่านไฟล์ <code>-oG</code> แล้วจัดกลุ่มความเปลี่ยนแปลงเป็น NEW OPEN, CLOSED, VERSION และ STILL OPEN และคืน exit code 1 เมื่อพบพอร์ตเปิดใหม่ เพื่อใช้เป็นสัญญาณเตือนใน cron ได้</p>
+<pre class="code" data-env="file" data-label="Python · scans/diff_scans.py"><code class="language-python">"""diff_scans.py — เทียบผล nmap แบบ grepable (-oG) ก่อนและหลัง Hardening"""
+import argparse
+import re
+import sys
+from pathlib import Path
+
+# ตัวอย่างหนึ่งรายการ: 22/open/tcp//ssh//OpenSSH 9.6p1 .../
+PORT_ENTRY = re.compile(r"(\d+)/(\w+)/(\w+)//([^/]*)//([^/]*)/")
+
+
+def parse_gnmap(path: Path) -&gt; dict[str, tuple[str, str, str]]:
+    """คืน dict {"22/tcp": (state, service, version)}"""
+    ports = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("#") or "Ports:" not in line:
+            continue
+        host = line.split()[1]
+        section = line.split("Ports:", 1)[1]
+        for port, state, proto, service, version in PORT_ENTRY.findall(section):
+            ports[f"{host}:{port}/{proto}"] = (state, service, version.strip())
+    return ports
+
+
+def compare(before: dict, after: dict) -&gt; list[tuple[str, str, str]]:
+    """คืนรายการ (port, ชนิดการเปลี่ยนแปลง, รายละเอียด)"""
+    changes = []
+    for key in sorted(set(before) | set(after), key=lambda k: int(k.split(":")[1].split("/")[0])):
+        b = before.get(key, ("absent", "", ""))
+        a = after.get(key, ("absent", "", ""))
+        if b[0] != "open" and a[0] == "open":
+            changes.append((key, "NEW OPEN", f"{a[1]} {a[2]}".strip()))
+        elif b[0] == "open" and a[0] != "open":
+            changes.append((key, "CLOSED", f"เดิมเป็น {b[1]} {b[2]}".strip()))
+        elif b[0] == "open" and a[0] == "open" and b[2] != a[2]:
+            changes.append((key, "VERSION", f"{b[2]} -&gt; {a[2]}"))
+        elif a[0] == "open":
+            changes.append((key, "STILL OPEN", f"{a[1]} {a[2]}".strip()))
+    return changes
+
+
+def main(argv=None) -&gt; int:
+    parser = argparse.ArgumentParser(description="เทียบผล nmap -oG สองไฟล์")
+    parser.add_argument("before", type=Path)
+    parser.add_argument("after", type=Path)
+    args = parser.parse_args(argv)
+    changes = compare(parse_gnmap(args.before), parse_gnmap(args.after))
+    print(f"{'Port':&lt;20}{'Change':&lt;12}Detail")
+    for port, kind, detail in changes:
+        print(f"{port:&lt;20}{kind:&lt;12}{detail}")
+    new_open = sum(1 for _, kind, _ in changes if kind == "NEW OPEN")
+    print(f"\nพอร์ตเปิดใหม่: {new_open}  ปิดไป: {sum(1 for _, k, _ in changes if k == 'CLOSED')}")
+    # คืนค่า 1 ถ้ามีพอร์ตเปิดใหม่ เพื่อใช้เป็นสัญญาณเตือนใน script อัตโนมัติ
+    return 1 if new_open else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/home-lab-assessment/scans
+../.venv/bin/python diff_scans.py nmap-before.gnmap nmap-after.gnmap; echo "exit=$?"
+# ลองสลับลำดับ เพื่อดูว่าโปรแกรมจับพอร์ตที่ "เปิดใหม่" ได้
+../.venv/bin/python diff_scans.py nmap-after.gnmap nmap-before.gnmap; echo "exit=$?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Port                Change      Detail
+127.0.0.1:22/tcp    STILL OPEN  ssh OpenSSH 9.6p1 Ubuntu 3ubuntu13.20 (Ubuntu Linux; protocol 2.0)
+127.0.0.1:8000/tcp  CLOSED      เดิมเป็น http SimpleHTTPServer 0.6 (Python 3.12.3)
+
+พอร์ตเปิดใหม่: 0  ปิดไป: 1
+exit=0
+Port                Change      Detail
+127.0.0.1:22/tcp    STILL OPEN  ssh OpenSSH 9.6p1 Ubuntu 3ubuntu13.20 (Ubuntu Linux; protocol 2.0)
+127.0.0.1:8000/tcp  NEW OPEN    http SimpleHTTPServer 0.6 (Python 3.12.3)
+
+พอร์ตเปิดใหม่: 1  ปิดไป: 0
+exit=1</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>PORT_ENTRY</code></td><td>Regex ที่แยกแต่ละพอร์ตในบรรทัด <code>Ports:</code> ของไฟล์ <code>-oG</code> ออกเป็น port, state, protocol, service และ version</td></tr>
+<tr><td><code>parse_gnmap()</code></td><td>ข้ามบรรทัด comment แล้วเก็บผลเป็น dict ที่ key คือ <code>host:port/proto</code> จึงรองรับการสแกนหลาย host</td></tr>
+<tr><td><code>compare()</code></td><td>รวม key จากทั้งสองไฟล์ เรียงตามเลขพอร์ต แล้วจัดประเภทความเปลี่ยนแปลง พอร์ตที่ closed ทั้งก่อนและหลังจะไม่แสดง</td></tr>
+<tr><td><code>return 1 if new_open else 0</code></td><td>exit code ที่สคริปต์อื่นนำไปตัดสินใจต่อได้ เช่น ส่งแจ้งเตือนเมื่อมีพอร์ตเปิดใหม่</td></tr>
+</tbody></table></div>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>ไฟล์ใน <code>scans/</code> มีครบ 6 ไฟล์ (nmap ก่อน/หลังแบบ .txt และ .gnmap, ssh-auth ก่อน/หลัง) และ <code>diff_scans.py</code> รายงาน 8000 เป็น CLOSED</p></div>
+</li>
+
+<li>
+<h4>Step 5: รัน OWASP Juice Shop บน 127.0.0.1 และบันทึก Web Findings</h4>
+<p>OWASP Juice Shop เป็นเว็บร้านค้าที่ OWASP สร้างให้มีช่องโหว่โดยตั้งใจ เพื่อใช้ฝึกในแล็บ ในโปรเจกต์นี้เราทำงานฝั่งผู้ประเมินแบบ Passive คือสังเกต Response, Header และพฤติกรรมเมื่อเกิด Error แล้วจับคู่กับหมวดของ OWASP Top 10 ไม่มีการส่ง payload โจมตี</p>
+<div class="callout sec"><span class="c-label sec">Security</span><p>ต้องใช้ <code>-p 127.0.0.1:3000:3000</code> เสมอ ถ้าเขียนแค่ <code>-p 3000:3000</code> Docker จะเปิดพอร์ตให้ทุก Interface ทำให้คนในเครือข่ายเดียวกันเข้าแอปที่มีช่องโหว่ของคุณได้ และ Docker ยังเพิ่มกฎ iptables ของตัวเองที่ข้าม ufw ด้วย หยุด container ทุกครั้งที่เลิกฝึก</p></div>
+<p>เราปักหมุด Image ด้วย digest แทน tag <code>latest</code> เพราะ tag เปลี่ยนได้ทุกเมื่อ แต่ digest ชี้ไปที่ Image ชุดเดียวเสมอ คนที่ทำตาม README จะได้ Juice Shop 20.3.0 ตัวเดียวกับที่เราประเมิน ถ้าคุณดึง Image ใหม่กว่านี้ ให้ดู digest และเวอร์ชันของตัวเองด้วยคำสั่งในบล็อกถัดไป แล้วแก้ค่า <code>IMAGE</code> ให้ตรง</p>
+<pre class="code" data-env="file" data-label="Bash · webapp/run-juice-shop.sh"><code class="language-bash">#!/usr/bin/env bash
+# run-juice-shop.sh — รัน OWASP Juice Shop (แอปที่ตั้งใจให้มีช่องโหว่) เฉพาะบน 127.0.0.1
+# ใช้: ./run-juice-shop.sh start | stop | status
+set -euo pipefail
+
+# ปักหมุดด้วย digest เพื่อให้คนอื่นรันได้ image เดียวกันทุกไบต์ (เวอร์ชัน 20.3.0)
+IMAGE="bkimminich/juice-shop@sha256:42843723a7bf4246aa5d63c324978b17ef296ac78434aeddd34c427bfb5853f4"
+NAME="juice-shop"
+
+case "${1:-status}" in
+  start)
+    docker rm -f "$NAME" &gt;/dev/null 2&gt;&amp;1 || true
+    # สำคัญ: 127.0.0.1:3000 ทำให้เข้าถึงได้จากเครื่องนี้เท่านั้น ไม่เปิดสู่ LAN
+    docker run -d --name "$NAME" -p 127.0.0.1:3000:3000 "$IMAGE"
+    echo "รอให้แอปพร้อม..."
+    for _ in $(seq 1 60); do
+      if curl -fs -o /dev/null http://127.0.0.1:3000/; then
+        echo "พร้อมแล้ว: http://127.0.0.1:3000"
+        docker port "$NAME"
+        exit 0
+      fi
+      sleep 1
+    done
+    echo "แอปยังไม่ตอบใน 60 วินาที ดู log ด้วย: docker logs $NAME" &gt;&amp;2
+    exit 1
+    ;;
+  stop)
+    docker rm -f "$NAME"
+    ;;
+  status)
+    docker ps --filter "name=$NAME" --format '{{.Names}}  {{.Status}}  {{.Ports}}'
+    ;;
+  *)
+    echo "ใช้: $0 start | stop | status" &gt;&amp;2
+    exit 1
+    ;;
+esac</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/home-lab-assessment
+
+# ดึง Image ครั้งแรก แล้วดู digest กับเวอร์ชัน
+docker pull bkimminich/juice-shop
+docker image inspect bkimminich/juice-shop --format '{{index .RepoDigests 0}}'
+docker image inspect bkimminich/juice-shop --format '{{index .Config.Labels "org.opencontainers.image.version"}}'
+
+chmod +x webapp/run-juice-shop.sh
+./webapp/run-juice-shop.sh start
+./webapp/run-juice-shop.sh status</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>bkimminich/juice-shop@sha256:42843723a7bf4246aa5d63c324978b17ef296ac78434aeddd34c427bfb5853f4
+20.3.0
+096a3c26d61f7790c2a1ae7b4197bce378f7519b1bfccef4d7e36263570870f5
+รอให้แอปพร้อม...
+พร้อมแล้ว: http://127.0.0.1:3000
+3000/tcp -&gt; 127.0.0.1:3000
+juice-shop  Up 3 seconds  127.0.0.1:3000-&gt;3000/tcp</code></pre>
+<p class="muted small">บรรทัดยาวที่เป็นเลขฐาน 16 คือ Container ID ซึ่งจะไม่ซ้ำกันในแต่ละครั้ง ข้อความระหว่าง <code>docker pull</code> ถูกตัดออกเพื่อความกระชับ บรรทัด <code>3000/tcp -&gt; 127.0.0.1:3000</code> คือหลักฐานว่า bind เฉพาะ localhost</p>
+<p>ต่อไปเขียนตัวตรวจ Security Headers ที่ยอมทำงานกับ localhost เท่านั้น การใส่ Allowlist ในเครื่องมือเป็นนิสัยที่ดี เพราะกันไม่ให้คุณ (หรือคนที่ fork repository ไป) ชี้เครื่องมือไปที่เว็บของคนอื่นโดยไม่ตั้งใจ</p>
+<pre class="code" data-env="file" data-label="Python · webapp/check_headers.py"><code class="language-python">"""check_headers.py — ตรวจ Security Headers ของเว็บในแล็บตัวเอง (อนุญาตเฉพาะ localhost)"""
+import sys
+import urllib.error
+import urllib.request
+from urllib.parse import urlparse
+
+ALLOWED_HOSTS = {"127.0.0.1", "localhost", "::1"}
+# header ที่ควรมี และคำแนะนำสั้น ๆ
+EXPECTED = {
+    "Content-Security-Policy": "จำกัดแหล่งที่โหลด script ได้ ลดผลกระทบของ XSS",
+    "Strict-Transport-Security": "บังคับใช้ HTTPS (มีผลเมื่อให้บริการผ่าน HTTPS)",
+    "X-Content-Type-Options": "ควรเป็น nosniff",
+    "X-Frame-Options": "กัน Clickjacking (DENY หรือ SAMEORIGIN)",
+    "Referrer-Policy": "ลดข้อมูล URL ที่รั่วไปเว็บอื่น",
+}
+
+
+def main(url: str) -&gt; int:
+    host = urlparse(url).hostname
+    if host not in ALLOWED_HOSTS:
+        print(f"ปฏิเสธ: {host} ไม่ใช่เครื่องในแล็บของคุณ (อนุญาตเฉพาะ {', '.join(sorted(ALLOWED_HOSTS))})")
+        return 2
+    try:
+        with urllib.request.urlopen(url, timeout=5) as resp:
+            headers = resp.headers
+    except urllib.error.URLError as exc:
+        print(f"เชื่อมต่อไม่ได้: {exc.reason}")
+        return 2
+    missing = 0
+    for name, advice in EXPECTED.items():
+        value = headers.get(name)
+        if value:
+            print(f"[OK]      {name}: {value}")
+        else:
+            missing += 1
+            print(f"[MISSING] {name} — {advice}")
+    cors = headers.get("Access-Control-Allow-Origin")
+    if cors == "*":
+        print("[WARN]    Access-Control-Allow-Origin: * — ทุกเว็บอ่าน response ได้")
+    print(f"ขาด {missing} จาก {len(EXPECTED)} headers")
+    return 1 if missing else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1] if len(sys.argv) &gt; 1 else "http://127.0.0.1:3000/"))</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">.venv/bin/python webapp/check_headers.py http://127.0.0.1:3000/; echo "exit=$?"
+# ทดสอบว่า Allowlist ทำงาน: ต้องปฏิเสธโดยไม่ส่ง request ออกไป
+.venv/bin/python webapp/check_headers.py https://example.com/; echo "exit=$?"
+
+# สังเกตพฤติกรรมอื่นแบบ Passive (GET ธรรมดา)
+curl -s http://127.0.0.1:3000/ftp | grep -o 'href="[^"]*"' | head -6
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/rest/does-not-exist
+curl -s http://127.0.0.1:3000/rest/does-not-exist | grep -o '&lt;h2&gt;.*&lt;/h2&gt;'
+curl -s http://127.0.0.1:3000/rest/admin/application-version; echo</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[MISSING] Content-Security-Policy — จำกัดแหล่งที่โหลด script ได้ ลดผลกระทบของ XSS
+[MISSING] Strict-Transport-Security — บังคับใช้ HTTPS (มีผลเมื่อให้บริการผ่าน HTTPS)
+[OK]      X-Content-Type-Options: nosniff
+[OK]      X-Frame-Options: SAMEORIGIN
+[MISSING] Referrer-Policy — ลดข้อมูล URL ที่รั่วไปเว็บอื่น
+[WARN]    Access-Control-Allow-Origin: * — ทุกเว็บอ่าน response ได้
+ขาด 3 จาก 5 headers
+exit=1
+ปฏิเสธ: example.com ไม่ใช่เครื่องในแล็บของคุณ (อนุญาตเฉพาะ 127.0.0.1, ::1, localhost)
+exit=2
+href="."
+href="ftp"
+href="ftp/quarantine"
+href="ftp/acquisitions.md"
+href="ftp/announcement_encrypted.md"
+href="ftp/coupons_2013.md.bak"
+500
+&lt;h2&gt;&lt;em&gt;500&lt;/em&gt; Error: Unexpected path: /rest/does-not-exist&lt;/h2&gt;
+{"version":"20.3.0"}</code></pre>
+<p>สรุปสิ่งที่สังเกตได้ลงไฟล์ <code>findings.md</code> โดยระบุหลักฐานเป็นคำสั่งที่คนอื่นรันซ้ำได้ หมวดในตารางอ้างอิง OWASP Top 10 ฉบับ 2025 ก่อนนำไปใช้ในงานจริงให้ตรวจรายการล่าสุดที่ <a href="https://owasp.org/Top10/" target="_blank" rel="noopener">owasp.org/Top10</a> เสมอ</p>
+<pre class="code" data-env="file" data-label="Markdown · webapp/findings.md"><code class="language-markdown"># Web Findings: OWASP Juice Shop 20.3.0 (127.0.0.1:3000)
+
+ขอบเขต: container `juice-shop` บนเครื่อง lab-ubuntu ของ somchai เท่านั้น
+วิธีการ: สังเกตแบบ Passive ด้วย `curl` และ `check_headers.py` ไม่มีการโจมตีหรือส่ง payload
+อ้างอิง: OWASP Top 10:2025 (ตรวจรายการล่าสุดที่ https://owasp.org/Top10/ ก่อนอ้างอิง)
+
+| ID | สิ่งที่พบ | หลักฐาน | OWASP Top 10:2025 | ระดับ |
+|---|---|---|---|---|
+| W-01 | เปิด Directory listing ที่ /ftp มีไฟล์สำรอง .bak และ .kdbx | `curl -s http://127.0.0.1:3000/ftp` แสดงรายชื่อไฟล์ | A01 Broken Access Control | High |
+| W-02 | ไม่มี Content-Security-Policy, Strict-Transport-Security, Referrer-Policy และตั้ง Access-Control-Allow-Origin: * | `check_headers.py` รายงาน MISSING 3 รายการ | A02 Security Misconfiguration | Medium |
+| W-03 | หน้า Error 500 แสดง Stack trace และ path ภายใน /juice-shop/build/... | `curl -s http://127.0.0.1:3000/rest/does-not-exist` | A10 Mishandling of Exceptional Conditions | Medium |
+| W-04 | Endpoint บอกเวอร์ชันแอปโดยไม่ต้อง login | `curl -s http://127.0.0.1:3000/rest/admin/application-version` ได้ `{"version":"20.3.0"}` | A02 Security Misconfiguration | Low |
+
+หมายเหตุ: Juice Shop ตั้งใจมีช่องโหว่เพื่อการฝึก สถานะทุกข้อจึงเป็น "Accepted (lab only)"
+และต้อง bind ที่ 127.0.0.1 เสมอ หยุด container ทันทีเมื่อไม่ได้ฝึก</code></pre>
+<div class="callout"><span class="c-label tip">Tip</span><p>Juice Shop มีหน้า Score Board และคู่มือทางการ "Pwning OWASP Juice Shop" ที่ <a href="https://help.owasp-juice.shop" target="_blank" rel="noopener">help.owasp-juice.shop</a> ถ้าอยากฝึกโจทย์ต่อ ให้ทำกับ container บน 127.0.0.1 ของคุณเท่านั้น และบันทึกวิธีแก้ (Fix) ของแต่ละโจทย์ลงรายงานด้วย ไม่ใช่แค่วิธีทำให้ผ่าน</p></div>
+<div class="callout"><span class="c-label check">Checkpoint</span><p><code>docker port juice-shop</code> แสดง <code>127.0.0.1:3000</code>, <code>check_headers.py</code> ปฏิเสธ example.com และ <code>findings.md</code> มี 4 Findings พร้อมหลักฐานครบ</p></div>
+</li>
+<li>
+<h4>Step 6: เขียน log_analyzer.py ตรวจจับ SSH Brute-force</h4>
+<p>Hardening ช่วยลดโอกาสถูกโจมตี แต่ไม่ได้บอกว่า "เคยถูกโจมตีหรือยัง" งานของ Blue Team จึงต้องมี Detection ควบคู่เสมอ โปรแกรมนี้อ่าน <code>auth.log</code> แล้วใช้กฎที่เรียนในแนวคิดที่ 11:</p>
+<ul>
+<li>IP เดียวกันมี <code>Failed password</code> ตั้งแต่ 5 ครั้งภายใน 10 นาที (Sliding window) ให้สร้าง Alert ระดับ MEDIUM</li>
+<li>ถ้า IP นั้น <code>Accepted</code> ได้ภายหลัง ให้ยกระดับเป็น HIGH เพราะแปลว่าการเดารหัสผ่านอาจสำเร็จ</li>
+<li>ถ้ามีบัญชีใหม่ถูกสร้างหลัง login สำเร็จ ให้แนบชื่อบัญชีไปกับ Alert เพื่อให้ผู้ตรวจสอบ (Analyst) สืบต่อ</li>
+<li>รองรับ timestamp ทั้งแบบ RFC 3339 ของ Ubuntu 24.04 และแบบ classic <code>Oct 20 02:14:07</code> และแปลงทุกค่าเป็น datetime แบบมี timezone เพื่อไม่ให้เกิด <code>TypeError: can't compare offset-naive and offset-aware datetimes</code></li>
+</ul>
+<div class="callout sec"><span class="c-label sec">Security</span><p>โปรแกรมนี้อ่าน log อย่างเดียว ไม่เชื่อมต่อเครื่องใด และเราไม่เขียนเครื่องมือเดารหัสผ่านเพื่อสร้าง log ข้อมูลทดสอบทั้งหมดมาจากไฟล์จำลองใน Step 1</p></div>
+<pre class="code" data-env="file" data-label="Python · detector/log_analyzer.py"><code class="language-python">"""log_analyzer.py — ตรวจจับรูปแบบ SSH Brute-force จากไฟล์ auth.log (ฝั่งผู้ป้องกันเท่านั้น)
+
+ใช้ได้กับ timestamp 2 แบบ:
+  - RFC 3339 ของ Ubuntu 24.04: 2026-10-20T02:14:07.512345+07:00 lab-ubuntu sshd[2211]: ...
+  - แบบดั้งเดิม (classic):      Oct 20 02:14:07 lab-ubuntu sshd[2211]: ...
+ใช้แค่ Standard Library ของ Python 3.12+
+"""
+import argparse
+import json
+import re
+import sys
+from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+# ส่วนหัวของบรรทัด: timestamp + hostname + ชื่อโปรแกรม[pid]:
+RFC3339_HEAD = re.compile(
+    r"^(?P&lt;ts&gt;\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}))\s+"
+    r"(?P&lt;host&gt;\S+)\s+(?P&lt;prog&gt;[\w.-]+)(?:\[\d+\])?:\s+(?P&lt;msg&gt;.*)$"
+)
+CLASSIC_HEAD = re.compile(
+    r"^(?P&lt;ts&gt;[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+"
+    r"(?P&lt;host&gt;\S+)\s+(?P&lt;prog&gt;[\w.-]+)(?:\[\d+\])?:\s+(?P&lt;msg&gt;.*)$"
+)
+
+# ข้อความที่เราสนใจ (แยกตามชนิดของเหตุการณ์)
+FAILED = re.compile(r"^Failed password for (?:invalid user )?(?P&lt;user&gt;\S+) from (?P&lt;ip&gt;\S+) port \d+")
+INVALID = re.compile(r"^Invalid user (?P&lt;user&gt;\S+) from (?P&lt;ip&gt;\S+) port \d+")
+ACCEPTED = re.compile(r"^Accepted (?P&lt;method&gt;publickey|password) for (?P&lt;user&gt;\S+) from (?P&lt;ip&gt;\S+) port \d+")
+NEW_USER = re.compile(r"^new user: name=(?P&lt;user&gt;[^,]+),")
+
+
+@dataclass
+class Event:
+    ts: datetime          # เวลาแบบมี timezone เสมอ (timezone-aware)
+    kind: str             # failed / invalid_user / accepted / new_user
+    user: str
+    ip: str = ""
+    method: str = ""
+
+
+@dataclass
+class Alert:
+    ip: str
+    severity: str
+    rule: str
+    first_seen: datetime
+    triggered_at: datetime
+    last_seen: datetime
+    failures: int
+    users: list = field(default_factory=list)
+    success_after: str = ""   # เวลาที่ login สำเร็จหลังจากถูกเดารหัส (ถ้ามี)
+    success_user: str = ""
+    new_users_after: list = field(default_factory=list)
+
+    def to_dict(self) -&gt; dict:
+        return {
+            "ip": self.ip,
+            "severity": self.severity,
+            "rule": self.rule,
+            "first_seen": self.first_seen.isoformat(),
+            "triggered_at": self.triggered_at.isoformat(),
+            "last_seen": self.last_seen.isoformat(),
+            "failures": self.failures,
+            "users": self.users,
+            "success_after": self.success_after,
+            "success_user": self.success_user,
+            "new_users_after": self.new_users_after,
+        }
+
+
+def parse_timestamp(head: re.Match, classic: bool, year: int, tz: timezone) -&gt; datetime:
+    """แปลง timestamp ให้เป็น datetime แบบมี timezone เพื่อเทียบกันได้"""
+    raw = head.group("ts")
+    if not classic:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    # แบบ classic ไม่มีปีและไม่มี timezone จึงต้องเติมให้เอง
+    naive = datetime.strptime(f"{year} {' '.join(raw.split())}", "%Y %b %d %H:%M:%S")
+    return naive.replace(tzinfo=tz)
+
+
+def parse_line(line: str, year: int = 2026, tz: timezone = timezone(timedelta(hours=7))) -&gt; Event | None:
+    """แปลง 1 บรรทัดเป็น Event หรือคืน None ถ้าไม่ใช่บรรทัดที่สนใจ"""
+    line = line.strip()
+    head = RFC3339_HEAD.match(line)
+    classic = False
+    if head is None:
+        head = CLASSIC_HEAD.match(line)
+        classic = True
+    if head is None:
+        return None
+    ts = parse_timestamp(head, classic, year, tz)
+    msg = head.group("msg")
+    if m := FAILED.match(msg):
+        return Event(ts, "failed", m["user"], m["ip"])
+    if m := INVALID.match(msg):
+        return Event(ts, "invalid_user", m["user"], m["ip"])
+    if m := ACCEPTED.match(msg):
+        return Event(ts, "accepted", m["user"], m["ip"], m["method"])
+    if m := NEW_USER.match(msg):
+        return Event(ts, "new_user", m["user"])
+    return None
+
+
+def load_events(path: Path, year: int = 2026) -&gt; list[Event]:
+    """อ่านไฟล์ log ทั้งไฟล์ แล้วเรียง Event ตามเวลา"""
+    events = []
+    with path.open(encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            event = parse_line(line, year=year)
+            if event is not None:
+                events.append(event)
+    return sorted(events, key=lambda e: e.ts)
+
+
+def detect(events: list[Event], threshold: int = 5, window_minutes: int = 10) -&gt; list[Alert]:
+    """กฎ: IP เดียวกัน Failed password &gt;= threshold ครั้งภายใน window นาที (Sliding Window)
+    ถ้า IP นั้น login สำเร็จภายหลัง ให้ยกระดับเป็น HIGH ไม่เช่นนั้นเป็น MEDIUM"""
+    window = timedelta(minutes=window_minutes)
+    recent: dict[str, deque] = defaultdict(deque)   # เวลาที่ล้มเหลวล่าสุดของแต่ละ IP
+    alerts: dict[str, Alert] = {}
+    users: dict[str, set] = defaultdict(set)
+    total_fail: dict[str, int] = defaultdict(int)
+    first_fail: dict[str, datetime] = {}
+    last_fail: dict[str, datetime] = {}
+
+    for ev in events:
+        if ev.kind != "failed":
+            continue
+        q = recent[ev.ip]
+        q.append(ev.ts)
+        # ตัดเหตุการณ์ที่เก่ากว่าหน้าต่างเวลาทิ้ง
+        while q and ev.ts - q[0] &gt; window:
+            q.popleft()
+        users[ev.ip].add(ev.user)
+        total_fail[ev.ip] += 1
+        first_fail.setdefault(ev.ip, ev.ts)
+        last_fail[ev.ip] = ev.ts
+        if len(q) &gt;= threshold and ev.ip not in alerts:
+            alerts[ev.ip] = Alert(
+                ip=ev.ip, severity="MEDIUM", rule=f"&gt;={threshold} failures/{window_minutes}m",
+                first_seen=first_fail[ev.ip], triggered_at=ev.ts, last_seen=ev.ts, failures=0,
+            )
+
+    # เติมข้อมูลสรุป และหา login สำเร็จที่ตามมาหลังการแจ้งเตือน
+    for ip, alert in alerts.items():
+        alert.failures = total_fail[ip]
+        alert.last_seen = last_fail[ip]
+        alert.users = sorted(users[ip])
+        for ev in events:
+            if ev.kind == "accepted" and ev.ip == ip and ev.ts &gt;= alert.triggered_at:
+                alert.severity = "HIGH"
+                alert.success_after = ev.ts.isoformat()
+                alert.success_user = ev.user
+                # บัญชีใหม่ที่ถูกสร้างหลัง login สำเร็จ เป็นสัญญาณอันตรายที่ต้องสืบต่อ
+                alert.new_users_after = [
+                    e.user for e in events if e.kind == "new_user" and e.ts &gt;= ev.ts
+                ]
+                break
+    order = {"HIGH": 0, "MEDIUM": 1}
+    return sorted(alerts.values(), key=lambda a: (order[a.severity], a.first_seen))
+
+
+def summarize(events: list[Event]) -&gt; dict[str, dict]:
+    """นับจำนวนเหตุการณ์ต่อ IP สำหรับตารางสรุป"""
+    table: dict[str, dict] = defaultdict(lambda: {"failed": 0, "invalid_user": 0, "accepted": 0})
+    for ev in events:
+        if ev.ip and ev.kind in ("failed", "invalid_user", "accepted"):
+            table[ev.ip][ev.kind] += 1
+    return dict(table)
+
+
+def to_markdown(alerts: list[Alert], summary: dict[str, dict], source: str) -&gt; str:
+    """สร้างรายงาน Markdown สำหรับแนบใน findings report"""
+    lines = ["# SSH Detection Report", "", f"Source: `{source}`", "",
+             "| IP | Failed | Invalid user | Accepted |", "|---|---:|---:|---:|"]
+    for ip, c in sorted(summary.items()):
+        lines.append(f"| {ip} | {c['failed']} | {c['invalid_user']} | {c['accepted']} |")
+    lines += ["", "## Alerts", ""]
+    if not alerts:
+        lines.append("ไม่พบ Alert")
+    for a in alerts:
+        lines.append(f"- **{a.severity}** `{a.ip}` {a.failures} failures "
+                     f"({a.first_seen.isoformat()} → {a.last_seen.isoformat()}), users: {', '.join(a.users)}")
+        if a.success_after:
+            lines.append(f"  - Login สำเร็จเป็น `{a.success_user}` เวลา {a.success_after}")
+        if a.new_users_after:
+            lines.append(f"  - บัญชีใหม่หลัง login: {', '.join(a.new_users_after)}")
+    return "\n".join(lines) + "\n"
+
+
+def main(argv: list[str] | None = None) -&gt; int:
+    parser = argparse.ArgumentParser(description="ตรวจจับ SSH brute-force จาก auth.log")
+    parser.add_argument("logfile", type=Path)
+    parser.add_argument("--threshold", type=int, default=5, help="จำนวนครั้งที่ล้มเหลว (ค่าเริ่มต้น 5)")
+    parser.add_argument("--window", type=int, default=10, help="หน้าต่างเวลาเป็นนาที (ค่าเริ่มต้น 10)")
+    parser.add_argument("--year", type=int, default=datetime.now().year, help="ปีสำหรับ log แบบ classic")
+    parser.add_argument("--json-out", type=Path, default=Path("alerts.json"))
+    parser.add_argument("--md-out", type=Path, default=Path("alerts.md"))
+    args = parser.parse_args(argv)
+
+    if not args.logfile.is_file():
+        print(f"ERROR: ไม่พบไฟล์ {args.logfile}", file=sys.stderr)
+        return 2
+
+    events = load_events(args.logfile, year=args.year)
+    alerts = detect(events, args.threshold, args.window)
+    summary = summarize(events)
+
+    print(f"อ่าน {len(events)} เหตุการณ์จาก {args.logfile}")
+    print(f"{'IP':&lt;16}{'Failed':&gt;8}{'Invalid':&gt;9}{'Accepted':&gt;10}")
+    for ip, c in sorted(summary.items()):
+        print(f"{ip:&lt;16}{c['failed']:&gt;8}{c['invalid_user']:&gt;9}{c['accepted']:&gt;10}")
+    print(f"\nAlerts: {len(alerts)}")
+    for a in alerts:
+        extra = f" -&gt; login สำเร็จเป็น {a.success_user}" if a.success_user else ""
+        print(f"[{a.severity}] {a.ip} failures={a.failures} users={','.join(a.users)}{extra}")
+        if a.new_users_after:
+            print(f"         บัญชีใหม่หลัง login: {', '.join(a.new_users_after)}")
+
+    args.json_out.write_text(json.dumps([a.to_dict() for a in alerts], ensure_ascii=False, indent=2) + "\n",
+                             encoding="utf-8")
+    args.md_out.write_text(to_markdown(alerts, summary, str(args.logfile)), encoding="utf-8")
+    print(f"\nเขียน {args.json_out} และ {args.md_out} แล้ว")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/home-lab-assessment
+.venv/bin/python detector/log_analyzer.py detector/sample/auth.log \
+    --json-out report/alerts.json --md-out report/alerts.md
+cat report/alerts.json</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>อ่าน 31 เหตุการณ์จาก detector/sample/auth.log
+IP                Failed  Invalid  Accepted
+192.0.2.10             0        0         2
+198.51.100.23          3        0         0
+203.0.113.45          18        6         1
+
+Alerts: 1
+[HIGH] 203.0.113.45 failures=18 users=admin,root,test -&gt; login สำเร็จเป็น test
+         บัญชีใหม่หลัง login: backup2
+
+เขียน report/alerts.json และ report/alerts.md แล้ว
+[
+  {
+    "ip": "203.0.113.45",
+    "severity": "HIGH",
+    "rule": "&gt;=5 failures/10m",
+    "first_seen": "2026-10-20T02:14:07.508909+07:00",
+    "triggered_at": "2026-10-20T02:15:40.603937+07:00",
+    "last_seen": "2026-10-20T02:30:15.912778+07:00",
+    "failures": 18,
+    "users": [
+      "admin",
+      "root",
+      "test"
+    ],
+    "success_after": "2026-10-20T02:31:40.512345+07:00",
+    "success_user": "test",
+    "new_users_after": [
+      "backup2"
+    ]
+  }
+]</code></pre>
+<p>ลองลด threshold เหลือ 3 ครั้ง แล้วดูว่า <code>198.51.100.23</code> ที่เคยต่ำกว่าเกณฑ์ถูกจับเป็น MEDIUM นี่คือการปรับจูนกฎ (Tuning) ที่ต้องชั่งระหว่าง False Positive กับ False Negative</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">.venv/bin/python detector/log_analyzer.py detector/sample/auth.log --threshold 3 --json-out /tmp/a.json --md-out /tmp/a.md | sed -n '7,10p'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Alerts: 2
+[HIGH] 203.0.113.45 failures=18 users=admin,root,test -&gt; login สำเร็จเป็น test
+         บัญชีใหม่หลัง login: backup2
+[MEDIUM] 198.51.100.23 failures=3 users=root</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>RFC3339_HEAD</code> / <code>CLASSIC_HEAD</code></td><td>Regex แยกส่วนหัวของบรรทัด log สองรูปแบบ ได้ timestamp, hostname, ชื่อโปรแกรม และข้อความ</td></tr>
+<tr><td><code>FAILED</code>, <code>INVALID</code>, <code>ACCEPTED</code>, <code>NEW_USER</code></td><td>Regex ของข้อความแต่ละชนิด <code>(?:invalid user )?</code> ทำให้จับได้ทั้งผู้ใช้ที่มีอยู่และไม่มีอยู่ในระบบ</td></tr>
+<tr><td><code>@dataclass Event</code> / <code>Alert</code></td><td>โครงสร้างข้อมูลที่อ่านง่ายกว่า dict และ <code>to_dict()</code> แปลงเป็น JSON ได้ตรงรูปแบบ</td></tr>
+<tr><td><code>parse_timestamp()</code></td><td>RFC 3339 ใช้ <code>fromisoformat</code> ได้เลย ส่วนแบบ classic ต้องเติมปีและ timezone เอง (ค่าเริ่มต้น +07:00)</td></tr>
+<tr><td><code>if m := FAILED.match(msg)</code></td><td>Walrus operator ทำให้ match และเก็บผลในบรรทัดเดียว ใช้ได้ตั้งแต่ Python 3.8</td></tr>
+<tr><td><code>recent[ev.ip]</code> (deque)</td><td>คิวเวลาที่ล้มเหลวของแต่ละ IP ตัดตัวที่เก่ากว่าหน้าต่างทิ้งด้วย <code>popleft()</code> ความยาวคิวคือจำนวนครั้งในหน้าต่างปัจจุบัน</td></tr>
+<tr><td><code>ev.ip not in alerts</code></td><td>สร้าง Alert เพียงครั้งเดียวต่อ IP แล้วอัปเดตสรุปภายหลัง กันไม่ให้ Analyst ได้ Alert ซ้ำ 14 ใบจากเหตุการณ์เดียว (Alert fatigue)</td></tr>
+<tr><td><code>ev.ts &gt;= alert.triggered_at</code></td><td>นับเฉพาะ login สำเร็จที่เกิดหลังกฎทำงาน เป็นตรรกะ "ล้มเหลวหลายครั้งแล้วสำเร็จ"</td></tr>
+<tr><td><code>main()</code> คืน 2 เมื่อไม่พบไฟล์</td><td>exit code ที่ต่างกันช่วยให้สคริปต์อื่นแยกได้ว่า "ไม่มี Alert" กับ "รันไม่สำเร็จ"</td></tr>
+</tbody></table></div>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>ได้ Alert ระดับ HIGH 1 รายการสำหรับ <code>203.0.113.45</code> พร้อมชื่อบัญชี <code>backup2</code> และไฟล์ <code>report/alerts.md</code> มีตารางสรุป 3 IP</p></div>
+</li>
+
+<li>
+<h4>Step 7: เขียน Tests และสคริปต์ตรวจรวม verify.sh</h4>
+<p>Detection ที่ไม่มี Test เปรียบเหมือนสัญญาณกันขโมยที่ไม่เคยลองกด ทุกครั้งที่แก้ Regex คุณอาจทำให้กฎเดิมพังโดยไม่รู้ตัว Test ชุดนี้ครอบคลุมการแปลงบรรทัดทั้งสองรูปแบบ กรณีที่ต้องเตือนและไม่ต้องเตือน ขอบของหน้าต่างเวลา และพฤติกรรมของ CLI</p>
+<pre class="code" data-env="file" data-label="Python · detector/tests/test_log_analyzer.py"><code class="language-python">"""ทดสอบ log_analyzer.py ด้วย pytest"""
+import json
+import sys
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+# ให้ import log_analyzer ได้ แม้รัน pytest จากโฟลเดอร์ใดก็ตาม
+DETECTOR_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(DETECTOR_DIR))
+
+import log_analyzer as la  # noqa: E402
+
+SAMPLE = DETECTOR_DIR / "sample" / "auth.log"
+TZ = timezone(timedelta(hours=7))
+
+
+def test_parse_rfc3339_failed_line():
+    line = ("2026-10-20T02:14:07.508909+07:00 lab-ubuntu sshd[2211]: "
+            "Failed password for invalid user admin from 203.0.113.45 port 51234 ssh2")
+    ev = la.parse_line(line)
+    assert ev.kind == "failed"
+    assert ev.user == "admin"
+    assert ev.ip == "203.0.113.45"
+    assert ev.ts.tzinfo is not None
+
+
+def test_parse_classic_format_line():
+    line = "Oct 20 02:14:07 lab-ubuntu sshd[2211]: Failed password for root from 203.0.113.45 port 51268 ssh2"
+    ev = la.parse_line(line, year=2026, tz=TZ)
+    assert ev.kind == "failed"
+    assert ev.user == "root"
+    assert ev.ts == datetime(2026, 10, 20, 2, 14, 7, tzinfo=TZ)
+
+
+def test_irrelevant_line_is_ignored():
+    line = "2026-10-20T02:10:12.004211+07:00 lab-ubuntu sshd[2190]: Connection closed by 203.0.113.45 port 51190 [preauth]"
+    assert la.parse_line(line) is None
+    assert la.parse_line("") is None
+
+
+def test_sample_attacker_is_high_with_followup_user():
+    alerts = la.detect(la.load_events(SAMPLE))
+    by_ip = {a.ip: a for a in alerts}
+    assert "203.0.113.45" in by_ip
+    alert = by_ip["203.0.113.45"]
+    assert alert.severity == "HIGH"
+    assert alert.success_user == "test"
+    assert alert.new_users_after == ["backup2"]
+    assert set(alert.users) == {"admin", "root", "test"}
+
+
+def test_below_threshold_ip_has_no_alert():
+    alerts = la.detect(la.load_events(SAMPLE))
+    assert "198.51.100.23" not in {a.ip for a in alerts}
+    # somchai ที่ใช้ publickey จากเครือข่ายผู้ดูแลต้องไม่ถูกแจ้งเตือน
+    assert "192.0.2.10" not in {a.ip for a in alerts}
+
+
+def test_failures_spread_beyond_window_do_not_alert():
+    base = datetime(2026, 10, 20, 1, 0, tzinfo=TZ)
+    # ล้มเหลว 5 ครั้ง แต่ห่างกันครั้งละ 4 นาที รวม 16 นาที เกินหน้าต่าง 10 นาที
+    events = [la.Event(base + timedelta(minutes=4 * i), "failed", "root", "198.51.100.77") for i in range(5)]
+    assert la.detect(events, threshold=5, window_minutes=10) == []
+    # ถ้าขยายหน้าต่างเป็น 20 นาที ต้องแจ้งเตือนระดับ MEDIUM (ไม่มี login สำเร็จตามมา)
+    alerts = la.detect(events, threshold=5, window_minutes=20)
+    assert [a.severity for a in alerts] == ["MEDIUM"]
+
+
+def test_cli_writes_json_and_markdown(tmp_path):
+    json_out = tmp_path / "alerts.json"
+    md_out = tmp_path / "alerts.md"
+    code = la.main([str(SAMPLE), "--json-out", str(json_out), "--md-out", str(md_out)])
+    assert code == 0
+    data = json.loads(json_out.read_text(encoding="utf-8"))
+    assert data[0]["ip"] == "203.0.113.45"
+    assert data[0]["severity"] == "HIGH"
+    assert "| 198.51.100.23 | 3 | 0 | 0 |" in md_out.read_text(encoding="utf-8")
+
+
+def test_cli_missing_file_returns_2(tmp_path, capsys):
+    code = la.main([str(tmp_path / "nope.log")])
+    assert code == 2
+    assert "ไม่พบไฟล์" in capsys.readouterr().err</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">.venv/bin/python -m pytest -v detector</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0 -- /home/somchai/projects/home-lab-assessment/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/somchai/projects/home-lab-assessment
+plugins: platformdirs-4.13.5
+collecting ... collected 8 items
+
+detector/tests/test_log_analyzer.py::test_parse_rfc3339_failed_line PASSED [ 12%]
+detector/tests/test_log_analyzer.py::test_parse_classic_format_line PASSED [ 25%]
+detector/tests/test_log_analyzer.py::test_irrelevant_line_is_ignored PASSED [ 37%]
+detector/tests/test_log_analyzer.py::test_sample_attacker_is_high_with_followup_user PASSED [ 50%]
+detector/tests/test_log_analyzer.py::test_below_threshold_ip_has_no_alert PASSED [ 62%]
+detector/tests/test_log_analyzer.py::test_failures_spread_beyond_window_do_not_alert PASSED [ 75%]
+detector/tests/test_log_analyzer.py::test_cli_writes_json_and_markdown PASSED [ 87%]
+detector/tests/test_log_analyzer.py::test_cli_missing_file_returns_2 PASSED [100%]
+
+============================== 8 passed in 0.06s ===============================</code></pre>
+<p class="muted small">บรรทัด <code>plugins: platformdirs-...</code> มาจาก platformdirs ซึ่งติดตั้งมาพร้อม pip-audit ใน Step 1 เลขเวอร์ชันของมันและเวลาที่ใช้รันเทสต์บนเครื่องคุณจะต่างจากนี้ได้ ส่วนที่ต้องตรงกันคือชื่อเทสต์ทั้ง 8 ข้อและคำว่า <code>8 passed</code></p>
+<p>จากนั้นรวมทุกการตรวจที่ไม่ต้องใช้ sudo ไว้ในสคริปต์เดียว คนที่ clone repository ของคุณไปจะยืนยันผลได้ภายในไม่กี่วินาที และสคริปต์นี้ใช้เป็นขั้นตอนใน CI (เช่น GitHub Actions) ได้ทันที</p>
+<pre class="code" data-env="file" data-label="Bash · verify.sh"><code class="language-bash">#!/usr/bin/env bash
+# verify.sh — ตรวจทุกส่วนของโปรเจกต์ที่ไม่ต้องใช้ sudo ในคำสั่งเดียว
+set -euo pipefail
+cd "$(dirname "$0")"
+PY=.venv/bin/python
+
+echo "== 1) Unit tests =="
+$PY -m pytest -q detector
+
+echo "== 2) Detection บน sample log =="
+$PY detector/log_analyzer.py detector/sample/auth.log \
+    --json-out report/alerts.json --md-out report/alerts.md | tail -n 4
+
+echo "== 3) เทียบผลสแกน =="
+$PY scans/diff_scans.py scans/nmap-before.gnmap scans/nmap-after.gnmap
+
+echo "== 4) Dependency audit =="
+.venv/bin/pip-audit -r detector/requirements.txt | tee deps/pip-audit-report.txt
+
+echo "ทุกขั้นตอนผ่าน"</code></pre>
+<h5>การตรวจสอบผลรวม (Verification)</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">chmod +x verify.sh
+./verify.sh; echo "exit=$?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>== 1) Unit tests ==
+........                                                                 [100%]
+8 passed in 0.02s
+== 2) Detection บน sample log ==
+[HIGH] 203.0.113.45 failures=18 users=admin,root,test -&gt; login สำเร็จเป็น test
+         บัญชีใหม่หลัง login: backup2
+
+เขียน report/alerts.json และ report/alerts.md แล้ว
+== 3) เทียบผลสแกน ==
+Port                Change      Detail
+127.0.0.1:22/tcp    STILL OPEN  ssh OpenSSH 9.6p1 Ubuntu 3ubuntu13.20 (Ubuntu Linux; protocol 2.0)
+127.0.0.1:8000/tcp  CLOSED      เดิมเป็น http SimpleHTTPServer 0.6 (Python 3.12.3)
+
+พอร์ตเปิดใหม่: 0  ปิดไป: 1
+== 4) Dependency audit ==
+No known vulnerabilities found
+ทุกขั้นตอนผ่าน
+exit=0</code></pre>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>ModuleNotFoundError: No module named 'log_analyzer'</code></td><td>รัน pytest จากโฟลเดอร์อื่นและไม่ได้เพิ่ม path ของ detector</td><td>ไฟล์ test ของเราใส่ <code>sys.path.insert(0, ...)</code> ไว้แล้ว ถ้าย้ายโฟลเดอร์ให้แก้ <code>parents[1]</code> ให้ชี้ถูกที่</td></tr>
+<tr><td><code>TypeError: can't compare offset-naive and offset-aware datetimes</code></td><td>ผสมเวลาที่มี timezone กับไม่มี timezone ใน test หรือใน parser</td><td>สร้าง datetime ทุกตัวด้วย <code>tzinfo=TZ</code> เหมือนใน test</td></tr>
+<tr><td><code>./verify.sh: line 8: .venv/bin/python: No such file or directory</code></td><td>ยังไม่ได้สร้าง venv หรือ clone มาใหม่</td><td>รัน <code>python3 -m venv .venv</code> และติดตั้ง requirements ตาม README</td></tr>
+<tr><td>verify.sh จบกลางทางโดยไม่มีข้อความ "ทุกขั้นตอนผ่าน"</td><td><code>set -e</code> หยุดเมื่อมีคำสั่งคืนค่าไม่ใช่ 0 เช่น <code>diff_scans.py</code> พบพอร์ตเปิดใหม่</td><td>อ่านผลขั้นสุดท้ายที่พิมพ์ออกมา แก้สาเหตุ แล้วรันใหม่ อย่าลบ <code>set -e</code> ทิ้ง</td></tr>
+</tbody></table></div>
+<div class="callout"><span class="c-label check">Checkpoint</span><p><code>./verify.sh</code> จบด้วย <code>ทุกขั้นตอนผ่าน</code> และ <code>exit=0</code></p></div>
+</li>
+
+<li>
+<h4>Step 8: ตรวจ Dependency ด้วย pip-audit</h4>
+<p>โค้ดของเราปลอดภัยแค่ไหนก็ไม่พอ ถ้าไลบรารีที่ใช้มีช่องโหว่ที่รู้จักแล้ว (Known vulnerability) <code>pip-audit</code> เทียบเวอร์ชันใน <code>requirements.txt</code> กับฐานข้อมูลช่องโหว่ของ Python package แล้วบอก ID ของ Advisory และเวอร์ชันที่แก้แล้ว</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cat detector/requirements.txt
+.venv/bin/pip-audit -r detector/requirements.txt | tee deps/pip-audit-report.txt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>pytest==9.1.1
+No known vulnerabilities found</code></pre>
+<p>detector ใช้แค่ Standard Library จึงมี dependency เดียวคือ pytest ผลนี้เป็นของวันที่ทดสอบ (2026-10-22) ฐานข้อมูลช่องโหว่มีรายการใหม่เพิ่มทุกวัน ผลวันหน้าจึงอาจต่างออกไป ให้รันซ้ำก่อนส่งงานทุกครั้ง หรือเพิ่มเป็นงานตามรอบใน CI</p>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ปักหมุดเวอร์ชันทุก dependency (<code>==</code>) เพื่อให้ผล audit ตรงกับสิ่งที่รันจริง</li>
+<li>เมื่อ pip-audit เจอช่องโหว่ ให้ดู Fix Versions แล้วอัปเกรด รัน Test ซ้ำ และบันทึกเป็น Finding ในรายงาน</li>
+<li>ฝั่ง Node.js ใช้ <code>npm audit</code> ฝั่ง Container ใช้เครื่องมือ Image scanning ตามที่ทีมกำหนด</li>
+</ul></div>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>ไฟล์ <code>deps/pip-audit-report.txt</code> มีอยู่ใน repository และระบุผลการตรวจล่าสุด</p></div>
+</li>
+<li>
+<h4>Step 9: เขียนรายงาน Findings แบบมืออาชีพ</h4>
+<p>รายงานคือผลงานที่ผู้บริหารและทีมอื่นได้เห็นจริง ๆ ถ้าคุณทำทุกขั้นได้ดีแต่เขียนรายงานไม่ชัด งานทั้งหมดจะไร้ค่า รายงานที่ดีมีหลักดังนี้:</p>
+<ul>
+<li><strong>Executive Summary</strong> อยู่บนสุด เขียนให้คนที่ไม่ใช่สายเทคนิคอ่านจบใน 1 นาที บอกว่าพบอะไร สำคัญแค่ไหน และแก้แล้วหรือยัง</li>
+<li><strong>Scope and Rules of Engagement</strong> ระบุชัดว่าอะไรอยู่ในขอบเขต อะไรอยู่นอกขอบเขต และใครอนุญาต ในงานจริงส่วนนี้คือสิ่งที่ปกป้องคุณทางกฎหมาย</li>
+<li><strong>Methodology</strong> บอกขั้นตอนและเครื่องมือ เพื่อให้คนอื่นทำซ้ำได้</li>
+<li><strong>Findings</strong> หนึ่งแถวต่อหนึ่งปัญหา มี ID, ระดับความรุนแรง, หลักฐาน (ชื่อไฟล์ที่อยู่ใน repository), คำแนะนำ และสถานะ</li>
+<li><strong>Timeline</strong> เรียงเหตุการณ์ตามเวลา ใช้ข้อมูลจาก <code>alerts.json</code> ตามหลัก Incident Response ของ NIST ช่วง Detection &amp; Analysis</li>
+<li><strong>Lessons Learned</strong> คือช่วง Post-Incident Activity ที่บอกว่าครั้งหน้าจะป้องกันอย่างไร</li>
+</ul>
+<p>ระดับความรุนแรงในรายงานนี้ใช้ช่วงคะแนนของ CVSS (Low 0.1–3.9, Medium 4.0–6.9, High 7.0–8.9, Critical 9.0–10.0) เป็นกรอบ และปรับตามบริบทของแล็บ เช่น ช่องโหว่ใน Juice Shop สถานะเป็น Accepted เพราะเราตั้งใจรันแอปนี้เพื่อฝึก และจำกัดไว้ที่ 127.0.0.1</p>
+<pre class="code" data-env="file" data-label="Markdown · report/findings-report.md"><code class="language-markdown"># Home Lab Security Assessment — lab-ubuntu
+
+| รายการ | ค่า |
+|---|---|
+| ผู้ประเมิน | somchai |
+| วันที่ | 2026-10-22 |
+| เป้าหมาย | lab-ubuntu (Ubuntu 24.04 LTS บน WSL2) และ container juice-shop บน 127.0.0.1 |
+| เวอร์ชันรายงาน | 1.0 |
+
+## 1. Executive Summary
+
+การประเมินเครื่องแล็บของตัวเองพบปัญหา 12 ข้อ (ระบบ 8 ข้อ เว็บ 4 ข้อ)
+ข้อที่สำคัญที่สุดคือ SSH ยอมให้ login ด้วยรหัสผ่าน และ log จำลองแสดงว่า IP 203.0.113.45
+เดารหัสผ่านสำเร็จเป็นผู้ใช้ `test` แล้วสร้างบัญชี `backup2`
+หลัง Hardening ปิดการ login ด้วยรหัสผ่าน เปิด fail2ban, ufw และ Patch อัตโนมัติ
+พอร์ต 8000 ที่เปิดค้างถูกปิด ปัญหาระดับ High ของระบบได้รับการแก้ทั้งหมด
+
+## 2. Scope and Rules of Engagement
+
+- ในขอบเขต: 127.0.0.1 ของ lab-ubuntu, container `juice-shop`, ไฟล์ `detector/sample/auth.log` (ข้อมูลจำลอง)
+- นอกขอบเขต: เครื่องอื่นทุกเครื่อง เครือข่ายของบริษัทหรือผู้อื่น และบริการบนอินเทอร์เน็ต
+- การสแกนทำจาก localhost เท่านั้น ไม่มีการโจมตีแบบ Active ต่อระบบใด
+- ทำตาม พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์ ทุกขั้นตอน
+
+## 3. Methodology
+
+1. Baseline: `harden.sh --check`, `nmap -sT -sV` ต่อ 127.0.0.1, `lynis audit system --quick`
+2. Hardening: `99-hardening.conf`, `jail.local`, `ufw-rules.sh`, unattended-upgrades
+3. Verification: `sshd -t`, `fail2ban-regex`, สแกนซ้ำ และ `diff_scans.py`
+4. Web: สังเกต Juice Shop แบบ Passive ด้วย `curl` และ `check_headers.py`
+5. Detection: `log_analyzer.py` (5 failures / 10 นาที ต่อ IP) และ pytest 8 tests
+6. Dependencies: `pip-audit -r detector/requirements.txt`
+
+## 4. Findings
+
+ระดับความรุนแรงประเมินจากช่วงคะแนน CVSS (Low 0.1–3.9, Medium 4.0–6.9, High 7.0–8.9, Critical 9.0–10.0)
+
+| ID | หัวข้อ | ระดับ | หลักฐาน | คำแนะนำ | สถานะ |
+|---|---|---|---|---|---|
+| F-01 | SSH ยอมรับ PasswordAuthentication | High | `ssh-auth-before.txt`: publickey, password | ใช้ Key อย่างเดียว | Fixed |
+| F-02 | SSH อนุญาต root ด้วย Key และ MaxAuthTries 6 | Medium | `harden.sh --check` ก่อนแก้ | PermitRootLogin no, MaxAuthTries 3 | Fixed |
+| F-03 | บัญชี `test` ถูกเดารหัสผ่านสำเร็จ แล้วมีบัญชีใหม่ `backup2` (log จำลอง) | High | `report/alerts.json` | ลบบัญชีที่ไม่ใช้ ตรวจ backup2 ตาม IR | Fixed (lab) |
+| F-04 | python http.server เปิดที่ 0.0.0.0:8000 | Medium | `scans/nmap-before.txt` | ปิดบริการ หรือ bind 127.0.0.1 | Fixed |
+| F-05 | ไม่มี Host Firewall (ufw inactive) | Medium | `harden.sh --check` | `ufw-rules.sh` | Fixed |
+| F-06 | ไม่มี fail2ban สำหรับ sshd | Medium | `harden.sh --check` | `jail.local` | Fixed |
+| F-07 | ไม่ได้เปิด Patch อัตโนมัติ | Medium | `harden.sh --check` | unattended-upgrades | Fixed |
+| F-08 | X11Forwarding เปิดอยู่ | Low | `harden.sh --check` | X11Forwarding no | Fixed |
+| W-01 ถึง W-04 | ผลจาก Juice Shop | High–Low | `webapp/findings.md` | ดูไฟล์ | Accepted (lab only) |
+
+## 5. Timeline (เวลา +07:00)
+
+| เวลา | เหตุการณ์ |
+|---|---|
+| 2026-10-20 02:10 | 203.0.113.45 เชื่อมต่อแล้วปิดทันที (สำรวจพอร์ต) |
+| 2026-10-20 02:14–02:30 | 203.0.113.45 Failed password 18 ครั้ง ต่อ admin, root, test |
+| 2026-10-20 02:15:40 | กฎ 5 failures / 10 นาที ทำงาน (MEDIUM) |
+| 2026-10-20 02:31:40 | Accepted password for test จาก 203.0.113.45 (ยกระดับเป็น HIGH) |
+| 2026-10-20 02:33:05 | สร้างผู้ใช้ใหม่ backup2 |
+| 2026-10-22 | ประเมิน Hardening สแกนซ้ำ และเขียนรายงานฉบับนี้ |
+
+## 6. Lessons Learned
+
+- ปิด PasswordAuthentication ตั้งแต่วันแรก เมื่อมี Key ที่ใช้งานได้แล้ว
+- ตั้ง Alert ที่ "ล้มเหลวหลายครั้งแล้วสำเร็จ" เพราะสำคัญกว่าการล้มเหลวอย่างเดียว
+- บริการทดสอบต้อง bind ที่ 127.0.0.1 และหยุดทันทีเมื่อเลิกใช้
+- สแกนซ้ำทุกครั้งหลังเปลี่ยน config และเก็บผลไว้เทียบ (`diff_scans.py`)</code></pre>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>Finding F-03 มาจาก log จำลอง ในเหตุการณ์จริง ห้ามรีบลบบัญชี <code>backup2</code> หรือรีบูตเครื่องก่อนเก็บหลักฐาน ตามลำดับของ NIST SP 800-61 ให้แยกเครื่องออกจากเครือข่าย (Containment) คัดลอก log และบันทึก hash ของหลักฐานด้วย <code>sha256sum</code> ก่อน แล้วจึงกำจัดต้นเหตุ (Eradication) และกู้ระบบ (Recovery)</p></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ทุก Finding ต้องชี้ไปที่ไฟล์หลักฐานใน repository ผู้อ่านต้องตรวจเองได้โดยไม่ต้องเชื่อคำพูดของคุณ</li>
+<li>เขียนคำแนะนำเป็นการกระทำที่ทำได้ทันที เช่น "ตั้ง PasswordAuthentication no" ดีกว่า "ปรับปรุงความปลอดภัยของ SSH"</li>
+<li>ใส่วันที่และเวอร์ชันของรายงาน เพราะสภาพระบบเปลี่ยนตลอด รายงานคือภาพ ณ เวลาหนึ่งเท่านั้น</li>
+<li>อย่าใส่รหัสผ่าน, Private key หรือข้อมูลส่วนบุคคลจริงในรายงาน แม้จะเป็นรายงานภายใน</li>
+</ul></div>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>รายงานมีครบ 6 หัวข้อ จำนวน Findings ใน Executive Summary ตรงกับตาราง และทุกแถวมีหลักฐานเป็นชื่อไฟล์ที่มีอยู่จริง</p></div>
+</li>
+
+<li>
+<h4>Step 10: README และ Push ขึ้น GitHub</h4>
+<p>README คือหน้าแรกที่ผู้สัมภาษณ์เห็นเมื่อเปิด repository ของคุณ ต้องตอบ 4 คำถามให้ได้ภายใน 30 วินาที: โปรเจกต์นี้คืออะไร ผลลัพธ์คืออะไร โครงสร้างเป็นอย่างไร และทำซ้ำอย่างไร ใช้ไฟล์นี้เป็น Template ได้เลย แค่แก้ตัวเลขและเวอร์ชันให้ตรงกับงานของคุณ</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Markdown · README.md (Template)"><code class="language-markdown"># Home Lab Security Assessment
+
+การประเมินความปลอดภัยเครื่องแล็บของตัวเอง (Ubuntu 24.04 LTS บน WSL2) ครบวงจร:
+Hardening → Scan ก่อน/หลัง → Web Findings → Detection → Report
+
+&gt; คำเตือน: ทุกอย่างในโปรเจกต์นี้ทำกับเครื่องของผู้เขียนเองบน 127.0.0.1 เท่านั้น
+&gt; ห้ามนำไปใช้กับระบบที่ไม่ได้รับอนุญาต (พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์)
+
+## ผลลัพธ์โดยสรุป
+
+- พบ 12 Findings (High 3, Medium 7, Low 2) รายละเอียดใน [report/findings-report.md](report/findings-report.md)
+- SSH: ปิด password login, ปิด root login, MaxAuthTries 3 (ตรวจด้วย `sshd -t` และ nmap `ssh-auth-methods`)
+- Detector ตรวจพบ IP ที่เดารหัสผ่าน 18 ครั้งแล้ว login สำเร็จ (HIGH) พร้อม 8 unit tests
+
+## โครงสร้าง
+
+| โฟลเดอร์ | เนื้อหา |
+|---|---|
+| `hardening/` | sshd drop-in, fail2ban, ufw และ `harden.sh --check/--apply` |
+| `scans/` | ผล nmap ก่อน/หลัง และ `diff_scans.py` |
+| `webapp/` | สคริปต์รัน OWASP Juice Shop บน 127.0.0.1 และ findings |
+| `detector/` | `log_analyzer.py`, sample log และ tests |
+| `deps/` | ผล pip-audit |
+| `report/` | รายงานฉบับเต็มและ alerts |
+
+## วิธีทำซ้ำ
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r detector/requirements.txt pip-audit==2.10.1
+./verify.sh                       # tests + detection + diff + audit
+sudo ./hardening/harden.sh --check
+./webapp/run-juice-shop.sh start  # เปิดที่ http://127.0.0.1:3000 เท่านั้น
+```
+
+## เครื่องมือที่ใช้
+
+Ubuntu 24.04 LTS, Python 3.12, pytest 9.1.1, pip-audit 2.10.1, OpenSSH 9.6p1,
+ufw 0.36.2, fail2ban 1.0.2, Lynis 3.0.9, nmap 7.94, Docker, OWASP Juice Shop 20.3.0
+
+## สิ่งที่ได้เรียนรู้
+
+ดูหัวข้อ Lessons Learned ใน report และข้อจำกัด: log ที่ใช้เป็นข้อมูลจำลอง</code></pre>
+<p>ก่อน push ทุกครั้ง ให้ตรวจว่าไม่มีไฟล์ที่ไม่ควรเผยแพร่ ไฟล์ Lynis มีรายละเอียดของเครื่องมากเกินไป เราจึงใส่ไว้ใน <code>.gitignore</code> แล้ว ส่วน log ที่ใช้เป็นข้อมูลจำลองที่ใช้ IP ช่วงสำหรับเอกสาร จึงเผยแพร่ได้ ถ้ายังไม่คล่องเรื่อง Git ให้ทบทวนหัวข้อ <a data-t="17"></a></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/home-lab-assessment
+
+# ตรวจว่าไม่มีไฟล์ลับหรือไฟล์ที่ไม่ตั้งใจหลุดเข้ามา
+git status --short
+grep -rInE 'BEGIN (OPENSSH|RSA|EC) PRIVATE KEY|password *=' --exclude-dir=.venv --exclude-dir=.git . || echo "ไม่พบข้อมูลลับ"
+
+git add .
+git commit -m "Home lab security assessment: hardening, scans, detector, report"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ไม่พบข้อมูลลับ
+[main (root-commit) 2eebc85] Home lab security assessment: hardening, scans, detector, report
+ 27 files changed, 947 insertions(+)</code></pre>
+<p class="muted small">ผล <code>git status --short</code> ถูกตัดออกเพราะยาว (แสดงไฟล์ใหม่ 27 บรรทัดที่ขึ้นต้นด้วย <code>??</code>) commit hash, จำนวนไฟล์ และจำนวนบรรทัดของคุณจะต่างจากนี้</p>
+<p>สร้าง repository ว่างชื่อ <code>home-lab-assessment</code> บน GitHub (ไม่ต้องติ๊กสร้าง README เพราะเรามีแล้ว) แล้ว push ด้วย SSH key ที่ตั้งไว้ในหัวข้อ Git</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git remote add origin git@github.com:somchai/home-lab-assessment.git
+git push -u origin main
+
+# เพิ่ม Topic ใน repository เพื่อให้ค้นเจอง่าย (ทำในหน้าเว็บ GitHub ที่ช่อง About)
+# แนะนำ: security, blue-team, hardening, detection, python, home-lab</code></pre>
+<div class="callout"><span class="c-label tip">Tip</span><p>ปักหมุด (Pin) repository นี้ไว้ที่หน้า Profile ของ GitHub และเขียนสรุป 3 บรรทัดใน LinkedIn ว่าคุณประเมินอะไร พบอะไร และแก้อย่างไร ผู้สัมภาษณ์ตำแหน่ง SOC Analyst หรือ Security Engineer ระดับเริ่มต้นมักถามถึงโปรเจกต์แบบนี้โดยตรง</p></div>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>เปิดหน้า repository บน GitHub แล้ว README แสดงผลถูกต้อง ลิงก์ไป <code>report/findings-report.md</code> ใช้ได้ และไม่มีไฟล์ใน <code>.venv/</code> หรือ <code>scans/lynis-*.txt</code> ถูก push ขึ้นไป</p></div>
+</li>
+</ol>
+
+<h4>ข้อผิดพลาดที่พบบ่อยในโปรเจกต์นี้</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>somchai@127.0.0.1: Permission denied (publickey).</code> หลัง reload ssh</td><td>ปิด PasswordAuthentication ก่อนที่ Key จะใช้ได้ หรือสิทธิ์ของ <code>~/.ssh</code> กว้างเกินไป</td><td>ใช้หน้าต่างที่ login ค้างไว้ ตั้ง <code>chmod 700 ~/.ssh</code> และ <code>chmod 600 ~/.ssh/authorized_keys</code> แล้วทดสอบใหม่</td></tr>
+<tr><td><code>/etc/ssh/sshd_config.d/99-hardening.conf: line 3: Bad configuration option: PermitRootLgin</code></td><td>สะกดชื่อ option ผิด sshd ไม่สนตัวพิมพ์เล็กใหญ่ แต่ตัวอักษรที่หายไปหรือเกินมาทำให้ไม่รู้จัก option นั้น</td><td>รัน <code>sudo sshd -t</code> ทุกครั้งก่อน reload แล้วแก้ตามเลขบรรทัดที่แจ้ง</td></tr>
+<tr><td>nmap ยังเห็นพอร์ต 3000 จากเครื่องอื่นในบ้าน</td><td>รัน Docker ด้วย <code>-p 3000:3000</code> ซึ่ง bind ทุก Interface</td><td>ลบ container แล้วรันใหม่ด้วย <code>-p 127.0.0.1:3000:3000</code> (สคริปต์ <code>run-juice-shop.sh</code> ทำให้แล้ว)</td></tr>
+<tr><td><code>docker: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?</code></td><td>Docker Desktop บน Windows ยังไม่เปิด หรือยังไม่เปิด WSL Integration ให้ Ubuntu-24.04</td><td>เปิด Docker Desktop แล้วไปที่ Settings &gt; Resources &gt; WSL Integration เปิดสวิตช์ของ Ubuntu-24.04</td></tr>
+<tr><td><code>ERROR  Failed during configuration: ... have no section</code> จาก fail2ban</td><td>ชื่อ section ใน <code>jail.local</code> พิมพ์ผิดหรือไม่มีวงเล็บเหลี่ยม</td><td>ตรวจว่ามี <code>[DEFAULT]</code> และ <code>[sshd]</code> ครบ แล้วรัน <code>sudo fail2ban-client -t</code> เพื่อทดสอบ config</td></tr>
+</tbody></table></div>
+
+<h4>ไอเดียต่อยอด</h4>
+<ul>
+<li><strong>Detection เพิ่มเติม:</strong> เพิ่มกฎ "login สำเร็จจาก IP ที่ไม่เคยเห็นมาก่อน" และ "สร้างบัญชีใหม่นอกเวลาทำงาน" ลงใน <code>log_analyzer.py</code> พร้อม Test ของแต่ละกฎ แล้วระบุ MITRE ATT&amp;CK Technique ID (เช่น T1110 และ T1136) ในผล JSON</li>
+<li><strong>อ่าน journal โดยตรง:</strong> เพิ่ม option <code>--journal</code> ที่อ่านผลจาก <code>journalctl _COMM=sshd -o short-iso</code> แทนไฟล์ เพื่อใช้กับเครื่องจริงที่ไม่ได้เขียน auth.log</li>
+<li><strong>ส่งออกเป็นรูปแบบ SIEM:</strong> ให้ detector ส่งออก JSON Lines แล้วลองส่งเข้า Wazuh หรือ Elastic ที่รันใน Docker บน 127.0.0.1 แล้วสร้าง Dashboard จาก alerts</li>
+<li><strong>GitHub Actions:</strong> เพิ่ม workflow ที่รัน pytest และ pip-audit ทุกครั้งที่ push แล้วแสดง Badge สถานะใน README</li>
+<li><strong>สแกนตามรอบ:</strong> ตั้ง cron ให้รัน nmap ต่อ 127.0.0.1 ทุกวัน แล้วใช้ exit code ของ <code>diff_scans.py</code> ส่งแจ้งเตือนเมื่อมีพอร์ตเปิดใหม่</li>
+<li><strong>Threat Model:</strong> เพิ่มไฟล์ <code>report/threat-model.md</code> ใช้ STRIDE กับ Juice Shop (Browser → Node.js → Database) และจับคู่แต่ละภัยกับ Finding ที่พบ</li>
+<li><strong>ฝั่ง Windows:</strong> เพิ่มส่วนตรวจเครื่อง Windows ของคุณเองด้วย <code>Get-MpComputerStatus</code>, <code>Get-NetFirewallProfile</code> และสรุป Event ID 4625 จาก <code>Get-WinEvent</code> ลงในรายงานฉบับเดียวกัน</li>
+</ul>
+
+<h3 id="s5-4-cheat">Cheat Sheet</h3>
+<p>รวมคำสั่งที่ใช้บ่อยที่สุดในหัวข้อนี้ แบ่งตามงาน ทุกตัวอย่างที่เกี่ยวกับการสแกนหรือดักข้อมูลใช้กับ <code>127.0.0.1</code> หรือเครื่องของคุณเองเท่านั้น</p>
+
+<h4>ผู้ใช้ สิทธิ์ไฟล์ และ SSH</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>adduser</code> / <code>usermod -aG</code></td><td>สร้างผู้ใช้ใหม่ และเพิ่มเข้ากลุ่มโดยไม่ลบกลุ่มเดิม</td><td><code>sudo usermod -aG sudo somchai</code></td></tr>
+<tr><td><code>passwd -l</code></td><td>ล็อกรหัสผ่านของบัญชีที่ไม่ใช้แล้ว</td><td><code>sudo passwd -l test</code></td></tr>
+<tr><td><code>chmod</code> แบบเลขฐาน 8</td><td>ตั้งสิทธิ์ไฟล์ 600 สำหรับไฟล์ลับ 700 สำหรับโฟลเดอร์ส่วนตัว</td><td><code>chmod 600 ~/.ssh/authorized_keys</code></td></tr>
+<tr><td><code>find -perm -4000</code></td><td>ทำรายการ (Inventory) ไฟล์ SUID เพื่อเทียบกับ Baseline</td><td><code>sudo find / -xdev -perm -4000 -type f</code></td></tr>
+<tr><td><code>ssh-keygen -t ed25519</code></td><td>สร้าง SSH key pair แบบ Ed25519</td><td><code>ssh-keygen -t ed25519 -C 'somchai@lab'</code></td></tr>
+<tr><td><code>sshd -t</code></td><td>ตรวจ syntax ของ config ก่อน reload</td><td><code>sudo sshd -t &amp;&amp; sudo systemctl reload ssh</code></td></tr>
+<tr><td><code>sshd -T</code></td><td>ดูค่าที่มีผลจริงหลังรวมทุกไฟล์</td><td><code>sudo sshd -T | grep -i passwordauthentication</code></td></tr>
+<tr><td><code>lynis audit system</code></td><td>ตรวจ Hardening ทั้งเครื่องและให้คะแนน</td><td><code>sudo lynis audit system --quick</code></td></tr>
+</tbody></table></div>
+
+<h4>Firewall, fail2ban และ Patch</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>ufw default</code></td><td>ตั้งนโยบายเริ่มต้นของขาเข้าและขาออก</td><td><code>sudo ufw default deny incoming</code></td></tr>
+<tr><td><code>ufw limit</code></td><td>อนุญาตแต่จำกัดความถี่การเชื่อมต่อ (6 ครั้งใน 30 วินาที)</td><td><code>sudo ufw limit from 192.0.2.0/24 to any port 22 proto tcp</code></td></tr>
+<tr><td><code>ufw status numbered</code> / <code>ufw delete</code></td><td>ดูกฎพร้อมเลขลำดับ แล้วลบตามเลข</td><td><code>sudo ufw delete 2</code></td></tr>
+<tr><td><code>ufw --dry-run</code></td><td>ดูกฎที่จะเกิดขึ้นโดยไม่เปลี่ยนระบบ</td><td><code>sudo ufw --dry-run default deny incoming</code></td></tr>
+<tr><td><code>fail2ban-regex</code></td><td>ทดสอบ Filter กับไฟล์ log แบบออฟไลน์</td><td><code>fail2ban-regex sample/auth.log /etc/fail2ban/filter.d/sshd.conf</code></td></tr>
+<tr><td><code>fail2ban-client status</code></td><td>ดูสถานะของ jail และ IP ที่ถูกแบน</td><td><code>sudo fail2ban-client status sshd</code></td></tr>
+<tr><td><code>fail2ban-client set ... unbanip</code></td><td>ปลดแบน IP ที่แบนผิด</td><td><code>sudo fail2ban-client set sshd unbanip 192.0.2.10</code></td></tr>
+<tr><td><code>unattended-upgrade --dry-run</code></td><td>ทดสอบว่า Patch อัตโนมัติจะติดตั้งอะไร</td><td><code>sudo unattended-upgrade --dry-run --debug</code></td></tr>
+</tbody></table></div>
+
+<h4>Network ในแล็บของตัวเอง</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>ss -tlnp</code></td><td>ดูพอร์ต TCP ที่ฟังอยู่และโปรเซสเจ้าของ</td><td><code>sudo ss -tlnp</code></td></tr>
+<tr><td><code>nmap -sT</code></td><td>TCP connect scan ไม่ต้องใช้ root</td><td><code>nmap -sT -p 1-10000 127.0.0.1</code></td></tr>
+<tr><td><code>nmap -sV</code></td><td>ถามเวอร์ชันของบริการที่เปิดอยู่</td><td><code>nmap -sV -p 22,8000 127.0.0.1</code></td></tr>
+<tr><td><code>nmap -oN</code> / <code>-oG</code></td><td>บันทึกผลแบบอ่านง่าย และแบบ grepable สำหรับโปรแกรม</td><td><code>nmap -sT -oG scans/after.gnmap 127.0.0.1</code></td></tr>
+<tr><td><code>nmap --script ssh-auth-methods</code></td><td>ดูวิธียืนยันตัวตนที่ SSH server รองรับ</td><td><code>nmap -p 22 --script ssh-auth-methods 127.0.0.1</code></td></tr>
+<tr><td><code>tcpdump -i lo</code></td><td>ดักแพ็กเก็ตบน loopback เพื่อเทียบ HTTP กับ TLS</td><td><code>sudo tcpdump -i lo -nn -A 'tcp port 8000' -c 12</code></td></tr>
+<tr><td><code>docker run -p 127.0.0.1:H:C</code></td><td>เปิดพอร์ตของ container ให้เฉพาะเครื่องนี้</td><td><code>docker run -d -p 127.0.0.1:3000:3000 bkimminich/juice-shop</code></td></tr>
+</tbody></table></div>
+
+<h4>Hashing และ Cryptography</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>sha256sum -c</code></td><td>ตรวจ Integrity ของไฟล์จากไฟล์ checksum</td><td><code>sha256sum -c SHA256SUMS</code></td></tr>
+<tr><td><code>hashlib.sha256()</code></td><td>คำนวณ hash ใน Python (ต้องส่ง bytes)</td><td><code>hashlib.sha256(b"data").hexdigest()</code></td></tr>
+<tr><td><code>secrets.token_hex()</code></td><td>สร้าง Salt หรือ Secret key แบบสุ่มที่ปลอดภัย</td><td><code>python3 -c 'import secrets;print(secrets.token_hex(32))'</code></td></tr>
+<tr><td><code>PasswordHasher()</code> (argon2-cffi)</td><td>Hash รหัสผ่านด้วย Argon2id และตรวจสอบ</td><td><code>ph.verify(stored_hash, password)</code></td></tr>
+<tr><td><code>hmac.compare_digest()</code></td><td>เทียบค่าลับแบบเวลาคงที่ กัน Timing attack</td><td><code>hmac.compare_digest(token_a, token_b)</code></td></tr>
+<tr><td><code>openssl enc -aes-256-cbc -pbkdf2</code></td><td>เข้ารหัสไฟล์แบบ Symmetric (ใช้ในแล็บ)</td><td><code>openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -in secret.enc</code></td></tr>
+<tr><td><code>openssl x509 -noout</code></td><td>อ่านรายละเอียด Certificate: ผู้ออก วันหมดอายุ SAN</td><td><code>openssl x509 -in cert.pem -noout -subject -issuer -dates</code></td></tr>
+<tr><td><code>openssl s_client</code></td><td>ทดสอบ TLS handshake กับบริการในแล็บ</td><td><code>openssl s_client -connect 127.0.0.1:8443 -brief</code></td></tr>
+</tbody></table></div>
+
+<h4>Log, Detection และ Vulnerability Management</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>journalctl -u ssh</code></td><td>ดู log ของบริการ SSH จาก systemd journal</td><td><code>journalctl -u ssh --since '1 hour ago'</code></td></tr>
+<tr><td><code>journalctl _COMM=sshd</code></td><td>กรอง log ตามชื่อโปรแกรม พร้อมเวลาแบบ ISO</td><td><code>journalctl _COMM=sshd -o short-iso</code></td></tr>
+<tr><td><code>grep -c</code> ใน auth.log</td><td>นับจำนวนบรรทัดที่ล้มเหลวอย่างรวดเร็ว</td><td><code>sudo grep -c 'Failed password' /var/log/auth.log</code></td></tr>
+<tr><td><code>log_analyzer.py --threshold --window</code></td><td>ปรับจูนกฎ Brute-force ของ detector ในโปรเจกต์</td><td><code>python log_analyzer.py auth.log --threshold 3 --window 5</code></td></tr>
+<tr><td><code>pip-audit -r</code></td><td>ตรวจช่องโหว่ที่รู้จักแล้วใน dependency ของ Python</td><td><code>pip-audit -r requirements.txt</code></td></tr>
+<tr><td><code>npm audit</code></td><td>ตรวจช่องโหว่ใน dependency ของ Node.js</td><td><code>npm audit --omit=dev</code></td></tr>
+<tr><td>Parameterized query</td><td>ส่งค่าจากผู้ใช้แยกจากคำสั่ง SQL กัน SQL Injection</td><td><code>cur.execute("SELECT * FROM products WHERE name = ?", (name,))</code></td></tr>
+<tr><td><code>@app.after_request</code> (Flask)</td><td>เพิ่ม Security headers ให้ทุก Response</td><td><code>resp.headers["X-Content-Type-Options"] = "nosniff"</code></td></tr>
+</tbody></table></div>
+
+<h4>Windows (PowerShell แบบ Administrator)</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>Get-MpComputerStatus</code></td><td>ดูสถานะ Microsoft Defender และวันที่อัปเดต Signature</td><td><code>Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled,AntivirusSignatureLastUpdated</code></td></tr>
+<tr><td><code>Update-MpSignature</code></td><td>อัปเดต Signature ของ Defender ทันที</td><td><code>Update-MpSignature</code></td></tr>
+<tr><td><code>Get-NetFirewallProfile</code></td><td>ดูว่า Windows Firewall เปิดครบทุก Profile หรือไม่</td><td><code>Get-NetFirewallProfile | Select-Object Name,Enabled,DefaultInboundAction</code></td></tr>
+<tr><td><code>Get-WinEvent -FilterHashtable</code></td><td>ดึง Event การ logon ล้มเหลว (4625) จาก Security log</td><td><code>Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4625} -MaxEvents 10</code></td></tr>
+</tbody></table></div>
+
+<h3 id="s5-4-interview">Interview Questions</h3>
+<p>คำถาม 5 ข้อนี้พบบ่อยในการสัมภาษณ์ตำแหน่ง SOC Analyst, Junior Security Engineer และ Security-minded Developer ข้อ 1–3 เป็นระดับ Junior ข้อ 4–5 เป็นระดับ Mid ลองตอบออกเสียงเองก่อนเปิดดูคำตอบตัวอย่าง และพยายามยกตัวอย่างจาก Mini Project ของคุณทุกครั้งที่ทำได้</p>
+
+<details class="iq"><summary>1. อธิบาย CIA Triad และความต่างระหว่าง Threat, Vulnerability และ Risk พร้อมยกตัวอย่าง</summary><div>
+<p><strong>คำตอบที่ดี:</strong> CIA Triad คือเป้าหมาย 3 ด้านของความปลอดภัยข้อมูล</p>
+<ul>
+<li><strong>Confidentiality</strong> ข้อมูลถูกเห็นเฉพาะคนที่มีสิทธิ์ ตัวอย่างที่ละเมิดคือฐานข้อมูลลูกค้ารั่ว</li>
+<li><strong>Integrity</strong> ข้อมูลไม่ถูกแก้โดยไม่ได้รับอนุญาต ตัวอย่างคือราคาสินค้าถูกแก้จาก 25,000 เป็น 25 บาท</li>
+<li><strong>Availability</strong> ระบบใช้งานได้เมื่อต้องการ ตัวอย่างคือเว็บล่มเพราะ DDoS</li>
+</ul>
+<p>ส่วนอีก 3 คำ: <strong>Vulnerability</strong> คือจุดอ่อน เช่น SSH ที่ยอมรับรหัสผ่าน <strong>Threat</strong> คือสิ่งที่อาจใช้จุดอ่อนนั้น เช่น Bot ที่เดารหัสผ่านอัตโนมัติ <strong>Risk</strong> คือโอกาสและผลกระทบเมื่อทั้งสองมาเจอกัน คำนวณแบบง่ายเป็น Likelihood × Impact</p>
+<p><strong>จุดที่ทำให้คำตอบโดดเด่น:</strong> ยกตัวอย่างจากงานจริง เช่น "ใน Home Lab ของผม SSH ยอมรับรหัสผ่าน (Vulnerability) log แสดง IP ที่เดารหัสผ่าน (Threat) และเดาสำเร็จ จึงเป็น Risk ระดับสูง ผมลด Likelihood ด้วยการปิด PasswordAuthentication และเพิ่ม fail2ban" แล้วปิดท้ายว่าเราลด Risk ได้ด้วยการลด Likelihood หรือ Impact แต่ไม่มีทางทำให้เป็นศูนย์</p>
+</div></details>
+
+<details class="iq"><summary>2. Hashing ต่างจาก Encryption อย่างไร และทำไมการเก็บรหัสผ่านต้องใช้ Argon2id หรือ bcrypt แทน SHA-256</summary><div>
+<p><strong>คำตอบที่ดี:</strong> Hashing เป็นฟังก์ชันทางเดียว ได้ผลยาวคงที่ และย้อนกลับไม่ได้ ใช้ตรวจ Integrity หรือเก็บค่าที่ไม่ต้องอ่านกลับ ส่วน Encryption ย้อนกลับได้ด้วย Key ใช้ปกป้อง Confidentiality ของข้อมูลที่ต้องอ่านกลับ สำหรับ Encoding เช่น Base64 ไม่ใช่ความปลอดภัยเลย เพราะใครก็ถอดกลับได้</p>
+<p>SHA-256 ถูกออกแบบให้ "เร็ว" ถ้าฐานข้อมูลรั่ว ผู้โจมตีจะลองเดารหัสผ่านแบบออฟไลน์ได้หลายพันล้านครั้งต่อวินาทีด้วย GPU Argon2id และ bcrypt ถูกออกแบบให้ "ช้าโดยตั้งใจ" และปรับต้นทุนได้ (Argon2id กินทั้งเวลาและหน่วยความจำ) ทั้งคู่ใส่ Salt แบบสุ่มให้อัตโนมัติ ผู้ใช้สองคนที่ใช้รหัสเดียวกันจึงได้ Hash ต่างกัน และ Rainbow table ใช้ไม่ได้</p>
+<pre class="code" data-env="file" data-label="Python · ตัวอย่างสั้น"><code class="language-python">from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
+
+ph = PasswordHasher()                 # ค่าเริ่มต้นเป็น Argon2id
+stored = ph.hash("correct horse battery staple")
+try:
+    ph.verify(stored, "wrong-password")
+except VerifyMismatchError:
+    print("รหัสผ่านไม่ถูกต้อง")</code></pre>
+<p><strong>จุดที่ทำให้คำตอบโดดเด่น:</strong> พูดถึง <code>check_needs_rehash()</code> สำหรับอัปเกรดพารามิเตอร์ในอนาคต ข้อจำกัด 72 bytes ของ bcrypt และการเสริมด้วย MFA หรือ Passkeys เพราะ Hash ที่ดีแค่ไหนก็ไม่ช่วยถ้าผู้ใช้ถูก Phishing</p>
+</div></details>
+
+<details class="iq"><summary>3. ถ้าได้รับ Ubuntu Server ใหม่ที่ต้องเปิด SSH คุณจะ Harden อะไรบ้าง และเรียงลำดับอย่างไร</summary><div>
+<p><strong>คำตอบที่ดี:</strong> เริ่มจาก Baseline แล้วแก้จากความเสี่ยงสูงไปต่ำ และพิสูจน์ผลทุกขั้น:</p>
+<ol>
+<li>อัปเดตแพ็กเกจทั้งหมด และเปิด unattended-upgrades สำหรับ Security patch</li>
+<li>สร้างผู้ใช้ส่วนตัวที่อยู่ในกลุ่ม sudo ไม่ใช้ root ทำงานประจำวัน</li>
+<li>ตั้ง SSH key แบบ Ed25519 ทดสอบว่า login ได้ แล้วจึงปิด <code>PasswordAuthentication</code> และ <code>PermitRootLogin</code> ผ่านไฟล์ drop-in ตรวจด้วย <code>sshd -t</code> ก่อน reload และเปิด Session สำรองค้างไว้เสมอ</li>
+<li>ตั้ง ufw เป็น default deny incoming แล้วเปิดเฉพาะพอร์ตที่จำเป็น จำกัด SSH ให้มาจากเครือข่ายผู้ดูแล</li>
+<li>เปิด fail2ban สำหรับ sshd พร้อม <code>ignoreip</code> ของเครือข่ายผู้ดูแล</li>
+<li>ตรวจสิทธิ์ไฟล์สำคัญ บัญชี UID 0 และไฟล์ SUID เทียบกับ Baseline</li>
+<li>ตั้ง Logging และ Alert แล้วสแกนซ้ำเพื่อยืนยันว่าไม่มีพอร์ตเกินความจำเป็น</li>
+</ol>
+<p><strong>จุดที่ทำให้คำตอบโดดเด่น:</strong> บอกว่าเก็บ config ทั้งหมดเป็นโค้ดใน Git (Configuration as Code) เพื่อทำซ้ำกับเครื่องถัดไปได้ และอ้างถึงมาตรฐานอย่าง CIS Benchmark หรือผลของ Lynis เป็นตัววัด แทนการพูดว่า "ปลอดภัยแล้ว" แบบไม่มีหลักฐาน</p>
+</div></details>
+
+<details class="iq"><summary>4. คุณเป็น SOC Analyst ได้รับ Alert ว่า IP หนึ่ง login SSH ล้มเหลว 200 ครั้ง แล้วตามด้วย login สำเร็จ คุณจะ Triage และตอบสนองอย่างไร</summary><div>
+<p><strong>คำตอบที่ดี:</strong> ตอบตามวงจร Incident Response ของ NIST SP 800-61:</p>
+<ul>
+<li><strong>Detection &amp; Analysis:</strong> ยืนยันก่อนว่าเป็น True Positive ดูว่า IP เป็นของใคร (ภายใน ภายนอก หรือ IP ของ Vulnerability scanner ที่ได้รับอนุญาต) บัญชีที่ login สำเร็จคือใคร ใช้วิธีไหน (password หรือ publickey) และหลัง login มีกิจกรรมอะไร เช่น สร้างผู้ใช้ใหม่ แก้ <code>authorized_keys</code> หรือมีการเชื่อมต่อขาออกที่ผิดปกติ จากนั้นตั้งระดับความรุนแรง กรณีนี้ควรเป็น High หรือ Critical และ Escalate ตาม Playbook</li>
+<li><strong>Containment:</strong> บล็อก IP ที่ Firewall ปิดหรือล็อกบัญชีที่ถูกยึด และแยกเครื่องออกจากเครือข่ายถ้าพบสัญญาณว่าผู้โจมตีอยู่ในเครื่องแล้ว</li>
+<li><strong>เก็บหลักฐานก่อนแก้:</strong> คัดลอก log บันทึก hash ด้วย <code>sha256sum</code> จดเวลาและผู้ที่แตะหลักฐาน (Chain of Custody)</li>
+<li><strong>Eradication &amp; Recovery:</strong> ลบบัญชีและ Key ที่ผู้โจมตีสร้าง เปลี่ยนรหัสผ่านหรือ Key ที่เกี่ยวข้อง ปิด PasswordAuthentication แล้วเฝ้าดูต่อ</li>
+<li><strong>Post-Incident Activity:</strong> เขียน Timeline และ Lessons Learned แล้วปรับกฎ Detection ให้จับได้เร็วขึ้น</li>
+</ul>
+<p><strong>จุดที่ทำให้คำตอบโดดเด่น:</strong> อธิบายว่าทำไมกฎ "ล้มเหลวหลายครั้งแล้วสำเร็จ" สำคัญกว่าการนับ failed login อย่างเดียว เพราะเปลี่ยนจาก "มีคนพยายาม" เป็น "อาจมีคนเข้ามาได้แล้ว" และเชื่อมกับ MITRE ATT&amp;CK เช่น T1110 Brute Force ตามด้วย T1078 Valid Accounts</p>
+</div></details>
+
+<details class="iq"><summary>5. SQL Injection และ XSS เกิดจากอะไร และนักพัฒนาควรป้องกันในโค้ดอย่างไร</summary><div>
+<p><strong>คำตอบที่ดี:</strong> ทั้งสองเกิดจากรากเดียวกัน คือ ข้อมูลที่ผู้ใช้ส่งมาถูกตีความเป็น "คำสั่ง" แทนที่จะเป็น "ข้อมูล"</p>
+<ul>
+<li><strong>SQL Injection:</strong> เกิดเมื่อสร้างคำสั่ง SQL ด้วยการต่อ String ทำให้ input เปลี่ยนความหมายของ Query ได้ วิธีแก้หลักคือ Parameterized query หรือ ORM ที่ส่งค่าแยกจากคำสั่ง เสริมด้วยบัญชีฐานข้อมูลแบบ Least Privilege และข้อความ Error ทั่วไปที่ไม่เปิดเผยโครงสร้างภายใน</li>
+<li><strong>XSS:</strong> เกิดเมื่อแสดง input ของผู้ใช้เป็น HTML โดยไม่ Encode วิธีแก้หลักคือ Output encoding ตามบริบท (template engine อย่าง Jinja2 ทำ autoescape ให้ ห้ามใช้ <code>|safe</code> กับ input ของผู้ใช้) เสริมด้วย Content-Security-Policy และ Cookie แบบ HttpOnly</li>
+</ul>
+<pre class="code" data-env="file" data-label="Python · ตัวอย่างสั้น"><code class="language-python">import sqlite3
+from markupsafe import escape
+
+conn = sqlite3.connect("shop.db")
+name = "Mouse' OR '1'='1"          # input จากผู้ใช้ ถูกมองเป็นข้อมูลล้วน ๆ
+rows = conn.execute("SELECT name, price FROM products WHERE name = ?", (name,)).fetchall()
+print(rows)                         # [] เพราะไม่มีสินค้าชื่อนี้จริง
+
+print(escape("&lt;b&gt;somchai&lt;/b&gt;"))     # &amp;lt;b&amp;gt;somchai&amp;lt;/b&amp;gt;</code></pre>
+<p><strong>จุดที่ทำให้คำตอบโดดเด่น:</strong> พูดถึง Defense in Depth ว่า Input validation เป็นชั้นเสริม ไม่ใช่ชั้นหลัก บอกว่าทั้งสองอยู่ในหมวด Injection ของ OWASP Top 10 และเสริมว่าทดสอบด้วย Unit test ที่ส่ง input แปลก ๆ เข้าไปแล้วยืนยันว่าแอปมองเป็นข้อมูลธรรมดา เหมือนที่ทำในแนวคิดที่ 9 และ 10</p>
+</div></details>
+
+<h3 id="s5-4-resources">แหล่งเรียนต่อ</h3>
+<p>เรียงจากเอกสารอ้างอิงที่ควรเปิดบ่อย ไปจนถึงแพลตฟอร์มฝึกที่ถูกกฎหมาย ถ้าอยากฝึกฝั่ง Red Team ให้ฝึกบนแพลตฟอร์มเหล่านี้เท่านั้น</p>
+<ul class="res">
+<li><a href="https://owasp.org/Top10/" target="_blank" rel="noopener">OWASP Top 10</a> — รายการความเสี่ยงสำคัญของเว็บแอป ตรวจฉบับล่าสุดที่นี่ก่อนอ้างอิงในรายงานทุกครั้ง <span class="pill">ฟรี</span></li>
+<li><a href="https://cheatsheetseries.owasp.org/" target="_blank" rel="noopener">OWASP Cheat Sheet Series</a> — วิธีป้องกันแบบเจาะจงสำหรับนักพัฒนา เช่น Password Storage, SQL Injection Prevention และ XSS Prevention <span class="pill">ฟรี</span></li>
+<li><a href="https://attack.mitre.org/" target="_blank" rel="noopener">MITRE ATT&amp;CK</a> — ฐานความรู้ Tactic และ Technique ของผู้โจมตี ใช้จับคู่ Alert กับ Technique ID <span class="pill">ฟรี</span></li>
+<li><a href="https://www.nist.gov/cyberframework" target="_blank" rel="noopener">NIST Cybersecurity Framework</a> — กรอบการจัดการความเสี่ยงที่องค์กรทั่วโลกใช้ และเป็นพื้นฐานของงาน GRC <span class="pill">ฟรี</span></li>
+<li><a href="https://www.cisecurity.org/cis-benchmarks" target="_blank" rel="noopener">CIS Benchmarks</a> — แนวทาง Hardening ทีละข้อสำหรับ Ubuntu, Windows และ Docker (ต้องลงทะเบียนก่อนดาวน์โหลด PDF) <span class="pill">ฟรี</span></li>
+<li><a href="https://ubuntu.com/server/docs" target="_blank" rel="noopener">Ubuntu Server Documentation</a> — เอกสารทางการเรื่อง OpenSSH, ufw และการอัปเดตความปลอดภัยของ Ubuntu <span class="pill">ฟรี</span></li>
+<li><a href="https://nmap.org/book/man.html" target="_blank" rel="noopener">Nmap Reference Guide</a> — คู่มือทางการของทุก option ใน nmap <span class="pill">ฟรี</span></li>
+<li><a href="https://help.owasp-juice.shop" target="_blank" rel="noopener">Pwning OWASP Juice Shop</a> — คู่มือทางการของ Juice Shop ใช้คู่กับ container ในแล็บของคุณ <span class="pill">ฟรี</span></li>
+<li><a href="https://overthewire.org/wargames/bandit/" target="_blank" rel="noopener">OverTheWire: Bandit</a> — ฝึกคำสั่ง Linux และความคิดแบบ Security เป็นด่าน ๆ เหมาะกับมือใหม่ <span class="pill">ฟรี</span></li>
+<li><a href="https://picoctf.org/" target="_blank" rel="noopener">picoCTF</a> — โจทย์ CTF จาก Carnegie Mellon University มีคลังโจทย์ให้ฝึกได้ตลอดปี <span class="pill">ฟรี</span></li>
+<li><a href="https://tryhackme.com/" target="_blank" rel="noopener">TryHackMe</a> — ห้องเรียนแบบมีเครื่องแล็บให้ในเบราว์เซอร์ มีทั้งสาย SOC และ Pentest มีห้องฟรีบางส่วน แต่เนื้อหาเต็มต้องสมัครสมาชิก <span class="pill">มีค่าใช้จ่าย</span></li>
+<li><a href="https://www.hackthebox.com/" target="_blank" rel="noopener">Hack The Box</a> — เครื่องแล็บและ Academy สำหรับฝึกระดับกลางถึงสูง มีส่วนที่ใช้ฟรีได้ แต่คอร์สส่วนใหญ่ต้องจ่าย <span class="pill">มีค่าใช้จ่าย</span></li>
+<li><a href="https://www.isc2.org/" target="_blank" rel="noopener">ISC2</a> — ข้อมูลใบรับรอง Certified in Cybersecurity (CC) ค่าสอบ US$199 และค่าธรรมเนียมรายปี US$50 ตามข้อมูลวันที่ 2026-10-19 <span class="pill">มีค่าใช้จ่าย</span></li>
+</ul>
+</section>

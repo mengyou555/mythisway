@@ -1,0 +1,1304 @@
+<section class="part" data-part="3">
+<h2 id="s3-3"><span class="sec-no">3.3</span>Practice Exercises &amp; Quizzes</h2>
+
+<p>ส่วนนี้ใช้ทบทวนแนวคิดทั้ง 12 ข้อของ Part 2 ด้วยตัวเอง เริ่มจากเติมคำในช่องว่าง 9 ข้อ ต่อด้วยข้อสอบปรนัย 13 ข้อ แล้วปิดท้ายด้วยโจทย์ลงมือทำ 3 ข้อ ทั้ง 3 ข้อจำลองงานจริงของทีมที่กำลังสร้างเกม Star Dodger คือ จัดวางดาวโบนัสด้วย Instancing, แก้บั๊กระบบเก็บดาวที่ QA แจ้งมา และอัปเกรดไฟล์บันทึกเป็นเวอร์ชัน 2 โดยที่ High Score ของผู้เล่นต้องไม่หาย เฉลยทั้งหมดอยู่ท้ายหน้า ขอให้ลองคิดและลองรันเองก่อนเปิดเฉลยทุกครั้ง</p>
+
+<p>ข้อสอบในหน้านี้วัดความเข้าใจ ไม่ได้วัดการท่องชื่อฟังก์ชัน หลายข้อให้โค้ดมาแล้วถามว่าผลลัพธ์จะเป็นอย่างไร ให้คิดคำตอบในหัวก่อน แล้วค่อยพิมพ์โค้ดลงใน Godot เพื่อพิสูจน์ ถ้าคำตอบที่คิดไว้ไม่ตรงกับที่ Godot แสดง จุดนั้นแหละคือสิ่งที่คุณจะได้เรียนรู้มากที่สุด</p>
+
+<h3 id="s3-3-howto">วิธีใช้หน้านี้ให้ได้ผล</h3>
+<ul>
+  <li>ทำทุกข้อในโปรเจกต์ <code>godot-lab</code> เดียวกับ Part 2 ที่ <code>C:\Users\somchai\godot-projects\godot-lab</code> สร้างโฟลเดอร์ <code>res://practice/</code> ใน FileSystem Dock (คลิกขวาที่ <code>res://</code> แล้วเลือก Create New &gt; Folder...) แล้วสร้างโฟลเดอร์ย่อย <code>ch1_star_grid</code>, <code>ch2_pickup</code> และ <code>ch3_save_v2</code> สำหรับโจทย์ลงมือทำแต่ละข้อ ไฟล์จะได้ไม่ปนกับของ Part 2</li>
+  <li>โจทย์ใช้ Input Map และชื่อ Physics Layer ที่ตั้งไว้ใน Part 2 คือ Action <code>move_left</code>, <code>move_right</code>, <code>move_up</code>, <code>move_down</code>, <code>pause</code> และ Layer 1 player, Layer 2 enemies, Layer 3 stars, Layer 4 walls ถ้ายังไม่ได้ตั้ง ให้กลับไปทำตามแนวคิดที่ 5 และ 6 ก่อน</li>
+  <li>คำตอบทุกข้อมาจาก Part 2 แนวคิดที่ 1 ถึง 12 และในโจทย์แต่ละข้อจะบอกเลขแนวคิดไว้ในวงเล็บ ถ้าตอบข้อไหนไม่ได้ ให้กลับไปอ่านแนวคิดนั้นแล้วรันตัวอย่างอีกครั้ง</li>
+  <li>ผลลัพธ์ทุกบล็อกในหน้านี้ได้จากการรันจริงด้วย Godot 4.7.2 เมื่อกด F6 ใน Editor แผง Output จะแสดงเฉพาะบรรทัดที่ <code>print()</code> พิมพ์ออกมา ส่วนการรันผ่าน PowerShell ด้วยไฟล์ <code>_console.exe</code> จะมีบรรทัด Banner ของ Godot และบรรทัดว่างขึ้นก่อนเสมอ</li>
+  <li>โค้ดในหน้านี้ย่อหน้าด้วยช่องว่าง 4 ตัว (Space) ถ้า Editor ของคุณตั้งเป็น Tab ก็ใช้ได้ แต่ห้ามผสมสองแบบในไฟล์เดียว เพราะ Godot จะแจ้ง Parse Error ทันที</li>
+</ul>
+
+<p>ก่อนเริ่ม ให้เปิด PowerShell แล้วตรวจว่าใช้ Godot เวอร์ชันเดียวกับหลักสูตร ไฟล์ <code>_console.exe</code> คือตัวเดียวกับ Editor แต่พิมพ์ข้อความออกมาที่ PowerShell ได้ เราจะใช้มันรัน Test แบบ Headless (ไม่เปิดหน้าต่างเกม) ในโจทย์ข้อ 3</p>
+<pre class="code" data-env="win" data-label="PowerShell · Windows"><code class="language-powershell"># เข้าโฟลเดอร์โปรเจกต์ฝึกของ Part 2
+cd C:\Users\somchai\godot-projects\godot-lab
+# ตรวจเวอร์ชันของ Godot ที่ใช้ในหน้านี้
+&amp; "C:\Godot\Godot_v4.7.2-stable_win64_console.exe" --version</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>4.7.2.stable.official.ed1daf0bf</code></pre>
+<p>ถ้าได้เวอร์ชันอื่น เช่น 4.8 ที่ยังเป็น Beta ให้กลับไปติดตั้ง 4.7.2 ตามขั้นตอนใน Part 2 เพราะ Export Templates และพฤติกรรมบางอย่างต้องตรงกับเวอร์ชันที่หลักสูตรใช้</p>
+
+<h3 id="s3-3-fill">Fill-in-the-blank</h3>
+<p>เติมคำในช่อง <code>_____</code> ให้ถูกต้อง บางข้อมีมากกว่าหนึ่งช่อง ข้อ 1 ถึง 3 เป็นระดับง่าย ข้อ 4 ถึง 6 ระดับกลาง และข้อ 7 ถึง 9 ระดับยาก เขียนคำตอบลงกระดาษก่อน แล้วค่อยเทียบกับเฉลยท้ายหน้า</p>
+
+<ol class="qlist fill">
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>(แนวคิดที่ 1) เกมที่รันที่ 60 FPS มีเวลาต่อ Frame ประมาณ _____ มิลลิวินาที (ตอบทศนิยม 2 ตำแหน่ง) และถ้าต้องการให้ยานเคลื่อนที่ 200 px ต่อวินาทีเท่ากันทุกเครื่อง ไม่ว่าเครื่องนั้นจะรันได้กี่ FPS ต้องเขียนโค้ดใน <code>_process()</code> แบบนี้</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends Sprite2D
+
+var speed: float = 200.0
+
+
+func _process(delta: float) -&gt; void:
+    # เคลื่อนที่ไปทางขวาด้วยความเร็วเท่ากันทุกเครื่อง
+    position.x += speed * _____</code></pre>
+  </li>
+
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>(แนวคิดที่ 2) โค้ดด้านล่างแนบกับ Node2D ชื่อ World เพื่อสร้างเหรียญหนึ่งเหรียญจาก <code>coin.tscn</code> ให้เติมเมธอดของ PackedScene ที่สร้าง Instance ใหม่ และเมธอดที่นำ Node ใหม่เข้าไปใน Scene Tree เป็นลูกของ World</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends Node2D
+
+const COIN_SCENE: PackedScene = preload("res://c02_scene_tree/coin.tscn")
+
+
+func _ready() -&gt; void:
+    var coin := COIN_SCENE._____()
+    # ตั้งตำแหน่งก่อนนำเข้า Scene Tree
+    coin.position = Vector2(100, 200)
+    _____(coin)</code></pre>
+  </li>
+
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>(แนวคิดที่ 4) HUD ต้องการเก็บ Label ลูกชื่อ <code>ScoreLabel</code> ไว้ในตัวแปรระดับ Class ให้เติม Annotation หน้าคำว่า <code>var</code> ที่ทำให้ <code>$ScoreLabel</code> ถูกอ่านตอนที่ Node ลูกพร้อมแล้ว และเติมคำว่า "ก่อน" หรือ "หลัง" ในประโยคนี้: เมื่อ Scene เริ่มทำงาน <code>_ready()</code> ของ Node ลูกจะถูกเรียก _____ <code>_ready()</code> ของ Node แม่</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends CanvasLayer
+
+_____ var score_label: Label = $ScoreLabel
+
+
+func _ready() -&gt; void:
+    score_label.text = "Score: 0"</code></pre>
+  </li>
+
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>(แนวคิดที่ 5) เติมโค้ดให้ผู้เล่นเดินได้ 8 ทิศด้วย Action ใน Input Map โดยเดินเฉียงต้องไม่เร็วกว่าเดินตรง และต้องเป็น API ของ Godot 4 เท่านั้น</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends CharacterBody2D
+
+@export var speed: float = 300.0
+
+
+func _physics_process(_delta: float) -&gt; void:
+    # ได้ Vector2 ที่ยาวไม่เกิน 1 จาก Action ทั้ง 4 ทิศ
+    var direction := Input._____("move_left", "move_right", "move_up", "move_down")
+    velocity = direction * speed
+    # เคลื่อนที่ตาม velocity และไถลไปตามกำแพงเมื่อชน
+    _____</code></pre>
+  </li>
+
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>(แนวคิดที่ 6) ดาวอยู่ Layer 3 (stars) และต้องตรวจจับเฉพาะผู้เล่นซึ่งอยู่ Layer 1 (player) ถ้าตั้งค่าเป็นตัวเลข Bitmask ในโค้ดแทนการติ๊กใน Inspector ต้องเติมตัวเลขใดในสองช่องนี้</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends Area2D
+
+
+func _ready() -&gt; void:
+    collision_layer = _____   # ดาวอยู่ Layer 3 "stars" เพียง Layer เดียว
+    collision_mask = _____    # มองหาเฉพาะ Layer 1 "player"</code></pre>
+  </li>
+
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>(แนวคิดที่ 9) ทุกครั้งที่ศัตรูเกิด ช่วงเวลาเกิดต้องสั้นลงเหลือ 97% ของเดิม แต่ห้ามต่ำกว่า 0.35 วินาที ให้เติมฟังก์ชันของ GDScript ที่คืนค่าที่มากกว่าระหว่างตัวเลข float สองตัว และถ้า <code>wait_time</code> เริ่มที่ 1.2 วินาที หลังศัตรูเกิดไปแล้ว 2 ตัว <code>wait_time</code> จะเป็น _____ วินาที</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">@onready var spawn_timer: Timer = $SpawnTimer
+
+
+func _on_spawn_timer_timeout() -&gt; void:
+    spawn_enemy()
+    # เร็วขึ้นทีละ 3% แต่ไม่ต่ำกว่า 0.35 วินาที
+    spawn_timer.wait_time = _____(spawn_timer.wait_time * 0.97, 0.35)</code></pre>
+  </li>
+
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>(แนวคิดที่ 10) โค้ดโหลด High Score นี้ต้องทำงานได้ทั้งตอนพัฒนาใน Editor และหลัง Export เป็นไฟล์ <code>.exe</code> แล้ว ให้เติม Scheme ของ Path ที่เกมเขียนไฟล์ได้เสมอ และเมธอดแบบ static ของ FileAccess ที่ใช้ตรวจว่าไฟล์มีอยู่แล้วหรือยัง</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">const SAVE_PATH := "_____://savegame.cfg"
+
+
+func load_high_score() -&gt; int:
+    # เล่นครั้งแรกยังไม่มีไฟล์ ให้คืนค่าเริ่มต้น
+    if not FileAccess._____(SAVE_PATH):
+        return 0
+    var cfg := ConfigFile.new()
+    if cfg.load(SAVE_PATH) != OK:
+        return 0
+    return cfg.get_value("progress", "high_score", 0)</code></pre>
+  </li>
+
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>(แนวคิดที่ 11) เติมบรรทัดที่หายไปในฟังก์ชันเปลี่ยนสถานะของ State Machine และเติมตัวคูณในประโยคนี้ตามที่ใช้ใน <code>enemy_chaser.gd</code>: ศัตรูเริ่มไล่เมื่อระยะน้อยกว่า <code>detect_radius</code> (250) แต่จะเลิกไล่เมื่อระยะมากกว่า <code>detect_radius * _____</code> เพื่อกันไม่ให้สถานะสลับไปมาทุก Frame เมื่อผู้เล่นยืนอยู่ตรงขอบระยะพอดี</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">func change_state(new_state: State) -&gt; void:
+    if new_state == state:
+        return
+    # ออกจากสถานะเดิมก่อน แล้วค่อยเข้าสถานะใหม่
+    _exit_state(state)
+    print("%s -&gt; %s" % [State.keys()[state], State.keys()[new_state]])
+    state = _____
+    _enter_state(state)</code></pre>
+  </li>
+
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>(แนวคิดที่ 12) Hitstop คือการทำให้เกมเกือบหยุดนิ่งชั่วครู่ตอนโดนชน โดยลด <code>Engine.time_scale</code> เหลือ 0.05 เป็นเวลา 0.08 วินาทีตามนาฬิกาจริง ให้เติม Argument ตัวที่ 4 ของ <code>create_timer()</code> เพื่อให้ Timer ไม่ช้าลงตาม <code>time_scale</code> และเติมเมธอดของ Tween ที่ทำให้การเปลี่ยนสี <code>modulate</code> เล่นพร้อมกับการขยาย <code>scale</code></p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">func hitstop(duration: float = 0.08) -&gt; void:
+    Engine.time_scale = 0.05
+    await get_tree().create_timer(duration, true, false, _____).timeout
+    Engine.time_scale = 1.0
+
+
+func pop(sprite: Sprite2D) -&gt; void:
+    var tween := create_tween()
+    tween.tween_property(sprite, "scale", Vector2(1.4, 1.4), 0.2)
+    # ให้สีแดงเล่นพร้อมกับการขยาย ไม่ใช่เล่นต่อท้าย
+    tween._____().tween_property(sprite, "modulate", Color.RED, 0.3)</code></pre>
+  </li>
+</ol>
+
+<h3 id="s3-3-mcq">Multiple Choice</h3>
+<p>เลือกคำตอบที่ถูกที่สุดเพียงข้อเดียว ข้อ 1 ถึง 4 เป็นระดับง่าย ข้อ 5 ถึง 9 ระดับกลาง และข้อ 10 ถึง 13 ระดับยาก ตัวเลือกเรียงเป็น A ถึง D ข้อที่มีโค้ด ให้ลองตอบก่อน แล้วค่อยรันใน Godot เพื่อตรวจ เฉลยของทุกข้ออธิบายทั้งเหตุผลที่ข้อถูกนั้นถูก และเหตุผลที่ตัวเลือกอีก 3 ข้อผิด</p>
+
+<ol class="qlist mcq">
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>(แนวคิดที่ 1) เกมรันที่ 30 FPS ยานมี <code>speed = 200.0</code> และใช้โค้ด <code>position.x += speed * delta</code> ใน <code>_process()</code> ข้อใดบอกระยะที่ยานเคลื่อนที่ได้ถูกต้อง</p>
+    <ol class="choices">
+      <li>200 px ต่อ Frame จึงได้ระยะ 6,000 px ต่อวินาที</li>
+      <li>ประมาณ 6.67 px ต่อ Frame และได้ 200 px ต่อวินาที เท่ากับเครื่องที่รัน 60 FPS</li>
+      <li>ประมาณ 3.33 px ต่อ Frame และได้ 100 px ต่อวินาที เพราะ FPS ลดลงครึ่งหนึ่ง</li>
+      <li>ประมาณ 6.67 px ต่อ Frame แต่ระยะต่อวินาทีจะต่างกันไปตาม FPS ของแต่ละเครื่อง</li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>(แนวคิดที่ 2) โค้ดนี้แนบกับ Node2D ที่ยังไม่มีลูกเลย เมื่อกด F6 แผง Output จะแสดงอะไร</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends Node2D
+
+const COIN_SCENE: PackedScene = preload("res://c02_scene_tree/coin.tscn")
+
+
+func _ready() -&gt; void:
+    # สร้างเหรียญ 3 เหรียญเป็นลูกของ Node นี้
+    for i in 3:
+        add_child(COIN_SCENE.instantiate())
+    # รอให้เกมเริ่มเดิน Frame แรกก่อน
+    await get_tree().process_frame
+    get_child(1).queue_free()
+    print(get_child_count())
+    await get_tree().process_frame
+    print(get_child_count())</code></pre>
+    <ol class="choices">
+      <li><code>2</code> แล้วตามด้วย <code>2</code></li>
+      <li><code>3</code> แล้วตามด้วย <code>3</code></li>
+      <li><code>3</code> แล้วตามด้วย <code>2</code></li>
+      <li><code>2</code> แล้วตามด้วย <code>3</code></li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>(แนวคิดที่ 3) ผลลัพธ์ของโค้ด GDScript นี้คืออะไร ให้สังเกตชนิดข้อมูลของตัวแปรแต่ละตัว</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">var total_hp: int = 7
+var enemies: int = 2
+print(total_hp / enemies)
+print(total_hp / float(enemies))</code></pre>
+    <ol class="choices">
+      <li><code>3</code> แล้วตามด้วย <code>3.5</code></li>
+      <li><code>3.5</code> แล้วตามด้วย <code>3.5</code></li>
+      <li><code>3</code> แล้วตามด้วย <code>3</code></li>
+      <li>เกิด Error เพราะ GDScript ไม่ยอมให้หาร int ด้วย int</li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>(แนวคิดที่ 4) Scene หนึ่งมี Node2D ชื่อ Parent และมีลูกหนึ่งตัวชื่อ Child ทั้งสอง Node มีสคริปต์ที่ <code>print()</code> ชื่อตัวเองใน <code>_enter_tree()</code> และ <code>_ready()</code> เมื่อรัน Scene นี้ ลำดับข้อความใน Output คือข้อใด</p>
+    <ol class="choices">
+      <li>Parent _enter_tree, Parent _ready, Child _enter_tree, Child _ready</li>
+      <li>Child _enter_tree, Child _ready, Parent _enter_tree, Parent _ready</li>
+      <li>Parent _enter_tree, Child _enter_tree, Parent _ready, Child _ready</li>
+      <li>Parent _enter_tree, Child _enter_tree, Child _ready, Parent _ready</li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>(แนวคิดที่ 5) โค้ดผู้เล่นนี้มี <code>speed = 300.0</code> เมื่อกด D และ S พร้อมกันเพื่อเดินเฉียงลงขวา จะเกิดอะไรขึ้น และควรแก้อย่างไร</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">func _physics_process(_delta: float) -&gt; void:
+    # อ่านแกน X และแกน Y แยกกัน
+    var direction := Vector2(
+        Input.get_axis("move_left", "move_right"),
+        Input.get_axis("move_up", "move_down")
+    )
+    velocity = direction * speed
+    move_and_slide()</code></pre>
+    <ol class="choices">
+      <li>เดินเฉียงด้วยความเร็ว 300 px/s พอดี ไม่ต้องแก้อะไร</li>
+      <li>เดินเฉียงไม่ได้ เพราะ <code>get_axis()</code> อ่านได้ครั้งละแกนเดียว ต้องเปลี่ยนไปใช้ <code>Input.is_action_pressed()</code> ทั้ง 4 ทิศแทน</li>
+      <li>เดินเฉียงเร็วประมาณ 424 px/s หรือเร็วกว่าเดินตรงราว 41% ควรแก้เป็น <code>Input.get_vector()</code> ซึ่งจำกัดความยาวของเวกเตอร์ไม่ให้เกิน 1</li>
+      <li>เดินเฉียงช้าลงเหลือประมาณ 212 px/s ควรแก้โดยคูณ <code>speed</code> ด้วย 2 เฉพาะตอนเดินเฉียง</li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>(แนวคิดที่ 6) ดาวเป็น Area2D ที่ตั้ง <code>collision_layer</code> เป็น Layer 3 และ <code>collision_mask</code> เป็น Layer 1 ส่วนศัตรูเป็น Area2D ที่ตั้ง <code>collision_layer</code> เป็น Layer 2 และ <code>collision_mask</code> เป็น Layer 1 ทั้งสองมี CollisionShape2D และเปิด <code>monitoring</code> ไว้ เมื่อศัตรูบินทับดาว จะเกิดอะไรขึ้น</p>
+    <ol class="choices">
+      <li>ดาวได้รับ Signal <code>area_entered</code> เพราะรูปทรงของทั้งสองซ้อนทับกัน</li>
+      <li>ไม่มีใครได้รับ <code>area_entered</code> เลย เพราะทั้งดาวและศัตรูมองหาเฉพาะ Layer 1 แต่ไม่มีตัวไหนอยู่ Layer 1</li>
+      <li>ทั้งสองได้รับ <code>area_entered</code> เพราะ Area2D ตรวจจับ Area2D ด้วยกันเสมอโดยไม่สนใจ Layer</li>
+      <li>Godot แจ้ง Error เพราะ Area2D สองตัวซ้อนทับกันไม่ได้</li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>(แนวคิดที่ 7) TileMapLayer ชื่อ <code>walls</code> อยู่ที่ตำแหน่ง (0, 0) และใช้ TileSet ที่ตั้ง <code>tile_size = Vector2i(64, 64)</code> คำสั่งด้านล่างพิมพ์อะไรออกมา</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python"># แปลงตำแหน่งเป็นพิกเซลให้เป็นพิกัดช่อง Tile
+print(walls.local_to_map(Vector2(200, 130)))</code></pre>
+    <ol class="choices">
+      <li><code>(200, 130)</code></li>
+      <li><code>(3.125, 2.03125)</code></li>
+      <li><code>(4, 3)</code></li>
+      <li><code>(3, 2)</code></li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>(แนวคิดที่ 8) เมื่อกด Esc เกมเรียก <code>get_tree().paused = true</code> แล้วแสดง PauseMenu ซึ่งเป็น CanvasLayer ที่มีปุ่ม Resume แต่ปุ่มกดไม่ได้และปิดเมนูไม่ได้ ทั้งที่ <code>process_mode</code> ของ PauseMenu ยังเป็นค่าเริ่มต้น (Inherit) วิธีแก้ที่ถูกต้องคือข้อใด</p>
+    <ol class="choices">
+      <li>ตั้ง <code>process_mode</code> ของ PauseMenu เป็น <code>Node.PROCESS_MODE_ALWAYS</code> เพื่อให้เมนูยังทำงานตอนเกมหยุด</li>
+      <li>เลิกใช้ <code>paused</code> แล้วตั้ง <code>Engine.time_scale = 0</code> แทน</li>
+      <li>ย้าย PauseMenu ไปเป็นลูกของ Camera2D เพื่อให้เมนูอยู่บนจอเสมอ</li>
+      <li>เขียน <code>get_tree().paused = false</code> ไว้ใน <code>_process()</code> ของ Player ให้ทำงานเมื่อกด Esc อีกครั้ง</li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>(แนวคิดที่ 9) ระหว่างเล่น Star Dodger ไป 5 นาที ค่า Object &gt; Nodes ใน Debugger &gt; Monitors เพิ่มขึ้นเรื่อยๆ และไม่เคยลดลงเลย ศัตรูเกิดจากขอบบนของจอทุก 1.2 วินาทีแล้วตกลงไปด้านล่าง ขั้นตอนแรกที่เหมาะสมที่สุดคือข้อใด</p>
+    <ol class="choices">
+      <li>เขียนระบบ Object Pooling ทันที เพราะการสร้าง Node ใหม่บ่อยๆ คือสาเหตุที่ Node สะสม</li>
+      <li>ลด FPS ของเกมเหลือ 30 เพื่อให้ศัตรูเกิดช้าลง</li>
+      <li>ตรวจว่าศัตรูที่หลุดขอบล่างของจอถูก <code>queue_free()</code> จริง เช่น ใช้ Signal <code>screen_exited</code> ของ VisibleOnScreenNotifier2D หรือเช็ก <code>position.y &gt; 700</code></li>
+      <li>เปลี่ยนจาก <code>queue_free()</code> เป็น <code>remove_child()</code> เพราะทำงานเร็วกว่า</li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>(แนวคิดที่ 10) โค้ดนี้บันทึกคะแนนเป็นข้อความ JSON แล้วอ่านกลับทันที ผลลัพธ์ทั้ง 3 บรรทัดคือข้อใด</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">var text := JSON.stringify([1500, 980])
+var data: Variant = JSON.parse_string(text)
+print(text)
+print(data)
+print(typeof(data[0]) == TYPE_INT)</code></pre>
+    <ol class="choices">
+      <li><code>[1500,980]</code> แล้ว <code>[1500, 980]</code> แล้ว <code>true</code></li>
+      <li><code>[1500,980]</code> แล้ว <code>[1500.0, 980.0]</code> แล้ว <code>false</code></li>
+      <li><code>[1500, 980]</code> แล้ว <code>[1500, 980]</code> แล้ว <code>true</code></li>
+      <li>เกิด Error เพราะ JSON เก็บ Array ไม่ได้ ต้องเป็น Dictionary เท่านั้น</li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>(แนวคิดที่ 11) State Machine ของศัตรูด้านล่างเริ่มที่ IDLE แล้วได้รับระยะห่างจากผู้เล่นตามลำดับ 300, 240, 260, 245, 255, 380, 200 โดยเรียก <code>update()</code> ครั้งละหนึ่งค่า และ <code>change_state()</code> เปลี่ยนสถานะทันทีทุกครั้งที่ถูกเรียก จะเกิดการเปลี่ยนสถานะกี่ครั้ง และจบที่สถานะใด</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">enum State { IDLE, CHASE }
+
+var state: State = State.IDLE
+var detect_radius: float = 250.0
+
+
+func update(distance: float) -&gt; void:
+    match state:
+        State.IDLE:
+            if distance &lt; detect_radius:
+                change_state(State.CHASE)
+        State.CHASE:
+            # เลิกไล่เมื่อไกลกว่า 250 * 1.5 = 375
+            if distance &gt; detect_radius * 1.5:
+                change_state(State.IDLE)</code></pre>
+    <ol class="choices">
+      <li>5 ครั้ง และจบที่ CHASE</li>
+      <li>3 ครั้ง และจบที่ IDLE</li>
+      <li>2 ครั้ง และจบที่ IDLE</li>
+      <li>3 ครั้ง และจบที่ CHASE</li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>(แนวคิดที่ 12) Tween ด้านล่างสร้างใน <code>_ready()</code> ของ Node ที่เป็นแม่ของ <code>sprite</code> หลังเริ่มทำงานไปประมาณกี่วินาที Output จึงจะแสดงคำว่า <code>จบ</code></p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">var tween := create_tween()
+tween.tween_property(sprite, "scale", Vector2(1.4, 1.4), 0.2)
+tween.parallel().tween_property(sprite, "modulate", Color.RED, 0.3)
+tween.tween_property(sprite, "scale", Vector2.ONE, 0.1)
+tween.finished.connect(func() -&gt; void: print("จบ"))</code></pre>
+    <ol class="choices">
+      <li>0.4 วินาที</li>
+      <li>0.6 วินาที</li>
+      <li>0.3 วินาที</li>
+      <li>0.1 วินาที</li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>(แนวคิดที่ 10) ผู้เล่นอยากแชร์สกินยานกันเอง เพื่อนร่วมทีมจึงเสนอว่า ให้ผู้เล่นนำไฟล์ <code>.tres</code> ที่ได้จากคนอื่นมาวางไว้ในโฟลเดอร์ <code>user://mods/</code> แล้วให้เกมโหลดทุกไฟล์ด้วย <code>load()</code> ตอนเปิดเกม ข้อใดประเมินข้อเสนอนี้ได้ถูกต้อง</p>
+    <ol class="choices">
+      <li>ปลอดภัย เพราะ <code>user://</code> เป็นพื้นที่ของเกมเอง ไฟล์ในนั้นจึงทำอะไรนอกเกมไม่ได้</li>
+      <li>ปลอดภัย ถ้าตรวจก่อนว่านามสกุลไฟล์เป็น <code>.tres</code> จริงแล้วค่อยโหลด</li>
+      <li>ไม่ปลอดภัย เพราะไฟล์ <code>.tres</code> และ <code>.res</code> ฝังสคริปต์ที่รันด้วยสิทธิ์เดียวกับเกมได้ ควรรับเฉพาะข้อมูลล้วน เช่น รูป PNG และค่าใน JSON หรือ ConfigFile แล้วตรวจชนิดและช่วงของค่าทุกครั้ง</li>
+      <li>ไม่ปลอดภัยเฉพาะตอน Export เป็น Web ส่วนบน Windows ใช้ได้ตามปกติ</li>
+    </ol>
+  </li>
+</ol>
+
+<h3 id="s3-3-hands">Hands-on Challenge</h3>
+<p>โจทย์ 3 ข้อนี้เรียงจากง่ายไปยาก และต่อยอดจากเกม Star Dodger ที่ออกแบบไว้ใน Part 1 ทุกข้อมีผลลัพธ์ที่คาดหวังให้เทียบ เพราะโค้ดนับเป็น Frame และใช้ Seed ตายตัว ผลจึงต้องตรงกันทุกเครื่อง ข้อ 1 ใช้เวลาประมาณ 1 ชั่วโมง ข้อ 2 ประมาณ 2 ถึง 3 ชั่วโมง และข้อ 3 ประมาณ 3 ถึง 4 ชั่วโมง ถ้าติดนานเกิน 20 นาที ให้เปิด Hint ก่อนเปิดเฉลย</p>
+
+<article class="challenge" data-lvl="b">
+  <div class="concept-meta"><span class="c-no">โจทย์ที่ 1</span><span class="lvl" data-lvl="b">Beginner</span></div>
+  <h4>ด่านโบนัส: จัดดาวเป็นตารางด้วย Instancing</h4>
+
+  <h5>สถานการณ์</h5>
+  <p>Game Designer ของทีมอยากเพิ่ม "ด่านโบนัส" ที่มีดาว 12 ดวงเรียงเป็นตาราง 4 คอลัมน์ 3 แถว อยู่กลางจอในแนวนอน ดาวแถวล่างสุดอยู่ใกล้ศัตรูที่สุดจึงให้ 20 คะแนน ส่วนแถวอื่นให้ 10 คะแนน Designer ขอให้ปรับจำนวนแถว จำนวนคอลัมน์ และระยะห่างได้เองใน Inspector โดยไม่ต้องแก้โค้ด และก่อนจะนำไปทำเงื่อนไข "เก็บครบแถวได้โบนัส" เขาอยากเห็นว่าเมื่อลบดาวทั้งแถวบนสุดออก จำนวนดาวและคะแนนรวมเปลี่ยนไปอย่างถูกต้อง</p>
+
+  <h5>สิ่งที่ต้องทำ</h5>
+  <ol>
+    <li>สร้าง Scene <code>res://practice/ch1_star_grid/grid_star.tscn</code> ที่มี Root เป็น Area2D ชื่อ GridStar มีลูกเป็น Sprite2D (Texture คือ <code>res://icon.svg</code>, Scale 0.25) และ CollisionShape2D (Shape เป็น CircleShape2D รัศมี 16) ตั้ง Collision Layer เป็น Layer 3 stars อย่างเดียว แล้วแนบสคริปต์ <code>grid_star.gd</code> ที่มี <code>class_name GridStar</code> และ <code>@export var points: int = 10</code></li>
+    <li>สร้าง Scene <code>res://practice/ch1_star_grid/star_grid.tscn</code> ที่มี Root เป็น Node2D ชื่อ StarGrid แนบสคริปต์ <code>star_grid.gd</code> ที่มีตัวแปร <code>@export</code> 5 ตัว คือ <code>columns = 4</code>, <code>rows = 3</code>, <code>spacing = Vector2(96, 80)</code>, <code>origin = Vector2(432, 200)</code> และ <code>bottom_row_points = 20</code></li>
+    <li>เขียนฟังก์ชัน <code>build_grid()</code> ที่ใช้ <code>for</code> ซ้อนกัน 2 ชั้น สร้างดาวจาก Scene ที่ <code>preload()</code> ไว้ ตั้งชื่อเป็น <code>Star_แถว_คอลัมน์</code> เช่น <code>Star_0_3</code> ตั้งตำแหน่งเป็น <code>origin + Vector2(col * spacing.x, row * spacing.y)</code> และตั้งคะแนนของแถวล่างสุด ทั้งหมดต้องเสร็จก่อน <code>add_child()</code> แล้ว <code>print()</code> ชื่อ ตำแหน่ง และคะแนนของดาวทุกดวง</li>
+    <li>เขียนฟังก์ชัน <code>total_points() -&gt; int</code> ที่รวมคะแนนจากลูกทุกตัว แล้ว <code>print()</code> จำนวนดาวและคะแนนรวม</li>
+    <li>เขียนฟังก์ชัน <code>remove_row(row: int)</code> ที่หาดาวของแถวนั้นด้วย <code>get_node_or_null()</code> แล้วเรียก <code>queue_free()</code> จากนั้นพิมพ์จำนวนดาวทันที 1 ครั้ง และพิมพ์อีกครั้งหลัง <code>await get_tree().process_frame</code></li>
+    <li>เปิด <code>star_grid.tscn</code> กด F6 แล้วเทียบ Output กับผลลัพธ์ด้านล่าง จากนั้นเปลี่ยน <code>rows</code> เป็น 4 ใน Inspector แล้วรันอีกครั้ง เพื่อยืนยันว่าตารางเปลี่ยนตามได้โดยไม่ต้องแก้โค้ด</li>
+  </ol>
+
+  <h5>ผลลัพธ์ที่คาดหวัง</h5>
+  <p>ดาวเรียงตั้งแต่ x = 432 ถึง 720 กึ่งกลางของตารางจึงอยู่ที่ x = 576 ซึ่งเป็นครึ่งหนึ่งของความกว้างจอ 1152 พอดี แถวล่างได้ 20 คะแนน คะแนนรวมจึงเป็น 160 หลังสั่งลบแถวบน จำนวนดาวยังเป็น 12 อยู่จนกว่าจะจบ Frame แล้วจึงเหลือ 8 ดวงและ 120 คะแนน เมื่อกด F6 แผง Output ต้องแสดงดังนี้</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Star_0_0 ที่ (432, 200) ได้ 10 คะแนน
+Star_0_1 ที่ (528, 200) ได้ 10 คะแนน
+Star_0_2 ที่ (624, 200) ได้ 10 คะแนน
+Star_0_3 ที่ (720, 200) ได้ 10 คะแนน
+Star_1_0 ที่ (432, 280) ได้ 10 คะแนน
+Star_1_1 ที่ (528, 280) ได้ 10 คะแนน
+Star_1_2 ที่ (624, 280) ได้ 10 คะแนน
+Star_1_3 ที่ (720, 280) ได้ 10 คะแนน
+Star_2_0 ที่ (432, 360) ได้ 20 คะแนน
+Star_2_1 ที่ (528, 360) ได้ 20 คะแนน
+Star_2_2 ที่ (624, 360) ได้ 20 คะแนน
+Star_2_3 ที่ (720, 360) ได้ 20 คะแนน
+จำนวนดาว 12 ดวง คะแนนรวม 160
+สั่งลบแถวบนสุดแล้ว ตอนนี้ยังนับได้ 12 ดวง
+หลังจบ Frame เหลือ 8 ดวง คะแนนรวม 120</code></pre>
+
+  <details class="hint"><summary>Hint</summary><div>
+    <ul>
+      <li>สร้างชื่อด้วย <code>"Star_%d_%d" % [row, col]</code> และพิมพ์ตำแหน่งเป็นจำนวนเต็มด้วย <code>"(%d, %d)" % [star.position.x, star.position.y]</code> ถ้าพิมพ์ Vector2 ตรงๆ จะได้ <code>(432.0, 200.0)</code></li>
+      <li>ประกาศ <code>var star: GridStar = STAR_SCENE.instantiate()</code> เพื่อให้ Editor รู้จัก <code>star.points</code> และเติมคำให้อัตโนมัติ</li>
+      <li>แถวล่างสุดคือ <code>row == rows - 1</code> เพราะ <code>for row in rows</code> นับตั้งแต่ 0</li>
+      <li><code>queue_free()</code> ลบ Node ตอนจบ Frame ไม่ใช่ทันที ทบทวนได้ในแนวคิดที่ 2 ให้รอ 1 Frame ด้วย <code>await get_tree().process_frame</code> ก่อนเรียก <code>remove_row(0)</code> เพราะถ้าลบใน <code>_ready()</code> ตอนที่เกมเพิ่งเปิด Frame แรกอาจส่ง <code>process_frame</code> ก่อนลบ Node ในคิว ผลจึงไม่แน่นอน (ดูเฉลย Multiple Choice ข้อ 2)</li>
+      <li>ใน <code>total_points()</code> ใช้ <code>child as GridStar</code> ซึ่งจะได้ <code>null</code> เมื่อลูกตัวนั้นไม่ใช่ดาว โค้ดจึงไม่พังเมื่อมี Node ชนิดอื่นเป็นลูกด้วย</li>
+    </ul>
+  </div></details>
+</article>
+
+<article class="challenge" data-lvl="i">
+  <div class="concept-meta"><span class="c-no">โจทย์ที่ 2</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+  <h4>แก้บั๊กระบบเก็บดาว: ศัตรูต้องแย่งดาวไม่ได้ และดาวต้องไม่ล้นจอ</h4>
+
+  <h5>สถานการณ์</h5>
+  <p>หลังทีมเพิ่มศัตรูแบบไล่ล่า (Chaser) ซึ่งเป็น CharacterBody2D เข้าไปในเกม QA ก็ส่งรายงานบั๊กมา 2 ข้อ ข้อแรก "เมื่อศัตรูวิ่งผ่านดาว ดาวหายไปและผู้เล่นได้คะแนนฟรี" สาเหตุคือศัตรูตัวใหม่ยังอยู่ Layer 1 ตามค่าเริ่มต้น และสคริปต์ดาวไม่ได้ตรวจว่าใครเป็นคนชน ข้อสอง "ถ้าผู้เล่นไม่เก็บดาวเลย ดาวจะเกิดเพิ่มทุก 0.5 วินาทีจนเต็มจอ" หัวหน้าทีมขอให้เขียนระบบเก็บดาวใหม่ที่ป้องกัน 2 ชั้น คือตั้ง Layer/Mask ให้ถูก และตรวจ Group ในโค้ดอีกชั้นหนึ่ง พร้อม Spawner ที่จำกัดจำนวนดาว และต้องมีฉากทดสอบที่พิสูจน์ได้ว่าบั๊กทั้งสองหายไปแล้ว โดยไม่ต้องให้ใครมานั่งกดเล่นเอง</p>
+
+  <h5>สิ่งที่ต้องทำ</h5>
+  <ol>
+    <li>สร้าง <code>res://practice/ch2_pickup/star.tscn</code>: Area2D ชื่อ Star มีลูกเป็น Sprite2D (<code>res://icon.svg</code>, Scale 0.25) และ CollisionShape2D (CircleShape2D รัศมี 16) ตั้ง Collision Layer เป็น Layer 3 อย่างเดียว และ Mask เป็น Layer 1 อย่างเดียว แนบ <code>star.gd</code> ที่มี <code>signal collected(points: int)</code>, <code>@export var points: int = 10</code>, เข้า Group <code>"stars"</code> ใน <code>_ready()</code> และเชื่อม <code>body_entered</code> ด้วยโค้ด</li>
+    <li>ใน Callback ของ <code>body_entered</code> ให้ตรวจ <code>body.is_in_group("player")</code> ก่อนเสมอ ถ้าใช่ ให้ปิด <code>monitoring</code> ด้วย <code>set_deferred()</code> แล้ว <code>collected.emit(points)</code> และ <code>queue_free()</code></li>
+    <li>สร้าง <code>player.tscn</code>: CharacterBody2D ชื่อ Player มี Sprite2D (Scale 0.3) และ CollisionShape2D (CircleShape2D รัศมี 20) อยู่ Layer 1 และ Mask เป็น Layer 4 walls แนบ <code>player.gd</code> ที่เข้า Group <code>"player"</code> เดิน 8 ทิศด้วย <code>Input.get_vector()</code> ที่ความเร็ว 300 px/s และจำกัดตำแหน่งไว้ในจอ 1152 x 648</li>
+    <li>เขียน <code>star_spawner.gd</code> (แนบกับ Node2D ชื่อ StarSpawner) ที่สร้าง Timer ในโค้ด ทุก 0.5 วินาทีจะสร้างดาวที่ตำแหน่งสุ่มในจอด้วย RandomNumberGenerator ที่ตั้ง Seed เป็น 2026 แต่ถ้าดาวใน Group <code>"stars"</code> มีครบ 3 ดวงแล้วให้ข้ามรอบนั้น นับจำนวนครั้งที่สร้างและที่ข้ามไว้ใน <code>spawned</code> และ <code>skipped</code> และส่ง Signal <code>star_spawned(star: Area2D)</code> ทุกครั้งที่สร้าง</li>
+    <li>สร้างฉากทดสอบ <code>pickup_test.tscn</code>: Root เป็น Node2D ชื่อ PickupTest มีลูกเป็น StarSpawner ในช่วง A ให้วางผู้เล่นที่ (100, 300) วางศัตรูจำลอง (CharacterBody2D อยู่ Layer 2) ที่ (550, 300) และวางดาว 3 ดวงที่ x = 250, 400, 550 บนแนว y = 300 โดยจงใจตั้ง Mask ของดาวดวงที่ 3 ให้เห็น Layer 2 ด้วย เพื่อทดสอบการป้องกันชั้นที่ 2 แล้วจำลองการกดปุ่มด้วย <code>Input.action_press("move_right")</code></li>
+    <li>นับ Physics Frame เอง ที่ Frame 10 ให้พิมพ์จำนวนดาว ที่ Frame 100 ให้ปล่อยปุ่ม พิมพ์สรุปช่วง A นำผู้เล่นออก แล้วสั่ง Spawner เริ่มทำงาน (ช่วง B) จากนั้นพิมพ์จำนวนดาวบนจอทุก 1 วินาทีเป็นเวลา 3 วินาที พิมพ์ <code>spawned</code> และ <code>skipped</code> แล้วจบด้วย <code>get_tree().quit()</code></li>
+    <li>เปิด <code>pickup_test.tscn</code> กด F6 โดยไม่แตะคีย์บอร์ดระหว่างรัน แล้วเทียบ Output กับผลลัพธ์ด้านล่าง</li>
+  </ol>
+
+  <h5>ผลลัพธ์ที่คาดหวัง</h5>
+  <p>ที่ Frame 10 ศัตรูทับดาวดวงที่ 3 อยู่แล้ว แต่ดาวต้องยังครบ 3 ดวง ผู้เล่นเก็บดาวได้ครบ 3 ดวง รวม 30 คะแนน (ไม่ใช่ 40 หรือมากกว่า) ในช่วง B ดาวบนจอต้องไม่เกิน 3 ดวง และตำแหน่งที่สุ่มได้ต้องตรงกับด้านล่าง เพราะใช้ Seed เดียวกัน หน้าต่างเกมจะปิดเองเมื่อทดสอบจบ</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>เริ่มทดสอบ: ดาว 3 ดวง
+เฟรม 10: ศัตรูทับดาวดวงที่ 3 อยู่ แต่ดาวยังครบ 3 ดวง
+เฟรม 24: เก็บดาว +10 คะแนนรวม 10
+เฟรม 54: เก็บดาว +10 คะแนนรวม 20
+เฟรม 84: เก็บดาว +10 คะแนนรวม 30
+จบช่วง A: คะแนน 30 ดาวเหลือ 0 ดวง ผู้เล่นอยู่ที่ x = 595.0
+เฟรม 131: Spawner สร้างดาวที่ (895, 432)
+ช่วง B วินาทีที่ 1: ดาวบนจอ 1 ดวง
+เฟรม 161: Spawner สร้างดาวที่ (774, 179)
+เฟรม 191: Spawner สร้างดาวที่ (695, 335)
+ช่วง B วินาทีที่ 2: ดาวบนจอ 3 ดวง
+ช่วง B วินาทีที่ 3: ดาวบนจอ 3 ดวง
+Spawner สร้างดาว 3 ครั้ง ข้าม 2 ครั้ง</code></pre>
+
+  <details class="hint"><summary>Hint</summary><div>
+    <ul>
+      <li>ค่า Bitmask ของ Layer ที่ n คือ 2 ยกกำลัง (n - 1) ดังนั้น Layer 2 คือ 2, Layer 3 คือ 4, Layer 4 คือ 8 และ "Layer 1 กับ Layer 2" คือ <code>1 | 2</code> ซึ่งเท่ากับ 3</li>
+      <li>Signal <code>body_entered</code> ทำงานกับ PhysicsBody2D (CharacterBody2D, RigidBody2D, StaticBody2D) และ TileMapLayer ที่มี Collision ถ้าอีกฝ่ายเป็น Area2D ต้องใช้ <code>area_entered</code></li>
+      <li>ถ้าเขียน <code>monitoring = false</code> ตรงๆ ใน Callback Godot จะแจ้ง <code>Function blocked during in/out signal. Use set_deferred("monitoring", true/false).</code></li>
+      <li>นับดาวด้วย <code>get_tree().get_nodes_in_group("stars").size()</code> ซึ่งรวมดาวที่ Spawner สร้างและดาวที่ฉากทดสอบวางเอง</li>
+      <li>ตั้ง <code>process_callback = Timer.TIMER_PROCESS_PHYSICS</code> ให้ Timer เดินตาม Physics Tick ทีละ 1/60 วินาที ผลการทดสอบจึงไม่ขึ้นกับ FPS ของเครื่อง</li>
+    </ul>
+  </div></details>
+</article>
+
+<article class="challenge" data-lvl="a">
+  <div class="concept-meta"><span class="c-no">โจทย์ที่ 3</span><span class="lvl" data-lvl="a">Advanced</span></div>
+  <h4>อัปเกรดไฟล์บันทึกเป็นเวอร์ชัน 2 พร้อม Test อัตโนมัติ</h4>
+
+  <h5>สถานการณ์</h5>
+  <p>Star Dodger เวอร์ชัน 1.0 เปิดให้เล่นบน itch.io แล้ว และมีผู้เล่นจริงที่สะสม High Score ไว้ เวอร์ชัน 1.1 จะเพิ่มสถิติ "จำนวนเกมที่เล่น" และตารางคะแนนสูงสุด 5 อันดับ ไฟล์ <code>savegame.cfg</code> ของเวอร์ชัน 1 มีแค่ <code>[progress] high_score</code> กับ <code>[settings]</code> 3 ค่า และไม่มีเลขเวอร์ชันของไฟล์ ทีมตั้งข้อกำหนดไว้ 3 ข้อ คือ (1) ผู้เล่นที่อัปเดตต้องไม่เสีย High Score (2) ไฟล์ที่เสียระหว่างเขียน ไฟล์ที่ถูกแก้มือจนชนิดข้อมูลผิด หรือไม่มีไฟล์เลย ต้องไม่ทำให้เกม Crash และ (3) ต้องมี Test อัตโนมัติที่รันจาก PowerShell ได้ และคืน Exit Code 1 เมื่อมีข้อใดไม่ผ่าน เพื่อนำไปใส่ใน CI ภายหลัง</p>
+
+  <h5>สิ่งที่ต้องทำ</h5>
+  <ol>
+    <li>สร้าง <code>res://practice/ch3_save_v2/save_v2.gd</code> เป็น <code>class_name SaveV2</code> ที่ <code>extends RefCounted</code> มีค่าคงที่ <code>VERSION = 2</code>, <code>MAX_TOP = 5</code>, <code>DEFAULT_VOLUME = 0.8</code> และให้ <code>_init()</code> รับ Path ของ <code>savegame.cfg</code> และ <code>scores.json</code> ได้ (ค่าเริ่มต้นอยู่ใน <code>user://</code>) เพื่อให้ Test ใช้ไฟล์ของตัวเองโดยไม่ทับเซฟจริง</li>
+    <li>เขียน <code>load_settings() -&gt; String</code> ที่คืนสถานะ <code>"new"</code>, <code>"ok"</code>, <code>"migrated"</code> หรือ <code>"corrupt"</code> ให้รีเซ็ตเป็นค่าเริ่มต้นก่อนอ่านทุกครั้ง ถ้าไม่มี <code>[meta] version</code> ให้ถือว่าเป็นเวอร์ชัน 1 อ่านทุกค่าแบบตรวจชนิด (int รับ float ได้ bool ต้องเป็น bool จริง ระดับเสียงบีบให้อยู่ในช่วง 0.0 ถึง 1.0 ค่าติดลบของ <code>high_score</code> และ <code>games_played</code> ให้เป็น 0) และถ้าเวอร์ชันต่ำกว่า 2 ให้เขียนไฟล์ใหม่ทันทีแล้วคืน <code>"migrated"</code></li>
+    <li>เขียน <code>save_settings()</code> ที่เขียน <code>[meta] version</code>, <code>[progress] high_score</code> และ <code>games_played</code> และ <code>[settings]</code> ทั้ง 3 ค่า</li>
+    <li>เขียน <code>load_top_scores() -&gt; Array[int]</code> ที่ใช้ <code>JSON.new().parse()</code> ข้ามค่าที่ไม่ใช่ตัวเลขและค่าติดลบ แปลง float เป็น int เรียงจากมากไปน้อย และเก็บแค่ 5 อันดับ พร้อม <code>save_top_scores(scores: Array[int])</code></li>
+    <li>เขียน <code>record_game(score: int) -&gt; bool</code> ที่เพิ่ม <code>games_played</code> อัปเดต High Score เพิ่มคะแนนลง Top 5 บันทึกทั้งสองไฟล์ และคืน <code>true</code> เมื่อทำ High Score ใหม่</li>
+    <li>เขียน <code>test_save_v2.gd</code> ที่ <code>extends SceneTree</code> ใช้โฟลเดอร์ <code>user://test_save_v2/</code> และมีอย่างน้อย 12 ข้อ ครอบคลุม: ไม่มีไฟล์, ย้ายไฟล์ v1 (High Score ยังเป็น 1500, ไฟล์ถูกเขียนเป็น version 2, โหลดครั้งที่สองได้ <code>"ok"</code>), ไฟล์เสีย, ชนิดข้อมูลผิด, Top 5 ที่มีค่าขยะปน, JSON เสีย และ <code>record_game()</code> ทุกข้อพิมพ์ <code>ผ่าน: ...</code> หรือ <code>ไม่ผ่าน: ...</code> บรรทัดสุดท้ายพิมพ์ <code>สรุป: ผ่าน N ข้อ ไม่ผ่าน M ข้อ</code> แล้วเรียก <code>quit(0)</code> หรือ <code>quit(1)</code></li>
+    <li>รัน Test จาก PowerShell แบบ Headless ด้วย <code>--script</code> แล้วตรวจ <code>$LASTEXITCODE</code></li>
+  </ol>
+
+  <h5>ผลลัพธ์ที่คาดหวัง</h5>
+  <p>ทุกข้อต้องขึ้น <code>ผ่าน:</code> และ <code>$LASTEXITCODE</code> ต้องเป็น <code>0</code> ระหว่างทางจะมีข้อความ <code>ERROR:</code> และ <code>WARNING:</code> จาก Test ไฟล์เสียโผล่มาด้วย ซึ่งเป็นสิ่งที่ต้องเห็น เพราะแปลว่าโค้ดตรวจเจอไฟล์เสียแล้วรับมือได้โดยไม่ Crash ถ้าเขียน Test ครบเท่าเฉลยจะได้ 16 ข้อ บรรทัดแรกๆ และบรรทัดสรุปจะเป็นดังนี้</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ผ่าน: ไม่มีไฟล์ -&gt; สถานะ new และใช้ค่าเริ่มต้น
+ผ่าน: ไม่มี scores.json -&gt; ได้ Array ว่าง
+ผ่าน: ไฟล์ v1 -&gt; สถานะ migrated</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>สรุป: ผ่าน 16 ข้อ ไม่ผ่าน 0 ข้อ
+0</code></pre>
+  <p>เลข <code>0</code> บรรทัดสุดท้ายมาจากคำสั่ง <code>$LASTEXITCODE</code> ที่พิมพ์ต่อจาก Test</p>
+
+  <details class="hint"><summary>Hint</summary><div>
+    <ul>
+      <li><code>ConfigFile.get_value(section, key, default)</code> คืนค่า <code>default</code> เมื่อไม่มี Key นั้น แล้วค่อยตรวจชนิดด้วย <code>is int</code>, <code>is float</code> และ <code>is bool</code> เพราะผู้เล่นแก้ไฟล์ด้วย Notepad ได้เสมอ</li>
+      <li>ตัวเลขที่อ่านจาก JSON กลับมาเป็น float ทุกตัว (ทบทวนข้อ 10 ของ Multiple Choice) ต้องแปลงด้วย <code>int(item)</code> ก่อนใส่ลง <code>Array[int]</code></li>
+      <li><code>JSON.new().parse(text)</code> คืนค่า Error และมี <code>get_error_line()</code> กับ <code>get_error_message()</code> ให้ใช้ จึงเขียนข้อความเตือนได้ดีกว่า <code>JSON.parse_string()</code></li>
+      <li>สคริปต์ที่ <code>extends SceneTree</code> เริ่มทำงานใน <code>_initialize()</code> และ <code>quit(1)</code> จะทำให้ <code>$LASTEXITCODE</code> เป็น 1</li>
+      <li>อย่าเปลี่ยนไปเก็บเซฟเป็นไฟล์ <code>.tres</code> เพื่อความสะดวก เพราะ Resource ฝังสคริปต์ได้ (ทบทวนข้อ 13 ของ Multiple Choice)</li>
+    </ul>
+  </div></details>
+</article>
+
+<h3 id="s3-3-answers">เฉลย</h3>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ลองทำทุกข้อด้วยตัวเองให้เสร็จก่อนเปิดเฉลย โดยเฉพาะโจทย์ลงมือทำ การเปิดเฉลยเร็วเกินไปทำให้ดูเหมือนเข้าใจ แต่จะเขียนเองไม่ได้เมื่อเจอปัญหาจริง ถ้าติด ให้เปิด Hint หรือกลับไปอ่านแนวคิดใน Part 2 ที่โจทย์อ้างถึงก่อน แล้วค่อยมาเทียบคำตอบ</p></div>
+
+<h4>เฉลย Fill-in-the-blank</h4>
+
+<details class="ans"><summary>ข้อ 1</summary><div>
+  <p><strong>คำตอบ:</strong> <code>16.67</code> และ <code>delta</code></p>
+  <p>1 วินาทีมี 1000 มิลลิวินาที เมื่อแบ่งเป็น 60 Frame จะได้ 1000 / 60 = 16.666... หรือประมาณ 16.67 มิลลิวินาทีต่อ Frame (ทดสอบใน Godot ด้วย <code>"%.2f" % (1000.0 / 60.0)</code> ได้ <code>16.67</code>) ส่วน <code>delta</code> คือเวลาที่ผ่านไปตั้งแต่ Frame ก่อนหน้า หน่วยเป็นวินาที เมื่อเอาความเร็ว (px ต่อวินาที) คูณเวลา (วินาที) จะได้ระยะที่ต้องเคลื่อนใน Frame นั้น ทุก Frame รวมกันใน 1 วินาทีจึงได้ 200 px เสมอ ไม่ว่าเครื่องจะรันได้ 30, 60 หรือ 144 FPS</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 2</summary><div>
+  <p><strong>คำตอบ:</strong> <code>instantiate</code> และ <code>add_child</code></p>
+  <p>PackedScene เปรียบเหมือนแบบพิมพ์เขียวของ Scene ส่วน <code>instantiate()</code> สร้าง Node ชุดใหม่ตามแบบนั้น แต่ Node ที่ได้ยังไม่อยู่ใน Scene Tree จึงยังไม่แสดงผลและยังไม่ถูกเรียก <code>_ready()</code> จนกว่าจะเรียก <code>add_child(coin)</code> ซึ่งนำเหรียญไปเป็นลูกของ World ชื่อ <code>instance()</code> แบบ Godot 3 ใช้ไม่ได้แล้วใน Godot 4 และการตั้ง <code>position</code> ก่อน <code>add_child()</code> ทำให้ <code>_ready()</code> ของเหรียญเห็นตำแหน่งที่ถูกต้องตั้งแต่แรก</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 3</summary><div>
+  <p><strong>คำตอบ:</strong> <code>@onready</code> และ <strong>ก่อน</strong></p>
+  <p>ค่าเริ่มต้นของตัวแปรระดับ Class ถูกคำนวณตั้งแต่ตอนสร้าง Object ซึ่งเป็นช่วงที่ Node ลูกยังไม่พร้อม <code>$ScoreLabel</code> ในจังหวะนั้นจึงหา Node ไม่เจอ Godot 4.7.2 รู้จักกับดักนี้ ถ้าไม่ใส่ <code>@onready</code> จะแจ้ง <code>Parse Error: The default value uses "$" which won't return nodes in the scene tree before "_ready()" is called. Use the "@onready" annotation to solve this. (Warning treated as error.)</code> และไม่ยอมรันสคริปต์นี้เลย ส่วน <code>@onready</code> เลื่อนการกำหนดค่าไปทำทันทีก่อน <code>_ready()</code> ของ Node นั้น สำหรับช่องที่สอง Godot เรียก <code>_enter_tree()</code> จากบนลงล่าง (แม่ก่อนลูก) แต่เรียก <code>_ready()</code> จากล่างขึ้นบน (ลูกก่อนแม่) เมื่อ <code>_ready()</code> ของแม่ทำงาน ลูกทุกตัวจึงพร้อมใช้งานแล้ว ผลการรันจริงอยู่ในเฉลย Multiple Choice ข้อ 4</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 4</summary><div>
+  <p><strong>คำตอบ:</strong> <code>get_vector</code> และ <code>move_and_slide()</code></p>
+  <p><code>Input.get_vector()</code> รวม Action 4 ทิศเป็น Vector2 เดียว และจำกัดความยาวไม่ให้เกิน 1 เมื่อทดสอบด้วยการกดขวาและลงพร้อมกันจะได้ <code>(0.707107, 0.707107)</code> ความเร็วเฉียงจึงเท่ากับ 300 px/s พอดี อีกทั้งยังจัดการ Deadzone ของจอยให้ด้วย ส่วน <code>move_and_slide()</code> ใน Godot 4 ไม่รับ Argument เพราะอ่านค่าจาก Property <code>velocity</code> ของ CharacterBody2D เอง ถ้าเขียนแบบ Godot 3 คือ <code>move_and_slide(velocity)</code> จะเกิด Error เรื่องจำนวน Argument ทันที</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 5</summary><div>
+  <p><strong>คำตอบ:</strong> <code>collision_layer = 4</code> และ <code>collision_mask = 1</code></p>
+  <p>Layer แต่ละชั้นคือ Bit หนึ่งตัว ค่าของ Layer ที่ n คือ 2 ยกกำลัง (n - 1) จึงได้ Layer 1 = 1, Layer 2 = 2, Layer 3 = 4 และ Layer 4 = 8 จำง่ายๆ ว่า Layer คือ "ฉันเป็นอะไร" ส่วน Mask คือ "ฉันมองหาอะไร" ดาวเป็น stars (4) และมองหา player (1) ระวังกับดักหนึ่ง คือ Area2D ใหม่มีค่าเริ่มต้นเป็น Layer 1 อยู่แล้ว ถ้าเปิดแค่ Layer 3 ด้วย <code>set_collision_layer_value()</code> จะได้ 5 (Layer 1 รวมกับ Layer 3) ต้องปิด Layer 1 ด้วย ดังโค้ดที่ทดสอบด้านล่าง</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends Node
+
+
+func _ready() -&gt; void:
+    var star := Area2D.new()
+    # ค่าเริ่มต้นของ Area2D ที่สร้างใหม่
+    print(star.collision_layer, " ", star.collision_mask)
+    star.set_collision_layer_value(3, true)
+    print(star.collision_layer)
+    star.set_collision_layer_value(1, false)
+    print(star.collision_layer)
+    star.free()</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>1 1
+5
+4</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 6</summary><div>
+  <p><strong>คำตอบ:</strong> <code>maxf</code> และ <code>1.12908</code></p>
+  <p><code>maxf(a, b)</code> คืนค่าที่มากกว่าระหว่างตัวเลข float สองตัว เมื่อ <code>wait_time * 0.97</code> ลดต่ำกว่า 0.35 ฟังก์ชันจะคืน 0.35 แทน 0.35 จึงเป็น "พื้น" ที่ลดต่ำกว่านี้ไม่ได้ ค่าที่ได้คือ 1.2 คูณ 0.97 เท่ากับ 1.164 แล้วคูณ 0.97 อีกครั้งได้ 1.12908 ซึ่ง Godot พิมพ์ออกมาตรงตามนี้ และจะลดลงจนถึงพื้น 0.35 หลังศัตรูเกิดครบ 41 ตัว คนที่จำสลับมักเขียน <code>minf()</code> ซึ่งจะได้ 0.35 ตั้งแต่ศัตรูตัวแรก ทำให้เกมยากสุดทันที ส่วน <code>max()</code> แบบไม่มี f ก็ใช้ได้ แต่คืนค่าเป็น Variant จึงเสียข้อดีของ Static Typing</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 7</summary><div>
+  <p><strong>คำตอบ:</strong> <code>user</code> และ <code>file_exists</code></p>
+  <p><code>res://</code> คือโฟลเดอร์โปรเจกต์ หลัง Export ไฟล์ทั้งหมดจะถูกแพ็กรวมใน <code>.pck</code> ซึ่งอ่านได้อย่างเดียว ส่วน <code>user://</code> คือโฟลเดอร์ข้อมูลของผู้เล่นที่เขียนได้เสมอ บน Windows คือ <code>%APPDATA%\Godot\app_userdata\godot-lab\</code> ซึ่ง Godot แสดงเป็น <code>C:/Users/somchai/AppData/Roaming/Godot/app_userdata/godot-lab/savegame.cfg</code> (ชื่อผู้ใช้บนเครื่องคุณจะต่างออกไป) กับดักที่พบบ่อยคือ ตอนรันใน Editor การเขียนลง <code>res://</code> ทำได้ บั๊กจึงซ่อนอยู่จนถึงวันที่ Export ส่วน <code>FileAccess.file_exists()</code> เป็นเมธอดแบบ static ที่คืน <code>false</code> ตอนเล่นครั้งแรก โค้ดจึงคืน 0 ได้โดยไม่ต้องพยายามเปิดไฟล์ที่ยังไม่มี</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 8</summary><div>
+  <p><strong>คำตอบ:</strong> <code>new_state</code> และ <code>1.5</code></p>
+  <p>ลำดับที่ถูกต้องของการเปลี่ยนสถานะคือ ออกจากสถานะเดิม (<code>_exit_state</code>) แล้วเปลี่ยนค่า <code>state</code> จากนั้นจึงเข้าสถานะใหม่ (<code>_enter_state</code>) บรรทัด <code>print()</code> อยู่ก่อนการกำหนดค่า จึงยังอ่านชื่อสถานะเดิมได้และพิมพ์ออกมาเป็น <code>IDLE -&gt; CHASE</code> ส่วนตัวคูณ 1.5 ทำให้ระยะเริ่มไล่ (250) กับระยะเลิกไล่ (375) ไม่เท่ากัน เทคนิคนี้เรียกว่า Hysteresis ถ้าผู้เล่นยืนอยู่ที่ระยะ 250 พอดีแล้วขยับเล็กน้อย ศัตรูจะไม่สลับไปมาระหว่างไล่กับหยุดทุก Frame ผลต่างของจำนวนครั้งที่เปลี่ยนสถานะดูได้ในเฉลย Multiple Choice ข้อ 11</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 9</summary><div>
+  <p><strong>คำตอบ:</strong> <code>true</code> และ <code>parallel</code></p>
+  <p>Argument ของ <code>create_timer()</code> ใน Godot 4.7.2 เรียงเป็น <code>time_sec</code>, <code>process_always</code>, <code>process_in_physics</code> และ <code>ignore_time_scale</code> ตัวที่ 4 ต้องเป็น <code>true</code> เพราะถ้าใช้ค่าเริ่มต้น (<code>false</code>) Timer จะเดินช้าลงตาม <code>time_scale</code> ด้วย 0.08 วินาทีจะกลายเป็น 0.08 / 0.05 = 1.6 วินาทีจริง เมื่อทดสอบที่ 60 FPS Timer ที่ตั้ง <code>true</code> ครบเวลาใน 5 Frame ส่วน Timer แบบค่าเริ่มต้นใช้ถึง 96 Frame เกมจึงค้างไปเกือบ 2 วินาทีแทนที่จะเป็นจังหวะกระแทกสั้นๆ สำหรับช่องที่สอง <code>parallel()</code> ทำให้ Tweener ถัดไปเล่นพร้อมกับตัวก่อนหน้า ถ้าไม่เรียก ทุกคำสั่งใน Tween จะเล่นต่อกันตามลำดับ (ตอบ <code>set_parallel</code> ก็ได้ผลเดียวกันในโค้ดนี้ แต่ <code>set_parallel()</code> ทำให้ Tweener ทุกตัวที่เพิ่มหลังจากนั้นเล่นพร้อมกันหมดด้วย)</p>
+</div></details>
+
+<h4>เฉลย Multiple Choice</h4>
+
+<details class="ans"><summary>ข้อ 1</summary><div>
+  <p><strong>คำตอบ: B</strong> ที่ 30 FPS ค่า <code>delta</code> ประมาณ 1/30 = 0.0333 วินาที ยานจึงเคลื่อนที่ 200 x 0.0333 ซึ่งประมาณ 6.67 px ต่อ Frame และเมื่อครบ 30 Frame ใน 1 วินาทีจะได้ 200 px พอดี เท่ากับเครื่อง 60 FPS ที่เคลื่อน Frame ละประมาณ 3.33 px แต่มี 60 Frame</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะ 200 คือความเร็วต่อวินาที ไม่ใช่ต่อ Frame การเคลื่อน 200 px ทุก Frame จะเกิดเมื่อลืมคูณ <code>delta</code> (<code>position.x += speed</code>) ซึ่งเป็นบั๊กที่ <code>delta</code> มีไว้ป้องกัน</li>
+    <li><strong>C</strong> ผิดเพราะ 3.33 px ต่อ Frame คือค่าของ 60 FPS ที่ 30 FPS ค่า <code>delta</code> ใหญ่ขึ้นเป็น 2 เท่า แต่ละ Frame จึงเคลื่อนไกลขึ้น 2 เท่า ระยะต่อวินาทีจึงยังเป็น 200 px ไม่ใช่ 100 px</li>
+    <li><strong>D</strong> ผิดเพราะการคูณ <code>delta</code> มีไว้เพื่อให้ระยะต่อวินาทีเท่ากันทุกเครื่องโดยเฉพาะ ที่เปลี่ยนตาม FPS คือระยะต่อ Frame ส่วนระยะต่อวินาทีคงที่</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 2</summary><div>
+  <p><strong>คำตอบ: C</strong> <code>queue_free()</code> ไม่ได้ลบ Node ทันที แต่จองคิวไว้ให้ลบตอนจบ Frame ปัจจุบัน บรรทัดแรกจึงยังนับได้ 3 พอ <code>await get_tree().process_frame</code> รอให้ข้ามไปอีก Frame เหรียญตัวที่สองถูกลบไปแล้ว บรรทัดที่สองจึงได้ 2 ผลนี้ได้จากการรันจริงแบบ Headless ส่วน <code>await</code> บรรทัดแรกมีไว้ให้คำสั่งลบเกิดใน Frame ปกติของเกม ถ้าสั่ง <code>queue_free()</code> ใน <code>_ready()</code> ตอนที่เกมเพิ่งเปิด Frame แรกอาจส่ง <code>process_frame</code> ก่อนลบ Node ในคิว ผลจึงไม่แน่นอน (ทดสอบรันจริง 20 ครั้ง บรรทัดที่สองยังได้ 3 อยู่ 8 ครั้ง)</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะคิดว่า <code>queue_free()</code> ลบทันที พฤติกรรมแบบนั้นคือ <code>free()</code> ซึ่งไม่แนะนำให้ใช้กับ Node ที่อยู่ใน Scene Tree เพราะถ้ามีโค้ดอื่นยังใช้ Node นั้นอยู่ เกมอาจ Error ได้</li>
+    <li><strong>B</strong> ผิดเพราะหลังจบ Frame Godot ลบเหรียญที่อยู่ในคิวจริง จำนวนลูกจึงลดลงเหลือ 2</li>
+    <li><strong>D</strong> ผิดเพราะไม่มีโค้ดส่วนไหนเพิ่มลูกหลังจาก <code>queue_free()</code> จำนวนจึงไม่มีทางเพิ่มขึ้นเป็น 3 และบรรทัดแรกก็ไม่ใช่ 2 ด้วยเหตุผลเดียวกับข้อ A</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 3</summary><div>
+  <p><strong>คำตอบ: A</strong> ตัวแปรทั้งสองเป็น <code>int</code> GDScript จึงหารแบบจำนวนเต็มและตัดเศษทิ้ง ได้ <code>3</code> ซึ่งต่างจาก Python 3 ที่ <code>7 / 2</code> ได้ <code>3.5</code> ส่วนบรรทัดที่สองแปลงตัวหารเป็น float ด้วย <code>float(enemies)</code> ผลจึงเป็น <code>3.5</code> ใน Script Editor จะมีคำเตือน INTEGER_DIVISION ว่า "Integer division. Decimal part will be discarded." ช่วยเตือนตรงบรรทัดแรกด้วย</p>
+  <ul class="why-wrong">
+    <li><strong>B</strong> ผิดเพราะเป็นพฤติกรรมของ Python 3 ไม่ใช่ GDScript ใน GDScript การหาร int ด้วย int จะตัดเศษเสมอ</li>
+    <li><strong>C</strong> ผิดเพราะ <code>float(enemies)</code> ทำให้ตัวหารเป็นทศนิยม การหารครั้งนี้จึงเป็นการหารแบบ float ที่ได้ 3.5</li>
+    <li><strong>D</strong> ผิดเพราะ GDScript อนุญาตให้หาร int ด้วย int ได้ เพียงแค่มีคำเตือนใน Editor ไม่ได้หยุดโปรแกรม</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 4</summary><div>
+  <p><strong>คำตอบ: D</strong> Godot เรียก <code>_enter_tree()</code> จากบนลงล่าง แม่จึงเข้า Tree ก่อนลูก แต่เรียก <code>_ready()</code> จากล่างขึ้นบน ลูกจึงพร้อมก่อนแม่ ข้อนี้ทำให้ <code>_ready()</code> ของแม่ใช้ <code>$Child</code> ได้อย่างปลอดภัยเสมอ ผลจากการรันจริงเป็นดังนี้</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Parent _enter_tree
+Child _enter_tree
+Child _ready
+Parent _ready</code></pre>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะ Godot นำทั้ง Subtree เข้า Tree ให้ครบก่อน แล้วจึงเริ่มเรียก <code>_ready()</code> แม่จึงยังไม่ <code>_ready()</code> ในตอนที่ลูกยังไม่เข้า Tree</li>
+    <li><strong>B</strong> ผิดเพราะลูกเข้า Tree ก่อนแม่ไม่ได้ ลูกอยู่ใต้แม่ แม่จึงต้องเข้า Tree ก่อนเสมอ</li>
+    <li><strong>C</strong> ผิดเพราะลำดับของ <code>_ready()</code> กลับกัน ที่ถูกคือลูกก่อนแม่ ถ้าแม่ <code>_ready()</code> ก่อน การอ้างถึงลูกใน <code>_ready()</code> ของแม่จะไม่ปลอดภัย</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 5</summary><div>
+  <p><strong>คำตอบ: C</strong> เมื่อกด D และ S พร้อมกัน <code>get_axis()</code> คืนค่า 1 ทั้งสองแกน ได้เวกเตอร์ <code>(1.0, 1.0)</code> ซึ่งยาว √2 หรือประมาณ 1.414 ความเร็วจึงเป็นประมาณ 424 px/s (รันจริงได้ 424.264068603516) ส่วน <code>Input.get_vector()</code> คืนค่า <code>(0.707107, 0.707107)</code> ที่ยาว 1 ความเร็วเฉียงจึงเป็น 300 px/s พอดี และยังจัดการ Deadzone ของจอยให้ด้วย อีกวิธีที่ใช้ได้คือ <code>direction.limit_length(1.0)</code> ซึ่งเก็บค่าการโยกจอยเพียงครึ่งทางไว้ ต่างจาก <code>normalized()</code> ที่ทำให้โยกนิดเดียวก็วิ่งเต็มความเร็ว</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะเวกเตอร์ที่มีค่า 1 ทั้งสองแกนไม่ได้ยาว 1 ตามทฤษฎีบทพีทาโกรัส ความยาวคือ √(1² + 1²) = √2</li>
+    <li><strong>B</strong> ผิดเพราะการอ่านทีละแกนแล้วประกอบเป็น Vector2 ทำให้เดินเฉียงได้จริง ปัญหาอยู่ที่ความเร็ว ไม่ใช่ทิศทาง และการเปลี่ยนไปใช้ <code>is_action_pressed()</code> 4 ครั้งก็ยังได้เวกเตอร์ <code>(1, 1)</code> แบบเดิม</li>
+    <li><strong>D</strong> ผิดเพราะเดินเฉียงเร็วขึ้น ไม่ได้ช้าลง ถ้าคูณ <code>speed</code> ด้วย 2 อีกจะยิ่งเร็วถึงประมาณ 848 px/s</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 6</summary><div>
+  <p><strong>คำตอบ: B</strong> Area2D ตัว A จะรู้ว่า B เข้ามา ก็ต่อเมื่อ Layer ของ B อยู่ใน Mask ของ A ดาวมี Mask เป็น Layer 1 แต่ศัตรูอยู่ Layer 2 ดาวจึงมองไม่เห็นศัตรู ส่วนศัตรูมี Mask เป็น Layer 1 แต่ดาวอยู่ Layer 3 ศัตรูจึงมองไม่เห็นดาวเช่นกัน ผลจากการทดสอบจริงคือ <code>area_entered</code> ของทั้งสองตัวถูกเรียก 0 ครั้ง ขณะที่ดาวอีกดวงที่มี CharacterBody2D บน Layer 1 มาทับ ได้รับ <code>body_entered</code> 1 ครั้งตามปกติ การตั้ง Layer/Mask ผิดจะไม่มี Error ใดๆ แจ้งเลย ให้ตรวจด้วยเมนู Debug &gt; Visible Collision Shapes และดูช่อง Collision ใน Inspector</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะรูปทรงซ้อนทับกันอย่างเดียวยังไม่พอ ต้องให้ Layer ของอีกฝ่ายอยู่ใน Mask ของเราด้วย</li>
+    <li><strong>C</strong> ผิดเพราะ Area2D กับ Area2D ก็ใช้กฎ Layer/Mask แบบเดียวกับ Physics Body ไม่มีข้อยกเว้น</li>
+    <li><strong>D</strong> ผิดเพราะ Area2D ซ้อนทับกันได้ตามปกติ ซึ่งเป็นหน้าที่หลักของมันด้วยซ้ำ จึงไม่มี Error</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 7</summary><div>
+  <p><strong>คำตอบ: D</strong> <code>local_to_map()</code> แปลงตำแหน่งเป็นพิกเซลให้เป็นพิกัดช่อง โดยหารด้วยขนาด Tile แล้วปัดเศษลง 200 / 64 = 3.125 ได้ช่องที่ 3 และ 130 / 64 = 2.03 ได้ช่องที่ 2 ผลจึงเป็น Vector2i <code>(3, 2)</code> ซึ่งตรงกับที่รันจริง ถ้าแปลงกลับด้วย <code>map_to_local(Vector2i(3, 2))</code> จะได้ <code>(224.0, 160.0)</code> คือจุดกึ่งกลางของช่องนั้น (3 x 64 + 32 และ 2 x 64 + 32) และถ้า TileMapLayer ถูกย้ายออกจาก (0, 0) ต้องแปลงตำแหน่งในโลกด้วย <code>to_local()</code> ก่อนเสมอ</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะนั่นคือตำแหน่งพิกเซลเดิมที่ยังไม่ได้แปลง หน้าที่ของ <code>local_to_map()</code> คือแปลงพิกเซลเป็นเลขช่อง</li>
+    <li><strong>B</strong> ผิดเพราะพิกัดช่องเป็น Vector2i ซึ่งเป็นจำนวนเต็มเสมอ 3.125 เป็นแค่ผลหารระหว่างทาง Godot ปัดเศษทิ้งให้แล้ว</li>
+    <li><strong>C</strong> ผิดเพราะเป็นการปัดขึ้นหรือนับช่องเริ่มจาก 1 ช่องเริ่มนับจาก 0 ช่องที่ 0 ครอบคลุมพิกเซล 0 ถึง 63 และช่องที่ 3 ครอบคลุมพิกเซล 192 ถึง 255 ซึ่ง x = 200 อยู่ในช่วงนั้น</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 8</summary><div>
+  <p><strong>คำตอบ: A</strong> เมื่อ <code>get_tree().paused = true</code> ทุก Node ที่ <code>process_mode</code> เป็น Inherit (และสืบต่อไปถึงค่า Pausable ของ Root) จะหยุดทั้ง <code>_process()</code>, <code>_physics_process()</code> และการรับ Input PauseMenu ที่ใช้ค่าเริ่มต้นจึงหยุดไปพร้อมเกม การตั้ง <code>process_mode = Node.PROCESS_MODE_ALWAYS</code> (ใน Inspector คือ Process &gt; Mode = Always) ทำให้ PauseMenu และลูกทุกตัวที่ยังเป็น Inherit ทำงานต่อได้ ในการทดสอบจริง Node แบบ Inherit ถูกเรียก <code>_process()</code> 0 ครั้งระหว่างหยุดเกม ส่วน Node แบบ Always ยังถูกเรียกทุก Frame อย่าลืมว่าโค้ดที่ฟัง Action <code>pause</code> เพื่อปิดเมนูต้องอยู่ใน Node ที่เป็น Always ด้วย ไม่อย่างนั้นกด Esc ซ้ำก็ไม่มีผล</p>
+  <ul class="why-wrong">
+    <li><strong>B</strong> ผิดเพราะ <code>Engine.time_scale = 0</code> แค่ทำให้ <code>delta</code> เป็น 0 Node ทุกตัวยังถูกเรียก <code>_process()</code> และยังรับ Input อยู่ โค้ดที่ไม่ได้ใช้ <code>delta</code> จึงยังทำงาน ขณะที่ Timer และ Tween ของเมนูเองกลับหยุดเดิน ปุ่มอาจกดได้ก็จริง แต่เกมไม่ได้หยุดจริง จึงเป็นการแลกปัญหาเดิมกับปัญหาใหม่</li>
+    <li><strong>C</strong> ผิดเพราะปัญหาไม่ใช่ตำแหน่งของเมนู เมนูแสดงอยู่บนจอแล้วเพราะเป็น CanvasLayer และลูกของ Camera2D ที่เป็น Inherit ก็ยังหยุดตามเกมอยู่ดี</li>
+    <li><strong>D</strong> ผิดเพราะ Player เป็น Inherit จึงหยุดไปด้วย <code>_process()</code> ของ Player ไม่ถูกเรียกระหว่างหยุดเกม โค้ดที่เขียนไว้จึงไม่มีโอกาสทำงานเลย</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 9</summary><div>
+  <p><strong>คำตอบ: C</strong> จำนวน Node ที่เพิ่มขึ้นตลอดและไม่เคยลดลงคืออาการของ Memory Leak คือมีการสร้าง Node แต่ไม่มีการลบ ศัตรูที่ตกพ้นขอบล่างของจอยังอยู่ใน Scene Tree ตลอดไป ยังถูกประมวลผลทุก Frame และยังอยู่ในระบบ Physics ขั้นแรกจึงต้องลบมันให้ถูกต้อง เช่น เชื่อม Signal <code>screen_exited</code> ของ VisibleOnScreenNotifier2D ไปที่ <code>queue_free()</code> หรือเช็ก <code>position.y &gt; 700</code> แล้วจึงวัดซ้ำด้วย <code>Performance.get_monitor(Performance.OBJECT_NODE_COUNT)</code> ค่าที่ถูกต้องควรขึ้นลงอยู่ในช่วงคงที่ ไม่ไต่ขึ้นเรื่อยๆ</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะ Object Pooling แก้ต้นทุนของการสร้าง Node ใหม่ ไม่ได้แก้ Leak ถ้าศัตรูไม่เคยถูกคืนกลับ Pool ก็จะโตขึ้นเรื่อยๆ หรือของหมดเหมือนเดิม และควรทำ Pooling หลังจากวัดแล้วพบปัญหาจริงเท่านั้น</li>
+    <li><strong>B</strong> ผิดเพราะ Timer นับเป็นวินาที ไม่ได้นับเป็น Frame ที่ 30 FPS ศัตรูจึงเกิดถี่เท่าเดิม Leak ก็ยังอยู่ และผู้เล่นได้ภาพที่กระตุกขึ้นโดยไม่ได้อะไรเลย</li>
+    <li><strong>D</strong> ผิดเพราะ <code>remove_child()</code> แค่ถอด Node ออกจาก Tree แต่ไม่ได้ลบออกจากหน่วยความจำ Node ที่ถอดแล้วจะกลายเป็น Orphan Node (ดูได้ที่ Object &gt; Orphan Nodes ใน Monitors) จึงยัง Leak เหมือนเดิม แค่ย้ายไปนับอีกช่องหนึ่ง</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 10</summary><div>
+  <p><strong>คำตอบ: B</strong> <code>JSON.stringify()</code> เขียนข้อความแบบกระชับโดยไม่เว้นวรรคหลังจุลภาค ได้ <code>[1500,980]</code> ส่วนมาตรฐาน JSON มีตัวเลขชนิดเดียว ตัวอ่าน JSON ของ Godot จึงคืนตัวเลขทุกตัวเป็น float ได้ <code>[1500.0, 980.0]</code> และ <code>typeof(data[0]) == TYPE_INT</code> เป็น <code>false</code> (ค่าจริงคือ <code>TYPE_FLOAT</code>) ทั้ง 3 บรรทัดได้จากการรันจริง นี่คือเหตุผลที่โจทย์ลงมือทำข้อ 3 ต้องแปลงด้วย <code>int()</code> ทุกครั้งที่อ่านคะแนนจาก JSON</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะบรรทัดที่สองได้ <code>1500.0</code> ซึ่งเป็น float ไม่ใช่ int และบรรทัดที่สามจึงเป็น <code>false</code></li>
+    <li><strong>C</strong> ผิดเพราะ <code>JSON.stringify()</code> ไม่เว้นวรรคหลังจุลภาคเมื่อไม่ได้ส่ง Argument <code>indent</code> และตัวเลขที่อ่านกลับมาก็เป็น float ไม่ใช่ int</li>
+    <li><strong>D</strong> ผิดเพราะ JSON เก็บ Array ไว้ชั้นนอกสุดได้ตามมาตรฐาน และ Godot รองรับทั้ง Array, Dictionary, String, ตัวเลข, bool และ null</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 11</summary><div>
+  <p><strong>คำตอบ: D</strong> ไล่ทีละค่า: เริ่มที่ IDLE, 300 ไม่น้อยกว่า 250 จึงยังเป็น IDLE, 240 น้อยกว่า 250 จึงเปลี่ยนเป็น CHASE (ครั้งที่ 1), 260, 245 และ 255 ไม่เกิน 375 จึงยังเป็น CHASE, 380 เกิน 375 จึงเปลี่ยนเป็น IDLE (ครั้งที่ 2) และ 200 น้อยกว่า 250 จึงเปลี่ยนเป็น CHASE (ครั้งที่ 3) เมื่อรันจริงโดยให้ <code>change_state()</code> พิมพ์ทุกครั้งที่เปลี่ยน จะได้ 3 บรรทัดนี้ และจบที่ CHASE</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>IDLE -&gt; CHASE
+CHASE -&gt; IDLE
+IDLE -&gt; CHASE</code></pre>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะ 5 ครั้งคือผลของโค้ดที่ไม่มี Hysteresis คือเลิกไล่ทันทีที่ระยะเกิน 250 (ทดสอบจริงด้วยตัวคูณ 1.0 ได้ 5 ครั้ง) ระยะ 260 และ 255 จะทำให้ศัตรูหยุดไล่ ส่วน 245 ทำให้กลับมาไล่ใหม่ ซึ่งคือการสลับไปมาที่ตัวคูณ 1.5 ป้องกันไว้</li>
+    <li><strong>B</strong> ผิดเพราะนับจำนวนครั้งถูก แต่ลืมว่าค่าสุดท้ายคือ 200 ซึ่งน้อยกว่า 250 ศัตรูจึงกลับมาเป็น CHASE</li>
+    <li><strong>C</strong> ผิดเพราะข้ามค่าสุดท้ายไป ระยะ 200 ทำให้เกิดการเปลี่ยนจาก IDLE เป็น CHASE อีกครั้ง รวมเป็น 3 ครั้ง</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 12</summary><div>
+  <p><strong>คำตอบ: A</strong> Tween เล่นทีละขั้น ขั้นแรกมีการขยาย <code>scale</code> 0.2 วินาที และ <code>parallel()</code> ทำให้การเปลี่ยน <code>modulate</code> 0.3 วินาทีเล่นพร้อมกันในขั้นเดียวกัน ขั้นนี้จึงยาวเท่าตัวที่นานที่สุดคือ 0.3 วินาที ขั้นที่สองคือหด <code>scale</code> กลับ 0.1 วินาที รวมเป็น 0.4 วินาที ผลทดสอบจริงที่ 60 FPS คือ Signal <code>finished</code> มาถึงใน Frame ที่ 25 (25 / 60 ประมาณ 0.42 วินาที) ช้ากว่า 0.4 พอดีไป 1 Frame เพราะเวลาสะสมทีละ 1/60 วินาที และผลบวกของ 6 Frame ในขั้นสุดท้ายได้ 0.0999... ซึ่งยังไม่ถึง 0.1 โดย <code>scale</code> สุดท้ายเป็น <code>(1.0, 1.0)</code> และ <code>modulate</code> เป็น <code>(1.0, 0.0, 0.0, 1.0)</code> หรือสีแดง</p>
+  <ul class="why-wrong">
+    <li><strong>B</strong> ผิดเพราะ 0.6 วินาทีคือการบวกทุกตัว (0.2 + 0.3 + 0.1) เหมือนเล่นต่อกันหมด แต่ <code>parallel()</code> ทำให้ <code>modulate</code> เล่นพร้อมกับการขยายตัวแรก</li>
+    <li><strong>C</strong> ผิดเพราะ 0.3 วินาทีคือความยาวของขั้นแรกเท่านั้น <code>tween_property()</code> ตัวสุดท้ายไม่ได้เรียก <code>parallel()</code> จึงเล่นต่อท้ายอีก 0.1 วินาที (ถ้าอยากให้ทุกตัวเล่นพร้อมกันหมดต้องเรียก <code>set_parallel(true)</code>)</li>
+    <li><strong>D</strong> ผิดเพราะ 0.1 วินาทีคือความยาวของตัวสุดท้ายตัวเดียว ค่าเริ่มต้นของ Tween คือเล่นเรียงต่อกัน ไม่ใช่เล่นพร้อมกันหมดแล้วจบตามตัวที่สั้นที่สุด</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 13</summary><div>
+  <p><strong>คำตอบ: C</strong> ไฟล์ Resource ของ Godot ทั้ง <code>.tres</code> (แบบข้อความ) และ <code>.res</code> (แบบ Binary) เก็บ Resource ได้ทุกชนิด รวมถึงสคริปต์ GDScript ทั้งตัว เมื่อเรียก <code>load()</code> Godot จะสร้าง Object ตามไฟล์ และสคริปต์ที่ฝังมาก็รันได้ด้วยสิทธิ์เดียวกับเกม เช่น อ่านและลบไฟล์ใน <code>user://</code> หรือเรียกใช้ฟังก์ชันของระบบปฏิบัติการ การโหลด Resource จากคนอื่นจึงเท่ากับยอมรันโค้ดของคนแปลกหน้า วิธีที่ปลอดภัยคือรับเฉพาะข้อมูลล้วน เช่น อ่านรูปด้วย <code>Image.load_from_file()</code> แล้วสร้าง Texture ด้วย <code>ImageTexture.create_from_image()</code> และอ่านค่าตั้งค่าจาก JSON หรือ ConfigFile แล้วตรวจชนิดและช่วงของค่าทุกครั้ง แบบเดียวกับโจทย์ลงมือทำข้อ 3</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะ <code>user://</code> เป็นแค่โฟลเดอร์หนึ่งบนดิสก์ของผู้เล่น ไม่ใช่ Sandbox สคริปต์ที่โหลดเข้ามาใช้ API ของ Engine ได้ครบ รวมถึง FileAccess และ <code>OS.execute()</code> บนเครื่อง Desktop</li>
+    <li><strong>B</strong> ผิดเพราะนามสกุลไฟล์ไม่ได้บอกว่าข้างในมีอะไร ไฟล์ <code>.tres</code> ที่ฝังสคริปต์ก็ยังเป็นไฟล์ <code>.tres</code> ที่ถูกต้องตามรูปแบบทุกประการ</li>
+    <li><strong>D</strong> ผิดเพราะความเสี่ยงมีบนทุกแพลตฟอร์ม และบน Windows ยิ่งอันตรายกว่า เพราะสคริปต์เข้าถึงไฟล์ของผู้เล่นและเรียกโปรแกรมอื่นได้ ส่วนบน Web ถึง Browser จะจำกัดสิทธิ์ไว้บางส่วน ข้อมูลในเกมก็ยังถูกแก้หรือขโมยได้</li>
+  </ul>
+</div></details>
+
+<h4>เฉลย Hands-on Challenge</h4>
+
+<details class="ans"><summary>โจทย์ที่ 1 · ด่านโบนัส: จัดดาวเป็นตารางด้วย Instancing</summary><div>
+  <h5>ขั้นที่ 1: สร้าง grid_star.tscn ใน Editor</h5>
+  <ol>
+    <li>เลือกเมนู Scene &gt; New Scene แล้วกดปุ่ม Other Node เลือก Area2D ดับเบิลคลิกที่ชื่อ Node แล้วเปลี่ยนเป็น GridStar</li>
+    <li>คลิกขวาที่ GridStar เลือก Add Child Node เลือก Sprite2D ลากไฟล์ <code>res://icon.svg</code> จาก FileSystem Dock ไปวางที่ช่อง Texture แล้วตั้ง Transform &gt; Scale เป็น (0.25, 0.25)</li>
+    <li>คลิกขวาที่ GridStar อีกครั้ง เพิ่ม CollisionShape2D ที่ช่อง Shape เลือก New CircleShape2D แล้วคลิกที่ Shape นั้นเพื่อตั้ง Radius เป็น 16</li>
+    <li>เลือก GridStar ใน Inspector เปิดหัวข้อ Collision ที่ Layer ให้เอาเครื่องหมายออกจากช่อง 1 แล้วเลือกช่อง 3 (stars) ส่วน Mask ให้คงช่อง 1 (player) ไว้</li>
+    <li>กดปุ่ม Attach Script ตั้ง Path เป็น <code>res://practice/ch1_star_grid/grid_star.gd</code> แล้วกด Ctrl+S บันทึก Scene เป็น <code>res://practice/ch1_star_grid/grid_star.tscn</code></li>
+  </ol>
+  <p>สคริปต์ของดาวมีแค่ <code>class_name</code> กับค่าคะแนน บันทึกเป็น <code>res://practice/ch1_star_grid/grid_star.gd</code> แนบกับ Area2D ชื่อ GridStar</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">class_name GridStar
+extends Area2D
+## ดาวโบนัสหนึ่งดวง ค่าคะแนนแก้ได้ใน Inspector
+
+@export var points: int = 10</code></pre>
+
+  <h5>ขั้นที่ 2: สร้าง star_grid.tscn และสคริปต์สร้างตาราง</h5>
+  <p>สร้าง Scene ใหม่ด้วยปุ่ม 2D Scene ซึ่งจะได้ Node2D เปลี่ยนชื่อเป็น StarGrid แล้วบันทึกเป็น <code>res://practice/ch1_star_grid/star_grid.tscn</code> จากนั้นบันทึกสคริปต์ด้านล่างเป็น <code>res://practice/ch1_star_grid/star_grid.gd</code> แนบกับ Node2D ชื่อ StarGrid</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends Node2D
+## สร้างดาวโบนัสเป็นตาราง columns x rows จาก grid_star.tscn
+
+const STAR_SCENE: PackedScene = preload("res://practice/ch1_star_grid/grid_star.tscn")
+
+@export var columns: int = 4
+@export var rows: int = 3
+@export var spacing: Vector2 = Vector2(96, 80)
+@export var origin: Vector2 = Vector2(432, 200)
+@export var bottom_row_points: int = 20
+
+
+func _ready() -&gt; void:
+    build_grid()
+    print("จำนวนดาว %d ดวง คะแนนรวม %d" % [get_child_count(), total_points()])
+    # รอให้เกมเริ่มเดิน Frame แรกก่อน ผลการลบจึงเหมือนกันทุกครั้งที่รัน
+    await get_tree().process_frame
+    remove_row(0)
+    # queue_free() ยังไม่ลบทันที จำนวนจึงยังเท่าเดิม
+    print("สั่งลบแถวบนสุดแล้ว ตอนนี้ยังนับได้ %d ดวง" % get_child_count())
+    await get_tree().process_frame
+    print("หลังจบ Frame เหลือ %d ดวง คะแนนรวม %d" % [get_child_count(), total_points()])
+
+
+func build_grid() -&gt; void:
+    for row in rows:
+        for col in columns:
+            var star: GridStar = STAR_SCENE.instantiate()
+            star.name = "Star_%d_%d" % [row, col]
+            # ตั้งตำแหน่งและคะแนนให้เสร็จก่อน add_child() เสมอ
+            star.position = origin + Vector2(col * spacing.x, row * spacing.y)
+            if row == rows - 1:
+                star.points = bottom_row_points
+            add_child(star)
+            print("%s ที่ (%d, %d) ได้ %d คะแนน" % [star.name, star.position.x, star.position.y, star.points])
+
+
+func total_points() -&gt; int:
+    var total := 0
+    for child in get_children():
+        var star := child as GridStar
+        if star != null:
+            total += star.points
+    return total
+
+
+func remove_row(row: int) -&gt; void:
+    for col in columns:
+        var star := get_node_or_null("Star_%d_%d" % [row, col])
+        if star != null:
+            star.queue_free()</code></pre>
+
+  <h5>ขั้นที่ 3: รันและตรวจผล</h5>
+  <p>เปิด <code>star_grid.tscn</code> แล้วกด F6 แผง Output จะแสดง 15 บรรทัดตรงกับผลลัพธ์ที่คาดหวังในโจทย์ ถ้าอยากตรวจโดยไม่เปิดหน้าต่างเกม ให้รันแบบ Headless จาก PowerShell ตัวเลือก <code>--quit-after 10</code> สั่งให้ Godot ปิดตัวเองหลังผ่านไป 10 Frame ซึ่งพอสำหรับ <code>await</code> 2 ครั้งในโค้ดนี้</p>
+<pre class="code" data-env="win" data-label="PowerShell · Windows"><code class="language-powershell"># รัน Scene แบบไม่เปิดหน้าต่าง แล้วปิดเองหลัง 10 Frame
+cd C:\Users\somchai\godot-projects\godot-lab
+&amp; "C:\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --path . --quit-after 10 res://practice/ch1_star_grid/star_grid.tscn</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+Star_0_0 ที่ (432, 200) ได้ 10 คะแนน
+Star_0_1 ที่ (528, 200) ได้ 10 คะแนน
+Star_0_2 ที่ (624, 200) ได้ 10 คะแนน
+Star_0_3 ที่ (720, 200) ได้ 10 คะแนน
+Star_1_0 ที่ (432, 280) ได้ 10 คะแนน
+Star_1_1 ที่ (528, 280) ได้ 10 คะแนน
+Star_1_2 ที่ (624, 280) ได้ 10 คะแนน
+Star_1_3 ที่ (720, 280) ได้ 10 คะแนน
+Star_2_0 ที่ (432, 360) ได้ 20 คะแนน
+Star_2_1 ที่ (528, 360) ได้ 20 คะแนน
+Star_2_2 ที่ (624, 360) ได้ 20 คะแนน
+Star_2_3 ที่ (720, 360) ได้ 20 คะแนน
+จำนวนดาว 12 ดวง คะแนนรวม 160
+สั่งลบแถวบนสุดแล้ว ตอนนี้ยังนับได้ 12 ดวง
+หลังจบ Frame เหลือ 8 ดวง คะแนนรวม 120</code></pre>
+  <p>เมื่อเปลี่ยน <code>rows</code> เป็น 4 ใน Inspector แล้วรันใหม่ จะได้ดาว 16 ดวง แถวที่ 3 (แถวล่างสุดใหม่) ได้ 20 คะแนน ส่วนแถวที่ 2 กลับมาได้ 10 คะแนน คะแนนรวมเป็น 120 + 80 = 200 และหลังลบแถวบนจะเหลือ 12 ดวง 160 คะแนน โดยไม่ต้องแก้โค้ดแม้แต่บรรทัดเดียว</p>
+
+  <h5>แนวคิด</h5>
+  <ul>
+    <li><strong>แยกแบบกับการใช้งาน</strong> grid_star.tscn คือแบบของดาวหนึ่งดวง ส่วน star_grid.gd เป็นคนสร้าง Instance ตามจำนวนที่ต้องการ ถ้า Designer เปลี่ยนรูปหรือขนาดของดาว ก็แก้ที่ Scene เดียว ดาวทุกดวงเปลี่ยนตาม</li>
+    <li><strong>ค่าที่ Designer ต้องปรับเอาไปไว้ใน <code>@export</code></strong> ตัวเลขทุกตัวที่เกี่ยวกับรูปร่างของตารางอยู่ใน Inspector ไม่มี Magic Number ซ่อนอยู่ในลูป</li>
+    <li><strong>ตำแหน่งคำนวณจากเลขแถวและคอลัมน์</strong> <code>origin + Vector2(col * spacing.x, row * spacing.y)</code> ทำให้ดาวทุกดวงห่างกันเท่ากันเสมอ และตั้งค่าทุกอย่างให้เสร็จก่อน <code>add_child()</code> ตามหลักในแนวคิดที่ 2</li>
+    <li><strong>ตั้งชื่อ Node ให้ค้นหาได้</strong> ชื่อแบบ <code>Star_แถว_คอลัมน์</code> ทำให้ <code>get_node_or_null()</code> หาดาวทั้งแถวได้ตรงๆ และใช้ <code>get_node_or_null()</code> แทน <code>$</code> เพราะถ้าดาวดวงนั้นถูกเก็บไปแล้ว จะได้ <code>null</code> แทน Error</li>
+    <li><strong>เข้าใจจังหวะของ <code>queue_free()</code></strong> จำนวนลูกยังเป็น 12 จนกว่า Frame จะจบ ถ้าเกมจริงต้องรู้จำนวนดาวทันทีหลังเก็บ ให้รอด้วย <code>await get_tree().process_frame</code> หรือนับเองในตัวแปร</li>
+  </ul>
+
+  <h5>ไอเดียต่อยอด</h5>
+  <ul>
+    <li>คำนวณ <code>origin</code> ให้ตารางอยู่กลางจอเองทั้งสองแนว ด้วย <code>(get_viewport_rect().size - Vector2(columns - 1, rows - 1) * spacing) / 2</code> เมื่อเปลี่ยนจำนวนแถวหรือคอลัมน์ ตารางจะยังอยู่ตรงกลางเสมอ</li>
+    <li>ใส่ดาวแต่ละแถวเข้า Group เช่น <code>"row_0"</code> แล้วตรวจว่าผู้เล่นเก็บครบแถวหรือยัง ถ้าครบให้โบนัสเพิ่ม 50 คะแนน</li>
+    <li>เพิ่ม <code>@tool</code> ที่บรรทัดแรกของ star_grid.gd เพื่อให้ Designer เห็นตารางใน Editor ทันทีที่เปลี่ยนค่าใน Inspector โดยไม่ต้องกด F6 (ต้องระวังไม่ให้โค้ดลบหรือสร้าง Node ซ้ำทุกครั้งที่ค่าเปลี่ยน)</li>
+    <li>เปลี่ยนรูปแบบการวางจากตารางเป็นวงกลมด้วย <code>Vector2.from_angle(TAU * i / count) * radius</code> เพื่อทำด่านโบนัสหลายแบบจากโค้ดชุดเดียว</li>
+    <li>ให้ดาวค่อยๆ เด้งขึ้นมาทีละดวงด้วย Tween โดยหน่วงเวลาตามลำดับของดาว เช่น <code>tween_interval(0.05 * index)</code> ก่อน <code>tween_property()</code> ที่ขยาย <code>scale</code> จาก 0 เป็น 1</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 2 · แก้บั๊กระบบเก็บดาว: ศัตรูต้องแย่งดาวไม่ได้ และดาวต้องไม่ล้นจอ</summary><div>
+  <h5>ขั้นที่ 1: ดาวที่ป้องกัน 2 ชั้น</h5>
+  <p>สร้าง Scene <code>res://practice/ch2_pickup/star.tscn</code> แบบเดียวกับ GridStar ในโจทย์ข้อ 1 คือ Area2D ชื่อ Star ที่มี Sprite2D (Scale 0.25) และ CollisionShape2D (CircleShape2D รัศมี 16) ใน Inspector &gt; Collision ให้ Layer มีแค่ช่อง 3 และ Mask มีแค่ช่อง 1 นี่คือการป้องกันชั้นที่ 1 จากนั้นบันทึกสคริปต์นี้เป็น <code>res://practice/ch2_pickup/star.gd</code> แนบกับ Area2D ชื่อ Star การตรวจ Group ในโค้ดคือการป้องกันชั้นที่ 2</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends Area2D
+## ดาวที่ให้คะแนน อยู่ Layer 3 "stars" และมองหาเฉพาะ Layer 1 "player"
+
+signal collected(points: int)
+
+@export var points: int = 10
+
+
+func _ready() -&gt; void:
+    add_to_group("stars")
+    body_entered.connect(_on_body_entered)
+
+
+func _on_body_entered(body: Node2D) -&gt; void:
+    # ด่านที่ 2: ต่อให้ Mask ถูกตั้งผิด ก็รับคะแนนเฉพาะผู้เล่นเท่านั้น
+    if not body.is_in_group("player"):
+        return
+    # ห้ามแก้ monitoring ตรงๆ ใน Callback ของ Physics ต้องใช้ set_deferred()
+    set_deferred("monitoring", false)
+    collected.emit(points)
+    queue_free()</code></pre>
+
+  <h5>ขั้นที่ 2: ผู้เล่น</h5>
+  <p>สร้าง <code>res://practice/ch2_pickup/player.tscn</code> โดยใช้ CharacterBody2D ชื่อ Player เป็น Root มี Sprite2D (Texture <code>res://icon.svg</code>, Scale 0.3) และ CollisionShape2D (CircleShape2D รัศมี 20) ใน Inspector &gt; Collision ให้ Layer มีแค่ช่อง 1 และ Mask มีแค่ช่อง 4 (walls) แล้วบันทึกสคริปต์นี้เป็น <code>res://practice/ch2_pickup/player.gd</code> แนบกับ Player</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends CharacterBody2D
+## ผู้เล่นเดิน 8 ทิศด้วย Input Map และอยู่ในกลุ่ม "player"
+
+const SCREEN_SIZE := Vector2(1152, 648)
+
+@export var speed: float = 300.0
+
+
+func _ready() -&gt; void:
+    add_to_group("player")
+
+
+func _physics_process(_delta: float) -&gt; void:
+    var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+    velocity = direction * speed
+    move_and_slide()
+    position = position.clamp(Vector2.ZERO, SCREEN_SIZE)</code></pre>
+
+  <h5>ขั้นที่ 3: Spawner ที่จำกัดจำนวนดาว</h5>
+  <p>บันทึกเป็น <code>res://practice/ch2_pickup/star_spawner.gd</code> สคริปต์นี้จะแนบกับ Node2D ชื่อ StarSpawner ในฉากทดสอบขั้นถัดไป Timer ถูกสร้างในโค้ด จึงไม่ต้องเพิ่ม Node ใน Editor</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends Node2D
+## สร้างดาวทุก spawn_interval วินาที แต่มีดาวบนจอพร้อมกันได้ไม่เกิน max_stars ดวง
+
+signal star_spawned(star: Area2D)
+
+const STAR_SCENE: PackedScene = preload("res://practice/ch2_pickup/star.tscn")
+
+@export var max_stars: int = 3
+@export var spawn_interval: float = 0.5
+@export var rng_seed: int = 2026
+
+var spawned: int = 0
+var skipped: int = 0
+
+var _rng := RandomNumberGenerator.new()
+var _timer := Timer.new()
+
+
+func _ready() -&gt; void:
+    _rng.seed = rng_seed
+    _timer.wait_time = spawn_interval
+    # นับเวลาตาม Physics Tick (60 ครั้งต่อวินาที) ผลจึงเหมือนกันทุกเครื่อง
+    _timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
+    _timer.timeout.connect(_on_timer_timeout)
+    add_child(_timer)
+
+
+func start() -&gt; void:
+    _timer.start()
+
+
+func _on_timer_timeout() -&gt; void:
+    if get_tree().get_nodes_in_group("stars").size() &gt;= max_stars:
+        skipped += 1
+        return
+    var star: Area2D = STAR_SCENE.instantiate()
+    star.position = Vector2(_rng.randf_range(32.0, 1120.0), _rng.randf_range(32.0, 616.0))
+    add_child(star)
+    spawned += 1
+    star_spawned.emit(star)</code></pre>
+
+  <h5>ขั้นที่ 4: ฉากทดสอบ</h5>
+  <p>สร้าง Scene ใหม่ด้วย Node2D ชื่อ PickupTest เพิ่มลูกเป็น Node2D ชื่อ StarSpawner แล้วลาก <code>star_spawner.gd</code> ไปแนบ บันทึกเป็น <code>res://practice/ch2_pickup/pickup_test.tscn</code> จากนั้นบันทึกสคริปต์นี้เป็น <code>res://practice/ch2_pickup/pickup_test.gd</code> แนบกับ Node2D ชื่อ PickupTest</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends Node2D
+## ฉากทดสอบ 2 ช่วง
+## ช่วง A: ผู้เล่นวิ่งไปทางขวาเก็บดาว 3 ดวง โดยมีศัตรูยืนทับดาวดวงที่ 3 อยู่
+## ช่วง B: เอาผู้เล่นออก ปล่อยให้ Spawner ทำงาน 3 วินาที ดาวต้องไม่เกิน 3 ดวง
+
+const STAR_SCENE: PackedScene = preload("res://practice/ch2_pickup/star.tscn")
+const PLAYER_SCENE: PackedScene = preload("res://practice/ch2_pickup/player.tscn")
+
+var score: int = 0
+var frame: int = 0
+var second: int = 0
+var player: CharacterBody2D
+
+@onready var spawner: Node2D = $StarSpawner
+
+
+func _ready() -&gt; void:
+    player = PLAYER_SCENE.instantiate()
+    player.position = Vector2(100, 300)
+    add_child(player)
+    add_child(make_enemy(Vector2(550, 300)))
+    for x in [250, 400, 550]:
+        var star: Area2D = STAR_SCENE.instantiate()
+        star.position = Vector2(x, 300)
+        if x == 550:
+            # จงใจตั้ง Mask ผิดให้ดาวดวงนี้มองเห็น Layer 2 ด้วย เพื่อทดสอบด่านที่ 2
+            star.collision_mask = 1 | 2
+        star.collected.connect(_on_star_collected)
+        add_child(star)
+    spawner.star_spawned.connect(_on_star_spawned)
+    Input.action_press("move_right")
+    print("เริ่มทดสอบ: ดาว %d ดวง" % stars_left())
+
+
+func make_enemy(pos: Vector2) -&gt; CharacterBody2D:
+    # ศัตรูจำลองแบบยืนนิ่ง อยู่ Layer 2 "enemies"
+    var enemy := CharacterBody2D.new()
+    enemy.collision_layer = 2
+    enemy.collision_mask = 0
+    var shape := CollisionShape2D.new()
+    var circle := CircleShape2D.new()
+    circle.radius = 20.0
+    shape.shape = circle
+    enemy.add_child(shape)
+    enemy.position = pos
+    return enemy
+
+
+func stars_left() -&gt; int:
+    return get_tree().get_nodes_in_group("stars").size()
+
+
+func _physics_process(_delta: float) -&gt; void:
+    frame += 1
+    if frame == 10:
+        print("เฟรม 10: ศัตรูทับดาวดวงที่ 3 อยู่ แต่ดาวยังครบ %d ดวง" % stars_left())
+    elif frame == 100:
+        Input.action_release("move_right")
+        print("จบช่วง A: คะแนน %d ดาวเหลือ %d ดวง ผู้เล่นอยู่ที่ x = %.1f" % [score, stars_left(), player.position.x])
+        player.queue_free()
+        spawner.start()
+    elif frame &gt; 100 and (frame - 100) % 60 == 0:
+        second += 1
+        print("ช่วง B วินาทีที่ %d: ดาวบนจอ %d ดวง" % [second, stars_left()])
+        if second == 3:
+            print("Spawner สร้างดาว %d ครั้ง ข้าม %d ครั้ง" % [spawner.spawned, spawner.skipped])
+            get_tree().quit()
+
+
+func _on_star_collected(points: int) -&gt; void:
+    score += points
+    print("เฟรม %d: เก็บดาว +%d คะแนนรวม %d" % [frame, points, score])
+
+
+func _on_star_spawned(star: Area2D) -&gt; void:
+    print("เฟรม %d: Spawner สร้างดาวที่ (%d, %d)" % [frame, star.position.x, star.position.y])</code></pre>
+
+  <h5>ขั้นที่ 5: รันและตรวจผล</h5>
+  <p>เปิด <code>pickup_test.tscn</code> แล้วกด F6 โดยไม่แตะคีย์บอร์ด หน้าต่างเกมจะปิดเองเมื่อจบ และแผง Output จะแสดงผลตรงกับผลลัพธ์ที่คาดหวังในโจทย์ หรือรันแบบ Headless จาก PowerShell ก็ได้ผลเดียวกัน เพราะทุกอย่างนับตาม Physics Frame</p>
+<pre class="code" data-env="win" data-label="PowerShell · Windows"><code class="language-powershell"># รันฉากทดสอบแบบไม่เปิดหน้าต่าง ฉากจะเรียก quit() เองเมื่อจบ
+cd C:\Users\somchai\godot-projects\godot-lab
+&amp; "C:\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --path . res://practice/ch2_pickup/pickup_test.tscn</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+เริ่มทดสอบ: ดาว 3 ดวง
+เฟรม 10: ศัตรูทับดาวดวงที่ 3 อยู่ แต่ดาวยังครบ 3 ดวง
+เฟรม 24: เก็บดาว +10 คะแนนรวม 10
+เฟรม 54: เก็บดาว +10 คะแนนรวม 20
+เฟรม 84: เก็บดาว +10 คะแนนรวม 30
+จบช่วง A: คะแนน 30 ดาวเหลือ 0 ดวง ผู้เล่นอยู่ที่ x = 595.0
+เฟรม 131: Spawner สร้างดาวที่ (895, 432)
+ช่วง B วินาทีที่ 1: ดาวบนจอ 1 ดวง
+เฟรม 161: Spawner สร้างดาวที่ (774, 179)
+เฟรม 191: Spawner สร้างดาวที่ (695, 335)
+ช่วง B วินาทีที่ 2: ดาวบนจอ 3 ดวง
+ช่วง B วินาทีที่ 3: ดาวบนจอ 3 ดวง
+Spawner สร้างดาว 3 ครั้ง ข้าม 2 ครั้ง</code></pre>
+  <p>อ่านผลทีละช่วง: ที่ Frame 10 ศัตรูทับดาวดวงที่ 3 มาตั้งแต่เริ่ม และดาวดวงนั้นมี Mask ที่มองเห็น Layer 2 ด้วย <code>body_entered</code> จึงถูกเรียกเพราะศัตรู แต่การตรวจ Group ตีกลับไป ดาวจึงยังครบ 3 ดวง คะแนนสุดท้ายเป็น 30 ซึ่งพิสูจน์ว่าศัตรูไม่ได้แย่งดาว ในช่วง B Spawner สร้างดาวทุก 30 Frame (0.5 วินาที) จนครบ 3 ดวง แล้วข้ามอีก 2 รอบ ดาวบนจอจึงไม่เคยเกิน 3 ดวง</p>
+
+  <h5>แนวคิด</h5>
+  <ul>
+    <li><strong>ป้องกัน 2 ชั้น (Defense in Depth)</strong> ชั้นแรกคือ Layer/Mask ซึ่งทำให้ Physics Server ไม่เสียเวลาตรวจคู่ที่ไม่เกี่ยวข้องเลย ชั้นที่สองคือ <code>is_in_group("player")</code> ซึ่งกันความผิดพลาดตอนมีคนตั้ง Mask ผิดในอนาคต ฉากทดสอบจงใจตั้ง Mask ผิดในดาวดวงที่ 3 เพื่อพิสูจน์ว่าชั้นที่สองทำงานจริง</li>
+    <li><strong>ปิดการตรวจจับแบบ Deferred</strong> <code>set_deferred("monitoring", false)</code> เลื่อนการปิดไปทำหลังจบขั้นตอน Physics ถ้าเขียน <code>monitoring = false</code> ตรงๆ ใน Callback จะได้ Error <code>Function blocked during in/out signal. Use set_deferred("monitoring", true/false).</code></li>
+    <li><strong>นับดาวด้วย Group</strong> <code>get_nodes_in_group("stars")</code> นับดาวทุกดวงไม่ว่าใครเป็นคนสร้าง Spawner จึงไม่ต้องเก็บ Array ของดาวเอง และไม่มีปัญหาตัวแปรชี้ไปที่ดาวที่ถูกลบไปแล้ว</li>
+    <li><strong>Test ที่ผลออกมาเหมือนเดิมทุกครั้ง</strong> ฉากทดสอบนับ Physics Frame แทนการจับเวลาจริง ใช้ Seed ตายตัวให้ RandomNumberGenerator จำลองการกดปุ่มด้วย <code>Input.action_press()</code> และให้ Timer เดินตาม Physics Tick ผลลัพธ์จึงตรงกันทั้งใน Editor และแบบ Headless</li>
+    <li><strong>เข้าใจลำดับใน Frame</strong> ผู้เล่นจบที่ x = 595.0 แทน 600 เพราะ PickupTest ซึ่งเป็นแม่ถูกเรียก <code>_physics_process()</code> ก่อน Player ที่เป็นลูกใน Frame เดียวกัน ตอนพิมพ์ที่ Frame 100 ผู้เล่นจึงเพิ่งเดินไป 99 ครั้ง (100 + 99 x 5 = 595) และการเก็บดาวดวงแรกถูกรายงานที่ Frame 24 ทั้งที่ผู้เล่นแตะดาวตั้งแต่ Frame 23 (x = 215) เพราะ Area2D ส่ง Signal ตามจังหวะการประมวลผลของ Physics Server ไม่ได้ส่งทันทีที่ตำแหน่งเปลี่ยน ในเกมจริงจึงไม่ควรเขียนโค้ดที่พึ่งเลข Frame แบบเป๊ะๆ</li>
+  </ul>
+
+  <h5>ไอเดียต่อยอด</h5>
+  <ul>
+    <li>เปลี่ยนศัตรูจำลองเป็นศัตรูไล่ล่าตัวจริงจาก Part 1 Step 11 (<code>enemy_chaser.tscn</code>) ตั้งให้อยู่ Layer 2 แล้วรันฉากทดสอบเดิมซ้ำ ผลต้องยังได้ 30 คะแนน</li>
+    <li>เพิ่ม Game Feel ตอนเก็บดาว: ปิด CollisionShape2D ด้วย <code>set_deferred("disabled", true)</code> เล่น Tween ขยายแล้วจางหาย พร้อม CPUParticles2D และเสียง แล้วค่อย <code>queue_free()</code> เมื่อ Tween ส่ง <code>finished</code> แทนการลบทันที</li>
+    <li>ไม่ให้ดาวเกิดใกล้ผู้เล่นเกิน 100 px โดยสุ่มตำแหน่งใหม่สูงสุด 10 ครั้งจนกว่า <code>distance_to()</code> จะมากกว่า 100 ซึ่งทดสอบได้ด้วยฉากทดสอบแบบเดียวกัน</li>
+    <li>แปลงฉากทดสอบนี้เป็น Test อัตโนมัติที่เรียก <code>get_tree().quit(1)</code> เมื่อคะแนนไม่เท่ากับ 30 หรือดาวเกิน 3 ดวง แล้วรันจาก PowerShell เพื่อดู <code>$LASTEXITCODE</code> แบบเดียวกับโจทย์ข้อ 3</li>
+    <li>ให้ <code>max_stars</code> เพิ่มขึ้นตามคะแนน เช่น ทุก 100 คะแนนเพิ่มได้อีก 1 ดวง แต่ไม่เกิน 6 ดวง เพื่อให้ช่วงท้ายเกมมีรางวัลมากขึ้นตามความยากที่เพิ่มขึ้น</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 3 · อัปเกรดไฟล์บันทึกเป็นเวอร์ชัน 2 พร้อม Test อัตโนมัติ</summary><div>
+  <h5>ขั้นที่ 1: คลาส SaveV2</h5>
+  <p>บันทึกเป็น <code>res://practice/ch3_save_v2/save_v2.gd</code> ไฟล์นี้ไม่ต้องแนบกับ Node ใด เพราะ <code>extends RefCounted</code> ซึ่งเป็น Object ธรรมดาที่ถูกลบเองเมื่อไม่มีใครใช้แล้ว เมื่อบันทึกใน Editor Godot จะลงทะเบียน <code>class_name SaveV2</code> ให้ทันที ถ้าสร้างไฟล์ด้วยโปรแกรมอื่นนอก Editor ให้เปิดโปรเจกต์ใน Editor ก่อนหนึ่งครั้ง</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">class_name SaveV2
+extends RefCounted
+## ระบบบันทึกเวอร์ชัน 2 ของ Star Dodger
+## savegame.cfg เก็บ [meta] version, [progress] และ [settings]
+## scores.json เก็บคะแนนสูงสุด 5 อันดับ
+## ไฟล์เวอร์ชัน 1 (ไม่มี [meta]) จะถูกย้ายมาเป็นเวอร์ชัน 2 โดย High Score ไม่หาย
+
+const VERSION: int = 2
+const MAX_TOP: int = 5
+const DEFAULT_VOLUME: float = 0.8
+
+var cfg_path: String
+var scores_path: String
+
+var high_score: int = 0
+var games_played: int = 0
+var screen_shake: bool = true
+var music_volume: float = DEFAULT_VOLUME
+var sfx_volume: float = DEFAULT_VOLUME
+
+
+# รับ Path จากภายนอกได้ เพื่อให้ Test ใช้ไฟล์ของตัวเองโดยไม่ทับเซฟจริง
+func _init(p_cfg_path: String = "user://savegame.cfg", p_scores_path: String = "user://scores.json") -&gt; void:
+    cfg_path = p_cfg_path
+    scores_path = p_scores_path
+
+
+# โหลดการตั้งค่า แล้วคืนสถานะ "new", "ok", "migrated" หรือ "corrupt"
+func load_settings() -&gt; String:
+    _reset_to_defaults()
+    if not FileAccess.file_exists(cfg_path):
+        return "new"
+    var cfg := ConfigFile.new()
+    var err := cfg.load(cfg_path)
+    if err != OK:
+        push_warning("อ่าน %s ไม่ได้ (%s) จึงใช้ค่าเริ่มต้น" % [cfg_path, error_string(err)])
+        return "corrupt"
+    # ไฟล์เวอร์ชัน 1 ไม่มี [meta] จึงถือว่าเป็น 1
+    var version := _read_int(cfg, "meta", "version", 1)
+    high_score = maxi(_read_int(cfg, "progress", "high_score", 0), 0)
+    games_played = maxi(_read_int(cfg, "progress", "games_played", 0), 0)
+    var shake: Variant = cfg.get_value("settings", "screen_shake", true)
+    screen_shake = shake if shake is bool else true
+    music_volume = _read_volume(cfg, "music_volume")
+    sfx_volume = _read_volume(cfg, "sfx_volume")
+    if version &lt; VERSION:
+        save_settings()
+        return "migrated"
+    return "ok"
+
+
+func save_settings() -&gt; Error:
+    var cfg := ConfigFile.new()
+    cfg.set_value("meta", "version", VERSION)
+    cfg.set_value("progress", "high_score", high_score)
+    cfg.set_value("progress", "games_played", games_played)
+    cfg.set_value("settings", "screen_shake", screen_shake)
+    cfg.set_value("settings", "music_volume", music_volume)
+    cfg.set_value("settings", "sfx_volume", sfx_volume)
+    return cfg.save(cfg_path)
+
+
+# อ่าน Top 5 จาก JSON ข้ามค่าที่ไม่ใช่ตัวเลข แล้วเรียงจากมากไปน้อย
+func load_top_scores() -&gt; Array[int]:
+    var result: Array[int] = []
+    if not FileAccess.file_exists(scores_path):
+        return result
+    var json := JSON.new()
+    if json.parse(FileAccess.get_file_as_string(scores_path)) != OK:
+        push_warning("scores.json เสียที่บรรทัด %d: %s" % [json.get_error_line(), json.get_error_message()])
+        return result
+    if not (json.data is Array):
+        return result
+    for item: Variant in json.data:
+        # JSON คืนตัวเลขกลับมาเป็น float เสมอ จึงต้องแปลงเป็น int เอง
+        if (item is float or item is int) and item &gt;= 0:
+            result.append(int(item))
+    result.sort()
+    result.reverse()
+    result.resize(mini(result.size(), MAX_TOP))
+    return result
+
+
+func save_top_scores(scores: Array[int]) -&gt; Error:
+    var top: Array[int] = scores.duplicate()
+    top.sort()
+    top.reverse()
+    top.resize(mini(top.size(), MAX_TOP))
+    var file := FileAccess.open(scores_path, FileAccess.WRITE)
+    if file == null:
+        return FileAccess.get_open_error()
+    file.store_string(JSON.stringify(top))
+    return OK
+
+
+# บันทึกผลหนึ่งเกม คืน true เมื่อทำ High Score ใหม่
+func record_game(score: int) -&gt; bool:
+    games_played += 1
+    var is_new_high := score &gt; high_score
+    if is_new_high:
+        high_score = score
+    var top := load_top_scores()
+    top.append(score)
+    save_top_scores(top)
+    save_settings()
+    return is_new_high
+
+
+func _reset_to_defaults() -&gt; void:
+    high_score = 0
+    games_played = 0
+    screen_shake = true
+    music_volume = DEFAULT_VOLUME
+    sfx_volume = DEFAULT_VOLUME
+
+
+func _read_int(cfg: ConfigFile, section: String, key: String, fallback: int) -&gt; int:
+    var value: Variant = cfg.get_value(section, key, fallback)
+    if value is int:
+        return value
+    if value is float:
+        return int(value)
+    return fallback
+
+
+func _read_volume(cfg: ConfigFile, key: String) -&gt; float:
+    var value: Variant = cfg.get_value("settings", key, DEFAULT_VOLUME)
+    if value is int or value is float:
+        return clampf(float(value), 0.0, 1.0)
+    return DEFAULT_VOLUME</code></pre>
+
+  <h5>ขั้นที่ 2: สคริปต์ Test</h5>
+  <p>บันทึกเป็น <code>res://practice/ch3_save_v2/test_save_v2.gd</code> สคริปต์นี้ <code>extends SceneTree</code> จึงไม่ต้องแนบกับ Node และไม่ต้องมี Scene แต่ละ Test เขียนไฟล์ตั้งต้น (Fixture) ของตัวเองก่อนเสมอ ผลจึงเหมือนเดิมไม่ว่าจะรันกี่ครั้ง</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends SceneTree
+## Test ของ SaveV2 รันด้วย --headless --path . --script res://practice/ch3_save_v2/test_save_v2.gd
+
+const DIR := "user://test_save_v2"
+const CFG := DIR + "/savegame.cfg"
+const SCORES := DIR + "/scores.json"
+
+var passed: int = 0
+var failed: int = 0
+
+
+func _initialize() -&gt; void:
+    DirAccess.make_dir_recursive_absolute(DIR)
+    test_new_file()
+    test_migrate_v1()
+    test_corrupt_file()
+    test_wrong_types()
+    test_top_scores()
+    test_record_game()
+    print("สรุป: ผ่าน %d ข้อ ไม่ผ่าน %d ข้อ" % [passed, failed])
+    quit(0 if failed == 0 else 1)
+
+
+func check(title: String, condition: bool) -&gt; void:
+    if condition:
+        passed += 1
+        print("ผ่าน: " + title)
+    else:
+        failed += 1
+        print("ไม่ผ่าน: " + title)
+
+
+func write_text(path: String, text: String) -&gt; void:
+    var file := FileAccess.open(path, FileAccess.WRITE)
+    file.store_string(text)
+
+
+func remove_files() -&gt; void:
+    for path: String in [CFG, SCORES]:
+        if FileAccess.file_exists(path):
+            DirAccess.remove_absolute(path)
+
+
+func test_new_file() -&gt; void:
+    remove_files()
+    var save := SaveV2.new(CFG, SCORES)
+    var status := save.load_settings()
+    check("ไม่มีไฟล์ -&gt; สถานะ new และใช้ค่าเริ่มต้น", status == "new" and save.high_score == 0 and save.screen_shake)
+    check("ไม่มี scores.json -&gt; ได้ Array ว่าง", save.load_top_scores().is_empty())
+
+
+func test_migrate_v1() -&gt; void:
+    remove_files()
+    write_text(CFG, "[progress]\nhigh_score=1500\n\n[settings]\nscreen_shake=false\nmusic_volume=0.5\nsfx_volume=0.8\n")
+    var save := SaveV2.new(CFG, SCORES)
+    check("ไฟล์ v1 -&gt; สถานะ migrated", save.load_settings() == "migrated")
+    check("ย้ายแล้ว High Score ยังเป็น 1500 และ screen_shake ยังเป็น false", save.high_score == 1500 and not save.screen_shake)
+    var cfg := ConfigFile.new()
+    cfg.load(CFG)
+    check("ไฟล์ถูกเขียนใหม่เป็น version 2 พร้อม games_played", cfg.get_value("meta", "version", 0) == 2 and cfg.get_value("progress", "games_played", -1) == 0)
+    check("โหลดครั้งที่สอง -&gt; สถานะ ok ไม่ย้ายซ้ำ", SaveV2.new(CFG, SCORES).load_settings() == "ok")
+
+
+func test_corrupt_file() -&gt; void:
+    remove_files()
+    write_text(CFG, "[progress\nhigh_score=")
+    var save := SaveV2.new(CFG, SCORES)
+    check("ไฟล์เสีย -&gt; สถานะ corrupt และ High Score เป็น 0", save.load_settings() == "corrupt" and save.high_score == 0)
+
+
+func test_wrong_types() -&gt; void:
+    remove_files()
+    write_text(CFG, "[meta]\nversion=2\n\n[progress]\nhigh_score=\"lots\"\ngames_played=-3\n\n[settings]\nscreen_shake=\"yes\"\nmusic_volume=7.5\nsfx_volume=-2\n")
+    var save := SaveV2.new(CFG, SCORES)
+    save.load_settings()
+    check("ชนิดผิด -&gt; high_score และ games_played กลับเป็น 0", save.high_score == 0 and save.games_played == 0)
+    check("ชนิดผิด -&gt; screen_shake กลับเป็น true", save.screen_shake)
+    check("เสียงถูกบีบให้อยู่ในช่วง 0.0 ถึง 1.0", is_equal_approx(save.music_volume, 1.0) and is_equal_approx(save.sfx_volume, 0.0))
+
+
+func test_top_scores() -&gt; void:
+    remove_files()
+    write_text(SCORES, "[300, \"hack\", 1500.0, null, -5, 980, 120, 2000, 640]")
+    var save := SaveV2.new(CFG, SCORES)
+    var top := save.load_top_scores()
+    print("  Top 5 ที่อ่านได้: ", top)
+    check("ข้ามค่าขยะ เรียงจากมากไปน้อย เหลือ 5 อันดับ", top == [2000, 1500, 980, 640, 300])
+    check("คะแนนเป็น int ไม่ใช่ float", typeof(top[0]) == TYPE_INT)
+    write_text(SCORES, "[2000, 1500,")
+    check("JSON เสีย -&gt; ได้ Array ว่าง", save.load_top_scores().is_empty())
+
+
+func test_record_game() -&gt; void:
+    remove_files()
+    var save := SaveV2.new(CFG, SCORES)
+    save.load_settings()
+    check("ได้ 2500 -&gt; เป็น High Score ใหม่", save.record_game(2500) and save.high_score == 2500)
+    check("ได้ 100 -&gt; ไม่ใช่ High Score ใหม่ และนับเกมเป็น 2", not save.record_game(100) and save.games_played == 2)
+    var again := SaveV2.new(CFG, SCORES)
+    again.load_settings()
+    check("โหลดใหม่ได้ค่าที่บันทึกไว้ครบ", again.high_score == 2500 and again.games_played == 2 and again.load_top_scores() == [2500, 100])</code></pre>
+
+  <h5>ขั้นที่ 3: รัน Test จาก PowerShell</h5>
+<pre class="code" data-env="win" data-label="PowerShell · Windows"><code class="language-powershell"># รัน Test แบบ Headless แล้วดู Exit Code ของรอบนั้น
+cd C:\Users\somchai\godot-projects\godot-lab
+&amp; "C:\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --path . --script res://practice/ch3_save_v2/test_save_v2.gd
+$LASTEXITCODE</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ผ่าน: ไม่มีไฟล์ -&gt; สถานะ new และใช้ค่าเริ่มต้น
+ผ่าน: ไม่มี scores.json -&gt; ได้ Array ว่าง
+ผ่าน: ไฟล์ v1 -&gt; สถานะ migrated
+ผ่าน: ย้ายแล้ว High Score ยังเป็น 1500 และ screen_shake ยังเป็น false
+ผ่าน: ไฟล์ถูกเขียนใหม่เป็น version 2 พร้อม games_played
+ผ่าน: โหลดครั้งที่สอง -&gt; สถานะ ok ไม่ย้ายซ้ำ
+ERROR: ConfigFile parse error at user://test_save_v2/savegame.cfg:0: Unexpected EOF while parsing simple tag.
+   at: _parse (core/io/config_file.cpp:293)
+   GDScript backtrace (most recent call first):
+       [0] load_settings (res://practice/ch3_save_v2/save_v2.gd:34)
+       [1] test_corrupt_file (res://practice/ch3_save_v2/test_save_v2.gd:68)
+       [2] _initialize (res://practice/ch3_save_v2/test_save_v2.gd:16)
+WARNING: อ่าน user://test_save_v2/savegame.cfg ไม่ได้ (Parse error) จึงใช้ค่าเริ่มต้น
+     at: push_warning (core/variant/variant_utility.cpp:1033)
+     GDScript backtrace (most recent call first):
+         [0] load_settings (res://practice/ch3_save_v2/save_v2.gd:36)
+         [1] test_corrupt_file (res://practice/ch3_save_v2/test_save_v2.gd:68)
+         [2] _initialize (res://practice/ch3_save_v2/test_save_v2.gd:16)
+ผ่าน: ไฟล์เสีย -&gt; สถานะ corrupt และ High Score เป็น 0
+ผ่าน: ชนิดผิด -&gt; high_score และ games_played กลับเป็น 0
+ผ่าน: ชนิดผิด -&gt; screen_shake กลับเป็น true
+ผ่าน: เสียงถูกบีบให้อยู่ในช่วง 0.0 ถึง 1.0
+  Top 5 ที่อ่านได้: [2000, 1500, 980, 640, 300]
+ผ่าน: ข้ามค่าขยะ เรียงจากมากไปน้อย เหลือ 5 อันดับ
+ผ่าน: คะแนนเป็น int ไม่ใช่ float
+WARNING: scores.json เสียที่บรรทัด 0: Expected ']'
+     at: push_warning (core/variant/variant_utility.cpp:1033)
+     GDScript backtrace (most recent call first):
+         [0] load_top_scores (res://practice/ch3_save_v2/save_v2.gd:70)
+         [1] test_top_scores (res://practice/ch3_save_v2/test_save_v2.gd:90)
+         [2] _initialize (res://practice/ch3_save_v2/test_save_v2.gd:18)
+ผ่าน: JSON เสีย -&gt; ได้ Array ว่าง
+ผ่าน: ได้ 2500 -&gt; เป็น High Score ใหม่
+ผ่าน: ได้ 100 -&gt; ไม่ใช่ High Score ใหม่ และนับเกมเป็น 2
+ผ่าน: โหลดใหม่ได้ค่าที่บันทึกไว้ครบ
+สรุป: ผ่าน 16 ข้อ ไม่ผ่าน 0 ข้อ
+0</code></pre>
+  <p>ข้อความ <code>ERROR:</code> มาจาก ConfigFile ที่อ่านไฟล์เสีย ส่วน <code>WARNING:</code> สองก้อนมาจาก <code>push_warning()</code> ในโค้ดของเราเอง ทั้งหมดคือหลักฐานว่าโค้ดเจอไฟล์เสียแล้วรับมือได้โดยไม่ Crash เลขบรรทัดในวงเล็บจะตรงกับของคุณถ้าพิมพ์โค้ดตรงตามเฉลยทุกบรรทัด ถ้าเปลี่ยน <code>check()</code> ข้อใดให้ผิดโดยตั้งใจ บรรทัดนั้นจะขึ้น <code>ไม่ผ่าน:</code> และ <code>$LASTEXITCODE</code> จะเป็น <code>1</code></p>
+  <p>ไฟล์ที่ Test เขียนทิ้งไว้รอบสุดท้ายอยู่ใน <code>user://test_save_v2/</code> บน Windows คือ <code>%APPDATA%\Godot\app_userdata\godot-lab\test_save_v2\</code> เปิดดูได้ด้วยคำสั่งนี้ (Path จริงจะขึ้นกับชื่อผู้ใช้บนเครื่องคุณ)</p>
+<pre class="code" data-env="win" data-label="PowerShell · Windows"><code class="language-powershell"># ดูไฟล์เซฟเวอร์ชัน 2 ที่ Test เขียนไว้
+Get-Content "$env:APPDATA\Godot\app_userdata\godot-lab\test_save_v2\savegame.cfg"
+Get-Content "$env:APPDATA\Godot\app_userdata\godot-lab\test_save_v2\scores.json"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[meta]
+
+version=2
+
+[progress]
+
+high_score=2500
+games_played=2
+
+[settings]
+
+screen_shake=true
+music_volume=0.8
+sfx_volume=0.8
+[2500,100]</code></pre>
+
+  <h5>แนวคิด</h5>
+  <ul>
+    <li><strong>ใส่เลขเวอร์ชันในไฟล์เซฟเสมอ</strong> <code>[meta] version</code> ทำให้โค้ดรู้ว่ากำลังอ่านไฟล์รูปแบบไหน ไฟล์ที่ไม่มีเลขเวอร์ชันถือเป็นเวอร์ชัน 1 แล้วย้ายข้อมูล (Migrate) และเขียนกลับเป็นเวอร์ชัน 2 ทันที การโหลดครั้งถัดไปจึงได้สถานะ <code>"ok"</code> และไม่ย้ายซ้ำ</li>
+    <li><strong>เริ่มจากค่าเริ่มต้นแล้วค่อยเชื่อไฟล์ทีละค่า</strong> <code>_reset_to_defaults()</code> ทำให้ทุกเส้นทางที่ล้มเหลวยังได้ค่าที่ใช้งานได้ ทุกค่าที่อ่านจากดิสก์ถูกตรวจชนิดและช่วง เพราะผู้เล่นแก้ไฟล์ได้ และไฟล์อาจเสียเมื่อไฟดับระหว่างเขียน</li>
+    <li><strong>คืนสถานะเป็นข้อความ</strong> <code>"new"</code>, <code>"ok"</code>, <code>"migrated"</code> และ <code>"corrupt"</code> ทำให้ Test ตรวจได้ตรงๆ และให้เกมนำไปใช้ต่อได้ เช่น แสดงข้อความ "ไฟล์เซฟเสีย เริ่มใหม่จากศูนย์" เมื่อได้ <code>"corrupt"</code></li>
+    <li><strong>ฉีด Path เข้ามาทาง <code>_init()</code></strong> เกมจริงใช้ค่าเริ่มต้นใน <code>user://</code> ส่วน Test ส่ง Path ของโฟลเดอร์ทดสอบเข้ามา เซฟจริงของผู้พัฒนาจึงไม่ถูกทับ เทคนิคนี้เรียกว่า Dependency Injection</li>
+    <li><strong>รู้จักกับดักของ JSON</strong> ตัวเลขทุกตัวกลับมาเป็น float จึงต้องแปลงด้วย <code>int()</code> และใช้ <code>JSON.new().parse()</code> เพื่อให้ได้บรรทัดและข้อความของ Error (ในตัวอย่างคือ <code>Expected ']'</code>) ไปเขียนเตือน</li>
+    <li><strong>Test ที่บอกผลด้วย Exit Code</strong> <code>quit(0)</code> เมื่อผ่านหมดและ <code>quit(1)</code> เมื่อมีข้อที่ไม่ผ่าน ทำให้ PowerShell, Script อัตโนมัติ และระบบ CI รู้ผลได้โดยไม่ต้องอ่านข้อความ</li>
+  </ul>
+
+  <h5>ไอเดียต่อยอด</h5>
+  <ul>
+    <li>เมื่อเจอไฟล์เสีย ให้เปลี่ยนชื่อเป็น <code>savegame.cfg.bak</code> ด้วย <code>DirAccess.rename_absolute()</code> ก่อนเขียนไฟล์ใหม่ ผู้เล่นหรือทีม Support จะยังกู้ข้อมูลบางส่วนคืนได้ แล้วเพิ่ม Test ที่ตรวจว่ามีไฟล์ <code>.bak</code> เกิดขึ้นจริง</li>
+    <li>เขียนไฟล์แบบปลอดภัยต่อไฟดับ (Atomic Save): เขียนลง <code>savegame.cfg.tmp</code> ให้เสร็จก่อน แล้วจึงเปลี่ยนชื่อทับไฟล์เดิม ไฟล์จริงจึงไม่มีวันเหลือแค่ครึ่งเดียว</li>
+    <li>รองรับไฟล์จากเกมเวอร์ชันที่ใหม่กว่า (เช่น version 3) โดยไม่เขียนทับและคืนสถานะ <code>"too_new"</code> เพื่อให้เกมแจ้งผู้เล่นว่าให้อัปเดตเกมก่อน</li>
+    <li>นำ Test นี้ไปรันใน GitHub Actions ทุกครั้งที่ Push ด้วย Godot แบบ Headless บน Linux แล้วให้ Workflow ล้มเมื่อ Exit Code เป็น 1 ทบทวนการใช้ GitHub ได้ที่ <a data-t="17"></a></li>
+    <li>นำ SaveV2 ไปใช้แทนโค้ดภายใน Autoload SaveManager ของ Star Dodger แล้วใช้ค่าที่ <code>record_game()</code> คืนมาเพื่อแสดงข้อความ "New High Score!" และตาราง Top 5 ในหน้า Game Over</li>
+  </ul>
+</div></details>
+</section>

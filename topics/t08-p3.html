@@ -1,0 +1,1651 @@
+<section class="part" data-part="3">
+  <h2 id="s8-3"><span class="sec-no">8.3</span>Practice Exercises &amp; Quizzes</h2>
+  <p>ส่วนนี้ใช้ทบทวนสิ่งที่เรียนใน Part 2 ทั้ง 12 แนวคิด ตั้งแต่ HTTP Method และ Status Code ไปจนถึง Idempotency-Key, Rate Limiting, ETag และ OWASP API Top 10 แบบฝึกหัดเรียงจากง่ายไปยาก มี 3 แบบ คือ เติมคำในช่องว่าง (Fill-in-the-blank), ตัวเลือก (Multiple Choice) และโจทย์ลงมือทำจริง (Hands-on Challenge)</p>
+  <p>เฉลยทั้งหมดอยู่ท้ายส่วนนี้ ขอให้ลองทำเองก่อนทุกข้อ แล้วค่อยเปิดเฉลยเพื่อตรวจคำตอบและอ่านเหตุผล การตอบผิดแล้วเข้าใจว่าผิดเพราะอะไร ช่วยให้จำได้นานกว่าการอ่านเฉลยทันที</p>
+  <div class="callout note"><span class="c-label note">หมายเหตุ</span><p>โจทย์ Hands-on ทั้ง 3 ข้อใช้ venv เดิมที่ <code>~/projects/api-lab/.venv</code> ซึ่งสร้างไว้ในหัวข้อ "เตรียมเครื่องสำหรับหัวข้อนี้" ของ Part 2 แต่ละโจทย์มีโฟลเดอร์ของตัวเอง คือ <code>~/projects/api-lab/ch1-members</code>, <code>~/projects/api-lab/ch2-contract</code> และ <code>~/projects/api-lab/ch3-reliability</code> ทุกการทดสอบยิงไปที่ <code>127.0.0.1</code> บนเครื่องของคุณเองเท่านั้น</p></div>
+
+  <h3 id="s8-3-fill">Fill-in-the-blank</h3>
+  <p>เติมคำในช่อง <code>_____</code> ให้ถูกต้อง บางข้อมีหลายช่อง ให้ตอบเรียงตามลำดับที่ช่องปรากฏ</p>
+  <ol class="qlist fill">
+    <li>
+      <span class="lvl" data-lvl="b">ง่าย</span>
+      <p>Client ส่ง <code>POST /books</code> พร้อมข้อมูลหนังสือเล่มใหม่ แล้ว Server สร้างหนังสือ <code>bk_0004</code> สำเร็จ Server ควรตอบ Status Code <code>_____</code> และใส่ Header <code>_____</code> ที่มีค่าเป็น <code>/books/bk_0004</code> เพื่อบอก Client ว่า Resource ใหม่อยู่ที่ URL ไหน</p>
+    </li>
+    <li>
+      <span class="lvl" data-lvl="b">ง่าย</span>
+      <p>คุณต้องการลบสมาชิก <code>mb_0003</code> และอยากเห็น Status Line กับ Header ของ Response ด้วย จึงเติมตัวเลือกของ <code>curl</code> และอ่านผลดังนี้</p>
+      <pre class="code" data-kind="tpl" data-env="tpl" data-label="Template"><code class="language-plaintext">$ curl _____ -X DELETE http://127.0.0.1:8000/members/mb_0003
+HTTP/1.1 _____ No Content
+server: uvicorn
+
+$ curl -s -o /dev/null -w 'status=%{http_code}\n' -X DELETE http://127.0.0.1:8000/members/mb_0003
+status=_____</code></pre>
+      <p>ช่องแรกคือตัวเลือกที่ทำให้ <code>curl</code> แสดง Header ช่องที่สองคือ Status Code ของการลบสำเร็จแบบไม่มี Body และช่องที่สามคือ Status Code เมื่อสั่งลบซ้ำเป็นครั้งที่สอง</p>
+    </li>
+    <li>
+      <span class="lvl" data-lvl="i">กลาง</span>
+      <p>เติม Response ที่เป็น Error ตามมาตรฐาน RFC 9457 Problem Details ให้ครบ (ช่องแรกอยู่ใน Header ส่วนช่องที่เหลือเป็นชื่อ Member ของ JSON)</p>
+      <pre class="code" data-kind="tpl" data-env="tpl" data-label="Template"><code class="language-plaintext">HTTP/1.1 404 Not Found
+content-type: application/_____
+
+{
+  "_____": "https://example.com/problems/book-not-found",
+  "title": "Book not found",
+  "_____": 404,
+  "detail": "book bk_9999 not found",
+  "_____": "/books/bk_9999"
+}</code></pre>
+    </li>
+    <li>
+      <span class="lvl" data-lvl="i">กลาง</span>
+      <p>เติม OpenAPI 3.1 ด้านล่างให้ถูกต้อง (สังเกตคอมเมนต์ที่กำกับแต่ละช่อง)</p>
+      <pre class="code" data-kind="tpl" data-env="tpl" data-label="Template"><code class="language-yaml">openapi: _____                     # เวอร์ชันของ OpenAPI ที่หลักสูตรนี้ใช้
+info:
+  title: Library API
+  version: 1.0.0
+paths:
+  /books/{book_id}:
+    get:
+      operationId: getBook
+      parameters:
+        - name: book_id
+          in: _____                   # พารามิเตอร์นี้อยู่ส่วนไหนของ URL
+          required: true
+          schema:
+            type: string
+      responses:
+        _____:                        # Status Code ของการตอบสำเร็จ เขียนให้ถูกชนิดข้อมูล
+          description: พบหนังสือ
+          content:
+            application/json:
+              schema:
+                $ref: '#/_____/schemas/Book'
+components:
+  schemas:
+    Book:
+      type: object
+      properties:
+        subtitle:
+          type: [string, _____]       # ฟิลด์นี้เป็น null ได้</code></pre>
+    </li>
+    <li>
+      <span class="lvl" data-lvl="a">ยาก</span>
+      <p>เติมโค้ดตรวจ JWT ด้วย PyJWT 2.15.1 และ Status Code ที่ API ควรตอบให้ถูกต้อง</p>
+      <pre class="code" data-kind="tpl" data-env="tpl" data-label="Template"><code class="language-python">import jwt  # แพ็กเกจ pyjwt==2.15.1
+
+payload = jwt.decode(
+    token,
+    secret,
+    _____=["HS256"],                    # ระบุ Algorithm ที่ยอมรับ ห้ามปล่อยให้ Token เลือกเอง
+    _____="library-api",                # Token ต้องออกมาเพื่อ API นี้เท่านั้น
+    issuer="https://auth.example.com",  # ตรวจว่าใครเป็นคนออก Token
+)</code></pre>
+      <p>ถ้า Request ไม่มี Token เลย API ต้องตอบ <code>401</code> พร้อม Header <code>WWW-Authenticate: _____</code> แต่ถ้า Token ถูกต้องและยังไม่หมดอายุ เพียงแต่ไม่มี scope <code>loans:write</code> สำหรับ <code>POST /loans</code> API ต้องตอบ Status Code <code>_____</code></p>
+    </li>
+    <li>
+      <span class="lvl" data-lvl="a">ยาก</span>
+      <p>เติม Header และ Status Code ในลำดับการคุยกันระหว่าง Client กับ Server ที่ใช้ ETag สำหรับ Caching และป้องกันการเขียนทับกัน (Lost Update)</p>
+      <pre class="code" data-kind="tpl" data-env="tpl" data-label="Template"><code class="language-plaintext"># รอบที่ 1: Client ขอข้อมูลครั้งแรก
+GET /books/bk_0001
+=&gt; 200 OK
+   ETag: "a1b2c3"
+   Cache-Control: private, max-age=60
+
+# รอบที่ 2: Client ถามว่าข้อมูลยังเป็นเวอร์ชัน "a1b2c3" อยู่ไหม
+GET /books/bk_0001
+_____: "a1b2c3"
+=&gt; _____ Not Modified   (ไม่มี Body)
+
+# รอบที่ 3: มีคนอื่นแก้หนังสือไปแล้ว ETag ปัจจุบันกลายเป็น "d4e5f6"
+# แต่ Client นี้ยังส่ง PATCH โดยอ้างเวอร์ชันเก่า
+PATCH /books/bk_0001
+_____: "a1b2c3"
+=&gt; _____ Precondition Failed</code></pre>
+    </li>
+  </ol>
+  <h3 id="s8-3-mcq">Multiple Choice</h3>
+  <p>เลือกคำตอบที่ถูกที่สุดเพียงข้อเดียว ทุกข้อมี 4 ตัวเลือก (A–D) ระดับความยากคละกัน ในเฉลยจะอธิบายทั้งเหตุผลของคำตอบที่ถูก และเหตุผลที่ตัวเลือกอื่นผิดทีละข้อ</p>
+  <ol class="qlist mcq">
+    <li>
+      <span class="lvl" data-lvl="b">ง่าย</span>
+      <p>HTTP Method ใดเป็น <strong>Idempotent</strong> (ส่งซ้ำกี่ครั้งก็ได้สถานะสุดท้ายบน Server เหมือนเดิม) แต่ <strong>ไม่ Safe</strong> (เปลี่ยนแปลงข้อมูลบน Server)</p>
+      <ol class="choices">
+        <li><code>GET</code></li>
+        <li><code>POST</code></li>
+        <li><code>PUT</code></li>
+        <li><code>HEAD</code></li>
+      </ol>
+    </li>
+    <li>
+      <span class="lvl" data-lvl="b">ง่าย</span>
+      <p>ทีมต้องการ Endpoint สำหรับ "ยืมหนังสือ <code>bk_0001</code> ให้สมาชิก <code>mb_0001</code>" แบบใดออกแบบตามหลัก REST ของหลักสูตรนี้ได้ดีที่สุด</p>
+      <ol class="choices">
+        <li><code>GET /borrowBook?book_id=bk_0001&amp;member_id=mb_0001</code></li>
+        <li><code>POST /loans</code> พร้อม Body <code>{"book_id": "bk_0001", "member_id": "mb_0001"}</code></li>
+        <li><code>POST /books/bk_0001/borrow/mb_0001/</code></li>
+        <li><code>GET /Members/MB_0001/Loans/Create?book=bk_0001</code></li>
+      </ol>
+    </li>
+    <li>
+      <span class="lvl" data-lvl="i">กลาง</span>
+      <p>สมชายล็อกอินแล้วได้ JWT ที่ถูกต้อง มี <code>sub</code> เป็น <code>mb_0001</code> และยังไม่หมดอายุ จากนั้นเขาลองเปลี่ยน URL เป็น <code>GET /members/mb_0002/loans</code> เพื่อดูรายการยืมของสุดา ตามแนวทางของหลักสูตรนี้ API ควรตอบอย่างไร</p>
+      <ol class="choices">
+        <li><code>403 Forbidden</code> แบบ <code>application/problem+json</code> เพราะยืนยันตัวตนผ่านแล้ว แต่ไม่มีสิทธิ์ดูข้อมูลของสมาชิกคนอื่น</li>
+        <li><code>401 Unauthorized</code> พร้อม <code>WWW-Authenticate: Bearer</code> เพราะต้องให้ล็อกอินใหม่</li>
+        <li><code>200 OK</code> แต่ส่ง <code>{"data": []}</code> เพื่อไม่ให้รู้ว่ามีข้อมูลอยู่</li>
+        <li><code>400 Bad Request</code> เพราะ <code>member_id</code> ใน URL ไม่ตรงกับ Token</li>
+      </ol>
+    </li>
+    <li>
+      <span class="lvl" data-lvl="b">ง่าย</span>
+      <p><code>DELETE /books/bk_0004</code> ลบหนังสือสำเร็จ และ Server ไม่ต้องส่งข้อมูลอะไรกลับไป Status Code ใดเหมาะสมที่สุดตามแนวทางของหลักสูตรนี้</p>
+      <ol class="choices">
+        <li><code>200 OK</code> พร้อม Body <code>{"error": null}</code></li>
+        <li><code>201 Created</code></li>
+        <li><code>304 Not Modified</code></li>
+        <li><code>204 No Content</code></li>
+      </ol>
+    </li>
+    <li>
+      <span class="lvl" data-lvl="i">กลาง</span>
+      <p>แอปมือถือแสดงหนังสือใหม่เรียงจากใหม่ไปเก่า และเลื่อนหน้าด้วย <code>?limit=20&amp;offset=20</code>, <code>?limit=20&amp;offset=40</code> ไปเรื่อย ๆ ผู้ใช้แจ้งว่าบางครั้งเห็นหนังสือเล่มเดิมซ้ำสองครั้งตอนเลื่อนลงไป ข้อใดอธิบายสาเหตุและวิธีแก้ได้ถูกต้อง</p>
+      <ol class="choices">
+        <li>ระหว่างที่ผู้ใช้เลื่อน มีหนังสือใหม่ถูกเพิ่มเข้ามาด้านบน ทำให้ทุกเล่มเลื่อนตำแหน่งลง Offset จึงชี้ไปที่รายการเดิมซ้ำ ควรเปลี่ยนเป็น Cursor Pagination ที่อ้างอิงจากรายการสุดท้ายของหน้าก่อน (มี id เป็นตัวตัดสินเมื่อค่าเรียงเท่ากัน)</li>
+        <li>ค่า <code>limit=20</code> น้อยเกินไป ถ้าเพิ่มเป็น <code>limit=100</code> ปัญหาจะหายไป</li>
+        <li>ควรเปลี่ยนเป็น Cursor Pagination เพราะทำให้ผู้ใช้กระโดดไปหน้าที่ 50 ได้ทันทีโดยไม่ต้องโหลดหน้าก่อนหน้า</li>
+        <li>ควรใส่ <code>Cache-Control: no-store</code> ใน Response เพราะรายการซ้ำเกิดจาก Cache ของมือถือ</li>
+      </ol>
+    </li>
+    <li>
+      <span class="lvl" data-lvl="a">ยาก</span>
+      <p>Client เก็บ Response ของ <code>GET /books/bk_0001</code> ไว้ พร้อม <code>ETag: "a1b2c3"</code> ต่อมาส่ง Request ใหม่พร้อม <code>If-None-Match: "a1b2c3"</code> และหนังสือเล่มนี้ยังไม่ถูกแก้ไขเลย Server ที่ทำตามมาตรฐาน HTTP ควรตอบอย่างไร</p>
+      <ol class="choices">
+        <li><code>200 OK</code> พร้อม Body เต็มและ <code>ETag: "a1b2c3"</code> เหมือนเดิม</li>
+        <li><code>412 Precondition Failed</code></li>
+        <li><code>304 Not Modified</code> ไม่มี Body ให้ Client ใช้ข้อมูลที่เก็บไว้ต่อ</li>
+        <li><code>204 No Content</code></li>
+      </ol>
+    </li>
+    <li>
+      <span class="lvl" data-lvl="b">ง่าย</span>
+      <p>ค่าปรับคืนหนังสือช้าคือ 25.50 บาท ควรออกแบบฟิลด์ใน JSON แบบใดตาม Convention ของหลักสูตรนี้</p>
+      <ol class="choices">
+        <li><code>"fine": 25.5</code></li>
+        <li><code>"fineSatang": 2550</code></li>
+        <li><code>"fine_satang": "2550"</code></li>
+        <li><code>"fine_satang": 2550</code></li>
+      </ol>
+    </li>
+    <li>
+      <span class="lvl" data-lvl="i">กลาง</span>
+      <p>ใน OpenAPI <strong>3.1</strong> ต้องการบอกว่าฟิลด์ <code>returned_at</code> เป็นข้อความหรือเป็น <code>null</code> ได้ ควรเขียน Schema อย่างไร</p>
+      <ol class="choices">
+        <li><code>type: string</code> คู่กับ <code>nullable: true</code></li>
+        <li><code>type: [string, 'null']</code></li>
+        <li><code>type: string</code> คู่กับ <code>required: false</code> ภายใน property</li>
+        <li><code>type: string</code> คู่กับ <code>x-nullable: true</code></li>
+      </ol>
+    </li>
+    <li>
+      <span class="lvl" data-lvl="a">ยาก</span>
+      <p>ข้อใดเป็นแนวทางที่ถูกต้องเกี่ยวกับ JWT</p>
+      <ol class="choices">
+        <li>Payload ของ JWT ถูกเข้ารหัสไว้ จึงใส่รหัสผ่านหรือเลขบัตรประชาชนลงไปได้อย่างปลอดภัย</li>
+        <li>ใช้ HS256 กับ Secret สั้น ๆ อย่าง <code>"secret"</code> ได้ ถ้า API ใช้ HTTPS อยู่แล้ว</li>
+        <li>ถ้า Header ของ Token เขียนว่า <code>"alg": "none"</code> ให้ข้ามการตรวจลายเซ็นได้ เพราะเป็น Token ภายในองค์กร</li>
+        <li>Server ต้องกำหนด <code>algorithms=["HS256"]</code> เองตอน decode และตรวจ <code>exp</code>, <code>aud</code>, <code>iss</code> ทุกครั้ง เพราะ Payload เป็นแค่ base64url ที่ใครก็อ่านได้ ลายเซ็นมีไว้กันการแก้ไขเท่านั้น</li>
+      </ol>
+    </li>
+    <li>
+      <span class="lvl" data-lvl="i">กลาง</span>
+      <p>ในขั้นตอนแบบ Contract-first ข้อใดอธิบายหน้าที่ของ Spectral และ Prism ได้ถูกต้อง</p>
+      <ol class="choices">
+        <li>Spectral ตรวจ (Lint) ไฟล์ <code>openapi.yaml</code> ตามกฎมาตรฐานและกฎของทีม ส่วน Prism สร้าง Mock Server จาก Spec โดยตอบด้วย example ที่เขียนไว้ ทีม Frontend จึงเริ่มงานได้ก่อน Backend เสร็จ</li>
+        <li>Spectral เป็น Mock Server ส่วน Prism เป็นตัว Lint ที่ตรวจชื่อ property ให้เป็น snake_case</li>
+        <li>Prism เก็บข้อมูลจริงลงฐานข้อมูล หลัง <code>POST /members</code> แล้ว <code>GET /members</code> จะเห็นสมาชิกที่เพิ่งสร้าง</li>
+        <li>Spectral อ่าน Spec แล้วสร้างโค้ด FastAPI ให้อัตโนมัติ จึงไม่ต้องเขียน Backend เอง</li>
+      </ol>
+    </li>
+    <li>
+      <span class="lvl" data-lvl="a">ยาก</span>
+      <p>แอปมือถือส่ง <code>POST /v1/loans</code> พร้อม <code>Idempotency-Key: k-001</code> และ Body <code>{"book_id": "bk_0001", "member_id": "mb_0001"}</code> ได้ <code>201</code> ไปแล้ว ต่อมาแอปมีบั๊ก ส่ง Request ใหม่ด้วย <code>Idempotency-Key: k-001</code> เดิม แต่ Body เป็น <code>{"book_id": "bk_0002", "member_id": "mb_0001"}</code> Server ที่ออกแบบตามหลักสูตรนี้ควรตอบอย่างไร</p>
+      <ol class="choices">
+        <li>ตอบ <code>201</code> ซ้ำด้วยข้อมูลการยืม <code>bk_0001</code> เดิม โดยไม่บอกอะไรเพิ่ม</li>
+        <li>สร้างการยืม <code>bk_0002</code> ใหม่และตอบ <code>201</code> เพราะ Body ต่างกัน ถือเป็นคำขอใหม่</li>
+        <li>ตอบ <code>422</code> แบบ <code>application/problem+json</code> ที่มี type ลงท้ายด้วย <code>idempotency-key-reused</code> โดยไม่สร้างการยืมใหม่</li>
+        <li>ตอบ <code>500 Internal Server Error</code> เพราะเป็นสถานการณ์ที่ไม่ควรเกิดขึ้น</li>
+      </ol>
+    </li>
+    <li>
+      <span class="lvl" data-lvl="a">ยาก</span>
+      <p>ผู้ทดสอบระบบ (ในระบบทดสอบของบริษัทเอง) พบว่าแค่เปลี่ยน URL จาก <code>/members/mb_0001/loans</code> เป็น <code>/members/mb_0002/loans</code> ก็เห็นรายการยืมของสมาชิกคนอื่นได้ ช่องโหว่นี้ตรงกับ OWASP API Security Top 10 (2023) ข้อใด และควรแก้อย่างไร</p>
+      <ol class="choices">
+        <li>API4:2023 Unrestricted Resource Consumption แก้โดยเพิ่ม Rate Limit 5 ครั้งต่อ 10 วินาที</li>
+        <li>API1:2023 Broken Object Level Authorization (BOLA) แก้โดยตรวจทุก Request ว่า <code>sub</code> ใน Token ตรงกับ <code>member_id</code> ที่ขอ (ยกเว้นผู้มี scope <code>admin</code>)</li>
+        <li>API2:2023 Broken Authentication แก้โดยบังคับให้ผู้ใช้ตั้งรหัสผ่านยาวขึ้น</li>
+        <li>API8:2023 Security Misconfiguration แก้โดยตั้ง <code>allow_origins</code> ของ CORS ให้แคบลง</li>
+      </ol>
+    </li>
+  </ol>
+  <h3 id="s8-3-hands">Hands-on Challenge</h3>
+  <p>โจทย์ 3 ข้อนี้จำลองงานที่ Backend Developer เจอจริง ข้อแรกฝึกออกแบบ Endpoint และทดสอบด้วย <code>curl</code> ข้อสองฝึกเขียน Contract แบบ OpenAPI แล้วตรวจด้วย Spectral และ Prism ข้อสามฝึกทำให้ <code>POST</code> ปลอดภัยต่อการ Retry และป้องกันการยิงถี่เกินไป พร้อมพิสูจน์ด้วย pytest</p>
+
+  <article class="challenge" data-lvl="b">
+    <div class="concept-meta"><span class="c-no">โจทย์ที่ 1</span><span class="lvl" data-lvl="b">Beginner</span></div>
+    <h4>รื้อ Members API ของห้องสมุดชุมชนให้เป็น REST แล้วทดสอบด้วย curl</h4>
+    <h5>สถานการณ์</h5>
+    <p>ห้องสมุดชุมชนของเทศบาลแห่งหนึ่งจ้างนักศึกษาฝึกงานเขียน API ระบบสมาชิกไว้ แต่ทีมแอปมือถือบ่นว่าใช้งานยาก เพราะ URL ตั้งชื่อเป็นคำกริยา ทุก Endpoint ตอบ <code>200</code> แม้จะเกิด Error และไม่รู้ว่าสมาชิกที่เพิ่งสร้างอยู่ที่ URL ไหน รายการ Endpoint เดิมมีดังนี้</p>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>Endpoint เดิม</th><th>หน้าที่</th><th>ปัญหาที่ทีมแอปเจอ</th></tr></thead><tbody>
+      <tr><td><code>GET /getMembers</code></td><td>ดูรายชื่อสมาชิกทั้งหมด</td><td>คืนเป็น JSON Array เปล่า ๆ ต่อยอดเพิ่ม <code>next_cursor</code> ไม่ได้</td></tr>
+      <tr><td><code>GET /member/get/{id}</code></td><td>ดูสมาชิกหนึ่งคน</td><td>ไม่พบสมาชิกก็ตอบ <code>200</code> พร้อม <code>{"ok": false}</code></td></tr>
+      <tr><td><code>POST /createMember</code></td><td>สมัครสมาชิก</td><td>ตอบ <code>200</code> และไม่บอกว่าสมาชิกใหม่อยู่ที่ URL ไหน อีเมลซ้ำก็สมัครได้</td></tr>
+      <tr><td><code>GET /deleteMember?id=mb_0003</code></td><td>ลบสมาชิก</td><td>ใช้ <code>GET</code> เปลี่ยนข้อมูล ถ้าเบราว์เซอร์หรือ Crawler เปิดลิงก์นี้ สมาชิกจะถูกลบทันที</td></tr>
+    </tbody></table></div>
+    <h5>สิ่งที่ต้องทำ</h5>
+    <ol>
+      <li>สร้างโฟลเดอร์ <code>~/projects/api-lab/ch1-members</code> แล้วเขียนไฟล์ <code>endpoints.md</code> เป็นตารางออกแบบ Endpoint ใหม่ 4 รายการ แต่ละแถวระบุ Method, Path, Status Code เมื่อสำเร็จ และ Status Code เมื่อเกิด Error แต่ละกรณี โดยใช้คำนามพหูพจน์ ตัวพิมพ์เล็ก และไม่มีคำกริยาใน URL</li>
+      <li>เขียน <code>main.py</code> ด้วย FastAPI ที่มีข้อมูลตั้งต้นเป็นสมาชิก <code>mb_0001</code> (Somchai Jaidee, <code>somchai@example.com</code>) และ <code>mb_0002</code> (Suda Meesuk, <code>suda@example.com</code>) โดยทั้งคู่มี <code>max_active_loans</code> เป็น 3 และมี Endpoint ตามตารางในข้อ 1</li>
+      <li>ทำให้ <code>GET /members</code> ห่อผลลัพธ์เป็น <code>{"data": [...], "next_cursor": null}</code> ส่วน <code>POST /members</code> ต้องตอบ <code>201</code> พร้อม Header <code>Location: /members/mb_0003</code> สร้าง id ต่อเลขจากเดิม และเก็บอีเมลเป็นตัวพิมพ์เล็ก</li>
+      <li>ถ้าอีเมลซ้ำกับสมาชิกเดิม (ไม่สนตัวพิมพ์เล็กใหญ่) ให้ตอบ <code>409</code> ถ้า Body ขาดฟิลด์หรือรูปแบบอีเมลผิด ให้ตอบ <code>422</code> ถ้าไม่พบสมาชิกให้ตอบ <code>404</code> และการลบสำเร็จต้องตอบ <code>204</code> โดยไม่มี Body</li>
+      <li>เขียนสคริปต์ <code>check.sh</code> ที่ใช้ <code>curl</code> ทดสอบ 6 กรณี ได้แก่ ดูรายชื่อ, สมัครใหม่, สมัครด้วยอีเมลซ้ำ, สมัครโดยไม่ส่งอีเมล, ลบสมาชิกเดิมสองครั้ง และดูสมาชิกที่ไม่มีอยู่</li>
+      <li>รัน Server ด้วย <code>uvicorn main:app --port 8000</code> ใน Terminal แรก แล้วรัน <code>./check.sh</code> ใน Terminal ที่สอง ตรวจว่าทุกกรณีได้ Status Code ตามตาราง</li>
+    </ol>
+    <h5>ผลลัพธ์ที่คาดหวัง</h5>
+    <p>เมื่อรัน <code>./check.sh</code> กรณีสมัครใหม่ต้องเห็น <code>201 Created</code> และ <code>location: /members/mb_0003</code> กรณีอีเมลซ้ำต้องเห็น <code>409 Conflict</code> และการลบสองครั้งต้องได้ <code>204</code> ตามด้วย <code>404</code> ตัวอย่างบางส่วนของผลลัพธ์ (ค่า <code>date</code> ในเครื่องของคุณจะต่างออกไป)</p>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>===== 2) POST /members (สมัครสมาชิกใหม่) =====
+HTTP/1.1 201 Created
+date: Wed, 21 Oct 2026 21:57:58 GMT
+server: uvicorn
+content-length: 85
+content-type: application/json
+location: /members/mb_0003
+
+{"id":"mb_0003","name":"Anan Rakdee","email":"anan@example.com","max_active_loans":3}
+
+===== 3) POST อีเมลซ้ำ =====
+HTTP/1.1 409 Conflict
+date: Wed, 21 Oct 2026 21:57:58 GMT
+server: uvicorn
+content-length: 57
+content-type: application/json
+
+{"detail":"email anan@example.com is already registered"}
+
+===== 4) POST ข้อมูลไม่ครบ (ไม่มี email) =====
+status=422
+
+===== 5) DELETE สองครั้ง =====
+first  DELETE status=204
+second DELETE status=404</code></pre>
+    <details class="hint"><summary>Hint</summary><div>
+      <ul>
+        <li>ใช้ <code>@app.post("/members", status_code=status.HTTP_201_CREATED)</code> และรับพารามิเตอร์ <code>response: Response</code> เพื่อตั้ง <code>response.headers["Location"]</code></li>
+        <li>ใช้ <code>raise HTTPException(status_code=409, detail="...")</code> สำหรับอีเมลซ้ำ และ <code>status_code=404</code> สำหรับสมาชิกที่ไม่มี</li>
+        <li>ให้ Pydantic ตรวจรูปแบบอีเมลด้วย <code>Field(pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")</code> เมื่อ Body ผิด FastAPI จะตอบ <code>422</code> ให้อัตโนมัติ</li>
+        <li>สำหรับ <code>DELETE</code> ให้คืน <code>Response(status_code=204)</code> เพื่อให้แน่ใจว่าไม่มี Body</li>
+        <li>ใน <code>check.sh</code> ใช้ <code>curl -si</code> เพื่อดู Header และใช้ <code>curl -s -o /dev/null -w 'status=%{http_code}\n'</code> เมื่ออยากเห็นแค่ Status Code</li>
+      </ul>
+    </div></details>
+  </article>
+  <article class="challenge" data-lvl="i">
+    <div class="concept-meta"><span class="c-no">โจทย์ที่ 2</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+    <h4>เขียน Contract ของ /members ให้ทีม Frontend ใช้ Mock ได้ก่อน Backend เสร็จ</h4>
+    <h5>สถานการณ์</h5>
+    <p>เครือข่ายห้องสมุดกำลังทำหน้า "สมัครสมาชิก" บนเว็บ ทีม Frontend พร้อมเริ่มงานวันนี้ แต่ทีม Backend ยังติดงานอื่นอีกสองสัปดาห์ หัวหน้าทีมจึงสั่งให้ทำแบบ Contract-first คือเขียน <code>openapi.yaml</code> ให้ทุกฝ่ายตกลงกันก่อน ตรวจด้วย Spectral ตามกฎของทีม แล้วเปิด Prism Mock Server ให้ Frontend เรียกใช้แทน API จริง ทีม QA ขอสคริปต์ที่ตรวจได้อัตโนมัติว่า Mock ตอบ Status Code และ Content-Type ตรงตาม Contract ทุกกรณีที่หน้าเว็บต้องรับมือ</p>
+    <h5>สิ่งที่ต้องทำ</h5>
+    <ol>
+      <li>ในโฟลเดอร์ <code>~/projects/api-lab/ch2-contract</code> เขียน <code>openapi.yaml</code> แบบ <code>openapi: 3.1.0</code> ที่มี <code>info.contact</code>, tag <code>members</code> และ 3 Operation คือ <code>listMembers</code> (<code>GET /members</code>), <code>createMember</code> (<code>POST /members</code>) และ <code>getMember</code> (<code>GET /members/{member_id}</code>) ทุก Operation ต้องมี <code>summary</code> และ <code>description</code></li>
+      <li>ใน <code>components</code> ให้มี schemas <code>Member</code>, <code>MemberCreate</code> (ห้ามมีฟิลด์เกิน), <code>MemberPage</code> (<code>next_cursor</code> เป็น string หรือ null) และ <code>Problem</code> มี parameters <code>MemberId</code> (pattern <code>^mb_[0-9]{4}$</code>), <code>Limit</code> (1–100 ค่าเริ่มต้น 20) และ <code>Cursor</code> มี responses <code>BadRequest</code>, <code>Unauthorized</code> (พร้อม Header <code>WWW-Authenticate</code>), <code>NotFound</code> และ <code>ValidationError</code> ที่ตอบเป็น <code>application/problem+json</code> และมี securitySchemes <code>bearerAuth</code></li>
+      <li>ให้ <code>createMember</code> ต้องใช้ <code>bearerAuth</code> ตอบ <code>201</code> พร้อม Header <code>Location</code> และประกาศ <code>401</code>, <code>409</code>, <code>422</code> ส่วน <code>getMember</code> ต้องมี named examples ชื่อ <code>somchai</code> และ <code>suda</code> โดยใช้ข้อมูลตัวอย่างมาตรฐานของหลักสูตร</li>
+      <li>เขียน <code>.spectral.yaml</code> ที่ <code>extends: ["spectral:oas"]</code> และเพิ่มกฎของทีม 3 ข้อ คือ <code>paths-kebab-case</code>, <code>properties-snake-case</code> และยกระดับ <code>info-contact</code> เป็น error จากนั้นรัน <code>npx -y @stoplight/spectral-cli@6.17.0 lint openapi.yaml</code> จนไม่มีทั้ง error และ warning</li>
+      <li>สร้างไฟล์ <code>bad.yaml</code> ที่ตั้งใจทำผิด 3 จุด (ลบ <code>info.contact</code>, ใช้ path <code>/Members/{memberId}</code>, ใช้ property <code>maxActiveLoans</code>) แล้ว Lint เพื่อยืนยันว่ากฎของทีมจับได้ครบ</li>
+      <li>เปิด Prism ด้วย <code>npx -y @stoplight/prism-cli@5.16.0 mock openapi.yaml -h 127.0.0.1 -p 4010</code> แล้วเขียน <code>mock-check.sh</code> ที่ตรวจ 8 กรณี ได้แก่ list 200, get 200, บังคับ 404 ด้วย <code>Prefer: code=404</code>, POST ไม่มี Token ได้ 401, POST มี Token ได้ 201, POST Body ผิดได้ 422, <code>member_id</code> ผิดรูปแบบได้ 422 และ <code>limit=500</code> ได้ 422 โดยทุกกรณีที่เป็น Error ต้องเป็น <code>application/problem+json</code> สคริปต์ต้องพิมพ์ PASS/FAIL ทีละบรรทัด และจบด้วย exit code 1 ถ้ามีข้อใดไม่ผ่าน</li>
+    </ol>
+    <h5>ผลลัพธ์ที่คาดหวัง</h5>
+    <p>Spectral ต้องพิมพ์ <code>No results with a severity of 'error' found!</code> สำหรับ <code>openapi.yaml</code> และ <code>bad.yaml</code> ต้องมี error 3 รายการจากกฎ 3 ข้อ ส่วน <code>./mock-check.sh</code> ต้องผ่านทั้ง 8 ข้อ</p>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>PASS  list members -&gt; 200 application/json
+PASS  get member example -&gt; 200 application/json
+PASS  force 404 via Prefer -&gt; 404 application/problem+json
+PASS  create without token -&gt; 401 application/problem+json
+PASS  create with token -&gt; 201 application/json
+PASS  create invalid body -&gt; 422 application/problem+json
+PASS  bad member_id pattern -&gt; 422 application/problem+json
+PASS  limit over 100 -&gt; 422 application/problem+json
+-----
+all checks passed</code></pre>
+    <details class="hint"><summary>Hint</summary><div>
+      <ul>
+        <li>คีย์ของ responses ต้องใส่เครื่องหมายคำพูด เช่น <code>'200':</code> และใช้ <code>$ref: '#/components/responses/NotFound'</code> เพื่อไม่ต้องเขียน Error ซ้ำทุก Operation</li>
+        <li>กฎ path ใช้ <code>given: "$.paths[*]~"</code> (เครื่องหมาย <code>~</code> หมายถึง "ชื่อคีย์") กับ <code>function: pattern</code> ส่วนกฎ property ใช้ <code>given: "$..properties[*]~"</code> กับ <code>function: casing</code> และ <code>type: snake</code></li>
+        <li>Prism เลือก Response ของ Error จากสิ่งที่ประกาศไว้ใน Operation นั้น ถ้า <code>limit=500</code> ได้ <code>400</code> แทน <code>422</code> ให้ตรวจว่า <code>listMembers</code> ประกาศ <code>'422'</code> ไว้แล้วหรือยัง</li>
+        <li>Prism ตรวจแค่ว่ามี Header <code>Authorization: Bearer ...</code> หรือไม่ ไม่ได้ตรวจลายเซ็นของ Token ใช้ค่าอะไรก็ได้สำหรับทดสอบ</li>
+        <li>ใช้ <code>curl -s -o /dev/null -w '%{http_code} %{content_type}'</code> เพื่อดึง Status Code และ Content-Type มาเทียบในสคริปต์</li>
+        <li>Prism 5.16.0 ประกาศว่าต้องใช้ Node 24.18.0 ขึ้นไป ให้ใช้ Node 24 LTS ที่ติดตั้งผ่าน nvm</li>
+      </ul>
+    </div></details>
+  </article>
+
+  <article class="challenge" data-lvl="a">
+    <div class="concept-meta"><span class="c-no">โจทย์ที่ 3</span><span class="lvl" data-lvl="a">Advanced</span></div>
+    <h4>ทำให้ POST /v1/loans ปลอดภัยต่อการ Retry และมี Rate Limit พร้อมพิสูจน์ด้วย pytest</h4>
+    <h5>สถานการณ์</h5>
+    <p>แอปมือถือของห้องสมุดถูกใช้ในพื้นที่ที่สัญญาณอินเทอร์เน็ตไม่เสถียร เมื่อ Request ยืมหนังสือค้างนานเกินไป แอปจะส่งซ้ำอัตโนมัติ ผลคือในฐานข้อมูลมีการยืมหนังสือเล่มเดียวกันซ้ำสองรายการ และสมาชิกโดนนับโควตายืมเกินจริง ในสัปดาห์เดียวกัน เว็บของสาขาหนึ่งมีบั๊กที่เรียก API วนไม่หยุดจน Server ช้าทั้งระบบ หัวหน้าทีมขอให้คุณแก้ทั้งสองปัญหาใน API เวอร์ชัน <code>/v1</code> และเขียนเทสต์ที่พิสูจน์ได้ว่าแก้แล้วจริง โดยเทสต์ต้องไม่ต้องรอเวลาจริง 10 วินาที</p>
+    <h5>สิ่งที่ต้องทำ</h5>
+    <ol>
+      <li>ในโฟลเดอร์ <code>~/projects/api-lab/ch3-reliability</code> เขียน <code>main.py</code> ที่ใช้ <code>APIRouter(prefix="/v1")</code> มี <code>GET /v1/books</code> และ <code>POST /v1/loans</code> ข้อมูลตั้งต้นคือหนังสือ <code>bk_0001</code>–<code>bk_0003</code> (<code>bk_0003</code> ถูกยืมอยู่), สมาชิก <code>mb_0001</code> และ <code>mb_0002</code> และการยืม <code>ln_0001</code> การยืมใหม่ต้องได้ id <code>ln_0002</code> เป็นต้นไป</li>
+      <li>ทุก Endpoint ใต้ <code>/v1</code> ต้องมี Header <code>X-API-Key</code> (ไม่มีให้ตอบ <code>401</code>) และใช้ค่า hash ของ key เป็นตัวแยก Client ทุก Error ต้องเป็น <code>application/problem+json</code> ตาม RFC 9457 รวมถึง <code>422</code> จากการตรวจ Body ที่ต้องมีรายการ <code>errors</code></li>
+      <li>เพิ่ม Rate Limit แบบ Fixed Window 5 Request ต่อ 10 วินาทีต่อ Client กับทุก Endpoint ใต้ <code>/v1</code> เมื่อเกินให้ตอบ <code>429</code> ที่มี type ลงท้ายด้วย <code>rate-limited</code> และ Header <code>Retry-After</code> เป็นจำนวนวินาทีที่ต้องรอ ตัวนับต้องรับนาฬิกาที่เปลี่ยนได้ตอนทดสอบ</li>
+      <li>บังคับให้ <code>POST /v1/loans</code> ต้องมี Header <code>Idempotency-Key</code> (ไม่มีให้ตอบ <code>400</code>) ถ้า Client เดิมส่ง key เดิมกับ Body เดิม ให้ตอบ Response ที่บันทึกไว้ซ้ำพร้อม Header <code>Idempotent-Replayed: true</code> โดยไม่สร้างการยืมใหม่ ถ้า key เดิมแต่ Body ต่างให้ตอบ <code>422</code> ที่มี type ลงท้ายด้วย <code>idempotency-key-reused</code> และ key ของ Client หนึ่งต้องไม่ชนกับ Client อื่น</li>
+      <li>ตรวจกฎธุรกิจ ได้แก่ <code>404</code> เมื่อไม่พบหนังสือหรือสมาชิก และ <code>409 book-unavailable</code> เมื่อหนังสือถูกยืมอยู่ ส่วน "ตรวจ key, สร้างการยืม, บันทึกผล" ต้องทำภายใต้ Lock เดียวกัน เพื่อกัน Request ซ้ำที่มาถึงพร้อมกัน</li>
+      <li>เขียน <code>test_main.py</code> อย่างน้อย 12 เทสต์ (นับรวม parametrize) ที่ครอบคลุม 401, 400, 201 + Location, Replay, Key ซ้ำแต่ Body ต่าง, Key แยกตาม Client, 409, 422 หลายแบบ, 429 พร้อม Retry-After, การรีเซ็ตเมื่อครบหน้าต่างเวลา และ Rate Limit แยกตาม Client แล้วรัน <code>python3 -m pytest -v</code> ให้ผ่านทั้งหมด</li>
+      <li>เขียน <code>demo.sh</code> ที่ใช้ <code>curl</code> สาธิตการ Retry ด้วย key เดิม, key เดิมแต่ Body ต่าง และการยิง <code>GET /v1/books</code> 7 ครั้งติดกัน แล้วรันกับ <code>uvicorn main:app --port 8000</code></li>
+    </ol>
+    <h5>ผลลัพธ์ที่คาดหวัง</h5>
+    <p>pytest ต้องผ่านทุกเทสต์ และ <code>demo.sh</code> ต้องแสดงว่า Request ที่สองได้ <code>loan</code> เดิมพร้อม <code>idempotent-replayed: true</code> ส่วน Request ที่ 6 และ 7 ของลูป ได้ <code>429</code> ตัวอย่างบรรทัดท้ายของทั้งสองคำสั่ง (เวลาที่ใช้และ <code>Retry-After</code> อาจต่างเล็กน้อย)</p>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>======================== 15 passed, 1 warning in 0.43s =========================
+
+== GET /v1/books 7 ครั้งด้วย key ของ web ==
+request 1 -&gt; 200
+request 2 -&gt; 200
+request 3 -&gt; 200
+request 4 -&gt; 200
+request 5 -&gt; 200
+request 6 -&gt; 429 Retry-After=10
+request 7 -&gt; 429 Retry-After=10</code></pre>
+    <details class="hint"><summary>Hint</summary><div>
+      <ul>
+        <li>สร้างคลาส <code>FixedWindowLimiter</code> ที่มีแอตทริบิวต์ <code>clock = time.monotonic</code> ในเทสต์ให้แทนที่ด้วย <code>lambda: fake["now"]</code> แล้วเลื่อนเวลาเองด้วย <code>fake["now"] += 10</code></li>
+        <li>ใส่ Rate Limit เป็น <code>APIRouter(prefix="/v1", dependencies=[Depends(rate_limit)])</code> FastAPI จะ Cache ผลของ Dependency ตัวเดียวกันภายใน Request เดียว จึงเรียก <code>Depends(rate_limit)</code> ซ้ำใน Endpoint เพื่อเอา <code>client_id</code> ได้โดยไม่นับซ้ำ</li>
+        <li>เก็บ Idempotency ใน dict ที่คีย์เป็น <code>(client_id, idempotency_key)</code> และเทียบ Body ด้วย <code>hashlib.sha256(json.dumps(body.model_dump(), sort_keys=True).encode())</code></li>
+        <li>สร้าง Exception ของตัวเอง เช่น <code>ProblemError</code> แล้วลงทะเบียน <code>@app.exception_handler</code> ที่คืน <code>JSONResponse(..., media_type="application/problem+json")</code> พร้อม Header เพิ่มเติมอย่าง <code>Retry-After</code></li>
+        <li>ใช้ fixture แบบ <code>autouse=True</code> รีเซ็ตข้อมูลและตัวนับก่อนทุกเทสต์ ไม่อย่างนั้นเทสต์จะพึ่งพากันและผลจะเปลี่ยนตามลำดับการรัน</li>
+      </ul>
+    </div></details>
+  </article>
+  <h3 id="s8-3-answers">เฉลย</h3>
+  <div class="callout warn"><span class="c-label warn">ระวัง</span><p>ลองทำแบบฝึกหัดทุกข้อด้วยตัวเองก่อนเปิดเฉลย โดยเฉพาะโจทย์ Hands-on ให้เขียนโค้ดและรันจนได้ผลลัพธ์ของตัวเองก่อน แล้วค่อยเทียบกับเฉลย ถ้าเปิดดูก่อน สมองจะจำว่า "เคยเห็นแล้ว" แต่ยังทำเองไม่ได้จริง</p></div>
+
+  <h4>เฉลย Fill-in-the-blank</h4>
+  <details class="ans"><summary>ข้อ 1</summary><div>
+    <p><strong>คำตอบ:</strong> <code>201</code> (Created) และ <code>Location</code></p>
+    <p><code>201 Created</code> บอกว่า Request สำเร็จและมี Resource ใหม่เกิดขึ้น ต่างจาก <code>200 OK</code> ที่แปลว่าสำเร็จเฉย ๆ ส่วน Header <code>Location: /books/bk_0004</code> บอก Client ว่าจะอ่านหนังสือเล่มนี้ได้ที่ URL ไหน Client จึงไม่ต้องเดา id หรือประกอบ URL เอง ใน FastAPI ทำได้ด้วย <code>status_code=201</code> ใน Decorator และ <code>response.headers["Location"] = "/books/bk_0004"</code></p>
+  </div></details>
+  <details class="ans"><summary>ข้อ 2</summary><div>
+    <p><strong>คำตอบ:</strong> <code>-i</code>, <code>204</code>, <code>404</code></p>
+    <ul>
+      <li><code>curl -i</code> (ย่อจาก <code>--include</code> จะตอบ <code>--include</code> หรือ <code>-si</code> ก็ถูก) แสดง Status Line และ Header ของ Response ก่อน Body ถ้าอยากเห็นทั้ง Request และ Response แบบละเอียด ให้ใช้ <code>-v</code> แทน (แต่ผลจะมีเครื่องหมาย <code>&lt;</code> และ <code>&gt;</code> นำหน้า ไม่ตรงกับหน้าตาในโจทย์) ส่วน <code>-I</code> (ตัวใหญ่) ไม่ใช่คำตอบที่ดี เพราะ <code>-I</code> แปลว่า "ส่ง <code>HEAD</code>" การใช้คู่กับ <code>-X DELETE</code> ทำให้คำสั่งขัดกันเองและอ่านสับสน</li>
+      <li><code>204 No Content</code> ใช้เมื่อทำสำเร็จแต่ไม่มี Body ส่งกลับ เป็นค่ามาตรฐานของ <code>DELETE</code> ในหลักสูตรนี้</li>
+      <li>การลบซ้ำครั้งที่สองได้ <code>404</code> เพราะสมาชิกถูกลบไปแล้ว สิ่งที่ควรสังเกตคือ <code>DELETE</code> ยังนับเป็น Idempotent เพราะ "สถานะบน Server" หลังลบกี่ครั้งก็เหมือนกัน คือไม่มี <code>mb_0003</code> แม้ Status Code ที่ตอบกลับจะต่างกันก็ตาม ผลลัพธ์นี้ตรงกับที่ได้จากการรันจริงในโจทย์ที่ 1 (<code>first  DELETE status=204</code> และ <code>second DELETE status=404</code>)</li>
+    </ul>
+  </div></details>
+  <details class="ans"><summary>ข้อ 3</summary><div>
+    <p><strong>คำตอบ:</strong> <code>problem+json</code>, <code>type</code>, <code>status</code>, <code>instance</code></p>
+    <p>RFC 9457 (ฉบับที่มาแทน RFC 7807) กำหนด Media Type เป็น <code>application/problem+json</code> และกำหนด Member มาตรฐาน 5 ตัว ดังนี้</p>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>Member</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>type</code></td><td>URI ที่ระบุ "ชนิดของปัญหา" เป็นค่าที่โปรแกรมฝั่ง Client ใช้ตัดสินใจ เช่น ลงท้ายด้วย <code>book-not-found</code></td></tr>
+      <tr><td><code>title</code></td><td>ชื่อปัญหาสั้น ๆ สำหรับคนอ่าน และควรเหมือนเดิมทุกครั้งสำหรับ type เดียวกัน</td></tr>
+      <tr><td><code>status</code></td><td>HTTP Status Code ที่ต้องตรงกับ Status Line จริงของ Response</td></tr>
+      <tr><td><code>detail</code></td><td>คำอธิบายเฉพาะครั้งนี้ เช่น บอกว่าเป็นหนังสือ id อะไร โดยต้องไม่มี Stack Trace หรือข้อมูลลับ</td></tr>
+      <tr><td><code>instance</code></td><td>URI ที่ระบุเหตุการณ์ครั้งนี้ หลักสูตรนี้ใช้ path ของ Request</td></tr>
+    </tbody></table></div>
+    <p>ถ้า Server ส่ง <code>content-type: application/json</code> แทน Client ที่ตรวจ Media Type จะไม่รู้ว่าเป็น Problem Details</p>
+  </div></details>
+  <details class="ans"><summary>ข้อ 4</summary><div>
+    <p><strong>คำตอบ:</strong> <code>3.1.0</code>, <code>path</code>, <code>'200'</code>, <code>components</code>, <code>'null'</code></p>
+    <ul>
+      <li><code>openapi: 3.1.0</code> คือเวอร์ชันที่หลักสูตรนี้ใช้ ซึ่ง Schema อิงกับ JSON Schema 2020-12</li>
+      <li><code>in: path</code> เพราะ <code>{book_id}</code> อยู่ใน path ของ URL ค่าอื่นที่เป็นไปได้คือ <code>query</code>, <code>header</code> และ <code>cookie</code> และพารามิเตอร์แบบ <code>path</code> ต้องมี <code>required: true</code> เสมอ</li>
+      <li><code>'200'</code> ต้องใส่เครื่องหมายคำพูด เพราะถ้าไม่ใส่ YAML จะอ่านเป็นตัวเลข เมื่อทดสอบด้วย PyYAML 6.0.3 คีย์ <code>200</code> ที่ไม่มีเครื่องหมายคำพูดจะออกมาเป็นชนิด <code>&lt;class 'int'&gt;</code> ขณะที่ OpenAPI กำหนดให้คีย์ของ responses เป็น string</li>
+      <li><code>$ref: '#/components/schemas/Book'</code> ชี้ไปยัง Schema ที่ประกาศไว้ใต้ <code>components</code> ในไฟล์เดียวกัน (<code>#</code> หมายถึงรากของไฟล์นี้)</li>
+      <li><code>type: [string, 'null']</code> คือวิธีของ OpenAPI 3.1 ที่ใช้ JSON Schema ตรง ๆ ต้องใส่เครื่องหมายคำพูดที่ <code>'null'</code> เพราะถ้าไม่ใส่ YAML จะอ่านเป็นค่า null จริง ไม่ใช่ข้อความ <code>"null"</code> ที่เป็นชื่อชนิดข้อมูล ส่วน <code>nullable: true</code> เป็นวิธีของ OpenAPI 3.0 ซึ่งไม่มีแล้วใน 3.1</li>
+    </ul>
+  </div></details>
+  <details class="ans"><summary>ข้อ 5</summary><div>
+    <p><strong>คำตอบ:</strong> <code>algorithms</code>, <code>audience</code>, <code>Bearer</code>, <code>403</code></p>
+    <ul>
+      <li><code>algorithms=["HS256"]</code> PyJWT 2.x บังคับให้ระบุพารามิเตอร์นี้ ถ้าไม่ใส่จะเกิด <code>jwt.exceptions.DecodeError: It is required that you pass in a value for the "algorithms" argument when calling decode().</code> การระบุเองป้องกันไม่ให้ผู้โจมตีเปลี่ยน <code>alg</code> ใน Header ของ Token เป็น <code>none</code> หรือเป็น Algorithm อื่นที่ตรวจง่ายกว่า</li>
+      <li><code>audience="library-api"</code> ตรวจ claim <code>aud</code> ว่า Token ออกมาให้ API นี้ ถ้าไม่ตรงจะเกิด <code>jwt.exceptions.InvalidAudienceError</code> ป้องกันการเอา Token ของระบบอื่นมาใช้</li>
+      <li><code>WWW-Authenticate: Bearer</code> คือ Header ที่ HTTP กำหนดให้ส่งคู่กับ <code>401</code> เพื่อบอกว่า Client ต้องยืนยันตัวตนด้วยวิธีใด</li>
+      <li><code>403 Forbidden</code> ใช้เมื่อรู้แล้วว่าเป็นใคร (Authentication ผ่าน) แต่ไม่มีสิทธิ์ทำสิ่งนั้น (Authorization ไม่ผ่าน) การล็อกอินใหม่ไม่ช่วยอะไร ต่างจาก <code>401</code> ที่แปลว่ายังไม่รู้ว่าเป็นใคร หรือ Token ใช้ไม่ได้</li>
+    </ul>
+  </div></details>
+  <details class="ans"><summary>ข้อ 6</summary><div>
+    <p><strong>คำตอบ:</strong> <code>If-None-Match</code>, <code>304</code>, <code>If-Match</code>, <code>412</code></p>
+    <ul>
+      <li><code>If-None-Match: "a1b2c3"</code> แปลว่า "ส่งข้อมูลมาเฉพาะเมื่อ ETag ไม่ตรงกับค่านี้" ถ้ายังตรงกัน Server ตอบ <code>304 Not Modified</code> ไม่มี Body ช่วยประหยัด Bandwidth และ Client ใช้ข้อมูลที่เก็บไว้ต่อ</li>
+      <li><code>If-Match: "a1b2c3"</code> แปลว่า "แก้ไขเฉพาะเมื่อเวอร์ชันปัจจุบันยังเป็นค่านี้" เมื่อ ETag ปัจจุบันเป็น <code>"d4e5f6"</code> แล้ว Server ต้องปฏิเสธด้วย <code>412 Precondition Failed</code> เพื่อไม่ให้การแก้ไขของ Client นี้ไปทับการแก้ไขของคนอื่น (ปัญหา Lost Update)</li>
+      <li>ค่า ETag ต้องมีเครื่องหมายคำพูดคู่ (<code>"a1b2c3"</code>) ทั้งใน Response และใน Header ที่ Client ส่งกลับ ถ้าลืมใส่ การเทียบแบบข้อความตรงตัวจะไม่ตรงกัน</li>
+    </ul>
+  </div></details>
+  <h4>เฉลย Multiple Choice</h4>
+  <details class="ans"><summary>ข้อ 1</summary><div>
+    <p><strong>คำตอบ: C</strong> <code>PUT</code> แทนที่ Resource ทั้งก้อนด้วยข้อมูลที่ส่งไป จึงเปลี่ยนข้อมูลบน Server (ไม่ Safe) แต่ส่ง <code>PUT /books/bk_0001</code> ด้วย Body เดิมกี่ครั้ง สถานะสุดท้ายก็เหมือนส่งครั้งเดียว (Idempotent) Client จึง Retry <code>PUT</code> ได้อย่างปลอดภัยเมื่อ Timeout</p>
+    <ul class="why-wrong">
+      <li><strong>A</strong> ผิดเพราะ <code>GET</code> เป็นทั้ง Safe และ Idempotent มันแค่อ่านข้อมูล ไม่เปลี่ยนแปลงอะไรบน Server จึงไม่ตรงเงื่อนไข "ไม่ Safe"</li>
+      <li><strong>B</strong> ผิดเพราะ <code>POST</code> ไม่ Safe และไม่ Idempotent ด้วย ส่ง <code>POST /books</code> สองครั้งจะได้หนังสือสองเล่ม (<code>bk_0004</code> และ <code>bk_0005</code>) เว้นแต่จะออกแบบ Idempotency-Key เพิ่มเอง</li>
+      <li><strong>D</strong> ผิดเพราะ <code>HEAD</code> คือ <code>GET</code> ที่ไม่มี Body จึงเป็นทั้ง Safe และ Idempotent เหมือน <code>GET</code></li>
+    </ul>
+  </div></details>
+  <details class="ans"><summary>ข้อ 2</summary><div>
+    <p><strong>คำตอบ: B</strong> การยืมหนังสือเป็นการกระทำที่ไม่ใช่ CRUD ตรง ๆ หลัก REST แนะนำให้มองการกระทำเป็น Resource ในที่นี้คือ "การยืม" (loan) การยืมคือการสร้าง loan ใหม่จึงใช้ <code>POST /loans</code> ส่งข้อมูลใน Body และได้ <code>201</code> พร้อม <code>Location: /loans/ln_0002</code> กลับมา URL เป็นคำนามพหูพจน์ ตัวพิมพ์เล็ก ไม่มีคำกริยา</p>
+    <ul class="why-wrong">
+      <li><strong>A</strong> ผิดเพราะใช้ <code>GET</code> เปลี่ยนสถานะข้อมูล ซึ่งผิดหลัก Safe Method และ URL มีคำกริยา (<code>borrowBook</code>) อีกทั้งเบราว์เซอร์, Proxy หรือ Crawler อาจเรียก <code>GET</code> ซ้ำเองโดยที่ผู้ใช้ไม่ได้ตั้งใจ</li>
+      <li><strong>C</strong> ผิดเพราะยังมีคำกริยา <code>borrow</code> ใน URL ซ้อนลึกเกิน 2 ระดับ และมีเครื่องหมาย <code>/</code> ปิดท้าย ซึ่งหลักสูตรนี้ห้ามใช้ เพราะอาจทำให้ได้ 404 หรือ Redirect ที่ไม่คาดคิด</li>
+      <li><strong>D</strong> ผิดหลายจุด คือใช้ <code>GET</code> สร้างข้อมูล ใช้ตัวพิมพ์ใหญ่ใน path และ id ซึ่งทำให้ URL ไม่ตรงกับ id จริง และยังมีคำกริยา <code>Create</code> อยู่ใน URL</li>
+    </ul>
+  </div></details>
+  <details class="ans"><summary>ข้อ 3</summary><div>
+    <p><strong>คำตอบ: A</strong> Token ถูกต้อง แปลว่า Authentication ผ่านแล้ว Server รู้ว่าเป็นสมชาย (<code>mb_0001</code>) แต่ Authorization ไม่ผ่านเพราะข้อมูลเป็นของ <code>mb_0002</code> นี่คือการป้องกัน BOLA (API1:2023) ตามแนวทางของหลักสูตร ซึ่งตอบ <code>403</code> แบบ <code>application/problem+json</code> ที่มี type ลงท้ายด้วย <code>forbidden</code> ในงานจริงบางระบบเลือกตอบ <code>404</code> เพื่อซ่อนว่ามี Resource นี้อยู่ ซึ่งเป็นทางเลือกที่ยอมรับได้ แต่ต้องใช้ให้สม่ำเสมอทั้งระบบ</p>
+    <ul class="why-wrong">
+      <li><strong>B</strong> ผิดเพราะ <code>401</code> ใช้เมื่อยังไม่รู้ว่าเป็นใคร เช่น ไม่มี Token, Token หมดอายุ หรือลายเซ็นไม่ถูก ในกรณีนี้ Token ใช้ได้ การให้ล็อกอินใหม่ไม่ได้ทำให้มีสิทธิ์ดูข้อมูลของคนอื่น</li>
+      <li><strong>C</strong> ผิดเพราะ <code>200</code> กับ list ว่างทำให้ Client เข้าใจผิดว่า "สุดาไม่มีรายการยืม" ซึ่งเป็นข้อมูลเท็จ และยังซ่อนความผิดพลาดด้านสิทธิ์ ทำให้ตรวจสอบหรือ Monitor ได้ยาก</li>
+      <li><strong>D</strong> ผิดเพราะ <code>400</code> หมายถึง Request ผิดรูปแบบ แต่ Request นี้ถูกรูปแบบทุกอย่าง ปัญหาอยู่ที่สิทธิ์ ไม่ใช่รูปแบบ</li>
+    </ul>
+  </div></details>
+  <details class="ans"><summary>ข้อ 4</summary><div>
+    <p><strong>คำตอบ: D</strong> <code>204 No Content</code> แปลว่าทำสำเร็จและตั้งใจไม่มี Body กลับไป ซึ่งตรงกับ Convention ของหลักสูตรนี้สำหรับ <code>DELETE</code> ใน FastAPI ใช้ <code>status_code=204</code> และคืน <code>Response(status_code=204)</code></p>
+    <ul class="why-wrong">
+      <li><strong>A</strong> ผิดเพราะการใส่ <code>{"error": null}</code> เป็นการเอาสถานะไปซ่อนใน Body ซึ่งเป็น Anti-pattern เดียวกับการตอบ <code>200</code> พร้อม Error ใน Body แม้ <code>200</code> พร้อม Body ที่มีความหมายจะใช้กับ DELETE ได้ แต่ Body ในตัวเลือกนี้ไม่มีประโยชน์อะไร</li>
+      <li><strong>B</strong> ผิดเพราะ <code>201 Created</code> ใช้เมื่อสร้าง Resource ใหม่ ไม่ใช่ตอนลบ</li>
+      <li><strong>C</strong> ผิดเพราะ <code>304 Not Modified</code> ใช้ตอบ Conditional <code>GET</code> ที่ส่ง <code>If-None-Match</code> มา และข้อมูลยังไม่เปลี่ยน ไม่เกี่ยวกับการลบ</li>
+    </ul>
+  </div></details>
+  <details class="ans"><summary>ข้อ 5</summary><div>
+    <p><strong>คำตอบ: A</strong> Offset Pagination นับ "ตำแหน่ง" ของรายการ เมื่อมีหนังสือใหม่แทรกเข้ามาด้านบนหนึ่งเล่ม ทุกเล่มเลื่อนลงหนึ่งตำแหน่ง เล่มสุดท้ายของหน้าแรกจึงไปโผล่เป็นเล่มแรกของหน้าถัดไป (เห็นซ้ำ) ถ้ามีการลบก็จะข้ามรายการไปแทน Cursor Pagination อ้างอิง "รายการสุดท้ายที่เห็น" เช่น <code>{"after_id": "bk_0010"}</code> ที่เข้ารหัสเป็น base64url หน้าถัดไปจึงเริ่มต่อจากรายการนั้นเสมอ ไม่ว่าจะมีการแทรกด้านบนกี่รายการ และต้องมี id เป็นตัวตัดสินเมื่อค่าที่ใช้เรียงเท่ากัน เพื่อให้ลำดับคงที่</p>
+    <ul class="why-wrong">
+      <li><strong>B</strong> ผิดเพราะการเพิ่ม <code>limit</code> แค่ลดจำนวนครั้งที่เปลี่ยนหน้า ปัญหาการเลื่อนตำแหน่งยังเกิดได้ทุกครั้งที่มีข้อมูลแทรก อีกทั้ง <code>limit=100</code> ยังเป็นค่าสูงสุดที่หลักสูตรอนุญาต และทำให้แต่ละ Response ใหญ่ขึ้นโดยไม่จำเป็น</li>
+      <li><strong>C</strong> ผิดเพราะกลับด้าน Cursor Pagination กระโดดไปหน้าที่ 50 ทันทีไม่ได้ ต้องเดินต่อจาก cursor ทีละหน้า ความสามารถกระโดดไปหน้าใดก็ได้เป็นข้อดีของ Offset</li>
+      <li><strong>D</strong> ผิดเพราะรายการซ้ำเกิดจากการคำนวณตำแหน่งบน Server ไม่ใช่ Cache ถึงจะใส่ <code>no-store</code> Server ก็ยังส่งรายการที่เลื่อนตำแหน่งแล้วกลับมาเหมือนเดิม</li>
+    </ul>
+  </div></details>
+  <details class="ans"><summary>ข้อ 6</summary><div>
+    <p><strong>คำตอบ: C</strong> <code>If-None-Match</code> ถามว่า "เวอร์ชันที่ฉันมียังเป็นปัจจุบันไหม" เมื่อ ETag ตรงกัน Server ตอบ <code>304 Not Modified</code> โดยไม่มี Body และ Client ใช้สำเนาที่เก็บไว้ ช่วยลดข้อมูลที่ส่งผ่านเครือข่ายและลดงานของ Server</p>
+    <ul class="why-wrong">
+      <li><strong>A</strong> ผิดเพราะการส่ง Body เต็มทุกครั้งทำให้ Conditional Request ไม่มีประโยชน์ มาตรฐาน HTTP กำหนดให้ตอบ <code>304</code> เมื่อ ETag ตรงกันสำหรับ <code>GET</code></li>
+      <li><strong>B</strong> ผิดเพราะ <code>412 Precondition Failed</code> ใช้กับ <code>If-Match</code> ที่ไม่ตรง เช่นตอน <code>PATCH</code> ด้วยเวอร์ชันเก่า ไม่ใช่กรณี <code>If-None-Match</code> ที่ตรงกันใน <code>GET</code></li>
+      <li><strong>D</strong> ผิดเพราะ <code>204 No Content</code> แปลว่าทำสำเร็จและไม่มีเนื้อหา Client จะเข้าใจว่าหนังสือไม่มีข้อมูลเลย ไม่ได้แปลว่า "ใช้สำเนาเดิมได้"</li>
+    </ul>
+  </div></details>
+  <details class="ans"><summary>ข้อ 7</summary><div>
+    <p><strong>คำตอบ: D</strong> หลักสูตรนี้เก็บเงินเป็นจำนวนเต็มหน่วยสตางค์ และตั้งชื่อฟิลด์แบบ snake_case ที่บอกหน่วยในชื่อ 25.50 บาทจึงเป็น <code>"fine_satang": 2550</code> ซึ่งเป็นตัวเลขจำนวนเต็มที่คำนวณได้แม่นยำทุกภาษา</p>
+    <ul class="why-wrong">
+      <li><strong>A</strong> ผิดเพราะใช้ทศนิยมแบบ float ซึ่งเก็บค่าบางค่าได้ไม่แม่นยำ เช่น ใน Python <code>0.1 + 0.2</code> ได้ <code>0.30000000000000004</code> เมื่อรวมค่าปรับหลายรายการจะคลาดเคลื่อน และชื่อ <code>fine</code> ไม่บอกหน่วย</li>
+      <li><strong>B</strong> ผิดเพราะใช้ camelCase ขัดกับ Convention ของหลักสูตรที่ใช้ snake_case ทุกฟิลด์ การผสมสองแบบทำให้ Client เขียนโค้ดผิดได้ง่าย</li>
+      <li><strong>C</strong> ผิดเพราะส่งตัวเลขเป็น string ทำให้ Client ต้องแปลงเองก่อนคำนวณ และ Schema ตรวจได้ยากว่าค่าเป็นจำนวนเต็มจริงหรือไม่</li>
+    </ul>
+  </div></details>
+  <details class="ans"><summary>ข้อ 8</summary><div>
+    <p><strong>คำตอบ: B</strong> OpenAPI 3.1 ใช้ JSON Schema 2020-12 เต็มรูปแบบ วิธีบอกว่า "เป็น string หรือ null" คือใส่ทั้งสองชนิดใน <code>type</code> เป็น <code>type: [string, 'null']</code> โดยต้องใส่เครื่องหมายคำพูดที่ <code>'null'</code> เพื่อให้ YAML อ่านเป็นข้อความ</p>
+    <ul class="why-wrong">
+      <li><strong>A</strong> ผิดเพราะ <code>nullable: true</code> เป็นคีย์ของ OpenAPI 3.0 ซึ่งถูกเอาออกใน 3.1 เครื่องมือที่อ่าน 3.1 จะไม่สนใจคีย์นี้ ทำให้ค่า null ไม่ผ่าน Validation</li>
+      <li><strong>C</strong> ผิดเพราะ <code>required</code> บอกว่า "ต้องส่งฟิลด์นี้มาหรือไม่" (เป็นรายการชื่อฟิลด์ที่ระดับ object) ไม่ได้บอกว่าค่าเป็น null ได้ ฟิลด์ที่ไม่ได้ส่งมากับฟิลด์ที่ส่งมาเป็น null มีความหมายต่างกัน เช่นใน PATCH</li>
+      <li><strong>D</strong> ผิดเพราะ <code>x-nullable</code> เป็น Extension ที่เครื่องมือบางตัวในยุค Swagger 2.0 ใช้ ไม่ใช่มาตรฐานของ OpenAPI 3.1 เครื่องมือทั่วไปจะไม่เข้าใจ</li>
+    </ul>
+  </div></details>
+  <details class="ans"><summary>ข้อ 9</summary><div>
+    <p><strong>คำตอบ: D</strong> Header และ Payload ของ JWT เป็นแค่ JSON ที่เข้ารหัสแบบ base64url ใครถือ Token ก็ถอดอ่านได้ ลายเซ็นมีไว้ยืนยันว่า Token ไม่ถูกแก้ไขเท่านั้น Server จึงต้องกำหนด Algorithm ที่ยอมรับเอง และตรวจ <code>exp</code>, <code>aud</code>, <code>iss</code> ทุกครั้ง ใน PyJWT 2.15.1 ถ้าส่ง Token ที่มี <code>alg: none</code> เข้า <code>jwt.decode(..., algorithms=["HS256"])</code> จะได้ <code>jwt.exceptions.InvalidAlgorithmError: The specified alg value is not allowed</code></p>
+    <ul class="why-wrong">
+      <li><strong>A</strong> ผิดเพราะ JWT แบบที่ใช้ทั่วไป (JWS) ไม่ได้เข้ารหัส Payload ลองถอด base64url ของส่วนกลางก็เห็นข้อมูลทันที ห้ามใส่รหัสผ่าน เลขบัตรประชาชน หรือข้อมูลลับใด ๆ</li>
+      <li><strong>B</strong> ผิดเพราะ HTTPS ป้องกันการดักฟังระหว่างทางเท่านั้น ถ้า Secret สั้นและเดาง่าย ผู้โจมตีที่ได้ Token ไปหนึ่งตัวสามารถลองเดา Secret แบบ Offline จนเจอ แล้วปลอม Token ของใครก็ได้ Secret ควรสุ่มยาวอย่างน้อย 32 ไบต์ เช่นจาก <code>secrets.token_urlsafe(32)</code></li>
+      <li><strong>C</strong> ผิดเพราะ <code>alg: none</code> หมายถึงไม่มีลายเซ็น ใครก็สร้าง Token แบบนี้ได้ ถ้า Server ยอมรับ ผู้โจมตีจะแก้ <code>sub</code> หรือ <code>scope</code> เป็นอะไรก็ได้ คำว่า "ภายในองค์กร" ไม่ใช่เหตุผลให้ลดความปลอดภัย</li>
+    </ul>
+  </div></details>
+  <details class="ans"><summary>ข้อ 10</summary><div>
+    <p><strong>คำตอบ: A</strong> ในขั้นตอน Contract-first ทีมเขียน <code>openapi.yaml</code> ก่อน แล้วใช้ Spectral ตรวจคุณภาพของ Spec ตามกฎ <code>spectral:oas</code> และกฎของทีม จากนั้นใช้ Prism อ่าน Spec เดียวกันเพื่อเปิด Mock Server ที่ตอบด้วย example และตรวจ Request ตาม Schema ทีม Frontend จึงพัฒนาและทดสอบได้ทันทีโดยไม่ต้องรอ Backend</p>
+    <ul class="why-wrong">
+      <li><strong>B</strong> ผิดเพราะสลับหน้าที่กัน Spectral คือ Linter ส่วน Prism คือ Mock Server (และ Validation Proxy) กฎ snake_case เป็นกฎที่เขียนใน <code>.spectral.yaml</code></li>
+      <li><strong>C</strong> ผิดเพราะ Prism ไม่เก็บข้อมูลจริง ทุก Response มาจาก example หรือข้อมูลที่สุ่มตาม Schema (โหมด <code>-d</code>) หลัง <code>POST</code> แล้ว <code>GET</code> จะยังได้ example เดิม นี่เป็นข้อผิดพลาดที่มือใหม่เจอบ่อยเมื่อใช้ Mock</li>
+      <li><strong>D</strong> ผิดเพราะ Spectral ไม่สร้างโค้ด มันแค่ตรวจ Spec การสร้างโค้ดจาก Spec ต้องใช้เครื่องมืออื่น และทีมยังต้องเขียน Logic ทางธุรกิจเองอยู่ดี</li>
+    </ul>
+  </div></details>
+  <details class="ans"><summary>ข้อ 11</summary><div>
+    <p><strong>คำตอบ: C</strong> Idempotency-Key ผูกกับ "คำขอเดิม" ถ้า key เดิมมาพร้อม Body ต่าง แปลว่า Client มีบั๊กหรือใช้ key ซ้ำผิดที่ Server ต้องปฏิเสธอย่างชัดเจนด้วย <code>422</code> และ type <code>idempotency-key-reused</code> โดยไม่สร้างข้อมูลใหม่ และไม่ตอบผลของคำขอเก่า Server ตรวจได้ด้วยการเก็บ hash ของ Body คู่กับ key แล้วเทียบทุกครั้ง ซึ่งพิสูจน์ได้ด้วยเทสต์ <code>test_same_key_different_body_is_422</code> ในโจทย์ที่ 3</p>
+    <ul class="why-wrong">
+      <li><strong>A</strong> ผิดเพราะ Client ขอยืม <code>bk_0002</code> แต่ได้ข้อมูลการยืม <code>bk_0001</code> กลับไปเงียบ ๆ แอปจะแสดงผลผิดโดยไม่มีใครรู้ การ Replay ใช้ได้เฉพาะเมื่อ Body เหมือนเดิม</li>
+      <li><strong>B</strong> ผิดเพราะทำให้ Idempotency-Key ไม่มีความหมาย และถ้าเป็นการ Retry ที่ Body ถูกสร้างใหม่ผิดพลาด อาจเกิดการยืมซ้ำที่ระบบนี้ตั้งใจป้องกัน</li>
+      <li><strong>D</strong> ผิดเพราะ <code>5xx</code> หมายถึง Server ผิดพลาด แต่กรณีนี้ Client ทำผิด จึงต้องเป็น <code>4xx</code> และ <code>500</code> ยังทำให้ Client บางตัว Retry ซ้ำไปเรื่อย ๆ</li>
+    </ul>
+  </div></details>
+  <details class="ans"><summary>ข้อ 12</summary><div>
+    <p><strong>คำตอบ: B</strong> การเปลี่ยน id ของ Object ใน URL แล้วเข้าถึงข้อมูลของคนอื่นได้คือ API1:2023 Broken Object Level Authorization (BOLA) ซึ่งเป็นอันดับหนึ่งของ OWASP API Security Top 10 วิธีแก้คือตรวจสิทธิ์ระดับ Object ในทุก Endpoint ที่รับ id เช่น เทียบ <code>sub</code> ใน Token กับ <code>member_id</code> ใน path และอนุญาตเฉพาะเจ้าของหรือผู้ที่มี scope <code>admin</code> การทดสอบลักษณะนี้ต้องทำกับระบบของตัวเองหรือระบบที่ได้รับอนุญาตเท่านั้น การเข้าถึงข้อมูลของระบบผู้อื่นโดยไม่ได้รับอนุญาตผิด พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์</p>
+    <ul class="why-wrong">
+      <li><strong>A</strong> ผิดเพราะ API4 เกี่ยวกับการใช้ทรัพยากรเกินขอบเขต เช่น ยิงถี่หรือขอข้อมูลทีละมาก ๆ Rate Limit ไม่ได้ห้ามการอ่านข้อมูลของคนอื่น ผู้โจมตียังอ่านได้ 5 ครั้งต่อ 10 วินาที</li>
+      <li><strong>C</strong> ผิดเพราะ API2 เกี่ยวกับกลไกยืนยันตัวตนที่อ่อนแอ เช่น ไม่ตรวจลายเซ็น Token หรือไม่ป้องกันการเดารหัสผ่าน ในกรณีนี้ผู้ทดสอบยืนยันตัวตนถูกต้องแล้ว ปัญหาอยู่ที่การตรวจสิทธิ์หลังจากนั้น</li>
+      <li><strong>D</strong> ผิดเพราะ CORS เป็นกลไกของเบราว์เซอร์ที่คุมว่าเว็บจาก Origin ไหนอ่าน Response ได้ ผู้โจมตีที่ใช้ <code>curl</code> หรือแอปของตัวเองไม่ถูก CORS บังคับเลย จึงแก้ BOLA ไม่ได้</li>
+    </ul>
+  </div></details>
+  <h4>เฉลย Hands-on Challenge</h4>
+  <p>โค้ดเฉลยทั้งหมดรันจริงด้วย FastAPI 0.157.0, uvicorn 0.54.0, pytest 9.1.1, httpx 0.28.1, Spectral 6.17.0 และ Prism 5.16.0 ค่าที่ขึ้นกับเครื่องและเวลา เช่น <code>date</code>, เวลาใน <code>borrowed_at</code>, Idempotency-Key ที่สุ่ม และเวลาที่ pytest ใช้ ในเครื่องของคุณจะต่างออกไป</p>
+
+  <details class="ans"><summary>โจทย์ที่ 1: Members API แบบ REST และ curl</summary><div>
+    <h5>ไฟล์ตารางออกแบบ Endpoint</h5>
+    <p>เริ่มจากออกแบบก่อนเขียนโค้ดเสมอ ตารางนี้คือ "สัญญา" ฉบับย่อที่ทีมแอปใช้ตรวจว่า Server ตอบถูกหรือไม่</p>
+    <pre class="code" data-env="file" data-label="Markdown · endpoints.md"><code class="language-markdown"># Members API — ตารางออกแบบ Endpoint (ฉบับแก้ไข)
+
+| Method | Path                  | สำเร็จ                    | Error                                         |
+|--------|-----------------------|---------------------------|-----------------------------------------------|
+| GET    | /members              | 200 + {data, next_cursor} | -                                             |
+| GET    | /members/{member_id}  | 200 + ข้อมูลสมาชิก         | 404 ไม่พบสมาชิก                                |
+| POST   | /members              | 201 + Location            | 409 อีเมลซ้ำ, 422 Body ขาดฟิลด์/รูปแบบผิด        |
+| DELETE | /members/{member_id}  | 204 (ไม่มี Body)           | 404 ไม่พบสมาชิก                                |
+
+## เทียบกับของเดิม
+- GET /getMembers            -&gt; GET /members
+- GET /member/get/{id}       -&gt; GET /members/{member_id}
+- POST /createMember         -&gt; POST /members
+- GET /deleteMember?id=...   -&gt; DELETE /members/{member_id}</code></pre>
+
+    <h5>โค้ด Server</h5>
+    <p>สร้างโฟลเดอร์และเปิดใช้ venv ที่มีอยู่แล้วก่อน</p>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/api-lab/ch1-members
+cd ~/projects/api-lab/ch1-members
+source ../.venv/bin/activate</code></pre>
+    <pre class="code" data-env="file" data-label="Python · main.py"><code class="language-python"># main.py — Members API สำหรับห้องสมุดชุมชน (โจทย์ที่ 1)
+from fastapi import FastAPI, HTTPException, Response, status
+from pydantic import BaseModel, Field
+
+app = FastAPI(title="Community Library Members API", version="1.0.0")
+
+# ข้อมูลตัวอย่างเก็บในหน่วยความจำ (หายเมื่อปิด Server)
+MEMBERS: dict[str, dict] = {
+    "mb_0001": {"id": "mb_0001", "name": "Somchai Jaidee",
+                "email": "somchai@example.com", "max_active_loans": 3},
+    "mb_0002": {"id": "mb_0002", "name": "Suda Meesuk",
+                "email": "suda@example.com", "max_active_loans": 3},
+}
+next_number = 3  # เลขถัดไปสำหรับ id ใหม่ (mb_0003)
+
+
+class MemberCreate(BaseModel):
+    # ข้อมูลที่ Client ส่งมาตอนสมัคร: ไม่มี id เพราะ Server เป็นคนสร้าง
+    name: str = Field(min_length=1, max_length=100)
+    email: str = Field(pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    max_active_loans: int = Field(default=3, ge=1, le=10)
+
+
+@app.get("/members")
+def list_members():
+    # ห่อรายการด้วย envelope {"data": [...]} ตามมาตรฐานของหลักสูตร
+    return {"data": list(MEMBERS.values()), "next_cursor": None}
+
+
+@app.get("/members/{member_id}")
+def get_member(member_id: str):
+    member = MEMBERS.get(member_id)
+    if member is None:
+        raise HTTPException(status_code=404, detail=f"member {member_id} not found")
+    return member
+
+
+@app.post("/members", status_code=status.HTTP_201_CREATED)
+def create_member(body: MemberCreate, response: Response):
+    global next_number
+    # อีเมลซ้ำเป็นการชนกับกฎธุรกิจ จึงตอบ 409 Conflict
+    email = body.email.lower()
+    if any(m["email"] == email for m in MEMBERS.values()):
+        raise HTTPException(status_code=409, detail=f"email {email} is already registered")
+    member_id = f"mb_{next_number:04d}"
+    next_number += 1
+    member = {"id": member_id, "name": body.name, "email": email,
+              "max_active_loans": body.max_active_loans}
+    MEMBERS[member_id] = member
+    # บอก Client ว่า Resource ใหม่อยู่ที่ URL ไหน
+    response.headers["Location"] = f"/members/{member_id}"
+    return member
+
+
+@app.delete("/members/{member_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_member(member_id: str):
+    if MEMBERS.pop(member_id, None) is None:
+        raise HTTPException(status_code=404, detail=f"member {member_id} not found")
+    # 204 ต้องไม่มี Body จึงคืน Response เปล่า
+    return Response(status_code=204)</code></pre>
+
+    <h5>สคริปต์ทดสอบด้วย curl</h5>
+    <pre class="code" data-env="file" data-label="Bash · check.sh"><code class="language-bash">#!/usr/bin/env bash
+# check.sh — ยิง curl ทดสอบ Members API ทีละขั้น
+set -euo pipefail
+BASE_URL="${BASE_URL:-http://127.0.0.1:8000}"
+
+step() { echo; echo "===== $1 ====="; }
+
+step "1) GET /members"
+curl -s "$BASE_URL/members" | jq -c '.data[] | {id, email}'
+
+step "2) POST /members (สมัครสมาชิกใหม่)"
+curl -si -X POST "$BASE_URL/members" \
+  -H 'Content-Type: application/json' \
+  -d '{"name": "Anan Rakdee", "email": "anan@example.com"}'
+echo
+
+step "3) POST อีเมลซ้ำ"
+curl -si -X POST "$BASE_URL/members" \
+  -H 'Content-Type: application/json' \
+  -d '{"name": "Anan R.", "email": "ANAN@example.com"}'
+echo
+
+step "4) POST ข้อมูลไม่ครบ (ไม่มี email)"
+curl -s -o /dev/null -w 'status=%{http_code}\n' -X POST "$BASE_URL/members" \
+  -H 'Content-Type: application/json' -d '{"name": "No Email"}'
+
+step "5) DELETE สองครั้ง"
+curl -s -o /dev/null -w 'first  DELETE status=%{http_code}\n' -X DELETE "$BASE_URL/members/mb_0003"
+curl -s -o /dev/null -w 'second DELETE status=%{http_code}\n' -X DELETE "$BASE_URL/members/mb_0003"
+
+step "6) GET สมาชิกที่ไม่มีอยู่"
+curl -si "$BASE_URL/members/mb_9999"
+echo</code></pre>
+
+    <h5>วิธีรัน</h5>
+    <p>Terminal ที่ 1 เปิด Server</p>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/api-lab/ch1-members
+source ../.venv/bin/activate
+uvicorn main:app --port 8000</code></pre>
+    <p>Terminal ที่ 2 ให้สิทธิ์รันสคริปต์แล้วรัน (ขั้นที่ 1 ของสคริปต์ใช้ <code>jq</code> จัดรูป JSON ถ้ายังไม่มี ให้ติดตั้งด้วย <code>sudo apt install -y jq</code> ก่อน ไม่อย่างนั้น <code>set -euo pipefail</code> จะทำให้สคริปต์หยุดตั้งแต่ขั้นแรก)</p>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/api-lab/ch1-members
+chmod +x check.sh
+./check.sh</code></pre>
+
+    <h5>ผลลัพธ์จริง</h5>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>
+===== 1) GET /members =====
+{"id":"mb_0001","email":"somchai@example.com"}
+{"id":"mb_0002","email":"suda@example.com"}
+
+===== 2) POST /members (สมัครสมาชิกใหม่) =====
+HTTP/1.1 201 Created
+date: Wed, 21 Oct 2026 22:06:50 GMT
+server: uvicorn
+content-length: 85
+content-type: application/json
+location: /members/mb_0003
+
+{"id":"mb_0003","name":"Anan Rakdee","email":"anan@example.com","max_active_loans":3}
+
+===== 3) POST อีเมลซ้ำ =====
+HTTP/1.1 409 Conflict
+date: Wed, 21 Oct 2026 22:06:50 GMT
+server: uvicorn
+content-length: 57
+content-type: application/json
+
+{"detail":"email anan@example.com is already registered"}
+
+===== 4) POST ข้อมูลไม่ครบ (ไม่มี email) =====
+status=422
+
+===== 5) DELETE สองครั้ง =====
+first  DELETE status=204
+second DELETE status=404
+
+===== 6) GET สมาชิกที่ไม่มีอยู่ =====
+HTTP/1.1 404 Not Found
+date: Wed, 21 Oct 2026 22:06:50 GMT
+server: uvicorn
+content-length: 37
+content-type: application/json
+
+{"detail":"member mb_9999 not found"}</code></pre>
+    <p>Log ที่ Terminal ของ uvicorn ยืนยันว่าแต่ละ Request ได้ Status Code ตามตาราง (หมายเลข Port ฝั่ง Client และ Process ID จะต่างกันในแต่ละเครื่อง)</p>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>INFO:     Started server process [4393]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51672 - "GET /members HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51674 - "POST /members HTTP/1.1" 201 Created
+INFO:     127.0.0.1:51682 - "POST /members HTTP/1.1" 409 Conflict
+INFO:     127.0.0.1:51690 - "POST /members HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:51702 - "DELETE /members/mb_0003 HTTP/1.1" 204 No Content
+INFO:     127.0.0.1:51714 - "DELETE /members/mb_0003 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51730 - "GET /members/mb_9999 HTTP/1.1" 404 Not Found
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [4393]</code></pre>
+
+    <h5>แนวคิด</h5>
+    <ul>
+      <li><strong>ใช้คำนามพหูพจน์และให้ Method เป็นตัวบอกการกระทำ</strong> ทั้ง 4 Endpoint ใช้แค่ 2 path คือ <code>/members</code> (Collection) และ <code>/members/{member_id}</code> (สมาชิกหนึ่งคน) ส่วน "ดู สร้าง ลบ" บอกด้วย <code>GET</code>, <code>POST</code> และ <code>DELETE</code> การลบด้วย <code>GET</code> แบบเดิมอันตราย เพราะ <code>GET</code> ต้องเป็น Safe Method ที่ใครเรียกซ้ำก็ไม่เกิดผลเสีย</li>
+      <li><strong>Status Code ต้องบอกผลลัพธ์ได้โดยไม่ต้องอ่าน Body</strong> แอปมือถือแค่ดู <code>201</code>, <code>409</code>, <code>422</code>, <code>204</code> หรือ <code>404</code> ก็รู้ว่าควรทำอะไรต่อ เช่น <code>409</code> ให้แสดงข้อความ "อีเมลนี้สมัครแล้ว" และ <code>422</code> ให้ไฮไลต์ช่องที่กรอกผิด</li>
+      <li><strong>Server เป็นคนสร้าง id</strong> โมเดล <code>MemberCreate</code> จึงไม่มีฟิลด์ <code>id</code> และ Server บอกที่อยู่ของ Resource ใหม่ผ่าน <code>Location</code> การแยกโมเดลรับเข้ากับโมเดลส่งออกยังช่วยป้องกัน Mass Assignment (API3:2023) เพราะ Client ส่ง <code>id</code> มาเองไม่ได้</li>
+      <li><strong>ปรับข้อมูลให้เป็นรูปแบบมาตรฐานก่อนเปรียบเทียบ</strong> อีเมลถูกแปลงเป็นตัวพิมพ์เล็กก่อนตรวจซ้ำและก่อนเก็บ ทำให้ <code>ANAN@example.com</code> ถูกจับว่าซ้ำกับ <code>anan@example.com</code> ตามที่เห็นในผลลัพธ์ข้อ 3</li>
+      <li><strong>ห่อ Collection ด้วย envelope</strong> <code>{"data": [...], "next_cursor": null}</code> ทำให้วันหน้าเพิ่ม Pagination ได้โดยไม่เปลี่ยนโครงสร้าง Response จึงไม่เป็น Breaking Change</li>
+      <li>Error ในโจทย์นี้ยังใช้รูปแบบเริ่มต้นของ FastAPI คือ <code>{"detail": "..."}</code> เพื่อให้โจทย์ระดับเริ่มต้นสั้นลง ในงานจริงควรเปลี่ยนเป็น <code>application/problem+json</code> ตามแนวคิดที่ 6 ของ Part 2 ซึ่งเป็นไอเดียต่อยอดข้อแรกด้านล่าง</li>
+    </ul>
+
+    <h5>ไอเดียต่อยอด</h5>
+    <ol>
+      <li>เปลี่ยน Error ทุกตัวเป็น RFC 9457 Problem Details โดยเพิ่ม Exception Handler ที่ตอบ <code>application/problem+json</code> พร้อม type <code>https://example.com/problems/member-not-found</code> และเพิ่ม type ใหม่สำหรับอีเมลซ้ำ แล้วแก้ <code>check.sh</code> ให้ตรวจ Content-Type ด้วย</li>
+      <li>เพิ่ม <code>PATCH /members/{member_id}</code> ที่แก้ได้เฉพาะ <code>name</code> และ <code>max_active_loans</code> โดยใช้ <code>model_dump(exclude_unset=True)</code> เพื่อแยก "ไม่ได้ส่งฟิลด์" ออกจาก "ส่งมาเป็น null" และตรวจว่าการแก้อีเมลให้ซ้ำคนอื่นต้องได้ <code>409</code></li>
+      <li>เพิ่ม Cursor Pagination ให้ <code>GET /members</code> ด้วย <code>?limit=</code> (1–100) และ <code>?cursor=</code> แล้วเขียนลูปใน Bash ที่เดินตาม <code>next_cursor</code> จนเป็น <code>null</code></li>
+      <li>แปลง <code>check.sh</code> เป็นเทสต์ด้วย pytest และ <code>TestClient</code> (แนวคิดที่ 7 ของ Part 2) พร้อม fixture ที่รีเซ็ตข้อมูลก่อนทุกเทสต์ เพื่อให้รันใน CI ได้โดยไม่ต้องเปิด Server</li>
+      <li>เปิด <code>http://127.0.0.1:8000/docs</code> ดู Swagger UI ที่ FastAPI สร้างให้ เทียบกับตาราง <code>endpoints.md</code> ว่าตรงกันหรือไม่ แล้วเพิ่ม <code>responses={404: ..., 409: ...}</code> ใน Decorator ให้เอกสารแสดง Error ครบ</li>
+    </ol>
+  </div></details>
+  <details class="ans"><summary>โจทย์ที่ 2: Contract ของ /members กับ Spectral และ Prism</summary><div>
+    <h5>เตรียมโฟลเดอร์และเครื่องมือ</h5>
+    <p>Spectral และ Prism รันผ่าน <code>npx</code> โดยระบุเวอร์ชันตายตัว จึงไม่ต้องติดตั้งแบบ Global ตรวจก่อนว่าใช้ Node 24 LTS อยู่ (Prism 5.16.0 ประกาศว่าต้องใช้ Node 24.18.0 ขึ้นไป ส่วนเฉลยนี้ทดสอบใน Sandbox ที่เป็น Node 22 และทำงานได้ แต่ขอให้ใช้ Node 24 ตามที่หลักสูตรกำหนด)</p>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/api-lab/ch2-contract
+cd ~/projects/api-lab/ch2-contract
+node -v
+npx -y @stoplight/spectral-cli@6.17.0 --version</code></pre>
+    <p>ผลลัพธ์ด้านล่างคือผลจริงจาก Sandbox ที่ใช้ทดสอบเฉลยนี้ ซึ่งเป็น Node 22 บรรทัดแรกในเครื่องของคุณควรขึ้นต้นด้วย <code>v24.</code> (ถ้าเห็น <code>v22.</code> หรือต่ำกว่า ให้สลับเป็น Node 24 ด้วย <code>nvm use 24</code>) ส่วนบรรทัดที่สองต้องเป็น <code>6.17.0</code> เหมือนกัน</p>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>v22.22.0
+6.17.0</code></pre>
+
+    <h5>Contract: openapi.yaml</h5>
+    <p>ไฟล์นี้คือฉบับสมบูรณ์หลังแก้ปัญหาที่เจอระหว่างทำ (ดูหัวข้อ "แนวคิด" ด้านล่าง) ทุก Error ใช้ <code>$ref</code> ไปยัง <code>components/responses</code> เพื่อไม่ต้องเขียนซ้ำ</p>
+    <pre class="code" data-env="file" data-label="YAML · openapi.yaml"><code class="language-yaml">openapi: 3.1.0
+info:
+  title: Library Members API
+  version: 1.0.0
+  description: Contract ของ Members API สำหรับทีม Frontend ใช้พัฒนาหน้าสมัครสมาชิก
+  contact:
+    name: Library API Team
+    email: api-team@example.com
+servers:
+  - url: http://127.0.0.1:4010
+    description: Prism mock server
+tags:
+  - name: members
+    description: สมาชิกห้องสมุด
+paths:
+  /members:
+    get:
+      operationId: listMembers
+      summary: ดูรายชื่อสมาชิกแบบแบ่งหน้า (Cursor)
+      description: คืนรายชื่อสมาชิกเรียงตาม id ใช้ next_cursor เพื่อขอหน้าถัดไป
+      tags: [members]
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: หน้ารายชื่อสมาชิก
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberPage'
+              example:
+                data:
+                  - id: mb_0001
+                    name: Somchai Jaidee
+                    email: somchai@example.com
+                    max_active_loans: 3
+                  - id: mb_0002
+                    name: Suda Meesuk
+                    email: suda@example.com
+                    max_active_loans: 3
+                next_cursor: null
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    post:
+      operationId: createMember
+      summary: สมัครสมาชิกใหม่
+      description: ต้องส่ง Bearer Token และอีเมลต้องไม่ซ้ำกับสมาชิกเดิม
+      tags: [members]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberCreate'
+            example:
+              name: Anan Rakdee
+              email: anan@example.com
+      responses:
+        '201':
+          description: สร้างสมาชิกสำเร็จ
+          headers:
+            Location:
+              description: URL ของสมาชิกที่สร้างใหม่
+              schema:
+                type: string
+                example: /members/mb_0003
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+              example:
+                id: mb_0003
+                name: Anan Rakdee
+                email: anan@example.com
+                max_active_loans: 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: อีเมลนี้สมัครไว้แล้ว
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              example:
+                type: https://example.com/problems/member-email-taken
+                title: Email already registered
+                status: 409
+                detail: email anan@example.com is already registered
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /members/{member_id}:
+    get:
+      operationId: getMember
+      summary: ดูข้อมูลสมาชิกหนึ่งคน
+      description: ค้นหาสมาชิกด้วย member_id ถ้าไม่พบจะตอบ 404 แบบ problem+json
+      tags: [members]
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+      responses:
+        '200':
+          description: ข้อมูลสมาชิก
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+              examples:
+                somchai:
+                  summary: สมาชิกคนแรก
+                  value:
+                    id: mb_0001
+                    name: Somchai Jaidee
+                    email: somchai@example.com
+                    max_active_loans: 3
+                suda:
+                  summary: สมาชิกคนที่สอง
+                  value:
+                    id: mb_0002
+                    name: Suda Meesuk
+                    email: suda@example.com
+                    max_active_loans: 3
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  parameters:
+    MemberId:
+      name: member_id
+      in: path
+      required: true
+      description: รหัสสมาชิก เช่น mb_0001
+      schema:
+        type: string
+        pattern: '^mb_[0-9]{4}$'
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: จำนวนรายการต่อหน้า (ค่าเริ่มต้น 20 สูงสุด 100)
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: ค่า next_cursor จากหน้าก่อนหน้า
+      schema:
+        type: string
+  schemas:
+    Member:
+      type: object
+      required: [id, name, email, max_active_loans]
+      properties:
+        id:
+          type: string
+          readOnly: true
+          pattern: '^mb_[0-9]{4}$'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        max_active_loans:
+          type: integer
+          minimum: 1
+          maximum: 10
+    MemberCreate:
+      type: object
+      required: [name, email]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        max_active_loans:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 3
+    MemberPage:
+      type: object
+      required: [data, next_cursor]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+        next_cursor:
+          type: [string, 'null']
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+  responses:
+    BadRequest:
+      description: Cursor ไม่ถูกต้อง
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://example.com/problems/invalid-cursor
+            title: Invalid cursor
+            status: 400
+            detail: cursor is not valid
+    Unauthorized:
+      description: ไม่มี Token หรือ Token ไม่ถูกต้อง
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+            example: Bearer
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://example.com/problems/unauthorized
+            title: Unauthorized
+            status: 401
+            detail: missing bearer token
+    NotFound:
+      description: ไม่พบสมาชิก
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://example.com/problems/member-not-found
+            title: Member not found
+            status: 404
+            detail: member mb_9999 not found
+    ValidationError:
+      description: ข้อมูลใน Body ไม่ผ่านการตรวจ
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://example.com/problems/validation-error
+            title: Validation error
+            status: 422
+            detail: request body is invalid
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT</code></pre>
+
+    <h5>กฎของทีม: .spectral.yaml</h5>
+    <pre class="code" data-env="file" data-label="YAML · .spectral.yaml"><code class="language-yaml"># .spectral.yaml — กฎของทีม (ต่อยอดจากกฎมาตรฐาน spectral:oas)
+extends: ["spectral:oas"]
+rules:
+  # path ต้องเป็นตัวพิมพ์เล็ก/ตัวเลข/ขีดกลาง หรือ {snake_case} เท่านั้น
+  paths-kebab-case:
+    description: Path ต้องเป็น kebab-case และ path parameter เป็น snake_case
+    severity: error
+    given: "$.paths[*]~"
+    then:
+      function: pattern
+      functionOptions:
+        match: "^(/[a-z0-9-]+|/\\{[a-z_]+\\})+$"
+  # ชื่อ property ใน Schema ต้องเป็น snake_case
+  properties-snake-case:
+    description: Property ต้องเป็น snake_case
+    severity: error
+    given: "$..properties[*]~"
+    then:
+      function: casing
+      functionOptions:
+        type: snake
+  # info.contact ต้องมีเสมอ (ยกระดับจาก warning เป็น error)
+  info-contact: error</code></pre>
+
+    <h5>Lint ไฟล์ที่ถูกต้อง</h5>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">npx -y @stoplight/spectral-cli@6.17.0 lint openapi.yaml</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>No results with a severity of 'error' found!</code></pre>
+
+    <h5>พิสูจน์ว่ากฎของทีมทำงาน: bad.yaml</h5>
+    <p>สคริปต์นี้คัดลอก <code>openapi.yaml</code> แล้วทำผิดกฎ 3 จุดอย่างตั้งใจ ได้แก่ ลบ <code>info.contact</code>, เปลี่ยน path เป็น <code>/Members/{memberId}</code> และเปลี่ยน property แรกที่ชื่อ <code>max_active_loans</code> (ใน Schema <code>Member</code>) เป็น <code>maxActiveLoans</code></p>
+    <pre class="code" data-env="file" data-label="Bash · make_bad.sh"><code class="language-bash">#!/usr/bin/env bash
+# make_bad.sh — สร้าง bad.yaml ที่ตั้งใจผิดกฎ 3 ข้อ เพื่อทดสอบว่า Spectral จับได้
+set -euo pipefail
+sed -e '/^  contact:$/,/^    email: api-team@example.com$/d' \
+    -e 's#^  /members/{member_id}:$#  /Members/{memberId}:#' \
+    -e 's#^      name: member_id$#      name: memberId#' \
+    -e '0,/^        max_active_loans:$/s//        maxActiveLoans:/' \
+    openapi.yaml &gt; bad.yaml
+echo "created bad.yaml"</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">chmod +x make_bad.sh
+./make_bad.sh
+npx -y @stoplight/spectral-cli@6.17.0 lint bad.yaml; echo "exit=$?"</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>created bad.yaml
+
+
+/home/somchai/projects/api-lab/ch2-contract/bad.yaml
+   2:6   error  info-contact           Info object must have "contact" object.                      info
+  93:23  error  paths-kebab-case       Path ต้องเป็น kebab-case และ path parameter เป็น snake_case  paths./Members/{memberId}
+ 168:24  error  properties-snake-case  Property ต้องเป็น snake_case                                 components.schemas.Member.properties.maxActiveLoans
+
+✖ 3 problems (3 errors, 0 warnings, 0 infos, 0 hints)
+exit=1</code></pre>
+    <p>Spectral จับได้ครบทั้ง 3 กฎ บอกตำแหน่งเป็น บรรทัด:คอลัมน์ ชื่อกฎ และ JSON Path ของจุดที่ผิด และจบด้วย exit code <code>1</code> ซึ่งทำให้ CI หยุดได้อัตโนมัติ</p>
+
+    <h5>สคริปต์ตรวจ Mock: mock-check.sh</h5>
+    <pre class="code" data-env="file" data-label="Bash · mock-check.sh"><code class="language-bash">#!/usr/bin/env bash
+# mock-check.sh — ตรวจว่า Prism Mock ตอบตาม Contract (PASS/FAIL ต่อข้อ)
+set -euo pipefail
+BASE_URL="${BASE_URL:-http://127.0.0.1:4010}"
+TOKEN="Bearer test-token"   # Prism ตรวจแค่ว่ามี Bearer Token หรือไม่ ไม่ได้ตรวจลายเซ็น
+fails=0
+
+# check &lt;ชื่อ&gt; &lt;status ที่คาด&gt; &lt;content-type ที่คาด&gt; &lt;อาร์กิวเมนต์ curl...&gt;
+check() {
+  local name="$1" want_status="$2" want_type="$3"; shift 3
+  local result status ctype
+  result=$(curl -s -o /dev/null -w '%{http_code} %{content_type}' "$@")
+  status="${result%% *}"
+  ctype="${result#* }"
+  if [[ "$status" == "$want_status" &amp;&amp; "$ctype" == "$want_type"* ]]; then
+    echo "PASS  $name -&gt; $status $ctype"
+  else
+    echo "FAIL  $name -&gt; got $status $ctype, want $want_status $want_type"
+    fails=$((fails + 1))
+  fi
+}
+
+check "list members"           200 application/json         "$BASE_URL/members"
+check "get member example"     200 application/json         "$BASE_URL/members/mb_0001"
+check "force 404 via Prefer"   404 application/problem+json -H 'Prefer: code=404' "$BASE_URL/members/mb_9999"
+check "create without token"   401 application/problem+json -X POST "$BASE_URL/members" \
+      -H 'Content-Type: application/json' -d '{"name":"Anan Rakdee","email":"anan@example.com"}'
+check "create with token"      201 application/json         -X POST "$BASE_URL/members" \
+      -H "Authorization: $TOKEN" -H 'Content-Type: application/json' \
+      -d '{"name":"Anan Rakdee","email":"anan@example.com"}'
+check "create invalid body"    422 application/problem+json -X POST "$BASE_URL/members" \
+      -H "Authorization: $TOKEN" -H 'Content-Type: application/json' -d '{"name":""}'
+check "bad member_id pattern"  422 application/problem+json "$BASE_URL/members/abc"
+check "limit over 100"         422 application/problem+json "$BASE_URL/members?limit=500"
+
+echo "-----"
+if (( fails &gt; 0 )); then
+  echo "$fails check(s) failed"
+  exit 1
+fi
+echo "all checks passed"</code></pre>
+
+    <h5>วิธีรัน</h5>
+    <p>Terminal ที่ 1 เปิด Prism Mock Server</p>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/api-lab/ch2-contract
+npx -y @stoplight/prism-cli@5.16.0 mock openapi.yaml -h 127.0.0.1 -p 4010</code></pre>
+    <p>บรรทัดแรก ๆ ของ Prism แสดง Endpoint ที่อ่านได้จาก Spec (id ตัวอย่างใน path อย่าง <code>mb_7489</code> ถูกสุ่มจาก pattern ทุกครั้งที่เปิด เวลาก็ต่างกันในแต่ละเครื่อง)</p>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[10:06:56 PM] › [CLI] …  awaiting  Starting Prism…
+[10:06:56 PM] › [CLI] ℹ  info      GET        http://127.0.0.1:4010/members
+[10:06:56 PM] › [CLI] ℹ  info      POST       http://127.0.0.1:4010/members
+[10:06:56 PM] › [CLI] ℹ  info      GET        http://127.0.0.1:4010/members/mb_7489
+[10:06:56 PM] › [CLI] ▶  start     Prism is listening on http://127.0.0.1:4010</code></pre>
+    <p>Terminal ที่ 2 รันสคริปต์ตรวจ</p>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/api-lab/ch2-contract
+chmod +x mock-check.sh
+./mock-check.sh; echo "exit=$?"</code></pre>
+
+    <h5>ผลลัพธ์จริง</h5>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>PASS  list members -&gt; 200 application/json
+PASS  get member example -&gt; 200 application/json
+PASS  force 404 via Prefer -&gt; 404 application/problem+json
+PASS  create without token -&gt; 401 application/problem+json
+PASS  create with token -&gt; 201 application/json
+PASS  create invalid body -&gt; 422 application/problem+json
+PASS  bad member_id pattern -&gt; 422 application/problem+json
+PASS  limit over 100 -&gt; 422 application/problem+json
+-----
+all checks passed
+exit=0</code></pre>
+    <p>ดู Response เต็มด้วย <code>curl -si</code> จะเห็นว่า Prism ตอบตาม named example ที่ขอผ่าน <code>Prefer: example=suda</code> และเมื่อไม่มี Token ก็ตอบ <code>401</code> พร้อม <code>WWW-Authenticate: Bearer</code> ตามที่ประกาศใน <code>components/responses/Unauthorized</code> ส่วน Header <code>sl-violations</code> คือรายการสิ่งที่ Request ผิดจาก Contract ซึ่ง Prism ใส่มาให้ช่วย Debug</p>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>$ curl -si -H "Prefer: example=suda" http://127.0.0.1:4010/members/mb_0002
+HTTP/1.1 200 OK
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Headers: *
+Access-Control-Allow-Credentials: true
+Access-Control-Expose-Headers: *
+Content-type: application/json
+Content-Length: 85
+Date: Wed, 21 Oct 2026 22:07:05 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"id":"mb_0002","name":"Suda Meesuk","email":"suda@example.com","max_active_loans":3}
+
+$ curl -si -X POST http://127.0.0.1:4010/members -H "Content-Type: application/json" -d '{"name":"Anan Rakdee","email":"anan@example.com"}'
+HTTP/1.1 401 Unauthorized
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Headers: *
+Access-Control-Allow-Credentials: true
+Access-Control-Expose-Headers: *
+sl-violations: [{"location":["request"],"severity":"Error","code":401,"message":"Invalid security scheme used"}]
+WWW-Authenticate: Bearer
+Content-type: application/problem+json
+Content-Length: 120
+Date: Wed, 21 Oct 2026 22:07:05 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"type":"https://example.com/problems/unauthorized","title":"Unauthorized","status":401,"detail":"missing bearer token"}</code></pre>
+
+    <h5>แนวคิด</h5>
+    <ul>
+      <li><strong>Contract เป็นแหล่งความจริงเดียว</strong> ทั้ง Spectral, Prism และเอกสารอ่านจาก <code>openapi.yaml</code> ไฟล์เดียว เมื่อทีมตกลงเปลี่ยนอะไร ให้แก้ที่ Contract ก่อน แล้วเครื่องมือทุกตัวจะเห็นการเปลี่ยนแปลงพร้อมกัน</li>
+      <li><strong>แยกส่วนที่ใช้ซ้ำไว้ใน components</strong> Error 4 แบบถูกเขียนครั้งเดียวใน <code>components/responses</code> และพารามิเตอร์ <code>Limit</code> ก็กำหนดขอบเขต 1–100 ไว้ที่เดียว ถ้าวันหน้าเปลี่ยนค่าสูงสุด ก็แก้จุดเดียว</li>
+      <li><strong>ใส่ example ที่สมจริง</strong> Prism ตอบด้วย example ที่เราเขียน ทีม Frontend จึงเห็นข้อมูลหน้าตาเหมือนของจริง ใช้ named examples (<code>somchai</code>, <code>suda</code>) เมื่ออยากให้ Frontend เลือกทดสอบได้หลายกรณี</li>
+      <li><strong>Prism เลือก Error ตามสิ่งที่ประกาศไว้ใน Operation นั้น</strong> ตอนเขียนครั้งแรก <code>listMembers</code> ประกาศแค่ <code>'400'</code> สำหรับ cursor ผิด ผลคือ <code>limit=500</code> ได้ <code>400</code> พร้อม example ของ "Invalid cursor" ซึ่งทำให้ Frontend เข้าใจผิด สคริปต์ตรวจจึงจับได้ดังนี้</li>
+    </ul>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>PASS  list members -&gt; 200 application/json
+PASS  get member example -&gt; 200 application/json
+PASS  force 404 via Prefer -&gt; 404 application/problem+json
+PASS  create without token -&gt; 401 application/problem+json
+PASS  create with token -&gt; 201 application/json
+PASS  create invalid body -&gt; 422 application/problem+json
+PASS  bad member_id pattern -&gt; 422 application/problem+json
+FAIL  limit over 100 -&gt; got 400 application/problem+json, want 422 application/problem+json
+-----
+1 check(s) failed</code></pre>
+    <p>Log ของ Prism ในรอบนั้นบอกเหตุผลชัดเจน คือหา Response <code>400</code> เจอก่อนจึงใช้ตัวนั้น</p>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[9:59:11 PM] › [HTTP SERVER] get /members ℹ  info      Request received
+[9:59:11 PM] ›     [NEGOTIATOR] ℹ  info      Request contains an accept header: */*
+[9:59:11 PM] ›     [VALIDATOR] ⚠  warning   Request did not pass the validation rules
+[9:59:11 PM] ›     [VALIDATOR] ✖  error     Request query parameter limit must be &lt;= 100
+[9:59:11 PM] ›     [NEGOTIATOR] ✔  success   Found response 400. I'll try with it.
+[9:59:11 PM] ›     [NEGOTIATOR] ✔  success   The response 400 has an example. I'll keep going with this one
+[9:59:11 PM] ›     [NEGOTIATOR] ✔  success   Responding with the requested status code 400
+[9:59:11 PM] ›     [NEGOTIATOR] ℹ  info      &gt; Responding with "400"
+[9:59:11 PM] ›     [VALIDATOR] ✖  error     Violation: request.query.limit Request query parameter limit must be &lt;= 100</code></pre>
+    <ul>
+      <li>วิธีแก้คือประกาศ <code>'422': $ref: '#/components/responses/ValidationError'</code> ใน <code>listMembers</code> ให้ตรงกับ Convention ของหลักสูตรที่ใช้ <code>422</code> กับ Query ที่ไม่ผ่านการตรวจ หลังแก้แล้วสคริปต์ผ่านครบ 8 ข้อ นี่คือประโยชน์ของ Mock ที่ช่วยเจอช่องโหว่ใน Contract ก่อนมีโค้ดจริงสักบรรทัด</li>
+      <li>ส่วน <code>getMember</code> ไม่ได้ประกาศ <code>422</code> ไว้ แต่ <code>/members/abc</code> ยังได้ <code>422</code> เพราะ Prism สร้าง Problem Details ของตัวเอง (type <code>https://stoplight.io/prism/errors#UNPROCESSABLE_ENTITY</code>) เมื่อหา Response ที่เหมาะสมใน Spec ไม่เจอ สคริปต์ผ่านก็จริง แต่ Body ไม่ใช่ type ของเรา ควรประกาศ <code>'422'</code> ให้ <code>getMember</code> ด้วยเพื่อให้ Contract ครบ</li>
+      <li><strong>Mock ไม่ใช่ API จริง</strong> <code>POST</code> แล้วไม่มีข้อมูลถูกเก็บ <code>detail</code> ของ Error ก็เป็นข้อความคงที่จาก example (เช่น <code>"request body is invalid"</code> แม้ปัญหาจะอยู่ที่ Query) และ Prism ตรวจแค่ว่ามี Bearer Token ไม่ได้ตรวจลายเซ็น การทดสอบกับ Server จริงจึงยังจำเป็นเสมอ</li>
+    </ul>
+
+    <h5>ไอเดียต่อยอด</h5>
+    <ol>
+      <li>เพิ่ม <code>package.json</code> ที่ pin <code>@stoplight/spectral-cli</code> 6.17.0 และ <code>@stoplight/prism-cli</code> 5.16.0 ใน <code>devDependencies</code> พร้อม scripts <code>lint</code> และ <code>mock</code> ให้ทั้งทีมรันด้วย <code>npm run lint</code> และ <code>npm run mock</code> ได้เหมือนกัน</li>
+      <li>เพิ่มกฎ <code>operation-must-have-problem-4xx</code> ใน <code>.spectral.yaml</code> ที่บังคับให้ทุก Operation ประกาศ Response <code>4xx</code> อย่างน้อยหนึ่งตัว และให้ทุก Error ใช้ <code>application/problem+json</code> แล้วทดสอบด้วย <code>bad.yaml</code> แบบเดียวกับข้อนี้</li>
+      <li>เพิ่ม <code>PATCH /members/{member_id}</code> ด้วย Schema <code>MemberPatch</code> ที่ทุกฟิลด์ไม่บังคับ และ <code>DELETE /members/{member_id}</code> ที่ตอบ <code>204</code> แล้วเพิ่มกรณีทดสอบใน <code>mock-check.sh</code></li>
+      <li>ใช้ <code>mock-check.sh</code> กับ Server จริง โดยเขียน FastAPI ให้ตรงกับ Contract แล้วรัน <code>BASE_URL=http://127.0.0.1:8000 ./mock-check.sh</code> ถ้าผ่านทั้ง Mock และของจริง แปลว่า Backend ตรงตาม Contract</li>
+      <li>สร้างเอกสาร HTML ด้วย <code>npx @redocly/cli@2.67.1 build-docs openapi.yaml -o docs/index.html</code> แล้วเปิดดูในเบราว์เซอร์ เพื่อส่งให้ทีม Frontend อ่านแทนไฟล์ YAML</li>
+      <li>ตั้ง GitHub Actions ให้รัน Spectral ทุกครั้งที่มี Pull Request แก้ <code>openapi.yaml</code> และให้ CI ล้มเมื่อมี error เพื่อกัน Contract ที่ผิดกฎเข้าสู่ branch หลัก</li>
+    </ol>
+  </div></details>
+  <details class="ans"><summary>โจทย์ที่ 3: Idempotency-Key และ Rate Limit สำหรับ POST /v1/loans</summary><div>
+    <h5>เตรียมโฟลเดอร์</h5>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/api-lab/ch3-reliability
+cd ~/projects/api-lab/ch3-reliability
+source ../.venv/bin/activate</code></pre>
+
+    <h5>โค้ด Server: main.py</h5>
+    <pre class="code" data-env="file" data-label="Python · main.py"><code class="language-python"># main.py — POST /v1/loans ที่ปลอดภัยต่อการ Retry และมี Rate Limit (โจทย์ที่ 3)
+import hashlib
+import json
+import math
+import threading
+import time
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
+from fastapi import APIRouter, Depends, FastAPI, Header, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+
+BKK = ZoneInfo("Asia/Bangkok")
+PROBLEM_BASE = "https://example.com/problems/"
+
+
+# ---------- Problem Details (RFC 9457) ----------
+class ProblemError(Exception):
+    def __init__(self, status: int, slug: str, title: str, detail: str,
+                 headers: dict[str, str] | None = None):
+        self.status, self.slug, self.title = status, slug, title
+        self.detail, self.headers = detail, headers or {}
+
+
+def problem_response(status: int, slug: str, title: str, detail: str,
+                     headers: dict[str, str] | None = None, **extra) -&gt; JSONResponse:
+    body = {"type": PROBLEM_BASE + slug, "title": title, "status": status,
+            "detail": detail, **extra}
+    return JSONResponse(body, status_code=status, headers=headers,
+                        media_type="application/problem+json")
+
+
+# ---------- Rate limiter แบบ Fixed Window แยกตาม Client ----------
+class FixedWindowLimiter:
+    def __init__(self, limit: int, window_seconds: int, clock=time.monotonic):
+        self.limit = limit
+        self.window = window_seconds
+        self.clock = clock                       # ฉีดนาฬิกาปลอมได้ตอนเขียนเทสต์
+        self.counters: dict[str, tuple[float, int]] = {}
+        self.lock = threading.Lock()
+
+    def hit(self, client_id: str) -&gt; int | None:
+        """คืน None ถ้ายังไม่เกินโควตา หรือคืนจำนวนวินาทีที่ต้องรอ (Retry-After)"""
+        now = self.clock()
+        with self.lock:
+            start, count = self.counters.get(client_id, (now, 0))
+            if now - start &gt;= self.window:      # หมดหน้าต่างเวลาเดิม เริ่มนับใหม่
+                start, count = now, 0
+            if count &gt;= self.limit:
+                return max(1, math.ceil(start + self.window - now))
+            self.counters[client_id] = (start, count + 1)
+            return None
+
+    def reset(self) -&gt; None:
+        with self.lock:
+            self.counters.clear()
+
+
+limiter = FixedWindowLimiter(limit=5, window_seconds=10)
+
+
+def client_id_from_key(x_api_key: str | None = Header(default=None)) -&gt; str:
+    # Lab นี้ใช้ค่า X-API-Key เป็นตัวแยก Client (ของจริงต้องตรวจกับ key ที่ hash เก็บไว้)
+    if not x_api_key:
+        raise ProblemError(401, "unauthorized", "Unauthorized", "missing X-API-Key header")
+    # เก็บเป็น hash เพื่อไม่ให้ key ตัวจริงค้างอยู่ใน memory/log
+    return hashlib.sha256(x_api_key.encode()).hexdigest()[:16]
+
+
+def rate_limit(client_id: str = Depends(client_id_from_key)) -&gt; str:
+    wait = limiter.hit(client_id)
+    if wait is not None:
+        raise ProblemError(429, "rate-limited", "Too many requests",
+                           f"limit is {limiter.limit} requests per {limiter.window} seconds",
+                           headers={"Retry-After": str(wait)})
+    return client_id
+
+
+# ---------- ข้อมูลในหน่วยความจำ ----------
+def seed() -&gt; dict:
+    return {
+        "books": {
+            "bk_0001": {"id": "bk_0001", "title": "Python 101", "status": "available"},
+            "bk_0002": {"id": "bk_0002", "title": "API Design ฉบับเริ่มต้น", "status": "available"},
+            "bk_0003": {"id": "bk_0003", "title": "SQL for Everyone", "status": "on_loan"},
+        },
+        "members": {"mb_0001", "mb_0002"},
+        "loans": {
+            "ln_0001": {"id": "ln_0001", "book_id": "bk_0003", "member_id": "mb_0002",
+                        "borrowed_at": "2026-10-15T10:00:00+07:00",
+                        "due_date": "2026-10-29", "returned_at": None, "fine_satang": 0},
+        },
+        "next_loan": 2,
+        # คีย์คือ (client_id, idempotency_key) ค่าคือ hash ของ body + response ที่บันทึกไว้
+        "idempotency": {},
+    }
+
+
+DB = seed()
+DB_LOCK = threading.Lock()
+
+
+def reset_state() -&gt; None:
+    global DB
+    DB = seed()
+    limiter.reset()
+
+
+class LoanCreate(BaseModel):
+    book_id: str = Field(pattern=r"^bk_[0-9]{4}$")
+    member_id: str = Field(pattern=r"^mb_[0-9]{4}$")
+
+
+# ---------- แอปและ Router /v1 ----------
+app = FastAPI(title="Library Loans API", version="1.0.0")
+v1 = APIRouter(prefix="/v1", dependencies=[Depends(rate_limit)])
+
+
+@app.exception_handler(ProblemError)
+async def handle_problem(request: Request, exc: ProblemError):
+    return problem_response(exc.status, exc.slug, exc.title, exc.detail, exc.headers,
+                            instance=request.url.path)
+
+
+@app.exception_handler(RequestValidationError)
+async def handle_validation(request: Request, exc: RequestValidationError):
+    errors = [{"field": ".".join(str(p) for p in e["loc"][1:]), "message": e["msg"]}
+              for e in exc.errors()]
+    return problem_response(422, "validation-error", "Validation error",
+                            "request did not pass validation", errors=errors,
+                            instance=request.url.path)
+
+
+@v1.get("/books")
+def list_books():
+    return {"data": list(DB["books"].values()), "next_cursor": None}
+
+
+@v1.post("/loans", status_code=201)
+def create_loan(body: LoanCreate,
+                client_id: str = Depends(rate_limit),
+                idempotency_key: str | None = Header(default=None, max_length=100)):
+    if not idempotency_key:
+        raise ProblemError(400, "idempotency-key-missing", "Idempotency-Key required",
+                           "POST /v1/loans needs an Idempotency-Key header (use a UUID)")
+    # hash ของ body ในรูปแบบมาตรฐาน (เรียง key) เพื่อเทียบว่าเป็นคำขอเดิมหรือไม่
+    body_hash = hashlib.sha256(
+        json.dumps(body.model_dump(), sort_keys=True).encode()).hexdigest()
+    store_key = (client_id, idempotency_key)
+
+    # ล็อกทั้งช่วง "ตรวจ-สร้าง-บันทึก" กันคำขอซ้ำที่มาพร้อมกันสร้าง loan สองรายการ
+    with DB_LOCK:
+        saved = DB["idempotency"].get(store_key)
+        if saved is not None:
+            if saved["body_hash"] != body_hash:
+                raise ProblemError(422, "idempotency-key-reused", "Idempotency-Key reused",
+                                   "this Idempotency-Key was already used with a different body")
+            return JSONResponse(saved["body"], status_code=saved["status"],
+                                headers={**saved["headers"], "Idempotent-Replayed": "true"})
+
+        book = DB["books"].get(body.book_id)
+        if book is None:
+            raise ProblemError(404, "book-not-found", "Book not found",
+                               f"book {body.book_id} not found")
+        if body.member_id not in DB["members"]:
+            raise ProblemError(404, "member-not-found", "Member not found",
+                               f"member {body.member_id} not found")
+        if book["status"] != "available":
+            raise ProblemError(409, "book-unavailable", "Book unavailable",
+                               f"book {body.book_id} is {book['status']}")
+
+        loan_id = f"ln_{DB['next_loan']:04d}"
+        DB["next_loan"] += 1
+        now = datetime.now(BKK).replace(microsecond=0)
+        loan = {"id": loan_id, "book_id": body.book_id, "member_id": body.member_id,
+                "borrowed_at": now.isoformat(),
+                "due_date": (now.date() + timedelta(days=14)).isoformat(),
+                "returned_at": None, "fine_satang": 0}
+        DB["loans"][loan_id] = loan
+        book["status"] = "on_loan"
+        headers = {"Location": f"/v1/loans/{loan_id}"}
+        # บันทึกผลลัพธ์ไว้ตอบซ้ำ (ของจริงควรเก็บใน Redis/DB พร้อมวันหมดอายุ เช่น 24 ชม.)
+        DB["idempotency"][store_key] = {"body_hash": body_hash, "status": 201,
+                                        "body": loan, "headers": headers}
+    return JSONResponse(loan, status_code=201, headers=headers)
+
+
+app.include_router(v1)</code></pre>
+
+    <h5>เทสต์: test_main.py</h5>
+    <pre class="code" data-env="file" data-label="Python · test_main.py"><code class="language-python"># test_main.py — พิสูจน์ว่า Idempotency-Key และ Rate Limit ทำงานถูกต้อง
+import pytest
+from fastapi.testclient import TestClient
+
+import main
+
+client = TestClient(main.app)
+MOBILE = {"X-API-Key": "lab-key-mobile"}
+WEB = {"X-API-Key": "lab-key-web"}
+BODY = {"book_id": "bk_0001", "member_id": "mb_0001"}
+
+
+@pytest.fixture(autouse=True)
+def fresh_state():
+    # ทุกเทสต์เริ่มจากข้อมูลชุดเดิม และใช้นาฬิกาปลอมที่เราเลื่อนเวลาเองได้
+    main.reset_state()
+    fake = {"now": 1000.0}
+    main.limiter.clock = lambda: fake["now"]
+    yield fake
+
+
+def post_loan(headers, key, body=BODY):
+    h = {**headers}
+    if key is not None:
+        h["Idempotency-Key"] = key
+    return client.post("/v1/loans", json=body, headers=h)
+
+
+def test_missing_api_key_is_401():
+    r = client.get("/v1/books")
+    assert r.status_code == 401
+    assert r.headers["content-type"] == "application/problem+json"
+    assert r.json()["type"].endswith("/unauthorized")
+
+
+def test_missing_idempotency_key_is_400():
+    r = post_loan(MOBILE, key=None)
+    assert r.status_code == 400
+    assert r.json()["type"].endswith("/idempotency-key-missing")
+
+
+def test_first_request_creates_loan():
+    r = post_loan(MOBILE, "k-001")
+    assert r.status_code == 201
+    assert r.headers["location"] == "/v1/loans/ln_0002"
+    assert "idempotent-replayed" not in r.headers
+    assert r.json()["book_id"] == "bk_0001"
+
+
+def test_same_key_same_body_replays_without_new_loan():
+    first = post_loan(MOBILE, "k-001")
+    second = post_loan(MOBILE, "k-001")
+    assert second.status_code == 201
+    assert second.json() == first.json()
+    assert second.headers["idempotent-replayed"] == "true"
+    assert len(main.DB["loans"]) == 2          # ln_0001 เดิม + ln_0002 ใหม่ ไม่มี ln_0003
+
+
+def test_same_key_different_body_is_422():
+    post_loan(MOBILE, "k-001")
+    r = post_loan(MOBILE, "k-001", {"book_id": "bk_0002", "member_id": "mb_0001"})
+    assert r.status_code == 422
+    assert r.json()["type"].endswith("/idempotency-key-reused")
+
+
+def test_keys_are_scoped_per_client():
+    post_loan(MOBILE, "k-001")
+    # Client อื่นใช้ key ซ้ำกันโดยบังเอิญ ต้องไม่ได้ผลลัพธ์ของ Client แรก
+    r = post_loan(WEB, "k-001", {"book_id": "bk_0002", "member_id": "mb_0002"})
+    assert r.status_code == 201
+    assert r.json()["id"] == "ln_0003"
+
+
+def test_book_on_loan_is_409():
+    r = post_loan(MOBILE, "k-002", {"book_id": "bk_0003", "member_id": "mb_0001"})
+    assert r.status_code == 409
+    assert r.json()["type"].endswith("/book-unavailable")
+
+
+@pytest.mark.parametrize("bad_body", [
+    {},
+    {"book_id": "bk_0001"},
+    {"book_id": "BOOK-1", "member_id": "mb_0001"},
+    {"book_id": "bk_0001", "member_id": 7},
+])
+def test_invalid_body_is_422_problem(bad_body):
+    r = post_loan(MOBILE, "k-bad", bad_body)
+    assert r.status_code == 422
+    assert r.headers["content-type"] == "application/problem+json"
+    assert r.json()["errors"]
+
+
+def test_sixth_request_in_window_is_429_with_retry_after(fresh_state):
+    for _ in range(5):
+        assert client.get("/v1/books", headers=MOBILE).status_code == 200
+    fresh_state["now"] += 3                     # ผ่านไป 3 วินาที ยังอยู่ในหน้าต่างเดิม
+    r = client.get("/v1/books", headers=MOBILE)
+    assert r.status_code == 429
+    assert r.headers["retry-after"] == "7"
+    assert r.json()["type"].endswith("/rate-limited")
+
+
+def test_limit_resets_after_window(fresh_state):
+    for _ in range(5):
+        client.get("/v1/books", headers=MOBILE)
+    assert client.get("/v1/books", headers=MOBILE).status_code == 429
+    fresh_state["now"] += 10                    # ครบ 10 วินาที เริ่มหน้าต่างใหม่
+    assert client.get("/v1/books", headers=MOBILE).status_code == 200
+
+
+def test_limit_is_per_client():
+    for _ in range(5):
+        client.get("/v1/books", headers=MOBILE)
+    assert client.get("/v1/books", headers=MOBILE).status_code == 429
+    assert client.get("/v1/books", headers=WEB).status_code == 200
+
+
+def test_replays_also_count_toward_limit():
+    # POST ซ้ำด้วย key เดิม 5 ครั้ง (1 สร้าง + 4 replay) แล้วครั้งที่ 6 ต้องโดน 429
+    for _ in range(5):
+        assert post_loan(MOBILE, "k-001").status_code == 201
+    assert post_loan(MOBILE, "k-001").status_code == 429</code></pre>
+
+    <h5>รันเทสต์</h5>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/api-lab/ch3-reliability
+python3 -m pytest -v</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0 -- /home/somchai/projects/api-lab/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/somchai/projects/api-lab/ch3-reliability
+plugins: anyio-4.15.1
+collecting ... collected 15 items
+
+test_main.py::test_missing_api_key_is_401 PASSED                         [  6%]
+test_main.py::test_missing_idempotency_key_is_400 PASSED                 [ 13%]
+test_main.py::test_first_request_creates_loan PASSED                     [ 20%]
+test_main.py::test_same_key_same_body_replays_without_new_loan PASSED    [ 26%]
+test_main.py::test_same_key_different_body_is_422 PASSED                 [ 33%]
+test_main.py::test_keys_are_scoped_per_client PASSED                     [ 40%]
+test_main.py::test_book_on_loan_is_409 PASSED                            [ 46%]
+test_main.py::test_invalid_body_is_422_problem[bad_body0] PASSED         [ 53%]
+test_main.py::test_invalid_body_is_422_problem[bad_body1] PASSED         [ 60%]
+test_main.py::test_invalid_body_is_422_problem[bad_body2] PASSED         [ 66%]
+test_main.py::test_invalid_body_is_422_problem[bad_body3] PASSED         [ 73%]
+test_main.py::test_sixth_request_in_window_is_429_with_retry_after PASSED [ 80%]
+test_main.py::test_limit_resets_after_window PASSED                      [ 86%]
+test_main.py::test_limit_is_per_client PASSED                            [ 93%]
+test_main.py::test_replays_also_count_toward_limit PASSED                [100%]
+
+=============================== warnings summary ===============================
+../.venv/lib/python3.12/site-packages/fastapi/testclient.py:1
+  /home/somchai/projects/api-lab/.venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 15 passed, 1 warning in 0.41s =========================</code></pre>
+    <p>ทั้ง 15 เทสต์ผ่าน (11 ฟังก์ชัน โดย <code>test_invalid_body_is_422_problem</code> ถูก parametrize เป็น 4 กรณี) และใช้เวลาไม่ถึงหนึ่งวินาที เพราะใช้นาฬิกาปลอมแทนการรอจริง เวลาที่ใช้ เวอร์ชันของ Python, pluggy หรือ anyio และ path ในบรรทัด <code>platform</code> กับ <code>rootdir</code> ในเครื่องของคุณอาจต่างเล็กน้อย (Sandbox ที่ใช้ทดสอบเฉลยรันด้วย Python 3.13 และได้ผล 15 passed เหมือนกันทุกบรรทัด) ส่วน <code>StarletteDeprecationWarning</code> เป็นคำเตือนจาก Starlette 1.8.0 ว่าในอนาคต TestClient จะเปลี่ยนไปใช้แพ็กเกจ <code>httpx2</code> คำเตือนนี้ไม่ทำให้เทสต์ล้ม หลักสูตรนี้ยัง pin <code>httpx==0.28.1</code> ตามที่ FastAPI 0.157.0 รองรับ</p>
+
+    <h5>สคริปต์สาธิต: demo.sh</h5>
+    <pre class="code" data-env="file" data-label="Bash · demo.sh"><code class="language-bash">#!/usr/bin/env bash
+# demo.sh — สาธิต Idempotency-Key และ Rate Limit ด้วย curl
+set -euo pipefail
+BASE_URL="${BASE_URL:-http://127.0.0.1:8000}"
+KEY="$(python3 -c 'import uuid; print(uuid.uuid4())')"   # Client เป็นคนสร้าง key เอง
+BODY='{"book_id": "bk_0001", "member_id": "mb_0001"}'
+
+echo "== POST ครั้งที่ 1 (key=$KEY) =="
+curl -si -X POST "$BASE_URL/v1/loans" -H 'X-API-Key: lab-key-mobile' \
+  -H "Idempotency-Key: $KEY" -H 'Content-Type: application/json' -d "$BODY" \
+  | grep -iE '^(HTTP|location|idempotent-replayed)|^\{'
+echo
+echo "== POST ครั้งที่ 2 (Retry ด้วย key เดิม body เดิม) =="
+curl -si -X POST "$BASE_URL/v1/loans" -H 'X-API-Key: lab-key-mobile' \
+  -H "Idempotency-Key: $KEY" -H 'Content-Type: application/json' -d "$BODY" \
+  | grep -iE '^(HTTP|location|idempotent-replayed)|^\{'
+echo
+echo "== POST ครั้งที่ 3 (key เดิม แต่ body ต่าง) =="
+curl -s -X POST "$BASE_URL/v1/loans" -H 'X-API-Key: lab-key-mobile' \
+  -H "Idempotency-Key: $KEY" -H 'Content-Type: application/json' \
+  -d '{"book_id": "bk_0002", "member_id": "mb_0001"}' | jq -c .
+echo
+echo "== GET /v1/books 7 ครั้งด้วย key ของ web =="
+for i in $(seq 1 7); do
+  curl -s -o /dev/null -D - "$BASE_URL/v1/books" -H 'X-API-Key: lab-key-web' \
+    | awk -v n="$i" 'NR==1 {s=$2} tolower($1)=="retry-after:" {r=$2}
+                     END {printf "request %d -&gt; %s %s\n", n, s, (r ? "Retry-After=" r : "")}'
+done</code></pre>
+    <p>Terminal ที่ 1 เปิด Server</p>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/api-lab/ch3-reliability
+source ../.venv/bin/activate
+uvicorn main:app --port 8000</code></pre>
+    <p>Terminal ที่ 2 รันสคริปต์ (ใน Terminal นี้ไม่ต้องเปิด venv เพราะสคริปต์ใช้แค่ <code>curl</code>, <code>jq</code> และโมดูล <code>uuid</code> ที่มากับ Python)</p>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/api-lab/ch3-reliability
+chmod +x demo.sh
+./demo.sh</code></pre>
+
+    <h5>ผลลัพธ์จริง</h5>
+    <p>ค่า Idempotency-Key ถูกสุ่มใหม่ทุกครั้ง และ <code>borrowed_at</code> กับ <code>due_date</code> ขึ้นกับวันเวลาที่รัน จึงต่างจากเครื่องของคุณ</p>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>== POST ครั้งที่ 1 (key=535ffc42-8aad-4b18-92a3-d8ff383f0a4e) ==
+HTTP/1.1 201 Created
+location: /v1/loans/ln_0002
+{"id":"ln_0002","book_id":"bk_0001","member_id":"mb_0001","borrowed_at":"2026-10-22T05:07:14+07:00","due_date":"2026-11-05","returned_at":null,"fine_satang":0}
+
+== POST ครั้งที่ 2 (Retry ด้วย key เดิม body เดิม) ==
+HTTP/1.1 201 Created
+location: /v1/loans/ln_0002
+idempotent-replayed: true
+{"id":"ln_0002","book_id":"bk_0001","member_id":"mb_0001","borrowed_at":"2026-10-22T05:07:14+07:00","due_date":"2026-11-05","returned_at":null,"fine_satang":0}
+
+== POST ครั้งที่ 3 (key เดิม แต่ body ต่าง) ==
+{"type":"https://example.com/problems/idempotency-key-reused","title":"Idempotency-Key reused","status":422,"detail":"this Idempotency-Key was already used with a different body","instance":"/v1/loans"}
+
+== GET /v1/books 7 ครั้งด้วย key ของ web ==
+request 1 -&gt; 200 
+request 2 -&gt; 200 
+request 3 -&gt; 200 
+request 4 -&gt; 200 
+request 5 -&gt; 200 
+request 6 -&gt; 429 Retry-After=10
+request 7 -&gt; 429 Retry-After=10</code></pre>
+
+    <h5>แนวคิด</h5>
+    <ul>
+      <li><strong>Client เป็นคนสร้าง Idempotency-Key</strong> แอปสร้าง UUID ใหม่หนึ่งค่าต่อ "ความตั้งใจหนึ่งครั้ง" (กดยืมหนึ่งครั้ง) แล้วใช้ค่าเดิมทุกครั้งที่ Retry Server จึงรู้ว่า Request ที่มาซ้ำคือเรื่องเดิม ถ้า Server สร้าง key เอง Client ที่ไม่ได้รับ Response ครั้งแรกจะไม่มีทางรู้ key นั้น</li>
+      <li><strong>เก็บ key แยกตาม Client</strong> คีย์ของ dict คือ <code>(client_id, idempotency_key)</code> ถ้าเก็บรวมทั้งระบบ เมื่อสอง Client บังเอิญใช้ key เดียวกัน Client ที่สองจะได้ข้อมูลการยืมของ Client แรก ซึ่งเป็นทั้งบั๊กและการรั่วไหลของข้อมูล เทสต์ <code>test_keys_are_scoped_per_client</code> พิสูจน์ว่าไม่เกิดปัญหานี้</li>
+      <li><strong>เทียบ Body ด้วย hash แบบมาตรฐาน</strong> <code>json.dumps(..., sort_keys=True)</code> ทำให้ <code>{"book_id": ..., "member_id": ...}</code> กับ JSON ที่สลับลำดับ key ได้ hash เดียวกัน เพราะความหมายเหมือนกัน และเก็บแค่ hash ไม่ต้องเก็บ Body ทั้งก้อน</li>
+      <li><strong>Lock ครอบทั้ง "ตรวจ-สร้าง-บันทึก"</strong> Endpoint แบบ <code>def</code> ของ FastAPI รันใน Thread Pool ถ้าสอง Request ที่มี key เดียวกันมาถึงพร้อมกัน และไม่มี Lock ทั้งคู่อาจตรวจไม่เจอ key แล้วสร้างการยืมคนละรายการ ในระบบจริงที่มีหลาย Process ต้องใช้กลไกของฐานข้อมูลหรือ Redis แทน <code>threading.Lock</code> เช่น Unique Constraint บนคู่ (client, key)</li>
+      <li><strong>Rate Limit แบบ Fixed Window</strong> เก็บ <code>(เวลาเริ่มหน้าต่าง, จำนวนครั้ง)</code> ต่อ Client เมื่อครบ 10 วินาทีก็เริ่มนับใหม่ <code>Retry-After</code> คำนวณจากเวลาที่เหลือของหน้าต่าง และปัดขึ้นด้วย <code>math.ceil</code> เพื่อไม่ให้ Client กลับมาเร็วเกินไป ในการสาธิตด้วย <code>curl</code> Request ที่ 6 มาถึงหลัง Request แรกไม่ถึงหนึ่งวินาที จึงได้ <code>Retry-After=10</code> ส่วนในเทสต์ที่เลื่อนเวลาไป 3 วินาทีได้ <code>7</code> พอดี</li>
+      <li><strong>ฉีดนาฬิกาเข้าไปแทนการรอจริง</strong> <code>FixedWindowLimiter</code> รับ <code>clock</code> เป็นฟังก์ชัน เทสต์จึงแทนด้วย <code>lambda: fake["now"]</code> แล้วเลื่อนเวลาเองได้ เทสต์จึงเร็วและให้ผลเหมือนเดิมทุกครั้ง ไม่ขึ้นกับความเร็วของเครื่อง</li>
+      <li><strong>Dependency ที่ระดับ Router</strong> ใส่ <code>rate_limit</code> ใน <code>APIRouter(dependencies=[...])</code> ทำให้ทุก Endpoint ใต้ <code>/v1</code> ถูกจำกัดอัตโนมัติ และเพราะ FastAPI Cache ผลของ Dependency ตัวเดียวกันภายใน Request เดียว การเรียก <code>Depends(rate_limit)</code> ซ้ำใน <code>create_loan</code> จึงไม่นับซ้ำ เทสต์ <code>test_replays_also_count_toward_limit</code> ยืนยันว่า POST 5 ครั้งผ่าน และครั้งที่ 6 ได้ <code>429</code> ถ้านับซ้ำ ครั้งที่ 3 ก็จะโดนแล้ว</li>
+      <li><strong>ใช้ 429 ไม่ใช่ 503</strong> <code>429 Too Many Requests</code> บอกว่า Client คนนี้ส่งเกินโควตา ส่วน <code>503</code> แปลว่า Server มีปัญหาทั้งระบบ การตอบ <code>429</code> พร้อม <code>Retry-After</code> ทำให้ Client ที่เขียนดีรอแล้วลองใหม่ได้ถูกจังหวะ ซึ่งเป็นการป้องกัน API4:2023 Unrestricted Resource Consumption การทดสอบยิงถี่แบบนี้ให้ทำกับ <code>127.0.0.1</code> หรือระบบของตัวเองเท่านั้น การยิงใส่ระบบของผู้อื่นโดยไม่ได้รับอนุญาตผิด พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์</li>
+    </ul>
+
+    <h5>ไอเดียต่อยอด</h5>
+    <ol>
+      <li>ย้ายที่เก็บ Idempotency และตัวนับ Rate Limit ไปไว้ใน Redis (รันด้วย Docker) โดยตั้งวันหมดอายุของ key เป็น 24 ชั่วโมง และใช้คำสั่ง <code>INCR</code> คู่กับ <code>EXPIRE</code> สำหรับตัวนับ เพื่อให้ทำงานถูกต้องเมื่อรัน uvicorn หลาย Worker</li>
+      <li>เปลี่ยน Fixed Window เป็น Token Bucket ที่อนุญาตให้ยิงต่อเนื่องได้เป็นช่วงสั้น ๆ (Burst) แล้วเขียนเทสต์ที่พิสูจน์ว่าจะไม่เกิดกรณียิงได้เกือบ 2 เท่าของโควตา (เกือบ 10 ครั้ง) ภายในช่วงเวลาสั้น ๆ รอบรอยต่อของสองหน้าต่างเวลา ซึ่งเป็นจุดอ่อนของ Fixed Window</li>
+      <li>เพิ่ม Header ที่บอกโควตาและจำนวนครั้งที่เหลือในทุก Response ตามร่างมาตรฐาน RateLimit Header Fields ของ IETF โดยตรวจชื่อและรูปแบบ Header ฉบับล่าสุดที่ <a href="https://datatracker.ietf.org/" target="_blank" rel="noopener">IETF Datatracker</a> ก่อนลงมือ เพราะมาตรฐานนี้ยังเป็นฉบับร่าง (Draft) และรูปแบบเคยเปลี่ยนมาแล้ว</li>
+      <li>เขียน <code>client_retry.py</code> ด้วย httpx 0.28.1 ที่สร้าง Idempotency-Key ครั้งเดียว แล้ว Retry ด้วย Exponential Backoff กับ Jitter และเคารพ <code>Retry-After</code> เมื่อได้ <code>429</code> จากนั้นทดสอบกับ Server นี้</li>
+      <li>เก็บ Response ของ Error บางประเภทด้วย เช่น <code>409 book-unavailable</code> เพื่อให้ Retry ได้ผลเดิมเสมอ และเขียนเทสต์ที่ส่ง Request ซ้ำพร้อมกันจากหลาย Thread ด้วย <code>concurrent.futures.ThreadPoolExecutor</code> เพื่อพิสูจน์ว่า Lock ป้องกันการยืมซ้ำได้จริง</li>
+      <li>ตรวจ <code>X-API-Key</code> กับรายการ key ที่เก็บเป็น hash SHA-256 ใน Environment Variable หรือฐานข้อมูล และเปรียบเทียบด้วย <code>hmac.compare_digest</code> ตามแนวคิดที่ 10 ของ Part 2 แทนการยอมรับทุกค่า</li>
+    </ol>
+  </div></details>
+</section>

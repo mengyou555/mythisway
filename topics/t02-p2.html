@@ -1,0 +1,2504 @@
+<section class="part" data-part="2">
+<h2 id="s2-2"><span class="sec-no">2.2</span>Core Concept &amp; Quick Guide</h2>
+<p>ส่วนนี้คือแกนกลางของหัวข้อ Vibe Coding เราจะเรียน 12 แนวคิดหลัก เรียงจากง่ายไปยากตามเส้นทางใน Part 1 แนวคิดที่ 1–4 เป็นระดับ Beginner (ความหมายของ Vibe Coding, การเตรียมโปรเจกต์ให้ปลอดภัย, Spec กับ Acceptance Criteria และการทำงานเป็นก้าวเล็กพร้อม Git Checkpoint) แนวคิดที่ 5–8 เป็นระดับ Intermediate (Context File กับ ruff, Test-first Prompting, การรีวิว Diff และการ Debug ร่วมกับ AI) และแนวคิดที่ 9–12 เป็นระดับ Advanced (Refactor อย่างปลอดภัย, Security Review, Supply Chain กับความเป็นส่วนตัวของข้อมูล และ Quality Gate อัตโนมัติ)</p>
+<p>ทุกแนวคิดทำงานในโปรเจกต์เดียวกันชื่อ <code>vibe-lab</code> ซึ่งเป็นตัวช่วยคำนวณเวลาเรียน โปรเจกต์จะโตขึ้นทีละขั้น เริ่มจากฟังก์ชันเล็ก ๆ ไปจนถึง API ที่สร้างด้วย Flask + SQLite พร้อม Test, Security Test และ Quality Gate ครบชุด โค้ดทุกชิ้นรันจริงบน Ubuntu 24.04 ใน WSL2 และทุกบล็อก "ผลลัพธ์ที่ได้จริง" มาจากการรันจริง ส่วนโค้ดที่ติดป้าย "(โค้ดที่ AI เขียน)" คือคำตอบตัวอย่างที่บันทึกไว้ให้ฝึกรีวิว คำตอบจาก AI ของคุณจะใช้ถ้อยคำและโค้ดต่างไปทุกครั้งที่ถาม จึงฝึกครบทุกแนวคิดได้โดยไม่ต้องมีเครื่องมือ AI ตัวไหนเลย และไม่ต้องมี API Key</p>
+<p>ก่อนเริ่ม ควรผ่าน <a data-t="16"></a> (เขียน Prompt ให้ชัด), <a data-t="17"></a> (Commit, Branch และการย้อนกลับ) และ <a data-t="9"></a> (อ่านโค้ด Python ได้คล่อง) มาแล้ว เพราะหัวใจของหัวข้อนี้คือ <strong>คุณยังต้องรับผิดชอบโค้ดทุกบรรทัด</strong> แม้ AI จะเป็นคนพิมพ์ แนวคิดที่ 8–10 ใช้ Flask และ SQL ด้วย ถ้ายังไม่คุ้นให้ทบทวน <a data-t="12"></a> และ <a data-t="14"></a> ประกอบ</p>
+
+<h3 id="s2-2-setup">เตรียมเครื่องสำหรับหัวข้อนี้</h3>
+<p>Part 2 สร้างโปรเจกต์ <code>~/projects/vibe-lab</code> ใหม่ตั้งแต่ต้น จึงเรียนได้แม้ยังไม่ได้ทำ Part 1 ทำตาม 4 ขั้นด้านล่างให้ครบก่อนเริ่มแนวคิดที่ 1 แล้วทำแนวคิดต่อกันตามลำดับในโฟลเดอร์เดียวกัน เพราะแต่ละแนวคิดต่อยอดจากไฟล์และ Commit ของแนวคิดก่อนหน้า ถ้าข้ามลำดับ ผลลัพธ์จะไม่ตรงกับในบทเรียน</p>
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>ถ้าทำ Part 1 มาแล้วและมีโฟลเดอร์ <code>~/projects/vibe-lab</code> อยู่ ให้เปลี่ยนชื่อเก็บไว้ก่อนด้วย <code>mv ~/projects/vibe-lab ~/projects/vibe-lab-part1</code> แล้วเริ่มโฟลเดอร์ใหม่ตามขั้นด้านล่าง ถ้ายังไม่มี WSL ให้ติดตั้ง Ubuntu 24.04 จาก PowerShell ด้วย <code>wsl --install -d Ubuntu-24.04</code> (ถ้าพิมพ์แค่ <code>wsl --install</code> ตอนนี้จะได้ Ubuntu 26.04 ซึ่งไม่ตรงกับหลักสูตร)</p></div>
+
+<h4>1. ติดตั้ง python3-venv และ Git แล้วตรวจเวอร์ชัน</h4>
+<p>Ubuntu 24.04 มี Python 3.12.3 ติดมาเป็น <code>python3</code> ของระบบ แต่ยังไม่มีแพ็กเกจ <code>python3-venv</code> ที่ใช้สร้าง Virtual Environment ติดตั้งพร้อม Git ในคำสั่งเดียว (ระบบจะถามรหัสผ่านของ <code>sudo</code>)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ติดตั้งแพ็กเกจสำหรับสร้าง venv และ Git (ถ้ามีอยู่แล้ว apt จะข้ามให้เอง)
+sudo apt update
+sudo apt install -y python3-venv git
+# ตรวจเวอร์ชันที่มากับ Ubuntu 24.04
+python3 --version
+git --version</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>...
+Setting up python3-venv (3.12.3-0ubuntu2.1) ...
+Setting up git-man (1:2.43.0-1ubuntu7.4) ...
+Setting up git (1:2.43.0-1ubuntu7.4) ...
+Processing triggers for man-db (2.12.0-4build2) ...
+Python 3.12.3
+git version 2.43.0</code></pre>
+<p>ข้อความของ <code>apt</code> ยาวมาก บทเรียนตัดมาเฉพาะช่วงท้าย และเลขรุ่นย่อยของแพ็กเกจในเครื่องคุณอาจต่างไปตามวันที่อัปเดต สิ่งที่ต้องตรวจคือ 2 บรรทัดสุดท้าย ต้องได้ <code>Python 3.12.3</code> และ <code>git version 2.43.0</code> และถ้ายังไม่เคยตั้งชื่อกับอีเมลสำหรับ Commit (ทำไว้ในหัวข้อ Git and GitHub) ให้ตั้งด้วย <code>git config --global user.name "Somchai Jaidee"</code> และ <code>git config --global user.email "somchai@example.com"</code> โดยใช้ชื่อและอีเมลของคุณเอง</p>
+
+<h4>2. สร้างโปรเจกต์ vibe-lab, venv และติดตั้งแพ็กเกจที่ Pin เวอร์ชัน</h4>
+<p>Ubuntu 24.04 ไม่ยอมให้ <code>pip</code> ติดตั้งแพ็กเกจลง Python ของระบบ (จะเจอ Error <code>externally-managed-environment</code>) เราจึงติดตั้งทุกอย่างใน venv ของโปรเจกต์เท่านั้น และ Pin เวอร์ชันทุกตัวใน <code>requirements.txt</code> เพื่อให้ทุกเครื่องได้ผลเหมือนกัน และเพื่อไม่ให้ AI แอบเปลี่ยนเวอร์ชันโดยไม่มีใครเห็น</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างโฟลเดอร์โปรเจกต์ในระบบไฟล์ของ Linux (ไม่ใช่ใต้ /mnt/c) แล้วเข้าไปข้างใน
+mkdir -p ~/projects/vibe-lab &amp;&amp; cd ~/projects/vibe-lab
+# เริ่ม Git Repository โดยตั้งชื่อ Branch หลักเป็น main
+git init -b main
+# สร้าง venv ชื่อ .venv แล้วเปิดใช้งาน
+python3 -m venv .venv
+source .venv/bin/activate
+# เขียน requirements.txt ที่ Pin เวอร์ชันทุกตัว
+cat &gt; requirements.txt &lt;&lt;'REQ'
+flask==3.1.3
+pytest==9.1.1
+ruff==0.17.1
+pip-audit==2.10.1
+REQ
+# ติดตั้งแพ็กเกจทั้งหมดภายใน venv
+python3 -m pip install -r requirements.txt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Initialized empty Git repository in /home/somchai/projects/vibe-lab/.git/
+Collecting flask==3.1.3 (from -r requirements.txt (line 1))
+  Downloading flask-3.1.3-py3-none-any.whl.metadata (3.2 kB)
+...
+Successfully installed CacheControl-0.14.4 blinker-1.9.0 boolean.py-5.0 certifi-2026.10.23 charset_normalizer-3.5.2 click-8.5.0 cyclonedx-python-lib-11.12.0 defusedxml-0.7.1 filelock-4.2.4 flask-3.1.3 idna-3.20 iniconfig-2.3.1 itsdangerous-2.2.0 jinja2-3.1.6 license-expression-30.4.4 markdown-it-py-4.2.0 markupsafe-3.0.4 mdurl-0.1.2 msgpack-1.2.4 packageurl-python-0.17.6 packaging-26.3 pip-api-0.0.35 pip-audit-2.10.1 pip-requirements-parser-32.0.1 platformdirs-4.13.7 pluggy-1.7.0 py-serializable-2.1.0 pygments-2.21.0 pyparsing-3.3.3 pytest-9.1.1 requests-2.34.2 rich-15.0.0 ruff-0.17.1 sortedcontainers-2.4.0 tomli-2.5.0 tomli-w-1.2.0 typing_extensions-4.16.0 urllib3-2.8.0 werkzeug-3.1.9</code></pre>
+<p>บรรทัด <code>Collecting</code> และ <code>Downloading</code> ช่วงกลางถูกตัดออกเพราะยาวหลายสิบบรรทัด บรรทัดสุดท้ายต้องขึ้นต้นด้วย <code>Successfully installed</code> และมี <code>flask-3.1.3</code>, <code>werkzeug-3.1.9</code>, <code>pytest-9.1.1</code>, <code>ruff-0.17.1</code> และ <code>pip-audit-2.10.1</code> ส่วนแพ็กเกจที่ติดมาด้วย (Dependency ทางอ้อม) เช่น <code>certifi</code> หรือ <code>urllib3</code> อาจได้เลขรุ่นใหม่กว่านี้ เพราะเราไม่ได้ Pin ไว้ ซึ่งไม่กระทบบทเรียน</p>
+
+<h4>3. ตรวจเวอร์ชันของเครื่องมือใน venv</h4>
+<p>หลัง <code>source .venv/bin/activate</code> หน้า Prompt จะมี <code>(.venv)</code> นำหน้า และคำสั่ง <code>python3</code>, <code>pytest</code>, <code>ruff</code>, <code>flask</code>, <code>pip-audit</code> จะมาจากโฟลเดอร์ <code>.venv/bin</code> ทุกครั้งที่เปิด Terminal ใหม่ต้องรัน <code>cd ~/projects/vibe-lab</code> และ <code>source .venv/bin/activate</code> ก่อนเสมอ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ตรวจว่าเครื่องมือทุกตัวมาจาก venv และได้เวอร์ชันตรงตามที่ Pin ไว้
+which python3
+python3 --version
+pytest --version
+ruff --version
+flask --version
+pip-audit --version</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>/home/somchai/projects/vibe-lab/.venv/bin/python3
+Python 3.12.3
+pytest 9.1.1
+ruff 0.17.1
+Python 3.12.3
+Flask 3.1.3
+Werkzeug 3.1.9
+pip-audit 2.10.1</code></pre>
+
+<h4>4. สร้าง .gitignore แล้ว Commit แรก</h4>
+<p>สร้างไฟล์ <code>.gitignore</code> ที่ Root ของโปรเจกต์ด้วย Editor (เช่น <code>nano .gitignore</code> หรือ VS Code ที่เปิดผ่าน <code>code .</code>) ไฟล์นี้บอก Git ว่าไม่ต้องสนใจไฟล์ใดบ้าง แนวคิดที่ 2 จะอธิบายทีละบรรทัดว่าทำไมแต่ละบรรทัดสำคัญต่อความปลอดภัย</p>
+<pre class="code" data-env="file" data-label="Text · .gitignore"><code class="language-plaintext">.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.db
+.env</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ต้องเห็นแค่ 2 ไฟล์ ถ้าเห็น .venv/ แปลว่า .gitignore ยังไม่ทำงาน
+git status --short
+# Commit แรกของโปรเจกต์
+git add .gitignore requirements.txt
+git commit -m "chore: เริ่มโปรเจกต์ vibe-lab พร้อม venv และ requirements"
+git log --oneline</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>?? .gitignore
+?? requirements.txt
+[main (root-commit) ddbe94e] chore: เริ่มโปรเจกต์ vibe-lab พร้อม venv และ requirements
+ 2 files changed, 10 insertions(+)
+ create mode 100644 .gitignore
+ create mode 100644 requirements.txt
+ddbe94e chore: เริ่มโปรเจกต์ vibe-lab พร้อม venv และ requirements</code></pre>
+<p>รหัส Commit (เช่น <code>ddbe94e</code>), วันที่ และเวลาที่ pytest รายงาน จะต่างไปในทุกเครื่อง เพราะคำนวณจากชื่อผู้ Commit และเวลาจริง ตลอด Part 2 ให้เทียบเฉพาะเนื้อหาส่วนอื่นของผลลัพธ์</p>
+
+<h4>ภาพรวมไฟล์ที่จะสร้างใน Part 2</h4>
+<div class="tbl wide"><table><thead><tr><th>ไฟล์</th><th>สร้างในแนวคิดที่</th><th>หน้าที่</th><th>ใครเขียน</th></tr></thead><tbody>
+<tr><td class="nw"><code>c01_verify_ai.py</code></td><td class="num">1</td><td>ตรวจคำตอบแรกของ AI กับตัวอย่างใน Spec</td><td>คุณ (โค้ดในไฟล์มาจาก AI)</td></tr>
+<tr><td class="nw"><code>config.py</code></td><td class="num">2</td><td>อ่าน Secret จาก Environment Variable และซ่อนค่าตอนแสดงผล</td><td>คุณ</td></tr>
+<tr><td class="nw"><code>SPEC.md</code>, <code>duration.py</code>, <code>ac_check.py</code></td><td class="num">3</td><td>Spec, ฟังก์ชันหลัก และตัวตรวจ Acceptance Criteria</td><td>คุณ ร่วมกับ AI</td></tr>
+<tr><td class="nw"><code>PLAN.md</code></td><td class="num">4</td><td>แผนงานแบบ Checklist ที่ติ๊กทีละขั้น</td><td>AI เสนอ คุณอนุมัติ</td></tr>
+<tr><td class="nw"><code>AGENTS.md</code>, <code>CLAUDE.md</code>, <code>pyproject.toml</code>, <code>tags.py</code></td><td class="num">5</td><td>Context File, กฎ ruff และตัวอย่างโค้ดที่ ruff จับบั๊กได้</td><td>คุณ</td></tr>
+<tr><td class="nw"><code>tests/test_duration.py</code></td><td class="num">6</td><td>Test ตาม Acceptance Criteria ที่เขียนก่อน Implementation</td><td>AI เขียน คุณรีวิว</td></tr>
+<tr><td class="nw"><code>review/ai-average.patch</code>, <code>AI_LOG.md</code></td><td class="num">7</td><td>Patch จาก AI ที่ใช้ฝึกรีวิว และบันทึกการตัดสินใจ</td><td>AI และคุณ</td></tr>
+<tr><td class="nw"><code>app.py</code>, <code>tests/test_app.py</code></td><td class="num">8</td><td>API บันทึกเวลาเรียน และ Regression Test</td><td>AI เขียน คุณแก้</td></tr>
+<tr><td class="nw"><code>db.py</code>, <code>validation.py</code></td><td class="num">9</td><td>ส่วนที่แยกออกจาก <code>app.py</code> หลัง Refactor</td><td>AI ภายใต้กติกาของคุณ</td></tr>
+<tr><td class="nw"><code>review/ai_search.py</code>, <code>tests/conftest.py</code>, <code>tests/test_security.py</code></td><td class="num">10</td><td>โค้ดค้นหาที่ผ่าน Security Review และ Security Test</td><td>AI เขียน คุณแก้</td></tr>
+<tr><td class="nw"><code>tools/check_pkg.py</code>, <code>tools/redact.py</code></td><td class="num">11</td><td>ตรวจแพ็กเกจก่อนติดตั้ง และลบ Secret ก่อนส่งข้อความให้ AI</td><td>คุณ</td></tr>
+<tr><td class="nw"><code>scripts/check.sh</code>, <code>.github/workflows/check.yml</code>, <code>tools/ai_review.py</code></td><td class="num">12</td><td>Quality Gate ในเครื่องและบน GitHub และ AI Review ที่มีโหมดจำลอง</td><td>คุณ</td></tr>
+</tbody></table></div>
+<div class="callout sec"><span class="c-label sec">Security</span><p>ถ้าคุณใช้เครื่องมือ AI จริงระหว่างเรียน (เช่น Claude Code, GitHub Copilot หรือ Cursor) ให้ติดตั้งตามเอกสารทางการของแต่ละตัวเท่านั้น และอย่าให้เครื่องมือเหล่านั้นอ่านไฟล์ <code>.env</code> หรือโฟลเดอร์อื่นนอก <code>~/projects/vibe-lab</code> ทุกตัวอย่างในหัวข้อนี้ใช้ค่าปลอมสำหรับฝึก ห้ามใส่รหัสผ่าน Token หรือ API Key จริงลงในไฟล์ใดของโปรเจกต์</p></div>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 1</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h3 id="s2-2-c01">Vibe Coding คืออะไร: สเปกตรัมจาก AI Chat ถึง Agentic Coding</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p><strong>Vibe Coding</strong> เป็นคำที่ Andrej Karpathy ทำให้แพร่หลายเมื่อต้นปี 2025 หมายถึงการสร้างซอฟต์แวร์ด้วยการ "บอกสิ่งที่อยากได้เป็นภาษาคน" แล้วให้ AI เขียนโค้ดให้ เรารับโค้ดนั้นมาใช้โดยแทบไม่อ่าน ถ้าพังก็คัดลอก Error กลับไปให้ AI แก้ แล้วปรับไปเรื่อย ๆ ตามความรู้สึกว่า "ใช้ได้แล้ว" วิธีนี้เร็วมากและเหมาะกับงานทดลองที่ทิ้งได้ เช่น ต้นแบบที่ทำในช่วงสุดสัปดาห์ หรือสคริปต์ที่ใช้ครั้งเดียว</p>
+<p>หัวข้อนี้สอนอีกระดับหนึ่งที่ใช้ในงานจริง คือ <strong>AI-assisted Development อย่างมีวินัย</strong> เรายังพิมพ์คำสั่งเป็นภาษาคนเหมือนเดิม แต่ <strong>คุณยังต้องรับผิดชอบโค้ดทุกบรรทัด</strong> จึงต้องมี Spec ที่ชัด แบ่งงานเป็นก้าวเล็ก ตรวจด้วย Test และรีวิว Diff ก่อนรับเสมอ ใช้แนวทางนี้ทุกครั้งที่โค้ดจะถูกใช้ต่อ ถูกส่งให้คนอื่น หรือแตะข้อมูลจริง ส่วน Vibe Coding แบบปล่อยตามความรู้สึกให้จำกัดไว้กับงานทดลองที่ไม่มีข้อมูลสำคัญเท่านั้น</p>
+<p>เครื่องมือ AI สำหรับเขียนโค้ดเรียงเป็นสเปกตรัม ยิ่งไปทางขวา AI ยิ่งลงมือเองได้มาก และความเสียหายเมื่อผิดก็ยิ่งกว้าง หน้าตาและชื่อเมนูของเครื่องมือเปลี่ยนบ่อย บทเรียนนี้จึงอธิบายแบบทั่วไป ส่วนวิธีติดตั้งให้ดูจากเอกสารทางการ: <a href="https://docs.anthropic.com/en/docs/claude-code/overview" target="_blank" rel="noopener">Claude Code</a>, <a href="https://docs.github.com/en/copilot" target="_blank" rel="noopener">GitHub Copilot</a> และ <a href="https://docs.cursor.com" target="_blank" rel="noopener">Cursor</a></p>
+<div class="tbl wide"><table class="tools"><thead><tr><th>ระดับ</th><th>ทำงานอย่างไร</th><th>ตัวอย่าง</th><th>ความเสี่ยงหลัก</th></tr></thead><tbody>
+<tr><td>1. AI Chat Assistant</td><td>คุยในหน้าเว็บหรือแอป แล้วคัดลอกโค้ดไปวางเอง AI ไม่เห็นโปรเจกต์ของเรา</td><td>Claude บนเว็บหรือแอปแชตอื่น</td><td>AI เดาบริบทผิด, คัดลอกมาไม่ครบ, เผลอวาง Secret ลงในแชต</td></tr>
+<tr><td>2. Inline Completion</td><td>เติมโค้ดต่อจากเคอร์เซอร์ใน Editor ทีละบรรทัดหรือทีละบล็อก</td><td>GitHub Copilot ใน VS Code</td><td>กด Tab รับโดยไม่อ่าน, ได้รูปแบบโค้ดเก่าหรือ API ที่เลิกใช้แล้ว</td></tr>
+<tr><td>3. Chat / Agent ใน Editor</td><td>อ่านไฟล์ที่เปิดอยู่ แก้ได้หลายไฟล์ และเสนอ Diff ให้กดรับ</td><td>Cursor, โหมด Agent ของ GitHub Copilot</td><td>แก้เกินขอบเขต, แก้หลายไฟล์พร้อมกันจนรีวิวไม่ทัน</td></tr>
+<tr><td>4. Agentic Coding Tool ใน Terminal</td><td>อ่านทั้ง Repository, รันคำสั่ง เช่น Test หรือ Git, แก้หลายไฟล์ และทำงานหลายขั้นต่อเนื่องเอง</td><td>Claude Code</td><td>รันคำสั่งที่ทำลายข้อมูล, อ่านไฟล์ลับ, เปลี่ยนเยอะจนย้อนยาก ถ้าไม่มี Git Checkpoint</td></tr>
+</tbody></table></div>
+<p>จุดแข็งของ AI คือความเร็ว เขียนโค้ดซ้ำ ๆ (Boilerplate) ได้ดี อธิบายโค้ดที่เราอ่านไม่เข้าใจ และเสนอ Test ที่เรานึกไม่ถึง ส่วนความล้มเหลวที่พบบ่อยคือ</p>
+<ul>
+<li><strong>ดูเหมือนถูกแต่ผิด</strong> โค้ดรันได้และอ่านลื่น แต่ให้ค่าผิด เช่น ตัวอย่างในแนวคิดนี้</li>
+<li><strong>ลืมกรณีขอบ</strong> เช่น ค่า 0, ค่าติดลบ, รายการว่าง หรือข้อความแทนตัวเลข</li>
+<li><strong>แต่ง API หรือแพ็กเกจที่ไม่มีจริง</strong> (Package Hallucination) ซึ่งผู้ไม่หวังดีใช้ดักโจมตีได้ (ดูแนวคิดที่ 11)</li>
+<li><strong>ใช้ทางลัดที่ไม่ปลอดภัย</strong> เช่น Secret ในโค้ด, ต่อ String เป็น SQL หรือเปิด <code>debug=True</code> (ดูแนวคิดที่ 10)</li>
+</ul>
+<p>กติกาข้อเดียวที่ใช้ได้กับทุกเครื่องมือคือ <strong>Never trust, always verify</strong> อย่าเชื่อโค้ดของ AI จนกว่าจะพิสูจน์ด้วยตัวอย่างจาก Spec และคำสั่งที่รันได้จริง</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>AI เหมือนนักศึกษาฝึกงานที่พิมพ์เร็วมาก มั่นใจทุกครั้งที่ตอบ แต่บางทีก็แต่งคำตอบขึ้นมาเอง ส่วนคุณคือหัวหน้างานที่ต้องเซ็นรับรองงานก่อนส่งลูกค้า ถ้าลูกค้าเจอเลขผิด คนที่ต้องรับผิดชอบคือคนที่เซ็น ไม่ใช่นักศึกษาฝึกงาน หัวหน้าที่ดีจึงไม่ตรวจด้วยการ "ดูผ่าน ๆ ว่าน่าจะถูก" แต่เตรียมตัวอย่างที่รู้คำตอบไว้ล่วงหน้า แล้วเอางานมาเทียบทีละข้อ</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>สถานการณ์: เราขอให้ AI Chat Assistant เขียนฟังก์ชันแปลงนาทีเป็นข้อความภาษาไทยด้วย Prompt ด้านล่าง ซึ่งให้ตัวอย่างคำตอบที่ต้องได้ไว้ครบแล้ว</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Prompt · ทดลองครั้งแรก"><code class="language-markdown">เขียนฟังก์ชัน Python ชื่อ format_minutes(total: int) -&gt; str
+ที่แปลงจำนวนนาทีเป็นข้อความภาษาไทย
+
+ตัวอย่างที่ต้องได้:
+- 45  -&gt; "45 นาที"
+- 60  -&gt; "1 ชม."
+- 95  -&gt; "1 ชม. 35 นาที"
+- 0   -&gt; "0 นาที"
+- ค่าติดลบ -&gt; raise ValueError
+
+ข้อกำหนด:
+- ใช้ Python 3.12 และ Standard Library เท่านั้น
+- มี Type Hint และ Docstring ภาษาไทย
+- ตอบเฉพาะโค้ด ไม่ต้องอธิบาย</code></pre>
+<p>AI ตอบกลับมาเป็นฟังก์ชันสั้น ๆ ที่ดูเรียบร้อย มี Type Hint และ Docstring ครบ (คำตอบจาก AI ของคุณอาจต่างไป) แทนที่จะเชื่อทันที เราคัดลอกคำตอบนั้นมาวางในไฟล์ตรวจ แล้วเทียบกับตัวอย่างจาก Spec แบบอัตโนมัติ สร้างไฟล์ <code>c01_verify_ai.py</code> ในโฟลเดอร์ <code>~/projects/vibe-lab</code> โปรแกรมนี้ใช้ Standard Library เท่านั้น ไม่ต้องติดตั้งอะไรเพิ่ม</p>
+<pre class="code" data-env="file" data-label="Python · c01_verify_ai.py"><code class="language-python">"""ตรวจคำตอบแรกของ AI เทียบกับตัวอย่างใน Spec ก่อนเชื่อและนำไปใช้"""
+
+
+# ----- โค้ดที่ AI ตอบกลับมาครั้งแรก (คัดลอกมาทั้งก้อน ยังไม่แก้อะไร) -----
+def format_minutes(total: int) -&gt; str:
+    """แปลงจำนวนนาทีเป็นข้อความภาษาไทย"""
+    hours = total / 60
+    minutes = total % 60
+    return f"{hours} ชม. {minutes} นาที"
+
+
+# ----- ตัวอย่างที่ต้องได้ คัดลอกมาจาก Spec ตรงๆ (Input, ผลที่ต้องได้) -----
+EXPECTED = [
+    (45, "45 นาที"),
+    (60, "1 ชม."),
+    (95, "1 ชม. 35 นาที"),
+    (0, "0 นาที"),
+]
+
+
+def main() -&gt; None:
+    passed = 0
+    for total, expected in EXPECTED:
+        got = format_minutes(total)
+        if got == expected:
+            passed += 1
+            print(f"PASS format_minutes({total}) -&gt; {got!r}")
+        else:
+            print(f"FAIL format_minutes({total}) ได้ {got!r} แต่ต้องได้ {expected!r}")
+    print(f"ผ่าน {passed}/{len(EXPECTED)}")
+
+    # Spec บอกว่าค่าติดลบต้อง Error ลองดูว่าโค้ดของ AI ทำตามหรือไม่
+    try:
+        result = format_minutes(-5)
+        print(f"ตรวจเพิ่ม: format_minutes(-5) ไม่ Error แต่คืน {result!r}")
+    except ValueError:
+        print("ตรวจเพิ่ม: format_minutes(-5) -&gt; ValueError ถูกต้อง")
+
+
+if __name__ == "__main__":
+    main()</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/vibe-lab
+source .venv/bin/activate
+python3 c01_verify_ai.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>FAIL format_minutes(45) ได้ '0.75 ชม. 45 นาที' แต่ต้องได้ '45 นาที'
+FAIL format_minutes(60) ได้ '1.0 ชม. 0 นาที' แต่ต้องได้ '1 ชม.'
+FAIL format_minutes(95) ได้ '1.5833333333333333 ชม. 35 นาที' แต่ต้องได้ '1 ชม. 35 นาที'
+FAIL format_minutes(0) ได้ '0.0 ชม. 0 นาที' แต่ต้องได้ '0 นาที'
+ผ่าน 0/4
+ตรวจเพิ่ม: format_minutes(-5) ไม่ Error แต่คืน '-0.08333333333333333 ชม. 55 นาที'</code></pre>
+<p>โค้ดที่ดูเรียบร้อยไม่ผ่านตัวอย่างเลยสักข้อ ถ้าเราดูแค่ว่า "รันได้ ไม่มี Error" ก็จะไม่มีวันรู้ บรรทัดสุดท้ายยังเผยกรณีขอบที่น่ากลัวกว่านั้น: ค่า <code>-5</code> ไม่ทำให้เกิด Error แต่ได้ข้อความผิด ๆ ว่า 55 นาที เพราะใน Python <code>-5 % 60</code> ได้ <code>55</code> ข้อมูลผิดจึงไหลต่อไปในระบบได้เงียบ ๆ</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>"""ตรวจคำตอบแรกของ AI ..."""</code></td><td>Docstring ของไฟล์ บอกว่าไฟล์นี้มีไว้ตรวจคำตอบของ AI ไม่ใช่โค้ดที่จะนำไปใช้จริง</td></tr>
+<tr><td><code>def format_minutes(total: int) -&gt; str:</code> ทั้งบล็อก</td><td>โค้ดที่ AI ตอบมาครั้งแรก วางไว้ทั้งก้อนโดยไม่แก้ เพื่อให้ผลการตรวจสะท้อนคำตอบจริงของ AI</td></tr>
+<tr><td><code>hours = total / 60</code></td><td>บั๊กที่ 1: เครื่องหมาย <code>/</code> หารแบบทศนิยมเสมอ จึงได้ <code>0.75</code> หรือ <code>1.0</code> แทนจำนวนชั่วโมงเต็ม ที่ถูกต้องคือ <code>//</code> หรือ <code>divmod()</code></td></tr>
+<tr><td><code>minutes = total % 60</code></td><td>หาเศษนาทีที่เหลือ ส่วนนี้ถูกสำหรับค่าบวก แต่ไม่มีการตรวจค่าติดลบ (บั๊กที่ 2) จึงได้ <code>55</code> จาก <code>-5</code></td></tr>
+<tr><td><code>return f"{hours} ชม. {minutes} นาที"</code></td><td>บั๊กที่ 3: แสดงทั้งสองส่วนเสมอ ทั้งที่ Spec ต้องการ <code>"1 ชม."</code> เมื่อไม่มีเศษนาที และ <code>"45 นาที"</code> เมื่อไม่ถึงชั่วโมง</td></tr>
+<tr><td><code>EXPECTED = [...]</code></td><td>ตารางตัวอย่าง (Input, ผลที่ต้องได้) คัดลอกจาก Spec ตรง ๆ ไม่แต่งเพิ่ม นี่คือ "คำตอบที่รู้ล่วงหน้า" ที่ใช้ตัดสิน</td></tr>
+<tr><td><code>for total, expected in EXPECTED:</code></td><td>วนตรวจทีละตัวอย่าง แยกค่าในแต่ละ Tuple ออกเป็น 2 ตัวแปร</td></tr>
+<tr><td><code>{got!r}</code> และ <code>{expected!r}</code></td><td><code>!r</code> แสดงค่าแบบ <code>repr()</code> มีเครื่องหมายคำพูดและทศนิยมครบ ทำให้เห็นความต่างเล็ก ๆ เช่น <code>'1.0 ชม. 0 นาที'</code> กับ <code>'1 ชม.'</code> ชัดเจน</td></tr>
+<tr><td><code>print(f"ผ่าน {passed}/{len(EXPECTED)}")</code></td><td>สรุปคะแนนท้ายการตรวจ ตัวเลขนี้คือหลักฐานที่ใช้ตัดสินใจว่าจะรับโค้ดหรือไม่</td></tr>
+<tr><td><code>try: ... except ValueError:</code></td><td>ตรวจกรณีค่าติดลบตาม Spec ถ้าไม่มี Error จะพิมพ์ค่าที่ได้ออกมาให้เห็นว่า "ผ่านไปเงียบ ๆ" ซึ่งอันตรายกว่า Error</td></tr>
+<tr><td><code>if __name__ == "__main__":</code></td><td>รัน <code>main()</code> เฉพาะเมื่อสั่ง <code>python3 c01_verify_ai.py</code> โดยตรง ไม่รันเมื่อไฟล์อื่น import ไฟล์นี้</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>SyntaxError: invalid syntax</code> ชี้ที่บรรทัด <code>```python</code></td><td>คัดลอกคำตอบจากแชตมาทั้งก้อน รวมเครื่องหมาย <code>```</code> ที่ใช้ครอบโค้ดใน Markdown</td><td>คัดลอกเฉพาะตัวโค้ด หรือใช้ปุ่มคัดลอกของบล็อกโค้ดในแชต แล้วลบบรรทัด <code>```</code> ที่หลุดมา</td></tr>
+<tr><td><code>ModuleNotFoundError: No module named 'thai_time'</code></td><td>AI แต่งชื่อโมดูลหรือแพ็กเกจที่ไม่มีอยู่จริงขึ้นมา (Package Hallucination)</td><td>อย่ารีบ <code>pip install</code> ชื่อนั้น ให้ตรวจก่อนว่ามีจริงตามแนวคิดที่ 11 และสั่ง AI ว่า "ใช้ Standard Library เท่านั้น"</td></tr>
+<tr><td><code>IndentationError: unindent does not match any outer indentation level</code></td><td>วางโค้ดแล้วการเยื้องไม่ตรงกัน เช่น บางบรรทัดเยื้อง 2 ช่อง บางบรรทัด 4 ช่อง</td><td>จัดการเยื้องให้เป็น 4 ช่องทั้งไฟล์ หรือใช้ <code>ruff format</code> ในแนวคิดที่ 5 และ 12 ช่วยจัดให้</td></tr>
+<tr><td><code>TypeError: unsupported operand type(s) for /: 'str' and 'int'</code></td><td>ส่ง <code>"45"</code> ที่เป็นข้อความเข้าไป ฟังก์ชันของ AI ไม่ตรวจชนิดข้อมูลเลย</td><td>เพิ่มตัวอย่าง Input แปลก ๆ ลงในตารางตรวจ และระบุใน Spec ว่ารับเฉพาะ <code>int</code></td></tr>
+<tr><td><code>python3: can't open file '/home/somchai/c01_verify_ai.py': [Errno 2] No such file or directory</code></td><td>รันคำสั่งจากโฟลเดอร์ Home ไม่ใช่โฟลเดอร์โปรเจกต์</td><td><code>cd ~/projects/vibe-lab</code> ก่อน แล้วตรวจด้วย <code>pwd</code></td></tr>
+<tr><td>เห็น <code>ผ่าน 0/4</code> แต่ตอนแรกตั้งใจจะใช้โค้ดเลย</td><td>ตัดสินจากความรู้สึกว่าโค้ด "ดูดี" ซึ่งคือ Vibe Coding แบบเสี่ยง</td><td>ตั้งกติกาว่าจะรับโค้ดจาก AI ก็ต่อเมื่อผ่านตัวอย่างจาก Spec ครบทุกข้อเท่านั้น</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ถือว่าคำตอบของ AI ทุกครั้งเป็น "ฉบับร่าง" เขียนตัวอย่างที่รู้คำตอบไว้ก่อนส่ง Prompt แล้วตรวจคำตอบด้วยตัวอย่างเหล่านั้นเสมอ</li>
+<li>ใส่ตัวอย่าง Input และ Output ลงใน Prompt ตั้งแต่แรก AI จะตอบตรงขึ้น และเรามีเกณฑ์ตรวจที่ชัด</li>
+<li>เลือกระดับเครื่องมือให้เหมาะกับงาน งานเล็กใช้ Chat หรือ Inline Completion ก็พอ งานหลายไฟล์ค่อยใช้ Agent และต้องมี Git Checkpoint ก่อนทุกครั้ง</li>
+<li>ถ้าอ่านโค้ดของ AI แล้วไม่เข้าใจบรรทัดไหน ให้ถาม AI ให้อธิบายบรรทัดนั้นก่อนรับ ทีมจริงไม่ยอมรับโค้ดที่ไม่มีใครในทีมอธิบายได้</li>
+<li>บันทึก Prompt คำตอบ และผลการตรวจไว้เป็นหลักฐาน (แนวคิดที่ 7 จะใช้ไฟล์ <code>AI_LOG.md</code>)</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ปรับไฟล์ <code>c01_verify_ai.py</code> ให้กลายเป็นเครื่องตรวจที่เข้มขึ้น แล้วลองกับคำตอบของ AI ตัวจริง</p><ol>
+<li>เพิ่ม <code>(600, "10 ชม.")</code> และ <code>(61, "1 ชม. 1 นาที")</code> ลงใน <code>EXPECTED</code> แล้วรันอีกครั้ง ต้องเห็น <code>ผ่าน 0/6</code></li>
+<li>แก้ <code>format_minutes</code> เองโดยใช้ <code>divmod(total, 60)</code>, ตรวจค่าติดลบด้วย <code>raise ValueError</code> และแสดงเฉพาะส่วนที่ไม่เป็นศูนย์ จนได้ <code>ผ่าน 6/6</code> และบรรทัดตรวจเพิ่มขึ้นว่า <code>ValueError ถูกต้อง</code></li>
+<li>ถ้ามีเครื่องมือ AI ให้ส่ง Prompt "ทดลองครั้งแรก" ด้านบน แล้ววางคำตอบที่ได้แทนฟังก์ชันเดิม รันตรวจ แล้วจดว่าผ่านกี่ข้อและพลาดกรณีไหน</li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 2</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h3 id="s2-2-c02">เตรียมโปรเจกต์ให้ปลอดภัยก่อนเปิดใช้ AI: venv, Git, .gitignore และ Secret ใน Environment Variable</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>ก่อนส่ง Prompt แรก โปรเจกต์ต้องมีรั้ว 3 ชั้นที่ตั้งไว้ใน "เตรียมเครื่องสำหรับหัวข้อนี้" แล้ว ชั้นแรกคือ <strong>Git</strong> ทำให้ทุกการแก้ของ AI ย้อนกลับได้ ชั้นที่สองคือ <strong>venv</strong> ถ้า AI สั่ง <code>pip install</code> แพ็กเกจแปลก ๆ ความเสียหายจะอยู่ใน <code>.venv</code> ของโปรเจกต์ ไม่ลามไปทั้งเครื่อง ชั้นที่สามคือ <strong>Secret อยู่นอกโค้ด</strong> เครื่องมือ AI ระดับ Agent อ่านไฟล์ทั้งโฟลเดอร์ได้ ถ้ารหัสผ่านหรือ API Key อยู่ในโค้ด ค่านั้นอาจถูกส่งออกไปกับ Prompt หรือถูก Commit ขึ้น GitHub</p>
+<p>วิธีมาตรฐานคือเก็บ Secret ใน <strong>Environment Variable</strong> แล้วให้โค้ดอ่านด้วย <code>os.environ</code> ในเครื่องพัฒนาให้เก็บค่าไว้ในไฟล์ <code>.env</code> ที่ <code>.gitignore</code> ไม่ให้ Commit และห้ามวางเนื้อหาไฟล์นี้ให้ AI แต่ละบรรทัดใน <code>.gitignore</code> มีหน้าที่ดังนี้: <code>.venv/</code> กันแพ็กเกจหลายพันไฟล์, <code>__pycache__/</code> <code>.pytest_cache/</code> <code>.ruff_cache/</code> กันไฟล์ที่เครื่องมือสร้างเอง, <code>*.db</code> กันฐานข้อมูลที่อาจมีข้อมูลจริง และ <code>.env</code> กัน Secret ใช้แนวคิดนี้ทุกครั้งที่เริ่มโปรเจกต์ใหม่ และก่อนเปิดเครื่องมือ AI ในโฟลเดอร์ใดก็ตาม</p>
+<p>ถ้า Secret หลุดไปแล้ว (Commit ขึ้น GitHub หรือวางในแชต) ให้ทำตามลำดับนี้: <strong>1) ยกเลิกและออกค่าใหม่ (Rotate) ทันที</strong> ที่หน้าเว็บของผู้ให้บริการ เพราะค่าที่หลุดถือว่าถูกคัดลอกไปแล้ว <strong>2) ย้ายค่าออกจากโค้ด</strong> ไปไว้ใน Environment Variable <strong>3) ล้างประวัติ Git</strong> ด้วยเครื่องมืออย่าง <code>git filter-repo</code> ถ้าจำเป็น ห้ามสลับลำดับ การลบออกจากประวัติอย่างเดียวไม่ช่วย เพราะคนอื่นอาจ Clone ไปก่อนแล้ว</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ก่อนให้ช่างที่จ้างมาเข้าบ้าน เราเก็บเงินสดและกุญแจรถเข้าตู้เซฟ (Secret ใน <code>.env</code>) ให้ช่างทำงานเฉพาะห้องที่ต้องซ่อม (venv) และถ่ายรูปสภาพห้องไว้ก่อนเริ่มงาน (Git Commit) ถ้าช่างทำของพัง เราเทียบกับรูปแล้วเรียกคืนสภาพเดิมได้ และต่อให้ช่างเดินผ่านทุกห้อง ก็ไม่เห็นของมีค่าเลย</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>สร้างไฟล์ <code>config.py</code> ที่ Root ของโปรเจกต์ ไฟล์นี้มี 2 ฟังก์ชันที่จะใช้ต่อในแนวคิดที่ 10: <code>get_secret()</code> อ่านค่าและหยุดพร้อมข้อความภาษาไทยเมื่อไม่พบ และ <code>mask()</code> ซ่อนค่าก่อนแสดงผลหรือเขียน Log ใช้ Standard Library เท่านั้น</p>
+<pre class="code" data-env="file" data-label="Python · config.py"><code class="language-python">"""อ่านค่า Secret จาก Environment Variable แทนการเขียนค่าลงในโค้ด"""
+
+import os
+import sys
+
+
+def get_secret(name: str) -&gt; str:
+    """คืนค่า Secret ชื่อ name ถ้ายังไม่ได้ตั้งค่า ให้หยุดพร้อมบอกวิธีแก้"""
+    value = os.environ.get(name, "")
+    if not value:
+        raise RuntimeError(
+            f"ไม่พบ Environment Variable ชื่อ {name} ให้ตั้งค่าก่อนรัน เช่น {name}=ค่าลับ python3 config.py"
+        )
+    return value
+
+
+def mask(value: str) -&gt; str:
+    """ซ่อน Secret ให้เหลือแค่ 4 ตัวแรก ใช้ตอนแสดงผลหรือเขียน Log"""
+    if len(value) &lt;= 8:
+        # ค่าที่สั้นมาก ถ้าโชว์ 4 ตัวก็แทบเห็นทั้งค่า จึงซ่อนทั้งหมด
+        return "****"
+    return value[:4] + "****"
+
+
+if __name__ == "__main__":
+    try:
+        secret = get_secret("SECRET_KEY")
+    except RuntimeError as e:
+        print("[ยังไม่ได้ตั้งค่า]", e)
+        sys.exit(1)
+    print("[ตั้งค่าแล้ว] SECRET_KEY =", mask(secret))</code></pre>
+<p>รันครั้งที่ 1 แบบยังไม่ตั้งค่า และครั้งที่ 2 แบบตั้งค่าเฉพาะคำสั่งเดียว (ค่าจะไม่ค้างอยู่ใน Terminal)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/vibe-lab
+source .venv/bin/activate
+# ครั้งที่ 1: ยังไม่ได้ตั้งค่า SECRET_KEY
+python3 config.py
+echo "exit=$?"
+# ครั้งที่ 2: ตั้งค่าเฉพาะคำสั่งนี้ ค่าจะไม่ค้างอยู่ใน Terminal
+SECRET_KEY=dev-local-123 python3 config.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[ยังไม่ได้ตั้งค่า] ไม่พบ Environment Variable ชื่อ SECRET_KEY ให้ตั้งค่าก่อนรัน เช่น SECRET_KEY=ค่าลับ python3 config.py
+exit=1
+[ตั้งค่าแล้ว] SECRET_KEY = dev-****</code></pre>
+<p>ครั้งที่ 3 เก็บค่าไว้ในไฟล์ <code>.env</code> แล้วโหลดเข้า Terminal ด้วย <code>set -a</code> (ทำให้ทุกตัวแปรที่อ่านจากไฟล์ถูก <code>export</code> อัตโนมัติ) จากนั้นพิสูจน์ว่า Git มองไม่เห็นไฟล์นี้ก่อน Commit</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ครั้งที่ 3: เก็บค่าไว้ในไฟล์ .env แล้วโหลดเข้า Terminal นี้
+printf 'SECRET_KEY=dev-local-123\n' &gt; .env
+set -a; source .env; set +a
+python3 config.py
+# พิสูจน์ว่า Git มองไม่เห็น .env และดูว่ากฎบรรทัดไหนทำให้ Git ไม่สนใจ
+git status --short
+git check-ignore -v .env
+# Commit เฉพาะไฟล์โค้ด
+git add c01_verify_ai.py config.py
+git commit -m "feat: เพิ่มสคริปต์ตรวจคำตอบ AI และ config.py อ่าน Secret จาก Environment"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[ตั้งค่าแล้ว] SECRET_KEY = dev-****
+?? c01_verify_ai.py
+?? config.py
+.gitignore:6:.env	.env
+[main dfcbb78] feat: เพิ่มสคริปต์ตรวจคำตอบ AI และ config.py อ่าน Secret จาก Environment
+ 2 files changed, 72 insertions(+)
+ create mode 100644 c01_verify_ai.py
+ create mode 100644 config.py</code></pre>
+<p><code>git status --short</code> แสดงแค่ไฟล์โค้ด 2 ไฟล์ ไม่มี <code>.env</code> และ <code>git check-ignore -v</code> ยืนยันว่ากฎบรรทัดที่ 6 ของ <code>.gitignore</code> คือ <code>.env</code> เป็นตัวกันไว้ ค่าที่แสดงบนจอเหลือแค่ <code>dev-****</code> จึงแคปหน้าจอหรือคัดลอก Log ไปถาม AI ได้โดยไม่เผยค่าจริง</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>os.environ.get(name, "")</code></td><td>อ่าน Environment Variable ถ้าไม่มีจะได้ข้อความว่าง แทนการเกิด <code>KeyError</code> ที่อ่านยาก</td></tr>
+<tr><td><code>raise RuntimeError(f"ไม่พบ ...")</code></td><td>หยุดทันทีพร้อมบอกชื่อตัวแปรและวิธีแก้เป็นภาษาไทย ดีกว่าปล่อยให้แอปทำงานต่อด้วยค่าว่างแล้วพังทีหลัง</td></tr>
+<tr><td><code>if len(value) &lt;= 8: return "****"</code></td><td>ค่าที่สั้นมากถ้าโชว์ 4 ตัวแรกก็เกือบเห็นทั้งค่า จึงซ่อนทั้งหมด</td></tr>
+<tr><td><code>return value[:4] + "****"</code></td><td>Slicing เอา 4 ตัวแรกมาต่อกับดาว พอให้รู้ว่าเป็นคีย์ตัวไหน โดยไม่เผยค่าเต็ม</td></tr>
+<tr><td><code>except RuntimeError as e: ... sys.exit(1)</code></td><td>จับ Error แล้วพิมพ์ข้อความ ออกจากโปรแกรมด้วย Exit Code 1 เพื่อให้ Script อื่นรู้ว่าล้มเหลว</td></tr>
+<tr><td><code>echo "exit=$?"</code></td><td><code>$?</code> คือ Exit Code ของคำสั่งก่อนหน้า 0 แปลว่าสำเร็จ ค่าอื่นแปลว่าล้มเหลว</td></tr>
+<tr><td><code>SECRET_KEY=dev-local-123 python3 config.py</code></td><td>ตั้งตัวแปรเฉพาะคำสั่งนี้ เหมาะกับการทดลอง แต่ค่าจะไปอยู่ในประวัติคำสั่งของ Shell จึงห้ามใช้กับค่าจริง</td></tr>
+<tr><td><code>printf 'SECRET_KEY=dev-local-123\n' &gt; .env</code></td><td>สร้างไฟล์ <code>.env</code> รูปแบบ <code>ชื่อ=ค่า</code> บรรทัดละ 1 ตัว</td></tr>
+<tr><td><code>set -a; source .env; set +a</code></td><td><code>set -a</code> สั่งให้ทุกตัวแปรที่ประกาศหลังจากนี้ถูก <code>export</code>, <code>source</code> อ่านไฟล์เข้า Shell ปัจจุบัน และ <code>set +a</code> ปิดโหมดนั้น</td></tr>
+<tr><td><code>git check-ignore -v .env</code></td><td>ถาม Git ว่าไฟล์นี้ถูก Ignore ด้วยกฎใด ตอบเป็น <code>ไฟล์กฎ:บรรทัด:กฎ</code> ตามด้วยชื่อไฟล์ ถ้าไม่พิมพ์อะไรเลยแปลว่าไม่ได้ถูก Ignore</td></tr>
+<tr><td><code>git add c01_verify_ai.py config.py</code></td><td>ระบุชื่อไฟล์ทีละตัวแทน <code>git add .</code> เพื่อไม่ให้ไฟล์ที่ไม่ตั้งใจหลุดเข้า Commit</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>error: externally-managed-environment</code> ตามด้วย <code>× This environment is externally managed</code></td><td>รัน <code>pip install</code> ตามที่ AI บอกโดยยังไม่ได้เปิด venv จึงไปชน Python ของระบบ Ubuntu</td><td><code>source .venv/bin/activate</code> ก่อน แล้วใช้ <code>python3 -m pip install ...</code> ห้ามใช้ <code>--break-system-packages</code></td></tr>
+<tr><td><code>KeyError: 'SECRET_KEY'</code></td><td>AI เขียน <code>os.environ["SECRET_KEY"]</code> ตรง ๆ เมื่อไม่ได้ตั้งค่าจะได้ Error ที่ไม่บอกวิธีแก้</td><td>ใช้ <code>get_secret()</code> ที่บอกชื่อตัวแปรและวิธีตั้งค่าเป็นภาษาไทย</td></tr>
+<tr><td><code>bash: .venv/bin/activate: No such file or directory</code></td><td>เปิด Terminal ใหม่แล้วยังอยู่ที่โฟลเดอร์ Home</td><td><code>cd ~/projects/vibe-lab</code> ก่อน แล้วค่อย <code>source .venv/bin/activate</code></td></tr>
+<tr><td>พิมพ์ <code>SECRET_KEY=abc</code> แล้วรัน <code>python3 config.py</code> ยังได้ <code>[ยังไม่ได้ตั้งค่า]</code> และ <code>exit=1</code></td><td>ตัวแปรที่ตั้งบนบรรทัดแยกเป็นตัวแปรของ Shell เท่านั้น ยังไม่ถูก <code>export</code> โปรแกรมลูกจึงมองไม่เห็น</td><td>ใช้ <code>export SECRET_KEY=abc</code> หรือ <code>set -a; source .env; set +a</code> หรือเขียนไว้หน้าคำสั่งบนบรรทัดเดียวกัน</td></tr>
+<tr><td><code>git check-ignore -v .env</code> ไม่พิมพ์อะไร และ <code>exit=1</code> ทั้งที่มี <code>.env</code> ใน <code>.gitignore</code></td><td><code>.env</code> เคยถูก Commit ไปก่อนเพิ่มกฎ Git จึงยัง Track ไฟล์นี้อยู่ กฎ Ignore มีผลกับไฟล์ที่ยังไม่ถูก Track เท่านั้น</td><td>Rotate ค่าในไฟล์ก่อน แล้ว <code>git rm --cached .env</code> (จะเห็น <code>rm '.env'</code>) และ Commit การลบนั้น</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ทำ Commit แรกที่มี <code>.gitignore</code> ก่อนเปิดเครื่องมือ AI ในโฟลเดอร์เสมอ และตรวจด้วย <code>git check-ignore -v</code></li>
+<li>สร้างไฟล์ <code>.env.example</code> ที่มีแค่ชื่อตัวแปรกับค่าตัวอย่าง เช่น <code>SECRET_KEY=change-me</code> แล้ว Commit ไฟล์นี้แทน <code>.env</code> เพื่อให้เพื่อนร่วมทีมรู้ว่าต้องตั้งค่าอะไร</li>
+<li>ใช้คีย์แยกสำหรับเครื่องพัฒนา ให้สิทธิ์น้อยที่สุด และตั้งวงเงินหรือวันหมดอายุไว้ ถ้าหลุดจะเสียหายน้อย</li>
+<li>เมื่อต้องแสดงหรือเขียน Log ค่าลับ ให้ผ่าน <code>mask()</code> ทุกครั้ง และห้ามคัดลอก <code>.env</code> หรือ Log ที่มีค่าลับให้ AI</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ต่อยอด <code>config.py</code> ให้รองรับ Secret ตัวที่สอง และฝึกขั้นตอนป้องกันการหลุด</p><ol>
+<li>เพิ่มบรรทัด <code>DB_PASSWORD=dev-db-pass-999</code> ลงใน <code>.env</code> แล้วแก้ส่วน <code>__main__</code> ให้อ่านและพิมพ์ทั้ง <code>SECRET_KEY</code> และ <code>DB_PASSWORD</code> ผ่าน <code>mask()</code> ต้องเห็น <code>dev-****</code> ทั้งสองบรรทัด</li>
+<li>ลองเรียก <code>mask("abc")</code> ใน <code>python3 -c "from config import mask; print(mask('abc'))"</code> ต้องได้ <code>****</code></li>
+<li>สร้าง <code>.env.example</code> ที่มีชื่อตัวแปรทั้งสองตัวพร้อมค่า <code>change-me</code> แล้วรัน <code>git status --short</code> ต้องเห็น <code>.env.example</code> แต่ไม่เห็น <code>.env</code></li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 3</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h3 id="s2-2-c03">เขียน SPEC.md และ Acceptance Criteria ที่ทดสอบได้ก่อนสั่ง AI</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p><strong>Spec</strong> หรือ Mini PRD (Product Requirements Document) คือเอกสารสั้น ๆ ที่ตอบว่าจะสร้างอะไร ให้ใคร ทำอะไรได้ และอะไรที่จะไม่ทำ AI เติมช่องว่างที่เราไม่ได้บอกด้วยการเดาเสมอ ยิ่ง Spec กำกวม AI ยิ่งเดาเยอะ และเราก็ยิ่งตรวจไม่ได้ว่าถูกหรือผิด Spec ที่ดีมี 6 หัวข้อ: เป้าหมาย, ผู้ใช้, ฟีเจอร์แบ่งเป็น Must / Should / Won't, Acceptance Criteria, ข้อจำกัดทางเทคนิค และ Out of Scope</p>
+<p>หัวใจคือ <strong>Acceptance Criteria</strong> ที่ทดสอบได้ เขียนเป็นตัวอย่าง Input -&gt; Output ที่ชัดจนเครื่องตรวจได้ เช่น "แสดงเวลาให้อ่านง่าย" ตรวจไม่ได้ แต่ <code>format_minutes(95) -&gt; "1 ชม. 35 นาที"</code> ตรวจได้ทันที ส่วน "ต้องไม่พังเมื่อข้อมูลว่าง" ยังกำกวม ให้เขียนเป็น <code>average_minutes([]) -&gt; 0.0</code> แทน ใช้แนวคิดนี้ก่อนสั่ง AI ทำงานที่ใหญ่กว่า 1 ฟังก์ชันทุกครั้ง และเมื่อความต้องการเปลี่ยน ให้แก้ Spec ก่อนแก้โค้ดเสมอ ถ้ายังคิดไม่ครบ ให้ใช้ Prompt แบบ <strong>Spec Interview</strong> ให้ AI เป็นฝ่ายถามเราก่อนเขียนอะไรทั้งนั้น</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>สั่งเค้กวันเกิดว่า "ขอเค้กอร่อย ๆ" ร้านจะทำตามรสนิยมของร้าน แล้วเราก็บอกไม่ได้ว่าร้านทำผิด แต่ถ้าสั่งว่า "ช็อกโกแลต 2 ปอนด์ เขียนชื่อ สมชาย ไม่ใส่ถั่ว รับ 5 โมงเย็น" ทุกข้อตรวจได้ตอนรับของ Acceptance Criteria คือใบสั่งเค้กแบบหลัง และข้อ "ไม่ใส่ถั่ว" ก็คือ Won't / Out of Scope ที่กันไม่ให้ร้านใส่ของที่เราไม่ได้ขอ</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>ขั้นที่ 1: ให้ AI สัมภาษณ์เราก่อน แทนการเขียนโค้ดทันที (แทนข้อความใน <code>[ ]</code> ด้วยงานของคุณ)</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Prompt · Spec Interview"><code class="language-markdown">ฉันกำลังจะสร้าง [อธิบายสิ่งที่จะสร้างใน 1–2 ประโยค]
+ผู้ใช้คือ [ใคร] และปัญหาที่ต้องแก้คือ [ปัญหา]
+
+ยังไม่ต้องเขียนโค้ดและยังไม่ต้องเขียน Spec
+ให้ถามคำถามฉันทีละ 3–5 ข้อ เพื่อเก็บข้อมูลที่จำเป็นต่อการเขียน Mini PRD ได้แก่
+ฟีเจอร์หลัก ข้อมูลที่ต้องเก็บ กรณีขอบ ข้อจำกัดทางเทคนิค และสิ่งที่อยู่นอกขอบเขต
+
+เมื่อฉันตอบครบแล้ว ให้สรุปเป็น SPEC.md ที่มีหัวข้อ:
+เป้าหมาย, ผู้ใช้, ฟีเจอร์ (Must/Should/Won't), Acceptance Criteria (ตัวอย่าง Input -&gt; Output),
+ข้อจำกัดทางเทคนิค, Out of Scope</code></pre>
+<p>ขั้นที่ 2: ตรวจและแก้สรุปของ AI จนได้ <code>SPEC.md</code> ด้านล่าง แล้วบันทึกที่ Root ของโปรเจกต์</p>
+<pre class="code" data-env="file" data-label="Markdown · SPEC.md"><code class="language-markdown"># SPEC: vibe-lab · ตัวช่วยคำนวณเวลาเรียน
+
+## เป้าหมาย
+ช่วยผู้เรียนสรุปเวลาเรียนแต่ละครั้งเป็นข้อความที่อ่านง่าย และหาค่าเฉลี่ยเวลาเรียนต่อครั้ง
+
+## ผู้ใช้
+ผู้เรียนที่บันทึกเวลาเรียนเป็นนาที เช่น somchai
+
+## ฟีเจอร์
+- Must: format_minutes(total) แปลงนาทีเป็นข้อความภาษาไทย
+- Must: average_minutes(sessions) หาค่าเฉลี่ยนาทีต่อครั้ง
+- Should: มี Test ครบทุก Acceptance Criteria
+- Won't (รอบนี้): หน้าเว็บ, ฐานข้อมูล, การ Login
+
+## Acceptance Criteria
+1. format_minutes(45) -&gt; "45 นาที"
+2. format_minutes(60) -&gt; "1 ชม."
+3. format_minutes(95) -&gt; "1 ชม. 35 นาที"
+4. format_minutes(0) -&gt; "0 นาที"
+5. format_minutes(-5) -&gt; ValueError
+6. average_minutes([30, 60, 90]) -&gt; 60.0
+7. average_minutes([]) -&gt; 0.0 (ไม่ทำให้โปรแกรมพัง)
+
+## ข้อจำกัดทางเทคนิค
+- Python 3.12 และ Standard Library เท่านั้น ห้ามเพิ่ม Dependency โดยไม่ถาม
+- ทุกฟังก์ชันมี Type Hint และ Docstring ภาษาไทย
+- Test ใช้ pytest 9.1.1 และต้องผ่าน ruff check
+
+## Out of Scope
+- การแปลงหน่วยเป็นวินาทีหรือวัน
+- การรองรับหลายภาษา
+- การบันทึกข้อมูลลงไฟล์หรือฐานข้อมูล</code></pre>
+<p>ขั้นที่ 3: เริ่มจากฟีเจอร์แรกคือ <code>format_minutes</code> (AC1–AC5) สร้างไฟล์ <code>duration.py</code> ด้วยเวอร์ชันที่ถูกต้องตาม Spec ส่วน <code>average_minutes</code> (AC6–AC7) จะเพิ่มแบบ Test-first ในแนวคิดที่ 6</p>
+<pre class="code" data-env="file" data-label="Python · duration.py"><code class="language-python">def format_minutes(total: int) -&gt; str:
+    """แปลงจำนวนนาทีเป็นข้อความ เช่น 95 -&gt; '1 ชม. 35 นาที'"""
+    if total &lt; 0:
+        raise ValueError("นาทีต้องไม่ติดลบ")
+    hours, minutes = divmod(total, 60)
+    if hours == 0:
+        return f"{minutes} นาที"
+    if minutes == 0:
+        return f"{hours} ชม."
+    return f"{hours} ชม. {minutes} นาที"
+
+
+if __name__ == "__main__":
+    for m in (45, 60, 95):
+        print(m, "-&gt;", format_minutes(m))</code></pre>
+<p>ขั้นที่ 4: แปลง Acceptance Criteria ทั้ง 7 ข้อเป็นโค้ดที่ตรวจได้ใน <code>ac_check.py</code> ข้อที่ยังไม่มีฟังก์ชันจะขึ้นว่า "รอทำ" แทนการทำให้ทั้งไฟล์พัง ไฟล์นี้จึงใช้เป็นตัวติดตามความคืบหน้าของ Spec ได้ตลอดโปรเจกต์</p>
+<pre class="code" data-env="file" data-label="Python · ac_check.py"><code class="language-python">"""ตรวจ Acceptance Criteria ทั้ง 7 ข้อใน SPEC.md แบบอัตโนมัติ"""
+
+import sys
+
+import duration
+
+# (เลขข้อ, สิ่งที่เรียก, ฟังก์ชันที่เรียกจริง, ผลที่ต้องได้ตาม Spec)
+# ใช้ lambda เพื่อให้เรียกตอนตรวจ ถ้ายังไม่มีฟังก์ชันจะได้รายงานว่า "รอทำ" แทนการพังทั้งไฟล์
+CRITERIA = [
+    (1, "format_minutes(45)", lambda: duration.format_minutes(45), "45 นาที"),
+    (2, "format_minutes(60)", lambda: duration.format_minutes(60), "1 ชม."),
+    (3, "format_minutes(95)", lambda: duration.format_minutes(95), "1 ชม. 35 นาที"),
+    (4, "format_minutes(0)", lambda: duration.format_minutes(0), "0 นาที"),
+    (5, "format_minutes(-5)", lambda: duration.format_minutes(-5), ValueError),
+    (6, "average_minutes([30, 60, 90])", lambda: duration.average_minutes([30, 60, 90]), 60.0),
+    (7, "average_minutes([])", lambda: duration.average_minutes([]), 0.0),
+]
+
+
+def run_check(func, expected) -&gt; tuple[str, str]:
+    """รันเกณฑ์ 1 ข้อ แล้วคืน (สถานะ, รายละเอียดเมื่อไม่ผ่าน)"""
+    expects_error = isinstance(expected, type) and issubclass(expected, Exception)
+    try:
+        got = func()
+    except AttributeError as e:
+        return "รอทำ", f"ยังไม่มีฟังก์ชันนี้ ({e})"
+    except Exception as e:
+        if expects_error and isinstance(e, expected):
+            return "ผ่าน", ""
+        return "ไม่ผ่าน", f"เกิด {type(e).__name__}: {e}"
+    if expects_error:
+        return "ไม่ผ่าน", f"ไม่ Error แต่ได้ {got!r}"
+    if got == expected:
+        return "ผ่าน", ""
+    return "ไม่ผ่าน", f"ได้ {got!r}"
+
+
+def main() -&gt; int:
+    counts = {"ผ่าน": 0, "ไม่ผ่าน": 0, "รอทำ": 0}
+    for no, call, func, expected in CRITERIA:
+        status, detail = run_check(func, expected)
+        counts[status] += 1
+        want = expected.__name__ if isinstance(expected, type) else repr(expected)
+        line = f"[{status}] AC{no}: {call} -&gt; {want}"
+        print(line + (f" · {detail}" if detail else ""))
+    total = len(CRITERIA)
+    summary = f"ผ่าน {counts['ผ่าน']}/{total} · ไม่ผ่าน {counts['ไม่ผ่าน']} · รอทำ {counts['รอทำ']}"
+    print("สรุป:", summary)
+    return 0 if counts["ผ่าน"] == total else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/vibe-lab
+source .venv/bin/activate
+python3 duration.py
+# ตรวจ Acceptance Criteria ทั้ง 7 ข้อ
+python3 ac_check.py
+echo "exit=$?"</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>45 -&gt; 45 นาที
+60 -&gt; 1 ชม.
+95 -&gt; 1 ชม. 35 นาที
+[ผ่าน] AC1: format_minutes(45) -&gt; '45 นาที'
+[ผ่าน] AC2: format_minutes(60) -&gt; '1 ชม.'
+[ผ่าน] AC3: format_minutes(95) -&gt; '1 ชม. 35 นาที'
+[ผ่าน] AC4: format_minutes(0) -&gt; '0 นาที'
+[ผ่าน] AC5: format_minutes(-5) -&gt; ValueError
+[รอทำ] AC6: average_minutes([30, 60, 90]) -&gt; 60.0 · ยังไม่มีฟังก์ชันนี้ (module 'duration' has no attribute 'average_minutes')
+[รอทำ] AC7: average_minutes([]) -&gt; 0.0 · ยังไม่มีฟังก์ชันนี้ (module 'duration' has no attribute 'average_minutes')
+สรุป: ผ่าน 5/7 · ไม่ผ่าน 0 · รอทำ 2
+exit=1</code></pre>
+<p>AC1–AC5 ผ่านครบ และ AC6–AC7 ขึ้น "รอทำ" ตรงกับความจริงว่ายังไม่ได้เขียน <code>average_minutes</code> Exit Code เป็น 1 เพราะยังไม่ผ่านครบ 7 ข้อ เมื่อจบแนวคิดที่ 6 ไฟล์เดียวกันนี้จะรายงาน <code>ผ่าน 7/7</code></p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>## ฟีเจอร์</code> ที่มี Must / Should / Won't</td><td>จัดลำดับความสำคัญ Won't บอกชัดว่ารอบนี้ไม่ทำหน้าเว็บหรือฐานข้อมูล AI จึงไม่มีเหตุผลจะเพิ่มของเหล่านั้นเอง</td></tr>
+<tr><td><code>## Acceptance Criteria</code> ข้อ 1–7</td><td>ทุกข้อมีเลขลำดับ Input และ Output ที่ตรวจได้ เลขลำดับใช้อ้างอิงใน Test, Commit และ Prompt ได้ เช่น "ทำให้ผ่าน AC6"</td></tr>
+<tr><td><code>## ข้อจำกัดทางเทคนิค</code> และ <code>## Out of Scope</code></td><td>กรอบที่ AI ต้องอยู่ข้างใน เช่น ห้ามเพิ่ม Dependency และไม่ต้องแปลงหน่วยเป็นวินาที</td></tr>
+<tr><td><code>hours, minutes = divmod(total, 60)</code></td><td>หารเอาจำนวนเต็มและเศษในคำสั่งเดียว แก้บั๊ก <code>/ 60</code> ของ AI ในแนวคิดที่ 1</td></tr>
+<tr><td><code>if hours == 0</code> และ <code>if minutes == 0</code></td><td>แสดงเฉพาะส่วนที่ไม่เป็นศูนย์ ตาม AC1, AC2 และ AC4</td></tr>
+<tr><td><code>CRITERIA = [(1, "format_minutes(45)", lambda: ..., "45 นาที"), ...]</code></td><td>Acceptance Criteria ในรูป Tuple 4 ช่อง: เลขข้อ, ข้อความที่แสดง, ฟังก์ชันที่จะเรียก และผลที่ต้องได้ คัดลอกค่าจาก Spec ตรง ๆ</td></tr>
+<tr><td><code>lambda: duration.average_minutes(...)</code></td><td>ห่อการเรียกไว้ในฟังก์ชันไม่มีชื่อ จึงยังไม่ถูกเรียกตอนสร้างรายการ ถ้าเรียกตรง ๆ ไฟล์จะพังทันทีตอนโหลด</td></tr>
+<tr><td><code>expects_error = isinstance(expected, type) and issubclass(expected, Exception)</code></td><td>ตรวจว่าผลที่ต้องได้เป็นคลาส Exception (เช่น <code>ValueError</code>) หรือเป็นค่าธรรมดา</td></tr>
+<tr><td><code>except AttributeError</code> คืน <code>"รอทำ"</code></td><td>ถ้าโมดูลยังไม่มีฟังก์ชันนั้น ให้รายงานว่ารอทำ แยกจาก "ไม่ผ่าน" ที่แปลว่ามีโค้ดแต่ผิด</td></tr>
+<tr><td><code>return 0 if counts["ผ่าน"] == total else 1</code> และ <code>sys.exit(main())</code></td><td>Exit Code 0 เมื่อผ่านครบ ทำให้สคริปต์อื่นหรือ CI ใช้ไฟล์นี้เป็นด่านตรวจได้</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>AttributeError: module 'duration' has no attribute 'average_minutes'</code> ตอนเริ่มรัน <code>ac_check.py</code></td><td>เขียนการเรียกฟังก์ชันลงใน <code>CRITERIA</code> ตรง ๆ โดยไม่ห่อด้วย <code>lambda</code> ทำให้ Python เรียกทันทีตอนสร้างรายการ</td><td>ห่อทุกการเรียกด้วย <code>lambda:</code> เพื่อเลื่อนการเรียกไปตอนตรวจ</td></tr>
+<tr><td><code>[ไม่ผ่าน] AC2: format_minutes(60) -&gt; '1 ชม' · ได้ '1 ชม.'</code></td><td>คัดลอกผลที่ต้องได้จาก Spec ไม่ครบ ตกจุดท้าย <code>ชม.</code> ไป</td><td>คัดลอกค่าจาก <code>SPEC.md</code> ด้วยการ Copy-Paste ห้ามพิมพ์ใหม่เอง</td></tr>
+<tr><td><code>[ไม่ผ่าน] AC5: format_minutes(-5) -&gt; 'ValueError' · เกิด ValueError: นาทีต้องไม่ติดลบ</code></td><td>ใส่ผลที่ต้องได้เป็นข้อความ <code>"ValueError"</code> แทนคลาส <code>ValueError</code> โค้ดจึงคิดว่าไม่ได้คาดหวัง Error</td><td>ใส่ชื่อคลาสโดยไม่มีเครื่องหมายคำพูด: <code>ValueError</code></td></tr>
+<tr><td>AI ตอบ <code>"1 hr 35 min"</code> หรือ <code>"1:35"</code> แล้วเถียงไม่ได้ว่าผิด</td><td>Acceptance Criteria เขียนว่า "แสดงผลให้อ่านง่าย" ซึ่งตรวจไม่ได้ AI จึงเลือกรูปแบบเอง</td><td>เขียนทุกข้อเป็นตัวอย่าง Input -&gt; Output ที่ตรวจได้ตรงตัวอักษร</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>เก็บ <code>SPEC.md</code> ไว้ใน Repository และ Commit ทุกครั้งที่แก้ เพื่อให้คน AI และ Test ใช้เอกสารฉบับเดียวกัน</li>
+<li>ใส่เลขกำกับ Acceptance Criteria ทุกข้อ แล้วอ้างเลขนั้นใน Prompt, Test และข้อความ Commit</li>
+<li>ทุกฟีเจอร์ต้องมีอย่างน้อย 1 กรณีปกติ 1 กรณีขอบ (ศูนย์ ว่าง ค่าสูงสุด) และ 1 กรณีที่ต้อง Error</li>
+<li>เขียน Won't และ Out of Scope ทุกครั้ง เพราะเป็นเครื่องมือหลักที่กันไม่ให้ AI เพิ่มฟีเจอร์ที่ไม่ได้ขอ</li>
+<li>คุม Spec ให้จบในหน้าเดียว ถ้ายาวกว่านั้นให้แบ่งงานเป็นหลายรอบ</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>เพิ่มเกณฑ์ใหม่ 1 ข้อทั้งใน Spec และในตัวตรวจ</p><ol>
+<li>เพิ่ม AC8 ใน <code>SPEC.md</code> ว่า <code>format_minutes(600) -&gt; "10 ชม."</code></li>
+<li>เพิ่ม Tuple <code>(8, "format_minutes(600)", lambda: duration.format_minutes(600), "10 ชม.")</code> ต่อท้าย <code>CRITERIA</code> แล้วรันใหม่ ต้องได้ <code>สรุป: ผ่าน 6/8 · ไม่ผ่าน 0 · รอทำ 2</code></li>
+<li>เขียน Acceptance Criteria แบบกำกวมสำหรับฟีเจอร์ "แสดงเวลาเรียนรวมของสัปดาห์" 1 ข้อ แล้วเขียนใหม่ให้เป็น Input -&gt; Output ที่ตรวจได้ 3 ข้อ (ปกติ, ขอบ, Error)</li>
+<li>ลบ AC8 ออกจากทั้งสองไฟล์ก่อนไปแนวคิดที่ 4 เพื่อให้ผลลัพธ์ตรงกับบทเรียน</li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 4</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h3 id="s2-2-c04">ทำงานเป็นก้าวเล็ก Plan → Implement → Verify → Commit และย้อนกลับด้วย Git</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>ถ้าสั่ง AI ว่า "ทำทั้งโปรเจกต์ให้หน่อย" จะได้ Diff ยาวหลายร้อยบรรทัดที่รีวิวไม่ไหว วิธีที่ใช้ในงานจริงคือวงจร 4 จังหวะ: <strong>Plan</strong> ให้ AI เสนอแผนเป็นข้อ ๆ โดยยังไม่เขียนโค้ด เราอนุมัติแล้วบันทึกเป็น <code>PLAN.md</code> แบบ Checklist <strong>Implement</strong> สั่งทำทีละ 1 ขั้น <strong>Verify</strong> รันโค้ดและตรวจกับ Spec และ <strong>Commit</strong> ทันทีที่ขั้นนั้นทำงานถูก ข้อความ Commit ใช้รูปแบบ Conventional Commits เช่น <code>feat:</code> ฟีเจอร์ใหม่, <code>fix:</code> แก้บั๊ก, <code>test:</code> เพิ่ม Test, <code>refactor:</code> ปรับโครงสร้างโดยพฤติกรรมเดิม, <code>docs:</code> เอกสาร และ <code>chore:</code> งานดูแลโปรเจกต์</p>
+<p>ทุก Commit คือ <strong>Checkpoint</strong> ถ้า AI ทำพังในขั้นถัดไป เราย้อนกลับได้ในคำสั่งเดียว เลือกคำสั่งตามสถานะของงาน: ยังไม่ Commit ใช้ <code>git restore</code>, Commit ไปแล้วใช้ <code>git revert</code> ซึ่งสร้าง Commit ใหม่ที่กลับการแก้ไขโดยประวัติเดิมยังอยู่ครบ ใช้วงจรนี้กับทุกงานที่ให้ AI แก้โค้ด โดยเฉพาะเมื่อใช้ Agent ที่แก้หลายไฟล์ได้เอง</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>เหมือนเล่นเกมที่มีจุดเซฟ ผู้เล่นที่ชำนาญจะเซฟก่อนเข้าห้องบอสทุกครั้ง ถ้าแพ้ก็โหลดเซฟล่าสุดแล้วลองใหม่ ไม่ต้องเริ่มเกมใหม่ทั้งหมด การ Commit หลังทุกขั้นที่ทำงานถูก คือการกดเซฟก่อนให้ AI ลงมือขั้นถัดไป</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>ขั้นที่ 1: ขอแผนก่อนโค้ด แล้วบันทึกแผนที่อนุมัติแล้วเป็น <code>PLAN.md</code> (คำตอบจริงของ AI จะใช้ถ้อยคำต่างไป ให้แก้จนได้แผนที่ตรวจได้ทุกขั้น)</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Prompt · Plan-then-Implement"><code class="language-markdown">อ่าน SPEC.md ที่แนบมา แล้ววางแผนการทำงาน
+
+กติกา:
+- ยังไม่ต้องเขียนโค้ด ตอบเฉพาะแผน
+- แบ่งเป็นขั้นที่เล็กที่สุดที่ทดสอบได้ แต่ละขั้นแก้ไม่เกิน 3 ไฟล์
+- แต่ละขั้นระบุ: ไฟล์ที่จะแก้, สิ่งที่จะเพิ่ม, วิธีตรวจว่าเสร็จ (คำสั่งที่รัน + ผลที่ต้องเห็น)
+- ระบุความเสี่ยงหรือคำถามที่ Spec ยังไม่ตอบ
+- ตอบเป็น Markdown checklist เพื่อบันทึกเป็น PLAN.md
+
+หลังฉันอนุมัติแผน ฉันจะสั่งให้ทำทีละขั้นด้วยข้อความ "ทำขั้นที่ N"
+ห้ามทำขั้นถัดไปก่อนที่ฉันจะสั่ง</code></pre>
+<pre class="code" data-env="file" data-label="Markdown · PLAN.md"><code class="language-markdown"># PLAN: vibe-lab
+
+- [x] ขั้น 1: format_minutes ตาม AC1-AC5 · ตรวจ: python3 ac_check.py ต้องผ่าน AC1-AC5
+- [ ] ขั้น 2: Context File (AGENTS.md, CLAUDE.md) และตั้งค่า ruff · ตรวจ: ruff check . ไม่มี Error
+- [ ] ขั้น 3: เขียน Test ตาม AC1-AC7 ก่อน · ตรวจ: pytest -q ต้องล้มเพราะยังไม่มี average_minutes
+- [ ] ขั้น 4: average_minutes ตาม AC6-AC7 · ตรวจ: pytest -q ผ่านทั้งหมด และ ac_check.py ผ่าน 7/7</code></pre>
+<p>ขั้นที่ 2: Commit งานของขั้น 1 ที่ตรวจแล้ว จากนั้นจำลองเหตุการณ์จริงที่พบบ่อย: เราขอให้ AI "ทำโค้ดให้สั้นลง" แล้ว AI เขียนทับ <code>duration.py</code> ทั้งไฟล์ (คำสั่ง <code>cat &gt; ... &lt;&lt;'PY'</code> ด้านล่างแทนการกดรับ Diff ของ AI)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/vibe-lab
+source .venv/bin/activate
+# Checkpoint: Commit งานที่ตรวจแล้ว (ขั้น 1 ใน PLAN.md)
+git add SPEC.md PLAN.md duration.py ac_check.py
+git commit -m "feat: เพิ่ม format_minutes ตาม SPEC ข้อ AC1-AC5"
+# จำลองว่า AI "ทำให้สั้นลง" แล้วเขียนทับ duration.py ทั้งไฟล์
+cat &gt; duration.py &lt;&lt;'PY'
+def format_minutes(total: int) -&gt; str:
+    """แปลงจำนวนนาทีเป็นข้อความ เช่น 95 -&gt; '1 ชม. 35 นาที'"""
+    hours = total / 60
+    minutes = total % 60
+    return f"{hours} ชม. {minutes} นาที"
+
+
+if __name__ == "__main__":
+    for m in (45, 60, 95):
+        print(m, "-&gt;", format_minutes(m))
+PY
+# Verify: รันดูผลจริง แล้วดูว่า AI แก้ไฟล์ไหนไปกี่บรรทัด
+python3 duration.py
+git status --short
+git diff --stat
+# ทิ้งการแก้ไขที่ยังไม่ Commit กลับไปเป็นเวอร์ชันใน Commit ล่าสุด
+git restore duration.py
+python3 duration.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[main 97cc2e1] feat: เพิ่ม format_minutes ตาม SPEC ข้อ AC1-AC5
+ 4 files changed, 106 insertions(+)
+ create mode 100644 PLAN.md
+ create mode 100644 SPEC.md
+ create mode 100644 ac_check.py
+ create mode 100644 duration.py
+45 -&gt; 0.75 ชม. 45 นาที
+60 -&gt; 1.0 ชม. 0 นาที
+95 -&gt; 1.5833333333333333 ชม. 35 นาที
+ M duration.py
+ duration.py | 9 ++-------
+ 1 file changed, 2 insertions(+), 7 deletions(-)
+45 -&gt; 45 นาที
+60 -&gt; 1 ชม.
+95 -&gt; 1 ชม. 35 นาที</code></pre>
+<p><code>git diff --stat</code> บอกว่าโค้ด "สั้นลง" เพราะลบไป 7 บรรทัด ซึ่งก็คือการตรวจค่าติดลบและเงื่อนไขแสดงผลทั้งหมด ตัวเลขนี้คือสัญญาณเตือนที่เห็นได้ก่อนอ่านโค้ดด้วยซ้ำ หลัง <code>git restore</code> ผลลัพธ์กลับมาถูกทันที</p>
+<p>ขั้นที่ 3: กรณีที่หนักกว่า คือเผลอ Commit การแก้ที่ผิดไปแล้ว AI เสนอให้เปลี่ยน "ชม." เป็น "ชั่วโมง" เพื่อให้อ่านง่าย ฟังดูดี แต่ขัดกับ Spec</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># AI เสนอให้เปลี่ยน "ชม." เป็น "ชั่วโมง" แล้วเราเผลอ Commit โดยไม่ได้ตรวจ
+sed -i 's/ ชม\./ ชั่วโมง/g' duration.py
+git commit -am "refactor: เปลี่ยนคำว่า ชม. เป็น ชั่วโมง"
+# ตรวจตาม Spec ทีหลังจึงพบว่าขัดกับ AC2 และ AC3
+python3 ac_check.py
+# ย้อน Commit นั้นด้วย Commit ใหม่ที่กลับการแก้ไข (ประวัติเดิมยังอยู่ครบ)
+git revert --no-edit HEAD
+python3 ac_check.py
+git log --oneline</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[main 71a95d4] refactor: เปลี่ยนคำว่า ชม. เป็น ชั่วโมง
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+[ผ่าน] AC1: format_minutes(45) -&gt; '45 นาที'
+[ไม่ผ่าน] AC2: format_minutes(60) -&gt; '1 ชม.' · ได้ '1 ชั่วโมง'
+[ไม่ผ่าน] AC3: format_minutes(95) -&gt; '1 ชม. 35 นาที' · ได้ '1 ชั่วโมง 35 นาที'
+[ผ่าน] AC4: format_minutes(0) -&gt; '0 นาที'
+[ผ่าน] AC5: format_minutes(-5) -&gt; ValueError
+[รอทำ] AC6: average_minutes([30, 60, 90]) -&gt; 60.0 · ยังไม่มีฟังก์ชันนี้ (module 'duration' has no attribute 'average_minutes')
+[รอทำ] AC7: average_minutes([]) -&gt; 0.0 · ยังไม่มีฟังก์ชันนี้ (module 'duration' has no attribute 'average_minutes')
+สรุป: ผ่าน 3/7 · ไม่ผ่าน 2 · รอทำ 2
+[main c616337] Revert "refactor: เปลี่ยนคำว่า ชม. เป็น ชั่วโมง"
+ Date: Wed Oct 28 17:32:25 2026 +0700
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+[ผ่าน] AC1: format_minutes(45) -&gt; '45 นาที'
+[ผ่าน] AC2: format_minutes(60) -&gt; '1 ชม.'
+[ผ่าน] AC3: format_minutes(95) -&gt; '1 ชม. 35 นาที'
+[ผ่าน] AC4: format_minutes(0) -&gt; '0 นาที'
+[ผ่าน] AC5: format_minutes(-5) -&gt; ValueError
+[รอทำ] AC6: average_minutes([30, 60, 90]) -&gt; 60.0 · ยังไม่มีฟังก์ชันนี้ (module 'duration' has no attribute 'average_minutes')
+[รอทำ] AC7: average_minutes([]) -&gt; 0.0 · ยังไม่มีฟังก์ชันนี้ (module 'duration' has no attribute 'average_minutes')
+สรุป: ผ่าน 5/7 · ไม่ผ่าน 0 · รอทำ 2
+c616337 Revert "refactor: เปลี่ยนคำว่า ชม. เป็น ชั่วโมง"
+71a95d4 refactor: เปลี่ยนคำว่า ชม. เป็น ชั่วโมง
+97cc2e1 feat: เพิ่ม format_minutes ตาม SPEC ข้อ AC1-AC5
+dfcbb78 feat: เพิ่มสคริปต์ตรวจคำตอบ AI และ config.py อ่าน Secret จาก Environment
+ddbe94e chore: เริ่มโปรเจกต์ vibe-lab พร้อม venv และ requirements</code></pre>
+<p>รหัส Commit และวันที่ในบรรทัด <code>Date:</code> ของเครื่องคุณจะต่างไป สังเกตว่า <code>git log</code> ยังเก็บทั้ง Commit ที่ผิดและ Commit ที่ย้อนกลับไว้ ทีมจึงเห็นได้ว่าเกิดอะไรขึ้นและแก้อย่างไร</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>- [x] ขั้น 1: ... · ตรวจ: ...</code> ใน <code>PLAN.md</code></td><td>แต่ละขั้นมีวิธีตรวจกำกับไว้ ติ๊ก <code>[x]</code> เมื่อผ่านแล้วเท่านั้น ใช้ส่งให้ AI อ่านต่อในรอบหน้าได้ด้วย</td></tr>
+<tr><td><code>git add SPEC.md PLAN.md duration.py ac_check.py</code></td><td>เลือกไฟล์ที่เป็นงานของขั้นนี้ทีละตัว Commit จึงมีเฉพาะสิ่งที่ตรวจแล้ว</td></tr>
+<tr><td><code>git commit -m "feat: ..."</code></td><td>สร้าง Checkpoint ด้วยข้อความแบบ Conventional Commits ที่บอกประเภทงานและอ้างเลข AC</td></tr>
+<tr><td><code>cat &gt; duration.py &lt;&lt;'PY' ... PY</code></td><td>Heredoc เขียนข้อความทั้งก้อนทับไฟล์ ใช้จำลองการที่ AI แก้ไฟล์ <code>'PY'</code> ที่มีเครื่องหมายคำพูดกันไม่ให้ Shell แปลความหมายของอักขระพิเศษข้างใน</td></tr>
+<tr><td><code>git status --short</code> ได้ <code> M duration.py</code></td><td><code>M</code> ในคอลัมน์ที่สองแปลว่าไฟล์ถูกแก้แต่ยังไม่ได้ <code>git add</code></td></tr>
+<tr><td><code>git diff --stat</code></td><td>สรุปจำนวนบรรทัดที่เพิ่ม (+) และลบ (-) ต่อไฟล์ ใช้ดูขนาดการแก้ของ AI ก่อนอ่านละเอียด</td></tr>
+<tr><td><code>git restore duration.py</code></td><td>ทิ้งการแก้ที่ยังไม่ Commit ของไฟล์นั้น กลับไปเป็นเวอร์ชันใน Commit ล่าสุด (ทิ้งแล้วเอากลับคืนไม่ได้)</td></tr>
+<tr><td><code>git commit -am "..."</code></td><td><code>-a</code> รวมทุกไฟล์ที่ Git Track อยู่และถูกแก้ เข้า Commit โดยไม่ต้อง <code>git add</code> แต่ไม่รวมไฟล์ใหม่</td></tr>
+<tr><td><code>git revert --no-edit HEAD</code></td><td>สร้าง Commit ใหม่ที่กลับการแก้ของ Commit ล่าสุด <code>--no-edit</code> ใช้ข้อความ <code>Revert "..."</code> อัตโนมัติ ปลอดภัยแม้ Commit นั้นถูก Push ไปแล้ว</td></tr>
+<tr><td><code>git log --oneline</code></td><td>แสดงประวัติ Commit บรรทัดละ 1 Commit ใหม่สุดอยู่บน</td></tr>
+</tbody></table></div>
+<p>คำสั่งย้อนกลับอีก 3 ตัวที่ต้องรู้ แม้ไม่ได้ใช้ในตัวอย่างนี้:</p>
+<div class="tbl wide"><table><thead><tr><th>สถานการณ์</th><th>คำสั่ง</th><th>ผล</th><th>ความเสี่ยง</th></tr></thead><tbody>
+<tr><td><code>git add</code> ไฟล์ผิดไปแล้ว แต่ยังไม่ Commit</td><td class="nw"><code>git restore --staged ไฟล์</code></td><td>เอาไฟล์ออกจาก Staging แต่การแก้ในไฟล์ยังอยู่</td><td>ปลอดภัย</td></tr>
+<tr><td>อยากพักงานไว้ชั่วคราวเพื่อลองของที่ AI เสนอ</td><td class="nw"><code>git stash</code> แล้ว <code>git stash pop</code></td><td>เก็บการแก้ที่ยังไม่ Commit ไว้ในกองชั่วคราว แล้วดึงกลับมาทีหลัง</td><td>ปลอดภัย ถ้าจำได้ว่าเก็บไว้ (ดูด้วย <code>git stash list</code>)</td></tr>
+<tr><td>อยากทิ้งการแก้ที่ยังไม่ Commit ทุกไฟล์</td><td class="nw"><code>git reset --hard HEAD</code></td><td>ทุกไฟล์กลับเป็นเหมือน Commit ล่าสุดทันที</td><td>อันตราย งานที่ยังไม่ Commit หายถาวร</td></tr>
+</tbody></table></div>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p><code>git reset --hard</code> ไม่ถามยืนยัน และพิมพ์แค่ <code>HEAD is now at ...</code> ทั้งที่งานที่ยังไม่ Commit หายไปแล้ว ห้ามให้ AI Agent รันคำสั่งนี้เอง ก่อนใช้ให้ <code>git stash</code> หรือ Commit งานที่อยากเก็บไว้ก่อนเสมอ</p></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>error: pathspec 'notes.txt' did not match any file(s) known to git</code></td><td>ใช้ <code>git restore</code> กับไฟล์ใหม่ที่ AI สร้างแต่ Git ยังไม่เคย Track</td><td>ไฟล์ใหม่ให้ลบด้วย <code>rm</code> หรือดูรายการที่จะลบด้วย <code>git clean -n</code> ก่อน <code>git clean -f</code></td></tr>
+<tr><td><code>error: your local changes would be overwritten by revert.</code> ตามด้วย <code>fatal: revert failed</code></td><td>สั่ง <code>git revert</code> ขณะที่ยังมีไฟล์ที่แก้ค้างไว้</td><td><code>git stash</code> ก่อน แล้ว <code>git revert</code> จากนั้น <code>git stash pop</code></td></tr>
+<tr><td><code>no changes added to commit (use "git add" and/or "git commit -a")</code></td><td>แก้ไฟล์แล้วสั่ง <code>git commit -m</code> โดยยังไม่ได้ <code>git add</code></td><td><code>git add ชื่อไฟล์</code> แล้ว Commit ใหม่</td></tr>
+<tr><td><code>nothing added to commit but untracked files present (use "git add" to track)</code></td><td>ใช้ <code>git commit -am</code> กับไฟล์ใหม่ ซึ่ง <code>-a</code> ไม่รวมไฟล์ที่ยังไม่เคย Track</td><td><code>git add ไฟล์ใหม่</code> ก่อนเสมอ</td></tr>
+<tr><td><code>You are in 'detached HEAD' state.</code></td><td>ใช้ <code>git checkout รหัสCommit</code> เพื่อย้อนดูโค้ดเก่า แล้วเผลอแก้และ Commit ต่อ</td><td>กลับด้วย <code>git switch main</code> ถ้าอยากเก็บงานที่ทำตรงนั้นให้สร้าง Branch ด้วย <code>git switch -c ชื่อBranch</code></td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ขอแผนก่อนโค้ดเสมอ และสั่งทำทีละขั้นด้วยข้อความชัด ๆ เช่น "ทำขั้นที่ 2 เท่านั้น"</li>
+<li>ดู <code>git diff --stat</code> ทุกครั้งหลัง AI แก้ ถ้าจำนวนบรรทัดหรือจำนวนไฟล์มากเกินที่คาด ให้หยุดถามเหตุผลก่อนอ่านต่อ</li>
+<li>Commit ทันทีที่ขั้นนั้นผ่านการตรวจ 1 Commit ต่อ 1 เรื่อง เพื่อให้ <code>git revert</code> ย้อนได้ตรงจุด</li>
+<li>Commit ที่ Push ไปแล้วให้ย้อนด้วย <code>git revert</code> ไม่ใช่ <code>git reset</code> เพราะไม่เขียนประวัติที่คนอื่นมีอยู่แล้วทับ</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ฝึกย้อนกลับครบทั้ง 3 สถานะของงาน</p><ol>
+<li>เพิ่มบรรทัด <code># ทดลอง</code> ท้าย <code>duration.py</code> แล้วรัน <code>git add duration.py</code> จากนั้นใช้ <code>git restore --staged duration.py</code> และ <code>git restore duration.py</code> ตามลำดับ ตรวจด้วย <code>git status --short</code> ว่าไม่เหลืออะไร</li>
+<li>แก้ไฟล์อีกครั้ง แล้วใช้ <code>git stash</code>, <code>git stash list</code> และ <code>git stash pop</code> ดูว่าการแก้หายไปและกลับมาอย่างไร จบด้วย <code>git restore duration.py</code></li>
+<li>เขียนข้อความ Commit แบบ Conventional Commits สำหรับงาน 3 อย่าง: เพิ่ม Test ของ AC5, แก้ Typo ใน <code>SPEC.md</code> และเพิ่มขั้นใหม่ใน <code>PLAN.md</code></li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 5</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h3 id="s2-2-c05">Context File (AGENTS.md / CLAUDE.md) และมาตรฐานโค้ดที่เครื่องตรวจได้ด้วย ruff</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>เครื่องมือ AI เริ่มแต่ละ Session ใหม่โดยจำกติกาของโปรเจกต์จากครั้งก่อนไม่ได้ ถ้าต้องพิมพ์ "ใช้ pytest นะ ห้ามเพิ่ม Dependency นะ" ทุกครั้ง สักวันต้องลืม <strong>Context File</strong> คือไฟล์ Markdown ที่ Root ของโปรเจกต์ซึ่งเครื่องมือ AI อ่านอัตโนมัติก่อนเริ่มงาน <code>AGENTS.md</code> เป็นข้อตกลงกลางที่หลายเครื่องมือรองรับ (ดู <a href="https://agents.md" target="_blank" rel="noopener">agents.md</a>) ส่วน Claude Code อ่าน <code>CLAUDE.md</code> ซึ่งดึงเนื้อหาจากไฟล์อื่นเข้ามาได้ด้วยบรรทัด <code>@AGENTS.md</code> เราจึงเขียนกติกาไว้ที่เดียว</p>
+<p>เนื้อหาที่ควรมีคือ ภาพรวมสั้น ๆ, คำสั่ง Setup / Test / Lint, ข้อกำหนดการเขียนโค้ด, สิ่งที่ห้ามทำ และ Definition of Done เขียนให้สั้นและตรวจได้ เพราะไฟล์ยาวกินพื้นที่ Context และ AI มักทำตามไม่ครบ กติกาข้อไหนที่เครื่องตรวจได้ ให้ย้ายไปไว้ในเครื่องมืออย่าง <strong>ruff</strong> (Linter และ Formatter สำหรับ Python) แล้วตั้งค่าใน <code>pyproject.toml</code> เพราะ AI อาจลืมอ่าน Context File แต่ ruff ไม่เคยลืมตรวจ ใช้แนวคิดนี้ตั้งแต่ก่อนให้ AI เขียนไฟล์แรกของโปรเจกต์</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ร้านกาแฟที่มีพนักงานพาร์ตไทม์เปลี่ยนทุกวัน จะแปะคู่มือสั้น ๆ ไว้หลังเคาน์เตอร์ (Context File) ว่าสูตรมาตรฐานคืออะไรและห้ามทำอะไร แต่เรื่องที่พลาดไม่ได้ เช่น ปริมาณกาแฟต่อแก้ว จะใช้เครื่องชั่งตรวจทุกแก้ว (ruff) เพราะคู่มืออาจถูกลืมอ่าน แต่เครื่องชั่งไม่เคยลืมทำงาน</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>สร้าง 3 ไฟล์ที่ Root ของโปรเจกต์: <code>AGENTS.md</code>, <code>CLAUDE.md</code> และ <code>pyproject.toml</code> (ruff ติดตั้งแล้วจาก <code>requirements.txt</code> ตอนเตรียมเครื่อง)</p>
+<pre class="code" data-env="file" data-label="Markdown · AGENTS.md"><code class="language-markdown"># AGENTS.md: กติกาของโปรเจกต์ vibe-lab
+
+## ภาพรวม
+ฟังก์ชันช่วยคำนวณเวลาเรียน ความต้องการทั้งหมดอยู่ใน SPEC.md และแผนงานอยู่ใน PLAN.md
+
+## คำสั่ง
+- Setup: python3 -m venv .venv &amp;&amp; source .venv/bin/activate &amp;&amp; python3 -m pip install -r requirements.txt
+- Test: pytest -q
+- Lint: ruff check . และ ruff format --check .
+
+## ข้อกำหนดการเขียนโค้ด
+- Python 3.12 มี Type Hint ทุกฟังก์ชัน และ Docstring ภาษาไทย
+- ใช้ Standard Library ก่อนเสมอ
+
+## ห้ามทำ
+- ห้ามเพิ่ม Dependency ใหม่โดยไม่ถามก่อน
+- ห้ามอ่านหรือแก้ไฟล์ .env
+- ห้ามแก้ไฟล์ใน tests/ เพื่อให้ Test ผ่าน ถ้าคิดว่า Test ผิดให้บอกเหตุผลแล้วรอการอนุมัติ
+- ห้ามต่อ String เป็นคำสั่ง SQL ให้ใช้ Parameter (?) เท่านั้น
+
+## Definition of Done
+- pytest -q ผ่านทั้งหมด และ ruff check . ไม่มี Error
+- อัปเดต PLAN.md ว่าขั้นไหนเสร็จแล้ว</code></pre>
+<pre class="code" data-env="file" data-label="Markdown · CLAUDE.md"><code class="language-markdown"># CLAUDE.md
+@AGENTS.md
+
+## เพิ่มเติมสำหรับ Claude Code
+- ก่อนแก้ไฟล์มากกว่า 1 ไฟล์ ให้เสนอแผนก่อน</code></pre>
+<pre class="code" data-env="file" data-label="TOML · pyproject.toml"><code class="language-ini">[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/F = ข้อผิดพลาดพื้นฐาน, I = เรียง import, B = บั๊กที่พบบ่อย, UP = ไวยากรณ์ใหม่, S = ความปลอดภัย
+select = ["E", "F", "I", "B", "UP", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+# ไฟล์ Test ใช้ assert ได้ตามปกติ
+"tests/*" = ["S101"]</code></pre>
+<p>จากนั้นทดลองกับโค้ดที่ AI เขียนให้ เมื่อเราขอฟังก์ชันเพิ่มแท็กการเรียน (บันทึกเป็น <code>tags.py</code>) โค้ดดูปกติและรันได้</p>
+<pre class="code" data-env="file" data-label="Python · tags.py (โค้ดที่ AI เขียน)"><code class="language-python">import sys
+from typing import List
+import os
+
+
+def add_tag(tag: str, tags: List[str] = []) -&gt; List[str]:
+    """เพิ่มแท็กการเรียนลงในรายการ"""
+    tags.append(tag.strip().lower())
+    return tags
+
+
+if __name__ == "__main__":
+    print(add_tag("Python"))
+    print(add_tag("SQL"))</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/vibe-lab
+source .venv/bin/activate
+# รันโค้ดของ AI ดูผลก่อน: เรียก 2 ครั้ง แต่ละครั้งควรได้ list ใหม่
+python3 tags.py
+# ให้ ruff ตรวจตามกฎใน pyproject.toml แบบสรุปบรรทัดเดียว
+ruff check --output-format concise tags.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>['python']
+['python', 'sql']
+tags.py:1:1: I001 [*] Import block is un-sorted or un-formatted
+tags.py:1:8: F401 [*] `sys` imported but unused
+tags.py:2:1: UP035 `typing.List` is deprecated, use `list` instead
+tags.py:3:8: F401 [*] `os` imported but unused
+tags.py:6:29: UP006 [*] Use `list` instead of `List` for type annotation
+tags.py:6:41: B006 Do not use mutable data structures for argument defaults
+tags.py:6:48: UP006 [*] Use `list` instead of `List` for type annotation
+Found 7 errors.
+[*] 5 fixable with `--fix` (1 unsafe fix available with `--fix --unsafe-fixes`).</code></pre>
+<p>บรรทัดที่สองคือบั๊กจริง: เรียกครั้งที่สองควรได้ <code>['sql']</code> แต่ได้ <code>['python', 'sql']</code> เพราะค่า Default <code>[]</code> ถูกสร้างครั้งเดียวตอนนิยามฟังก์ชัน แล้วทุกการเรียกใช้ List ตัวเดียวกัน ruff จับได้ด้วยกฎ <code>B006</code> พร้อมบอก Import ที่ไม่ใช้ (<code>F401</code>), ไวยากรณ์เก่า (<code>UP006</code>, <code>UP035</code>) และ Import ที่ไม่เรียง (<code>I001</code>) แก้เป็นเวอร์ชันด้านล่าง</p>
+<pre class="code" data-env="file" data-label="Python · tags.py (แก้แล้ว)"><code class="language-python">def add_tag(tag: str, tags: list[str] | None = None) -&gt; list[str]:
+    """เพิ่มแท็กการเรียนลงในรายการ โดยสร้างรายการใหม่ทุกครั้งที่ไม่ได้ส่งมา"""
+    if tags is None:
+        tags = []
+    tags.append(tag.strip().lower())
+    return tags
+
+
+if __name__ == "__main__":
+    print(add_tag("Python"))
+    print(add_tag("SQL"))</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ตรวจไฟล์ที่แก้แล้ว และรันดูผลอีกครั้ง
+ruff check --output-format concise tags.py
+python3 tags.py
+# ตรวจทั้งโปรเจกต์ แล้วติ๊กขั้น 2 ใน PLAN.md ก่อน Commit
+ruff check .
+sed -i 's/- \[ \] ขั้น 2/- [x] ขั้น 2/' PLAN.md
+git add AGENTS.md CLAUDE.md pyproject.toml tags.py PLAN.md
+git commit -m "chore: เพิ่ม Context File และตั้งค่า ruff"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>All checks passed!
+['python']
+['sql']
+All checks passed!
+[main dd77354] chore: เพิ่ม Context File และตั้งค่า ruff
+ 5 files changed, 51 insertions(+), 1 deletion(-)
+ create mode 100644 AGENTS.md
+ create mode 100644 CLAUDE.md
+ create mode 100644 pyproject.toml
+ create mode 100644 tags.py</code></pre>
+<p>ข้อความของแต่ละกฎใน ruff อาจเปลี่ยนเล็กน้อยระหว่างเวอร์ชัน หลักสูตรนี้จึง Pin <code>ruff==0.17.1</code> ไว้ใน <code>requirements.txt</code> เพื่อให้ผลตรงกับบทเรียน</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>## คำสั่ง</code> ใน <code>AGENTS.md</code></td><td>คำสั่งที่ AI ใช้ตรวจงานตัวเองได้ทันที เช่น <code>pytest -q</code> และ <code>ruff check .</code> ไม่ต้องเดาว่าโปรเจกต์ใช้เครื่องมืออะไร</td></tr>
+<tr><td><code>## ห้ามทำ</code></td><td>ขอบเขตที่ห้ามข้าม เขียนเป็นข้อ ๆ ชัด ๆ เช่น ห้ามแตะ <code>.env</code> และห้ามแก้ Test เพื่อให้ผ่าน</td></tr>
+<tr><td><code>## Definition of Done</code></td><td>เกณฑ์ว่างานเสร็จจริง AI ต้องรันและรายงานผลก่อนบอกว่า "เสร็จแล้ว"</td></tr>
+<tr><td><code>@AGENTS.md</code> ใน <code>CLAUDE.md</code></td><td>ไวยากรณ์ของ Claude Code สำหรับดึงเนื้อหาไฟล์อื่นเข้ามา กติกาจึงอยู่ที่เดียว แล้วเพิ่มเฉพาะส่วนที่ใช้กับ Claude Code</td></tr>
+<tr><td><code>line-length = 100</code> และ <code>target-version = "py312"</code></td><td>ความยาวบรรทัดสูงสุด และบอก ruff ว่าโค้ดต้องรันบน Python 3.12 จึงแนะนำไวยากรณ์ <code>list[str] | None</code> ได้</td></tr>
+<tr><td><code>select = ["E", "F", "I", "B", "UP", "S"]</code></td><td>เลือกกลุ่มกฎ: ข้อผิดพลาดพื้นฐาน, Import, บั๊กที่พบบ่อย, ไวยากรณ์ใหม่ และความปลอดภัย</td></tr>
+<tr><td><code>"tests/*" = ["S101"]</code></td><td>ยกเว้นกฎ S101 (ห้ามใช้ <code>assert</code>) เฉพาะไฟล์ Test เพราะ pytest ใช้ <code>assert</code> เป็นหลัก</td></tr>
+<tr><td><code>tags: List[str] = []</code></td><td>บั๊ก Mutable Default Argument: List ถูกสร้างครั้งเดียวและแชร์ข้ามทุกการเรียก</td></tr>
+<tr><td><code>tags.py:6:41: B006 ...</code></td><td>รูปแบบผลของ ruff คือ <code>ไฟล์:บรรทัด:คอลัมน์: รหัสกฎ ข้อความ</code> ส่วน <code>[*]</code> แปลว่าแก้อัตโนมัติด้วย <code>--fix</code> ได้</td></tr>
+<tr><td><code>tags: list[str] | None = None</code> และ <code>if tags is None: tags = []</code></td><td>วิธีแก้มาตรฐาน: ใช้ <code>None</code> เป็นค่า Default แล้วสร้าง List ใหม่ในฟังก์ชันทุกครั้ง</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>ruff failed</code> / <code>Cause: TOML parse error at line 14, column 1</code> / <code>missing comma between array elements, expected `,`</code></td><td>แก้ <code>pyproject.toml</code> แล้วลืมปิด <code>]</code> ของ <code>select</code> TOML จึงอ่านบรรทัดถัดไปเป็นสมาชิกของ Array</td><td>ดูบรรทัดและคอลัมน์ที่ Error บอก แล้วตรวจวงเล็บและจุลภาคของบรรทัดก่อนหน้า</td></tr>
+<tr><td><code>ruff failed</code> / <code>Cause: Unknown rule selector `SEC` in `select`</code></td><td>AI หรือเราพิมพ์รหัสกลุ่มกฎผิด กลุ่มความปลอดภัยคือ <code>S</code></td><td>ตรวจรหัสกฎในเอกสารของ ruff ก่อนเพิ่มลงใน <code>select</code></td></tr>
+<tr><td><code>ruff: command not found</code></td><td>เปิด Terminal ใหม่แล้วยังไม่ได้เปิด venv</td><td><code>cd ~/projects/vibe-lab</code> แล้ว <code>source .venv/bin/activate</code></td></tr>
+<tr><td>รัน <code>ruff check --fix</code> แล้วได้ <code>Found 6 errors (5 fixed, 1 remaining).</code> และยังเหลือ <code>B006</code></td><td><code>--fix</code> แก้ได้แค่เรื่องรูปแบบที่ปลอดภัย บั๊กด้านตรรกะต้องให้คนตัดสินใจ</td><td>แก้ <code>B006</code> เองตามเวอร์ชันแก้แล้ว และอ่าน Diff ของ <code>--fix</code> ทุกครั้ง</td></tr>
+<tr><td>AI ยังเพิ่ม Dependency ทั้งที่ <code>AGENTS.md</code> ห้ามไว้</td><td>Context File ยาวเกินไปจนกฎสำคัญจมหาย หรือเครื่องมือที่ใช้ไม่ได้อ่านไฟล์ชื่อนั้น</td><td>คุมไฟล์ให้สั้น ตรวจในเอกสารของเครื่องมือว่าอ่านไฟล์ไหน และให้เครื่องตรวจซ้ำด้วย Test, ruff และ <code>git diff requirements.txt</code></td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>Commit <code>AGENTS.md</code> ไว้ใน Repository ให้ทั้งทีมและทุกเครื่องมือใช้กติกาชุดเดียวกัน แก้ผ่าน Commit เหมือนโค้ด</li>
+<li>เขียนกติกาเป็นคำสั่งที่ตรวจได้ เช่น "pytest -q ต้องผ่าน" ดีกว่า "เขียนโค้ดให้มีคุณภาพ"</li>
+<li>กติกาที่เครื่องตรวจได้ให้ย้ายไปไว้ใน ruff หรือ Test แล้วเหลือใน Context File แค่สิ่งที่ต้องใช้วิจารณญาณ</li>
+<li>เมื่อพบว่า AI ทำผิดซ้ำ ๆ เรื่องเดิม ให้เพิ่มกฎ 1 บรรทัดใน <code>AGENTS.md</code> หรือกฎใน ruff แทนการเตือนในแชตทุกครั้ง</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>เพิ่มกติกาใหม่ทั้งในรูปเอกสารและในรูปเครื่องตรวจ</p><ol>
+<li>เพิ่มกลุ่มกฎ <code>"SIM"</code> (เขียนให้เรียบง่ายขึ้น) ลงใน <code>select</code> แล้วรัน <code>ruff check .</code> ดูว่ามีไฟล์ไหนถูกเตือนบ้าง</li>
+<li>เพิ่มบรรทัดใน <code>## ห้ามทำ</code> ของ <code>AGENTS.md</code> ว่า "ห้ามใช้ print() เพื่อ Debug ในโค้ดที่ Commit" แล้วคิดว่ากฎนี้ให้ ruff ตรวจด้วยกลุ่มกฎใดได้ (ดูกลุ่ม <code>T20</code> ในเอกสารของ ruff)</li>
+<li>ลองรัน <code>ruff check --fix --diff tags.py</code> กับโค้ดเวอร์ชันของ AI เพื่อดูว่า <code>--fix</code> จะแก้อะไรบ้าง โดยยังไม่แก้ไฟล์จริง แล้วนำ <code>add_tag</code> ฉบับแก้แล้วกลับมาก่อนไปแนวคิดที่ 6</li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 6</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h3 id="s2-2-c06">Test-first Prompting: ให้ AI เขียน Test จาก Spec แล้วรันเองด้วย pytest</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p><strong>Test-first Prompting</strong> คือการสั่งให้ AI เขียน Test จาก Acceptance Criteria <strong>ก่อน</strong> มี Implementation แล้วเรารัน Test เองตามวงจร Red → Green: <strong>Red</strong> รันแล้วต้องล้ม และต้องล้มด้วยเหตุผลที่ถูก (เช่น ยังไม่มีฟังก์ชัน ไม่ใช่ Test พิมพ์ผิด) จากนั้น Commit Test เก็บไว้เป็น Checkpoint แล้วจึงให้ AI เขียน Implementation จนถึง <strong>Green</strong> คือผ่านครบ Test ที่ Commit ไว้ก่อนเป็นเหมือนสัญญาที่ล็อกแล้ว ถ้าภายหลัง AI แอบแก้ Test ให้ง่ายลง <code>git diff tests/</code> จะฟ้องทันที</p>
+<p>พื้นฐาน pytest ที่ต้องใช้: ไฟล์ชื่อ <code>test_*.py</code>, ฟังก์ชันชื่อ <code>test_*</code>, ตรวจด้วย <code>assert</code>, ตรวจ Error ด้วย <code>pytest.raises</code>, รวมหลายกรณีด้วย <code>@pytest.mark.parametrize</code> และสั่งรันด้วย <code>pytest -q</code> (สรุปสั้น), <code>-x</code> (หยุดที่ Test แรกที่ล้ม) หรือ <code>-k คำ</code> (รันเฉพาะ Test ที่ชื่อมีคำนั้น) Test ที่ AI เขียนต้องรีวิวด้วย ระวัง 3 แบบที่พบบ่อย: Test ที่ไม่ได้ตรวจอะไรจริง (เช่น <code>is not None</code>), Test ที่คัดลอกสูตรเดียวกับ Implementation มาคำนวณค่าคาดหวัง (ผิดก็ผิดด้วยกัน) และ Test ที่ถูกแก้ให้ผ่าน (แนวคิดที่ 7) ใช้แนวคิดนี้กับทุกฟังก์ชันที่มี Acceptance Criteria ชัดเจน</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ครูที่ดีเขียนเฉลยข้อสอบไว้ก่อนแจกข้อสอบ แล้วเก็บเฉลยใส่ซองปิดผนึก ถ้าปล่อยให้นักเรียนเขียนเฉลยเองหลังทำข้อสอบเสร็จ คะแนนเต็มก็ไม่ได้พิสูจน์อะไร Test ที่เขียนและ Commit ก่อน Implementation คือเฉลยในซองปิดผนึก และ Test แบบ <code>is not None</code> ก็คือเฉลยที่เขียนว่า "ขอแค่ตอบมาก็ได้คะแนน"</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>ขั้นที่ 1: สั่งให้ AI เขียนเฉพาะ Test แล้วรีวิวว่าค่าคาดหวังทุกค่าตรงกับ <code>SPEC.md</code></p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Prompt · Test-first"><code class="language-markdown">อ่าน SPEC.md หัวข้อ Acceptance Criteria แล้วเขียน Test ด้วย pytest 9.1.1
+
+กติกา:
+- เขียนเฉพาะไฟล์ tests/test_duration.py ห้ามเขียนหรือแก้ Implementation
+- 1 Acceptance Criteria ต้องมีอย่างน้อย 1 Test และค่าที่คาดหวังต้องคัดลอกมาจาก Spec ตรงๆ
+- ใช้ parametrize พร้อม ids ภาษาอังกฤษสั้นๆ สำหรับกรณีที่คล้ายกัน
+- ใช้ pytest.raises สำหรับกรณีที่ต้อง Error
+- เพิ่ม Comment ภาษาไทยบอกว่าแต่ละ Test ตรวจ Acceptance Criteria ข้อไหน
+- ถ้า Spec ข้อไหนกำกวม ให้ถามก่อนเขียน อย่าเดา</code></pre>
+<p>ขั้นที่ 2: เพิ่มส่วน <code>[tool.pytest.ini_options]</code> ไว้บนสุดของ <code>pyproject.toml</code> เพื่อให้ Test ในโฟลเดอร์ <code>tests/</code> import ไฟล์ที่ Root ได้ แล้วบันทึก Test ที่รีวิวแล้วเป็น <code>tests/test_duration.py</code> (pytest ติดตั้งแล้วตอนเตรียมเครื่อง)</p>
+<pre class="code" data-env="file" data-label="TOML · pyproject.toml"><code class="language-ini">[tool.pytest.ini_options]
+# ให้ Test import ไฟล์ที่ Root ของโปรเจกต์ได้ และค้นหา Test ในโฟลเดอร์ tests
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/F = ข้อผิดพลาดพื้นฐาน, I = เรียง import, B = บั๊กที่พบบ่อย, UP = ไวยากรณ์ใหม่, S = ความปลอดภัย
+select = ["E", "F", "I", "B", "UP", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+# ไฟล์ Test ใช้ assert ได้ตามปกติ
+"tests/*" = ["S101"]</code></pre>
+<pre class="code" data-env="file" data-label="Python · tests/test_duration.py"><code class="language-python">"""Test ตาม Acceptance Criteria AC1-AC7 ใน SPEC.md (เขียนก่อนมี Implementation)"""
+
+import pytest
+
+from duration import average_minutes, format_minutes
+
+
+@pytest.mark.parametrize(
+    ("total", "expected"),
+    [
+        (45, "45 นาที"),  # AC1
+        (60, "1 ชม."),  # AC2
+        (95, "1 ชม. 35 นาที"),  # AC3
+        (0, "0 นาที"),  # AC4
+        (600, "10 ชม."),  # กรณีขอบเพิ่มเติม: หลายชั่วโมงพอดี
+    ],
+    ids=["ac1-under-hour", "ac2-exact-hour", "ac3-mixed", "ac4-zero", "extra-ten-hours"],
+)
+def test_format_minutes(total, expected):
+    assert format_minutes(total) == expected
+
+
+def test_format_minutes_negative_raises():
+    # AC5: ค่าติดลบต้อง Error พร้อมข้อความที่ตกลงกันไว้
+    with pytest.raises(ValueError, match="นาทีต้องไม่ติดลบ"):
+        format_minutes(-5)
+
+
+@pytest.mark.parametrize(
+    ("sessions", "expected"),
+    [
+        ([30, 60, 90], 60.0),  # AC6
+        ([45], 45.0),  # กรณีขอบ: เรียนครั้งเดียว
+        ([90, 45, 30], 55.0),  # ข้อมูลตัวอย่าง: Python 90, SQL 45, Git 30
+    ],
+    ids=["ac6-three-sessions", "extra-single", "extra-sample-data"],
+)
+def test_average_minutes(sessions, expected):
+    assert average_minutes(sessions) == expected
+
+
+def test_average_minutes_empty_returns_zero():
+    # AC7: รายการว่างต้องคืน 0.0 ไม่ใช่ทำให้โปรแกรมพัง
+    assert average_minutes([]) == 0.0</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/vibe-lab
+source .venv/bin/activate
+# Red: รัน Test ก่อนมี average_minutes ต้องล้ม และต้องล้มด้วยเหตุผลที่ถูก
+pytest -q</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>==================================== ERRORS ====================================
+___________________ ERROR collecting tests/test_duration.py ____________________
+ImportError while importing test module '/home/somchai/projects/vibe-lab/tests/test_duration.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_duration.py:5: in &lt;module&gt;
+    from duration import average_minutes, format_minutes
+E   ImportError: cannot import name 'average_minutes' from 'duration' (/home/somchai/projects/vibe-lab/duration.py)
+=========================== short test summary info ============================
+ERROR tests/test_duration.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.08s</code></pre>
+<p>นี่คือ Red ที่ถูกต้อง: บรรทัด <code>E   ImportError: cannot import name 'average_minutes'</code> บอกว่าล้มเพราะยังไม่มีฟังก์ชัน ไม่ได้ล้มเพราะ Test เขียนผิด ขั้นที่ 3: Commit Test ไว้ก่อน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Checkpoint: Commit Test ไว้ก่อน ถ้าภายหลังใครแก้ Test จะเห็นใน git diff ทันที
+git add pyproject.toml tests/test_duration.py
+git commit -m "test: เพิ่ม Test ตาม AC1-AC7 ก่อนเขียน average_minutes"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[main 43cc98b] test: เพิ่ม Test ตาม AC1-AC7 ก่อนเขียน average_minutes
+ 2 files changed, 49 insertions(+)
+ create mode 100644 tests/test_duration.py</code></pre>
+<p>ขั้นที่ 4: เพิ่ม <code>average_minutes</code> ลงใน <code>duration.py</code> (Implementation นี้คือฉบับที่ผ่านการรีวิวแล้ว ส่วนคำตอบแรกที่ AI ส่งมาเป็น Patch และวิธีรีวิวอยู่ในแนวคิดที่ 7) ไฟล์ทั้งไฟล์เป็นดังนี้</p>
+<pre class="code" data-env="file" data-label="Python · duration.py"><code class="language-python">def format_minutes(total: int) -&gt; str:
+    """แปลงจำนวนนาทีเป็นข้อความ เช่น 95 -&gt; '1 ชม. 35 นาที'"""
+    if total &lt; 0:
+        raise ValueError("นาทีต้องไม่ติดลบ")
+    hours, minutes = divmod(total, 60)
+    if hours == 0:
+        return f"{minutes} นาที"
+    if minutes == 0:
+        return f"{hours} ชม."
+    return f"{hours} ชม. {minutes} นาที"
+
+
+def average_minutes(sessions: list[int]) -&gt; float:
+    """คืนค่าเฉลี่ยนาทีต่อครั้ง ถ้าไม่มีข้อมูลเลยให้คืน 0.0 ตาม AC7"""
+    if not sessions:
+        return 0.0
+    return sum(sessions) / len(sessions)
+
+
+if __name__ == "__main__":
+    for m in (45, 60, 95):
+        print(m, "-&gt;", format_minutes(m))</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Green: รัน Test อีกครั้ง แล้วตรวจกับ Acceptance Criteria ทั้ง 7 ข้อ
+pytest -q
+python3 ac_check.py
+# ติ๊กขั้น 3 และ 4 ใน PLAN.md แล้ว Commit
+sed -i 's/- \[ \] ขั้น 3/- [x] ขั้น 3/; s/- \[ \] ขั้น 4/- [x] ขั้น 4/' PLAN.md
+git add duration.py PLAN.md
+git commit -m "feat: เพิ่ม average_minutes ให้ผ่าน AC6-AC7"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>..........                                                               [100%]
+10 passed in 0.02s
+[ผ่าน] AC1: format_minutes(45) -&gt; '45 นาที'
+[ผ่าน] AC2: format_minutes(60) -&gt; '1 ชม.'
+[ผ่าน] AC3: format_minutes(95) -&gt; '1 ชม. 35 นาที'
+[ผ่าน] AC4: format_minutes(0) -&gt; '0 นาที'
+[ผ่าน] AC5: format_minutes(-5) -&gt; ValueError
+[ผ่าน] AC6: average_minutes([30, 60, 90]) -&gt; 60.0
+[ผ่าน] AC7: average_minutes([]) -&gt; 0.0
+สรุป: ผ่าน 7/7 · ไม่ผ่าน 0 · รอทำ 0
+[main 9609105] feat: เพิ่ม average_minutes ให้ผ่าน AC6-AC7
+ 2 files changed, 9 insertions(+), 2 deletions(-)</code></pre>
+<p>ได้ <code>10 passed</code> (Test ของ format_minutes 6 ตัว และของ average_minutes 4 ตัว) และ <code>ac_check.py</code> จากแนวคิดที่ 3 ขึ้น <code>ผ่าน 7/7</code> แล้ว ขั้นที่ 5: พิสูจน์ว่า Test แบบอ่อนพิสูจน์อะไรไม่ได้ โดยสร้าง <code>tests/test_weak.py</code> แบบที่ AI มักเขียนมา แล้วทำให้ <code>average_minutes</code> ผิดโดยตั้งใจ (เทคนิคนี้เรียกว่า Mutation Check)</p>
+<pre class="code" data-env="file" data-label="Python · tests/test_weak.py (โค้ดที่ AI เขียน)"><code class="language-python">"""ตัวอย่าง Test ที่ AI เขียนมาแต่พิสูจน์อะไรไม่ได้ (ใช้ทดลองเท่านั้น ห้าม Commit)"""
+
+from duration import average_minutes
+
+
+def test_average_minutes_returns_something():
+    # ตรวจแค่ว่า "มีค่าคืนมา" ฟังก์ชันจะคำนวณผิดแค่ไหนก็ผ่าน
+    assert average_minutes([1, 2]) is not None</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ทำให้ average_minutes ผิดโดยตั้งใจ (คืน -1.0 เสมอ) แล้วดูว่า Test ไหนจับได้
+sed -i 's|return sum(sessions) / len(sessions)|return -1.0|' duration.py
+pytest -q tests/test_weak.py
+pytest -q --tb=no tests/test_duration.py
+# คืนโค้ดเดิมจาก Commit ล่าสุด ลบ Test ที่อ่อนทิ้ง แล้วยืนยันว่ากลับมาผ่านครบ
+git restore duration.py
+rm tests/test_weak.py
+pytest -q</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>.                                                                        [100%]
+1 passed in 0.01s
+......FFF.                                                               [100%]
+=========================== short test summary info ============================
+FAILED tests/test_duration.py::test_average_minutes[ac6-three-sessions] - ass...
+FAILED tests/test_duration.py::test_average_minutes[extra-single] - assert -1...
+FAILED tests/test_duration.py::test_average_minutes[extra-sample-data] - asse...
+3 failed, 7 passed in 0.02s
+..........                                                               [100%]
+10 passed in 0.02s</code></pre>
+<p>Test อ่อนยังผ่าน (<code>1 passed</code>) ทั้งที่ฟังก์ชันคืน <code>-1.0</code> เสมอ ส่วน Test ตาม Spec จับได้ 3 ตัว ข้อสังเกต: Test ของ AC7 ยังผ่านเพราะบรรทัด <code>if not sessions: return 0.0</code> ไม่ได้ถูกแก้ แปลว่า Test แต่ละตัวคุ้มกันคนละส่วนของโค้ด เวลาที่ pytest รายงานในเครื่องคุณจะต่างไปเล็กน้อย</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>pythonpath = ["."]</code> และ <code>testpaths = ["tests"]</code></td><td>เพิ่ม Root ของโปรเจกต์เข้า <code>sys.path</code> ตอนรัน Test จึง <code>from duration import ...</code> ได้ และให้ pytest หา Test เฉพาะในโฟลเดอร์ <code>tests</code></td></tr>
+<tr><td><code>@pytest.mark.parametrize(("total", "expected"), [...], ids=[...])</code></td><td>รันฟังก์ชัน Test เดียวกับข้อมูลหลายชุด ชุดละ 1 Test และตั้งชื่อแต่ละชุดด้วย <code>ids</code> เช่น <code>ac6-three-sessions</code> ให้อ่านผลง่าย</td></tr>
+<tr><td><code># AC1</code> ท้ายแต่ละชุดข้อมูล</td><td>โยง Test กลับไปหา Acceptance Criteria ใน Spec เมื่อ Test ล้มจะรู้ทันทีว่าผิดข้อไหน</td></tr>
+<tr><td><code>with pytest.raises(ValueError, match="นาทีต้องไม่ติดลบ"):</code></td><td>Test ผ่านเมื่อโค้ดในบล็อกโยน <code>ValueError</code> ที่ข้อความตรงกับ <code>match</code> ถ้าไม่มี Error จะล้มด้วย <code>DID NOT RAISE</code></td></tr>
+<tr><td><code>assert average_minutes([]) == 0.0</code></td><td>ตรวจ AC7 ตรง ๆ ด้วยค่าที่คัดลอกจาก Spec ไม่ใช่ค่าที่คำนวณด้วยสูตรเดียวกับ Implementation</td></tr>
+<tr><td><code>E   ImportError: cannot import name 'average_minutes'</code></td><td>บรรทัดที่ขึ้นต้นด้วย <code>E</code> คือสาเหตุจริงของความล้มเหลว ให้อ่านบรรทัดนี้ก่อนเสมอ</td></tr>
+<tr><td><code>if not sessions: return 0.0</code></td><td>Guard Clause กันรายการว่างก่อนหาร ทำให้ไม่เกิด <code>ZeroDivisionError</code> ตาม AC7</td></tr>
+<tr><td><code>sed -i 's|...|return -1.0|' duration.py</code></td><td>Mutation Check: ทำให้โค้ดผิดโดยตั้งใจ ถ้าไม่มี Test ตัวไหนล้ม แปลว่า Test ชุดนั้นไม่ได้คุ้มกันส่วนที่ถูกแก้</td></tr>
+<tr><td><code>pytest -q --tb=no</code></td><td>แสดงแค่สรุปว่า Test ไหนผ่านหรือล้ม ไม่แสดง Traceback เหมาะกับการดูภาพรวม</td></tr>
+<tr><td><code>assert average_minutes([1, 2]) is not None</code></td><td>Test อ่อน: ฟังก์ชันที่คืนตัวเลขใดก็ได้ผ่านหมด ไม่ได้ตรวจความถูกต้องเลย ต้องเปลี่ยนเป็น <code>== 1.5</code></td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>E   ModuleNotFoundError: No module named 'duration'</code></td><td>ไม่มี <code>pythonpath = ["."]</code> ใน <code>pyproject.toml</code> pytest จึงหาไฟล์ที่ Root ไม่เจอ</td><td>เพิ่มส่วน <code>[tool.pytest.ini_options]</code> ตามตัวอย่าง แล้วรัน pytest จาก Root ของโปรเจกต์</td></tr>
+<tr><td><code>no tests ran in 0.00s</code></td><td>ไฟล์ Test ไม่ได้ชื่อ <code>test_*.py</code> หรือฟังก์ชันไม่ได้ขึ้นต้นด้วย <code>test_</code> pytest จึงไม่เก็บ Test นั้น</td><td>ตั้งชื่อตามกติกาของ pytest แล้วรันใหม่</td></tr>
+<tr><td><code>Failed: DID NOT RAISE ValueError</code></td><td>Test คาดหวัง Error แต่โค้ดไม่โยน Error เช่น ส่งค่า <code>5</code> แทน <code>-5</code> หรือ Implementation ลืมตรวจค่าติดลบ</td><td>ตรวจว่า Input ใน Test ตรงกับ Spec แล้วค่อยแก้ Implementation</td></tr>
+<tr><td><code>assert (0.1 + 0.2) == 0.3</code> ล้ม</td><td>ทศนิยมแบบ float เก็บค่าไม่ตรงทุกหลัก จึงเทียบด้วย <code>==</code> ตรง ๆ ไม่ได้</td><td>ใช้ <code>pytest.approx(0.3)</code> เมื่อผลเป็นทศนิยมที่เกิดจากการคำนวณ</td></tr>
+<tr><td>Test ทุกตัวผ่านตั้งแต่รอบแรกที่ยังไม่มี Implementation</td><td>Test อ่อนหรือ Test ที่ตรวจผิดจุด เช่น <code>is not None</code> หรือ AI เขียน Implementation มาในไฟล์ Test ด้วย</td><td>Red ต้องเกิดก่อนเสมอ ถ้าไม่ล้มให้รีวิว Test ใหม่ และลอง Mutation Check</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>Commit Test แยกเป็น Commit ของตัวเองก่อนให้ AI เขียน Implementation และบอก AI ใน Prompt ว่าห้ามแก้ไฟล์ใน <code>tests/</code></li>
+<li>ยืนยัน Red ด้วยตาตัวเองทุกครั้ง และอ่านบรรทัด <code>E</code> ว่าล้มด้วยเหตุผลที่ถูก</li>
+<li>ค่าคาดหวังต้องมาจาก Spec หรือคำนวณมือไว้ก่อน ห้ามให้ Test เรียกสูตรเดียวกับ Implementation</li>
+<li>ลอง Mutation Check กับส่วนสำคัญของโค้ดเป็นครั้งคราว เพื่อพิสูจน์ว่า Test จับบั๊กได้จริง</li>
+<li>ใช้ <code>pytest -x</code> ตอนแก้บั๊กทีละตัว และ <code>pytest -k average</code> เมื่ออยากรันเฉพาะกลุ่ม</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ฝึกเขียนและตรวจคุณภาพของ Test เพิ่ม</p><ol>
+<li>เพิ่มชุดข้อมูล <code>([0, 0], 0.0)</code> พร้อม id <code>extra-all-zero</code> ใน parametrize ของ <code>test_average_minutes</code> แล้วรัน <code>pytest -q</code> ต้องได้ <code>11 passed</code></li>
+<li>รัน <code>pytest -q -k average</code> แล้วนับว่ามี Test ถูกเลือกกี่ตัว</li>
+<li>Mutation Check: เปลี่ยน <code>return 0.0</code> เป็น <code>return 1.0</code> ชั่วคราว รัน <code>pytest -q --tb=no</code> แล้วจดว่า Test ตัวไหนจับได้ จากนั้น <code>git restore duration.py</code></li>
+<li>แก้ Test อ่อน <code>is not None</code> ให้ตรวจค่าที่ถูกต้อง แล้วอธิบายเป็นประโยคเดียวว่าทำไมฉบับใหม่ดีกว่า</li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 7</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h3 id="s2-2-c07">อ่านและรีวิว Diff ที่ AI เขียนทีละบรรทัด</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>เครื่องมือ AI ส่งการแก้ไขมาในรูป <strong>Diff</strong> (Unified Diff) ซึ่งแสดงเฉพาะบรรทัดที่เปลี่ยน วิธีอ่าน: หัวไฟล์ <code>--- a/ไฟล์</code> คือของเดิม <code>+++ b/ไฟล์</code> คือของใหม่ แต่ละช่วงที่แก้เรียกว่า <strong>Hunk</strong> ขึ้นต้นด้วย <code>@@ -10,6 +13,14 @@</code> แปลว่า "ของเดิมเริ่มบรรทัด 10 ยาว 6 บรรทัด ของใหม่เริ่มบรรทัด 13 ยาว 14 บรรทัด" บรรทัดที่ขึ้นต้นด้วย <code>+</code> คือเพิ่ม, <code>-</code> คือลบ และเว้นวรรคคือบริบทที่ไม่เปลี่ยน</p>
+<p>รีวิวทุก Diff ด้วย Checklist 8 ข้อ: 1) ตรงตาม Spec ไหม 2) กรณีขอบ (ว่าง ศูนย์ ติดลบ) 3) ชื่อและ Type Hint 4) Import ที่ไม่ใช้ 5) <strong>มีการแก้ไฟล์ใน <code>tests/</code> หรือไม่</strong> 6) Dependency ใหม่ 7) Secret 8) ความปลอดภัย เครื่องมือที่ใช้คือ <code>git apply --check</code> (ลองว่า Patch ใช้ได้ไหมโดยยังไม่แก้ไฟล์), <code>git apply</code>, <code>git apply -R</code> (ถอน Patch) และ <code>git add -p</code> (เลือกรับทีละ Hunk) ใช้แนวคิดนี้กับทุกการแก้ของ AI ก่อน Commit หรือก่อน Merge</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Diff เหมือนสัญญาที่เปิดโหมดติดตามการแก้ไข (Track Changes) คนที่เซ็นโดยอ่านแค่สรุปท้ายสัญญาอาจพลาดคำว่า "ไม่" ที่ถูกแทรกเข้ามาคำเดียว ซึ่งกลับความหมายทั้งข้อ การรีวิว Diff คือการอ่านทุกบรรทัดสีแดงและสีเขียว และระวังเป็นพิเศษเมื่ออีกฝ่ายแก้ข้อที่ว่าด้วยวิธีตรวจรับงาน (ไฟล์ Test)</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>สถานการณ์: ตอนทำขั้นที่ 4 ของแนวคิดที่ 6 คำตอบแรกของ AI ส่งมาเป็น Patch ด้านล่าง ซึ่ง AI สร้างจาก Commit <code>test:</code> (ก่อนมี <code>average_minutes</code>) บันทึกเป็นไฟล์ <code>review/ai-average.patch</code> (สร้างโฟลเดอร์ <code>review</code> ก่อน) แล้วอ่านทีละบรรทัดก่อนรันอะไรทั้งนั้น</p>
+<pre class="code" data-env="file" data-label="Diff · ai-average.patch (โค้ดที่ AI เขียน)"><code class="language-plaintext">diff --git a/duration.py b/duration.py
+index 2cfc95b..aaf04cd 100644
+--- a/duration.py
++++ b/duration.py
+@@ -1,3 +1,6 @@
++import os
++
++
+ def format_minutes(total: int) -&gt; str:
+     """แปลงจำนวนนาทีเป็นข้อความ เช่น 95 -&gt; '1 ชม. 35 นาที'"""
+     if total &lt; 0:
+@@ -10,6 +13,14 @@ def format_minutes(total: int) -&gt; str:
+     return f"{hours} ชม. {minutes} นาที"
+
+
++def average_minutes(sessions: list[int]) -&gt; float:
++    """คืนค่าเฉลี่ยนาทีต่อครั้งของการเรียน"""
++    total = 0
++    for i in range(1, len(sessions)):
++        total += sessions[i]
++    return total / len(sessions)
++
++
+ if __name__ == "__main__":
+     for m in (45, 60, 95):
+         print(m, "-&gt;", format_minutes(m))
+diff --git a/tests/test_duration.py b/tests/test_duration.py
+index 1638ec4..66519d8 100644
+--- a/tests/test_duration.py
++++ b/tests/test_duration.py
+@@ -40,5 +40,6 @@ def test_average_minutes(sessions, expected):
+
+
+ def test_average_minutes_empty_returns_zero():
+-    # AC7: รายการว่างต้องคืน 0.0 ไม่ใช่ทำให้โปรแกรมพัง
+-    assert average_minutes([]) == 0.0
++    # AC7: รายการว่างหารด้วยศูนย์ไม่ได้ จึงต้อง Error
++    with pytest.raises(ZeroDivisionError):
++        average_minutes([])</code></pre>
+<p>บน <code>main</code> มี Implementation ที่ถูกต้องแล้ว เราจึงตรวจ Patch บน Branch แยกที่แตกจาก Commit ที่ AI ใช้เป็นฐาน เหมือนการรีวิว Branch ที่ AI Agent ส่งมา</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/vibe-lab
+source .venv/bin/activate
+# Commit ล่าสุด 2 อัน: Commit feat อยู่ต่อจาก Commit test
+git log --oneline -2
+# Patch ของ AI สร้างจาก Commit test (ยังไม่มี average_minutes) จึงสร้าง Branch ฝึกรีวิวจาก Commit นั้น
+git switch -c ai-review HEAD~1
+# 1) ตรวจว่า Patch ใช้กับโค้ดบน Branch นี้ได้หรือไม่ (ยังไม่แก้ไฟล์จริง)
+git apply --check review/ai-average.patch &amp;&amp; echo "patch ใช้ได้"
+# 2) Apply จริง แล้วดูว่าแตะไฟล์ไหนบ้าง
+git apply review/ai-average.patch
+git diff --stat
+# 3) ให้เครื่องช่วยตรวจ: Test ทั้งหมด และ ruff
+pytest -q --tb=line
+ruff check --output-format concise .</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>9609105 feat: เพิ่ม average_minutes ให้ผ่าน AC6-AC7
+43cc98b test: เพิ่ม Test ตาม AC1-AC7 ก่อนเขียน average_minutes
+Switched to a new branch 'ai-review'
+patch ใช้ได้
+ duration.py            | 11 +++++++++++
+ tests/test_duration.py |  5 +++--
+ 2 files changed, 14 insertions(+), 2 deletions(-)
+......FFF.                                                               [100%]
+=================================== FAILURES ===================================
+E   assert 50.0 == 60.0
+     +  where 50.0 = average_minutes([30, 60, 90])
+/home/somchai/projects/vibe-lab/tests/test_duration.py:39: assert 50.0 == 60.0
+E   assert 0.0 == 45.0
+     +  where 0.0 = average_minutes([45])
+/home/somchai/projects/vibe-lab/tests/test_duration.py:39: assert 0.0 == 45.0
+E   assert 25.0 == 55.0
+     +  where 25.0 = average_minutes([90, 45, 30])
+/home/somchai/projects/vibe-lab/tests/test_duration.py:39: assert 25.0 == 55.0
+=========================== short test summary info ============================
+FAILED tests/test_duration.py::test_average_minutes[ac6-three-sessions] - ass...
+FAILED tests/test_duration.py::test_average_minutes[extra-single] - assert 0....
+FAILED tests/test_duration.py::test_average_minutes[extra-sample-data] - asse...
+3 failed, 7 passed in 0.02s
+duration.py:1:8: F401 [*] `os` imported but unused
+Found 1 error.
+[*] 1 fixable with `--fix`.</code></pre>
+<p>สังเกตว่า Test ของ AC7 <strong>ผ่าน</strong> ทั้งที่ <code>average_minutes([])</code> หารด้วยศูนย์ เพราะ Patch แก้ Test ให้คาดหวัง <code>ZeroDivisionError</code> นี่คือเหตุผลที่ต้องอ่าน Diff ด้วยตา แม้ Test จะช่วยจับได้บางส่วน ผลการรีวิวที่เขียนกลับไปให้ AI หรือทีม:</p>
+<ol>
+<li><strong>[สูง] duration.py บรรทัด 19:</strong> <code>range(1, len(sessions))</code> ข้ามค่าแรกเสมอ ได้ 50.0 แทน 60.0 ขัดกับ AC6 และได้ 0.0 เมื่อมีข้อมูลตัวเดียว ให้ใช้ <code>sum(sessions)</code></li>
+<li><strong>[สูง] duration.py บรรทัด 21:</strong> รายการว่างทำให้ <code>ZeroDivisionError</code> ขัดกับ AC7 ที่ต้องคืน <code>0.0</code> ต้องมี Guard <code>if not sessions: return 0.0</code></li>
+<li><strong>[สูง] tests/test_duration.py บรรทัด 43–45:</strong> แก้ Test ของ AC7 ให้รับบั๊ก ผิดกติกา "ห้ามแก้ไฟล์ใน tests/" ใน <code>AGENTS.md</code> ปฏิเสธ Hunk นี้ทั้งหมด</li>
+<li><strong>[ต่ำ] duration.py บรรทัด 1:</strong> <code>import os</code> ไม่ได้ใช้ (ruff <code>F401</code>)</li>
+<li><strong>สรุป:</strong> ปฏิเสธทั้ง Patch แล้วเขียน Implementation ใหม่ตามข้อ 1–2 โดยไม่แตะ <code>tests/</code></li>
+</ol>
+<p>ถ้าอยากได้ความเห็นที่สอง ให้ส่ง Diff ให้ AI อีกตัว (หรือ Session ใหม่) รีวิวด้วย Prompt ด้านล่าง แล้วเทียบกับผลรีวิวของเรา (คำตอบของ AI จะต่างไปทุกครั้ง และอาจพลาดหรือรายงานเกินจริงได้)</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Prompt · ขอความเห็นที่สอง (Second-opinion Review)"><code class="language-markdown">คุณคือ Senior Python Reviewer ที่เข้มงวด
+รีวิว Diff ด้านล่างตาม Checklist นี้ และตอบเป็นตาราง: บรรทัด | ปัญหา | ระดับ (สูง/กลาง/ต่ำ) | วิธีแก้
+1. ตรงกับ Acceptance Criteria ใน SPEC.md หรือไม่
+2. กรณีขอบ: ค่าว่าง ศูนย์ ติดลบ None ค่าใหญ่มาก
+3. Error Handling: มีการกลืน Exception หรือไม่
+4. ความปลอดภัย: SQL, Secret, การตรวจ Input
+5. Dependency ใหม่ที่ไม่จำเป็น
+6. การแก้เกินขอบเขต การลบโค้ดเดิม หรือการแก้ Test
+7. ชื่อและความอ่านง่าย
+8. Test ที่ยังขาด
+
+ถ้าไม่พบปัญหาในข้อไหน ให้เขียนว่า "ไม่พบ" ห้ามเดาปัญหาที่ไม่มีหลักฐานใน Diff
+
+[วาง Diff ที่นี่]</code></pre>
+<p>ถอน Patch ทั้งก้อน แล้วเพิ่ม Implementation ตามผลรีวิวลงใน <code>duration.py</code> ต่อจาก <code>format_minutes</code> ด้วยมือ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># 4) ปฏิเสธ Patch ทั้งก้อน: ถอนทุก Hunk ที่ Apply ไป แล้วตรวจว่าไฟล์ที่ Track ไว้กลับเหมือนเดิม
+git apply -R review/ai-average.patch
+git status --short</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>?? review/</code></pre>
+<pre class="code" data-env="file" data-label="Python · duration.py (แก้แล้ว: เพิ่มฟังก์ชันนี้ต่อจาก format_minutes)"><code class="language-python">def average_minutes(sessions: list[int]) -&gt; float:
+    """คืนค่าเฉลี่ยนาทีต่อครั้ง ถ้าไม่มีข้อมูลเลยให้คืน 0.0 ตาม AC7"""
+    if not sessions:
+        return 0.0
+    return sum(sessions) / len(sessions)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># 5) หลังเพิ่ม Implementation ตามผลรีวิว: Test ต้องผ่านครบ และแก้แค่ duration.py
+pytest -q
+git diff --stat
+# 6) เทียบกับ main ถ้าเหมือนกันทุกบรรทัดจะพิมพ์ข้อความยืนยัน
+git diff --quiet main -- duration.py tests/ &amp;&amp; echo "duration.py และ tests/ เหมือนกับบน main ทุกบรรทัด"
+# 7) main มีโค้ดนี้อยู่แล้ว จึงทิ้งการแก้บน Branch ฝึก กลับไปที่ main แล้วลบ Branch
+git restore duration.py
+git switch main
+git branch -d ai-review</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>..........                                                               [100%]
+10 passed in 0.02s
+ duration.py | 7 +++++++
+ 1 file changed, 7 insertions(+)
+duration.py และ tests/ เหมือนกับบน main ทุกบรรทัด
+Switched to branch 'main'
+Deleted branch ai-review (was 43cc98b).</code></pre>
+<p>ผลรีวิวพาเรามาถึงโค้ดเดียวกับที่ Commit ไว้บน <code>main</code> ตั้งแต่แนวคิดที่ 6 สุดท้ายบันทึกการตัดสินใจลง <code>AI_LOG.md</code> ตามแม่แบบใน Part 1 (รหัส Commit และวันที่ให้ใช้ของเครื่องคุณ)</p>
+<pre class="code" data-env="file" data-label="Markdown · AI_LOG.md"><code class="language-markdown"># AI_LOG.md: บันทึกการใช้ AI ในโปรเจกต์ vibe-lab
+
+## 2026-10-19 · ขั้น 4 · average_minutes
+- เครื่องมือ: AI Chat Assistant (ตอบกลับเป็น Diff บันทึกไว้ที่ review/ai-average.patch)
+- Prompt: อ่าน SPEC.md แล้วเขียน average_minutes ให้ผ่าน tests/test_duration.py ห้ามแก้ Test
+- AI เสนอ: average_minutes แบบวนลูปเอง, import os และแก้ Test ของ AC7 ให้คาดหวัง ZeroDivisionError
+- การตัดสินใจ: ปฏิเสธ (ถอนด้วย git apply -R แล้วเขียน Implementation ใหม่ตามผลรีวิว)
+- เหตุผล: ลูปเริ่มที่ 1 ทำให้ค่าเฉลี่ยผิด (50.0 แทน 60.0), รายการว่างหารด้วยศูนย์, import os ไม่ได้ใช้, แก้ Test จนขัดกับ AC7
+- ตรวจสอบด้วย: pytest -q ได้ 10 passed และ ruff check . ผ่าน
+- Commit: 9609105 (Implementation ที่ถูกต้องบน main)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># บันทึกการตัดสินใจลง AI_LOG.md แล้ว Commit พร้อม Patch ที่รีวิวไว้เป็นหลักฐาน
+git add AI_LOG.md review/ai-average.patch
+git commit -m "docs: บันทึกผลรีวิว Patch average_minutes จาก AI"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[main f153914] docs: บันทึกผลรีวิว Patch average_minutes จาก AI
+ 2 files changed, 49 insertions(+)
+ create mode 100644 AI_LOG.md
+ create mode 100644 review/ai-average.patch</code></pre>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>diff --git a/... b/...</code> และ <code>index 2cfc95b..aaf04cd</code></td><td>หัวของแต่ละไฟล์ใน Patch บอกชื่อไฟล์ และรหัสเนื้อหา (Blob) ของไฟล์ก่อนและหลังแก้</td></tr>
+<tr><td><code>@@ -10,6 +13,14 @@ def format_minutes(...)</code></td><td>หัว Hunk: ของเดิมบรรทัด 10 จำนวน 6 บรรทัด กลายเป็นบรรทัด 13 จำนวน 14 บรรทัด ข้อความท้ายบอกว่าอยู่ใกล้ฟังก์ชันไหน</td></tr>
+<tr><td>บรรทัดขึ้นต้นด้วย <code>+</code> / <code>-</code> / เว้นวรรค</td><td>เพิ่ม / ลบ / บริบทที่ไม่เปลี่ยน ซึ่ง Git ใช้หาตำแหน่งที่จะแก้ ถ้าบริบทไม่ตรงกับไฟล์ปัจจุบัน Patch จะใช้ไม่ได้</td></tr>
+<tr><td><code>git switch -c ai-review HEAD~1</code></td><td>สร้าง Branch ใหม่จาก Commit ก่อนหน้า 1 อัน (Commit <code>test:</code>) และย้ายไปอยู่บน Branch นั้น งานบน <code>main</code> จึงไม่ถูกแตะ</td></tr>
+<tr><td><code>git apply --check ... &amp;&amp; echo "patch ใช้ได้"</code></td><td>ทดลองแบบไม่แก้ไฟล์ ถ้าใช้ได้จะเงียบและได้ Exit Code 0 คำสั่ง <code>echo</code> หลัง <code>&amp;&amp;</code> จึงทำงาน</td></tr>
+<tr><td><code>git apply review/ai-average.patch</code></td><td>แก้ไฟล์ตาม Patch จริงใน Working Tree ยังไม่ Stage และยังไม่ Commit</td></tr>
+<tr><td><code>git diff --stat</code> เห็น <code>tests/test_duration.py</code></td><td>สัญญาณเตือนสีแดง: งานที่ขอให้เขียนแค่ Implementation แต่มีไฟล์ Test ถูกแตะ</td></tr>
+<tr><td><code>pytest -q --tb=line</code></td><td>แสดงเหตุที่ล้มแบบสั้น Test ละไม่กี่บรรทัด เช่น <code>assert 50.0 == 60.0</code> พร้อมไฟล์และบรรทัด</td></tr>
+<tr><td><code>git apply -R review/ai-average.patch</code></td><td><code>-R</code> (Reverse) ถอนการแก้ของ Patch ทั้งก้อน ไฟล์ที่ Track ไว้กลับเหมือนก่อน Apply</td></tr>
+<tr><td><code>git diff --quiet main -- duration.py tests/</code></td><td>เทียบ Working Tree กับ <code>main</code> เฉพาะไฟล์ที่ระบุ <code>--quiet</code> ไม่แสดงผล แต่ให้ Exit Code 0 เมื่อไม่มีความต่าง</td></tr>
+<tr><td><code>git branch -d ai-review</code></td><td>ลบ Branch ที่ไม่ต้องใช้แล้ว <code>-d</code> ยอมลบเฉพาะ Branch ที่ไม่มี Commit ตกค้าง จึงปลอดภัย</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>error: patch failed: duration.py:10</code> / <code>error: duration.py: patch does not apply</code></td><td>Apply บน <code>main</code> ที่มี <code>average_minutes</code> แล้ว บริบทของ Hunk จึงไม่ตรงกับไฟล์ปัจจุบัน</td><td>Apply บนโค้ดฐานเดียวกับที่ AI ใช้สร้าง Patch หรือสั่ง AI ให้สร้าง Patch ใหม่จากโค้ดปัจจุบัน</td></tr>
+<tr><td><code>error: corrupt patch at line 13</code></td><td>คัดลอก Patch มาไม่ครบ เช่น ตัดท้ายหาย หรือ Editor ลบบรรทัดว่างของบริบทออก</td><td>บันทึก Patch ทั้งก้อนเป็นไฟล์โดยตรง แล้วตรวจด้วย <code>git apply --check</code> ก่อนทุกครั้ง</td></tr>
+<tr><td><code>error: patch failed: tests/test_duration.py:40</code> ตอนสั่ง <code>git apply -R</code></td><td>สั่งถอน Patch ที่ยังไม่ได้ Apply หรือถอนซ้ำเป็นรอบที่สอง</td><td>ดู <code>git status --short</code> และ <code>git diff --stat</code> ก่อนว่า Patch ถูก Apply อยู่จริง</td></tr>
+<tr><td><code>error: Your local changes to the following files would be overwritten by checkout:</code> ตามด้วย <code>Aborting</code></td><td>สลับ Branch ขณะที่ยังมีไฟล์แก้ค้างอยู่</td><td><code>git restore ไฟล์</code> หรือ <code>git stash</code> ก่อน <code>git switch</code></td></tr>
+<tr><td><code>error: the branch 'ai-review' is not fully merged.</code></td><td>Branch มี Commit ที่ยังไม่อยู่บน <code>main</code> Git จึงกันไม่ให้ลบด้วย <code>-d</code></td><td>ดูด้วย <code>git log main..ai-review</code> ก่อน ถ้าแน่ใจว่าไม่ต้องใช้แล้วจึงใช้ <code>git branch -D</code></td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ดู <code>git diff --stat</code> ก่อนอ่านละเอียด ถ้ามีไฟล์ใน <code>tests/</code>, <code>requirements.txt</code> หรือไฟล์ตั้งค่าโผล่มา ให้ถามเหตุผลก่อนเสมอ</li>
+<li>ทดลอง Patch จาก AI บน Branch แยก หรือหลังมี Commit ล่าสุดแล้วเท่านั้น จะถอนได้ทันทีถ้าไม่ผ่าน</li>
+<li>เมื่อ Patch มีทั้งส่วนดีและส่วนเสีย ให้ Apply แล้วใช้ <code>git add -p</code> เลือก Stage ทีละ Hunk (ตอบ <code>y</code> รับ / <code>n</code> ไม่รับ) จากนั้น <code>git restore</code> ส่วนที่ไม่รับ</li>
+<li>เขียนผลรีวิวเป็นข้อ ๆ ระบุไฟล์ บรรทัด ระดับความรุนแรง และวิธีแก้ แล้วบันทึกการตัดสินใจลง <code>AI_LOG.md</code></li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ฝึกรับ Patch บางส่วนด้วย <code>git add -p</code></p><ol>
+<li>คัดลอก Patch ไปไว้นอก Repository ก่อนด้วย <code>cp review/ai-average.patch /tmp/ai-average.patch</code> (Commit ที่จะย้อนไปยังไม่มีโฟลเดอร์ <code>review</code>) แล้วสร้าง Branch ฝึกด้วย <code>git switch -c ai-review2 HEAD~2</code> (ย้อน 2 Commit เพราะมี Commit <code>docs:</code> เพิ่มมา) และ <code>git apply /tmp/ai-average.patch</code></li>
+<li>รัน <code>git add -p</code> ตอบ <code>y</code> กับ 2 Hunk ของ <code>duration.py</code> และ <code>n</code> กับ Hunk ของ <code>tests/test_duration.py</code> แล้วตรวจด้วย <code>git status --short</code> ต้องเห็น <code>M  duration.py</code> (Stage แล้ว) และ <code> M tests/test_duration.py</code> (ยังไม่ Stage) จากนั้น <code>git restore tests/test_duration.py</code> แล้วรัน <code>pytest -q --tb=no</code> ต้องได้ <code>4 failed, 6 passed</code> เพราะ Test ของ AC7 กลับมาจับ <code>ZeroDivisionError</code> ได้</li>
+<li>ส่ง Patch ให้ AI รีวิวด้วย Prompt ความเห็นที่สอง แล้วเทียบว่า AI พบครบ 4 ข้อแบบที่เราพบหรือไม่</li>
+<li>ล้างงานด้วย <code>git restore --staged duration.py</code>, <code>git restore duration.py</code>, <code>git switch main</code> และ <code>git branch -d ai-review2</code></li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 8</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h3 id="s2-2-c08">Debug ร่วมกับ AI อย่างเป็นระบบ: ให้ข้อมูลครบ ทำซ้ำได้ แล้วล็อกด้วย Regression Test</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>การพิมพ์บอก AI ว่า "มันพัง ช่วยแก้หน่อย" ทำให้ AI ต้องเดา และมักได้วิธีแก้ที่กลบอาการแทนการแก้สาเหตุ ขั้นตอนที่ได้ผลคือ: <strong>1) ทำซ้ำให้ได้</strong> ด้วยคำสั่งเดียว <strong>2) อ่าน Traceback จากล่างขึ้นบน</strong> บรรทัดล่างสุดคือชนิด Error และเฟรมสุดท้ายที่อยู่ในไฟล์ของเราคือจุดเกิดเหตุ <strong>3) ส่งข้อมูลครบ</strong> ให้ AI: คำสั่งที่รัน, Traceback เต็ม, ไฟล์ที่เกี่ยวข้อง, ผลที่คาดหวังกับผลจริง และสิ่งที่ลองแล้ว (ลบ Secret ออกก่อน ดูแนวคิดที่ 11) <strong>4) ขอสมมติฐานก่อนขอโค้ดแก้</strong> แล้วพิสูจน์ <strong>5) เขียน Regression Test</strong> ที่จับบั๊กนี้ <strong>6) แก้ แล้ว Commit พร้อม Test</strong></p>
+<p>แนวคิดนี้เริ่มแอป Flask ที่จะโตต่อในแนวคิดที่ 8–12: <code>app.py</code> มี <code>GET /api/sessions</code> และ <code>POST /api/sessions</code> เก็บข้อมูลในตาราง <code>sessions(id, topic, minutes)</code> ของ SQLite แอปสร้างผ่านฟังก์ชัน Factory <code>create_app(db_path)</code> Test จึงส่งไฟล์ฐานข้อมูลชั่วคราวใน <code>tmp_path</code> ได้โดยไม่แตะ <code>studylog.db</code> จริง ใช้ขั้นตอนนี้ทุกครั้งที่เจอบั๊กที่สาเหตุไม่ชัดเจนในการอ่านรอบแรก</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ไปหาหมอแล้วบอกแค่ว่า "ไม่สบาย" หมอก็ได้แต่จ่ายยาแก้ปวด แต่ถ้าบอกอาการ เวลาที่เริ่ม ยาที่กินไปแล้ว และยื่นผลตรวจเลือด หมอจะตั้งสมมติฐาน ส่งตรวจเพิ่มเพื่อยืนยัน แล้วรักษาที่ต้นเหตุ จากนั้นนัดตรวจซ้ำ ซึ่งก็คือ Regression Test ที่คอยเตือนถ้าโรคเดิมกลับมา</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>สถานการณ์: AI เขียน <code>app.py</code> เวอร์ชันแรกให้ และเรารับไปแล้ว ต่อมาผู้ใช้รายงานว่าส่ง <code>{"topic": "SQL", "minutes": "45 นาที"}</code> หรือไม่ส่ง <code>minutes</code> แล้วได้ 500 บันทึกโค้ดของ AI เป็น <code>app.py</code> (Flask ติดตั้งแล้วตอนเตรียมเครื่อง)</p>
+<pre class="code" data-env="file" data-label="Python · app.py (โค้ดที่ AI เขียน)"><code class="language-python">"""API บันทึกเวลาเรียน: เก็บข้อมูลการเรียนแต่ละครั้งลง SQLite"""
+
+import sqlite3
+
+from flask import Flask, jsonify, request
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS sessions (
+    id INTEGER PRIMARY KEY,
+    topic TEXT NOT NULL,
+    minutes INTEGER NOT NULL
+)
+"""
+
+
+def create_app(db_path: str = "studylog.db") -&gt; Flask:
+    """สร้างแอป Flask ที่เก็บข้อมูลในไฟล์ SQLite ตาม db_path"""
+    app = Flask(__name__)
+    conn = sqlite3.connect(db_path)
+    conn.execute(SCHEMA)
+    conn.close()
+
+    @app.get("/api/sessions")
+    def list_sessions():
+        conn = sqlite3.connect(db_path)
+        rows = conn.execute("SELECT id, topic, minutes FROM sessions ORDER BY id").fetchall()
+        conn.close()
+        return jsonify([{"id": r[0], "topic": r[1], "minutes": r[2]} for r in rows])
+
+    @app.post("/api/sessions")
+    def add_session():
+        data = request.get_json()
+        topic = data["topic"]
+        minutes = int(data["minutes"])
+        conn = sqlite3.connect(db_path)
+        cur = conn.execute("INSERT INTO sessions (topic, minutes) VALUES (?, ?)", (topic, minutes))
+        conn.commit()
+        conn.close()
+        return jsonify({"id": cur.lastrowid, "topic": topic, "minutes": minutes}), 201
+
+    return app</code></pre>
+<p>ถ้าอยากลองกับเซิร์ฟเวอร์จริง ให้รันคำสั่งด้านล่างใน 2 Terminal (ไม่บังคับ) Terminal แรกจะแสดงที่อยู่ <code>http://127.0.0.1:5000</code> และ Traceback แบบเดียวกับด้านล่างเมื่อมี Request ผิดรูปแบบ ส่วน <code>curl -i</code> จะแสดงสถานะ 500 ในบรรทัดแรก ข้อความของเซิร์ฟเวอร์ต่างไปตามเวลาและเวอร์ชัน บทเรียนจึงใช้ Test Client ของ Flask แทนเพื่อให้ได้ผลที่ทำซ้ำได้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># (ไม่บังคับ) Terminal ที่ 1: เปิดเซิร์ฟเวอร์สำหรับพัฒนา กด Ctrl+C เพื่อปิด
+flask --app app run
+# Terminal ที่ 2: ส่งข้อมูลผิดรูปแบบด้วย curl แล้วดู Status Code
+curl -i -X POST http://127.0.0.1:5000/api/sessions -H "Content-Type: application/json" -d '{"topic": "SQL", "minutes": "45 นาที"}'</code></pre>
+<p>ขั้นที่ 1: ทำซ้ำให้ได้ด้วยคำสั่งเดียว</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/vibe-lab
+source .venv/bin/activate
+# app.py เวอร์ชันแรกจาก AI ถูก Commit ไปแล้ว (จำลองว่ารับมาก่อนหน้านี้)
+git add app.py
+git commit -m "feat: เพิ่ม API บันทึกเวลาเรียน (เวอร์ชันแรกจาก AI)"
+# ทำซ้ำบั๊กด้วย Test Client ของ Flask โดยไม่ต้องเปิดเซิร์ฟเวอร์ ใช้ฐานข้อมูลชั่วคราวใน /tmp
+python3 - &lt;&lt;'PY'
+from app import create_app
+
+client = create_app("/tmp/repro.db").test_client()
+resp = client.post("/api/sessions", json={"topic": "SQL", "minutes": "45 นาที"})
+print("status =", resp.status_code)
+PY</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[main d98acc8] feat: เพิ่ม API บันทึกเวลาเรียน (เวอร์ชันแรกจาก AI)
+ 1 file changed, 41 insertions(+)
+ create mode 100644 app.py
+[2026-10-28 17:38:05,870] ERROR in app: Exception on /api/sessions [POST]
+Traceback (most recent call last):
+  File "/home/somchai/projects/vibe-lab/.venv/lib/python3.12/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/somchai/projects/vibe-lab/.venv/lib/python3.12/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/somchai/projects/vibe-lab/.venv/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/somchai/projects/vibe-lab/.venv/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/somchai/projects/vibe-lab/app.py", line 34, in add_session
+    minutes = int(data["minutes"])
+              ^^^^^^^^^^^^^^^^^^^^
+ValueError: invalid literal for int() with base 10: '45 นาที'
+status = 500</code></pre>
+<p>อ่านจากล่างขึ้นบน: บรรทัดสุดท้ายคือ <code>ValueError</code> และเฟรมสุดท้ายที่อยู่ในไฟล์ของเราคือ <code>app.py</code> บรรทัด 34 <code>int(data["minutes"])</code> เฟรมของ Flask ด้านบนเป็นแค่ทางผ่าน วันเวลาในวงเล็บเหลี่ยมจะเป็นของเครื่องคุณ ขั้นที่ 2: ส่งข้อมูลให้ AI ครบแบบนี้</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Prompt · Debug แบบข้อมูลครบ"><code class="language-markdown">ช่วยหาสาเหตุของบั๊กนี้ ยังไม่ต้องเขียนโค้ดแก้
+
+## เป้าหมาย
+POST /api/sessions ต้องบันทึกการเรียน ถ้าข้อมูลผิดต้องตอบ 400 พร้อมข้อความภาษาไทย
+
+## วิธีทำซ้ำ
+[สคริปต์หรือคำสั่งที่ทำให้เกิดบั๊กได้ทุกครั้ง]
+
+## ผลที่คาดหวัง
+{"topic": "SQL", "minutes": "45 นาที"} -&gt; 400 และ {"error": "minutes ต้องเป็นจำนวนเต็มที่มากกว่า 0"}
+
+## ผลที่ได้จริง (Traceback ฉบับเต็ม ลบ Secret ออกแล้ว)
+[วาง Traceback ทั้งหมดที่นี่ ไม่ตัดบรรทัดใดออก]
+
+## สภาพแวดล้อม
+Python 3.12.3 บน Ubuntu 24.04 (WSL2), Flask 3.1.3, pytest 9.1.1
+
+## โค้ดที่เกี่ยวข้อง
+[วางเนื้อหา app.py ทั้งไฟล์]
+
+## สิ่งที่ลองแล้ว
+ส่ง minutes เป็นตัวเลข 45 แล้วได้ 201 จึงคิดว่าปัญหาอยู่ที่การแปลงค่า minutes
+
+ขอ: (1) สมมติฐาน 2–3 ข้อ เรียงจากน่าจะเป็นที่สุด พร้อมวิธีพิสูจน์แต่ละข้อ
+(2) สาเหตุที่แท้จริง (3) Regression Test ด้วย pytest ที่จับบั๊กนี้
+(4) วิธีแก้ที่ตรงกับผลที่คาดหวัง โดยห้ามแก้ Test ที่มีอยู่</code></pre>
+<p>ขั้นที่ 3: เขียน Regression Test ก่อนแก้ (ครอบคลุมกรณีที่รายงานมา และกรณีขอบที่สมมติฐานชี้) บันทึกเป็น <code>tests/test_app.py</code> แล้วรันกับโค้ดเดิม</p>
+<pre class="code" data-env="file" data-label="Python · tests/test_app.py"><code class="language-python">"""Test ของ API บันทึกเวลาเรียน ใช้ฐานข้อมูลชั่วคราวใน tmp_path ทุกครั้ง"""
+
+import pytest
+
+from app import create_app
+
+
+@pytest.fixture
+def client(tmp_path):
+    app = create_app(str(tmp_path / "test.db"))
+    # TESTING = True ทำให้ Exception ในแอปโผล่ออกมาใน pytest แทนที่จะกลายเป็น 500 เงียบๆ
+    app.config["TESTING"] = True
+    return app.test_client()
+
+
+def test_add_and_list_sessions(client):
+    resp = client.post("/api/sessions", json={"topic": "Python", "minutes": 90})
+    assert resp.status_code == 201
+    assert client.get("/api/sessions").get_json() == [{"id": 1, "topic": "Python", "minutes": 90}]
+
+
+# Regression Test: ข้อมูลผิดต้องได้ 400 พร้อมข้อความภาษาไทย ไม่ใช่ 500
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        ({"topic": "SQL", "minutes": "45 นาที"}, "minutes ต้องเป็นจำนวนเต็มที่มากกว่า 0"),
+        ({"topic": "SQL"}, "ต้องระบุ minutes"),
+        ({"topic": "SQL", "minutes": -5}, "minutes ต้องเป็นจำนวนเต็มที่มากกว่า 0"),
+        ({"topic": "SQL", "minutes": True}, "minutes ต้องเป็นจำนวนเต็มที่มากกว่า 0"),
+        ({"minutes": 45}, "ต้องระบุ topic"),
+    ],
+    ids=["minutes-text", "minutes-missing", "minutes-negative", "minutes-bool", "topic-missing"],
+)
+def test_bad_payload_returns_400(client, payload, message):
+    resp = client.post("/api/sessions", json=payload)
+    assert resp.status_code == 400
+    assert resp.get_json() == {"error": message}
+
+
+def test_body_not_json_returns_400(client):
+    resp = client.post("/api/sessions", data="topic=SQL&amp;minutes=45")
+    assert resp.status_code == 400
+    assert resp.get_json() == {"error": "ต้องส่งข้อมูลเป็น JSON object"}
+
+
+def test_bad_payload_is_not_saved(client):
+    client.post("/api/sessions", json={"topic": "SQL", "minutes": -5})
+    assert client.get("/api/sessions").get_json() == []</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># รัน Regression Test กับโค้ดเดิมของ AI ต้องล้มให้เห็นก่อนแก้
+pytest -q --tb=line tests/test_app.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>.FFFFFFF                                                                 [100%]
+=================================== FAILURES ===================================
+E   ValueError: invalid literal for int() with base 10: '45 นาที'
+/home/somchai/projects/vibe-lab/app.py:34: ValueError: invalid literal for int() with base 10: '45 นาที'
+E   KeyError: 'minutes'
+/home/somchai/projects/vibe-lab/app.py:34: KeyError: 'minutes'
+E   assert 201 == 400
+     +  where 201 = &lt;WrapperTestResponse streamed [201 CREATED]&gt;.status_code
+/home/somchai/projects/vibe-lab/tests/test_app.py:36: assert 201 == 400
+E   assert 201 == 400
+     +  where 201 = &lt;WrapperTestResponse streamed [201 CREATED]&gt;.status_code
+/home/somchai/projects/vibe-lab/tests/test_app.py:36: assert 201 == 400
+E   KeyError: 'topic'
+/home/somchai/projects/vibe-lab/app.py:33: KeyError: 'topic'
+E   assert 415 == 400
+     +  where 415 = &lt;WrapperTestResponse streamed [415 UNSUPPORTED MEDIA TYPE]&gt;.status_code
+/home/somchai/projects/vibe-lab/tests/test_app.py:42: assert 415 == 400
+E   AssertionError: assert [{'id': 1, 'm...opic': 'SQL'}] == []
+
+      Left contains one more item: {'id': 1, 'minutes': -5, 'topic': 'SQL'}
+      Use -v to get more diff
+/home/somchai/projects/vibe-lab/tests/test_app.py:48: AssertionError: assert [{'id': 1, 'm...opic': 'SQL'}] == []
+=========================== short test summary info ============================
+FAILED tests/test_app.py::test_bad_payload_returns_400[minutes-text] - ValueE...
+FAILED tests/test_app.py::test_bad_payload_returns_400[minutes-missing] - Key...
+FAILED tests/test_app.py::test_bad_payload_returns_400[minutes-negative] - as...
+FAILED tests/test_app.py::test_bad_payload_returns_400[minutes-bool] - assert...
+FAILED tests/test_app.py::test_bad_payload_returns_400[topic-missing] - KeyEr...
+FAILED tests/test_app.py::test_body_not_json_returns_400 - assert 415 == 400
+FAILED tests/test_app.py::test_bad_payload_is_not_saved - AssertionError: ass...
+7 failed, 1 passed in 0.19s</code></pre>
+<p>Test พบบั๊กมากกว่าที่ผู้ใช้รายงาน: ค่าติดลบและ <code>True</code> ถูกบันทึกได้ (<code>201</code>), ขาด <code>topic</code> ก็ 500 และ Body ที่ไม่ใช่ JSON ได้ <code>415</code> ขั้นที่ 4: แก้ <code>app.py</code> ให้ตรวจข้อมูลทุกช่องก่อนบันทึก</p>
+<pre class="code" data-env="file" data-label="Python · app.py (แก้แล้ว)"><code class="language-python">"""API บันทึกเวลาเรียน: เก็บข้อมูลการเรียนแต่ละครั้งลง SQLite (แก้บั๊ก 500 แล้ว)"""
+
+import sqlite3
+
+from flask import Flask, jsonify, request
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS sessions (
+    id INTEGER PRIMARY KEY,
+    topic TEXT NOT NULL,
+    minutes INTEGER NOT NULL
+)
+"""
+
+
+def create_app(db_path: str = "studylog.db") -&gt; Flask:
+    """สร้างแอป Flask ที่เก็บข้อมูลในไฟล์ SQLite ตาม db_path"""
+    app = Flask(__name__)
+    conn = sqlite3.connect(db_path)
+    conn.execute(SCHEMA)
+    conn.close()
+
+    @app.get("/api/sessions")
+    def list_sessions():
+        conn = sqlite3.connect(db_path)
+        rows = conn.execute("SELECT id, topic, minutes FROM sessions ORDER BY id").fetchall()
+        conn.close()
+        return jsonify([{"id": r[0], "topic": r[1], "minutes": r[2]} for r in rows])
+
+    @app.post("/api/sessions")
+    def add_session():
+        # silent=True: ถ้า Body ไม่ใช่ JSON จะได้ None แทนการโยน Error 415
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({"error": "ต้องส่งข้อมูลเป็น JSON object"}), 400
+        topic = data.get("topic")
+        if not isinstance(topic, str) or not topic.strip():
+            return jsonify({"error": "ต้องระบุ topic"}), 400
+        if "minutes" not in data:
+            return jsonify({"error": "ต้องระบุ minutes"}), 400
+        minutes = data["minutes"]
+        # bool เป็นชนิดย่อยของ int ใน Python (True == 1) จึงต้องกันออกก่อน
+        if isinstance(minutes, bool) or not isinstance(minutes, int) or minutes &lt;= 0:
+            return jsonify({"error": "minutes ต้องเป็นจำนวนเต็มที่มากกว่า 0"}), 400
+        topic = topic.strip()
+        conn = sqlite3.connect(db_path)
+        cur = conn.execute("INSERT INTO sessions (topic, minutes) VALUES (?, ?)", (topic, minutes))
+        conn.commit()
+        conn.close()
+        return jsonify({"id": cur.lastrowid, "topic": topic, "minutes": minutes}), 201
+
+    return app</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># หลังแก้ app.py: รัน Test ทั้งหมด ทั้งของใหม่และของเดิม แล้ว Commit
+pytest -q
+ruff check .
+git add app.py tests/test_app.py
+git commit -m "fix: ตรวจข้อมูล POST /api/sessions และตอบ 400 แทน 500"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>..................                                                       [100%]
+18 passed in 0.19s
+All checks passed!
+[main b0fe368] fix: ตรวจข้อมูล POST /api/sessions และตอบ 400 แทน 500
+ 2 files changed, 63 insertions(+), 4 deletions(-)
+ create mode 100644 tests/test_app.py</code></pre>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>def create_app(db_path: str = "studylog.db") -&gt; Flask:</code></td><td>Factory Function สร้างแอปใหม่ทุกครั้งที่เรียก Test ส่ง <code>db_path</code> ชั่วคราวได้ ส่วน <code>flask --app app run</code> เรียกฟังก์ชันนี้ด้วยค่า Default</td></tr>
+<tr><td><code>@app.get(...)</code> / <code>@app.post(...)</code></td><td>ผูก URL และ HTTP Method เข้ากับฟังก์ชัน (Route) ใน Flask 3</td></tr>
+<tr><td><code>int(data["minutes"])</code> (โค้ดของ AI)</td><td>ต้นเหตุ 2 แบบ: <code>data["minutes"]</code> ได้ <code>KeyError</code> เมื่อไม่มีคีย์ และ <code>int("45 นาที")</code> ได้ <code>ValueError</code> ทั้งคู่กลายเป็น 500</td></tr>
+<tr><td><code>python3 - &lt;&lt;'PY' ... PY</code></td><td>รันโค้ด Python สั้น ๆ จาก Heredoc โดยไม่ต้องสร้างไฟล์ ใช้ทำซ้ำบั๊ก</td></tr>
+<tr><td><code>create_app("/tmp/repro.db").test_client()</code></td><td>Test Client จำลอง Request โดยไม่เปิดเซิร์ฟเวอร์จริง และ Flask ยังเขียน Traceback ลง Log เหมือนเซิร์ฟเวอร์</td></tr>
+<tr><td><code>app.config["TESTING"] = True</code></td><td>ให้ Exception ในแอปหลุดออกมาใน pytest พร้อมบรรทัดต้นเหตุ แทนการกลายเป็น 500 ที่ไม่บอกอะไร</td></tr>
+<tr><td><code>create_app(str(tmp_path / "test.db"))</code></td><td><code>tmp_path</code> คือโฟลเดอร์ชั่วคราวใหม่ของแต่ละ Test ข้อมูลจึงไม่ปนกันและไม่แตะฐานข้อมูลจริง</td></tr>
+<tr><td><code>request.get_json(silent=True)</code></td><td>ถ้า Body ไม่ใช่ JSON จะได้ <code>None</code> แทนการตอบ 415 อัตโนมัติ เราจึงตอบ 400 พร้อมข้อความของเราเองได้</td></tr>
+<tr><td><code>isinstance(minutes, bool) or not isinstance(minutes, int) or minutes &lt;= 0</code></td><td>ตรวจชนิดและช่วงค่า กัน <code>True</code> ออกก่อน เพราะ <code>bool</code> เป็นชนิดย่อยของ <code>int</code></td></tr>
+<tr><td><code>"INSERT ... VALUES (?, ?)", (topic, minutes)</code></td><td>ส่งค่าผ่าน Placeholder แยกจากคำสั่ง SQL ปลอดภัยจาก SQL Injection (ดูแนวคิดที่ 10)</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>Error: Could not locate a Flask application. Use the 'flask --app' option, 'FLASK_APP' environment variable, or a 'wsgi.py' or 'app.py' file in the current directory.</code></td><td>สั่ง <code>flask run</code> นอกโฟลเดอร์โปรเจกต์ หรือไม่ได้บอกว่าแอปอยู่ไฟล์ไหน</td><td><code>cd ~/projects/vibe-lab</code> แล้วใช้ <code>flask --app app run</code></td></tr>
+<tr><td><code>sqlite3.OperationalError: no such table: sessions</code></td><td>เปิดไฟล์ฐานข้อมูลคนละไฟล์กับที่สร้างตาราง หรือเรียกใช้ก่อน <code>create_app()</code> สร้างตาราง</td><td>ส่ง <code>db_path</code> เดียวกันตลอด และให้ <code>create_app()</code> รัน <code>CREATE TABLE IF NOT EXISTS</code> ก่อนเสมอ</td></tr>
+<tr><td><code>assert 415 == 400</code> (<code>415 UNSUPPORTED MEDIA TYPE</code>)</td><td><code>request.get_json()</code> แบบไม่มี <code>silent=True</code> เจอ Body ที่ไม่ใช่ JSON Flask จึงตอบ 415 ก่อนถึงโค้ดของเรา</td><td>ใช้ <code>get_json(silent=True)</code> แล้วตรวจว่าเป็น <code>dict</code> เอง</td></tr>
+<tr><td><code>KeyError: 'minutes'</code> ใน <code>app.py</code> บรรทัด 34</td><td>อ่านค่าด้วย <code>data["minutes"]</code> ตรง ๆ โดยไม่ตรวจว่ามีคีย์</td><td>ตรวจ <code>"minutes" in data</code> หรือใช้ <code>data.get()</code> แล้วตอบ 400</td></tr>
+<tr><td>AI เสนอให้ครอบทั้งฟังก์ชันด้วย <code>try/except Exception</code> แล้วตอบ 400 ทุกกรณี</td><td>กลบอาการ: บั๊กอื่น เช่น ฐานข้อมูลเสีย ก็จะกลายเป็น 400 ที่ผิดความจริง</td><td>ตรวจ Input ทีละช่องตามตัวอย่าง และปล่อย Error ที่ไม่คาดคิดให้เป็น 500 ที่มี Log</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ทำซ้ำบั๊กให้ได้ด้วยคำสั่งเดียวก่อนถาม AI และส่ง Traceback ฉบับเต็มที่ลบ Secret แล้ว</li>
+<li>ขอสมมติฐานพร้อมวิธีพิสูจน์ก่อนขอโค้ดแก้ ถ้าพิสูจน์ไม่ได้ อย่าเพิ่งรับวิธีแก้</li>
+<li>เขียน Regression Test ให้ล้มก่อนแก้ แล้ว Commit Test กับโค้ดแก้ไว้ใน Commit <code>fix:</code> เดียวกัน</li>
+<li>ใช้ Factory <code>create_app()</code> และ <code>tmp_path</code> ทุกครั้ง Test จะไม่แตะข้อมูลจริงและรันซ้ำได้ผลเดิม</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>เพิ่ม Regression Test ให้ครอบคลุมกรณีขอบเพิ่ม</p><ol>
+<li>เพิ่มชุดข้อมูล <code>({"topic": "SQL", "minutes": 0}, "minutes ต้องเป็นจำนวนเต็มที่มากกว่า 0")</code> พร้อม id <code>minutes-zero</code> และ <code>({"topic": "SQL", "minutes": 45.5}, ...)</code> พร้อม id <code>minutes-float</code> แล้วรัน <code>pytest -q</code> ต้องได้ <code>20 passed</code></li>
+<li>เพิ่มกรณี <code>{"topic": "   ", "minutes": 30}</code> (มีแต่ช่องว่าง) แล้วทำนายก่อนรันว่าจะได้ข้อความ Error ใด</li>
+<li>ลบกรณีที่เพิ่มออกก่อนไปแนวคิดที่ 9 เพื่อให้จำนวน Test ตรงกับบทเรียน (18 passed)</li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 9</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h3 id="s2-2-c09">Refactor ด้วย AI อย่างปลอดภัย: Test คุ้มกัน พฤติกรรมเดิม และ Diff เล็ก</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p><strong>Refactor</strong> คือการปรับโครงสร้างโค้ดให้อ่านและดูแลง่ายขึ้น โดย <strong>พฤติกรรมต้องเหมือนเดิมทุกประการ</strong> AI ช่วยย้ายโค้ดได้เร็วมาก แต่ระหว่างทางมักแอบ "ปรับปรุง" สิ่งที่เราไม่ได้ขอ เช่น เปลี่ยน Status Code เปลี่ยนข้อความ Error หรือแก้ Test ให้ตรงกับโค้ดใหม่ วิธีป้องกันมี 4 ขั้น: 1) มี <strong>Characterization Test</strong> ที่บันทึกพฤติกรรมปัจจุบันไว้ก่อน (ของเราคือ <code>tests/test_app.py</code>) 2) สั่งด้วย Prompt ที่ห้ามแตะ Test และห้ามเปลี่ยนพฤติกรรม 3) ตรวจหลังแก้ว่าจำนวน Test ที่ผ่านเท่าเดิม, ruff ผ่าน และ <code>git diff --stat</code> ไม่มีไฟล์ใน <code>tests/</code> 4) แยก Commit <code>refactor:</code> ออกจาก Commit <code>feat:</code> เสมอ</p>
+<p>ใช้แนวคิดนี้เมื่อไฟล์เริ่มยาวและทำหลายหน้าที่ปนกัน เช่น <code>app.py</code> จากแนวคิดที่ 8 ที่มีทั้ง Route, SQL และการตรวจข้อมูลอยู่ในฟังก์ชันเดียว เราจะแยกเป็น <code>db.py</code> (งานฐานข้อมูล), <code>validation.py</code> (ตรวจข้อมูล) และให้ <code>app.py</code> เหลือแต่ Route จากนั้นจึงเพิ่มฟีเจอร์ <code>GET /api/summary</code> เป็นอีก Commit</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>เหมือนรีโนเวตครัวของร้านอาหารที่ยังเปิดขายอยู่ จะย้ายเตา จัดชั้นวางใหม่ก็ได้ แต่เมนู รสชาติ และราคาต้องเหมือนเดิม ก่อนและหลังรีโนเวตมีคนชิม (Test) ชิมทุกจานด้วยมาตรฐานเดิม ถ้าช่างแอบเปลี่ยนสูตรน้ำจิ้มระหว่างย้ายครัว คนชิมจะรู้ทันที</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>ขั้นที่ 1: จดสถานะก่อน Refactor ไว้เทียบ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/vibe-lab
+source .venv/bin/activate
+# ก่อน Refactor: จดจำนวน Test ที่ผ่าน ขนาดไฟล์ และรายการฟังก์ชันไว้เทียบ
+pytest -q
+wc -l app.py
+grep -n "def " app.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>..................                                                       [100%]
+18 passed in 0.20s
+52 app.py
+16:def create_app(db_path: str = "studylog.db") -&gt; Flask:
+24:    def list_sessions():
+31:    def add_session():</code></pre>
+<p>ขั้นที่ 2: สั่ง AI ด้วยกติกาที่ชัด (คำตอบของ AI จะต่างไป ให้ตรวจผลตามขั้นที่ 3 เสมอ)</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Prompt · Refactor อย่างปลอดภัย"><code class="language-markdown">Refactor ไฟล์ app.py โดยแยกงานฐานข้อมูลไปไว้ใน db.py
+(get_conn, init_db, add_session, list_sessions) และแยกการตรวจข้อมูลไปไว้ใน
+validation.py เป็นฟังก์ชัน parse_session(payload) -&gt; (topic, minutes)
+
+ข้อจำกัด (ห้ามละเมิด):
+- พฤติกรรมของ API ต้องเหมือนเดิมทุกประการ ทั้ง Status Code และข้อความ Error
+- ห้ามเปลี่ยนชื่อหรือ Signature ของ create_app
+- ห้ามแก้ไฟล์ใดๆ ใน tests/
+- ห้ามเพิ่ม Dependency และห้ามเพิ่มฟีเจอร์ใหม่ในรอบนี้
+- ทำทีละขั้นเล็ก ๆ และบอกคำสั่งที่ต้องรันหลังแต่ละขั้น
+
+ก่อนแก้ให้อธิบายแผน 3–5 บรรทัด หลังแก้ให้บอกคำสั่งที่ฉันต้องรันเพื่อยืนยันว่าพฤติกรรมไม่เปลี่ยน</code></pre>
+<p>ผลลัพธ์หลังรีวิวแล้วมี 3 ไฟล์ ให้สร้าง <code>db.py</code> และ <code>validation.py</code> ใหม่ แล้วเขียนทับ <code>app.py</code> ทั้งไฟล์</p>
+<pre class="code" data-env="file" data-label="Python · db.py"><code class="language-python">"""ฟังก์ชันจัดการฐานข้อมูล SQLite ของ API บันทึกเวลาเรียน"""
+
+import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS sessions (
+    id INTEGER PRIMARY KEY,
+    topic TEXT NOT NULL,
+    minutes INTEGER NOT NULL
+)
+"""
+
+
+@contextmanager
+def get_conn(db_path: str) -&gt; Iterator[sqlite3.Connection]:
+    """เปิด Connection ให้ใช้ใน with เมื่อจบบล็อกจะ Commit แล้วปิดให้เสมอ"""
+    conn = sqlite3.connect(db_path)
+    try:
+        yield conn
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def init_db(db_path: str) -&gt; None:
+    """สร้างตาราง sessions ถ้ายังไม่มี"""
+    with get_conn(db_path) as conn:
+        conn.execute(SCHEMA)
+
+
+def add_session(db_path: str, topic: str, minutes: int) -&gt; int:
+    """บันทึกการเรียน 1 ครั้ง แล้วคืน id ที่ได้"""
+    with get_conn(db_path) as conn:
+        cur = conn.execute("INSERT INTO sessions (topic, minutes) VALUES (?, ?)", (topic, minutes))
+        return cur.lastrowid
+
+
+def list_sessions(db_path: str) -&gt; list[dict]:
+    """คืนการเรียนทั้งหมด เรียงตาม id"""
+    with get_conn(db_path) as conn:
+        rows = conn.execute("SELECT id, topic, minutes FROM sessions ORDER BY id").fetchall()
+    return [{"id": r[0], "topic": r[1], "minutes": r[2]} for r in rows]</code></pre>
+<pre class="code" data-env="file" data-label="Python · validation.py"><code class="language-python">"""ตรวจข้อมูลที่ผู้ใช้ส่งมาก่อนบันทึกลงฐานข้อมูล"""
+
+
+def parse_session(payload: object) -&gt; tuple[str, int]:
+    """ตรวจ payload แล้วคืน (topic, minutes) ถ้าข้อมูลผิดให้ raise ValueError พร้อมข้อความภาษาไทย"""
+    if not isinstance(payload, dict):
+        raise ValueError("ต้องส่งข้อมูลเป็น JSON object")
+    topic = payload.get("topic")
+    if not isinstance(topic, str) or not topic.strip():
+        raise ValueError("ต้องระบุ topic")
+    if "minutes" not in payload:
+        raise ValueError("ต้องระบุ minutes")
+    minutes = payload["minutes"]
+    # bool เป็นชนิดย่อยของ int ใน Python (True == 1) จึงต้องกันออกก่อน
+    if isinstance(minutes, bool) or not isinstance(minutes, int) or minutes &lt;= 0:
+        raise ValueError("minutes ต้องเป็นจำนวนเต็มที่มากกว่า 0")
+    return topic.strip(), minutes</code></pre>
+<pre class="code" data-env="file" data-label="Python · app.py (หลัง Refactor)"><code class="language-python">"""API บันทึกเวลาเรียน: ไฟล์นี้มีแค่ Route ส่วนฐานข้อมูลอยู่ใน db.py และการตรวจข้อมูลอยู่ใน validation.py"""
+
+from flask import Flask, jsonify, request
+
+import db
+from validation import parse_session
+
+
+def create_app(db_path: str = "studylog.db") -&gt; Flask:
+    """สร้างแอป Flask ที่เก็บข้อมูลในไฟล์ SQLite ตาม db_path"""
+    app = Flask(__name__)
+    db.init_db(db_path)
+
+    @app.get("/api/sessions")
+    def list_sessions():
+        return jsonify(db.list_sessions(db_path))
+
+    @app.post("/api/sessions")
+    def add_session():
+        try:
+            # silent=True: ถ้า Body ไม่ใช่ JSON จะได้ None แล้วให้ parse_session ตอบ Error เอง
+            topic, minutes = parse_session(request.get_json(silent=True))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        new_id = db.add_session(db_path, topic, minutes)
+        return jsonify({"id": new_id, "topic": topic, "minutes": minutes}), 201
+
+    return app</code></pre>
+<p>ขั้นที่ 3: ตรวจว่าพฤติกรรมเหมือนเดิม แล้ว Commit เป็น <code>refactor:</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># หลัง Refactor: จำนวน Test ต้องเท่าเดิม และ ruff ต้องผ่าน
+pytest -q
+ruff check .
+wc -l app.py db.py validation.py
+# ดูภาพรวมการเปลี่ยนแปลง และยืนยันว่าไม่มีไฟล์ใน tests/ ถูกแก้
+git add app.py db.py validation.py
+git diff --cached --stat
+git diff --cached --quiet -- tests/ &amp;&amp; echo "ไม่มีไฟล์ใน tests/ ถูกแก้"
+git commit -m "refactor: แยก db.py และ validation.py ออกจาก app.py (พฤติกรรมเดิม)"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>..................                                                       [100%]
+18 passed in 0.20s
+All checks passed!
+  28 app.py
+  44 db.py
+  17 validation.py
+  89 total
+ app.py        | 48 ++++++++++++------------------------------------
+ db.py         | 44 ++++++++++++++++++++++++++++++++++++++++++++
+ validation.py | 17 +++++++++++++++++
+ 3 files changed, 73 insertions(+), 36 deletions(-)
+ไม่มีไฟล์ใน tests/ ถูกแก้
+[main e7cf19e] refactor: แยก db.py และ validation.py ออกจาก app.py (พฤติกรรมเดิม)
+ 3 files changed, 73 insertions(+), 36 deletions(-)
+ create mode 100644 db.py
+ create mode 100644 validation.py</code></pre>
+<p>ก่อนและหลังได้ <code>18 passed</code> เท่ากัน <code>app.py</code> ลดจาก 52 เหลือ 28 บรรทัด และไม่มีไฟล์ใน <code>tests/</code> อยู่ใน Commit ขั้นที่ 4: จำลองกรณีที่ AI แอบเปลี่ยนพฤติกรรม โดยเปลี่ยน Status Code จาก 400 เป็น 422 "เพราะถูกหลัก REST กว่า"</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># จำลองว่า AI แอบ "ปรับ" Status Code จาก 400 เป็น 422 ระหว่าง Refactor
+sed -i 's/}), 400/}), 422/' app.py
+git diff --stat
+pytest -q --tb=no
+# Test จับได้ จึงทิ้งการแก้นี้
+git restore app.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> app.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+.FFFFFF...........                                                       [100%]
+=========================== short test summary info ============================
+FAILED tests/test_app.py::test_bad_payload_returns_400[minutes-text] - assert...
+FAILED tests/test_app.py::test_bad_payload_returns_400[minutes-missing] - ass...
+FAILED tests/test_app.py::test_bad_payload_returns_400[minutes-negative] - as...
+FAILED tests/test_app.py::test_bad_payload_returns_400[minutes-bool] - assert...
+FAILED tests/test_app.py::test_bad_payload_returns_400[topic-missing] - asser...
+FAILED tests/test_app.py::test_body_not_json_returns_400 - assert 422 == 400
+6 failed, 12 passed in 0.20s</code></pre>
+<p>การแก้ 1 บรรทัดที่ดูไม่มีพิษภัย ทำให้ Test ล้ม 6 ตัว นี่คือเหตุผลที่ต้องมี Test ก่อน Refactor ขั้นที่ 5: ฟีเจอร์ใหม่มาเป็น Commit แยก เพิ่มฟังก์ชันด้านล่างต่อท้าย <code>db.py</code></p>
+<pre class="code" data-env="file" data-label="Python · db.py (เพิ่มฟังก์ชันนี้ท้ายไฟล์)"><code class="language-python">def total_minutes(db_path: str) -&gt; int:
+    """รวมนาทีทั้งหมด ถ้ายังไม่มีข้อมูลให้ได้ 0"""
+    with get_conn(db_path) as conn:
+        (total,) = conn.execute("SELECT COALESCE(SUM(minutes), 0) FROM sessions").fetchone()
+    return total</code></pre>
+<pre class="code" data-env="file" data-label="Python · app.py (เพิ่ม GET /api/summary)"><code class="language-python">"""API บันทึกเวลาเรียน: ไฟล์นี้มีแค่ Route ส่วนฐานข้อมูลอยู่ใน db.py และการตรวจข้อมูลอยู่ใน validation.py"""
+
+from flask import Flask, jsonify, request
+
+import db
+from duration import format_minutes
+from validation import parse_session
+
+
+def create_app(db_path: str = "studylog.db") -&gt; Flask:
+    """สร้างแอป Flask ที่เก็บข้อมูลในไฟล์ SQLite ตาม db_path"""
+    app = Flask(__name__)
+    db.init_db(db_path)
+
+    @app.get("/api/sessions")
+    def list_sessions():
+        return jsonify(db.list_sessions(db_path))
+
+    @app.post("/api/sessions")
+    def add_session():
+        try:
+            # silent=True: ถ้า Body ไม่ใช่ JSON จะได้ None แล้วให้ parse_session ตอบ Error เอง
+            topic, minutes = parse_session(request.get_json(silent=True))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        new_id = db.add_session(db_path, topic, minutes)
+        return jsonify({"id": new_id, "topic": topic, "minutes": minutes}), 201
+
+    @app.get("/api/summary")
+    def summary():
+        total = db.total_minutes(db_path)
+        # ใช้ format_minutes เดิมที่มี Test คุ้มกันอยู่แล้ว แทนการเขียนตรรกะแปลงเวลาใหม่
+        return jsonify({"total_minutes": total, "text": format_minutes(total)})
+
+    return app</code></pre>
+<pre class="code" data-env="file" data-label="Python · tests/test_app.py (เพิ่ม 2 Test นี้ท้ายไฟล์)"><code class="language-python">def test_summary_empty(client):
+    assert client.get("/api/summary").get_json() == {"total_minutes": 0, "text": "0 นาที"}
+
+
+def test_summary_sums_all_sessions(client):
+    for topic, minutes in [("Python", 90), ("SQL", 45), ("Git", 30)]:
+        client.post("/api/sessions", json={"topic": topic, "minutes": minutes})
+    resp = client.get("/api/summary")
+    assert resp.status_code == 200
+    assert resp.get_json() == {"total_minutes": 165, "text": "2 ชม. 45 นาที"}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ฟีเจอร์ใหม่มาหลัง Refactor เสร็จ และมี Test ใหม่ 2 ตัว
+pytest -q
+ruff check .
+git add app.py db.py tests/test_app.py
+git commit -m "feat: เพิ่ม GET /api/summary สรุปเวลาเรียนรวม"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>....................                                                     [100%]
+20 passed in 0.29s
+All checks passed!
+[main d7c84f6] feat: เพิ่ม GET /api/summary สรุปเวลาเรียนรวม
+ 3 files changed, 26 insertions(+)</code></pre>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>@contextmanager def get_conn(...)</code></td><td>ใช้กับ <code>with</code> ได้ เปิด Connection ให้ Commit เมื่อสำเร็จ และ <code>finally</code> ปิดเสมอแม้เกิด Error ลดโค้ดเปิดปิดที่ซ้ำกันใน Route</td></tr>
+<tr><td><code>Iterator[sqlite3.Connection]</code></td><td>Type Hint ของฟังก์ชันที่ <code>yield</code> ค่า มาจาก <code>collections.abc</code> ตามแบบที่ ruff กฎ UP แนะนำ</td></tr>
+<tr><td><code>parse_session(payload) -&gt; tuple[str, int]</code></td><td>รวมการตรวจข้อมูลไว้ที่เดียว คืนค่าที่ตรวจแล้ว หรือ <code>raise ValueError</code> ด้วยข้อความภาษาไทยเดิมทุกตัวอักษร</td></tr>
+<tr><td><code>except ValueError as e: return jsonify({"error": str(e)}), 400</code></td><td>Route แปลง <code>ValueError</code> เป็น 400 พร้อมข้อความเดิม พฤติกรรมภายนอกจึงเหมือนก่อน Refactor</td></tr>
+<tr><td><code>git diff --cached --stat</code></td><td>สรุปไฟล์ที่ Stage แล้ว ใช้ยืนยันว่า Commit นี้มีแค่ 3 ไฟล์ที่ตั้งใจ</td></tr>
+<tr><td><code>git diff --cached --quiet -- tests/ &amp;&amp; echo ...</code></td><td>ได้ Exit Code 0 เมื่อไม่มีไฟล์ใน <code>tests/</code> ถูก Stage จึงพิมพ์ข้อความยืนยัน</td></tr>
+<tr><td><code>sed -i 's/}), 400/}), 422/' app.py</code></td><td>จำลองการเปลี่ยนพฤติกรรมที่ AI มักแอบทำระหว่าง Refactor เพื่อพิสูจน์ว่า Test จับได้</td></tr>
+<tr><td><code>SELECT COALESCE(SUM(minutes), 0)</code></td><td><code>SUM</code> ของตารางว่างได้ <code>NULL</code> ส่วน <code>COALESCE</code> เปลี่ยนเป็น 0 ให้ <code>format_minutes(0)</code> ได้ <code>"0 นาที"</code></td></tr>
+<tr><td><code>format_minutes(total)</code> ใน Route ใหม่</td><td>ใช้ฟังก์ชันเดิมที่มี Test คุ้มกันอยู่แล้ว แทนการให้ AI เขียนตรรกะแปลงเวลาซ้ำอีกชุด</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>ImportError: cannot import name ... from partially initialized module ... (most likely due to a circular import)</code></td><td>AI ให้ <code>validation.py</code> หรือ <code>db.py</code> import จาก <code>app.py</code> กลับ ทำให้สองไฟล์ import กันเป็นวง</td><td>ให้ <code>app.py</code> import ไฟล์อื่นได้ฝ่ายเดียว ไฟล์ระดับล่างห้าม import <code>app</code></td></tr>
+<tr><td><code>AttributeError: module 'db' has no attribute 'save_session'. Did you mean: 'add_session'?</code></td><td>AI เปลี่ยนชื่อฟังก์ชันระหว่าง Refactor แต่แก้จุดที่เรียกไม่ครบ</td><td>สั่งห้ามเปลี่ยนชื่อในรอบ Refactor และรัน <code>pytest -q</code> หลังทุกขั้น</td></tr>
+<tr><td><code>ImportError: cannot import name 'Flask' from partially initialized module 'flask' (most likely due to a circular import)</code></td><td>ตั้งชื่อไฟล์ใหม่ว่า <code>flask.py</code> ซึ่งบังแพ็กเกจ Flask จริง</td><td>ห้ามตั้งชื่อไฟล์ซ้ำกับแพ็กเกจที่ใช้ เปลี่ยนชื่อไฟล์แล้วลบ <code>__pycache__</code></td></tr>
+<tr><td><code>6 failed, 12 passed</code> พร้อม <code>assert 422 == 400</code></td><td>AI เปลี่ยน Status Code ระหว่าง Refactor ซึ่งเป็นการเปลี่ยนพฤติกรรม ไม่ใช่ Refactor</td><td>ถอนด้วย <code>git restore</code> ถ้าอยากเปลี่ยนจริงให้แก้ Spec และทำเป็นงานแยกพร้อม Test</td></tr>
+<tr><td>จำนวน Test ลดลง เช่น จาก <code>18 passed</code> เหลือ <code>16 passed</code></td><td>AI ลบหรือรวม Test ที่ "ซ้ำซ้อน" ไป ทั้งที่สั่งห้ามแตะ <code>tests/</code></td><td>ตรวจ <code>git diff --stat -- tests/</code> ทุกครั้ง และเทียบจำนวน Test ก่อนและหลัง</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>Refactor เฉพาะโค้ดที่มี Test คุ้มกันแล้ว ถ้ายังไม่มี ให้เขียน Characterization Test ก่อน</li>
+<li>1 Commit ต่อ 1 การเปลี่ยนโครงสร้าง และห้ามรวม Refactor กับฟีเจอร์ใหม่ใน Commit เดียว</li>
+<li>เทียบ 3 อย่างทุกครั้ง: จำนวน Test ที่ผ่าน, <code>ruff check .</code> และ <code>git diff --stat</code> ที่ต้องไม่มีไฟล์ใน <code>tests/</code></li>
+<li>ถ้า Diff ของ AI ใหญ่เกินจะรีวิวไหว ให้สั่งใหม่ทีละขั้น เช่น ย้ายเฉพาะ <code>db.py</code> ก่อน</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>Refactor เพิ่มอีก 1 ขั้นด้วยวงจรเดียวกัน</p><ol>
+<li>ใน <code>db.py</code> สร้างฟังก์ชัน <code>_row_to_dict(row)</code> ที่คืน <code>{"id": row[0], "topic": row[1], "minutes": row[2]}</code> แล้วให้ <code>list_sessions</code> เรียกใช้</li>
+<li>รัน <code>pytest -q</code> ต้องได้ <code>20 passed</code> เท่าเดิม และ <code>ruff check .</code> ต้องผ่าน</li>
+<li>ยืนยันด้วย <code>git diff --stat</code> ว่าแก้แค่ <code>db.py</code> แล้ว Commit ด้วยข้อความที่ขึ้นต้นด้วย <code>refactor:</code></li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 10</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h3 id="s2-2-c10">Security Review โค้ดที่ AI เขียน: Secret ในโค้ด, SQL Injection, Input Validation และค่าตั้งที่อันตราย</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>AI ถูกฝึกจากโค้ดตัวอย่างจำนวนมหาศาล ซึ่งหลายชิ้นเขียนแบบลัดเพื่อให้สั้น เมื่อเราขอให้ "ทำให้ใช้งานได้" จึงมักได้ช่องโหว่ชุดเดิมซ้ำ ๆ: <strong>Secret ในโค้ด</strong> (<code>SECRET_KEY</code>, รหัสผ่าน), <strong>SQL Injection</strong> จากการต่อ f-string เป็นคำสั่ง SQL, <strong>ไม่ตรวจ Input</strong> (ชนิด ความยาว ช่วงค่า), <strong>ค่าตั้งอันตราย</strong> อย่าง <code>debug=True</code> กับ <code>host="0.0.0.0"</code>, <code>subprocess</code> ที่ใช้ <code>shell=True</code> (แนวคิดที่ 12) และ <code>except Exception</code> ที่กลืน Error จนมองไม่เห็นปัญหา</p>
+<p>ช่องโหว่เหล่านี้ตรงกับหมวด Injection, Security Misconfiguration และการจัดการข้อมูลลับใน <a href="https://owasp.org/www-project-top-ten/" target="_blank" rel="noopener">OWASP Top 10</a> (ลำดับเลขของแต่ละหมวดเปลี่ยนตามปีที่ปรับปรุง ให้ดูฉบับล่าสุดที่หน้า OWASP) Security Review คือการตรวจโค้ดตาม Checklist นี้ ด้วย 3 เครื่องมือรวมกัน: ruff กลุ่มกฎ <code>S</code>, Security Test ที่ยิง Payload โจมตีใส่แอปของเราเอง และการอ่านด้วยตาพร้อม Prompt รีวิว ใช้ทุกครั้งที่โค้ดของ AI แตะฐานข้อมูล ไฟล์ คำสั่งระบบ หรือรับ Input จากผู้ใช้</p>
+<div class="callout sec"><span class="c-label sec">Security</span><p>ทดสอบเฉพาะแอปของคุณเองในเครื่อง ผ่าน Test Client หรือ <code>127.0.0.1</code> เท่านั้น การยิง Payload ใส่ระบบของผู้อื่นโดยไม่ได้รับอนุญาตเป็นความผิดตาม พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์ ตัวอย่างในแนวคิดนี้ไม่ส่งข้อมูลออกนอกเครื่องเลย</p></div>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ผู้รับเหมาที่สร้างบ้านเร็วมากอาจซ่อนกุญแจสำรองไว้ใต้พรมหน้าประตู (Secret ในโค้ด) และทำประตูที่เปิดให้ทุกคนที่พูดประโยคพิเศษถูก (SQL Injection) บ้านอยู่ได้ปกติจนกว่าขโมยจะรู้ทริก Security Review คือการจ้างผู้ตรวจบ้านที่เดินตาม Checklist ทุกจุด และลองงัดประตูบ้านของเราเองดูก่อนที่ขโมยจะมาลอง</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>สถานการณ์: เราขอให้ AI เพิ่มการค้นหาการเรียนตามหัวข้อ ได้ไฟล์ด้านล่าง บันทึกเป็น <code>review/ai_search.py</code> แล้วตรวจด้วย ruff กลุ่ม <code>S</code> ก่อน</p>
+<pre class="code" data-env="file" data-label="Python · review/ai_search.py (โค้ดที่ AI เขียน)"><code class="language-python">import sqlite3
+
+from flask import Flask, jsonify, request
+
+app = Flask(__name__)
+app.config["SECRET_KEY"] = "dev-secret-123"
+DB_PASSWORD = "P@ssw0rd2026"
+
+
+@app.get("/api/sessions")
+def search_sessions():
+    topic = request.args.get("topic", "")
+    conn = sqlite3.connect("studylog.db")
+    sql = f"SELECT id, topic, minutes FROM sessions WHERE topic LIKE '%{topic}%'"
+    rows = conn.execute(sql).fetchall()
+    return jsonify(rows)
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", debug=True)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/vibe-lab
+source .venv/bin/activate
+# ตรวจเฉพาะกฎความปลอดภัย (กลุ่ม S) แบบสรุปบรรทัดเดียว
+ruff check --select S --output-format concise review/ai_search.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>review/ai_search.py:6:28: S105 Possible hardcoded password assigned to: "SECRET_KEY"
+review/ai_search.py:7:15: S105 Possible hardcoded password assigned to: "DB_PASSWORD"
+review/ai_search.py:14:11: S608 Possible SQL injection vector through string-based query construction
+review/ai_search.py:20:18: S104 Possible binding to all interfaces
+review/ai_search.py:20:29: S201 Use of `debug=True` in Flask app detected
+Found 5 errors.</code></pre>
+<p>ruff ชี้ได้ 5 จุด แต่ยังไม่บอกว่าโจมตีได้จริงหรือไม่ และไม่รู้เรื่องการจำกัดความยาว Input ขั้นต่อไปจึงเขียน Security Test ที่ใส่ข้อมูลตัวอย่าง 3 แถว แล้วยิง Payload 2 แบบ: <code>' OR '1'='1</code> (ทำให้เงื่อนไขเป็นจริงเสมอ) และ <code>UNION SELECT</code> ที่ดึงชื่อตารางจาก <code>sqlite_master</code></p>
+<pre class="code" data-env="file" data-label="Python · tests/test_security.py"><code class="language-python">"""Security Test ของ review/ai_search.py (ทดสอบเฉพาะแอปของเราเองในเครื่อง)"""
+
+import sqlite3
+
+import pytest
+
+from review import ai_search
+
+SAMPLE_ROWS = [("Python", 90), ("SQL", 45), ("Git", 30)]
+
+
+@pytest.fixture
+def client(tmp_path, monkeypatch):
+    # แอปเปิดไฟล์ studylog.db จากโฟลเดอร์ปัจจุบัน จึงย้ายไปทำงานใน tmp_path ก่อน
+    monkeypatch.chdir(tmp_path)
+    conn = sqlite3.connect("studylog.db")
+    conn.execute(
+        "CREATE TABLE sessions "
+        "(id INTEGER PRIMARY KEY, topic TEXT NOT NULL, minutes INTEGER NOT NULL)"
+    )
+    conn.executemany("INSERT INTO sessions (topic, minutes) VALUES (?, ?)", SAMPLE_ROWS)
+    conn.commit()
+    conn.close()
+    ai_search.app.config["TESTING"] = True
+    return ai_search.app.test_client()
+
+
+def test_search_normal(client):
+    resp = client.get("/api/sessions", query_string={"topic": "SQL"})
+    assert resp.get_json() == [[2, "SQL", 45]]
+
+
+@pytest.mark.parametrize(
+    "attack",
+    ["' OR '1'='1", "' UNION SELECT 0, name, 0 FROM sqlite_master --"],
+    ids=["or-always-true", "union-select"],
+)
+def test_sql_injection_returns_nothing(client, attack):
+    # Payload ต้องถูกมองเป็นข้อความธรรมดา จึงค้นไม่เจออะไรเลย
+    resp = client.get("/api/sessions", query_string={"topic": attack})
+    assert resp.status_code == 200
+    assert resp.get_json() == []
+
+
+def test_topic_too_long_rejected(client):
+    resp = client.get("/api/sessions", query_string={"topic": "a" * 51})
+    assert resp.status_code == 400
+    assert resp.get_json() == {"error": "topic ต้องยาวไม่เกิน 50 ตัวอักษร"}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ยิง Payload ทดสอบไปที่แอปของเราเองผ่าน Test Client (ไม่ออกไปที่เครือข่ายใดเลย)
+pytest -q --tb=line tests/test_security.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>.FFF                                                                     [100%]
+=================================== FAILURES ===================================
+E   AssertionError: assert [[1, 'Python'...3, 'Git', 30]] == []
+
+      Left contains 3 more items, first extra item: [1, 'Python', 90]
+      Use -v to get more diff
+/home/somchai/projects/vibe-lab/tests/test_security.py:42: AssertionError: assert [[1, 'Python'...3, 'Git', 30]] == []
+E   AssertionError: assert [[0, 'session...3, 'Git', 30]] == []
+
+      Left contains 4 more items, first extra item: [0, 'sessions', 0]
+      Use -v to get more diff
+/home/somchai/projects/vibe-lab/tests/test_security.py:42: AssertionError: assert [[0, 'session...3, 'Git', 30]] == []
+E   assert 200 == 400
+     +  where 200 = &lt;WrapperTestResponse streamed [200 OK]&gt;.status_code
+/home/somchai/projects/vibe-lab/tests/test_security.py:47: assert 200 == 400
+=========================== short test summary info ============================
+FAILED tests/test_security.py::test_sql_injection_returns_nothing[or-always-true]
+FAILED tests/test_security.py::test_sql_injection_returns_nothing[union-select]
+FAILED tests/test_security.py::test_topic_too_long_rejected - assert 200 == 400
+3 failed, 1 passed in 0.18s</code></pre>
+<p>Payload แรกดึงข้อมูลออกมาครบทั้ง 3 แถว และ Payload ที่สองได้แถวเกินมาเป็น <code>[0, 'sessions', 0]</code> ซึ่งคือชื่อตารางในฐานข้อมูล แปลว่าผู้โจมตีอ่านโครงสร้างฐานข้อมูลได้ ใช้ Prompt ด้านล่างขอความเห็นจาก AI เพิ่ม แล้วเทียบกับผลของเครื่องมือ</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Prompt · Security Review"><code class="language-markdown">คุณคือ Application Security Engineer
+รีวิวโค้ด Flask ด้านล่างเพื่อหาช่องโหว่ โดยอ้างอิง OWASP Top 10
+
+ตอบเป็นตาราง: บรรทัด | ช่องโหว่ | ตัวอย่าง Input ที่ใช้โจมตีได้ | ความรุนแรง | วิธีแก้
+ตรวจอย่างน้อย: Secret ในโค้ด, SQL Injection, การตรวจ Input, การตั้งค่า Debug และ Host,
+การจัดการ Connection และ Error, ข้อมูลที่อาจรั่วใน Response
+
+กติกา: ทุกข้อต้องชี้บรรทัดที่มีปัญหาได้จริง ห้ามรายงานช่องโหว่ที่ไม่มีในโค้ด
+ถ้าไม่แน่ใจให้ระบุว่า "ต้องตรวจเพิ่ม" พร้อมเหตุผล
+
+[วางโค้ดที่นี่ โดยลบ Secret จริงออกก่อน]</code></pre>
+<p>แก้ <code>review/ai_search.py</code> ตามผลรีวิว และเพิ่ม <code>tests/conftest.py</code> ที่ตั้ง Secret สำหรับ Test เท่านั้น</p>
+<pre class="code" data-env="file" data-label="Python · review/ai_search.py (แก้แล้ว)"><code class="language-python">"""ค้นหาการเรียนตามหัวข้อ (ฉบับแก้หลัง Security Review)"""
+
+import sqlite3
+
+from flask import Flask, jsonify, request
+
+from config import get_secret
+
+MAX_TOPIC_LENGTH = 50
+
+app = Flask(__name__)
+# อ่าน Secret จาก Environment Variable ถ้าไม่ได้ตั้งไว้ แอปจะไม่ยอมเริ่มทำงาน
+app.config["SECRET_KEY"] = get_secret("SECRET_KEY")
+
+
+@app.get("/api/sessions")
+def search_sessions():
+    topic = request.args.get("topic", "")
+    # จำกัดความยาว Input ก่อนส่งต่อไปที่ฐานข้อมูล
+    if len(topic) &gt; MAX_TOPIC_LENGTH:
+        return jsonify({"error": f"topic ต้องยาวไม่เกิน {MAX_TOPIC_LENGTH} ตัวอักษร"}), 400
+    conn = sqlite3.connect("studylog.db")
+    try:
+        # ใช้ Placeholder (?) ให้ sqlite3 ส่งค่าแยกจากคำสั่ง SQL จึงถูกตีความเป็นข้อมูลเสมอ
+        sql = "SELECT id, topic, minutes FROM sessions WHERE topic LIKE ?"
+        rows = conn.execute(sql, (f"%{topic}%",)).fetchall()
+    finally:
+        conn.close()
+    return jsonify(rows)
+
+
+if __name__ == "__main__":
+    # รันได้เฉพาะในเครื่อง (127.0.0.1) และปิด Debug เสมอ
+    app.run(host="127.0.0.1", debug=False)</code></pre>
+<pre class="code" data-env="file" data-label="Python · tests/conftest.py"><code class="language-python">"""ค่าที่ใช้ร่วมกันของทุก Test: pytest โหลดไฟล์นี้ก่อน import ไฟล์ Test"""
+
+import os
+
+# Secret สำหรับ Test เท่านั้น ไม่ใช่ค่าจริง ตั้งไว้ก่อนที่ Test จะ import แอป
+os.environ.setdefault("SECRET_KEY", "test-only-not-a-real-secret")</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># หลังแก้: กฎ S ต้องผ่าน และ Test ทั้งโปรเจกต์ต้องผ่าน
+ruff check --select S --output-format concise review/ai_search.py
+pytest -q
+git add review/ai_search.py tests/conftest.py tests/test_security.py
+git commit -m "fix: ปิดช่อง SQL Injection และย้าย Secret ไป Environment ใน ai_search"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>All checks passed!
+........................                                                 [100%]
+24 passed in 0.32s
+[main e2e279f] fix: ปิดช่อง SQL Injection และย้าย Secret ไป Environment ใน ai_search
+ 3 files changed, 88 insertions(+)
+ create mode 100644 review/ai_search.py
+ create mode 100644 tests/conftest.py
+ create mode 100644 tests/test_security.py</code></pre>
+<p>Test ทั้งโปรเจกต์ผ่าน 24 ตัว (duration 10, app 10, security 4) ถ้าต้องการรันไฟล์นี้เป็นเซิร์ฟเวอร์ ให้รันจาก Root ของโปรเจกต์แบบโมดูลด้วย <code>SECRET_KEY=dev-local-123 python3 -m review.ai_search</code> เพื่อให้ <code>from config import get_secret</code> หาไฟล์เจอ</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>f"... LIKE '%{topic}%'"</code> (โค้ดของ AI)</td><td>นำข้อความของผู้ใช้มาต่อเป็นคำสั่ง SQL ตรง ๆ เครื่องหมาย <code>'</code> ใน Input จึงปิด String และเติมคำสั่งใหม่ได้</td></tr>
+<tr><td><code>' OR '1'='1</code></td><td>Payload ที่ทำให้ <code>WHERE</code> กลายเป็น <code>LIKE '%' OR '1'='1%'</code> ซึ่ง <code>LIKE '%'</code> ตรงกับทุกแถว</td></tr>
+<tr><td><code>' UNION SELECT 0, name, 0 FROM sqlite_master --</code></td><td>ต่อผลจากตารางระบบเข้ามา และ <code>--</code> ทำให้ส่วนที่เหลือของคำสั่งเดิมกลายเป็น Comment</td></tr>
+<tr><td><code>monkeypatch.chdir(tmp_path)</code></td><td>ย้ายโฟลเดอร์ทำงานไปที่โฟลเดอร์ชั่วคราวระหว่าง Test แอปจึงเปิด <code>studylog.db</code> ชุดทดสอบ ไม่ใช่ของจริง</td></tr>
+<tr><td><code>conn.execute(sql, (f"%{topic}%",))</code></td><td>ส่งค่าผ่าน Placeholder <code>?</code> ฐานข้อมูลมองค่าเป็นข้อมูลล้วน และ <code>%</code> อยู่ในค่า ไม่ได้อยู่ในคำสั่ง SQL สังเกตจุลภาคที่ทำให้เป็น Tuple</td></tr>
+<tr><td><code>if len(topic) &gt; MAX_TOPIC_LENGTH: ... 400</code></td><td>Input Validation: ปฏิเสธข้อความยาวผิดปกติก่อนถึงฐานข้อมูล</td></tr>
+<tr><td><code>app.config["SECRET_KEY"] = get_secret("SECRET_KEY")</code></td><td>อ่าน Secret จาก Environment Variable ด้วยฟังก์ชันจากแนวคิดที่ 2 ถ้าไม่ได้ตั้ง แอปจะหยุดพร้อมข้อความชัดเจน</td></tr>
+<tr><td><code>try: ... finally: conn.close()</code></td><td>ปิด Connection ทุกครั้งแม้เกิด Error ไม่ทิ้งไฟล์ฐานข้อมูลค้างเปิด</td></tr>
+<tr><td><code>app.run(host="127.0.0.1", debug=False)</code></td><td>รับ Request เฉพาะจากเครื่องตัวเอง และปิด Debugger ที่ถ้าเปิดไว้จะเปิดช่องให้รันโค้ดผ่านหน้าเว็บได้</td></tr>
+<tr><td><code>os.environ.setdefault("SECRET_KEY", "test-only-not-a-real-secret")</code></td><td>ตั้งค่าเฉพาะเมื่อยังไม่มี ใช้กับ Test เท่านั้น และตั้งชื่อค่าให้เห็นชัดว่าไม่ใช่ของจริง</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>sqlite3.OperationalError: unrecognized token: "'"</code> เมื่อค้นคำที่มี <code>'</code></td><td>คำสั่ง SQL ต่อจาก f-string เครื่องหมายคำพูดของผู้ใช้จึงทำให้คำสั่งพัง และเป็นสัญญาณว่าโจมตีได้</td><td>เปลี่ยนเป็น Placeholder <code>?</code> ทุกจุดที่มีค่าจากผู้ใช้</td></tr>
+<tr><td><code>sqlite3.ProgrammingError: Incorrect number of bindings supplied. The current statement uses 0, and there are 1 supplied.</code></td><td>เขียน <code>LIKE '%?%'</code> ซึ่ง <code>?</code> ที่อยู่ในเครื่องหมายคำพูดเป็นแค่ตัวอักษร ไม่ใช่ Placeholder</td><td>ใช้ <code>LIKE ?</code> แล้วใส่ <code>%</code> ไว้ในค่าที่ส่ง: <code>(f"%{topic}%",)</code></td></tr>
+<tr><td><code>sqlite3.ProgrammingError: Incorrect number of bindings supplied. The current statement uses 1, and there are 5 supplied.</code></td><td>ส่ง String แทน Tuple เช่น <code>conn.execute(sql, "%SQL%")</code> ทำให้ทุกตัวอักษรถูกนับเป็นค่า 1 ตัว</td><td>ห่อด้วย Tuple ที่มีจุลภาค <code>("%SQL%",)</code></td></tr>
+<tr><td><code>RuntimeError: ไม่พบ Environment Variable ชื่อ SECRET_KEY ให้ตั้งค่าก่อนรัน ...</code> ตอน import</td><td>รัน Test โดยไม่มี <code>tests/conftest.py</code> หรือรันแอปโดยไม่ได้ตั้ง Secret</td><td>เพิ่ม <code>conftest.py</code> สำหรับ Test และตั้งค่าใน <code>.env</code> สำหรับการรันจริง</td></tr>
+<tr><td>ruff ผ่าน เพราะ AI เติม <code># noqa: S608</code> ท้ายบรรทัด SQL</td><td>ปิดคำเตือนแทนการแก้ต้นเหตุ ruff จึงไม่รายงานบรรทัดนั้นอีก</td><td>ค้นด้วย <code>grep -rn "noqa" --include=*.py .</code> ทุกครั้งที่รีวิว และให้ทุก <code>noqa</code> มีเหตุผลกำกับ</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ห้ามต่อ String เป็นคำสั่ง SQL ในทุกกรณี ใช้ Placeholder เสมอ (กฎนี้อยู่ใน <code>AGENTS.md</code> ตั้งแต่แนวคิดที่ 5)</li>
+<li>เปิด ruff กลุ่ม <code>S</code> ไว้ตลอด และเขียน Security Test ที่มี Payload โจมตีจริงเก็บไว้เป็น Regression Test</li>
+<li>Secret มาจาก Environment Variable เท่านั้น ค่าสำหรับ Test ต้องตั้งชื่อให้เห็นว่าไม่ใช่ของจริง</li>
+<li>ตรวจทุก Input ทั้งชนิด ความยาว และช่วงค่า และตั้งค่า Production ให้ปิด Debug เสมอ</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>หาช่องโหว่ที่ซ่อนอยู่ในเวอร์ชันที่แก้แล้ว</p><ol>
+<li>เพิ่ม Test ที่ค้นด้วย <code>topic="%"</code> แล้วทำนายก่อนรันว่าจะได้กี่แถว เครื่องหมาย <code>%</code> เป็น Wildcard ของ <code>LIKE</code> จึงได้ครบทั้ง 3 แถวแม้ไม่ใช่ SQL Injection</li>
+<li>แก้ให้ <code>%</code> และ <code>_</code> ในคำค้นเป็นตัวอักษรธรรมดา โดยแทนที่ด้วย <code>\%</code> และ <code>\_</code> ก่อนส่ง แล้วเพิ่ม <code>ESCAPE '\'</code> ท้าย <code>LIKE ?</code> จน Test ของข้อ 1 ได้ <code>[]</code></li>
+<li>ส่งโค้ดเวอร์ชันของ AI ให้เครื่องมือ AI รีวิวด้วย Prompt Security Review แล้วเทียบกับ 5 จุดที่ ruff พบ และ 3 Test ที่ล้ม</li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 11</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h3 id="s2-2-c11">Supply Chain, License และความเป็นส่วนตัว: ตรวจแพ็กเกจก่อนติดตั้ง และลบ Secret ก่อนส่งให้ AI</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>โค้ดของเราพึ่งแพ็กเกจของคนอื่นเสมอ ห่วงโซ่นี้เรียกว่า <strong>Supply Chain</strong> และ AI เพิ่มความเสี่ยงได้ 3 แบบ: <strong>Package Hallucination</strong> AI แนะนำชื่อแพ็กเกจที่ไม่มีอยู่จริง, <strong>Slopsquatting</strong> ผู้ไม่หวังดีจดชื่อที่ AI ชอบแต่งไว้ล่วงหน้าแล้วใส่มัลแวร์ รอคนที่ <code>pip install</code> ตาม AI และ <strong>Typosquatting</strong> ชื่อที่ต่างจากแพ็กเกจดังแค่ตัวอักษรเดียว ก่อนติดตั้งทุกครั้งให้ตรวจว่ามีอยู่จริง ออกครั้งแรกเมื่อไร ใครดูแล มีลิงก์ Source ไหม และหลังติดตั้งให้ตรวจช่องโหว่ที่รู้จักแล้ว (CVE) ด้วย <code>pip-audit</code></p>
+<p>อีก 2 เรื่องที่ต้องตรวจคือ <strong>License</strong> แบบ Permissive (MIT, BSD, Apache-2.0) ใช้ในงานปิดได้เกือบทุกกรณี ส่วนแบบ Copyleft (GPL) อาจบังคับให้เปิดซอร์สงานของเรา และ <strong>ความเป็นส่วนตัว</strong> ห้ามวาง Secret ข้อมูลลูกค้า หรือโค้ดของบริษัทลงในเครื่องมือ AI ที่บริษัทยังไม่อนุมัติ ข้อมูลส่วนบุคคลยังอยู่ภายใต้ พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA) ด้วย ก่อนส่ง Log หรือข้อความใดให้ AI จึงต้องลบค่าลับออกก่อน ใช้แนวคิดนี้ทุกครั้งที่ AI แนะนำให้ติดตั้งอะไร และทุกครั้งที่จะคัดลอกข้อมูลออกนอกเครื่อง</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ก่อนกินยาที่เพื่อนแนะนำ เราดูเลขทะเบียน อย. ผู้ผลิต และวันหมดอายุบนกล่อง ถ้าเพื่อนจำชื่อยาผิดเป็นชื่อที่ไม่มีจริง แล้วมีคนหัวใสผลิตยาปลอมชื่อนั้นออกมาขายพอดี คนที่ไม่ตรวจก่อนก็จะซื้อยาปลอมไปกิน และก่อนส่งผลตรวจสุขภาพให้ใครดู เราก็ปิดเลขบัตรประชาชนก่อนเสมอ</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>ไฟล์แรก <code>tools/check_pkg.py</code> ถาม PyPI JSON API ว่าแพ็กเกจมีอยู่จริงไหม ใช้ Standard Library เท่านั้น ไม่ต้องติดตั้งอะไรเพิ่ม (ต้องต่ออินเทอร์เน็ต)</p>
+<pre class="code" data-env="file" data-label="Python · tools/check_pkg.py"><code class="language-python">"""ตรวจว่าแพ็กเกจที่ AI แนะนำมีอยู่จริงบน PyPI ก่อนติดตั้ง (ใช้ Standard Library เท่านั้น)"""
+
+import json
+import sys
+import urllib.error
+import urllib.request
+
+
+def check(name: str) -&gt; bool:
+    url = f"https://pypi.org/pypi/{name}/json"
+    try:
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            data = json.load(resp)
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            print(f"[ไม่พบ] {name}: ไม่มีบน PyPI ห้ามติดตั้ง อาจเป็นชื่อที่ AI แต่งขึ้น")
+            return False
+        raise
+    info = data["info"]
+    uploads = [f["upload_time"][:10] for files in data["releases"].values() for f in files]
+    license_ = info.get("license_expression") or info.get("license") or "ไม่ระบุ"
+    source = (info.get("project_urls") or {}).get("Source", "ไม่ระบุ")
+    print(f"[พบ] {info['name']} {info['version']} | ออกครั้งแรก {min(uploads)} | License {license_}")
+    print(f"      Source: {source}")
+    return True
+
+
+if __name__ == "__main__":
+    results = [check(name) for name in sys.argv[1:]]
+    sys.exit(0 if all(results) else 1)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/vibe-lab
+source .venv/bin/activate
+# ตรวจแพ็กเกจจริง 1 ตัว และชื่อที่ AI อาจแต่งขึ้น 1 ตัว (อย่า pip install ชื่อที่สอง)
+python3 tools/check_pkg.py flask flask-sqlite-helper-pro
+echo "exit=$?"
+# ฝั่ง npm ใช้ npm view ตรวจได้เช่นกัน (ต้องติดตั้ง Node.js ไว้แล้ว)
+npm view express name version license
+npm view express-sqlite-helper-pro version</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[พบ] Flask 3.1.3 | ออกครั้งแรก 2010-04-16 | License BSD-3-Clause
+      Source: https://github.com/pallets/flask/
+[ไม่พบ] flask-sqlite-helper-pro: ไม่มีบน PyPI ห้ามติดตั้ง อาจเป็นชื่อที่ AI แต่งขึ้น
+exit=1
+name = 'express'
+version = '5.3.0'
+license = 'MIT'
+npm error code E404
+npm error 404 Not Found - GET https://registry.npmjs.org/express-sqlite-helper-pro - Not found
+npm error 404
+npm error 404  'express-sqlite-helper-pro@*' is not in this registry.
+npm error 404
+npm error 404 Note that you can also install from a
+npm error 404 tarball, folder, http url, or git url.
+npm error A complete log of this run can be found in: /home/somchai/.npm/_logs/2026-10-28T15_45_28_449Z-debug-0.log</code></pre>
+<p>Flask มีมาตั้งแต่ปี 2010 และมีลิงก์ Source ไปที่ GitHub ของผู้ดูแล ส่วนชื่อที่แต่งขึ้นไม่พบทั้งบน PyPI และ npm เลขเวอร์ชันล่าสุด ชื่อไฟล์ Log และบรรทัด <code>npm notice</code> เรื่องอัปเดต npm (ตัดออกจากผลด้านบน) จะต่างไปตามวันที่รัน แพ็กเกจที่เพิ่งออกไม่กี่วัน ไม่มี Source หรือมีผู้ดูแลที่ไม่รู้จัก ให้ถือว่าน่าสงสัยจนกว่าจะตรวจละเอียด ขั้นต่อไปดู License ของแพ็กเกจที่ติดตั้งแล้ว</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ดู License ของแพ็กเกจที่ติดตั้งแล้วจาก Metadata ของแพ็กเกจ
+python3 - &lt;&lt;'PY'
+import importlib.metadata as md
+
+for name in ["flask", "werkzeug", "jinja2", "pytest", "ruff", "pip-audit"]:
+    meta = md.metadata(name)
+    license_ = meta.get("License-Expression") or meta.get("License")
+    if not license_:
+        # บางแพ็กเกจไม่กรอกช่อง License แต่ระบุไว้ใน Classifier แทน
+        found = [c for c in meta.get_all("Classifier", []) if c.startswith("License ::")]
+        license_ = found[0].split(" :: ")[-1] if found else "ไม่ระบุ ต้องเปิดดูใน Repository"
+    print(f"{name:&lt;10} {meta['Version']:&lt;8} {license_}")
+PY</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>flask      3.1.3    BSD-3-Clause
+werkzeug   3.1.9    BSD-3-Clause
+jinja2     3.1.6    BSD License
+pytest     9.1.1    MIT
+ruff       0.17.1   MIT
+pip-audit  2.10.1   Apache Software License</code></pre>
+<p>ทุกตัวเป็น License แบบ Permissive ไฟล์ที่สอง <code>tools/redact.py</code> ปิดบัง API Key (<code>sk-...</code>, <code>ghp_...</code>, <code>AKIA...</code>), รหัสผ่านในรูป <code>KEY=VALUE</code> และอีเมล ก่อนคัดลอกข้อความไปให้ AI</p>
+<pre class="code" data-env="file" data-label="Python · tools/redact.py"><code class="language-python">"""ปิดบัง Secret และข้อมูลส่วนตัวในข้อความ ก่อนส่งให้ AI หรือแนบใน Issue"""
+
+import re
+import sys
+
+# (ชื่อกฎ, Pattern, ข้อความที่ใช้แทน) เรียงจากกฎที่เจาะจงที่สุดไปกว้างที่สุด
+RULES = [
+    ("API Key แบบ sk-", re.compile(r"\bsk-[A-Za-z0-9_-]{16,}"), "[REDACTED_API_KEY]"),
+    ("GitHub Token", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{36,}"), "[REDACTED_GITHUB_TOKEN]"),
+    ("AWS Access Key ID", re.compile(r"\bAKIA[0-9A-Z]{16}\b"), "[REDACTED_AWS_KEY]"),
+    (
+        "ค่าลับแบบ KEY=VALUE",
+        # ชื่อที่มีคำว่า password/secret/token/api_key ตามด้วย = หรือ : แล้วค่า (มีเครื่องหมายคำพูดก็ได้)
+        # (?!\[REDACTED_) กันไม่ให้นับซ้ำค่าที่กฎก่อนหน้าปิดบังไปแล้ว
+        re.compile(
+            r"(?i)\b(\w*(?:password|passwd|secret|token|api_key)\w*)"
+            r"((?:['\"]\])?\s*[=:]\s*)(['\"]?)(?!\[REDACTED_)[^\s'\"]+\3"
+        ),
+        r"\1\2\3****\3",
+    ),
+    ("Email", re.compile(r"\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b"), "[REDACTED_EMAIL]"),
+]
+
+
+def redact(text: str) -&gt; tuple[str, int]:
+    """คืนข้อความที่ปิดบังแล้ว และจำนวนจุดที่ถูกปิดบัง"""
+    total = 0
+    for _name, pattern, replacement in RULES:
+        text, count = pattern.subn(replacement, text)
+        total += count
+    return text, total
+
+
+if __name__ == "__main__":
+    cleaned, count = redact(sys.stdin.read())
+    sys.stdout.write(cleaned)
+    sys.stdout.flush()
+    # รายงานจำนวนทาง stderr เพื่อไม่ให้ปนกับข้อความที่ส่งต่อด้วย Pipe
+    print(f"[redact] ปิดบังไป {count} จุด", file=sys.stderr)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ตัวอย่าง Log ที่มี Secret ปนอยู่ (ทุกค่าเป็นค่าปลอมสำหรับฝึก)
+cat &gt; /tmp/app.log &lt;&lt;'LOG'
+2026-10-19 09:15:02 INFO login ok user=somchai@example.com
+2026-10-19 09:15:07 DEBUG ANTHROPIC_API_KEY=sk-ant-api03-EXAMPLE0000000000000000
+2026-10-19 09:15:09 DEBUG GITHUB_TOKEN=ghp_EXAMPLE00000000000000000000000000000
+2026-10-19 09:15:12 ERROR aws key AKIAIOSFODNN7EXAMPLE rejected
+2026-10-19 09:15:15 ERROR connect failed DB_PASSWORD=P@ssw0rd2026
+2026-10-19 09:15:20 INFO GET /api/summary 200
+LOG
+# ส่ง Log ผ่าน redact.py ก่อนคัดลอกไปให้ AI
+python3 tools/redact.py &lt; /tmp/app.log</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>2026-10-19 09:15:02 INFO login ok user=[REDACTED_EMAIL]
+2026-10-19 09:15:07 DEBUG ANTHROPIC_API_KEY=[REDACTED_API_KEY]
+2026-10-19 09:15:09 DEBUG GITHUB_TOKEN=[REDACTED_GITHUB_TOKEN]
+2026-10-19 09:15:12 ERROR aws key [REDACTED_AWS_KEY] rejected
+2026-10-19 09:15:15 ERROR connect failed DB_PASSWORD=****
+2026-10-19 09:15:20 INFO GET /api/summary 200
+[redact] ปิดบังไป 5 จุด</code></pre>
+<p>สุดท้ายตรวจช่องโหว่ที่รู้จักแล้วด้วย <code>pip-audit</code> แล้ว Commit เครื่องมือทั้งสองตัว</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ตรวจช่องโหว่ที่รู้จักแล้วใน Dependency ของโปรเจกต์
+pip-audit -r requirements.txt
+# ทดลองกับไฟล์ที่ Pin เวอร์ชันเก่า เพื่อดูหน้าตารายงานเมื่อพบช่องโหว่
+echo "requests==2.31.0" &gt; /tmp/old-requirements.txt
+pip-audit -r /tmp/old-requirements.txt
+echo "exit=$?"
+# Commit เครื่องมือทั้งสองตัว
+git add tools/check_pkg.py tools/redact.py
+git commit -m "feat: เพิ่มเครื่องมือตรวจแพ็กเกจบน PyPI และปิดบัง Secret ก่อนส่งให้ AI"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>No known vulnerabilities found
+Found 6 known vulnerabilities in 1 package
+Name     Version ID              Fix Versions
+-------- ------- --------------- ------------
+requests 2.31.0  PYSEC-2026-1873 2.32.0
+requests 2.31.0  PYSEC-2026-1872 2.32.4
+requests 2.31.0  PYSEC-2026-2275 2.33.0
+requests 2.31.0  PYSEC-2026-1873 2.32.0
+requests 2.31.0  PYSEC-2026-1872 2.32.4
+requests 2.31.0  PYSEC-2026-2275 2.33.0
+exit=1
+[main 9f41631] feat: เพิ่มเครื่องมือตรวจแพ็กเกจบน PyPI และปิดบัง Secret ก่อนส่งให้ AI
+ 2 files changed, 69 insertions(+)
+ create mode 100644 tools/check_pkg.py
+ create mode 100644 tools/redact.py</code></pre>
+<p>รหัสช่องโหว่ จำนวนที่พบ และเวอร์ชันที่แก้แล้วเปลี่ยนได้ทุกวันตามฐานข้อมูลช่องโหว่ และ pip-audit เวอร์ชันนี้แสดงบางรายการซ้ำ 2 ครั้ง ผลในเครื่องคุณจึงต่างจากนี้ได้ สิ่งที่ต้องดูคือ Exit Code เป็น 1 เมื่อพบช่องโหว่ ซึ่ง Quality Gate ในแนวคิดที่ 12 ใช้หยุดการ Commit</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>urllib.request.urlopen(url, timeout=10)</code></td><td>เรียก <code>https://pypi.org/pypi/ชื่อ/json</code> ของ PyPI ตั้ง <code>timeout</code> ไว้เพื่อไม่ให้ค้างเมื่อเครือข่ายมีปัญหา</td></tr>
+<tr><td><code>except urllib.error.HTTPError as e: if e.code == 404</code></td><td>404 แปลว่าไม่มีแพ็กเกจชื่อนี้ ห้ามติดตั้ง ส่วน Error อื่นให้ <code>raise</code> ต่อ เพราะไม่ได้แปลว่าไม่มีแพ็กเกจ</td></tr>
+<tr><td><code>min(uploads)</code></td><td>วันที่อัปโหลดไฟล์แรกสุดของทุกเวอร์ชัน คือวันที่แพ็กเกจเริ่มมีบน PyPI แพ็กเกจอายุน้อยมากควรตรวจเพิ่ม</td></tr>
+<tr><td><code>sys.exit(0 if all(results) else 1)</code></td><td>Exit Code 1 เมื่อมีชื่อใดไม่พบ จึงใช้ในสคริปต์อัตโนมัติได้</td></tr>
+<tr><td><code>npm view ชื่อ name version license</code></td><td>ดูข้อมูลแพ็กเกจจาก npm Registry ถ้าไม่มีจะได้ <code>npm error code E404</code></td></tr>
+<tr><td><code>md.metadata(name)</code> และ <code>meta.get_all("Classifier", [])</code></td><td>อ่าน Metadata ของแพ็กเกจที่ติดตั้งแล้ว ถ้าช่อง License ว่าง ให้หาใน Classifier ที่ขึ้นต้นด้วย <code>License ::</code></td></tr>
+<tr><td><code>RULES = [(ชื่อกฎ, Pattern, ข้อความแทน), ...]</code></td><td>กฎเรียงจากเจาะจงไปกว้าง กฎ KEY=VALUE ใช้ <code>(?!\[REDACTED_)</code> เพื่อไม่ปิดบังค่าที่กฎก่อนหน้าปิดไปแล้วซ้ำ</td></tr>
+<tr><td><code>pattern.subn(replacement, text)</code></td><td>แทนที่ทุกจุดที่ตรง Pattern และคืนจำนวนจุดที่แทน ใช้รวมเป็นยอดที่รายงาน</td></tr>
+<tr><td><code>print(..., file=sys.stderr)</code></td><td>พิมพ์ยอดรวมทาง stderr ข้อความที่ปิดบังแล้วทาง stdout จึงส่งต่อด้วย Pipe ได้สะอาด</td></tr>
+<tr><td><code>pip-audit -r requirements.txt</code></td><td>ตรวจทุกแพ็กเกจในไฟล์กับฐานข้อมูลช่องโหว่ที่รู้จักแล้ว และแสดงเวอร์ชันที่แก้แล้ว (Fix Versions)</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>ERROR: Could not find a version that satisfies the requirement flask-sqlite-helper-pro (from versions: none)</code> และ <code>ERROR: No matching distribution found for flask-sqlite-helper-pro</code></td><td>รัน <code>pip install</code> ตามชื่อที่ AI แต่งขึ้น วันนี้โชคดีที่ไม่มีใครจดชื่อนี้ไว้ ถ้ามีผู้ไม่หวังดีจดไว้ คำสั่งเดียวกันจะติดตั้งมัลแวร์โดยไม่มี Error เลย</td><td>รัน <code>tools/check_pkg.py</code> ก่อนติดตั้งทุกครั้ง และถาม AI ว่าใช้ Standard Library แทนได้ไหม</td></tr>
+<tr><td><code>npm error 404  'express-sqlite-helper-pro@*' is not in this registry.</code></td><td>ชื่อแพ็กเกจฝั่ง JavaScript ที่ AI แต่งขึ้น</td><td>ตรวจด้วย <code>npm view</code> และดูหน้าแพ็กเกจบน npmjs.com ว่ามีผู้ดูแลและลิงก์ Repository จริง</td></tr>
+<tr><td><code>Found 6 known vulnerabilities in 1 package</code> และ <code>exit=1</code></td><td>Pin เวอร์ชันเก่าที่มีช่องโหว่ที่รู้จักแล้ว ซึ่ง AI มักแนะนำเพราะเรียนจากโค้ดเก่า</td><td>อัปเกรดเป็นเวอร์ชันในคอลัมน์ Fix Versions รัน Test แล้วรัน <code>pip-audit</code> ซ้ำ</td></tr>
+<tr><td><code>[redact] ปิดบังไป 0 จุด</code> ทั้งที่ข้อความมี <code>STRIPE_LIVE=sk_live_...</code></td><td>คีย์รูปแบบนี้ใช้ <code>sk_</code> (ขีดล่าง) และชื่อตัวแปรไม่มีคำในกฎ Regex จึงไม่ตรง</td><td>อ่านผลลัพธ์ด้วยตาก่อนส่งทุกครั้ง และเพิ่มกฎสำหรับรูปแบบคีย์ที่ทีมใช้จริง</td></tr>
+<tr><td>License ขึ้น <code>ไม่ระบุ</code> เมื่ออ่านแค่ช่อง <code>License-Expression</code> และ <code>License</code></td><td>บางแพ็กเกจ เช่น jinja2 และ pip-audit ไม่กรอกช่องนี้ แต่ระบุไว้ใน Classifier หรือไฟล์ LICENSE</td><td>ใช้ Classifier ตามตัวอย่าง ถ้ายังไม่พบให้เปิดไฟล์ LICENSE ใน Repository ของแพ็กเกจ</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ทุกแพ็กเกจใหม่ที่ AI เสนอต้องผ่าน 4 ข้อก่อนติดตั้ง: มีอยู่จริง, อายุและจำนวนเวอร์ชันสมเหตุสมผล, มี Source และผู้ดูแลที่ตรวจสอบได้, License ใช้กับงานของเราได้</li>
+<li>Pin เวอร์ชันใน <code>requirements.txt</code> และรัน <code>pip-audit</code> ทั้งในเครื่องและใน CI (แนวคิดที่ 12)</li>
+<li>ใช้เฉพาะเครื่องมือ AI ที่องค์กรอนุมัติ อ่านเงื่อนไขการใช้ข้อมูลของบริการนั้น และห้ามส่งข้อมูลลูกค้าหรือข้อมูลส่วนบุคคล</li>
+<li>ส่งทุก Log และ Error ผ่าน <code>redact.py</code> แล้วอ่านทวนด้วยตาก่อนวางให้ AI</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ปรับเครื่องมือทั้งสองให้เหมาะกับงานของคุณ</p><ol>
+<li>เพิ่มกฎใน <code>RULES</code> ชื่อ <code>"Stripe Key"</code> ที่ตรงกับ <code>\bsk_(live|test)_[A-Za-z0-9]{16,}</code> แล้วทดสอบด้วย <code>printf 'STRIPE_LIVE=sk_live_51ABCDEFexample000000\n' | python3 tools/redact.py</code> ต้องได้ <code>[redact] ปิดบังไป 1 จุด</code></li>
+<li>ตรวจชื่อแพ็กเกจ 3 ชื่อที่ AI เคยแนะนำคุณด้วย <code>tools/check_pkg.py</code> แล้วจดว่าตัวไหนอายุน้อยกว่า 1 ปีหรือไม่มีลิงก์ Source</li>
+<li>เพิ่ม <code>"pip-audit"</code> และ <code>"pytest"</code> เป็นอาร์กิวเมนต์ของ <code>check_pkg.py</code> แล้วเทียบ License ที่ได้จาก PyPI กับผลจาก <code>importlib.metadata</code></li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 12</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h3 id="s2-2-c12">Quality Gate อัตโนมัติ, AI Code Review แบบมีโหมดจำลอง และรู้ว่าเมื่อไรไม่ควร Vibe Code</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>ทุกแนวคิดที่ผ่านมามีขั้นตรวจที่ต้องจำเอง ถ้าวันไหนรีบ หรือ AI Agent Commit เอง ขั้นตรวจก็หายไป <strong>Quality Gate</strong> คือการรวมการตรวจทั้งหมดเป็นด่านอัตโนมัติที่ข้ามไม่ได้: สคริปต์ <code>scripts/check.sh</code> รัน 4 ด่าน (ruff check, ruff format --check, pytest, pip-audit) และหยุดทันทีที่ด่านใดล้ม จากนั้นเรียกสคริปต์เดียวกันจาก 2 ที่: <strong>Git Hook</strong> <code>.git/hooks/pre-commit</code> ที่รันก่อนทุก Commit ในเครื่อง และ <strong>GitHub Actions</strong> ที่รันทุกครั้งที่ Push หรือเปิด Pull Request ถ้าทำงานเป็นทีม ให้ใช้เครื่องมือ <code>pre-commit==4.7.0</code> เพื่อให้ทุกคนติดตั้ง Hook ชุดเดียวกันได้ในคำสั่งเดียว</p>
+<p>ด่านเสริมคือ <strong>AI Code Review</strong> อัตโนมัติ: <code>tools/ai_review.py</code> รับ Diff จาก <code>git diff --cached</code> หรือไฟล์ Patch ปิดบัง Secret ด้วย <code>tools/redact.py</code> ก่อน แล้วส่งให้ Claude รีวิวตาม Checklist เมื่อมี <code>ANTHROPIC_API_KEY</code> ถ้าไม่มี Key จะสลับเป็น <strong>โหมดจำลอง</strong> เองโดยอัตโนมัติ ซึ่งรีวิวด้วยกฎตายตัวในเครื่อง (SQL ต่อด้วย f-string, <code>shell=True</code>, <code>debug=True</code>, Secret ในโค้ด และการแก้ไฟล์ใน <code>tests/</code>) ผลของ AI เป็นคำแนะนำให้คนตรวจต่อเท่านั้น ไม่ใช่ด่านที่ตัดสินแทนคน</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>สนามบินมีหลายด่าน: ตรวจบัตร, เครื่องเอกซเรย์กระเป๋า และเครื่องตรวจโลหะ แต่ละด่านจับของคนละแบบ และไม่มีผู้โดยสารคนไหนเลือกข้ามด่านได้ Quality Gate ก็เช่นกัน ส่วน AI Review คือสุนัขดมกลิ่นที่ช่วยชี้จุดน่าสงสัย แต่คนที่ตัดสินว่าจะเปิดกระเป๋าตรวจคือเจ้าหน้าที่</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>สร้างสคริปต์ Quality Gate และ Workflow ของ GitHub Actions (สร้างโฟลเดอร์ <code>scripts</code> และ <code>.github/workflows</code> ก่อน)</p>
+<pre class="code" data-env="file" data-label="Bash · scripts/check.sh"><code class="language-bash">#!/usr/bin/env bash
+# Quality Gate: รันก่อน Commit ทุกครั้ง โดยเฉพาะหลังรับโค้ดจาก AI
+# set -e หยุดทันทีเมื่อคำสั่งใดล้ม, -u ห้ามใช้ตัวแปรที่ไม่ได้กำหนด, pipefail จับ Error ใน Pipe
+set -euo pipefail
+
+# ย้ายไปที่ Root ของโปรเจกต์ เพื่อให้รันจากโฟลเดอร์ไหนก็ได้
+cd "$(dirname "$0")/.."
+
+echo "[1/4] ruff check (กฎใน pyproject.toml รวมกฎความปลอดภัย S)"
+ruff check --output-format concise .
+
+echo "[2/4] ruff format --check"
+ruff format --check .
+
+echo "[3/4] pytest"
+pytest -q
+
+echo "[4/4] pip-audit"
+pip-audit -r requirements.txt
+
+echo "ผ่านทุกด่าน พร้อม Commit"</code></pre>
+<pre class="code" data-env="file" data-label="YAML · .github/workflows/check.yml"><code class="language-yaml">name: quality-gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      # ดึงโค้ดจาก Repository
+      - uses: actions/checkout@v5
+      # ติดตั้ง Python เวอร์ชันเดียวกับเครื่องที่พัฒนา
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: ติดตั้งแพ็กเกจตาม requirements.txt
+        run: python -m pip install -r requirements.txt
+      - name: รัน Quality Gate ชุดเดียวกับในเครื่อง
+        run: ./scripts/check.sh</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/vibe-lab
+source .venv/bin/activate
+# ให้สิทธิ์รันสคริปต์ แล้วรัน Quality Gate ทั้ง 4 ด่าน
+chmod +x scripts/check.sh
+./scripts/check.sh
+# Commit Quality Gate พร้อม Workflow ของ GitHub Actions
+git add scripts/check.sh .github/workflows/check.yml
+git commit -m "chore: เพิ่ม Quality Gate scripts/check.sh และ GitHub Actions"</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[1/4] ruff check (กฎใน pyproject.toml รวมกฎความปลอดภัย S)
+All checks passed!
+[2/4] ruff format --check
+20 files already formatted
+[3/4] pytest
+........................                                                 [100%]
+24 passed in 1.09s
+[4/4] pip-audit
+No known vulnerabilities found
+ผ่านทุกด่าน พร้อม Commit
+[main 24528b2] chore: เพิ่ม Quality Gate scripts/check.sh และ GitHub Actions
+ 2 files changed, 42 insertions(+)
+ create mode 100644 .github/workflows/check.yml
+ create mode 100755 scripts/check.sh</code></pre>
+<p><code>create mode 100755</code> ยืนยันว่า Git เก็บสิทธิ์รันของ <code>check.sh</code> ไว้ด้วย GitHub Actions จึงรันสคริปต์นี้ได้ Workflow จะเริ่มทำงานเมื่อ Push ขึ้น GitHub ตามขั้นตอนใน <a data-t="17"></a> ขั้นต่อไปติดตั้ง Hook แล้วลอง Commit โค้ดที่ AI เขียนให้ส่งข้อความแจ้งเตือน</p>
+<pre class="code" data-env="file" data-label="Bash · .git/hooks/pre-commit"><code class="language-bash">#!/usr/bin/env bash
+# รัน Quality Gate ก่อนทุก Commit ถ้าไม่ผ่าน Git จะยกเลิก Commit นั้น
+exec ./scripts/check.sh</code></pre>
+<pre class="code" data-env="file" data-label="Python · notify.py (โค้ดที่ AI เขียน)"><code class="language-python">import subprocess
+
+LINE_TOKEN = "lt-9f8e7d6c5b4a"
+
+
+def notify(message: str) -&gt; None:
+    """ส่งข้อความแจ้งเตือนผ่านคำสั่งในเครื่อง"""
+    subprocess.run(f"echo {message}", shell=True, check=True)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ให้สิทธิ์รัน Hook แล้วลอง Commit โค้ดของ AI
+chmod +x .git/hooks/pre-commit
+git add notify.py
+git commit -m "feat: เพิ่มการแจ้งเตือน (โค้ดจาก AI)"
+# ตรวจว่า Commit ไม่เกิดขึ้น ไฟล์ยังรออยู่ใน Staging
+git status --short</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[1/4] ruff check (กฎใน pyproject.toml รวมกฎความปลอดภัย S)
+notify.py:3:14: S105 Possible hardcoded password assigned to: "LINE_TOKEN"
+notify.py:8:5: S602 `subprocess` call with `shell=True` identified, security issue
+Found 2 errors.
+A  notify.py</code></pre>
+<p>Hook หยุด Commit ตั้งแต่ด่านแรก: Token ในโค้ด (<code>S105</code>) และ <code>shell=True</code> (<code>S602</code>) ที่เปิดช่อง Command Injection ถ้า <code>message</code> มาจากผู้ใช้ ขั้นต่อไปเพิ่ม AI Review ที่รันได้ทั้งแบบมีและไม่มี Key (โหมดจริงต้องติดตั้ง <code>python3 -m pip install "anthropic==1.15.0"</code> เพิ่ม ซึ่งไม่ได้ใส่ไว้ใน <code>requirements.txt</code> เพราะเป็นเครื่องมือเสริม และโหมดจำลองไม่ต้องใช้)</p>
+<pre class="code" data-env="file" data-label="Python · tools/ai_review.py"><code class="language-python">"""รีวิว Diff ด้วย AI ก่อน Commit: มี ANTHROPIC_API_KEY จะใช้ Claude ถ้าไม่มีจะสลับเป็นโหมดจำลองเอง
+
+วิธีใช้ (รันจาก Root ของโปรเจกต์):
+    git diff --cached | python3 -m tools.ai_review
+    python3 -m tools.ai_review review/ai-average.patch
+"""
+
+import os
+import re
+import sys
+
+from tools.redact import redact
+
+MODEL = os.environ.get("CLAUDE_MODEL", "claude-opus-5-5")
+
+CHECKLIST = """รีวิว Diff ด้านล่างตาม Checklist นี้ ตอบเป็นภาษาไทย ระบุไฟล์และบรรทัดทุกข้อ
+1. ตรงกับ Spec และไม่แก้เกินขอบเขต
+2. SQL ที่ต่อ String เอง (เสี่ยง SQL Injection)
+3. Secret หรือรหัสผ่านที่เขียนไว้ในโค้ด
+4. subprocess ที่ใช้ shell=True และการเปิด debug=True
+5. การแก้ไฟล์ใน tests/ เพื่อให้ Test ผ่านง่ายขึ้น
+6. Dependency ใหม่ที่ไม่ได้ขอ
+ข้อไหนไม่พบปัญหาให้เขียนว่า "ไม่พบ" ห้ามเดาปัญหาที่ไม่มีหลักฐานใน Diff"""
+
+# กฎของโหมดจำลอง: ตรวจเฉพาะบรรทัดที่ถูกเพิ่ม (ขึ้นต้นด้วย +) ผลจึงเหมือนเดิมทุกครั้งที่รัน
+MOCK_RULES = [
+    (
+        re.compile(r"f[\"'].*\b(SELECT|INSERT|UPDATE|DELETE)\b", re.IGNORECASE),
+        "ต่อ SQL ด้วย f-string เสี่ยง SQL Injection",
+    ),
+    (re.compile(r"shell\s*=\s*True"), "subprocess ใช้ shell=True เสี่ยง Command Injection"),
+    (re.compile(r"debug\s*=\s*True"), "เปิด debug=True ห้ามใช้ใน Production"),
+    (
+        re.compile(r"(?i)\w*(password|secret|token|api_key)\w*['\"]?\]?\s*=\s*['\"]"),
+        "Secret เขียนไว้ในโค้ด ให้ย้ายไป Environment Variable",
+    ),
+]
+
+
+def mock_review(diff: str) -&gt; list[str]:
+    """รีวิวด้วยกฎตายตัวในเครื่อง ใช้แทน AI เมื่อไม่มี API Key"""
+    findings = []
+    path, line_no = "?", 0
+    for line in diff.splitlines():
+        if line.startswith("+++ "):
+            path = line.removeprefix("+++ b/")
+            if path.startswith("tests/"):
+                findings.append(f"{path}: มีการแก้ไฟล์ Test ตรวจว่าไม่ได้แก้ให้ Test ผ่านง่ายขึ้น")
+            continue
+        if line.startswith("@@"):
+            # หัว Hunk เช่น @@ -10,6 +13,14 @@ แปลว่าบรรทัดใหม่เริ่มที่บรรทัด 13
+            line_no = int(re.search(r"\+(\d+)", line).group(1)) - 1
+            continue
+        if line.startswith("-"):
+            continue
+        line_no += 1
+        if line.startswith("+"):
+            for pattern, message in MOCK_RULES:
+                if pattern.search(line):
+                    findings.append(f"{path}:{line_no}: {message}")
+    return findings
+
+
+def claude_review(diff: str) -&gt; str:
+    """ส่ง Diff ที่ปิดบัง Secret แล้วให้ Claude รีวิว (โหมดจริง)"""
+    import anthropic  # import เฉพาะโหมดจริง โหมดจำลองจึงไม่ต้องติดตั้งแพ็กเกจนี้
+
+    client = anthropic.Anthropic()  # อ่าน ANTHROPIC_API_KEY จาก Environment Variable
+    try:
+        response = client.messages.create(
+            model=MODEL,
+            max_tokens=16000,
+            system="คุณคือ Senior Python Reviewer ที่เข้มงวด ตอบเป็นภาษาไทย",
+            messages=[{"role": "user", "content": f"{CHECKLIST}\n\n```diff\n{diff}\n```"}],
+        )
+    except anthropic.AuthenticationError:
+        return "[ERROR] API Key ไม่ถูกต้อง ตรวจค่า ANTHROPIC_API_KEY"
+    except anthropic.RateLimitError:
+        return "[ERROR] เรียกถี่เกินกำหนด รอสักครู่แล้วลองใหม่"
+    except anthropic.APIStatusError as e:
+        return f"[ERROR] API ตอบกลับด้วยสถานะ {e.status_code}"
+    except anthropic.APIConnectionError:
+        return "[ERROR] เชื่อมต่อ API ไม่ได้ ตรวจการเชื่อมต่ออินเทอร์เน็ต"
+    if response.stop_reason == "refusal":
+        return "[ERROR] โมเดลปฏิเสธคำขอนี้"
+    text = "".join(block.text for block in response.content if block.type == "text")
+    if response.stop_reason == "max_tokens":
+        text += "\n[คำเตือน] คำตอบถูกตัด เพราะใช้ครบ max_tokens"
+    return text
+
+
+def main() -&gt; int:
+    if len(sys.argv) &gt; 1:
+        with open(sys.argv[1], encoding="utf-8") as f:
+            diff = f.read()
+    else:
+        diff = sys.stdin.read()
+    if not diff.strip():
+        print("ไม่มี Diff ให้รีวิว (ลืม git add หรือเปล่า)")
+        return 0
+    safe_diff, hidden = redact(diff)
+    print(f"[ai_review] ปิดบัง Secret ก่อนส่ง {hidden} จุด")
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        print(f"[ai_review] โหมดจริง: ส่งให้ {MODEL}")
+        print(claude_review(safe_diff))
+        return 0
+    print("[ai_review] โหมดจำลอง (ไม่พบ ANTHROPIC_API_KEY): รีวิวด้วยกฎในเครื่อง")
+    findings = mock_review(safe_diff)
+    for item in findings:
+        print(" -", item)
+    print(f"พบ {len(findings)} ประเด็นที่ต้องให้คนตรวจต่อ")
+    return 1 if findings else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># รีวิว Diff ใน Staging (notify.py) ไม่มี ANTHROPIC_API_KEY จึงสลับเป็นโหมดจำลองเอง
+git diff --cached | python3 -m tools.ai_review
+echo "exit=$?"
+# รีวิวไฟล์ Patch ที่เก็บไว้จากแนวคิดที่ 7
+python3 -m tools.ai_review review/ai-average.patch</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[ai_review] ปิดบัง Secret ก่อนส่ง 1 จุด
+[ai_review] โหมดจำลอง (ไม่พบ ANTHROPIC_API_KEY): รีวิวด้วยกฎในเครื่อง
+ - notify.py:3: Secret เขียนไว้ในโค้ด ให้ย้ายไป Environment Variable
+ - notify.py:8: subprocess ใช้ shell=True เสี่ยง Command Injection
+พบ 2 ประเด็นที่ต้องให้คนตรวจต่อ
+exit=1
+[ai_review] ปิดบัง Secret ก่อนส่ง 0 จุด
+[ai_review] โหมดจำลอง (ไม่พบ ANTHROPIC_API_KEY): รีวิวด้วยกฎในเครื่อง
+ - tests/test_duration.py: มีการแก้ไฟล์ Test ตรวจว่าไม่ได้แก้ให้ Test ผ่านง่ายขึ้น
+พบ 1 ประเด็นที่ต้องให้คนตรวจต่อ</code></pre>
+<p>นี่คือผลของโหมดจำลองซึ่งเหมือนเดิมทุกครั้งที่รัน Token ใน <code>notify.py</code> ถูกปิดบังก่อนรีวิว (<code>1 จุด</code>) ถ้าตั้ง <code>ANTHROPIC_API_KEY</code> ไว้ (ด้วย <code>export</code> ใน Terminal ห้ามเขียนลงไฟล์ที่ Commit) จะได้ข้อความรีวิวภาษาไทยจาก Claude ที่ถ้อยคำต่างไปทุกครั้ง โหมดจริงมีค่าใช้จ่ายตามจำนวน Token (ราคา ณ ต.ค. 2026 ตรวจสอบล่าสุดที่หน้า Pricing ของผู้ให้บริการ) และโค้ดไม่ส่ง <code>temperature</code>, <code>top_p</code> หรือ <code>top_k</code> เพราะโมเดลรุ่นใหม่ของ Claude ยกเลิกพารามิเตอร์เหล่านี้แล้ว ให้คุมผลด้วย Prompt แทน สุดท้ายปฏิเสธ <code>notify.py</code> แล้ว Commit เครื่องมือรีวิว ครั้งนี้ Hook ต้องให้ผ่าน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ปฏิเสธ notify.py: เอาออกจาก Staging แล้วลบทิ้ง
+git restore --staged notify.py
+rm notify.py
+# Commit เครื่องมือรีวิว ครั้งนี้ Hook จะรัน Quality Gate ก่อน และต้องผ่านทุกด่าน
+git add tools/ai_review.py
+git commit -m "feat: เพิ่ม tools/ai_review.py รีวิว Diff ด้วย AI พร้อมโหมดจำลอง"
+git log --oneline -3</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[1/4] ruff check (กฎใน pyproject.toml รวมกฎความปลอดภัย S)
+All checks passed!
+[2/4] ruff format --check
+21 files already formatted
+[3/4] pytest
+........................                                                 [100%]
+24 passed in 0.26s
+[4/4] pip-audit
+No known vulnerabilities found
+ผ่านทุกด่าน พร้อม Commit
+[main 65158e1] feat: เพิ่ม tools/ai_review.py รีวิว Diff ด้วย AI พร้อมโหมดจำลอง
+ 1 file changed, 116 insertions(+)
+ create mode 100644 tools/ai_review.py
+65158e1 feat: เพิ่ม tools/ai_review.py รีวิว Diff ด้วย AI พร้อมโหมดจำลอง
+24528b2 chore: เพิ่ม Quality Gate scripts/check.sh และ GitHub Actions
+9f41631 feat: เพิ่มเครื่องมือตรวจแพ็กเกจบน PyPI และปิดบัง Secret ก่อนส่งให้ AI</code></pre>
+<p>สำหรับทีม: แทนการให้ทุกคนคัดลอกไฟล์ Hook เอง ให้ Commit ไฟล์ตั้งค่าด้านล่าง แล้วแต่ละคนติดตั้งด้วยคำสั่งเดียว (ลบ Hook ที่เขียนเองออกก่อนด้วย <code>rm .git/hooks/pre-commit</code> เพื่อไม่ให้ pre-commit ทำงานแบบ Migration Mode)</p>
+<pre class="code" data-env="file" data-label="YAML · .pre-commit-config.yaml"><code class="language-yaml"># .pre-commit-config.yaml: ให้ทุกคนในทีมติดตั้ง Hook ชุดเดียวกันด้วยคำสั่งเดียว
+repos:
+  - repo: local
+    hooks:
+      - id: quality-gate
+        name: quality gate (ruff, pytest, pip-audit)
+        entry: ./scripts/check.sh
+        language: system
+        pass_filenames: false
+        always_run: true</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># (ทางเลือกสำหรับทีม) ติดตั้ง pre-commit แล้วให้มันติดตั้ง Hook ตามไฟล์ตั้งค่า
+python3 -m pip install -q "pre-commit==4.7.0"
+git add .pre-commit-config.yaml
+pre-commit --version
+pre-commit install
+pre-commit run --all-files</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>pre-commit 4.7.0
+pre-commit installed at .git/hooks/pre-commit
+quality gate (ruff, pytest, pip-audit)...................................Passed</code></pre>
+<h4>เมื่อไรไม่ควร Vibe Code</h4>
+<div class="tbl wide"><table><thead><tr><th>สถานการณ์</th><th>ทำไมเสี่ยง</th><th>ควรทำอย่างไร</th></tr></thead><tbody>
+<tr><td>ระบบ Login, สิทธิ์การเข้าถึง และ Session</td><td>ผิดจุดเดียวคนอื่นเข้าบัญชีผู้ใช้ได้ และ Test ทั่วไปมักไม่จับ</td><td>ใช้ไลบรารีหรือบริการที่ได้มาตรฐาน ให้ผู้เชี่ยวชาญรีวิว และเขียน Test ด้านสิทธิ์โดยเฉพาะ</td></tr>
+<tr><td>การเข้ารหัสและการเก็บรหัสผ่าน</td><td>AI มักเลือกอัลกอริทึมเก่าหรือเขียนการเข้ารหัสเอง ซึ่งดูเหมือนทำงานแต่ไม่ปลอดภัย</td><td>ใช้ไลบรารีมาตรฐานตามเอกสารทางการเท่านั้น ห้ามประดิษฐ์วิธีเข้ารหัสเอง</td></tr>
+<tr><td>การชำระเงินและยอดเงิน</td><td>ปัดเศษผิดหรือคิดซ้ำทำให้เสียเงินจริง</td><td>เก็บเงินเป็นจำนวนเต็ม (สตางค์) ใช้ SDK ของผู้ให้บริการชำระเงิน และมี Test ทุกกรณีขอบ</td></tr>
+<tr><td>การคำนวณตามกฎหมาย เช่น ภาษีหรือค่าปรับ</td><td>AI อาจใช้กฎเก่าหรือกฎของประเทศอื่นโดยไม่บอก</td><td>อ้างอิงประกาศทางการ และให้ผู้รู้กฎหมายตรวจตัวอย่างคำตอบก่อน</td></tr>
+<tr><td>โค้ดที่คุณอ่านแล้วอธิบายไม่ได้</td><td>แก้หรือดูแลต่อไม่ได้เมื่อมีปัญหา</td><td>ให้ AI อธิบายทีละบรรทัดจนเข้าใจ หรือเขียนใหม่ให้เรียบง่ายพอที่จะอธิบายได้</td></tr>
+<tr><td>ช่วงที่กำลังฝึกพื้นฐาน</td><td>ให้ AI ทำแทนแล้วทักษะไม่เกิด ทำให้รีวิวโค้ดของ AI ไม่เป็นในอนาคต</td><td>เขียนเองก่อน แล้วใช้ AI ช่วยอธิบายหรือรีวิวงานของเรา</td></tr>
+<tr><td>ระบบล่มใน Production ที่ไม่มี Test</td><td>การแก้แบบเดาสุ่มของ AI อาจทำให้เสียหายเพิ่ม และยืนยันผลไม่ได้</td><td>ย้อนกลับเวอร์ชันที่ทำงานได้ก่อน แล้วทำซ้ำบั๊กพร้อมเขียน Regression Test ตามแนวคิดที่ 8</td></tr>
+<tr><td>แก้เล็กมาก เช่น Typo หรือเปลี่ยนข้อความ 1 คำ</td><td>อธิบายให้ AI ฟังและรีวิวผลใช้เวลานานกว่าแก้เอง และ AI อาจแก้เกิน</td><td>แก้เองแล้วรัน Quality Gate</td></tr>
+</tbody></table></div>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>set -euo pipefail</code></td><td>หยุดทันทีเมื่อคำสั่งใดล้ม (<code>-e</code>), ห้ามใช้ตัวแปรที่ไม่ได้กำหนด (<code>-u</code>) และให้ Pipe ล้มถ้าคำสั่งใดในสายล้ม (<code>pipefail</code>) ด่านที่ล้มจึงหยุดด่านถัดไป</td></tr>
+<tr><td><code>cd "$(dirname "$0")/.."</code></td><td>ย้ายไปที่ Root ของโปรเจกต์ไม่ว่าจะเรียกสคริปต์จากที่ใด</td></tr>
+<tr><td><code>exec ./scripts/check.sh</code> ใน Hook</td><td>ให้ Hook ใช้ Exit Code ของสคริปต์ ถ้าไม่เป็น 0 Git จะยกเลิก Commit</td></tr>
+<tr><td><code>runs-on: ubuntu-24.04</code>, <code>actions/checkout@v5</code>, <code>actions/setup-python@v6</code></td><td>เครื่อง CI ใช้ Ubuntu รุ่นเดียวกับ WSL ของเรา ดึงโค้ด แล้วติดตั้ง Python 3.12 ก่อนรันสคริปต์เดียวกับในเครื่อง</td></tr>
+<tr><td><code>MODEL = os.environ.get("CLAUDE_MODEL", "claude-opus-5-5")</code></td><td>อ่านชื่อโมเดลจาก Environment Variable เปลี่ยนรุ่นได้โดยไม่ต้องแก้โค้ด</td></tr>
+<tr><td><code>safe_diff, hidden = redact(diff)</code></td><td>ปิดบัง Secret ก่อนส่ง Diff ออกไปทุกครั้ง แม้ในโหมดจำลอง ผลจึงเหมือนกันทั้งสองโหมด</td></tr>
+<tr><td><code>if os.environ.get("ANTHROPIC_API_KEY"):</code></td><td>ตัวสลับโหมด: มี Key ใช้ Claude ไม่มี Key ใช้ <code>mock_review()</code> โดยไม่ต้องตั้งค่าอะไรเพิ่ม</td></tr>
+<tr><td><code>line_no = int(re.search(r"\+(\d+)", line).group(1)) - 1</code></td><td>อ่านเลขบรรทัดเริ่มต้นของไฟล์ใหม่จากหัว Hunk เพื่อรายงานว่าปัญหาอยู่บรรทัดใด</td></tr>
+<tr><td><code>except anthropic.AuthenticationError</code> จนถึง <code>APIConnectionError</code></td><td>จับ Error จากเจาะจงที่สุดไปกว้างที่สุด และตรวจ <code>stop_reason</code> ทั้ง <code>refusal</code> และ <code>max_tokens</code> ก่อนใช้ข้อความ</td></tr>
+<tr><td><code>return 1 if findings else 0</code></td><td>Exit Code 1 เมื่อมีประเด็น จึงใช้เป็นด่านเพิ่มใน Hook หรือ CI ได้ถ้าต้องการ</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>bash: ./scripts/check.sh: Permission denied</code></td><td>ไฟล์ยังไม่มีสิทธิ์รัน</td><td><code>chmod +x scripts/check.sh</code> ถ้า Commit ไปแล้วแต่ CI ยังล้ม ให้ใช้ <code>git update-index --chmod=+x scripts/check.sh</code> แล้ว Commit ใหม่</td></tr>
+<tr><td><code>hint: The '.git/hooks/pre-commit' hook was ignored because it's not set as executable.</code></td><td>สร้างไฟล์ Hook แล้วลืม <code>chmod +x</code> Git จึงข้าม Hook และ Commit ผ่านไปโดยไม่ตรวจ</td><td><code>chmod +x .git/hooks/pre-commit</code> แล้วลอง Commit ใหม่</td></tr>
+<tr><td><code>ModuleNotFoundError: No module named 'tools'</code></td><td>รันด้วย <code>python3 tools/ai_review.py</code> ทำให้ Python มองไม่เห็นโฟลเดอร์ Root ของโปรเจกต์</td><td>รันแบบโมดูลจาก Root: <code>python3 -m tools.ai_review</code></td></tr>
+<tr><td><code>ModuleNotFoundError: No module named 'anthropic'</code></td><td>ตั้ง <code>ANTHROPIC_API_KEY</code> แล้ว แต่ยังไม่ได้ติดตั้ง SDK สำหรับโหมดจริง</td><td><code>python3 -m pip install "anthropic==1.15.0"</code> หรือ <code>unset ANTHROPIC_API_KEY</code> เพื่อใช้โหมดจำลอง</td></tr>
+<tr><td><code>[ERROR] API Key ไม่ถูกต้อง ตรวจค่า ANTHROPIC_API_KEY</code></td><td>Key พิมพ์ผิด หมดอายุ หรือถูกยกเลิก API จึงตอบ AuthenticationError</td><td>ออก Key ใหม่จากหน้า Console ของผู้ให้บริการ ตั้งด้วย <code>export</code> และห้ามพิมพ์ Key ออกจอหรือ Log</td></tr>
+<tr><td><code>1 file would be reformatted, 21 files already formatted</code></td><td>โค้ดที่ AI เขียนไม่ตรงรูปแบบของ <code>ruff format</code> ด่านที่ 2 จึงล้ม</td><td><code>ruff format .</code> แล้วดู <code>git diff</code> ก่อน Commit</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ใช้สคริปต์ Quality Gate ตัวเดียวกันทั้งใน Hook และ CI ผลในเครื่องกับบน GitHub จึงตรงกันเสมอ</li>
+<li>ห้ามใช้ <code>git commit --no-verify</code> เพื่อข้าม Hook และห้ามอนุญาตให้ AI Agent ใช้ตัวเลือกนี้ ถ้าด่านล้มให้แก้ต้นเหตุ</li>
+<li>ให้ AI Review เป็นด่านแนะนำที่คนต้องอ่านต่อ ส่วนด่านที่ตัดสินผ่านหรือไม่ผ่านต้องเป็นเครื่องมือที่ให้ผลเหมือนเดิมทุกครั้ง</li>
+<li>เครื่องมือที่เรียก AI ต้องรันได้โดยไม่มี Key เสมอ (โหมดจำลอง) และต้องปิดบัง Secret ก่อนส่งข้อมูลออกนอกเครื่อง</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ต่อยอด Quality Gate และ AI Review</p><ol>
+<li>เพิ่มกฎใน <code>MOCK_RULES</code> ที่จับการเรียก <code>eval(</code> พร้อมข้อความ "ใช้ eval เสี่ยงรันโค้ดที่ผู้ใช้ส่งมา" แล้วทดสอบด้วยไฟล์ Patch ที่มีบรรทัด <code>+result = eval(user_input)</code></li>
+<li>เพิ่มบรรทัด <code>git diff --cached | python3 -m tools.ai_review || true</code> ไว้ใน Hook ก่อนบรรทัด <code>exec</code> เพื่อให้เห็นคำแนะนำของ AI ทุกครั้งที่ Commit โดยไม่บล็อก Commit (<code>|| true</code> ทำให้ Exit Code ไม่มีผล)</li>
+<li>Push โปรเจกต์ขึ้น GitHub ตาม <a data-t="17"></a> แล้วเปิดแท็บ Actions ดูว่า Workflow <code>quality-gate</code> ผ่านทั้ง 4 ด่าน</li>
+</ol></div>
+</article>
+</section>

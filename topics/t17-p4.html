@@ -1,0 +1,1448 @@
+<section class="part" data-part="4">
+  <h2 id="s17-4"><span class="sec-no">17.4</span>ส่วนเสริม: Mini Project, Cheat Sheet, Interview</h2>
+  <p>ส่วนนี้รวมทุกอย่างที่เรียนมาในหัวข้อ Git and GitHub เข้าเป็นงานชิ้นเดียวที่ใช้ได้จริง คือเว็บ Portfolio ของคุณเอง ที่ออนไลน์อยู่บน GitHub Pages และมีประวัติการทำงานแบบมืออาชีพให้บริษัทเปิดดูได้ ต่อด้วย Cheat Sheet สำหรับเปิดดูระหว่างทำงาน คำถามสัมภาษณ์งาน 5 ข้อพร้อมคำตอบตัวอย่าง และแหล่งเรียนต่อ</p>
+
+  <h3 id="s17-4-project">Mini Project: Portfolio Website บน GitHub Pages</h3>
+
+  <h4>เป้าหมาย</h4>
+  <p>สร้างเว็บ Portfolio ส่วนตัวของ <strong>สมชาย ใจดี</strong> ด้วย HTML และ CSS ล้วน (ไม่มี Framework และไม่มีขั้นตอน Build) เก็บไว้ใน Repository ของตัวเองชื่อ <code>somchai-dev/portfolio</code> พัฒนาทีละฟีเจอร์บน Branch แยก แล้วรวมเข้า <code>main</code> ผ่าน Pull Request ทุกครั้ง ทุก PR ถูกตรวจอัตโนมัติด้วย GitHub Actions และทุกครั้งที่ <code>main</code> เปลี่ยน เว็บจะถูก Deploy ขึ้น <code>https://somchai-dev.github.io/portfolio/</code> เอง</p>
+  <p>เมื่อทำเสร็จ คุณจะมีสิ่งที่บริษัทอยากเห็นจากผู้สมัครสายเทคครบในที่เดียว ได้แก่ เว็บที่เปิดได้จริง, ประวัติ Commit ที่อ่านรู้เรื่อง, Pull Request ที่มีคำอธิบาย, CI ที่ตรวจงานทุกครั้ง, Release แรก <code>v1.0.0</code>, หน้า Profile README และ Repository <code>learning-journal</code> จาก Day 0 ที่ขึ้น GitHub แล้ว</p>
+  <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ให้นึกถึงร้านอาหารที่เปิดครัวให้ลูกค้าเห็น เว็บ Portfolio คือจานอาหารที่เสิร์ฟ ส่วนประวัติ Git, Pull Request และ CI คือครัวที่สะอาดและมีขั้นตอนชัดเจน ผู้สัมภาษณ์งานหลายคนเปิดดู "ครัว" บน GitHub ก่อนจะชิม "อาหาร" เสียอีก</p></div>
+
+  <h4>ฟีเจอร์ของโปรเจกต์</h4>
+  <ul>
+    <li><strong>หน้าเว็บ 3 หน้า:</strong> <code>index.html</code> (แนะนำตัว รูป ทักษะ ติดต่อ), <code>projects.html</code> (การ์ดโปรเจกต์) และ <code>404.html</code> ทุกหน้ามี <code>lang="th"</code>, <code>meta viewport</code> และใช้ลิงก์แบบ Relative เท่านั้น พร้อม <code>css/style.css</code> แบบ Mobile-first ที่มี Media query เดียวที่ 720px และรูป <code>images/profile.png</code></li>
+    <li><strong>ไฟล์ตั้งค่า Git:</strong> <code>.gitignore</code>, <code>.gitattributes</code> (บรรทัดแบบ LF), <code>LICENSE</code> แบบ MIT ปี 2026 และ <code>README.md</code> ที่มี Live demo, ภาพหน้าจอ, วิธีรัน, เทคโนโลยี และสิ่งที่ได้เรียนรู้</li>
+    <li><strong>ทำงานแบบทีม:</strong> ทุกงานมี Issue บน GitHub Projects board อยู่บน Branch ของตัวเอง และ Merge ผ่าน PR ที่ตั้งชื่อตาม Conventional Commits พร้อม <code>Closes #N</code></li>
+    <li><strong>CI และ CD:</strong> <code>ci.yml</code> ตรวจ HTML และลิงก์เสียทุก PR (คุณจะจงใจทำให้ Check เป็นสีแดงแล้วแก้ให้เขียว) และ <code>pages.yml</code> Deploy ขึ้น GitHub Pages ทุกครั้งที่ <code>main</code> เปลี่ยน</li>
+    <li><strong>ป้องกัน <code>main</code> และ Release:</strong> Ruleset ที่บังคับ PR, บังคับ Check <code>check-site</code> และห้าม Force push จากนั้นออก Annotated tag <code>v1.0.0</code> พร้อม GitHub Release</li>
+    <li><strong>หน้าโปรไฟล์:</strong> Profile README ใน Repository <code>somchai-dev/somchai-dev</code> และ Push <code>learning-journal</code> จาก Day 0 ขึ้น GitHub แล้วปักหมุดทั้งสองงาน</li>
+  </ul>
+
+  <h4>เครื่องมือและเวอร์ชันที่ใช้</h4>
+  <p>Git 2.43.0 บน Ubuntu 24.04 ใน WSL2, GitHub CLI (<code>gh</code>) รุ่นล่าสุดจาก apt repository ทางการของ <code>cli.github.com</code> (ห้ามใช้ <code>gh</code> 2.45.0 ที่มากับ Ubuntu), Node.js 24 LTS ผ่าน nvm v0.40.8 (ใช้กับ Node 26 ได้) สำหรับรัน <code>html-validate@11.16.2</code> และ <code>linkinator@8.1.0</code> ผ่าน <code>npx</code>, Python 3.12 ของระบบสำหรับสร้างรูปชั่วคราวและเปิดเว็บเซิร์ฟเวอร์ทดสอบ และ GitHub Actions ที่ใช้ <code>checkout@v5</code>, <code>setup-node@v5</code>, <code>configure-pages@v5</code>, <code>upload-pages-artifact@v4</code>, <code>deploy-pages@v4</code> บน <code>ubuntu-latest</code> ส่วน HTML และ CSS เขียนเองทั้งหมด ไม่มี Framework</p>
+
+  <h4>โครงสร้างโฟลเดอร์เมื่อทำเสร็จ</h4>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Text · โครงสร้างโปรเจกต์"><code class="language-plaintext">~/projects/portfolio/
+├── .github/
+│   └── workflows/
+│       ├── ci.yml            # ตรวจ HTML และลิงก์ทุก PR
+│       └── pages.yml         # Deploy ขึ้น GitHub Pages เมื่อ main เปลี่ยน
+├── css/
+│   └── style.css             # CSS แบบ Mobile-first
+├── images/
+│   ├── profile.png           # รูปโปรไฟล์ (เปลี่ยนเป็นรูปจริงได้)
+│   └── screenshot.png        # ภาพหน้าจอสำหรับ README
+├── .gitattributes            # บังคับบรรทัดแบบ LF
+├── .gitignore                # ไฟล์ที่ห้ามขึ้น Git
+├── 404.html
+├── index.html
+├── projects.html
+├── LICENSE                   # MIT License
+└── README.md
+
+~/projects/git-lab/remotes/
+├── portfolio.git             # Remote จำลองสำหรับซ้อม (bare repository)
+└── learning-journal.git      # Remote จำลองของ learning-journal</code></pre>
+
+  <h4>แผนงาน: Issue, Branch และ Pull Request</h4>
+  <p>เลข PR บน GitHub ใช้ลำดับเดียวกับเลข Issue ถ้าคุณสร้าง Issue 5 ใบก่อน PR แรกจะได้เลข #6 ตารางนี้คือลำดับที่จะเกิดขึ้นถ้าทำตามโปรเจกต์นี้ทุกขั้น ถ้าคุณสร้างไม่ตรงลำดับ เลขในเครื่องของคุณจะต่างไป ให้ใช้เลขจริงที่ GitHub แสดงในข้อความ <code>Closes #N</code></p>
+  <div class="tbl wide"><table class="tools"><thead><tr><th>Issue</th><th>Branch</th><th>ชื่อ PR (Conventional Commits)</th><th>PR</th></tr></thead><tbody>
+    <tr><td>#1 สร้างหน้าแรก</td><td><code>feature/home-page</code></td><td><code>feat: add home page with intro and skills</code></td><td class="num">#6</td></tr>
+    <tr><td>#2 สร้างหน้าผลงานและหน้า 404</td><td><code>feature/projects-page</code></td><td><code>feat: add projects page and 404 page</code></td><td class="num">#7</td></tr>
+    <tr><td>#4 เพิ่ม CI และ Deploy</td><td><code>ci/add-workflow</code></td><td><code>ci: add site checks and GitHub Pages deploy</code></td><td class="num">#8</td></tr>
+    <tr><td>#3 เพิ่มส่วนติดต่อ</td><td><code>feature/contact-section</code></td><td><code>feat(home): add contact section</code></td><td class="num">#9</td></tr>
+    <tr><td>#10 ลิงก์ learning-journal เสีย</td><td><code>fix/broken-link</code></td><td><code>fix(projects): correct learning-journal link</code></td><td class="num">#11</td></tr>
+    <tr><td>#5 เขียน README</td><td><code>docs/readme</code></td><td><code>docs: write README with live demo and screenshot</code></td><td class="num">#12</td></tr>
+  </tbody></table></div>
+
+  <div class="callout note"><span class="c-label note">หมายเหตุ</span><p>โปรเจกต์นี้ทำ 2 รอบ เพื่อให้คุณเห็นผลลัพธ์จริงทุกคำสั่งก่อนแตะ GitHub</p>
+    <ol>
+      <li><strong>รอบซ้อม:</strong> ใช้ Remote จำลองในเครื่อง <code>~/projects/git-lab/remotes/portfolio.git</code> (สร้างด้วย <code>git init --bare</code> เหมือนส่วนที่ 2 ของหัวข้อนี้) แล้ว "กด Merge PR" ด้วยคำสั่ง <code>git merge --no-ff</code> ในเครื่อง ทุกผลลัพธ์ในหน้านี้มาจากการรันจริงแบบนี้</li>
+      <li><strong>รอบจริง:</strong> ลบโฟลเดอร์ <code>~/projects/portfolio</code> แล้วทำทุก Step ใหม่ โดยมีความต่างแค่ 2 จุด คือ (1) ใน Step 1 ใช้ URL ของ GitHub เป็น <code>origin</code> และ (2) ตอน Merge ให้ใช้กล่อง "รอบจริงบน GitHub" (เปิด PR ด้วย <code>gh pr create</code> และ Merge บน GitHub) แทนกล่อง "รอบซ้อม" ไฟล์และคำสั่ง Commit ทั้งหมดเหมือนเดิมทุกตัวอักษร</li>
+    </ol>
+    <p>รหัส Commit (Hash), เวลา และขนาดไฟล์ในเครื่องของคุณจะต่างจากในหน้านี้ ตอน Push ไปยัง GitHub จริงจะเห็นบรรทัดเพิ่ม เช่น <code>Enumerating objects</code> และ <code>Writing objects</code> ซึ่งเป็นความคืบหน้าของการส่งข้อมูล และบรรทัด <code>To</code> จะเป็น <code>git@github.com:somchai-dev/portfolio.git</code> แทน Path ในเครื่อง</p></div>
+
+  <div class="callout warn"><span class="c-label warn">ระวัง</span><p>ก่อนเริ่มให้ตรวจว่าตั้งค่า Git ตาม Day 0 และส่วนที่ 1 แล้ว (<code>git config --global init.defaultBranch main</code>, <code>core.editor nano</code>, <code>pull.rebase false</code>) และสำหรับรอบจริงต้องเพิ่ม SSH Key ใน GitHub แล้ว ทดสอบด้วย <code>ssh -T git@github.com</code> ต้องได้ข้อความ <code>Hi somchai-dev! You've successfully authenticated, but GitHub does not provide shell access.</code> (ชื่อจะเป็นชื่อผู้ใช้ของคุณ)</p></div>
+
+  <ol class="proj-steps">
+    <li>
+      <h4>Step 1: ตั้งต้นโปรเจกต์ ไฟล์ตั้งค่า Git และ Remote</h4>
+      <p>เริ่มจากสร้าง Remote จำลองแบบ bare (ไม่มี Working Tree มีแต่ข้อมูลของ Git เหมือน Repository บนเซิร์ฟเวอร์ของ GitHub) แล้วสร้างโฟลเดอร์โปรเจกต์ใหม่ คำสั่ง <code>rm -rf</code> บรรทัดแรกลบของเก่าเพื่อให้รันซ้ำได้ทุกครั้ง ใช้เฉพาะในโปรเจกต์ฝึกนี้เท่านั้น</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ลบของเดิม (ถ้ามี) เพื่อให้เริ่มใหม่ได้ทุกครั้ง ใช้กับโปรเจกต์ฝึกนี้เท่านั้น
+rm -rf ~/projects/portfolio ~/projects/git-lab/remotes/portfolio.git
+# สร้าง Remote จำลอง (bare repository) แทน GitHub ในรอบซ้อม
+git init --bare ~/projects/git-lab/remotes/portfolio.git</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Initialized empty Git repository in /home/somchai/projects/git-lab/remotes/portfolio.git/</code></pre>
+      <p>สร้างไฟล์ตั้งค่า 4 ไฟล์ที่ควรมีตั้งแต่ Commit แรก ไฟล์ <code>.gitignore</code> กันไฟล์ค่าลับและไฟล์ขยะไม่ให้ขึ้น Git ส่วน <code>.gitattributes</code> บังคับให้ไฟล์ข้อความเก็บบรรทัดแบบ LF แม้จะมีคนแก้ไฟล์จาก Windows ซึ่งใช้ CRLF</p>
+<pre class="code" data-env="file" data-label="Text · .gitignore"><code class="language-plaintext"># ไฟล์ค่าลับ ห้ามขึ้น GitHub เด็ดขาด
+.env
+# แพ็กเกจของ Node.js (ถ้าวันหน้ามี package.json)
+node_modules/
+# ไฟล์ที่ระบบปฏิบัติการสร้างเอง
+.DS_Store
+Thumbs.db
+# ไฟล์ Log
+*.log</code></pre>
+<pre class="code" data-env="file" data-label="Text · .gitattributes"><code class="language-plaintext"># ให้ Git ตรวจเองว่าไฟล์ไหนเป็นข้อความ และเก็บบรรทัดแบบ LF เสมอ
+* text=auto eol=lf
+# ไฟล์รูปเป็น Binary ห้ามแปลงอะไรทั้งสิ้น
+*.png binary</code></pre>
+      <p>ไฟล์ <code>LICENSE</code> บอกว่าคนอื่นนำโค้ดไปใช้ได้แค่ไหน ถ้าไม่มีไฟล์นี้ ตามกฎหมายลิขสิทธิ์ถือว่าคนอื่นไม่มีสิทธิ์นำไปใช้ต่อ โปรเจกต์นี้ใช้ MIT License ซึ่งสั้นและอนุญาตกว้างที่สุดแบบหนึ่ง เปลี่ยน <code>Somchai Jaidee</code> เป็นชื่อของคุณ ข้อความของ License ต้องเป็นภาษาอังกฤษตามต้นฉบับ ห้ามแปล</p>
+<pre class="code" data-env="file" data-label="Text · LICENSE"><code class="language-plaintext">MIT License
+
+Copyright (c) 2026 Somchai Jaidee
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</code></pre>
+<pre class="code" data-env="file" data-label="Markdown · README.md (ฉบับเริ่มต้น)"><code class="language-markdown"># Portfolio ของสมชาย ใจดี
+
+เว็บไซต์ Portfolio ส่วนตัว ทำด้วย HTML และ CSS ล้วน (เอกสารฉบับเต็มจะตามมาใน Branch docs/readme)</code></pre>
+      <p>สร้างโฟลเดอร์ เก็บ 4 ไฟล์ข้างบนลงไป แล้ว Commit แรก (สร้างไฟล์ด้วย <code>nano ชื่อไฟล์</code> หรือเปิดโฟลเดอร์ใน VS Code ด้วย <code>code .</code>)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/portfolio &amp;&amp; cd ~/projects/portfolio
+git init
+# (สร้างไฟล์ .gitignore, .gitattributes, LICENSE และ README.md ตามด้านบน)
+git add .
+git status -s
+git commit -m "chore: initial project setup"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Initialized empty Git repository in /home/somchai/projects/portfolio/.git/
+A  .gitattributes
+A  .gitignore
+A  LICENSE
+A  README.md
+[main (root-commit) 1db9c1d] chore: initial project setup
+ 4 files changed, 37 insertions(+)
+ create mode 100644 .gitattributes
+ create mode 100644 .gitignore
+ create mode 100644 LICENSE
+ create mode 100644 README.md</code></pre>
+      <p>เชื่อม Remote แล้ว Push ครั้งแรกด้วย <code>-u</code> เพื่อให้ <code>main</code> ในเครื่องจำว่าคู่กับ <code>origin/main</code> ครั้งต่อไปพิมพ์แค่ <code>git push</code> หรือ <code>git pull</code> ได้เลย</p>
+      <h5>รอบซ้อม (Remote จำลอง)</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git remote add origin ~/projects/git-lab/remotes/portfolio.git
+git remote -v
+git push -u origin main</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>origin	/home/somchai/projects/git-lab/remotes/portfolio.git (fetch)
+origin	/home/somchai/projects/git-lab/remotes/portfolio.git (push)
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+ * [new branch]      main -&gt; main
+branch 'main' set up to track 'origin/main'.</code></pre>
+      <h5>รอบจริงบน GitHub</h5>
+      <p>สร้าง Repository เปล่าบน GitHub ก่อน วิธีที่ 1 ผ่านเว็บ: กดปุ่ม <strong>New</strong> ที่หน้า Repositories ตั้งชื่อ <code>portfolio</code> เลือก <strong>Public</strong> (GitHub Pages ฟรีต้องเป็น Public) และ<strong>ไม่ต้อง</strong>ติ๊ก Add a README, .gitignore หรือ License เพราะเรามีไฟล์เหล่านี้แล้ว ถ้าติ๊กจะเกิด Commit บน GitHub ที่ไม่มีในเครื่องและ Push ครั้งแรกจะถูกปฏิเสธ วิธีที่ 2 ใช้ <code>gh</code> ซึ่งติดตั้งและ <code>gh auth login</code> แล้วตามส่วนที่ 2</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้าง Repository เปล่าแบบ Public บน GitHub (ยังไม่ Push อะไร)
+gh repo create portfolio --public --description "Portfolio ของสมชาย ใจดี"
+# ชี้ origin ไปที่ GitHub ด้วย SSH URL แล้ว Push ครั้งแรก
+git remote add origin git@github.com:somchai-dev/portfolio.git
+git push -u origin main</code></pre>
+      <p>เปิด <code>https://github.com/somchai-dev/portfolio</code> จะเห็นไฟล์ 4 ไฟล์ ข้อความจาก <code>README.md</code> แสดงใต้รายการไฟล์ และด้านขวามีป้าย <strong>MIT license</strong> ที่ GitHub อ่านจากไฟล์ <code>LICENSE</code> ให้เอง</p>
+    </li>
+
+    <li>
+      <h4>Step 2: วางแผนงานด้วย Issues และ GitHub Projects</h4>
+      <p>ทีมจริงไม่เริ่มเขียนโค้ดจากความจำ แต่เริ่มจาก Issue ที่บอกว่าต้องทำอะไรและเสร็จเมื่อไร Issue หนึ่งใบควรเป็นงานที่เสร็จได้ใน PR เดียว ขั้นนี้ทำบน GitHub เท่านั้น ในรอบซ้อมให้อ่านทำความเข้าใจ และเขียนรายการงานลงกระดาษหรือไฟล์ <code>plan.md</code> นอกโปรเจกต์แทน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># รันในโฟลเดอร์ ~/projects/portfolio (gh รู้เองว่าเป็น Repository ไหนจาก origin)
+gh issue create --title "สร้างหน้าแรก (แนะนำตัว รูป ทักษะ)" --body "หน้า index.html มีรูปโปรไฟล์ แนะนำตัว 1 ย่อหน้า และรายการทักษะ ใช้ css/style.css แบบ Mobile-first" --label enhancement
+gh issue create --title "สร้างหน้าผลงานและหน้า 404" --body "projects.html แสดงการ์ดโปรเจกต์ และ 404.html มีลิงก์กลับหน้าแรก" --label enhancement
+gh issue create --title "เพิ่มส่วนติดต่อในหน้าแรก" --body "แสดง Email และลิงก์ GitHub ในหน้าแรก" --label enhancement
+gh issue create --title "เพิ่ม CI ตรวจ HTML และลิงก์ และ Deploy ขึ้น GitHub Pages" --body "ci.yml รันทุก PR และ pages.yml Deploy เมื่อ main เปลี่ยน" --label enhancement
+gh issue create --title "เขียน README ฉบับเต็ม" --body "มี Live demo ภาพหน้าจอ วิธีรัน เทคโนโลยี และสิ่งที่ได้เรียนรู้" --label documentation
+# ดูรายการ Issue ที่เปิดอยู่
+gh issue list</code></pre>
+      <p>แต่ละคำสั่งจะพิมพ์ URL ของ Issue ที่สร้าง เช่น <code>https://github.com/somchai-dev/portfolio/issues/1</code> ส่วน <code>gh issue list</code> แสดงตารางเลข Issue ชื่อ และ Label ป้าย <code>enhancement</code> และ <code>documentation</code> เป็น Label ที่ GitHub สร้างให้ทุก Repository ใหม่อยู่แล้ว</p>
+      <p>จากนั้นสร้าง Board สำหรับติดตามงาน (ทำบนเว็บ)</p>
+      <ol>
+        <li>ไปที่หน้าโปรไฟล์ของคุณ แท็บ <strong>Projects</strong> แล้วกด <strong>New project</strong></li>
+        <li>เลือกแม่แบบ <strong>Board</strong> ตั้งชื่อ <code>Portfolio</code> แล้วกด Create จะได้คอลัมน์ <strong>Todo</strong>, <strong>In Progress</strong> และ <strong>Done</strong></li>
+        <li>ที่ด้านล่างคอลัมน์ Todo กด <strong>+ Add item</strong> พิมพ์ <code>#</code> เลือก Repository <code>portfolio</code> แล้วเพิ่ม Issue ทั้ง 5 ใบ</li>
+        <li>ที่หน้า Repository แท็บ Projects กด <strong>Link a project</strong> เพื่อผูก Board นี้กับ Repository</li>
+        <li>ตลอดโปรเจกต์ ลากการ์ดไป In Progress ตอนเริ่ม Branch และเมื่อ PR ที่มี <code>Closes #N</code> ถูก Merge แล้ว Issue จะปิดเอง และ Workflow ในตัวของ Projects จะย้ายการ์ดไป Done ให้</li>
+      </ol>
+      <div class="callout"><span class="c-label tip">Tip</span><p>เขียน Issue ให้คนอื่นอ่านแล้วทำต่อได้ทันที ใส่ "เสร็จเมื่อ" (Acceptance criteria) เป็นข้อ ๆ เช่น "รูปมี alt", "เปิดบนมือถือแล้วไม่ต้องเลื่อนซ้ายขวา" ผู้สัมภาษณ์ที่เปิดดู Repository ของคุณจะเห็นว่าคุณคิดเป็นระบบ</p></div>
+    </li>
+
+    <li>
+      <h4>Step 3: Branch feature/home-page สร้างหน้าแรก CSS และรูปโปรไฟล์</h4>
+      <p>ทุกฟีเจอร์เริ่มจาก <code>main</code> ที่อัปเดตแล้ว แล้วแตก Branch ใหม่ ชื่อ Branch ขึ้นต้นด้วยประเภทงาน (<code>feature/</code>, <code>fix/</code>, <code>docs/</code>, <code>ci/</code>) ให้ทั้งทีมรู้ว่าเป็นงานอะไร</p>
+<pre class="code" data-env="file" data-label="HTML · index.html"><code class="language-xml">&lt;!DOCTYPE html&gt;
+&lt;html lang="th"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+  &lt;meta name="description" content="Portfolio ของสมชาย ใจดี ผู้เริ่มต้นสายเทคที่ฝึก Linux, Git และ Python"&gt;
+  &lt;title&gt;สมชาย ใจดี | Portfolio&lt;/title&gt;
+  &lt;link rel="stylesheet" href="css/style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;header class="site-header"&gt;
+    &lt;nav class="nav"&gt;
+      &lt;a class="brand" href="index.html"&gt;สมชาย ใจดี&lt;/a&gt;
+      &lt;a href="projects.html"&gt;ผลงาน&lt;/a&gt;
+    &lt;/nav&gt;
+  &lt;/header&gt;
+  &lt;main class="container"&gt;
+    &lt;section class="hero"&gt;
+      &lt;img class="avatar" src="images/profile.png" width="160" height="160" alt="รูปโปรไฟล์ของสมชาย ใจดี"&gt;
+      &lt;div&gt;
+        &lt;h1&gt;สวัสดีครับ ผมสมชาย ใจดี&lt;/h1&gt;
+        &lt;p&gt;ผู้เริ่มต้นสายเทคที่ฝึก Linux, Git และ Python ทุกวัน และเก็บงานทุกชิ้นไว้บน GitHub&lt;/p&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+    &lt;section&gt;
+      &lt;h2&gt;ทักษะ&lt;/h2&gt;
+      &lt;ul class="skills"&gt;
+        &lt;li&gt;Linux Command Line (Ubuntu 24.04 บน WSL2)&lt;/li&gt;
+        &lt;li&gt;Git และ GitHub (Branch, Pull Request, GitHub Actions)&lt;/li&gt;
+        &lt;li&gt;HTML และ CSS แบบ Responsive&lt;/li&gt;
+        &lt;li&gt;Python (กำลังเรียน)&lt;/li&gt;
+      &lt;/ul&gt;
+    &lt;/section&gt;
+  &lt;/main&gt;
+  &lt;footer class="site-footer"&gt;
+    &lt;p&gt;&amp;copy; 2026 สมชาย ใจดี&lt;/p&gt;
+  &lt;/footer&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<pre class="code" data-env="file" data-label="CSS · css/style.css"><code class="language-css">/* ===== ค่าพื้นฐาน (Mobile-first: เขียนสำหรับจอเล็กก่อน) ===== */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Noto Sans Thai", "Segoe UI", sans-serif;
+  line-height: 1.7;
+  color: #1f2933;
+  background: #f7f9fb;
+}
+
+a {
+  color: #1d6fb8;
+}
+
+/* ===== แถบเมนูด้านบน ===== */
+.site-header {
+  background: #ffffff;
+  border-bottom: 1px solid #dde3ea;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 12px 16px;
+}
+
+.nav .brand {
+  font-weight: 700;
+  margin-right: auto;
+  color: #1f2933;
+  text-decoration: none;
+}
+
+/* ===== เนื้อหาหลัก ===== */
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.avatar {
+  border-radius: 50%;
+}
+
+.skills,
+.contact {
+  padding-left: 20px;
+}
+
+/* ===== การ์ดผลงาน ===== */
+.cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #dde3ea;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.card h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+
+.site-footer {
+  text-align: center;
+  padding: 24px 16px;
+  color: #52606d;
+}
+
+/* ===== จอกว้างตั้งแต่ 720px ขึ้นไป (แท็บเล็ตและคอมพิวเตอร์) ===== */
+@media (min-width: 720px) {
+  .hero {
+    flex-direction: row;
+    text-align: left;
+  }
+
+  .cards {
+    grid-template-columns: 1fr 1fr;
+  }
+}</code></pre>
+      <p>รูปโปรไฟล์ใช้รูปจริงของคุณได้เลย (ไฟล์ PNG ขนาดประมาณ 320×320 พิกเซล ไม่เกิน 200 KB) ถ้ายังไม่มี ให้ใช้สคริปต์ Python นี้สร้างรูปสีฟ้าชั่วคราวก่อน สคริปต์ใช้แค่ Standard Library จึงไม่ต้องติดตั้งอะไร เก็บไว้นอกโปรเจกต์ที่ <code>~/projects/make_png.py</code> เพราะไม่ใช่ส่วนหนึ่งของเว็บ</p>
+<pre class="code" data-env="file" data-label="Python · ~/projects/make_png.py"><code class="language-python"># สร้างไฟล์ PNG สีเดียวไว้เป็นรูปชั่วคราว ใช้แค่ Standard Library ของ Python
+# วิธีใช้: python3 make_png.py ไฟล์ปลายทาง ความกว้าง ความสูง
+import struct
+import sys
+import zlib
+
+path = sys.argv[1]
+width = int(sys.argv[2])
+height = int(sys.argv[3])
+color = bytes([74, 144, 217])  # สีฟ้า (R, G, B)
+
+# ทุกแถวของภาพขึ้นต้นด้วยไบต์ 0 (ไม่ใช้ Filter) ตามด้วยสีของทุกพิกเซล
+raw = b"".join(b"\x00" + color * width for _ in range(height))
+
+
+def chunk(tag, data):
+    # หนึ่ง Chunk ของ PNG = ความยาว + ชื่อ + ข้อมูล + CRC
+    crc = zlib.crc32(tag + data) &amp; 0xFFFFFFFF
+    return struct.pack("&gt;I", len(data)) + tag + data + struct.pack("&gt;I", crc)
+
+
+header = struct.pack("&gt;IIBBBBB", width, height, 8, 2, 0, 0, 0)
+png = (
+    b"\x89PNG\r\n\x1a\n"
+    + chunk(b"IHDR", header)
+    + chunk(b"IDAT", zlib.compress(raw, 9))
+    + chunk(b"IEND", b"")
+)
+with open(path, "wb") as f:
+    f.write(png)
+print(f"สร้าง {path} แล้ว ขนาด {width}x{height} พิกเซล ({len(png)} ไบต์)")</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/portfolio
+git switch main
+git pull
+git switch -c feature/home-page
+mkdir -p css images
+# (สร้างไฟล์ index.html และ css/style.css ตามด้านบน)
+python3 ~/projects/make_png.py images/profile.png 160 160</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Already on 'main'
+Your branch is up to date with 'origin/main'.
+Already up to date.
+Switched to a new branch 'feature/home-page'
+สร้าง images/profile.png แล้ว ขนาด 160x160 พิกเซล (322 ไบต์)</code></pre>
+      <p class="muted small">บรรทัด <code>Already on 'main'</code> และ <code>Already up to date.</code> บอกว่าคุณอยู่บน <code>main</code> อยู่แล้วและไม่มีอะไรใหม่บน Remote ให้ดึง ในรอบจริงหลัง Merge PR บน GitHub คำสั่ง <code>git pull</code> จะดึง Merge commit ลงมาและแสดงรายชื่อไฟล์ที่เปลี่ยน</p>
+      <p>เปิดดูหน้าเว็บก่อน Commit ทุกครั้ง: รัน <code>python3 -m http.server 8000</code> ในโฟลเดอร์โปรเจกต์ แล้วเปิด <code>http://localhost:8000</code> ใน Browser ของ Windows (WSL2 ส่งต่อ localhost ให้เอง) กด <kbd>Ctrl</kbd>+<kbd>C</kbd> เพื่อหยุดเซิร์ฟเวอร์ กด <kbd>F12</kbd> แล้วเปิดโหมดมือถือเพื่อดู Layout แบบจอเล็ก</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git add index.html css/style.css images/profile.png
+git status -s
+# -m ครั้งที่สองคือ Body ของ Commit ใส่ Closes #1 เพื่อผูกกับ Issue
+git commit -m "feat: add home page with intro and skills" -m "Closes #1"
+git push -u origin feature/home-page</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>A  css/style.css
+A  images/profile.png
+A  index.html
+[feature/home-page 85206a3] feat: add home page with intro and skills
+ 3 files changed, 139 insertions(+)
+ create mode 100644 css/style.css
+ create mode 100644 images/profile.png
+ create mode 100644 index.html
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+ * [new branch]      feature/home-page -&gt; feature/home-page
+branch 'feature/home-page' set up to track 'origin/feature/home-page'.</code></pre>
+      <h5>รอบซ้อม: จำลองการกด Merge PR</h5>
+      <p><code>--no-ff</code> บังคับให้สร้าง Merge commit เหมือนปุ่ม <strong>Create a merge commit</strong> บน GitHub ประวัติจึงเห็นว่างานแต่ละชิ้นมาจาก Branch ไหน และ <code>--no-edit</code> ใช้ข้อความ Merge มาตรฐานโดยไม่เปิด nano</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git switch main
+git merge --no-ff --no-edit feature/home-page
+git push origin main
+# ลบ Branch ที่ Merge แล้ว ทั้งในเครื่องและบน Remote
+git branch -d feature/home-page
+git push origin --delete feature/home-page</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Switched to branch 'main'
+Your branch is up to date with 'origin/main'.
+Merge made by the 'ort' strategy.
+ css/style.css      | 100 +++++++++++++++++++++++++++++++++++++++++++++++++++++
+ images/profile.png | Bin 0 -&gt; 322 bytes
+ index.html         |  39 +++++++++++++++++++++
+ 3 files changed, 139 insertions(+)
+ create mode 100644 css/style.css
+ create mode 100644 images/profile.png
+ create mode 100644 index.html
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+   1db9c1d..7dff233  main -&gt; main
+Deleted branch feature/home-page (was 85206a3).
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+ - [deleted]         feature/home-page</code></pre>
+      <h5>รอบจริงบน GitHub</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้าง PR จาก Branch ปัจจุบันไปยัง main ใช้ข้อความจาก Commit เป็นชื่อและคำอธิบาย
+gh pr create --fill
+# เปิดหน้า PR ใน Browser เพื่ออ่านทวนและดู Files changed
+gh pr view --web
+# Merge แบบ Merge commit แล้วลบ Branch บน GitHub
+gh pr merge --merge --delete-branch
+# กลับมาที่ main และดึง Merge commit จาก GitHub ลงเครื่อง
+git switch main
+git pull</code></pre>
+      <p>หลัง <code>gh pr create</code> จะได้ URL ของ PR เช่น <code>https://github.com/somchai-dev/portfolio/pull/6</code> ในหน้า PR ส่วน Description มี <code>Closes #1</code> และเมื่อ Merge แล้ว Issue #1 จะปิดเองพร้อมลิงก์กลับมาที่ PR ตอนนี้ยังไม่มี CI จึงยังไม่เห็นส่วน Checks ขั้นที่ 5 จะเพิ่มให้</p>
+      <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+        <li>อ่าน Diff ของตัวเองในแท็บ <strong>Files changed</strong> ก่อน Merge ทุกครั้ง แม้จะทำงานคนเดียว จะเจอไฟล์ที่ไม่ตั้งใจ Commit บ่อยกว่าที่คิด</li>
+        <li>เขียน Description ของ PR ด้วย 3 หัวข้อ: ทำอะไร, ทำไม, ทดสอบอย่างไร และแนบภาพหน้าจอเมื่อเป็นงานหน้าเว็บ</li>
+      </ul></div>
+    </li>
+
+    <li>
+      <h4>Step 4: Branch feature/projects-page หน้าผลงานและหน้า 404</h4>
+      <p>หน้าผลงานแสดงโปรเจกต์เป็นการ์ด แต่ละการ์ดมีลิงก์ไปยัง Repository บน GitHub ไฟล์นี้มีลิงก์ที่พิมพ์ชื่อ Repository ผิดอยู่ 1 จุดโดยตั้งใจ (<code>learning-jornal</code>) เพื่อใช้ใน Step 7 อย่าเพิ่งแก้</p>
+<pre class="code" data-env="file" data-label="HTML · projects.html"><code class="language-xml">&lt;!DOCTYPE html&gt;
+&lt;html lang="th"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+  &lt;meta name="description" content="ผลงานของสมชาย ใจดี"&gt;
+  &lt;title&gt;ผลงาน | สมชาย ใจดี&lt;/title&gt;
+  &lt;link rel="stylesheet" href="css/style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;header class="site-header"&gt;
+    &lt;nav class="nav"&gt;
+      &lt;a class="brand" href="index.html"&gt;สมชาย ใจดี&lt;/a&gt;
+      &lt;a href="projects.html"&gt;ผลงาน&lt;/a&gt;
+    &lt;/nav&gt;
+  &lt;/header&gt;
+  &lt;main class="container"&gt;
+    &lt;h1&gt;ผลงาน&lt;/h1&gt;
+    &lt;div class="cards"&gt;
+      &lt;article class="card"&gt;
+        &lt;h2&gt;Learning Journal&lt;/h2&gt;
+        &lt;p&gt;บันทึกการเรียนรายวันที่เริ่มตั้งแต่ Day 0 ฝึก Commit ทุกวันด้วย Git&lt;/p&gt;
+        &lt;p&gt;&lt;a href="https://github.com/somchai-dev/learning-jornal"&gt;ดูโค้ดบน GitHub&lt;/a&gt;&lt;/p&gt;
+      &lt;/article&gt;
+      &lt;article class="card"&gt;
+        &lt;h2&gt;Portfolio Website&lt;/h2&gt;
+        &lt;p&gt;เว็บนี้เอง ทำด้วย HTML และ CSS ตรวจด้วย GitHub Actions และ Deploy ด้วย GitHub Pages&lt;/p&gt;
+        &lt;p&gt;&lt;a href="https://github.com/somchai-dev/portfolio"&gt;ดูโค้ดบน GitHub&lt;/a&gt;&lt;/p&gt;
+      &lt;/article&gt;
+      &lt;article class="card"&gt;
+        &lt;h2&gt;โปรเจกต์ Python (เร็ว ๆ นี้)&lt;/h2&gt;
+        &lt;p&gt;จะเพิ่มการ์ดนี้หลังเรียนหัวข้อ Python จบ&lt;/p&gt;
+      &lt;/article&gt;
+    &lt;/div&gt;
+  &lt;/main&gt;
+  &lt;footer class="site-footer"&gt;
+    &lt;p&gt;&amp;copy; 2026 สมชาย ใจดี&lt;/p&gt;
+  &lt;/footer&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+      <p>หน้า <code>404.html</code> ที่ราก Repository จะถูก GitHub Pages ใช้แสดงแทนหน้าที่ไม่มีอยู่จริงโดยอัตโนมัติ</p>
+<pre class="code" data-env="file" data-label="HTML · 404.html"><code class="language-xml">&lt;!DOCTYPE html&gt;
+&lt;html lang="th"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+  &lt;title&gt;ไม่พบหน้านี้ | สมชาย ใจดี&lt;/title&gt;
+  &lt;link rel="stylesheet" href="css/style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;main class="container"&gt;
+    &lt;h1&gt;404: ไม่พบหน้าที่คุณต้องการ&lt;/h1&gt;
+    &lt;p&gt;หน้านี้อาจถูกย้ายหรือพิมพ์ที่อยู่ผิด&lt;/p&gt;
+    &lt;p&gt;&lt;a href="index.html"&gt;กลับไปหน้าแรก&lt;/a&gt;&lt;/p&gt;
+  &lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+      <div class="callout warn"><span class="c-label warn">ระวัง</span><p>หน้า 404 นี้ใช้ลิงก์แบบ Relative จึงแสดง CSS ถูกต้องเมื่อเปิดที่อยู่ผิดระดับเดียว เช่น <code>/portfolio/abc.html</code> แต่ถ้าที่อยู่ผิดลึกหลายชั้น เช่น <code>/portfolio/a/b/c</code> Browser จะหา <code>css/style.css</code> ไม่เจอและเห็นหน้าไม่มีสี ข้อความยังอ่านได้และลิงก์ยังพากลับหน้าแรกได้ ซึ่งเพียงพอสำหรับโปรเจกต์นี้</p></div>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git switch -c feature/projects-page
+# (สร้างไฟล์ projects.html และ 404.html ตามด้านบน)
+git add projects.html 404.html
+git commit -m "feat: add projects page and 404 page" -m "Closes #2"
+git push -u origin feature/projects-page</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Switched to a new branch 'feature/projects-page'
+[feature/projects-page df6bef0] feat: add projects page and 404 page
+ 2 files changed, 56 insertions(+)
+ create mode 100644 404.html
+ create mode 100644 projects.html
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+ * [new branch]      feature/projects-page -&gt; feature/projects-page
+branch 'feature/projects-page' set up to track 'origin/feature/projects-page'.</code></pre>
+      <h5>รอบซ้อม: จำลองการกด Merge PR</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git switch main
+git merge --no-ff --no-edit feature/projects-page
+git push origin main
+git branch -d feature/projects-page
+git push origin --delete feature/projects-page</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Switched to branch 'main'
+Your branch is up to date with 'origin/main'.
+Merge made by the 'ort' strategy.
+ 404.html      | 16 ++++++++++++++++
+ projects.html | 40 ++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 56 insertions(+)
+ create mode 100644 404.html
+ create mode 100644 projects.html
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+   7dff233..5a9f6e2  main -&gt; main
+Deleted branch feature/projects-page (was df6bef0).
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+ - [deleted]         feature/projects-page</code></pre>
+      <h5>รอบจริงบน GitHub</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">gh pr create --fill
+gh pr merge --merge --delete-branch
+git switch main
+git pull</code></pre>
+      <p>ใน PR นี้ลองทำ Code Review ให้ตัวเอง: เปิดแท็บ Files changed กดเครื่องหมาย <strong>+</strong> ข้างบรรทัดที่อยากแสดงความเห็น พิมพ์ความเห็นแล้วกด <strong>Start a review</strong> เมื่อครบแล้วกด <strong>Finish your review</strong> เจ้าของ PR อนุมัติ PR ของตัวเองไม่ได้ จึงเลือกได้แค่ Comment ซึ่งพอสำหรับการฝึก</p>
+    </li>
+
+    <li>
+      <h4>Step 5: Branch ci/add-workflow เพิ่ม CI, Deploy ขึ้น Pages และป้องกัน main</h4>
+      <p>ตอนนี้เว็บมี 2 หน้าแล้ว ถึงเวลาให้เครื่องช่วยตรวจงานแทนความจำของเรา ไฟล์ <code>ci.yml</code> เหมือนกับ Step 12 ในส่วนที่ 1 ทุกบรรทัด Job ชื่อ <code>check-site</code> คือชื่อที่จะใช้เป็น Required status check ภายหลัง</p>
+<pre class="code" data-env="file" data-label="YAML · .github/workflows/ci.yml"><code class="language-yaml"># ชื่อ Workflow ที่จะแสดงในแท็บ Actions
+name: CI
+
+# เหตุการณ์ที่ทำให้ Workflow ทำงาน
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# ให้ GITHUB_TOKEN มีสิทธิ์แค่อ่านโค้ด (ให้สิทธิ์น้อยที่สุดเท่าที่จำเป็น)
+permissions:
+  contents: read
+
+jobs:
+  check-site:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ดึงโค้ดของ Repository ลงเครื่อง Runner
+        uses: actions/checkout@v5
+
+      - name: ติดตั้ง Node.js เพื่อใช้ npx
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: ตรวจโครงสร้าง HTML
+        run: npx --yes html-validate@11.16.2 "**/*.html"
+
+      - name: ตรวจลิงก์และรูปภาพที่เสีย (เฉพาะไฟล์ในเว็บของเรา)
+        run: npx --yes linkinator@8.1.0 . --recurse --skip "^https://"</code></pre>
+      <p>ไฟล์ที่สองใช้โครงตาม Starter workflow ของ GitHub Pages สำหรับเว็บ Static ทำงานเมื่อ <code>main</code> เปลี่ยน แพ็กทั้งโฟลเดอร์รากเป็น Artifact แล้ว Deploy</p>
+<pre class="code" data-env="file" data-label="YAML · .github/workflows/pages.yml"><code class="language-yaml"># Workflow สำหรับ Deploy เว็บ Static ขึ้น GitHub Pages
+name: Deploy to GitHub Pages
+
+on:
+  # ทำงานทุกครั้งที่มีการ Push เข้า main (รวมถึงตอน Merge PR)
+  push:
+    branches: [main]
+  # มีปุ่ม Run workflow ให้กดเองในแท็บ Actions
+  workflow_dispatch:
+
+# สิทธิ์ที่การ Deploy ขึ้น Pages ต้องใช้
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# ให้มีการ Deploy ได้ทีละครั้ง และไม่ยกเลิกงานที่กำลัง Deploy อยู่
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: ดึงโค้ดของ Repository
+        uses: actions/checkout@v5
+
+      - name: ตั้งค่า GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: แพ็กไฟล์เว็บเป็น Artifact (ทั้งโฟลเดอร์ราก)
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: "."
+
+      - name: Deploy ขึ้น GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4</code></pre>
+      <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+        <tr><td><code>on: push: branches: [main]</code></td><td>Deploy เฉพาะเมื่อ <code>main</code> เปลี่ยน ซึ่งเกิดเมื่อ Merge PR เท่านั้นหลังตั้ง Ruleset ส่วน Branch อื่นไม่ทำให้เว็บจริงเปลี่ยน</td></tr>
+        <tr><td><code>workflow_dispatch:</code></td><td>เพิ่มปุ่ม <strong>Run workflow</strong> ในแท็บ Actions ใช้ Deploy ซ้ำได้โดยไม่ต้อง Commit ใหม่</td></tr>
+        <tr><td><code>pages: write</code> และ <code>id-token: write</code></td><td>สิทธิ์ขั้นต่ำที่ <code>deploy-pages</code> ต้องใช้ เพื่อเขียนขึ้น Pages และยืนยันตัวตนของ Workflow ด้วย OIDC Token</td></tr>
+        <tr><td><code>concurrency: group: "pages"</code></td><td>ให้มี Deploy ได้ทีละครั้ง ถ้า Merge 2 PR ติดกัน ครั้งที่สองจะรอครั้งแรกเสร็จ <code>cancel-in-progress: false</code> คือไม่ตัดงานที่กำลัง Deploy</td></tr>
+        <tr><td><code>environment: name: github-pages</code></td><td>ผูก Job กับ Environment ชื่อ <code>github-pages</code> ที่ GitHub สร้างให้ และแสดง URL ของเว็บในหน้า Workflow run</td></tr>
+        <tr><td><code>url: ${{ steps.deployment.outputs.page_url }}</code></td><td>อ่าน URL จริงของเว็บจาก Output ของ Step ที่มี <code>id: deployment</code></td></tr>
+        <tr><td><code>actions/configure-pages@v5</code></td><td>อ่านการตั้งค่า Pages ของ Repository ถ้ายังไม่เปิด Pages แบบ GitHub Actions จะล้มเหลวที่ Step นี้</td></tr>
+        <tr><td><code>actions/upload-pages-artifact@v4</code> กับ <code>path: "."</code></td><td>แพ็กไฟล์ทั้งโฟลเดอร์รากเป็น Artifact ชื่อ <code>github-pages</code> รุ่น v4 ไม่รวมไฟล์และโฟลเดอร์ที่ขึ้นต้นด้วยจุด เช่น <code>.github</code> และ <code>.git</code> ให้เอง</td></tr>
+        <tr><td><code>actions/deploy-pages@v4</code></td><td>นำ Artifact ขึ้นเป็นเว็บจริงที่ <code>https://somchai-dev.github.io/portfolio/</code></td></tr>
+      </tbody></table></div>
+      <p>ก่อน Commit ให้รันคำสั่งตรวจชุดเดียวกับ CI ในเครื่องก่อนเสมอ ต้องติดตั้ง Node.js 24 LTS ผ่าน nvm v0.40.8 ตามส่วนที่ 2 แล้ว (<code>node --version</code> ต้องขึ้นต้นด้วย <code>v24</code> หรือสูงกว่า) ครั้งแรกที่รัน <code>npx</code> จะใช้เวลาดาวน์โหลดแพ็กเกจสักครู่</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git switch -c ci/add-workflow
+mkdir -p .github/workflows
+# (สร้างไฟล์ ci.yml และ pages.yml ตามด้านบน)
+# ตรวจ HTML: ถ้าไม่มีปัญหาจะไม่พิมพ์อะไรเลย แค่ได้ exit code 0
+npx --yes html-validate@11.16.2 "**/*.html"; echo "exit code: $?"
+# ตรวจลิงก์ภายในเว็บ ข้ามลิงก์ที่ขึ้นต้นด้วย https://
+npx --yes linkinator@8.1.0 . --recurse --skip "^https://"; echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Switched to a new branch 'ci/add-workflow'
+exit code: 0
+→ crawling .
+[200] .
+[200] css/style.css
+[200] index.html
+[200] projects.html
+[200] images/profile.png
+
+  [200] .
+.
+  [200] css/style.css
+  [200] index.html
+  [200] projects.html
+  [200] images/profile.png
+✓ Successfully scanned 5 links in 0.07 seconds.
+exit code: 0</code></pre>
+      <p>ทั้งสองคำสั่งได้ <code>exit code: 0</code> แปลว่าผ่าน linkinator เริ่มจากโฟลเดอร์ราก (<code>.</code> ซึ่งเปิด <code>index.html</code>) แล้วไล่ตามลิงก์ทุกอัน <code>[200]</code> คือเจอไฟล์ ส่วน <code>404.html</code> ไม่อยู่ในรายการเพราะไม่มีหน้าไหนลิงก์ไป แต่ html-validate ยังตรวจไฟล์นี้ เพราะรูปแบบ <code>"**/*.html"</code> ครอบทุกไฟล์ HTML เวลาที่ใช้สแกนในเครื่องของคุณจะต่างจากนี้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git add .github/workflows/ci.yml .github/workflows/pages.yml
+git commit -m "ci: add site checks and GitHub Pages deploy" -m "Closes #4"
+git push -u origin ci/add-workflow
+# รอบซ้อม: จำลองการกด Merge PR
+git switch main
+git merge --no-ff --no-edit ci/add-workflow
+git push origin main
+git branch -d ci/add-workflow
+git push origin --delete ci/add-workflow</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[ci/add-workflow b677948] ci: add site checks and GitHub Pages deploy
+ 2 files changed, 74 insertions(+)
+ create mode 100644 .github/workflows/ci.yml
+ create mode 100644 .github/workflows/pages.yml
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+ * [new branch]      ci/add-workflow -&gt; ci/add-workflow
+branch 'ci/add-workflow' set up to track 'origin/ci/add-workflow'.
+Switched to branch 'main'
+Your branch is up to date with 'origin/main'.
+Merge made by the 'ort' strategy.
+ .github/workflows/ci.yml    | 32 ++++++++++++++++++++++++++++++++
+ .github/workflows/pages.yml | 42 ++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 74 insertions(+)
+ create mode 100644 .github/workflows/ci.yml
+ create mode 100644 .github/workflows/pages.yml
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+   5a9f6e2..272f297  main -&gt; main
+Deleted branch ci/add-workflow (was b677948).
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+ - [deleted]         ci/add-workflow</code></pre>
+      <h5>รอบจริงบน GitHub (ลำดับสำคัญ)</h5>
+      <ol>
+        <li><strong>เปิด Pages ก่อน Merge:</strong> ไปที่ Repository → <strong>Settings</strong> → <strong>Pages</strong> → หัวข้อ Build and deployment → <strong>Source</strong> เลือก <strong>GitHub Actions</strong> ถ้าข้ามข้อนี้ Workflow Deploy จะล้มเหลวด้วยข้อความ <code>Get Pages site failed</code></li>
+        <li><strong>เปิด PR:</strong> รัน <code>gh pr create --fill</code> หน้า PR จะมีส่วน Checks แสดง <code>CI / check-site (pull_request)</code> เป็นวงกลมสีเหลืองระหว่างรัน แล้วเปลี่ยนเป็นเครื่องหมายถูกสีเขียวเมื่อผ่าน ดูจาก Terminal ได้ด้วย <code>gh pr checks</code> (ใส่ <code>--watch</code> เพื่อรอจนเสร็จ)</li>
+        <li><strong>Merge:</strong> <code>gh pr merge --merge --delete-branch</code> แล้ว <code>git switch main</code> และ <code>git pull</code></li>
+        <li><strong>ดูการ Deploy:</strong> แท็บ <strong>Actions</strong> จะมี Run ของ <code>Deploy to GitHub Pages</code> และ <code>CI</code> จาก Event <code>push</code> เมื่อ Deploy เสร็จ ในหน้า Run จะเห็น URL <code>https://somchai-dev.github.io/portfolio/</code> ใต้ Job <code>deploy</code> กดเปิดได้เลย ครั้งแรกอาจใช้เวลาไม่กี่นาที</li>
+        <li><strong>ตั้ง Ruleset ป้องกัน main:</strong> Settings → <strong>Rules</strong> → <strong>Rulesets</strong> → <strong>New ruleset</strong> → <strong>New branch ruleset</strong> ตั้งชื่อ <code>protect-main</code>, Enforcement status เลือก <strong>Active</strong>, Target branches กด <strong>Add target</strong> → <strong>Include default branch</strong> แล้วติ๊ก <strong>Restrict deletions</strong>, <strong>Require a pull request before merging</strong> (ตั้ง Required approvals เป็น 0 เพราะทำงานคนเดียวและอนุมัติ PR ตัวเองไม่ได้), <strong>Require status checks to pass</strong> แล้วกด Add checks ค้นหา <code>check-site</code> และ <strong>Block force pushes</strong> จากนั้นกด Create</li>
+      </ol>
+      <div class="callout note"><span class="c-label note">หมายเหตุ</span><p>ชื่อ <code>check-site</code> จะค้นหาเจอในหน้า Ruleset ก็ต่อเมื่อ Job นี้เคยรันใน Repository อย่างน้อย 1 ครั้งแล้ว จึงตั้ง Ruleset หลัง Merge PR นี้ หลังตั้งแล้วถ้าลอง <code>git push origin main</code> ตรง ๆ จาก Terminal GitHub จะปฏิเสธ (ข้อความขึ้นต้นด้วย <code>remote: error: GH013: Repository rule violations found</code>) แปลว่า Ruleset ทำงานถูกต้อง ตั้งแต่นี้ไปงานทุกชิ้นต้องผ่าน PR</p></div>
+      <div class="callout sec"><span class="c-label sec">Security</span><p>Workflow ทั้งสองไฟล์ไม่ต้องใช้ Secret เลย เพราะ <code>deploy-pages</code> ใช้ <code>GITHUB_TOKEN</code> ที่ GitHub ออกให้อัตโนมัติและหมดอายุเมื่อ Job จบ ถ้าวันหน้าต้องใช้ API Key ให้เก็บใน Settings → Secrets and variables → Actions แล้วอ้างด้วย <code>${{ secrets.ชื่อ }}</code> ห้ามเขียนค่าลงในไฟล์ YAML และห้าม <code>echo</code> ค่าลับใน Log</p></div>
+    </li>
+
+    <li>
+      <h4>Step 6: Branch feature/contact-section จงใจทำให้ CI เป็นสีแดง แล้วแก้ให้เขียว</h4>
+      <p>ขั้นนี้ฝึกสิ่งที่เกิดขึ้นทุกวันในทีมจริง คือ PR ไม่ผ่าน CI แล้วต้องอ่าน Log หาสาเหตุ ส่วนติดต่อมีลิงก์ไปยัง <code>resume.pdf</code> ซึ่งยังไม่มีไฟล์อยู่จริง นอกจากนี้ยังเพิ่มลิงก์ <code>ติดต่อ</code> ในแถบเมนูที่กระโดดไปยัง <code>#contact</code> แก้ <code>index.html</code> ให้เป็นแบบนี้ทั้งไฟล์</p>
+<pre class="code" data-env="file" data-label="HTML · index.html (มีลิงก์เสียโดยตั้งใจ)"><code class="language-xml">&lt;!DOCTYPE html&gt;
+&lt;html lang="th"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+  &lt;meta name="description" content="Portfolio ของสมชาย ใจดี ผู้เริ่มต้นสายเทคที่ฝึก Linux, Git และ Python"&gt;
+  &lt;title&gt;สมชาย ใจดี | Portfolio&lt;/title&gt;
+  &lt;link rel="stylesheet" href="css/style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;header class="site-header"&gt;
+    &lt;nav class="nav"&gt;
+      &lt;a class="brand" href="index.html"&gt;สมชาย ใจดี&lt;/a&gt;
+      &lt;a href="projects.html"&gt;ผลงาน&lt;/a&gt;
+      &lt;a href="#contact"&gt;ติดต่อ&lt;/a&gt;
+    &lt;/nav&gt;
+  &lt;/header&gt;
+  &lt;main class="container"&gt;
+    &lt;section class="hero"&gt;
+      &lt;img class="avatar" src="images/profile.png" width="160" height="160" alt="รูปโปรไฟล์ของสมชาย ใจดี"&gt;
+      &lt;div&gt;
+        &lt;h1&gt;สวัสดีครับ ผมสมชาย ใจดี&lt;/h1&gt;
+        &lt;p&gt;ผู้เริ่มต้นสายเทคที่ฝึก Linux, Git และ Python ทุกวัน และเก็บงานทุกชิ้นไว้บน GitHub&lt;/p&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+    &lt;section&gt;
+      &lt;h2&gt;ทักษะ&lt;/h2&gt;
+      &lt;ul class="skills"&gt;
+        &lt;li&gt;Linux Command Line (Ubuntu 24.04 บน WSL2)&lt;/li&gt;
+        &lt;li&gt;Git และ GitHub (Branch, Pull Request, GitHub Actions)&lt;/li&gt;
+        &lt;li&gt;HTML และ CSS แบบ Responsive&lt;/li&gt;
+        &lt;li&gt;Python (กำลังเรียน)&lt;/li&gt;
+      &lt;/ul&gt;
+    &lt;/section&gt;
+    &lt;section id="contact"&gt;
+      &lt;h2&gt;ติดต่อ&lt;/h2&gt;
+      &lt;ul class="contact"&gt;
+        &lt;li&gt;Email: &lt;a href="mailto:somchai@example.com"&gt;somchai@example.com&lt;/a&gt;&lt;/li&gt;
+        &lt;li&gt;GitHub: &lt;a href="https://github.com/somchai-dev"&gt;github.com/somchai-dev&lt;/a&gt;&lt;/li&gt;
+        &lt;li&gt;&lt;a href="resume.pdf"&gt;ดาวน์โหลด Resume (PDF)&lt;/a&gt;&lt;/li&gt;
+      &lt;/ul&gt;
+    &lt;/section&gt;
+  &lt;/main&gt;
+  &lt;footer class="site-footer"&gt;
+    &lt;p&gt;&amp;copy; 2026 สมชาย ใจดี&lt;/p&gt;
+  &lt;/footer&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git switch -c feature/contact-section
+# (แก้ index.html ตามด้านบน)
+git add index.html
+git commit -m "feat(home): add contact section" -m "Closes #3"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Switched to a new branch 'feature/contact-section'
+[feature/contact-section 3fff55a] feat(home): add contact section
+ 1 file changed, 9 insertions(+)</code></pre>
+      <p>ในรอบจริง ให้ Push และเปิด PR ตอนนี้เลยเพื่อดู CI ล้มเหลวบน GitHub ด้วยตาตัวเอง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># รอบจริงบน GitHub
+git push -u origin feature/contact-section
+gh pr create --fill
+# รอผลการตรวจจนเสร็จ
+gh pr checks --watch</code></pre>
+      <p>หน้า PR จะแสดงกากบาทสีแดงที่ <code>CI / check-site (pull_request)</code> และเพราะ Ruleset บังคับให้ Check นี้ผ่าน ปุ่ม Merge จะกดไม่ได้ กดลิงก์ <strong>Details</strong> ข้าง Check เพื่อเปิด Log แล้วกดที่ Step <code>ตรวจลิงก์และรูปภาพที่เสีย (เฉพาะไฟล์ในเว็บของเรา)</code> จะเห็นข้อความเดียวกับที่รันในเครื่องด้านล่าง ส่วน Step ตรวจ HTML ผ่าน เพราะ HTML ถูกโครงสร้าง แค่ลิงก์ชี้ไปไฟล์ที่ไม่มี</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># รันการตรวจชุดเดียวกับ CI ในเครื่อง
+npx --yes html-validate@11.16.2 "**/*.html"; echo "exit code: $?"
+npx --yes linkinator@8.1.0 . --recurse --skip "^https://"; echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>exit code: 0
+→ crawling .
+[200] .
+[200] css/style.css
+[404] resume.pdf
+[200] index.html
+[404] resume.pdf
+[200] projects.html
+[200] images/profile.png
+
+  [200] .
+.
+  [200] css/style.css
+  [404] resume.pdf
+  [200] index.html
+  [200] projects.html
+  [200] images/profile.png
+index.html
+  [404] resume.pdf
+ERROR: Detected 2 broken links. Scanned 7 links in 0.065 seconds.
+exit code: 1</code></pre>
+      <p>อ่าน Log แบบนี้: <code>[404] resume.pdf</code> คือหาไฟล์ไม่เจอ บรรทัด <code>index.html</code> ที่ตามด้วย <code>[404] resume.pdf</code> บอกว่าลิงก์เสียอยู่ในไฟล์ไหน ลิงก์เดียวกันถูกนับ 2 ครั้ง เพราะ linkinator เปิดหน้าแรกทั้งในชื่อ <code>.</code> และ <code>index.html</code> สุดท้าย <code>exit code: 1</code> คือสิ่งที่ทำให้ Step ใน Actions เป็นสีแดง ลิงก์ <code>mailto:</code> ไม่ถูกตรวจเพราะไม่ใช่ลิงก์ของเว็บ</p>
+      <p>แก้โดยลบบรรทัดของ Resume ออก (เมื่อมีไฟล์ Resume จริงค่อยเพิ่มกลับพร้อมไฟล์ใน PR ใหม่) แล้วดู Diff ก่อน Commit</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># (ลบบรรทัด &lt;li&gt;&lt;a href="resume.pdf"&gt;... ออกจาก index.html)
+git diff</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>diff --git a/index.html b/index.html
+index 1ef2104..0986f74 100644
+--- a/index.html
++++ b/index.html
+@@ -37,7 +37,6 @@
+       &lt;ul class="contact"&gt;
+         &lt;li&gt;Email: &lt;a href="mailto:somchai@example.com"&gt;somchai@example.com&lt;/a&gt;&lt;/li&gt;
+         &lt;li&gt;GitHub: &lt;a href="https://github.com/somchai-dev"&gt;github.com/somchai-dev&lt;/a&gt;&lt;/li&gt;
+-        &lt;li&gt;&lt;a href="resume.pdf"&gt;ดาวน์โหลด Resume (PDF)&lt;/a&gt;&lt;/li&gt;
+       &lt;/ul&gt;
+     &lt;/section&gt;
+   &lt;/main&gt;</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">npx --yes linkinator@8.1.0 . --recurse --skip "^https://"; echo "exit code: $?"
+# -a = Stage ไฟล์ที่ Git ติดตามอยู่แล้วทุกไฟล์ก่อน Commit
+git commit -am "fix(home): remove link to missing resume"
+git push -u origin feature/contact-section
+# รอบซ้อม: จำลองการกด Merge PR
+git switch main
+git merge --no-ff --no-edit feature/contact-section
+git push origin main
+git branch -d feature/contact-section
+git push origin --delete feature/contact-section</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>→ crawling .
+[200] .
+[200] css/style.css
+[200] index.html
+[200] projects.html
+[200] images/profile.png
+
+  [200] .
+.
+  [200] css/style.css
+  [200] index.html
+  [200] projects.html
+  [200] images/profile.png
+✓ Successfully scanned 5 links in 0.064 seconds.
+exit code: 0
+[feature/contact-section 4fcd5dc] fix(home): remove link to missing resume
+ 1 file changed, 1 deletion(-)
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+ * [new branch]      feature/contact-section -&gt; feature/contact-section
+branch 'feature/contact-section' set up to track 'origin/feature/contact-section'.
+Switched to branch 'main'
+Your branch is up to date with 'origin/main'.
+Merge made by the 'ort' strategy.
+ index.html | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+   272f297..3f5fea4  main -&gt; main
+Deleted branch feature/contact-section (was 4fcd5dc).
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+ - [deleted]         feature/contact-section</code></pre>
+      <h5>รอบจริงบน GitHub</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Branch นี้ Push ไปแล้ว จึงใช้แค่ git push แล้ว PR เดิมจะได้ Commit ใหม่และ CI รันใหม่เอง
+git commit -am "fix(home): remove link to missing resume"
+git push
+gh pr checks --watch
+gh pr merge --merge --delete-branch
+git switch main
+git pull</code></pre>
+      <p>ไม่ต้องปิด PR แล้วเปิดใหม่ Commit ที่ Push เพิ่มเข้า Branch เดิมจะต่อท้ายใน PR เดิม Check จะเปลี่ยนเป็นสีเขียว ปุ่ม Merge กดได้ และประวัติของ PR เก็บทั้งความผิดพลาดและการแก้ไว้ให้ทีมเรียนรู้</p>
+      <div class="callout warn"><span class="c-label warn">ระวัง</span><p>อย่าแก้ CI ด้วยการลบ Step ที่ล้มเหลวหรือเพิ่ม <code>continue-on-error: true</code> เพื่อให้ผ่าน นั่นคือการปิดสัญญาณเตือนไฟไหม้แทนการดับไฟ ให้แก้ที่สาเหตุเสมอ</p></div>
+    </li>
+
+    <li>
+      <h4>Step 7: Branch fix/broken-link แก้ลิงก์ที่ CI ตรวจไม่เจอ</h4>
+      <p>หลัง Deploy คุณเปิดเว็บจริง กดการ์ด Learning Journal แล้วเจอหน้า 404 ของ GitHub ทั้งที่ CI เป็นสีเขียวมาตลอด สาเหตุคือ CI ใช้ <code>--skip "^https://"</code> ข้ามลิงก์ภายนอกทั้งหมด (เพื่อไม่ให้ CI ล้มเหลวเพราะเว็บคนอื่นล่มชั่วคราว) ลิงก์ <code>https://github.com/somchai-dev/learning-jornal</code> ที่สะกดผิดจึงหลุดรอดไป บทเรียนคือ CI ตรวจได้เฉพาะสิ่งที่เราสั่งให้ตรวจ ต้องมีคนตรวจเว็บจริงด้วย</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># รอบจริง: เปิด Issue บันทึกปัญหาก่อน (จะได้เลข #10 ถ้าทำตามลำดับ)
+gh issue create --title "ลิงก์ learning-journal ในหน้าผลงานเสีย" --body "การ์ด Learning Journal ใน projects.html ลิงก์ไป learning-jornal (สะกดผิด) ทำให้เจอหน้า 404" --label bug</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git switch -c fix/broken-link
+# หาบรรทัดที่สะกดผิด พร้อมเลขบรรทัด
+grep -n "learning-jornal" projects.html
+# แก้คำที่สะกดผิดทั้งไฟล์ในคำสั่งเดียว
+sed -i 's/learning-jornal/learning-journal/' projects.html
+git diff --stat
+git commit -am "fix(projects): correct learning-journal link" -m "Closes #10"
+git push -u origin fix/broken-link
+# รอบซ้อม: จำลองการกด Merge PR
+git switch main
+git merge --no-ff --no-edit fix/broken-link
+git push origin main
+git branch -d fix/broken-link
+git push origin --delete fix/broken-link</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Switched to a new branch 'fix/broken-link'
+23:        &lt;p&gt;&lt;a href="https://github.com/somchai-dev/learning-jornal"&gt;ดูโค้ดบน GitHub&lt;/a&gt;&lt;/p&gt;
+ projects.html | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+[fix/broken-link b37fa1d] fix(projects): correct learning-journal link
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+ * [new branch]      fix/broken-link -&gt; fix/broken-link
+branch 'fix/broken-link' set up to track 'origin/fix/broken-link'.
+Switched to branch 'main'
+Your branch is up to date with 'origin/main'.
+Merge made by the 'ort' strategy.
+ projects.html | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+   3f5fea4..8e3e80a  main -&gt; main
+Deleted branch fix/broken-link (was b37fa1d).
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+ - [deleted]         fix/broken-link</code></pre>
+      <h5>รอบจริงบน GitHub</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">gh pr create --fill
+gh pr checks --watch
+gh pr merge --merge --delete-branch
+git switch main
+git pull</code></pre>
+      <div class="callout"><span class="c-label tip">Tip</span><p>ถ้าอยากตรวจลิงก์ภายนอกด้วย ให้สร้าง Workflow แยกที่รันตามเวลา (<code>on: schedule</code> เช่น สัปดาห์ละครั้ง) และรัน <code>npx --yes linkinator@8.1.0 . --recurse</code> โดยไม่ใส่ <code>--skip</code> ถ้าล้มเหลวจะไม่บล็อก PR ของใคร แต่คุณจะได้อีเมลแจ้งเตือนจาก GitHub Actions</p></div>
+    </li>
+
+    <li>
+      <h4>Step 8: Branch docs/readme เขียน README ฉบับเต็มพร้อมภาพหน้าจอ</h4>
+      <p>README คือหน้าแรกที่คนเห็นเมื่อเปิด Repository ต้องตอบได้ภายใน 30 วินาทีว่า โปรเจกต์นี้คืออะไร ดูของจริงได้ที่ไหน รันอย่างไร ใช้อะไรทำ และเจ้าของได้เรียนรู้อะไร ป้าย (Badge) บรรทัดที่ 3 แสดงสถานะล่าสุดของ CI บน <code>main</code> โดยดึงรูปจาก GitHub Actions อัตโนมัติ</p>
+<pre class="code" data-env="file" data-label="Markdown · README.md"><code class="language-markdown"># Portfolio ของสมชาย ใจดี
+
+[![CI](https://github.com/somchai-dev/portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/somchai-dev/portfolio/actions/workflows/ci.yml)
+
+เว็บไซต์ Portfolio ส่วนตัว ทำด้วย HTML และ CSS ล้วน ไม่มี Framework และไม่มีขั้นตอน Build
+ตรวจคุณภาพทุก Pull Request ด้วย GitHub Actions และ Deploy อัตโนมัติด้วย GitHub Pages
+
+**Live demo:** https://somchai-dev.github.io/portfolio/
+
+![ภาพหน้าจอเว็บ Portfolio](images/screenshot.png)
+
+## ฟีเจอร์
+
+- หน้าแรก: แนะนำตัว รูปโปรไฟล์ ทักษะ และช่องทางติดต่อ
+- หน้าผลงาน: การ์ดลิงก์ไปยังโปรเจกต์บน GitHub
+- หน้า 404 สำหรับที่อยู่ที่ไม่มีอยู่จริง
+- Responsive แบบ Mobile-first (เปลี่ยน Layout ที่ความกว้าง 720px)
+
+## เทคโนโลยีที่ใช้
+
+- HTML5 และ CSS3
+- Git และ GitHub (Branch, Pull Request, Issues, Projects)
+- GitHub Actions: html-validate 11.16.2 และ linkinator 8.1.0
+- GitHub Pages (Source: GitHub Actions)
+
+## วิธีรันในเครื่อง
+
+```bash
+git clone git@github.com:somchai-dev/portfolio.git
+cd portfolio
+python3 -m http.server 8000
+# เปิด http://localhost:8000 ใน Browser
+```
+
+## วิธีตรวจแบบเดียวกับ CI (ต้องมี Node.js 24 LTS ขึ้นไป)
+
+```bash
+npx --yes html-validate@11.16.2 "**/*.html"
+npx --yes linkinator@8.1.0 . --recurse --skip "^https://"
+```
+
+## โครงสร้างโปรเจกต์
+
+```text
+portfolio/
+├── .github/workflows/   ci.yml (ตรวจ) และ pages.yml (Deploy)
+├── css/style.css
+├── images/              profile.png และ screenshot.png
+├── index.html
+├── projects.html
+└── 404.html
+```
+
+## สิ่งที่ได้เรียนรู้
+
+- ทำงานทีละฟีเจอร์บน Branch แล้ว Merge ผ่าน Pull Request
+- เขียน Commit message ตาม Conventional Commits
+- ใช้ CI ตรวจ HTML และลิงก์เสียก่อน Merge ทุกครั้ง
+- Deploy เว็บด้วย GitHub Actions และใช้ลิงก์แบบ Relative เพราะเว็บอยู่ใต้ /portfolio/
+
+## License
+
+MIT © 2026 Somchai Jaidee ดูรายละเอียดในไฟล์ [LICENSE](LICENSE)</code></pre>
+      <p>ถ่ายภาพหน้าจอจริงของเว็บที่ Deploy แล้ว: เปิดเว็บใน Browser กด <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> เลือกพื้นที่ แล้วกดบันทึกเป็นไฟล์ PNG จากนั้นคัดลอกจาก Windows เข้ามาในโปรเจกต์ผ่าน <code>/mnt/c</code> (เปลี่ยนชื่อผู้ใช้ Windows และโฟลเดอร์ให้ตรงกับที่บันทึกจริง) ในรอบซ้อมใช้สคริปต์สร้างรูปชั่วคราวขนาด 1280×720 แทน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git switch -c docs/readme
+# (แทนที่ README.md ด้วยฉบับเต็มด้านบน)
+# รอบจริง: คัดลอกภาพหน้าจอจาก Windows (ตัวอย่าง Path ปรับตามเครื่องของคุณ)
+# cp /mnt/c/Users/Somchai/Pictures/Screenshots/portfolio.png images/screenshot.png
+# รอบซ้อม: สร้างรูปชั่วคราวแทน
+python3 ~/projects/make_png.py images/screenshot.png 1280 720
+git add README.md images/screenshot.png
+git commit -m "docs: write README with live demo and screenshot" -m "Closes #5"
+git push -u origin docs/readme
+# รอบซ้อม: จำลองการกด Merge PR
+git switch main
+git merge --no-ff --no-edit docs/readme
+git push origin main
+git branch -d docs/readme
+git push origin --delete docs/readme</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Switched to a new branch 'docs/readme'
+สร้าง images/screenshot.png แล้ว ขนาด 1280x720 พิกเซล (3766 ไบต์)
+[docs/readme 2e11b8c] docs: write README with live demo and screenshot
+ 2 files changed, 61 insertions(+), 1 deletion(-)
+ create mode 100644 images/screenshot.png
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+ * [new branch]      docs/readme -&gt; docs/readme
+branch 'docs/readme' set up to track 'origin/docs/readme'.
+Switched to branch 'main'
+Your branch is up to date with 'origin/main'.
+Merge made by the 'ort' strategy.
+ README.md             |  62 +++++++++++++++++++++++++++++++++++++++++++++++++-
+ images/screenshot.png | Bin 0 -&gt; 3766 bytes
+ 2 files changed, 61 insertions(+), 1 deletion(-)
+ create mode 100644 images/screenshot.png
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+   8e3e80a..84a4714  main -&gt; main
+Deleted branch docs/readme (was 2e11b8c).
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+ - [deleted]         docs/readme</code></pre>
+      <h5>รอบจริงบน GitHub</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">gh pr create --fill
+gh pr checks --watch
+gh pr merge --merge --delete-branch
+git switch main
+git pull</code></pre>
+      <p>เปิดหน้า Repository จะเห็น README ฉบับใหม่ ป้าย CI สีเขียวที่เขียนว่า passing ลิงก์ Live demo และภาพหน้าจอ ถ้าภาพไม่ขึ้น ให้ตรวจว่า Path ใน README (<code>images/screenshot.png</code>) ตรงกับชื่อไฟล์ทุกตัวอักษร เพราะ GitHub แยกตัวพิมพ์เล็กพิมพ์ใหญ่</p>
+      <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+        <li>ใช้ Badge แค่ที่มีความหมาย เช่น สถานะ CI ไม่ต้องใส่ป้ายจำนวนมากจนอ่านยาก</li>
+        <li>บอกเวอร์ชันของเครื่องมือที่ต้องใช้ (Node.js 24 LTS ขึ้นไป) คนที่ Clone ไปจะไม่ต้องเดา</li>
+        <li>ส่วน "สิ่งที่ได้เรียนรู้" เขียนเป็นภาษาของคุณเอง ผู้สัมภาษณ์มักถามต่อจากหัวข้อนี้</li>
+      </ul></div>
+    </li>
+
+    <li>
+      <h4>Step 9: ทดสอบและตรวจทั้งระบบ (Verification)</h4>
+      <p>ก่อนออก Release ให้ตรวจ 4 ด้าน: ไฟล์ครบ, ผ่านการตรวจชุดเดียวกับ CI, ทุกหน้าเปิดได้จริงผ่านเว็บเซิร์ฟเวอร์ และประวัติ Git สะอาดตรงกับ Remote ทุกคำสั่งในขั้นนี้รันในโฟลเดอร์ <code>~/projects/portfolio</code> บน <code>main</code></p>
+      <h5>1) ไฟล์ครบตามโครงสร้าง</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/portfolio
+# แสดงทุกไฟล์ ยกเว้นโฟลเดอร์ .git แล้วเรียงตามชื่อ
+find . -path ./.git -prune -o -type f -print | sort</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>./.gitattributes
+./.github/workflows/ci.yml
+./.github/workflows/pages.yml
+./.gitignore
+./404.html
+./LICENSE
+./README.md
+./css/style.css
+./images/profile.png
+./images/screenshot.png
+./index.html
+./projects.html</code></pre>
+      <h5>2) ผ่านการตรวจชุดเดียวกับ CI</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">npx --yes html-validate@11.16.2 "**/*.html"; echo "exit code: $?"
+npx --yes linkinator@8.1.0 . --recurse --skip "^https://"; echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>exit code: 0
+→ crawling .
+[200] .
+[200] css/style.css
+[200] index.html
+[200] projects.html
+[200] images/profile.png
+
+  [200] .
+.
+  [200] css/style.css
+  [200] index.html
+  [200] projects.html
+  [200] images/profile.png
+✓ Successfully scanned 5 links in 0.067 seconds.
+exit code: 0</code></pre>
+      <h5>3) ทุกหน้าเปิดได้จริงผ่านเว็บเซิร์ฟเวอร์</h5>
+      <p>สคริปต์นี้เปิดเว็บเซิร์ฟเวอร์ของ Python เบื้องหลัง แล้วใช้ <code>curl</code> ขอทุกหน้าและพิมพ์ HTTP Status code ออกมา <code>200</code> คือเจอ ส่วนหน้าที่ไม่มีอยู่จริงต้องได้ <code>404</code> สุดท้ายปิดเซิร์ฟเวอร์ด้วย <code>kill</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เปิดเว็บเซิร์ฟเวอร์เบื้องหลัง เก็บ Log ไว้ในไฟล์ แล้วจำ PID ไว้ปิดทีหลัง
+python3 -m http.server 8000 &gt; /tmp/portfolio-server.log 2&gt;&amp;1 &amp;
+SERVER_PID=$!
+sleep 1
+# ขอแต่ละหน้า แล้วพิมพ์เฉพาะ HTTP Status code
+for p in / index.html projects.html css/style.css images/profile.png no-such-page.html; do
+  printf '%-22s %s\n' "$p" "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/$p)"
+done
+kill $SERVER_PID</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>/                      200
+index.html             200
+projects.html          200
+css/style.css          200
+images/profile.png     200
+no-such-page.html      404</code></pre>
+      <p class="muted small">เซิร์ฟเวอร์ของ Python ไม่ใช้ <code>404.html</code> ของเรา หน้าที่ไม่มีอยู่จริงจึงเป็นหน้า Error ของ Python เอง บน GitHub Pages จะเห็นหน้า <code>404.html</code> ที่เราเขียน</p>
+      <h5>4) ประวัติ Git สะอาดและตรงกับ Remote</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git status
+git log --oneline --graph</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>On branch main
+Your branch is up to date with 'origin/main'.
+
+nothing to commit, working tree clean
+*   84a4714 Merge branch 'docs/readme'
+|\  
+| * 2e11b8c docs: write README with live demo and screenshot
+|/  
+*   8e3e80a Merge branch 'fix/broken-link'
+|\  
+| * b37fa1d fix(projects): correct learning-journal link
+|/  
+*   3f5fea4 Merge branch 'feature/contact-section'
+|\  
+| * 4fcd5dc fix(home): remove link to missing resume
+| * 3fff55a feat(home): add contact section
+|/  
+*   272f297 Merge branch 'ci/add-workflow'
+|\  
+| * b677948 ci: add site checks and GitHub Pages deploy
+|/  
+*   5a9f6e2 Merge branch 'feature/projects-page'
+|\  
+| * df6bef0 feat: add projects page and 404 page
+|/  
+*   7dff233 Merge branch 'feature/home-page'
+|\  
+| * 85206a3 feat: add home page with intro and skills
+|/  
+* 1db9c1d chore: initial project setup</code></pre>
+      <p>กราฟนี้คือสิ่งที่ผู้สัมภาษณ์อยากเห็น: ทุกงานแยกเป็น Branch มี Commit ที่ตั้งชื่อตาม Conventional Commits และรวมกลับด้วย Merge commit ทีละชิ้น ในรอบจริงข้อความ Merge จะเป็น <code>Merge pull request #6 from somchai-dev/feature/home-page</code> แทน <code>Merge branch 'feature/home-page'</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Branch ทั้งในเครื่องและบน Remote (ควรเหลือแค่ main)
+git branch -a
+# ดู Ref ที่อยู่บน Remote จริง ๆ
+git ls-remote origin</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>* main
+  remotes/origin/main
+84a471447d9fe35e604b960e0ff80a9a8ef44981	HEAD
+84a471447d9fe35e604b960e0ff80a9a8ef44981	refs/heads/main</code></pre>
+      <p><code>main</code> ในเครื่องและบน Remote ชี้ไปที่ Commit เดียวกัน และ Branch งานทั้งหมดถูกลบหลัง Merge แล้ว ในรอบจริงให้ตรวจเพิ่มบน GitHub อีก 4 ข้อ</p>
+      <ol>
+        <li>แท็บ Actions: Run ล่าสุดของ <code>CI</code> และ <code>Deploy to GitHub Pages</code> เป็นสีเขียวทั้งคู่</li>
+        <li>เปิด <code>https://somchai-dev.github.io/portfolio/</code> จาก Browser และโทรศัพท์ เมนู ผลงาน และ ติดต่อ ทำงาน รูปและ CSS ขึ้นครบ</li>
+        <li>เปิด <code>https://somchai-dev.github.io/portfolio/no-such-page</code> ต้องเห็นหน้า 404 ของเรา</li>
+        <li>แท็บ Issues ไม่มี Issue ค้าง (กด Closed จะเห็นครบ 6 ใบ) และการ์ดทั้งหมดบน Projects board อยู่ในคอลัมน์ Done</li>
+      </ol>
+    </li>
+
+    <li>
+      <h4>Step 10: ออก Release แรกด้วย Tag v1.0.0</h4>
+      <p>เมื่อทุกอย่างผ่าน ให้ติด Annotated tag ที่ Commit ล่าสุดของ <code>main</code> ตาม Semantic Versioning 2.0.0 (<code>MAJOR.MINOR.PATCH</code>) เวอร์ชันแรกที่เปิดให้คนทั่วไปใช้คือ <code>1.0.0</code> ถ้าแก้ลิงก์เล็กน้อยครั้งหน้าเป็น <code>v1.0.1</code> ถ้าเพิ่มหน้าใหม่เป็น <code>v1.1.0</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># -a = Annotated tag (เก็บชื่อผู้สร้าง วันที่ และข้อความ)
+git tag -a v1.0.0 -m "Portfolio v1.0.0: first public release"
+# แสดง Tag พร้อมบรรทัดแรกของข้อความ
+git tag -n
+# git push ปกติไม่ส่ง Tag ต้องสั่งแยก
+git push origin v1.0.0
+git ls-remote --tags origin</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>v1.0.0          Portfolio v1.0.0: first public release
+To /home/somchai/projects/git-lab/remotes/portfolio.git
+ * [new tag]         v1.0.0 -&gt; v1.0.0
+01749153d3593ad7caab584ce2740aa6088109df	refs/tags/v1.0.0
+84a471447d9fe35e604b960e0ff80a9a8ef44981	refs/tags/v1.0.0^{}</code></pre>
+      <p>บรรทัด <code>refs/tags/v1.0.0</code> คือตัว Tag object ส่วน <code>refs/tags/v1.0.0^{}</code> คือ Commit ที่ Tag ชี้ไป ซึ่งตรงกับ <code>main</code> ใน Step 9</p>
+      <h5>รอบจริงบน GitHub</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้าง Tag และ Push เหมือนรอบซ้อม แล้วสร้าง Release จาก Tag นั้น
+git tag -a v1.0.0 -m "Portfolio v1.0.0: first public release"
+git push origin v1.0.0
+# --generate-notes = ให้ GitHub เขียนรายการ PR ที่ Merge ตั้งแต่ต้นจนถึง Tag นี้ให้
+gh release create v1.0.0 --title "v1.0.0" --generate-notes</code></pre>
+      <p>คำสั่งสุดท้ายพิมพ์ URL ของ Release เช่น <code>https://github.com/somchai-dev/portfolio/releases/tag/v1.0.0</code> หน้า Release จะมีส่วน What's Changed ที่แสดงชื่อ PR ทุกใบพร้อมเลข PR และชื่อผู้ทำ, ลิงก์ Full Changelog และไฟล์ Source code (zip กับ tar.gz) ที่ GitHub แพ็กให้อัตโนมัติ ที่หน้าแรกของ Repository ด้านขวาจะเห็นหัวข้อ Releases พร้อมป้าย Latest</p>
+      <div class="callout warn"><span class="c-label warn">ระวัง</span><p>อย่าย้ายหรือลบ Tag ที่ Push ไปแล้ว คนที่ดาวน์โหลด <code>v1.0.0</code> ไปแล้วต้องได้โค้ดชุดเดิมเสมอ ถ้าพบข้อผิดพลาดหลังออก Release ให้แก้ผ่าน PR แล้วออก <code>v1.0.1</code></p></div>
+    </li>
+
+    <li>
+      <h4>Step 11: Profile README และ Push learning-journal จาก Day 0</h4>
+      <p>Repository ที่ชื่อเหมือนชื่อผู้ใช้ทุกตัวอักษร (<code>somchai-dev/somchai-dev</code>) เป็น Repository พิเศษ GitHub จะนำ <code>README.md</code> ของมันไปแสดงบนสุดของหน้าโปรไฟล์ ใช้แนะนำตัวและชี้ไปยังงานเด่น เปลี่ยนข้อมูลเป็นของคุณ</p>
+<pre class="code" data-env="file" data-label="Markdown · ~/projects/somchai-dev/README.md"><code class="language-markdown"># สวัสดีครับ ผมสมชาย ใจดี
+
+ผู้เริ่มต้นสายเทคจากประเทศไทย กำลังฝึก Linux, Git และ Python ทุกวัน
+
+- Portfolio: https://somchai-dev.github.io/portfolio/
+- กำลังเรียน: Python และ Backend
+- ติดต่อ: somchai@example.com
+
+## ทักษะ
+
+Linux (Ubuntu บน WSL2) · Git · GitHub Actions · HTML · CSS · Python (กำลังเรียน)
+
+## โปรเจกต์เด่น
+
+- [portfolio](https://github.com/somchai-dev/portfolio): เว็บ Portfolio ที่ตรวจด้วย CI และ Deploy ด้วย GitHub Pages
+- [learning-journal](https://github.com/somchai-dev/learning-journal): บันทึกการเรียนรายวันตั้งแต่ Day 0</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/somchai-dev &amp;&amp; cd ~/projects/somchai-dev
+git init
+# (สร้างไฟล์ README.md ตามด้านบน)
+git add README.md
+git commit -m "docs: add profile README"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Initialized empty Git repository in /home/somchai/projects/somchai-dev/.git/
+[main (root-commit) aba7b2d] docs: add profile README
+ 1 file changed, 16 insertions(+)
+ create mode 100644 README.md</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># รอบจริง: สร้าง Repository ชื่อเดียวกับชื่อผู้ใช้ ตั้ง origin และ Push ในคำสั่งเดียว
+gh repo create somchai-dev --public --source=. --remote=origin --push</code></pre>
+      <p>เปิด <code>https://github.com/somchai-dev</code> จะเห็นเนื้อหา README นี้อยู่บนสุดของหน้าโปรไฟล์ ถ้าไม่เห็น ให้ตรวจว่าชื่อ Repository ตรงกับชื่อผู้ใช้ทุกตัวอักษรและเป็น Public</p>
+      <p>ต่อมา นำ <code>learning-journal</code> ที่สร้างไว้ตั้งแต่ Day 0 ขึ้น GitHub รอบซ้อมใช้ Remote จำลองอีกตัว ส่วน Commit ในเครื่องของคุณจะมีมากกว่านี้ถ้าบันทึกทุกวัน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># รอบซ้อม: สร้าง Remote จำลองของ learning-journal
+rm -rf ~/projects/git-lab/remotes/learning-journal.git
+git init --bare ~/projects/git-lab/remotes/learning-journal.git
+cd ~/projects/learning-journal
+git log --oneline</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Initialized empty Git repository in /home/somchai/projects/git-lab/remotes/learning-journal.git/
+8607559 Day 0: setup environment</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git remote add origin ~/projects/git-lab/remotes/learning-journal.git
+git push -u origin main
+# -s = แบบสั้น, -b = แสดงชื่อ Branch และความสัมพันธ์กับ Remote
+git status -sb</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>To /home/somchai/projects/git-lab/remotes/learning-journal.git
+ * [new branch]      main -&gt; main
+branch 'main' set up to track 'origin/main'.
+## main...origin/main</code></pre>
+      <p>บรรทัด <code>## main...origin/main</code> ที่ไม่มีคำว่า ahead หรือ behind แปลว่าในเครื่องกับ Remote ตรงกันพอดี</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># รอบจริง: สร้าง Repository เปล่าบน GitHub แล้วเปลี่ยน origin จาก Remote จำลองไปที่ GitHub
+cd ~/projects/learning-journal
+gh repo create learning-journal --public --description "บันทึกการเรียนสายเทครายวัน"
+# ถ้ายังไม่เคยเพิ่ม origin ให้ใช้ git remote add origin แทน set-url
+git remote set-url origin git@github.com:somchai-dev/learning-journal.git
+git remote -v
+git push -u origin main</code></pre>
+      <p>สุดท้ายปักหมุดงานเด่นที่หน้าโปรไฟล์: เปิด <code>https://github.com/somchai-dev</code> ที่ส่วน Popular repositories กด <strong>Customize your pins</strong> ติ๊ก <code>portfolio</code> และ <code>learning-journal</code> แล้วกด Save pins ใส่ลิงก์เว็บไซต์ในโปรไฟล์ด้วย: Repository <code>portfolio</code> หน้าแรก กดรูปเฟืองข้าง About ติ๊ก <strong>Use your GitHub Pages website</strong> แล้วกด Save changes</p>
+      <div class="callout sec"><span class="c-label sec">Security</span><p>ก่อน Push <code>learning-journal</code> ขึ้น Public ให้ไล่ดูว่าไม่มีรหัสผ่าน Token หรือข้อมูลส่วนตัวอยู่ในไฟล์ใดหรือใน Commit เก่า ใช้ <code>git log -p | grep -n -i "password\|token\|api_key"</code> ค้นหาได้ ถ้าเจอให้จัดการตามขั้นตอนลบ Secret ออกจากประวัติในส่วนที่ 2 (เปลี่ยนรหัสหรือยกเลิก Key ก่อนเสมอ) ก่อน Push</p></div>
+    </li>
+  </ol>
+
+  <h4>README Template สำหรับโปรเจกต์ถัดไป</h4>
+  <p>คัดลอกแม่แบบนี้ไปใช้กับทุกโปรเจกต์ในหลักสูตร แทนข้อความในวงเล็บเหลี่ยมด้วยข้อมูลจริง และลบหัวข้อที่ไม่เกี่ยวข้องออก</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Markdown · README Template"><code class="language-markdown"># [ชื่อโปรเจกต์]
+
+[![CI](https://github.com/[ชื่อผู้ใช้]/[ชื่อ-repo]/actions/workflows/ci.yml/badge.svg)](https://github.com/[ชื่อผู้ใช้]/[ชื่อ-repo]/actions/workflows/ci.yml)
+
+[อธิบาย 1–2 ประโยค: โปรเจกต์นี้คืออะไร แก้ปัญหาอะไร ให้ใครใช้]
+
+**Live demo:** [URL ของเว็บหรือแอป ถ้ามี]
+
+![ภาพหน้าจอ](images/screenshot.png)
+
+## ฟีเจอร์
+
+- [ฟีเจอร์ที่ 1]
+- [ฟีเจอร์ที่ 2]
+- [ฟีเจอร์ที่ 3]
+
+## เทคโนโลยีที่ใช้
+
+- [ภาษาและเวอร์ชัน เช่น Python 3.12]
+- [Library หรือ Framework พร้อมเวอร์ชัน]
+- [เครื่องมือ เช่น GitHub Actions]
+
+## วิธีติดตั้งและรันในเครื่อง
+
+```bash
+git clone git@github.com:[ชื่อผู้ใช้]/[ชื่อ-repo].git
+cd [ชื่อ-repo]
+[คำสั่งติดตั้ง]
+[คำสั่งรัน]
+```
+
+## วิธีทดสอบ
+
+```bash
+[คำสั่งรันชุดทดสอบหรือคำสั่งตรวจ]
+```
+
+## การตั้งค่า (Environment variables)
+
+คัดลอก `.env.example` เป็น `.env` แล้วใส่ค่าของคุณเอง ห้าม Commit ไฟล์ `.env`
+
+## สิ่งที่ได้เรียนรู้
+
+- [บทเรียนที่ 1]
+- [บทเรียนที่ 2]
+
+## License
+
+MIT © [ปี] [ชื่อของคุณ]</code></pre>
+
+  <h4>สรุปการนำขึ้น GitHub</h4>
+  <p>ลำดับขั้นสำหรับนำทุกอย่างในโปรเจกต์นี้ขึ้น GitHub จริง (ทบทวนเรื่อง SSH Key, Remote และ Pull Request ได้ในส่วนที่ 2 ของหัวข้อ <a data-t="17"></a>)</p>
+  <ol>
+    <li>ตรวจว่าเชื่อมต่อได้: <code>ssh -T git@github.com</code> และ <code>gh auth status</code> ต้องบอกว่า Logged in แล้ว</li>
+    <li>ลบโฟลเดอร์รอบซ้อม <code>rm -rf ~/projects/portfolio</code> แล้วทำ Step 1 ใหม่ด้วยกล่อง "รอบจริงบน GitHub" (<code>gh repo create portfolio --public</code> และ <code>git remote add origin git@github.com:somchai-dev/portfolio.git</code>)</li>
+    <li>สร้าง Issue 5 ใบและ Projects board ตาม Step 2</li>
+    <li>ทำ Step 3 ถึง 8 โดยใช้ <code>gh pr create --fill</code>, <code>gh pr checks --watch</code> และ <code>gh pr merge --merge --delete-branch</code> แทนการ Merge ในเครื่อง และเปิด Pages แบบ GitHub Actions ก่อน Merge PR ของ Step 5</li>
+    <li>ตั้ง Ruleset <code>protect-main</code> หลัง CI รันครั้งแรก</li>
+    <li>ตรวจตาม Step 9 แล้วออก Release <code>v1.0.0</code> ตาม Step 10</li>
+    <li>สร้าง Profile README, Push <code>learning-journal</code> และปักหมุดทั้งสองงานตาม Step 11</li>
+    <li>คัดลอกลิงก์ <code>https://somchai-dev.github.io/portfolio/</code> และ <code>https://github.com/somchai-dev</code> ไปใส่ใน Resume และโปรไฟล์ LinkedIn</li>
+  </ol>
+
+  <h4>ไอเดียต่อยอด</h4>
+  <ul>
+    <li><strong>Dark mode:</strong> เพิ่ม <code>@media (prefers-color-scheme: dark)</code> ใน CSS เปิด Branch <code>feature/dark-mode</code> และออก <code>v1.1.0</code></li>
+    <li><strong>โดเมนของตัวเอง:</strong> ซื้อโดเมน แล้วตั้งค่า Custom domain ใน Settings → Pages ติ๊ก Enforce HTTPS (ศึกษาเรื่อง DNS ในหัวข้อ Network)</li>
+    <li><strong>ตรวจลิงก์ภายนอกรายสัปดาห์:</strong> Workflow แยกที่ใช้ <code>on: schedule</code> ตามที่แนะนำใน Step 7</li>
+    <li><strong>ตรวจ CSS และ Accessibility เพิ่ม:</strong> เพิ่ม Step ใน CI ที่ใช้ Stylelint หรือ Lighthouse CI แล้วทำให้ผ่าน</li>
+    <li><strong>Dependabot สำหรับ Actions:</strong> เพิ่มไฟล์ <code>.github/dependabot.yml</code> ให้ GitHub เปิด PR อัปเดตเวอร์ชันของ Action ให้อัตโนมัติ</li>
+    <li><strong>เทมเพลต Issue และ PR:</strong> เพิ่ม <code>.github/ISSUE_TEMPLATE/</code> และ <code>.github/pull_request_template.md</code> ให้ทุก Issue และ PR มีหัวข้อเดียวกัน</li>
+    <li><strong>เชิญเพื่อนมาทำ PR:</strong> ให้เพื่อน Fork Repository แล้วส่ง PR แก้คำผิด คุณทำหน้าที่ Reviewer ฝึกทั้งสองบทบาท</li>
+    <li><strong>เพิ่มการ์ดทุกครั้งที่จบหัวข้อ:</strong> หลังเรียน Python (<a data-t="9"></a>) หรือ JavaScript (<a data-t="4"></a>) ให้เพิ่มการ์ดโปรเจกต์ใหม่ผ่าน PR และออกเวอร์ชัน MINOR ใหม่ทุกครั้ง</li>
+  </ul>
+  <div class="callout"><span class="c-label check">Checkpoint</span><p>โปรเจกต์นี้เสร็จเมื่อ: (1) เว็บเปิดได้ที่ <code>https://somchai-dev.github.io/portfolio/</code> ทั้งบนคอมพิวเตอร์และมือถือ (2) Repository มี PR ที่ Merge แล้วอย่างน้อย 6 ใบ และมีอย่างน้อย 1 ใบที่ CI เคยเป็นสีแดงแล้วแก้จนเขียว (3) Ruleset ของ <code>main</code> ห้าม Push ตรงและบังคับ Check <code>check-site</code> (4) มี Release <code>v1.0.0</code> (5) หน้าโปรไฟล์มี Profile README และปักหมุด <code>portfolio</code> กับ <code>learning-journal</code> และ (6) คุณอธิบายทุกบรรทัดของ <code>ci.yml</code> และ <code>pages.yml</code> ได้</p></div>
+
+  <h3 id="s17-4-cheat">Cheat Sheet</h3>
+  <p>รวมคำสั่งที่ใช้บ่อยที่สุดในหัวข้อนี้ จัดกลุ่มตามงาน คำในวงเล็บแหลม เช่น <code>&lt;file&gt;</code> คือส่วนที่ต้องแทนด้วยค่าจริง คำสั่งที่มีป้าย "ระวัง" ทำให้ข้อมูลหายได้ อ่านคำอธิบายก่อนใช้ทุกครั้ง</p>
+
+  <h4>Setup และ Config</h4>
+  <div class="tbl wide"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>git config --global user.name "&lt;name&gt;"</code></td><td>ตั้งชื่อผู้เขียน Commit ทุก Repository ในเครื่อง</td><td><code>git config --global user.name "Somchai Jaidee"</code></td></tr>
+    <tr><td><code>git config --global user.email &lt;email&gt;</code></td><td>ตั้งอีเมลผู้เขียน Commit (ใช้อีเมล noreply ของ GitHub ได้)</td><td><code>git config --global user.email somchai@example.com</code></td></tr>
+    <tr><td><code>git config --list --show-origin</code></td><td>ดูค่าตั้งทั้งหมดและไฟล์ที่ค่านั้นมาจาก</td><td><code>git config --list --show-origin | grep user</code></td></tr>
+    <tr><td><code>ssh-keygen -t ed25519 -C "&lt;email&gt;"</code></td><td>สร้าง SSH Key คู่ใหม่สำหรับเชื่อม GitHub</td><td><code>ssh-keygen -t ed25519 -C "somchai@example.com"</code></td></tr>
+    <tr><td><code>ssh -T git@github.com</code></td><td>ทดสอบว่า GitHub รู้จัก SSH Key ของเรา</td><td>ได้ <code>Hi somchai-dev! You've successfully authenticated...</code></td></tr>
+  </tbody></table></div>
+
+  <h4>Snapshot: status, add, commit</h4>
+  <div class="tbl wide"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>git status</code> / <code>git status -s</code></td><td>ดูสถานะไฟล์ แบบเต็มหรือแบบสั้น (<code>??</code> = Untracked, <code>A</code> = Staged ใหม่, <code>M</code> = Modified)</td><td><code>git status -s</code></td></tr>
+    <tr><td><code>git add &lt;file&gt;</code> / <code>git add .</code></td><td>นำการเปลี่ยนแปลงเข้า Staging Area ทีละไฟล์หรือทั้งโฟลเดอร์</td><td><code>git add index.html css/style.css</code></td></tr>
+    <tr><td><code>git add -p</code></td><td>เลือก Stage ทีละส่วน (Hunk) ในไฟล์ ให้หนึ่ง Commit มีเรื่องเดียว</td><td><code>git add -p index.html</code></td></tr>
+    <tr><td><code>git commit -m "&lt;type&gt;: &lt;subject&gt;"</code></td><td>บันทึก Snapshot จาก Staging Area พร้อมข้อความตาม Conventional Commits</td><td><code>git commit -m "feat: add projects page"</code></td></tr>
+    <tr><td><code>git commit -am "&lt;msg&gt;"</code></td><td>Stage ไฟล์ที่ Git ติดตามอยู่แล้วทุกไฟล์แล้ว Commit ในคำสั่งเดียว (ไม่รวมไฟล์ใหม่)</td><td><code>git commit -am "fix: correct typo"</code></td></tr>
+    <tr><td><code>git check-ignore -v &lt;file&gt;</code></td><td>ดูว่าไฟล์ถูก Ignore ด้วยกฎบรรทัดไหนของ <code>.gitignore</code></td><td><code>git check-ignore -v .env</code></td></tr>
+    <tr><td><code>git rm --cached &lt;file&gt;</code></td><td>เลิกติดตามไฟล์แต่เก็บไฟล์ไว้ในเครื่อง (ใช้เมื่อเผลอ Commit ไฟล์ที่ควร Ignore)</td><td><code>git rm --cached app.log</code></td></tr>
+  </tbody></table></div>
+
+  <h4>History: log, diff, show, blame</h4>
+  <div class="tbl wide"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>git log --oneline --graph --all</code></td><td>ดูประวัติแบบย่อพร้อมกราฟของทุก Branch</td><td><code>git log --oneline --graph --all -n 15</code></td></tr>
+    <tr><td><code>git log -- &lt;file&gt;</code></td><td>ดูเฉพาะ Commit ที่แตะไฟล์นั้น</td><td><code>git log --oneline -- projects.html</code></td></tr>
+    <tr><td><code>git log -S "&lt;text&gt;"</code></td><td>หา Commit ที่เพิ่มหรือลบข้อความนั้น</td><td><code>git log --oneline -S "resume.pdf"</code></td></tr>
+    <tr><td><code>git diff</code> / <code>git diff --staged</code></td><td>ดูความต่าง Working Tree กับ Staging หรือ Staging กับ Commit ล่าสุด</td><td><code>git diff --staged</code></td></tr>
+    <tr><td><code>git show &lt;ref&gt;</code></td><td>ดูรายละเอียดและ Diff ของ Commit หรือไฟล์ใน Commit</td><td><code>git show HEAD~1:index.html</code></td></tr>
+    <tr><td><code>git blame -L &lt;start&gt;,&lt;end&gt; &lt;file&gt;</code></td><td>ดูว่าแต่ละบรรทัดถูกแก้ล่าสุดโดยใคร ใน Commit ไหน</td><td><code>git blame -L 20,25 projects.html</code></td></tr>
+  </tbody></table></div>
+
+  <h4>Undo: restore, revert, reset, reflog</h4>
+  <div class="tbl wide"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>git restore &lt;file&gt;</code></td><td><strong>ระวัง:</strong> ทิ้งการแก้ที่ยังไม่ Stage ของไฟล์นั้นถาวร</td><td><code>git restore index.html</code></td></tr>
+    <tr><td><code>git restore --staged &lt;file&gt;</code></td><td>นำไฟล์ออกจาก Staging Area โดยการแก้ยังอยู่</td><td><code>git restore --staged notes.md</code></td></tr>
+    <tr><td><code>git commit --amend</code></td><td>แก้ Commit ล่าสุด (ข้อความหรือเพิ่มไฟล์) ใช้เฉพาะ Commit ที่ยังไม่ Push</td><td><code>git commit --amend -m "feat: add contact section"</code></td></tr>
+    <tr><td><code>git revert &lt;hash&gt;</code></td><td>สร้าง Commit ใหม่ที่กลับผลของ Commit เดิม ปลอดภัยกับประวัติที่แชร์แล้ว</td><td><code>git revert --no-edit HEAD</code></td></tr>
+    <tr><td><code>git reset --soft HEAD~1</code></td><td>ถอย Branch 1 Commit โดยการแก้ยังอยู่ใน Staging</td><td><code>git reset --soft HEAD~1</code></td></tr>
+    <tr><td><code>git reset HEAD~1</code></td><td>ถอย Branch 1 Commit (แบบ <code>--mixed</code>) การแก้กลับไปอยู่ใน Working Tree</td><td><code>git reset HEAD~1</code></td></tr>
+    <tr><td><code>git reset --hard &lt;ref&gt;</code></td><td><strong>ระวัง:</strong> ทิ้งทั้ง Staging และ Working Tree ให้ตรงกับ Commit นั้น งานที่ไม่ได้ Commit หายถาวร</td><td><code>git reset --hard HEAD@{1}</code></td></tr>
+    <tr><td><code>git reflog</code></td><td>ดูทุกตำแหน่งที่ HEAD เคยอยู่ ใช้กู้ Commit ที่หายจาก reset หรือ Branch ที่ลบ</td><td><code>git reflog -n 5</code></td></tr>
+  </tbody></table></div>
+
+  <h4>Branch, Merge และ Stash</h4>
+  <div class="tbl wide"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>git switch -c &lt;branch&gt;</code></td><td>สร้าง Branch ใหม่แล้วย้ายไปทันที</td><td><code>git switch -c feature/dark-mode</code></td></tr>
+    <tr><td><code>git merge &lt;branch&gt;</code></td><td>รวม Branch เข้ากับ Branch ปัจจุบัน (Fast-forward ถ้าทำได้)</td><td><code>git merge feature/contact</code></td></tr>
+    <tr><td><code>git merge --no-ff --no-edit &lt;branch&gt;</code></td><td>บังคับสร้าง Merge commit โดยไม่เปิด Editor</td><td><code>git merge --no-ff --no-edit docs/readme</code></td></tr>
+    <tr><td><code>git merge --abort</code></td><td>ยกเลิก Merge ที่ติด Conflict กลับไปสภาพก่อน Merge</td><td><code>git merge --abort</code></td></tr>
+    <tr><td><code>git branch -d &lt;branch&gt;</code></td><td>ลบ Branch ที่ Merge แล้ว (<code>-D</code> บังคับลบแม้ยังไม่ Merge ระวังงานหาย)</td><td><code>git branch -d fix/broken-link</code></td></tr>
+    <tr><td><code>git stash push -u -m "&lt;msg&gt;"</code></td><td>เก็บงานที่ยังไม่เสร็จ (รวมไฟล์ใหม่ด้วย <code>-u</code>) ไว้ชั่วคราว</td><td><code>git stash push -u -m "wip: navbar"</code></td></tr>
+    <tr><td><code>git stash list</code> / <code>git stash pop</code></td><td>ดูรายการ Stash และนำ Stash ล่าสุดกลับมาพร้อมลบออกจากรายการ</td><td><code>git stash pop</code></td></tr>
+  </tbody></table></div>
+
+  <h4>Remote: remote, fetch, pull, push, clone</h4>
+  <div class="tbl wide"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>git clone &lt;url&gt;</code></td><td>คัดลอก Repository ทั้งหมดพร้อมประวัติลงเครื่อง</td><td><code>git clone git@github.com:somchai-dev/portfolio.git</code></td></tr>
+    <tr><td><code>git remote add &lt;name&gt; &lt;url&gt;</code></td><td>เพิ่ม Remote (ชื่อหลักคือ <code>origin</code>, ต้นฉบับของ Fork คือ <code>upstream</code>)</td><td><code>git remote add upstream git@github.com:malee-dev/recipes.git</code></td></tr>
+    <tr><td><code>git remote -v</code> / <code>git remote set-url</code></td><td>ดู URL ของ Remote ทั้งหมด หรือเปลี่ยน URL</td><td><code>git remote set-url origin git@github.com:somchai-dev/learning-journal.git</code></td></tr>
+    <tr><td><code>git push -u origin &lt;branch&gt;</code></td><td>ส่ง Branch ขึ้น Remote ครั้งแรกและผูก Upstream</td><td><code>git push -u origin feature/home-page</code></td></tr>
+    <tr><td><code>git fetch --prune</code></td><td>ดึงข้อมูลใหม่จาก Remote โดยไม่แตะงานในเครื่อง และลบ Remote-tracking branch ที่ถูกลบแล้ว</td><td><code>git fetch --prune</code></td></tr>
+    <tr><td><code>git pull</code> / <code>git pull --rebase</code></td><td>Fetch แล้ว Merge (ค่าเริ่มต้นของหลักสูตร) หรือ Fetch แล้ว Rebase</td><td><code>git pull --rebase origin main</code></td></tr>
+    <tr><td><code>git push --force-with-lease</code></td><td><strong>ระวัง:</strong> เขียนทับ Branch บน Remote หลัง Rebase ใช้เฉพาะ Branch ของตัวเอง ห้ามใช้กับ <code>main</code></td><td><code>git push --force-with-lease origin feature/about-page</code></td></tr>
+  </tbody></table></div>
+
+  <h4>Rewrite และสืบสวน: rebase, cherry-pick, bisect, tag</h4>
+  <div class="tbl wide"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>git rebase &lt;base&gt;</code></td><td>ย้าย Commit ของ Branch ปัจจุบันไปต่อท้าย Base ใหม่ (ได้ Hash ใหม่) ห้ามใช้กับประวัติที่แชร์แล้ว</td><td><code>git rebase main</code></td></tr>
+    <tr><td><code>git rebase -i HEAD~&lt;n&gt;</code></td><td>แก้ Commit ล่าสุด n ตัว: <code>pick</code>, <code>reword</code>, <code>squash</code>, <code>fixup</code>, <code>drop</code> หรือสลับลำดับ</td><td><code>git rebase -i HEAD~3</code></td></tr>
+    <tr><td><code>git cherry-pick -x &lt;hash&gt;</code></td><td>คัดลอก Commit เดียวมาใส่ Branch ปัจจุบัน (<code>-x</code> จดที่มาไว้ในข้อความ)</td><td><code>git cherry-pick -x 4f9c2a1</code></td></tr>
+    <tr><td><code>git bisect start &lt;bad&gt; &lt;good&gt;</code></td><td>เริ่มค้นหา Commit แรกที่ทำให้เกิด Bug แบบ Binary search</td><td><code>git bisect start HEAD v1.0.0</code></td></tr>
+    <tr><td><code>git bisect run &lt;script&gt;</code> / <code>git bisect reset</code></td><td>ให้สคริปต์ตัดสินดีหรือเสียอัตโนมัติ (exit 0 = ดี, 125 = ข้าม, 1–127 อื่น = เสีย) แล้วกลับสู่สภาพเดิม</td><td><code>git bisect run ./check.sh</code></td></tr>
+    <tr><td><code>git tag -a &lt;tag&gt; -m "&lt;msg&gt;"</code></td><td>สร้าง Annotated tag สำหรับ Release ตาม Semantic Versioning</td><td><code>git tag -a v1.1.0 -m "Add dark mode"</code></td></tr>
+    <tr><td><code>git push origin &lt;tag&gt;</code> / <code>--tags</code></td><td>ส่ง Tag ขึ้น Remote (<code>git push</code> ปกติไม่ส่ง Tag)</td><td><code>git push origin v1.1.0</code></td></tr>
+  </tbody></table></div>
+
+  <h4>GitHub CLI (gh)</h4>
+  <div class="tbl wide"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>gh auth login</code> / <code>gh auth status</code></td><td>Login เข้า GitHub จาก Terminal และตรวจสถานะ</td><td><code>gh auth status</code></td></tr>
+    <tr><td><code>gh repo create &lt;name&gt; --public</code></td><td>สร้าง Repository บน GitHub (เพิ่ม <code>--source=. --push</code> เพื่อ Push โฟลเดอร์ปัจจุบันขึ้นไปเลย)</td><td><code>gh repo create somchai-dev --public --source=. --remote=origin --push</code></td></tr>
+    <tr><td><code>gh pr create --fill</code></td><td>เปิด PR จาก Branch ปัจจุบัน ใช้ข้อความ Commit เป็นชื่อและคำอธิบาย</td><td><code>gh pr create --fill --base main</code></td></tr>
+    <tr><td><code>gh pr checks --watch</code></td><td>ดูผล CI ของ PR และรอจนเสร็จ</td><td><code>gh pr checks --watch</code></td></tr>
+    <tr><td><code>gh pr merge</code></td><td>Merge PR ด้วยวิธีที่เลือก (<code>--merge</code>, <code>--squash</code>, <code>--rebase</code>) และลบ Branch</td><td><code>gh pr merge --squash --delete-branch</code></td></tr>
+    <tr><td><code>gh release create &lt;tag&gt; --generate-notes</code></td><td>สร้าง GitHub Release จาก Tag พร้อมบันทึกการเปลี่ยนแปลงอัตโนมัติ</td><td><code>gh release create v1.1.0 --title "v1.1.0" --generate-notes</code></td></tr>
+  </tbody></table></div>
+
+  <h4>คีย์สำคัญใน GitHub Actions YAML</h4>
+  <div class="tbl wide"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>on:</code></td><td>กำหนด Event ที่ทำให้ Workflow ทำงาน</td><td><code>on: { pull_request: { branches: [main] } }</code></td></tr>
+    <tr><td><code>on: schedule: - cron:</code></td><td>รันตามเวลา (เขียนเป็นเวลา UTC)</td><td><code>- cron: "0 1 * * 1"</code> (ทุกวันจันทร์ 08:00 น. เวลาไทย)</td></tr>
+    <tr><td><code>permissions:</code></td><td>กำหนดสิทธิ์ของ <code>GITHUB_TOKEN</code> ให้น้อยที่สุด</td><td><code>permissions: { contents: read }</code></td></tr>
+    <tr><td><code>jobs.&lt;id&gt;.runs-on</code></td><td>เลือกเครื่อง Runner ที่ใช้รัน Job</td><td><code>runs-on: ubuntu-latest</code></td></tr>
+    <tr><td><code>steps: - uses:</code></td><td>ใช้ Action สำเร็จรูป ระบุเวอร์ชันเสมอ</td><td><code>- uses: actions/checkout@v5</code></td></tr>
+    <tr><td><code>${{ secrets.&lt;NAME&gt; }}</code></td><td>อ่านค่าลับจาก Settings → Secrets (ห้าม <code>echo</code>)</td><td><code>API_KEY: ${{ secrets.API_KEY }}</code> (เขียนใต้ <code>env:</code> ของ Step)</td></tr>
+    <tr><td><code>needs:</code></td><td>ให้ Job นี้รอ Job อื่นเสร็จและผ่านก่อน</td><td><code>needs: check-site</code></td></tr>
+  </tbody></table></div>
+
+  <h3 id="s17-4-interview">Interview Questions</h3>
+  <p>คำถามเหล่านี้พบบ่อยในการสัมภาษณ์ตำแหน่ง Junior ถึง Mid-level ทุกสายงานที่เขียนโค้ด ลองตอบด้วยเสียงของตัวเองก่อนเปิดดูคำตอบตัวอย่าง และยกตัวอย่างจาก Mini Project ของคุณประกอบทุกครั้งที่ทำได้</p>
+
+  <details class="iq"><summary>1. Git กับ GitHub ต่างกันอย่างไร และ Working Tree, Staging Area, Repository คืออะไร (Junior)</summary><div>
+    <p><strong>คำตอบตัวอย่าง:</strong> Git คือโปรแกรม Version control แบบกระจาย (Distributed) ที่ทำงานในเครื่องของเราได้โดยไม่ต้องต่ออินเทอร์เน็ต ส่วน GitHub คือบริการบนเว็บที่เก็บ Repository ของ Git ไว้ให้ทีมแชร์กัน และเพิ่มเครื่องมือทำงานร่วมกัน เช่น Pull Request, Issues, Projects, Actions และ Pages ถ้าไม่มี GitHub ก็ยังใช้ Git ได้ เช่น ใช้ GitLab หรือ Remote แบบ bare บนเซิร์ฟเวอร์ของบริษัท</p>
+    <p>Git มี 3 พื้นที่หลัก</p>
+    <ul>
+      <li><strong>Working Tree:</strong> ไฟล์จริงที่เราแก้อยู่ในโฟลเดอร์</li>
+      <li><strong>Staging Area (Index):</strong> พื้นที่เตรียมว่า Commit ถัดไปจะมีการเปลี่ยนแปลงอะไรบ้าง ใช้ <code>git add</code> นำเข้า ทำให้เลือกได้ว่าหนึ่ง Commit มีแค่เรื่องเดียว</li>
+      <li><strong>Repository (โฟลเดอร์ <code>.git</code>):</strong> ที่เก็บ Commit ทั้งหมด แต่ละ Commit คือ Snapshot ของทั้งโปรเจกต์ พร้อมผู้เขียน วันที่ ข้อความ และ Parent โดยอ้างถึงด้วย Hash</li>
+    </ul>
+    <p><strong>จุดที่ทำให้คำตอบโดดเด่น:</strong> ยกตัวอย่างว่าใน Portfolio ผมแก้ <code>index.html</code> และ <code>style.css</code> พร้อมกัน แต่ใช้ <code>git add index.html</code> แยก Commit ทีละเรื่อง ประวัติจึงอ่านง่ายและ Revert ทีละเรื่องได้</p>
+  </div></details>
+
+  <details class="iq"><summary>2. git merge กับ git rebase ต่างกันอย่างไร และเมื่อไรห้ามใช้ rebase (Junior ถึง Mid)</summary><div>
+    <p><strong>คำตอบตัวอย่าง:</strong> ทั้งสองคำสั่งใช้รวมงานจากอีก Branch เข้ามา แต่เก็บประวัติต่างกัน</p>
+    <ul>
+      <li><strong>merge:</strong> ไม่แก้ Commit เดิม ถ้า Branch แยกกันจะสร้าง Merge commit ที่มี 2 Parent ประวัติเป็นความจริงทุกอย่างแต่กราฟอาจซับซ้อน ถ้า Branch ปลายทางไม่มี Commit ใหม่จะเป็น Fast-forward คือแค่เลื่อน Pointer</li>
+      <li><strong>rebase:</strong> นำ Commit ของเราไปเล่นซ้ำบน Base ใหม่ ได้ประวัติเป็นเส้นตรงอ่านง่าย แต่ทุก Commit ที่ถูกย้ายได้ Hash ใหม่ คือกลายเป็น Commit ใหม่</li>
+    </ul>
+    <p><strong>กฎทอง:</strong> ห้าม Rebase Commit ที่คนอื่นมีแล้ว เช่น Commit ที่ Push ขึ้น <code>main</code> เพราะเพื่อนร่วมทีมยังอ้างอิง Hash เดิม เมื่อเขา Pull จะเกิดประวัติซ้ำซ้อนหรือ Conflict ที่ไม่ควรเกิด ผมใช้ <code>git rebase main</code> หรือ <code>git rebase -i</code> เก็บกวาด Commit เฉพาะบน Feature branch ของตัวเองก่อนเปิด PR และถ้า Branch นั้น Push ไปแล้วจะใช้ <code>git push --force-with-lease</code> ซึ่งปลอดภัยกว่า <code>--force</code> เพราะจะไม่ยอมเขียนทับถ้ามีคนอื่น Push Commit ใหม่เข้ามา</p>
+    <p><strong>จุดที่ทำให้คำตอบโดดเด่น:</strong> พูดถึงวิธี Merge บน GitHub 3 แบบ (Merge commit, Squash and merge, Rebase and merge) และบอกว่าทีมควรเลือกแบบเดียวให้ตรงกัน เช่น ใน Portfolio ผมใช้ Merge commit เพื่อให้กราฟเห็นว่างานแต่ละชิ้นมาจาก PR ไหน</p>
+  </div></details>
+
+  <details class="iq"><summary>3. ถ้า Push ไฟล์ที่มี API Key ขึ้น GitHub โดยไม่ตั้งใจ คุณจะทำอะไรบ้าง (Junior ถึง Mid)</summary><div>
+    <p><strong>คำตอบตัวอย่าง:</strong> ผมถือว่า Key นั้นรั่วแล้วทันที เพราะ Bot สแกน Public repository ตลอดเวลา และแม้จะลบในภายหลัง Key ยังอยู่ในประวัติและอาจมีคน Clone หรือ Fork ไปแล้ว ลำดับที่ผมทำคือ</p>
+    <ol>
+      <li><strong>Revoke หรือ Rotate Key ก่อนเป็นอันดับแรก</strong> ที่ผู้ให้บริการ แล้วออก Key ใหม่ นี่คือขั้นที่หยุดความเสียหายได้จริง</li>
+      <li><strong>ตรวจ Log การใช้งาน</strong> ของ Key ว่ามีการเรียกใช้ผิดปกติหรือค่าใช้จ่ายแปลก ๆ หรือไม่ และแจ้งหัวหน้าหรือทีม Security</li>
+      <li><strong>ลบออกจากประวัติ</strong> ด้วย <code>git filter-repo --invert-paths --path .env</code> แล้ว Force push และขอให้ทีม Clone ใหม่ การลบไฟล์ใน Commit ใหม่อย่างเดียวไม่พอ เพราะ Commit เก่ายังมี Key</li>
+      <li><strong>ป้องกันไม่ให้เกิดซ้ำ:</strong> ใส่ <code>.env</code> ใน <code>.gitignore</code>, Commit <code>.env.example</code> ที่ไม่มีค่าจริงแทน, ใช้ GitHub Secrets ใน Actions และเปิด Secret scanning กับ Push protection ของ GitHub ซึ่งจะบล็อก Push ที่มีรูปแบบของ Secret ที่รู้จัก</li>
+    </ol>
+    <p><strong>จุดที่ทำให้คำตอบโดดเด่น:</strong> เน้นว่าการ Rotate Key สำคัญกว่าการแก้ประวัติ Git และไม่ปิดบังเหตุการณ์ การรีบแจ้งทีมแสดงถึงความรับผิดชอบที่บริษัทต้องการ</p>
+  </div></details>
+
+  <details class="iq"><summary>4. เล่าขั้นตอนตั้งแต่ได้รับงานจนงานขึ้น Production ผ่าน Pull Request (Mid)</summary><div>
+    <p><strong>คำตอบตัวอย่าง:</strong> ผมใช้ GitHub flow ซึ่งมี <code>main</code> ที่พร้อม Deploy เสมอ และงานทุกชิ้นอยู่บน Branch สั้น ๆ</p>
+    <ol>
+      <li>รับ Issue ย้ายการ์ดไป In Progress แล้ว <code>git switch main</code>, <code>git pull</code> และ <code>git switch -c feature/ชื่องาน</code> จาก <code>main</code> ล่าสุด</li>
+      <li>Commit ทีละเรื่องด้วย Conventional Commits และรันการตรวจชุดเดียวกับ CI ในเครื่องก่อน Push</li>
+      <li><code>git push -u origin feature/ชื่องาน</code> แล้วเปิด PR ที่บอกว่าทำอะไร ทำไม ทดสอบอย่างไร พร้อม <code>Closes #N</code> และภาพหน้าจอถ้าเป็นงาน UI</li>
+      <li>CI รันอัตโนมัติ ถ้าแดงก็อ่าน Log แล้วแก้ด้วย Commit เพิ่มใน Branch เดิม Reviewer ให้ความเห็น ผมตอบทุกความเห็นและ Push การแก้</li>
+      <li>เมื่อ Check ผ่านและได้ Approve ตาม Ruleset จึง Merge ลบ Branch และ Workflow ของ CD Deploy <code>main</code> ขึ้นระบบ จากนั้นตรวจระบบจริงอีกครั้ง</li>
+    </ol>
+    <p>ใน Portfolio ผมจงใจเปิด PR ที่มีลิงก์ไปยัง <code>resume.pdf</code> ซึ่งไม่มีอยู่ CI ขึ้นสีแดงเพราะ linkinator เจอ <code>[404] resume.pdf</code> และ Ruleset ทำให้กด Merge ไม่ได้ ผมแก้ใน Branch เดิมจน Check เขียวแล้วจึง Merge และ <code>pages.yml</code> Deploy ขึ้น GitHub Pages ให้เอง</p>
+    <p><strong>จุดที่ทำให้คำตอบโดดเด่น:</strong> พูดถึงการป้องกัน <code>main</code> (ต้องผ่าน PR, Required status checks, ห้าม Force push) และ Code review etiquette เช่น วิจารณ์ที่โค้ดไม่ใช่ที่คน ใช้คำถามแทนคำสั่ง และใส่ <code>nit:</code> กับความเห็นเล็กน้อยที่ไม่บังคับแก้</p>
+  </div></details>
+
+  <details class="iq"><summary>5. git reset, git revert และ git restore ต่างกันอย่างไร ถ้าเผลอ reset --hard จะกู้คืนได้ไหม (Mid)</summary><div>
+    <p><strong>คำตอบตัวอย่าง:</strong> ทั้งสามคำสั่งใช้ "ย้อน" แต่ย้อนคนละระดับ</p>
+    <ul>
+      <li><strong><code>git restore</code>:</strong> ทำงานระดับไฟล์ <code>git restore ไฟล์</code> ทิ้งการแก้ใน Working Tree ส่วน <code>git restore --staged ไฟล์</code> แค่นำออกจาก Staging ไม่แตะประวัติ</li>
+      <li><strong><code>git revert</code>:</strong> สร้าง Commit ใหม่ที่กลับผลของ Commit เดิม ประวัติเดิมไม่หาย จึงเป็นวิธีที่ถูกต้องสำหรับ Commit ที่ Push หรือแชร์แล้ว</li>
+      <li><strong><code>git reset</code>:</strong> ย้าย Branch pointer ถอยกลับ <code>--soft</code> เก็บการแก้ไว้ใน Staging, <code>--mixed</code> (ค่าเริ่มต้น) เก็บไว้ใน Working Tree และ <code>--hard</code> ทิ้งทั้งหมด ใช้กับ Commit ที่ยังอยู่แค่ในเครื่องเท่านั้น</li>
+    </ul>
+    <p>ถ้าเผลอ <code>git reset --hard</code> Commit ที่เคยมี<strong>ยังกู้ได้</strong> ด้วย <code>git reflog</code> ซึ่งบันทึกทุกตำแหน่งที่ HEAD เคยอยู่ (เก็บไว้ประมาณ 90 วันโดยค่าเริ่มต้น) เช่น</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ดูตำแหน่งก่อนหน้าของ HEAD
+git reflog -n 5
+# กลับไปตำแหน่งก่อน reset (หรือสร้าง Branch กู้ภัยจากตำแหน่งนั้น)
+git reset --hard HEAD@{1}
+git branch rescue HEAD@{1}</code></pre>
+    <p>แต่การแก้ที่<strong>ไม่เคย Commit หรือ Stash</strong> ไม่อยู่ใน Reflog จึงหายถาวร นี่คือเหตุผลที่ผม Commit บ่อย ๆ บน Feature branch และตรวจ <code>git status</code> ก่อนใช้คำสั่งที่ทิ้งข้อมูลทุกครั้ง</p>
+    <p><strong>จุดที่ทำให้คำตอบโดดเด่น:</strong> สรุปเป็นกฎง่าย ๆ ว่า "ยังไม่ Push ใช้ reset หรือ amend ได้ Push แล้วใช้ revert" และบอกข้อจำกัดของ Reflog อย่างตรงไปตรงมา</p>
+  </div></details>
+
+  <h3 id="s17-4-resources">แหล่งเรียนต่อ</h3>
+  <ul class="res">
+    <li><a href="https://git-scm.com/doc" target="_blank" rel="noopener">Git Documentation</a> – เอกสารทางการของ Git มี Reference ของทุกคำสั่งและวิดีโอแนะนำพื้นฐาน ใช้เปิดดูตัวเลือกของคำสั่งที่ไม่แน่ใจ <span class="pill">ฟรี</span></li>
+    <li><a href="https://git-scm.com/book/en/v2" target="_blank" rel="noopener">Pro Git (Scott Chacon และ Ben Straub)</a> – หนังสือ Git ฉบับเต็มที่อ่านออนไลน์ได้ฟรี อธิบายตั้งแต่พื้นฐานจนถึงการทำงานภายในของ Git เหมาะอ่านบทที่ 3 (Branching) และบทที่ 7 (Git Tools) หลังจบหัวข้อนี้ <span class="pill">ฟรี</span></li>
+    <li><a href="https://learngitbranching.js.org/" target="_blank" rel="noopener">Learn Git Branching</a> – เกมฝึก Branch, Merge, Rebase และ Cherry-pick แบบเห็นภาพกราฟใน Browser เหมาะทบทวนแนวคิดที่ 5 และ 9 <span class="pill">ฟรี</span></li>
+    <li><a href="https://docs.github.com/" target="_blank" rel="noopener">GitHub Docs</a> – เอกสารทางการของ GitHub ครอบคลุม Pull Request, Issues, Projects, Rulesets และ Secret scanning <span class="pill">ฟรี</span></li>
+    <li><a href="https://docs.github.com/en/actions" target="_blank" rel="noopener">GitHub Actions Documentation</a> – ไวยากรณ์ Workflow, Event ทุกแบบ, Secrets และตัวอย่าง CI สำหรับภาษาต่าง ๆ ใช้ต่อยอด <code>ci.yml</code> ในหัวข้อ Backend (<a data-t="12"></a>) <span class="pill">ฟรี</span></li>
+    <li><a href="https://docs.github.com/en/pages" target="_blank" rel="noopener">GitHub Pages Documentation</a> – การตั้งค่า Pages, Custom domain, HTTPS และการ Deploy ด้วย GitHub Actions <span class="pill">ฟรี</span></li>
+    <li><a href="https://cli.github.com/manual/" target="_blank" rel="noopener">GitHub CLI Manual</a> – คู่มือทุกคำสั่งของ <code>gh</code> เช่น <code>gh pr</code>, <code>gh issue</code> และ <code>gh release</code> <span class="pill">ฟรี</span></li>
+    <li><a href="https://www.conventionalcommits.org/en/v1.0.0/" target="_blank" rel="noopener">Conventional Commits 1.0.0</a> – ข้อกำหนดการเขียน Commit message ที่ใช้ตลอดหัวข้อนี้ พร้อมตัวอย่างและคำถามที่พบบ่อย <span class="pill">ฟรี</span></li>
+    <li><a href="https://semver.org/" target="_blank" rel="noopener">Semantic Versioning 2.0.0</a> – กติกาการตั้งเลขเวอร์ชัน MAJOR.MINOR.PATCH ที่ใช้กับ Tag และ Release <span class="pill">ฟรี</span></li>
+    <li><a href="https://choosealicense.com/" target="_blank" rel="noopener">Choose a License</a> – เว็บของ GitHub ที่ช่วยเลือก Open source license ให้เหมาะกับโปรเจกต์ เปรียบเทียบ MIT, Apache 2.0 และ GPL ได้ง่าย <span class="pill">ฟรี</span></li>
+    <li><a href="https://learn.microsoft.com/en-us/credentials/certifications/github-foundations/" target="_blank" rel="noopener">GitHub Foundations (GH-900) บน Microsoft Learn</a> – หน้าข้อมูลใบรับรองพื้นฐานของ GitHub พร้อมเส้นทางเรียนฟรีบน Microsoft Learn ส่วนการสอบมีค่าใช้จ่าย ใบรับรองระดับถัดไปคือ GH-200 Actions, GH-300 Copilot, GH-500 Advanced Security และ GH-100 Administration ตรวจราคาและรายละเอียดล่าสุดในหน้านี้ก่อนสมัคร <span class="pill">มีค่าใช้จ่าย</span></li>
+  </ul>
+  <div class="callout note"><span class="c-label note">หมายเหตุ</span><p>หัวข้อถัดไปที่แนะนำคือ Python (<a data-t="9"></a>) ตั้งแต่นี้ไปให้ทุกแบบฝึกและทุก Mini Project ในหลักสูตรมี Repository ของตัวเองบน GitHub มี README ตามแม่แบบด้านบน และเพิ่มการ์ดในหน้าผลงานของ Portfolio ทุกครั้ง เมื่อเรียนจบหลักสูตรคุณจะมี Portfolio ที่เติบโตไปพร้อมกับทักษะ</p></div>
+</section>

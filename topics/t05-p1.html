@@ -1,0 +1,517 @@
+<section class="part" data-part="1">
+  <h2 id="s5-1"><span class="sec-no">5.1</span>Learning Roadmap</h2>
+
+  <div class="callout sec"><span class="c-label sec">Security</span><p><strong>อ่านก่อนเริ่มทุกครั้ง: ฝึกบนระบบของตัวเองเท่านั้น</strong> ทุกเทคนิคในหัวข้อนี้ให้ฝึกได้เฉพาะบนเครื่อง VM หรือ Container ของคุณเอง หรือบนแพลตฟอร์มฝึกที่อนุญาตอย่างถูกกฎหมาย เช่น TryHackMe, Hack The Box, OverTheWire และ picoCTF เท่านั้น การสแกน เจาะ หรือทดสอบระบบของผู้อื่นโดยไม่ได้รับอนุญาตเป็นเรื่องผิดกฎหมายตาม <strong>พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์</strong> ของไทย มีโทษทั้งจำและปรับ ในหลักสูตรนี้เราจะสแกนและทดสอบเฉพาะ <code>127.0.0.1</code>, Container ของตัวเอง และช่วง IP สำหรับเอกสาร (<code>192.0.2.0/24</code>, <code>198.51.100.0/24</code>, <code>203.0.113.0/24</code>) ซึ่งไม่มีอยู่จริงบนอินเทอร์เน็ต</p></div>
+
+  <h3 id="s5-1-overview">ภาพรวมเส้นทาง</h3>
+  <p>Cyber Security คือศาสตร์ของการ <strong>ปกป้องระบบ ข้อมูล และผู้ใช้จากการโจมตี</strong> มีสองฝั่งหลักที่ทำงานเสริมกัน ฝั่งป้องกัน (Blue Team) ทำหน้าที่ทำให้ระบบแข็งแรง เฝ้าระวัง และตอบสนองเมื่อถูกโจมตี ส่วนฝั่งทดสอบเจาะระบบ (Red Team) จำลองการโจมตีในแล็บเพื่อหาช่องโหว่ก่อนที่คนร้ายจริงจะเจอ หัวข้อนี้สอนทั้งสองฝั่ง โดยเน้นที่ Blue Team ก่อน เพราะเป็นงานที่มีตำแหน่งเปิดรับมากที่สุดสำหรับคนเริ่มต้น และปูพื้นให้เข้าใจว่าควรป้องกันอะไร ก่อนจะไปเรียนรู้ว่าโจมตีอย่างไร</p>
+  <p>หัวข้อนี้เป็นหัวข้อ <strong>ลำดับที่ 17</strong> ของเส้นทางที่แนะนำ และเป็นหัวข้อที่ยากที่สุด (ระดับความยาก 5 จาก 5) เพราะต้องใช้ความรู้แทบทุกหัวข้อที่ผ่านมารวมกัน ทั้ง Linux, Network, Web, SQL และ API คุณจะได้นำทักษะเหล่านั้นมาใช้จริงในบริบทความปลอดภัย เช่น อ่าน Log ของ Linux เพื่อจับการเดารหัสผ่าน แก้ช่องโหว่ SQL Injection ในเว็บแอป และตั้งค่า Firewall ให้ Server</p>
+  <p>เส้นทางนี้แบ่งเป็น <strong>12 ขั้นใน 3 ระดับ</strong> เริ่มจากจริยธรรม กฎหมาย และการตั้งแล็บที่ปลอดภัย ต่อด้วยแนวคิดพื้นฐานอย่าง CIA Triad และวิธีคิดแบบผู้โจมตี แล้วลงมือ Hardening เครื่อง Linux ตั้ง Firewall จัดการการยืนยันตัวตน สแกนพอร์ตอย่างมีจริยธรรม จนถึงระดับสูงคือความปลอดภัยเว็บตาม OWASP Top 10 การเขียนโปรแกรมตรวจจับการโจมตีจาก Log การจัดการช่องโหว่ และการตอบสนองต่อเหตุการณ์ จบด้วย Mini Project ประเมินความปลอดภัยของแล็บตัวเองแบบมืออาชีพ</p>
+  <p>ใช้เวลารวมประมาณ <strong>120–200 ชั่วโมง</strong> ถ้าเรียนวันละ 1.5–2 ชั่วโมง จะจบในราว 14–18 สัปดาห์ แต่ละขั้นมี Checkpoint ที่ระบุสิ่งที่ต้องทำได้จริงก่อนไปขั้นถัดไป ให้ทำ Checkpoint ให้ผ่านจริงเสมอ เพราะงานด้านความปลอดภัยพลาดไม่ได้</p>
+  <ol class="rm-overview">
+    <li><span class="lvl" data-lvl="b">Beginner</span> Step 1 · จริยธรรม กฎหมาย และการตั้งแล็บที่ปลอดภัย</li>
+    <li><span class="lvl" data-lvl="b">Beginner</span> Step 2 · แนวคิดพื้นฐาน: CIA Triad, Threat, Vulnerability, Risk</li>
+    <li><span class="lvl" data-lvl="b">Beginner</span> Step 3 · เข้าใจผู้โจมตี: Cyber Kill Chain และ MITRE ATT&amp;CK</li>
+    <li><span class="lvl" data-lvl="b">Beginner</span> Step 4 · Cryptography พื้นฐาน: Hashing, Salt, Symmetric vs Asymmetric</li>
+    <li><span class="lvl" data-lvl="i">Intermediate</span> Step 5 · Linux Hardening: Users, sudo, Permissions และ SSH</li>
+    <li><span class="lvl" data-lvl="i">Intermediate</span> Step 6 · Firewall และ Intrusion Prevention ด้วย ufw และ fail2ban</li>
+    <li><span class="lvl" data-lvl="i">Intermediate</span> Step 7 · Authentication และ Access Control</li>
+    <li><span class="lvl" data-lvl="i">Intermediate</span> Step 8 · Network Security: nmap, tcpdump และ IDS/IPS</li>
+    <li><span class="lvl" data-lvl="a">Advanced</span> Step 9 · Web Security และ OWASP Top 10</li>
+    <li><span class="lvl" data-lvl="a">Advanced</span> Step 10 · Logging, Monitoring และ Detection</li>
+    <li><span class="lvl" data-lvl="a">Advanced</span> Step 11 · Vulnerability Management และ Threat Modeling</li>
+    <li><span class="lvl" data-lvl="a">Advanced</span> Step 12 · Incident Response และ Mini Project</li>
+  </ol>
+  <div class="tbl wide"><table>
+    <thead><tr><th>ระดับ</th><th>ขั้น</th><th>เวลาโดยประมาณ</th><th>จบระดับนี้แล้วทำอะไรได้</th></tr></thead>
+    <tbody>
+      <tr><td class="nw"><span class="lvl" data-lvl="b">Beginner</span></td><td class="nw">Step 1–4</td><td class="nw num">34–46 ชม.</td><td>ตั้งแล็บฝึกที่ปลอดภัยและถูกกฎหมาย อธิบายแนวคิดหลักด้านความปลอดภัยด้วยศัพท์ที่ถูกต้อง เข้าใจวิธีคิดของผู้โจมตีเป็นขั้นตอน และใช้เครื่องมือ Cryptography พื้นฐานอย่าง Hash และ Certificate ได้</td></tr>
+      <tr><td class="nw"><span class="lvl" data-lvl="i">Intermediate</span></td><td class="nw">Step 5–8</td><td class="nw num">44–60 ชม.</td><td>Hardening เครื่อง Linux ให้แข็งแรง ตั้ง Firewall และระบบกันการเดารหัสผ่าน จัดการการยืนยันตัวตนอย่างปลอดภัย และสแกนเครือข่ายในแล็บของตัวเองอย่างมีจริยธรรม</td></tr>
+      <tr><td class="nw"><span class="lvl" data-lvl="a">Advanced</span></td><td class="nw">Step 9–12</td><td class="nw num">58–84 ชม.</td><td>หาและแก้ช่องโหว่เว็บตาม OWASP Top 10 เขียนโปรแกรมตรวจจับการโจมตีจาก Log จัดการช่องโหว่ด้วย CVE/CVSS ทำ Threat Modeling และตอบสนองต่อเหตุการณ์ตามกระบวนการมาตรฐาน พร้อม Mini Project ลง Portfolio</td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted small">เวลาข้างต้นเป็นช่วงกว้างเพราะความปลอดภัยเป็นหัวข้อที่ลึกมาก คนที่ผ่าน Linux, Network และ Web มาแน่นจะใช้เวลาน้อยกว่าช่วงล่าง ส่วนคนที่ต้องกลับไปทบทวนพื้นฐานบ่อยจะใช้เวลาใกล้ช่วงบน</p>
+
+  <h3 id="s5-1-ethics">จริยธรรมและกฎหมาย: กฎข้อแรกของสายงานนี้</h3>
+  <p>ก่อนเรียนเทคนิคใดๆ ต้องเข้าใจเส้นแบ่งทางกฎหมายและจริยธรรมให้ชัดเจน เพราะเครื่องมือเดียวกันใช้ได้ทั้งเพื่อป้องกันและเพื่อโจมตี สิ่งที่ตัดสินว่าถูกหรือผิดคือ <strong>คุณได้รับอนุญาตให้ทำกับระบบนั้นหรือไม่</strong></p>
+  <div class="tbl wide"><table>
+    <thead><tr><th>คำศัพท์</th><th>ความหมาย</th><th>สิ่งที่ต้องจำ</th></tr></thead>
+    <tbody>
+      <tr><td class="nw"><strong>Authorization (การได้รับอนุญาต)</strong></td><td>ความยินยอมเป็นลายลักษณ์อักษรให้ทดสอบระบบหนึ่ง เรียกว่า Scope และ Rules of Engagement</td><td>ไม่มีเอกสารอนุญาต = ห้ามทำ แม้จะหวังดีก็ผิดกฎหมาย</td></tr>
+      <tr><td class="nw"><strong>พ.ร.บ.คอมพิวเตอร์</strong></td><td>พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์ของไทย กำหนดโทษการเข้าถึงระบบของผู้อื่นโดยมิชอบ</td><td>การเข้าถึงหรือสแกนระบบคนอื่นโดยไม่ได้รับอนุญาตมีโทษจำคุกและปรับ</td></tr>
+      <tr><td class="nw"><strong>White Hat / Black Hat / Grey Hat</strong></td><td>White Hat ทำงานโดยได้รับอนุญาตและเปิดเผยช่องโหว่อย่างมีความรับผิดชอบ Black Hat โจมตีเพื่อผลประโยชน์ผิดกฎหมาย Grey Hat อยู่ตรงกลางแต่ยังเสี่ยงผิดกฎหมาย</td><td>เป้าหมายของหลักสูตรนี้คือ White Hat เท่านั้น</td></tr>
+      <tr><td class="nw"><strong>Responsible Disclosure</strong></td><td>การแจ้งเจ้าของระบบเมื่อพบช่องโหว่ ให้เวลาแก้ไขก่อนเปิดเผยต่อสาธารณะ มักผ่านโปรแกรม Bug Bounty</td><td>เจอช่องโหว่ในระบบจริงโดยบังเอิญ ให้แจ้งเจ้าของ ห้ามใช้ประโยชน์</td></tr>
+      <tr><td class="nw"><strong>Scope</strong></td><td>ขอบเขตที่อนุญาตให้ทดสอบ ระบุ IP โดเมน และเทคนิคที่ทำได้/ห้ามทำ</td><td>ทำนอก Scope แม้แต่นิดเดียวก็ถือว่าผิด</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ช่างกุญแจมืออาชีพรู้วิธีสะเดาะกุญแจทุกแบบ แต่เขาจะเปิดล็อกให้ก็ต่อเมื่อเจ้าของบ้านขอและพิสูจน์ได้ว่าเป็นบ้านของตัวเอง ความรู้เดียวกันนี้ถ้าใช้งัดบ้านคนอื่นคือการบุกรุก งาน Cyber Security ก็เหมือนกัน ทักษะไม่ใช่ปัญหา แต่ <strong>การได้รับอนุญาต</strong> คือเส้นแบ่งระหว่างอาชีพกับอาชญากรรม</p></div>
+
+  <h3 id="s5-1-prereq">Prerequisites: ต้องรู้อะไรมาก่อน</h3>
+  <p>หัวข้อนี้อยู่ท้ายเส้นทางเพราะต้องนำความรู้จากหลายหัวข้อมาใช้พร้อมกัน ถ้ายังไม่แม่นหัวข้อด้านล่าง ให้กลับไปทบทวนก่อน มิฉะนั้นจะเรียนหัวข้อนี้ได้ไม่ลึก</p>
+  <ul>
+    <li><a data-t="19"></a> <strong>จำเป็นมากที่สุด</strong> ต้องใช้ Terminal, Permissions, Users, sudo, SSH, การอ่าน Log ใน <code>/var/log</code> และ <code>journalctl</code> ทุกวันในหัวข้อนี้</li>
+    <li><a data-t="1"></a> ต้องเข้าใจ IP, Port, TCP/UDP, DNS, HTTP และ Firewall เพราะการโจมตีและการป้องกันเกือบทั้งหมดเกิดบนเครือข่าย</li>
+    <li><a data-t="9"></a> ใช้เขียนเครื่องมือตรวจจับการโจมตี วิเคราะห์ Log และเรียกใช้ไลบรารี Cryptography อย่าง <code>hashlib</code> และ <code>argon2</code></li>
+    <li><a data-t="14"></a> ต้องเข้าใจ Query และ Parameterized Query เพื่อเข้าใจและแก้ช่องโหว่ SQL Injection</li>
+    <li><a data-t="4"></a> ต้องรู้พื้นฐานเว็บ HTML, JavaScript และ DOM เพื่อเข้าใจ XSS และการเข้ารหัส Output</li>
+    <li><a data-t="8"></a> ช่วยให้เข้าใจ Authentication, Token, Header และการออกแบบ API ที่ปลอดภัย</li>
+  </ul>
+  <p>นอกจากนี้ควรมี <strong>Docker Desktop</strong> พร้อม WSL 2 backend ติดตั้งแล้ว เพื่อรันแอปที่มีช่องโหว่ไว้ฝึกในแล็บ (สอนวิธีติดตั้งในส่วนที่ 2) ทดสอบความพร้อมด้วยคำสั่งด้านล่างใน Ubuntu</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ยืนยันว่าอยู่บน Ubuntu 24.04 และใช้ชื่อผู้ใช้อะไร
+lsb_release -d
+whoami
+# ยืนยันว่า Python ใช้งานได้ (ต้อง 3.12 ขึ้นไป)
+python3 --version
+# ยืนยันว่า Git และ OpenSSH พร้อมใช้
+git --version
+ssh -V</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Description:    Ubuntu 24.04.5 LTS
+somchai
+Python 3.12.3
+git version 2.43.0
+OpenSSH_9.6p1 Ubuntu-3ubuntu13, OpenSSL 3.0.13 30 Jan 2024</code></pre>
+  <p class="muted small">ชื่อผู้ใช้ในเครื่องของคุณจะต่างจาก <code>somchai</code> และเลขเวอร์ชันย่อยอาจขยับขึ้นตามการอัปเดต สิ่งที่ต้องเห็นคือ Ubuntu 24.04 และ Python 3.12 ขึ้นไป</p>
+
+  <h3 id="s5-1-method">วิธีเรียนหัวข้อนี้ให้ได้ผลและปลอดภัย</h3>
+  <ol>
+    <li><strong>แยกแล็บออกจากเครื่องใช้งานจริง</strong> ฝึกในเครื่อง VM, WSL หรือ Container ที่แยกต่างหาก ไม่ทดลองเทคนิคโจมตีบนเครื่องที่คุณใช้ทำงานหรือเก็บข้อมูลสำคัญ</li>
+    <li><strong>ผูกทุกบริการไว้กับ 127.0.0.1</strong> เมื่อรันแอปที่มีช่องโหว่ใน Docker ให้ Bind กับ <code>127.0.0.1</code> เสมอ เพื่อไม่ให้คนอื่นในเครือข่ายเข้าถึงได้</li>
+    <li><strong>เรียนฝั่งป้องกันก่อนฝั่งโจมตี</strong> เข้าใจว่าควรป้องกันอะไรและอย่างไร ก่อนจะเรียนเทคนิคโจมตี เพราะทำให้เห็นภาพว่าการโจมตีไปกระทบอะไร</li>
+    <li><strong>จด Lab Journal</strong> บันทึกทุกคำสั่งที่รัน ผลลัพธ์ที่ได้ และข้อสรุปลงใน <code>~/projects/sec-lab/notes</code> แล้ว Commit ด้วย Git ทุกวัน นี่คือพื้นฐานของการเขียนรายงานความปลอดภัยในงานจริง</li>
+    <li><strong>ฝึกบนแพลตฟอร์มถูกกฎหมายควบคู่ไป</strong> ใช้ TryHackMe, Hack The Box, OverTheWire Bandit และ picoCTF เสริม ซึ่งออกแบบมาให้ฝึกโจมตีได้อย่างถูกกฎหมาย</li>
+    <li><strong>อ่าน Error และ Log ให้เป็นนิสัย</strong> งานความปลอดภัยคือการสังเกตสิ่งผิดปกติ การอ่าน Log ทุกบรรทัดจนเข้าใจคือทักษะหลักของอาชีพนี้</li>
+  </ol>
+  <div class="callout warn"><span class="c-label warn">ระวัง</span><p>อย่าดาวน์โหลดเครื่องมือหรือ Payload จากเว็บหรือกลุ่มที่ไม่น่าเชื่อถือมารันบนเครื่องตัวเอง เครื่องมือ "แฮก" ที่หาได้ฟรีจำนวนมากมีมัลแวร์ฝังอยู่ ให้ใช้เครื่องมือจากแหล่งทางการ เช่น apt ของ Ubuntu, PyPI ที่ Pin เวอร์ชัน และ Image ทางการบน Docker Hub เท่านั้น</p></div>
+
+  <h3 id="s5-1-beginner"><span class="lvl" data-lvl="b">Beginner</span> รากฐาน: จริยธรรม แนวคิด และวิธีคิดด้านความปลอดภัย</h3>
+  <p>ระดับนี้สร้างฐานความคิด คุณจะตั้งแล็บที่ปลอดภัยและถูกกฎหมาย เข้าใจคำศัพท์หลักที่ใช้ตลอดอาชีพ มองระบบด้วยสายตาของทั้งผู้ป้องกันและผู้โจมตี และใช้เครื่องมือ Cryptography พื้นฐานที่อยู่เบื้องหลังรหัสผ่าน ใบรับรอง และการตรวจสอบความถูกต้องของไฟล์</p>
+
+  <article class="rm-step" data-lvl="b">
+    <header><span class="rm-no">STEP 1</span><h4>จริยธรรม กฎหมาย และการตั้งแล็บที่ปลอดภัย</h4><span class="rm-time">1 สัปดาห์ · 8–12 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li>จริยธรรมของ White Hat, การได้รับอนุญาต (Authorization), Scope และ Rules of Engagement และความต่างจาก Black Hat และ Grey Hat</li>
+        <li><strong>พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์</strong> ของไทย: การเข้าถึงระบบของผู้อื่นโดยมิชอบ การดักข้อมูล และบทลงโทษ รวมถึงแนวคิด Responsible Disclosure และ Bug Bounty</li>
+        <li>สร้างแล็บแยกต่างหาก: ใช้ WSL2 Ubuntu 24.04 เป็นเครื่องเป้าหมายฝึก ติดตั้ง Docker Desktop (WSL 2 backend) และรันแอปที่มีช่องโหว่โดย Bind กับ <code>127.0.0.1</code> เท่านั้น</li>
+        <li>รู้จักแพลตฟอร์มฝึกที่ถูกกฎหมาย: <strong>OverTheWire Bandit</strong> (ฝึก Linux และ SSH), <strong>picoCTF</strong> (โจทย์ CTF สำหรับผู้เริ่มต้น), <strong>TryHackMe</strong> และ <strong>Hack The Box</strong> (ห้องแล็บแบบมีไกด์)</li>
+        <li>ตั้งโฟลเดอร์โครงการ <code>~/projects/sec-lab</code> พร้อม <code>notes</code>, <code>scans</code>, <code>logs</code> และ <code>reports</code> และเริ่ม Lab Journal ด้วย Git</li>
+        <li>ช่วง IP สำหรับเอกสาร (<code>192.0.2.0/24</code>, <code>198.51.100.0/24</code>, <code>203.0.113.0/24</code>) และ Loopback <code>127.0.0.1</code> ที่ใช้แทนเป้าหมายได้อย่างปลอดภัย</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>ความรู้ด้านความปลอดภัยเป็นดาบสองคม ใช้ผิดที่แม้โดยไม่ตั้งใจก็ผิดกฎหมายและทำลายอาชีพได้ การเข้าใจเส้นแบ่งทางกฎหมายและตั้งแล็บที่แยกจากระบบจริงตั้งแต่ต้น คือสิ่งที่ทำให้คุณฝึกได้อย่างสบายใจตลอดหัวข้อนี้ และเป็นสิ่งแรกที่ผู้สัมภาษณ์งานสายนี้ถามเสมอ</dd>
+      <dt>ลงมือทำ</dt>
+      <dd><ul>
+        <li>สร้างโฟลเดอร์ <code>~/projects/sec-lab</code> และโฟลเดอร์ย่อย แล้ว Commit แรกด้วย Git</li>
+        <li>สมัคร OverTheWire Bandit แล้วผ่านด่าน 0 ถึง 3 เพื่อฝึก SSH และคำสั่งพื้นฐาน</li>
+        <li>เขียนสรุปสั้นๆ ว่าอะไรทำได้และอะไรห้ามทำตาม พ.ร.บ.คอมพิวเตอร์ ลง Lab Journal</li>
+      </ul></dd>
+      <dt>ใช้เวลา</dt>
+      <dd>8–12 ชั่วโมง แบ่งเป็นอ่านเรื่องกฎหมายและจริยธรรม 2–3 ชั่วโมง ตั้งแล็บและ Docker 3–4 ชั่วโมง และฝึก Bandit อีก 3–5 ชั่วโมง</dd>
+    </dl>
+    <div class="callout check"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: (1) อธิบายได้ว่าทำไมต้องได้รับอนุญาตก่อนทดสอบระบบ และยกตัวอย่างสิ่งที่ผิด พ.ร.บ.คอมพิวเตอร์ (2) มีโฟลเดอร์ <code>~/projects/sec-lab</code> ที่ Commit ด้วย Git แล้ว (3) รันแอปทดสอบใน Docker ที่ผูกกับ <code>127.0.0.1</code> ได้ (4) ผ่านด่าน Bandit อย่างน้อยถึงด่าน 3 และจดวิธีผ่านลง Lab Journal</p></div>
+  </article>
+
+  <article class="rm-step" data-lvl="b">
+    <header><span class="rm-no">STEP 2</span><h4>แนวคิดพื้นฐาน: CIA Triad, Threat, Vulnerability, Risk</h4><span class="rm-time">1 สัปดาห์ · 8–10 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li><strong>CIA Triad</strong>: Confidentiality (ความลับ), Integrity (ความถูกต้อง), Availability (ความพร้อมใช้) และตัวอย่างการโจมตีที่กระทบแต่ละด้าน</li>
+        <li>ความต่างของ <strong>Threat</strong> (ภัยคุกคาม), <strong>Vulnerability</strong> (ช่องโหว่), <strong>Risk</strong> (ความเสี่ยง) และ <strong>Exploit</strong> พร้อมสูตรคิด Risk = Likelihood × Impact</li>
+        <li>แนวคิด <strong>Defense in Depth</strong> (ป้องกันเป็นชั้น), <strong>Least Privilege</strong> (ให้สิทธิ์น้อยที่สุดเท่าที่จำเป็น) และ <strong>Zero Trust</strong> (ไม่เชื่อใครโดยอัตโนมัติ)</li>
+        <li>ประเภทของ <strong>Asset</strong> (สิ่งที่ต้องปกป้อง) และ <strong>Attack Surface</strong> (ช่องทางที่ถูกโจมตีได้) และการทำ Asset Inventory เบื้องต้น</li>
+        <li>ความต่างของ <strong>Security</strong> กับ <strong>Privacy</strong> และแนวคิด AAA (Authentication, Authorization, Accounting)</li>
+        <li>เขียนสคริปต์ Python สั้นๆ ให้คะแนนความเสี่ยงของ Asset หลายตัวเพื่อฝึกคิดแบบจัดลำดับความสำคัญ</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>ทุกการตัดสินใจด้านความปลอดภัยคือการจัดการความเสี่ยง ไม่ใช่การทำให้ปลอดภัย 100% ซึ่งเป็นไปไม่ได้ ถ้าไม่เข้าใจ CIA Triad และการประเมินความเสี่ยง จะเลือกไม่ถูกว่าควรทุ่มเวลาและงบไปป้องกันอะไรก่อน คำศัพท์เหล่านี้ยังเป็นภาษากลางที่ใช้ในเอกสาร รายงาน และการสัมภาษณ์งานสายนี้ทุกตำแหน่ง</dd>
+      <dt>ลงมือทำ</dt>
+      <dd><ul>
+        <li>ทำ Asset Inventory ของเครื่องตัวเอง ระบุ 5 Asset ที่สำคัญที่สุดและภัยที่กระทบแต่ละ Asset</li>
+        <li>เขียนสคริปต์ Python คำนวณคะแนนความเสี่ยงของ Asset เหล่านั้น แล้วเรียงจากเสี่ยงมากไปน้อย</li>
+        <li>จับคู่เหตุการณ์ข่าวการโจมตีจริงกับด้านของ CIA ที่ถูกกระทบลง Lab Journal</li>
+      </ul></dd>
+      <dt>ใช้เวลา</dt>
+      <dd>8–10 ชั่วโมง เน้นทำความเข้าใจคำศัพท์และฝึกคิดแบบความเสี่ยง มากกว่าการท่องจำ</dd>
+    </dl>
+    <div class="callout check"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: (1) อธิบาย CIA Triad พร้อมยกตัวอย่างการโจมตีที่กระทบแต่ละด้าน (2) แยก Threat, Vulnerability และ Risk ออกจากกันได้ด้วยตัวอย่างของตัวเอง (3) อธิบาย Least Privilege และ Defense in Depth ด้วยคำพูดของตัวเอง (4) รันสคริปต์ให้คะแนนความเสี่ยงและอ่านผลเพื่อบอกได้ว่าควรแก้ Asset ใดก่อน</p></div>
+  </article>
+
+  <article class="rm-step" data-lvl="b">
+    <header><span class="rm-no">STEP 3</span><h4>เข้าใจผู้โจมตี: Cyber Kill Chain และ MITRE ATT&amp;CK</h4><span class="rm-time">1 สัปดาห์ · 8–10 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li><strong>Cyber Kill Chain</strong> ของ Lockheed Martin 7 ขั้น: Reconnaissance, Weaponization, Delivery, Exploitation, Installation, Command &amp; Control (C2) และ Actions on Objectives</li>
+        <li><strong>MITRE ATT&amp;CK</strong>: ความต่างของ Tactic (ผู้โจมตีต้องการอะไร) กับ Technique (ทำอย่างไร) และวิธีเปิดดู Matrix ที่ attack.mitre.org</li>
+        <li>ประเภทของภัยคุกคาม: Malware (Virus, Worm, Trojan, Ransomware), Phishing และ Social Engineering, DoS/DDoS, Man-in-the-Middle และ Insider Threat</li>
+        <li>ประเภทของผู้โจมตี (Threat Actor): Script Kiddie, Hacktivist, Organized Crime, Nation-State (APT) และแรงจูงใจของแต่ละกลุ่ม</li>
+        <li>สายอาชีพด้านความปลอดภัย: <strong>Blue Team</strong> (ป้องกัน), <strong>Red Team</strong> (จำลองโจมตี), <strong>Purple Team</strong> (ผสานสองฝั่ง) และ <strong>GRC</strong> (Governance, Risk, Compliance)</li>
+        <li>จับคู่เทคนิคการโจมตีที่ได้ยินในข่าวกับขั้นใน Kill Chain และ Tactic ใน ATT&amp;CK</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>การป้องกันที่ดีต้องเข้าใจว่าผู้โจมตีทำงานเป็นขั้นตอนอย่างไร เพราะการตัดวงจรเพียงขั้นเดียวก็หยุดการโจมตีได้ Kill Chain และ ATT&amp;CK เป็นกรอบที่ทีม SOC และ Incident Response ทั่วโลกใช้สื่อสารกัน การรู้จักกรอบเหล่านี้ทำให้คุณอ่านรายงานภัยคุกคามและคุยกับทีมได้รู้เรื่อง</dd>
+      <dt>ลงมือทำ</dt>
+      <dd><ul>
+        <li>เปิด MITRE ATT&amp;CK Matrix แล้วเลือก Technique 3 อันมาเขียนสรุปว่าป้องกันและตรวจจับอย่างไร</li>
+        <li>วาดแผนภาพ Kill Chain 7 ขั้นพร้อมตัวอย่างการป้องกันในแต่ละขั้น</li>
+        <li>เขียนลง Lab Journal ว่าตัวเองสนใจสาย Blue, Red, Purple หรือ GRC และเพราะอะไร</li>
+      </ul></dd>
+      <dt>ใช้เวลา</dt>
+      <dd>8–10 ชั่วโมง ส่วนใหญ่ใช้อ่านและทำแผนภาพให้เข้าใจภาพรวม ไม่ต้องจำทุก Technique</dd>
+    </dl>
+    <div class="callout check"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: (1) ท่องและอธิบาย 7 ขั้นของ Cyber Kill Chain พร้อมตัวอย่างการป้องกันอย่างน้อย 1 อย่างต่อขั้น (2) อธิบายความต่างของ Tactic กับ Technique ใน MITRE ATT&amp;CK (3) แยกประเภทภัยคุกคามหลัก 5 แบบและยกตัวอย่างได้ (4) อธิบายความต่างของ Blue, Red, Purple Team และ GRC</p></div>
+  </article>
+
+  <article class="rm-step" data-lvl="b">
+    <header><span class="rm-no">STEP 4</span><h4>Cryptography พื้นฐาน: Hashing, Salt, Symmetric vs Asymmetric</h4><span class="rm-time">1.5 สัปดาห์ · 10–14 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li><strong>Hashing</strong> ด้วย SHA-256: คุณสมบัติทางเดียว (One-way) และใช้ตรวจความถูกต้องของไฟล์ ด้วย <code>sha256sum</code> และ <code>hashlib</code> ใน Python</li>
+        <li>ความต่างของ <strong>Encoding</strong> (เช่น Base64, ย้อนกลับได้ ไม่ใช่ความปลอดภัย), <strong>Hashing</strong> (ทางเดียว) และ <strong>Encryption</strong> (ย้อนกลับได้ด้วย Key)</li>
+        <li><strong>Symmetric</strong> (Key เดียว เช่น AES) กับ <strong>Asymmetric</strong> (Key คู่ Public/Private เช่น RSA, Ed25519) และบทบาทของแต่ละแบบ</li>
+        <li>พื้นฐาน <strong>TLS และ Certificate</strong>: Certificate Authority (CA), Chain of Trust และการสร้าง Self-signed Certificate ด้วย <code>openssl</code> สำหรับแล็บ</li>
+        <li>ทำไมห้ามเก็บรหัสผ่านเป็น Plaintext หรือ Hash ธรรมดา และความสำคัญของ <strong>Salt</strong> (เกริ่นก่อนลงลึกใน Step 7)</li>
+        <li>Digital Signature และ Hashing เพื่อตรวจ Integrity ของไฟล์ที่ดาวน์โหลด (เทียบ Checksum)</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>Cryptography อยู่เบื้องหลังทุกอย่างที่ปลอดภัยบนอินเทอร์เน็ต ตั้งแต่รหัสผ่าน HTTPS SSH ไปจนถึงลายเซ็นดิจิทัล ถ้าไม่เข้าใจความต่างของ Hash กับ Encryption จะออกแบบระบบผิดพลาดร้ายแรง เช่น เก็บรหัสผ่านแบบย้อนกลับได้ ความเข้าใจนี้ยังเป็นพื้นฐานที่ต้องใช้ตลอดใน Step 5 (SSH Key), Step 7 (Password Hashing) และ Step 9 (TLS/HTTPS)</dd>
+      <dt>ลงมือทำ</dt>
+      <dd><ul>
+        <li>ใช้ <code>sha256sum</code> สร้าง Checksum ของไฟล์ แก้ไฟล์ 1 ตัวอักษร แล้วตรวจว่า Hash เปลี่ยน</li>
+        <li>สร้าง Self-signed Certificate ด้วย <code>openssl</code> แล้วอ่านรายละเอียดด้วย <code>openssl x509</code></li>
+        <li>เขียนสคริปต์ Python ที่ Hash ข้อความด้วย <code>hashlib</code> และอธิบายว่าทำไม Salt จึงจำเป็น</li>
+      </ul></dd>
+      <dt>ใช้เวลา</dt>
+      <dd>10–14 ชั่วโมง เพราะมีทั้งทฤษฎีและการลงมือใช้ <code>openssl</code> กับ <code>hashlib</code> ซึ่งต้องฝึกจนเข้าใจว่าแต่ละคำสั่งทำอะไร</dd>
+    </dl>
+    <div class="callout check"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: (1) อธิบายความต่างของ Encoding, Hashing และ Encryption พร้อมยกตัวอย่างการใช้แต่ละแบบ (2) ใช้ <code>sha256sum</code> ตรวจว่าไฟล์ถูกแก้ไขหรือไม่ (3) อธิบายความต่างของ Symmetric กับ Asymmetric และยกตัวอย่าง (4) สร้างและอ่าน Self-signed Certificate ด้วย <code>openssl</code> ได้ (5) อธิบายว่าทำไมต้องใช้ Salt กับรหัสผ่าน</p></div>
+  </article>
+
+  <h3 id="s5-1-intermediate"><span class="lvl" data-lvl="i">Intermediate</span> ลงมือป้องกัน: Hardening, Firewall, Authentication และ Network</h3>
+  <p>ระดับนี้เปลี่ยนจากแนวคิดเป็นการลงมือทำจริงบน Linux คุณจะทำให้เครื่องแข็งแรงขึ้นทีละชั้น ตั้ง Firewall และระบบกันการเดารหัสผ่าน จัดการการยืนยันตัวตนให้ปลอดภัย และสำรวจเครือข่ายในแล็บของตัวเองด้วยเครื่องมือมืออาชีพอย่างมีจริยธรรม</p>
+
+  <article class="rm-step" data-lvl="i">
+    <header><span class="rm-no">STEP 5</span><h4>Linux Hardening: Users, sudo, Permissions และ SSH</h4><span class="rm-time">1.5 สัปดาห์ · 12–16 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li>จัดการผู้ใช้อย่างปลอดภัย: สร้างผู้ใช้ด้วย <code>adduser</code>, ให้สิทธิ์ผ่านกลุ่ม <code>sudo</code>, ตรวจสิทธิ์ด้วย <code>sudo -l</code> และหลักการ Least Privilege</li>
+        <li>File Permissions เชิงความปลอดภัย: <code>chmod</code>, <code>chown</code>, ความหมายของ <code>600</code> และ <code>700</code> กับไฟล์ลับ, ความเสี่ยงของ World-writable และ SUID bit</li>
+        <li><strong>SSH Hardening</strong>: สร้างและใช้ SSH Key (<code>ssh-keygen -t ed25519</code>), ปิด <code>PermitRootLogin</code>, ปิด <code>PasswordAuthentication</code>, ตั้ง <code>MaxAuthTries</code> และ <code>AllowUsers</code> ในไฟล์ <code>/etc/ssh/sshd_config.d/</code></li>
+        <li>ตรวจความถูกต้องของค่า SSH ด้วย <code>sshd -t</code> และ <code>sshd -T</code> ก่อน Restart บริการ</li>
+        <li>การ Patch: อัปเดตด้วย <code>apt update &amp;&amp; apt upgrade</code> อย่างสม่ำเสมอ และเข้าใจว่าทำไมการอัปเดตคือการป้องกันที่คุ้มค่าที่สุด</li>
+        <li>เครื่องมือตรวจ Hardening อัตโนมัติ <strong>Lynis</strong> (<code>lynis audit system</code>) และการอ่าน Hardening Index</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>Server ที่ถูกเจาะส่วนใหญ่ไม่ได้ถูกเจาะด้วยเทคนิคซับซ้อน แต่เพราะตั้งค่าหละหลวม เช่น เปิดให้ root ล็อกอินด้วยรหัสผ่าน หรือไม่อัปเดต การ Hardening คืองานประจำวันของ Blue Team และเป็นด่านป้องกันแรกที่ลดโอกาสถูกเจาะได้มากที่สุด ทักษะนี้ยังเป็นหัวใจของ Mini Project ในหัวข้อนี้</dd>
+      <dt>ลงมือทำ</dt>
+      <dd><ul>
+        <li>สร้างไฟล์ Hardening ของ SSH ใน <code>/etc/ssh/sshd_config.d/99-hardening.conf</code> แล้วตรวจด้วย <code>sshd -t</code></li>
+        <li>สร้าง SSH Key ด้วย Ed25519 และทดสอบ SSH เข้า <code>localhost</code> ด้วย Key แทนรหัสผ่าน</li>
+        <li>รัน <code>lynis audit system</code> จดคำแนะนำ 5 ข้อแรกและลงมือแก้อย่างน้อย 3 ข้อ</li>
+      </ul></dd>
+      <dt>ใช้เวลา</dt>
+      <dd>12–16 ชั่วโมง เพราะต้องลงมือตั้งค่าจริง ทดสอบ และแก้ตามผล Lynis ซ้ำหลายรอบ</dd>
+    </dl>
+    <div class="callout check"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: (1) สร้างผู้ใช้ใหม่และให้สิทธิ์ sudo อย่างถูกต้อง พร้อมอธิบาย Least Privilege (2) ตั้ง Permission ของไฟล์ลับเป็น <code>600</code> และอธิบายได้ว่าทำไม (3) Hardening SSH ให้ปิด root login และ Password login โดยเข้าด้วย Key ได้ และยืนยันด้วย <code>sshd -T</code> (4) รัน Lynis และอ่าน Hardening Index พร้อมแก้ตามคำแนะนำได้</p></div>
+  </article>
+
+  <article class="rm-step" data-lvl="i">
+    <header><span class="rm-no">STEP 6</span><h4>Firewall และ Intrusion Prevention ด้วย ufw และ fail2ban</h4><span class="rm-time">1.5 สัปดาห์ · 10–14 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li><strong>ufw</strong> (Uncomplicated Firewall): แนวคิด Default Deny Incoming / Allow Outgoing, การเปิดพอร์ตเฉพาะที่จำเป็น และ <code>ufw limit</code> เพื่อจำกัดการเชื่อมต่อถี่ๆ</li>
+        <li>อ่านและเข้าใจ <code>ufw status verbose</code> และความสัมพันธ์ระหว่าง ufw กับ iptables/nftables ที่อยู่เบื้องหลัง</li>
+        <li><strong>fail2ban</strong>: หลักการ Jail, Filter และ Action, การตั้ง <code>jail.local</code> สำหรับ <code>sshd</code> เพื่อแบน IP ที่พยายามเดารหัสผ่านเกินกำหนด</li>
+        <li>อ่านสถานะด้วย <code>fail2ban-client status sshd</code> เพื่อดู IP ที่ถูกแบนและจำนวนครั้งที่ล้มเหลว</li>
+        <li><strong>unattended-upgrades</strong>: ตั้งให้ติดตั้ง Patch ความปลอดภัยอัตโนมัติ และตรวจไฟล์ <code>/etc/apt/apt.conf.d/20auto-upgrades</code></li>
+        <li>ข้อควรรู้บน WSL: Service เหล่านี้ทำงานเฉพาะตอน WSL เปิดอยู่ และ ufw ใน WSL มีข้อจำกัดบางอย่างเมื่อเทียบกับ Server จริง</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>Firewall คือการควบคุมว่าใครเข้าถึงบริการใดได้บ้าง ส่วน fail2ban คือการตอบโต้การเดารหัสผ่านอัตโนมัติ และ unattended-upgrades คือการอุดช่องโหว่ก่อนถูกใช้โจมตี ทั้งสามอย่างคือเครื่องมือป้องกันพื้นฐานที่ Server ทุกเครื่องควรมี และเป็นสิ่งที่ตรวจเจอว่า "ยังไม่ได้ทำ" บ่อยที่สุดในงานประเมินความปลอดภัย</dd>
+      <dt>ลงมือทำ</dt>
+      <dd><ul>
+        <li>ตั้ง ufw ให้ Default Deny Incoming และเปิดเฉพาะ SSH ด้วย <code>ufw limit 22/tcp</code> แล้วอ่าน <code>ufw status verbose</code></li>
+        <li>ตั้ง fail2ban jail สำหรับ sshd ให้แบน IP หลังล้มเหลว 5 ครั้ง แล้วตรวจด้วย <code>fail2ban-client status sshd</code></li>
+        <li>เปิด unattended-upgrades และยืนยันการตั้งค่าในไฟล์ <code>20auto-upgrades</code></li>
+      </ul></dd>
+      <dt>ใช้เวลา</dt>
+      <dd>10–14 ชั่วโมง เน้นการตั้งค่า อ่านสถานะ และทดสอบว่ากฎทำงานตามที่ตั้งใจ</dd>
+    </dl>
+    <div class="callout check"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: (1) ตั้ง ufw ให้ Default Deny Incoming และเปิดเฉพาะพอร์ตที่จำเป็น พร้อมอ่าน <code>ufw status verbose</code> เป็น (2) อธิบายหลักการ Jail, Filter, Action ของ fail2ban (3) ตั้ง fail2ban ให้แบน IP ที่เดารหัสผ่าน SSH และอ่านสถานะได้ (4) เปิด unattended-upgrades และอธิบายว่าทำไมการ Patch อัตโนมัติจึงสำคัญ</p></div>
+  </article>
+
+  <article class="rm-step" data-lvl="i">
+    <header><span class="rm-no">STEP 7</span><h4>Authentication และ Access Control</h4><span class="rm-time">1.5 สัปดาห์ · 10–14 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li>ความต่างของ <strong>Authentication</strong> (คุณเป็นใคร), <strong>Authorization</strong> (คุณทำอะไรได้) และ <strong>Accounting</strong> (บันทึกว่าคุณทำอะไรไป)</li>
+        <li>รหัสผ่านที่ดี: ความยาวสำคัญกว่าความซับซ้อน, Passphrase, และเหตุผลที่ห้ามใช้รหัสผ่านซ้ำกันหลายที่</li>
+        <li><strong>Password Hashing ที่ถูกต้อง</strong> ด้วย <strong>argon2</strong> (แนะนำ) และ <strong>bcrypt</strong>: Salt อัตโนมัติ, Work Factor และทำไม SHA-256 ธรรมดาไม่เหมาะกับรหัสผ่าน</li>
+        <li><strong>MFA</strong> (Multi-Factor Authentication): อะไรที่คุณรู้ มี และเป็น, TOTP (แอป Authenticator) และ Hardware Key</li>
+        <li><strong>Password Manager</strong> และแนวคิด <strong>Passkeys</strong> (WebAuthn/FIDO2) ที่ใช้ Public/Private Key แทนรหัสผ่าน</li>
+        <li>Access Control Models: RBAC (ตามบทบาท) และ ABAC (ตามคุณสมบัติ) และหลักการ Least Privilege ในการให้สิทธิ์</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>การยืนยันตัวตนที่อ่อนแอคือสาเหตุอันดับต้นของการถูกเจาะ ทั้งรหัสผ่านที่เดาง่าย การเก็บรหัสผ่านผิดวิธี และการไม่มี MFA เมื่อคุณสร้างระบบของตัวเองในงาน Backend หรือ Full-stack คุณต้องเก็บรหัสผ่านผู้ใช้ให้ถูกต้อง การเข้าใจ argon2 และ MFA จึงเป็นทักษะที่ใช้ได้ทันทีและผู้สัมภาษณ์ถามบ่อย</dd>
+      <dt>ลงมือทำ</dt>
+      <dd><ul>
+        <li>เขียนสคริปต์ Python ที่ Hash และ Verify รหัสผ่านด้วย argon2 และแสดงรูปแบบ Hash ที่ได้</li>
+        <li>เปิด MFA แบบ TOTP ให้บัญชี GitHub ของตัวเองและบันทึก Recovery Code อย่างปลอดภัย</li>
+        <li>ติดตั้ง Password Manager และย้ายรหัสผ่านสำคัญเข้าไป พร้อมสร้างรหัสผ่านใหม่ที่ไม่ซ้ำกัน</li>
+      </ul></dd>
+      <dt>ใช้เวลา</dt>
+      <dd>10–14 ชั่วโมง แบ่งเป็นทฤษฎีการยืนยันตัวตนและลงมือเขียน Password Hashing กับตั้งค่า MFA จริง</dd>
+    </dl>
+    <div class="callout check"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: (1) อธิบายความต่างของ Authentication, Authorization และ Accounting (2) Hash และ Verify รหัสผ่านด้วย argon2 ใน Python ได้ และอธิบายว่าทำไมต้องใช้ แทน SHA-256 (3) อธิบาย MFA ทั้งสามปัจจัยและเปิด TOTP ให้บัญชีจริงได้ (4) อธิบายแนวคิด Passkeys และข้อดีเหนือรหัสผ่าน</p></div>
+  </article>
+
+  <article class="rm-step" data-lvl="i">
+    <header><span class="rm-no">STEP 8</span><h4>Network Security: nmap, tcpdump และ IDS/IPS</h4><span class="rm-time">1.5 สัปดาห์ · 12–16 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li><strong>nmap</strong>: การสแกนหาพอร์ตที่เปิดและบริการที่รัน (<code>-sV</code>), ความต่างของ TCP Connect Scan กับ SYN Scan, และ <strong>สแกนได้เฉพาะ <code>127.0.0.1</code> หรือ Container ของตัวเองเท่านั้น</strong></li>
+        <li>อ่านผลการสแกน: สถานะ open, closed, filtered และความหมายต่อการประเมินความปลอดภัย</li>
+        <li><strong>tcpdump</strong>: การดักดูแพ็กเก็ตบน Loopback (<code>-i lo</code>) เพื่อเข้าใจ TCP Handshake และเห็นว่าข้อมูล HTTP ที่ไม่เข้ารหัสอ่านได้</li>
+        <li>แนวคิด <strong>IDS/IPS</strong> (Intrusion Detection/Prevention System) เช่น Suricata และ Snort และความต่างระหว่าง Detection กับ Prevention</li>
+        <li>Network Segmentation, VLAN และ DMZ ในการแบ่งโซนเครือข่ายเพื่อจำกัดความเสียหายเมื่อถูกเจาะ</li>
+        <li>ความสำคัญของ TLS/HTTPS เมื่อเห็นจาก tcpdump ว่าข้อมูลที่เข้ารหัสอ่านไม่ได้ ต่างจาก HTTP ธรรมดา</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>การประเมินความปลอดภัยเริ่มจากการรู้ว่าเครื่องเปิดบริการอะไรไว้บ้าง เพราะทุกพอร์ตที่เปิดคือช่องทางที่อาจถูกโจมตี nmap คือเครื่องมือมาตรฐานสำหรับงานนี้ ส่วน tcpdump ช่วยให้เห็นด้วยตาตัวเองว่าทำไมต้องใช้ HTTPS ทักษะเหล่านี้ใช้ทั้งในการประเมินของ Red Team และการเฝ้าระวังของ Blue Team</dd>
+      <dt>ลงมือทำ</dt>
+      <dd><ul>
+        <li>รันบริการทดสอบบน <code>127.0.0.1</code> แล้วสแกนด้วย <code>nmap -sV -p &lt;port&gt; 127.0.0.1</code> และอ่านผล</li>
+        <li>ใช้ tcpdump ดักดู TCP Handshake บน Loopback ขณะเรียกบริการนั้นด้วย curl</li>
+        <li>เปรียบเทียบสิ่งที่ tcpdump เห็นเมื่อใช้ HTTP กับเมื่อใช้ HTTPS และจดข้อสรุป</li>
+      </ul></dd>
+      <dt>ใช้เวลา</dt>
+      <dd>12–16 ชั่วโมง เพราะต้องฝึกอ่านผลสแกนและแพ็กเก็ตให้เข้าใจ ซึ่งต้องทำซ้ำหลายครั้ง</dd>
+    </dl>
+    <div class="callout check"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: (1) สแกนบริการบน <code>127.0.0.1</code> ด้วย nmap และอ่านได้ว่าพอร์ตใดเปิดและเป็นบริการอะไร (2) อธิบายได้ว่าทำไมห้ามสแกนระบบของผู้อื่น (3) ใช้ tcpdump ดู TCP Handshake บน Loopback และชี้ Flag SYN, SYN-ACK, ACK ได้ (4) อธิบายความต่างของ IDS กับ IPS และยกตัวอย่างเครื่องมือ</p></div>
+  </article>
+
+  <h3 id="s5-1-advanced"><span class="lvl" data-lvl="a">Advanced</span> ลึกขึ้น: Web Security, Detection, Vulnerability และ Incident Response</h3>
+  <p>ระดับนี้นำทุกอย่างมารวมกันเป็นงานจริง คุณจะหาและแก้ช่องโหว่เว็บตาม OWASP Top 10 เขียนโปรแกรมตรวจจับการโจมตีจาก Log จัดการช่องโหว่อย่างเป็นระบบ ทำ Threat Modeling และเรียนรู้กระบวนการตอบสนองเมื่อเกิดเหตุ จบด้วย Mini Project ที่รวมทักษะทั้งหมด</p>
+
+  <article class="rm-step" data-lvl="a">
+    <header><span class="rm-no">STEP 9</span><h4>Web Security และ OWASP Top 10</h4><span class="rm-time">2.5 สัปดาห์ · 16–22 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li><strong>OWASP Top 10</strong>: รายการความเสี่ยงเว็บที่สำคัญที่สุด <strong>ตรวจฉบับล่าสุดที่ owasp.org</strong> (ฉบับปี 2025 มี Broken Access Control, Security Misconfiguration, Software Supply Chain Failures, Cryptographic Failures, Injection เป็นต้น)</li>
+        <li><strong>SQL Injection</strong>: สาธิตบนเว็บแอป Flask + SQLite เล็กๆ ที่รันบน <code>127.0.0.1</code> ว่าทำไมการต่อสตริงสร้าง Query จึงอันตราย และแก้ด้วย <strong>Parameterized Query</strong></li>
+        <li><strong>XSS (Cross-Site Scripting)</strong>: สาธิต Stored/Reflected XSS และแก้ด้วย Output Encoding (Template ของ Jinja2 หนีอักขระให้อัตโนมัติ) และ Content Security Policy</li>
+        <li><strong>CSRF</strong> (Cross-Site Request Forgery): แนวคิดและการป้องกันด้วย CSRF Token และ SameSite Cookie</li>
+        <li><strong>Secure Headers</strong>: <code>Content-Security-Policy</code>, <code>X-Content-Type-Options</code>, <code>Strict-Transport-Security</code> และบทบาทของแต่ละตัว</li>
+        <li><strong>Secrets Management</strong>: อ่าน Key จาก Environment Variable, ไฟล์ <code>.env</code> ที่อยู่ใน <code>.gitignore</code>, และห้าม Commit Secret ลง Git</li>
+        <li>ฝึกบน <strong>OWASP Juice Shop</strong> และ <strong>DVWA</strong> ใน Docker ที่ Bind กับ <code>127.0.0.1</code> เท่านั้น</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>เว็บแอปคือพื้นผิวการโจมตีที่ใหญ่ที่สุดในปัจจุบัน และช่องโหว่อย่าง SQL Injection กับ XSS ยังพบได้ทั่วไป เมื่อคุณเป็นนักพัฒนา การเขียนโค้ดที่ปลอดภัยคือความรับผิดชอบโดยตรง ขั้นนี้สอนให้เห็นช่องโหว่ด้วยตาตัวเองและแก้ให้ถูกวิธี ซึ่งเป็นทักษะที่ทั้งสาย Application Security และ Backend ต้องมี</dd>
+      <dt>ลงมือทำ</dt>
+      <dd><ul>
+        <li>รันเว็บแอปสาธิต SQL Injection บน <code>127.0.0.1</code> โจมตีด้วย <code>' OR '1'='1</code> แล้วแก้ด้วย Parameterized Query</li>
+        <li>สาธิต XSS ใน Flask template ที่ปิดการหนีอักขระ แล้วแก้ด้วยการเข้ารหัส Output</li>
+        <li>รัน OWASP Juice Shop ใน Docker บน <code>127.0.0.1:3000</code> แล้วทำโจทย์ระดับง่าย 3 ข้อ พร้อมจดว่าช่องโหว่ตรงกับ OWASP Top 10 ข้อใด</li>
+      </ul></dd>
+      <dt>ใช้เวลา</dt>
+      <dd>16–22 ชั่วโมง เป็นขั้นที่ใหญ่ที่สุด เพราะครอบคลุมช่องโหว่หลายแบบและต้องลงมือทั้งโจมตีในแล็บและแก้ไข</dd>
+    </dl>
+    <div class="callout check"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: (1) อธิบาย OWASP Top 10 อย่างน้อย 5 ข้อและยกตัวอย่าง (2) สาธิต SQL Injection บนแอปของตัวเองและแก้ด้วย Parameterized Query ได้ (3) สาธิต XSS และแก้ด้วย Output Encoding ได้ (4) อธิบาย CSRF และ Secure Headers หลัก 3 ตัว (5) อ่าน Secret จาก Environment Variable และไม่ Commit ลง Git</p></div>
+  </article>
+
+  <article class="rm-step" data-lvl="a">
+    <header><span class="rm-no">STEP 10</span><h4>Logging, Monitoring และ Detection</h4><span class="rm-time">2 สัปดาห์ · 14–20 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li>Log สำคัญบน Linux: <code>/var/log/auth.log</code> (การล็อกอินและ sudo), <code>journalctl</code> (Log ของ systemd) และการกรองด้วย <code>grep</code>, <code>awk</code>, <code>cut</code>, <code>sort</code>, <code>uniq</code></li>
+        <li>รูปแบบของ Log การล็อกอิน SSH: บรรทัด <code>Failed password</code>, <code>Invalid user</code> และ <code>Accepted</code> และวิธีอ่านว่าใครพยายามเข้าจาก IP ใด</li>
+        <li>เขียน <strong>Python Log Analyzer</strong> ที่ตรวจจับรูปแบบการเดารหัสผ่าน (Brute-force) โดยนับความล้มเหลวต่อ IP และแจ้งเตือนเมื่อเกินเกณฑ์</li>
+        <li>แนวคิด <strong>SIEM</strong> (Security Information and Event Management) เช่น การรวม Log จากหลายเครื่อง การทำ Correlation และ Dashboard (เครื่องมืออย่าง Wazuh, Splunk, Elastic)</li>
+        <li>พื้นฐาน <strong>SOC</strong> (Security Operations Center): การทำงานเป็นกะ, การจัดลำดับ Alert (Triage), True Positive vs False Positive</li>
+        <li>แนวคิด Detection Engineering: เขียนกฎตรวจจับจากพฤติกรรม ไม่ใช่แค่ลายเซ็น และการลด False Positive</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>ถ้าป้องกันแล้วยังถูกเจาะ สิ่งที่ช่วยคุณได้คือการตรวจจับให้เร็วที่สุด Log คือหลักฐานเดียวที่บอกว่าเกิดอะไรขึ้น การเขียนโปรแกรมวิเคราะห์ Log คือทักษะที่แยก SOC Analyst ที่เก่งออกจากคนที่ได้แต่จ้องหน้าจอ และเป็นหัวใจของส่วน Detection ใน Mini Project</dd>
+      <dt>ลงมือทำ</dt>
+      <dd><ul>
+        <li>ใช้ <code>grep</code> และ <code>awk</code> นับจำนวน <code>Failed password</code> ต่อ IP จากไฟล์ auth.log ตัวอย่าง</li>
+        <li>เขียน Python Log Analyzer ที่อ่าน auth.log และแจ้ง IP ที่ล้มเหลวเกิน 5 ครั้ง พร้อมบอกว่าเดาสำเร็จหรือไม่</li>
+        <li>จำลองสถานการณ์ SOC: จัดลำดับ Alert 3 อันว่าอันไหนต้องรีบดูก่อนและเพราะอะไร</li>
+      </ul></dd>
+      <dt>ใช้เวลา</dt>
+      <dd>14–20 ชั่วโมง เน้นการเขียนโปรแกรมวิเคราะห์ Log และฝึกอ่าน Log จริงจนจับรูปแบบผิดปกติได้</dd>
+    </dl>
+    <div class="callout check"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: (1) อ่าน <code>/var/log/auth.log</code> และ <code>journalctl</code> แล้วหาการล็อกอินที่ล้มเหลวได้ (2) ใช้ <code>grep</code> กับ <code>awk</code> สรุปจำนวนการโจมตีต่อ IP (3) เขียน Python Log Analyzer ที่ตรวจจับ Brute-force ได้จริง (4) อธิบายแนวคิด SIEM และการทำ Alert Triage ของ SOC</p></div>
+  </article>
+
+  <article class="rm-step" data-lvl="a">
+    <header><span class="rm-no">STEP 11</span><h4>Vulnerability Management และ Threat Modeling</h4><span class="rm-time">2 สัปดาห์ · 12–18 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li><strong>CVE</strong> (Common Vulnerabilities and Exposures): รหัสช่องโหว่สากล และวิธีอ่านรายละเอียดจากฐานข้อมูล NVD</li>
+        <li><strong>CVSS</strong> (Common Vulnerability Scoring System): การให้คะแนนความรุนแรง 0–10 และการแบ่งระดับ Low, Medium, High, Critical</li>
+        <li>สแกนช่องโหว่ของ Dependency: <code>pip-audit</code> สำหรับ Python และ <code>npm audit</code> สำหรับ Node.js และการอ่านผลเพื่อตัดสินใจอัปเกรด</li>
+        <li><strong>Patch Management</strong>: การจัดลำดับความสำคัญของการแก้ช่องโหว่ตามคะแนน CVSS และความเสี่ยงต่อระบบจริง</li>
+        <li><strong>Threat Modeling ด้วย STRIDE</strong>: Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege และการวาด Data Flow Diagram</li>
+        <li>SBOM (Software Bill of Materials) และความเสี่ยงจาก Software Supply Chain (OWASP Top 10 ปี 2025 ยกเป็นข้อ A03)</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>ทุกระบบใช้ไลบรารีของคนอื่นจำนวนมาก และช่องโหว่ใหม่ถูกค้นพบทุกวัน การจัดการช่องโหว่อย่างเป็นระบบ คือการรู้ว่ามีช่องโหว่อะไรบ้าง รุนแรงแค่ไหน และควรแก้อะไรก่อน ส่วน Threat Modeling ช่วยให้คิดถึงความปลอดภัยตั้งแต่ตอนออกแบบ ไม่ใช่มาแก้ทีหลัง ทั้งสองอย่างเป็นทักษะที่สาย Application Security และ DevSecOps ใช้ทุกวัน</dd>
+      <dt>ลงมือทำ</dt>
+      <dd><ul>
+        <li>รัน <code>pip-audit</code> กับ requirements เก่าที่มีช่องโหว่ แล้วอ่านรหัส CVE/PYSEC และเวอร์ชันที่แก้</li>
+        <li>เลือก CVE หนึ่งอันมาอ่านคะแนน CVSS และอธิบายว่าทำไมได้คะแนนเท่านั้น</li>
+        <li>ทำ Threat Modeling ด้วย STRIDE ให้เว็บแอปสาธิตจาก Step 9 พร้อมวาด Data Flow Diagram</li>
+      </ul></dd>
+      <dt>ใช้เวลา</dt>
+      <dd>12–18 ชั่วโมง แบ่งเป็นฝึกใช้เครื่องมือสแกนช่องโหว่และฝึกคิดแบบ Threat Modeling</dd>
+    </dl>
+    <div class="callout check"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: (1) อธิบายว่า CVE และ CVSS คืออะไรและต่างกันอย่างไร (2) รัน <code>pip-audit</code> หรือ <code>npm audit</code> และอ่านผลเพื่อตัดสินใจอัปเกรดได้ (3) จัดลำดับการแก้ช่องโหว่ตามคะแนน CVSS และความเสี่ยง (4) ทำ Threat Modeling ด้วย STRIDE กับระบบหนึ่งและระบุภัยในแต่ละหมวดได้</p></div>
+  </article>
+
+  <article class="rm-step" data-lvl="a">
+    <header><span class="rm-no">STEP 12</span><h4>Incident Response และ Mini Project</h4><span class="rm-time">2.5 สัปดาห์ · 16–24 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li><strong>Incident Response Lifecycle</strong> ตามแนวทาง NIST SP 800-61: Preparation, Detection &amp; Analysis, Containment, Eradication &amp; Recovery และ Post-Incident Activity (บทเรียนที่ได้)</li>
+        <li>การเก็บหลักฐาน (Evidence) อย่างถูกต้อง, Chain of Custody เบื้องต้น และพื้นฐาน Digital Forensics</li>
+        <li>การเขียน <strong>รายงานประเมินความปลอดภัย (Findings Report)</strong> แบบมืออาชีพ: Executive Summary, รายการ Finding พร้อมระดับความรุนแรง หลักฐาน และคำแนะนำการแก้ไข</li>
+        <li><strong>Mini Project: Home Lab Security Assessment</strong> รวมทักษะทั้งหมด: Hardening เครื่อง Ubuntu, สแกนด้วย nmap บน localhost, รันแอปที่มีช่องโหว่ใน Docker, เขียน Python Log Analyzer จับ Brute-force และเขียนรายงานผลการประเมิน</li>
+        <li>การนำเสนอผลงาน: จัด Repository บน GitHub ให้ดูเป็นมืออาชีพ พร้อม README ที่อธิบายขอบเขตและข้อจำกัด</li>
+        <li>วางแผนเรียนต่อ: ใบรับรองใบแรก (ISC2 CC หรือ Security+) และแพลตฟอร์มฝึกต่อเนื่อง</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>ทักษะทั้งหมดจะมีค่าก็ต่อเมื่อนำมาใช้แก้ปัญหาจริงและสื่อสารผลให้คนอื่นเข้าใจ Incident Response คือสิ่งที่เกิดขึ้นจริงเมื่อระบบถูกเจาะ และการเขียนรายงานคือสิ่งที่ลูกค้าและผู้บริหารเห็น ซึ่งสำคัญพอๆ กับการเจาะระบบได้ Mini Project นี้คือหลักฐานใน Portfolio ที่แสดงว่าคุณทำงานความปลอดภัยได้ครบวงจร</dd>
+      <dt>ลงมือทำ</dt>
+      <dd><ul>
+        <li>ทำ Mini Project ให้ครบทั้ง Hardening, Scanning, Detection และ Reporting</li>
+        <li>เขียน Findings Report ที่มี Executive Summary และ Finding อย่างน้อย 3 ข้อพร้อมระดับความรุนแรง</li>
+        <li>Push ขึ้น GitHub พร้อม README และจำลองเหตุการณ์ Incident Response 1 รอบตามขั้น NIST</li>
+      </ul></dd>
+      <dt>ใช้เวลา</dt>
+      <dd>16–24 ชั่วโมง ส่วนใหญ่ใช้ทำ Mini Project และเขียนรายงานให้สมบูรณ์พอลง Portfolio</dd>
+    </dl>
+    <div class="callout check"><span class="c-label check">Checkpoint</span><p>ก่อนจบหัวข้อ คุณต้องทำสิ่งเหล่านี้ได้: (1) อธิบาย 4 ขั้นของ Incident Response ตาม NIST (2) ทำ Mini Project ครบทั้ง Hardening, Scanning, Detection และ Reporting (3) เขียน Findings Report ที่มี Executive Summary และ Finding พร้อมระดับความรุนแรงและคำแนะนำ (4) Push Mini Project ขึ้น GitHub พร้อม README ที่อธิบายขอบเขตและข้อจำกัดอย่างชัดเจน</p></div>
+  </article>
+
+  <h3 id="s5-1-plan">ตารางเรียนแนะนำ 16 สัปดาห์</h3>
+  <p>ตารางนี้คิดจากการเรียนวันละ 1.5–2 ชั่วโมง สัปดาห์ละ 5–6 วัน ถ้ามีพื้น Linux, Network และ Web แน่นอยู่แล้วจะเร็วกว่านี้ได้ แต่อย่าข้าม Checkpoint เพราะแต่ละขั้นต่อยอดกัน</p>
+  <div class="tbl wide"><table>
+    <thead><tr><th>สัปดาห์</th><th>ขั้นที่เรียน</th><th>เวลาโดยประมาณ</th><th>ผลงานที่ควรมีเมื่อจบช่วง</th></tr></thead>
+    <tbody>
+      <tr><td class="nw">สัปดาห์ 1–2</td><td>Step 1–2</td><td class="nw num">16–22 ชม.</td><td>แล็บ <code>~/projects/sec-lab</code> ที่ตั้งค่าแล้ว, บันทึกสรุปกฎหมายและ CIA Triad และสคริปต์ให้คะแนนความเสี่ยง</td></tr>
+      <tr><td class="nw">สัปดาห์ 3–4</td><td>Step 3–4</td><td class="nw num">18–24 ชม.</td><td>แผนภาพ Kill Chain, โน้ต MITRE ATT&amp;CK และสคริปต์ Hashing พร้อม Self-signed Certificate</td></tr>
+      <tr><td class="nw">สัปดาห์ 5–7</td><td>Step 5–6</td><td class="nw num">22–30 ชม.</td><td>เครื่อง Ubuntu ที่ Hardening SSH แล้ว, ufw และ fail2ban ที่ทำงาน และผล Lynis ก่อน/หลังแก้</td></tr>
+      <tr><td class="nw">สัปดาห์ 8–10</td><td>Step 7–8</td><td class="nw num">22–30 ชม.</td><td>สคริปต์ Password Hashing ด้วย argon2, บัญชีที่เปิด MFA และบันทึกผลสแกน nmap กับ tcpdump</td></tr>
+      <tr><td class="nw">สัปดาห์ 11–13</td><td>Step 9–10</td><td class="nw num">30–42 ชม.</td><td>เว็บแอปสาธิต SQLi/XSS ที่แก้แล้ว, บันทึกการทำ Juice Shop และ Python Log Analyzer ที่จับ Brute-force ได้</td></tr>
+      <tr><td class="nw">สัปดาห์ 14–16</td><td>Step 11–12 + Mini Project</td><td class="nw num">28–42 ชม.</td><td>ผล pip-audit, Threat Model ด้วย STRIDE และ Mini Project <code>home-lab-assessment</code> บน GitHub พร้อม Findings Report</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout ok"><span class="c-label ok">Best Practice</span><p>เก็บทุกคำสั่ง ผลลัพธ์ และข้อสังเกตลง <code>~/projects/sec-lab/notes</code> แล้ว Commit ทุกวัน เพราะ Lab Journal ที่ละเอียดคือวัตถุดิบของ Findings Report ในงานจริง และ Commit history บน GitHub แสดงความสม่ำเสมอให้ผู้สัมภาษณ์เห็น การจดบันทึกอย่างเป็นระบบยังเป็นทักษะที่งาน Incident Response ต้องใช้โดยตรง</p></div>
+
+  <h3 id="s5-1-skills">Must-know Skills</h3>
+  <p>ถ้าต้องสรุปหัวข้อนี้ให้เหลือทักษะที่ผู้สัมภาษณ์และงานจริงคาดหวังจากคนที่ "ทำงานความปลอดภัยเป็น" จะได้รายการนี้</p>
+  <ol class="skills">
+    <li><strong>เข้าใจจริยธรรม กฎหมาย และขอบเขต (Scope)</strong> เพราะเป็นเส้นแบ่งระหว่างงานกับอาชญากรรม และเป็นสิ่งแรกที่ผู้ว่าจ้างต้องมั่นใจว่าคุณเข้าใจ</li>
+    <li><strong>คิดด้วยกรอบ CIA Triad และการจัดการความเสี่ยง</strong> เพราะทุกการตัดสินใจด้านความปลอดภัยคือการเลือกว่าจะลดความเสี่ยงใดก่อนภายใต้ทรัพยากรที่จำกัด</li>
+    <li><strong>Hardening เครื่อง Linux</strong> ทั้ง Users, sudo, Permissions, SSH และการ Patch เพราะเป็นด่านป้องกันแรกที่ลดโอกาสถูกเจาะได้มากที่สุด</li>
+    <li><strong>ตั้ง Firewall และระบบกันการเดารหัสผ่าน</strong> ด้วย ufw และ fail2ban เพราะเป็นการควบคุมการเข้าถึงและตอบโต้อัตโนมัติที่ Server ทุกเครื่องควรมี</li>
+    <li><strong>ใช้ Cryptography พื้นฐานให้ถูก</strong> แยก Hashing กับ Encryption, ใช้ Salt, Hash รหัสผ่านด้วย argon2 และเข้าใจ TLS/Certificate เพราะเป็นหัวใจของทุกระบบที่ปลอดภัย</li>
+    <li><strong>จัดการการยืนยันตัวตนอย่างปลอดภัย</strong> ทั้งรหัสผ่านที่ดี MFA และ Password Manager เพราะการยืนยันตัวตนที่อ่อนแอคือสาเหตุการถูกเจาะอันดับต้น</li>
+    <li><strong>สแกนและสำรวจเครือข่ายอย่างมีจริยธรรม</strong> ด้วย nmap และ tcpdump บน <code>127.0.0.1</code> เพราะต้องรู้ว่าเครื่องเปิดบริการอะไรจึงจะประเมินความเสี่ยงได้</li>
+    <li><strong>หาและแก้ช่องโหว่เว็บตาม OWASP Top 10</strong> โดยเฉพาะ SQL Injection และ XSS เพราะเว็บคือพื้นผิวการโจมตีที่ใหญ่ที่สุด และการแก้คือความรับผิดชอบของนักพัฒนา</li>
+    <li><strong>อ่าน Log และเขียนโปรแกรมตรวจจับการโจมตี</strong> เพราะเมื่อป้องกันแล้วยังถูกเจาะ การตรวจจับให้เร็วคือสิ่งที่จำกัดความเสียหายได้</li>
+    <li><strong>จัดการช่องโหว่ด้วย CVE และ CVSS</strong> พร้อมเครื่องมืออย่าง pip-audit และ npm audit เพราะทุกระบบใช้ไลบรารีของคนอื่นที่มีช่องโหว่ใหม่ทุกวัน</li>
+    <li><strong>ทำ Threat Modeling ด้วย STRIDE</strong> เพราะช่วยให้คิดเรื่องความปลอดภัยตั้งแต่ออกแบบ ซึ่งถูกและได้ผลกว่ามาแก้ทีหลัง</li>
+    <li><strong>เขียนรายงานและตอบสนองต่อเหตุการณ์</strong> ตามกระบวนการ NIST เพราะการสื่อสารผลและการกู้ระบบอย่างเป็นระบบสำคัญพอๆ กับความสามารถทางเทคนิค</li>
+  </ol>
+
+  <h3 id="s5-1-tools">Tools &amp; Frameworks</h3>
+  <p>เวอร์ชันในตารางนี้คือเวอร์ชันที่ใช้ในหลักสูตรนี้ ณ วันที่ 19 ต.ค. 2026 ส่วนที่มาจาก <code>apt</code> ของ Ubuntu 24.04 LTS อาจมีเลขเวอร์ชันย่อยขยับขึ้นเมื่อมีการอัปเดตความปลอดภัย ตรวจของเครื่องตัวเองได้ด้วย <code>apt policy &lt;ชื่อแพ็กเกจ&gt;</code> ส่วนแพ็กเกจ Python ให้ติดตั้งใน venv เท่านั้น</p>
+  <div class="tbl mid"><table class="tools">
+    <thead><tr><th>ชื่อ</th><th>ใช้ทำอะไร</th><th>ควรเริ่มใช้ในขั้นไหน</th></tr></thead>
+    <tbody>
+      <tr><td class="nw">Ubuntu 24.04 LTS (WSL2)</td><td>ระบบปฏิบัติการเป้าหมายที่ใช้ฝึก Hardening และ Detection ตลอดหัวข้อ</td><td>Step 1</td></tr>
+      <tr><td class="nw">Docker Desktop (WSL 2 backend)</td><td>รันแอปที่มีช่องโหว่ไว้ฝึกแบบแยกและปลอดภัย Bind กับ <code>127.0.0.1</code> ฟรีสำหรับใช้ส่วนตัวและองค์กรเล็ก</td><td>Step 1 และ Step 9</td></tr>
+      <tr><td class="nw">OpenSSH 9.6p1</td><td>ฝึก SSH Hardening, สร้าง Key ด้วย <code>ssh-keygen</code> และตรวจค่าด้วย <code>sshd -t</code> และ <code>sshd -T</code></td><td>Step 5</td></tr>
+      <tr><td class="nw">Lynis 3.0.9</td><td>ตรวจ Hardening ของเครื่องอัตโนมัติและให้ Hardening Index พร้อมคำแนะนำ</td><td>Step 5</td></tr>
+      <tr><td class="nw">ufw 0.36.2</td><td>ตั้ง Firewall แบบเข้าใจง่าย กำหนด Default Deny Incoming และเปิดพอร์ตเฉพาะที่จำเป็น</td><td>Step 6</td></tr>
+      <tr><td class="nw">fail2ban 1.0.2</td><td>ตรวจ Log และแบน IP ที่พยายามเดารหัสผ่าน SSH เกินเกณฑ์โดยอัตโนมัติ</td><td>Step 6</td></tr>
+      <tr><td class="nw">unattended-upgrades 2.9.1</td><td>ติดตั้ง Patch ความปลอดภัยของ Ubuntu โดยอัตโนมัติ</td><td>Step 6</td></tr>
+      <tr><td class="nw">OpenSSL 3.0.13</td><td>สร้างและอ่าน Certificate, ทดลองการเข้ารหัส และตรวจ TLS ของบริการ</td><td>Step 4</td></tr>
+      <tr><td class="nw">Python 3.12 + hashlib</td><td>เขียนเครื่องมือ Hashing, วิเคราะห์ Log และสคริปต์ให้คะแนนความเสี่ยง (ใช้ venv เสมอ)</td><td>Step 2</td></tr>
+      <tr><td class="nw">argon2-cffi 25.1.0 และ bcrypt 5.0.0</td><td>Hash รหัสผ่านอย่างถูกต้องพร้อม Salt และ Work Factor</td><td>Step 7</td></tr>
+      <tr><td class="nw">nmap 7.94</td><td>สแกนหาพอร์ตและบริการที่เปิดบน <code>127.0.0.1</code> หรือ Container ของตัวเอง</td><td>Step 8</td></tr>
+      <tr><td class="nw">tcpdump 4.99.4</td><td>ดักดูแพ็กเก็ตบน Loopback เพื่อเข้าใจ TCP Handshake และเห็นผลของการเข้ารหัส</td><td>Step 8</td></tr>
+      <tr><td class="nw">Flask 3.1.3 + SQLite 3.45.1</td><td>สร้างเว็บแอปเล็กๆ ไว้สาธิตและแก้ช่องโหว่ SQL Injection และ XSS บน <code>127.0.0.1</code></td><td>Step 9</td></tr>
+      <tr><td class="nw">OWASP Juice Shop และ DVWA</td><td>แอปที่จงใจมีช่องโหว่ไว้ฝึก OWASP Top 10 อย่างถูกกฎหมายใน Docker บน <code>127.0.0.1</code></td><td>Step 9</td></tr>
+      <tr><td class="nw">pip-audit 2.10.1 และ npm audit</td><td>สแกนช่องโหว่ของ Dependency ใน Python และ Node.js เทียบกับฐานข้อมูล CVE</td><td>Step 11</td></tr>
+      <tr><td class="nw">OWASP Top 10 (ฉบับ 2025)</td><td>กรอบมาตรฐานของความเสี่ยงเว็บที่สำคัญที่สุด ใช้อ้างอิงในการประเมินและรายงาน</td><td>Step 9</td></tr>
+      <tr><td class="nw">MITRE ATT&amp;CK และ Cyber Kill Chain</td><td>กรอบอธิบายขั้นตอนและเทคนิคของผู้โจมตี ใช้สื่อสารในทีม SOC และ IR</td><td>Step 3</td></tr>
+      <tr><td class="nw">NIST SP 800-61 และ STRIDE</td><td>กรอบกระบวนการตอบสนองต่อเหตุการณ์ และกรอบ Threat Modeling</td><td>Step 11 และ Step 12</td></tr>
+      <tr><td class="nw">Git 2.43.0 และ GitHub</td><td>เก็บ Lab Journal, เวอร์ชันของ Script และนำเสนอ Mini Project ใน Portfolio</td><td>Step 1 และ Step 12</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="s5-1-career">เส้นทางอาชีพ ตำแหน่งงาน และใบรับรอง</h3>
+  <p>Cyber Security เป็นทักษะหลัก (Core) ของสายงานความปลอดภัยโดยตรง และเป็นทักษะที่ควรรู้ของสาย <strong>Backend, Full-stack JavaScript, AI Engineer, Network, Android และ Product Builder</strong> เพราะทุกคนที่สร้างระบบต้องรับผิดชอบความปลอดภัยของสิ่งที่ตัวเองสร้าง ตำแหน่งงานด้านล่างใช้ทักษะจากหัวข้อนี้โดยตรง ระดับ Junior คือเพิ่งเริ่มงาน 0–2 ปี Mid คือประมาณ 2–5 ปี</p>
+  <div class="tbl wide"><table class="careers">
+    <thead><tr><th>ตำแหน่ง</th><th>ทำอะไร</th><th>ระดับ</th><th>ทักษะที่ต้องมี</th></tr></thead>
+    <tbody>
+      <tr><td class="nw">SOC Analyst (Tier 1)</td><td>เฝ้าระวังระบบ ตรวจและจัดลำดับ Alert อ่าน Log หาการโจมตี และส่งต่อเหตุที่ซับซ้อนให้ทีมที่สูงกว่า</td><td class="nw">Junior</td><td>อ่าน Log, <code>grep</code>/<code>awk</code>, แนวคิด SIEM, Kill Chain, พื้นฐาน <a data-t="19"></a> และ <a data-t="1"></a></td></tr>
+      <tr><td class="nw">Security Analyst / Blue Team</td><td>Hardening ระบบ ตั้งค่าการป้องกัน วิเคราะห์เหตุการณ์ และเขียนกฎตรวจจับ</td><td class="nw">Junior–Mid</td><td>Linux Hardening, ufw/fail2ban, Detection ด้วย Python, CVE/CVSS และการเขียนรายงาน</td></tr>
+      <tr><td class="nw">Penetration Tester / Red Team</td><td>จำลองการโจมตีระบบของลูกค้าตามขอบเขตที่อนุญาต เพื่อหาช่องโหว่ก่อนคนร้ายจริง</td><td class="nw">Junior–Mid</td><td>nmap, OWASP Top 10, เทคนิคโจมตีเว็บ, <a data-t="9"></a>, และใบรับรองอย่าง eJPT หรือ OSCP+</td></tr>
+      <tr><td class="nw">Application Security Engineer</td><td>ตรวจโค้ดและสถาปัตยกรรมหาช่องโหว่ ให้คำแนะนำนักพัฒนา และวาง Secure SDLC</td><td class="nw">Mid</td><td>OWASP Top 10 เชิงลึก, SAST/DAST, Threat Modeling (STRIDE), <a data-t="12"></a> และ <a data-t="8"></a></td></tr>
+      <tr><td class="nw">Incident Responder / DFIR</td><td>ตอบสนองเมื่อระบบถูกเจาะ เก็บหลักฐาน วิเคราะห์สาเหตุ และกู้ระบบตามกระบวนการ</td><td class="nw">Mid</td><td>Incident Response (NIST), การวิเคราะห์ Log เชิงลึก, Forensics พื้นฐาน และการเขียนรายงาน</td></tr>
+      <tr><td class="nw">GRC / Compliance Analyst</td><td>ดูแลให้องค์กรทำตามมาตรฐานและกฎหมาย ประเมินความเสี่ยง และวางนโยบายความปลอดภัย</td><td class="nw">Junior–Mid</td><td>การจัดการความเสี่ยง, มาตรฐาน (ISO 27001, NIST CSF), การสื่อสารและเขียนเอกสาร</td></tr>
+      <tr><td class="nw">Cloud Security Engineer</td><td>ออกแบบและดูแลความปลอดภัยของระบบบน Cloud ทั้ง IAM, Network และ Config</td><td class="nw">Mid</td><td>Linux, Network Security, IAM, Secrets Management, Container Security และ Cloud</td></tr>
+      <tr><td class="nw">Security Engineer (DevSecOps)</td><td>ฝังความปลอดภัยเข้าไปใน Pipeline การพัฒนา ทำ Scan อัตโนมัติ และดูแล Secrets</td><td class="nw">Mid</td><td>Vulnerability Management, pip-audit/npm audit, CI/CD, <a data-t="17"></a> และการเขียน Script</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>ใบรับรอง (Certifications)</h4>
+  <p>ในสาย Cyber Security ใบรับรองมีน้ำหนักมากกว่าสายอื่น เพราะหลายองค์กรและงานภาครัฐกำหนดเป็นเงื่อนไข แต่ Portfolio ที่ทำได้จริงอย่าง Mini Project ของหัวข้อนี้และบัญชีบนแพลตฟอร์มฝึกก็สำคัญไม่แพ้กัน สถานะด้านล่างตรวจสอบ ณ วันที่ 19 ต.ค. 2026 ราคาและเงื่อนไขเปลี่ยนได้บ่อย ให้ตรวจที่เว็บทางการก่อนสมัครทุกครั้ง</p>
+  <div class="tbl wide"><table>
+    <thead><tr><th>ใบรับรอง</th><th>ผู้ออก</th><th>รหัสสอบและสถานะ</th><th>ระดับ</th><th>เหมาะกับใคร</th></tr></thead>
+    <tbody>
+      <tr><td class="nw">ISC2 CC (Certified in Cybersecurity)</td><td class="nw"><a href="https://www.isc2.org" target="_blank" rel="noopener">ISC2</a></td><td>ยังเปิดสอบ โครงการฟรี "One Million Certified in Cybersecurity" ปิดรับคนใหม่ไปแล้วเมื่อ 20 พ.ค. 2026 ปัจจุบันค่าสอบ 199 ดอลลาร์สหรัฐ และค่าธรรมเนียมรายปี 50 ดอลลาร์</td><td class="nw">เริ่มต้น</td><td>ใบรับรองใบแรกสำหรับคนที่เพิ่งจบหัวข้อนี้ เน้นแนวคิดพื้นฐานด้านความปลอดภัย</td></tr>
+      <tr><td class="nw">CompTIA Security+</td><td class="nw"><a href="https://www.comptia.org" target="_blank" rel="noopener">CompTIA</a></td><td>รหัสปัจจุบัน <strong>SY0-701</strong> ส่วน <strong>SY0-801</strong> มีกำหนดเปิดราว 17 พ.ย. 2026</td><td class="nw">Junior</td><td>ใบรับรองพื้นฐานที่งานและภาครัฐยอมรับกว้างที่สุด เหมาะเป็นเป้าหมายหลักหลังจบหัวข้อนี้</td></tr>
+      <tr><td class="nw">CompTIA CySA+</td><td class="nw"><a href="https://www.comptia.org" target="_blank" rel="noopener">CompTIA</a></td><td>รหัสปัจจุบัน <strong>CS0-004</strong> (เริ่มใช้ 23 มิ.ย. 2026)</td><td class="nw">Junior–Mid</td><td>สาย Blue Team และ SOC Analyst ที่เน้นการวิเคราะห์และตรวจจับภัยคุกคาม</td></tr>
+      <tr><td class="nw">INE eJPT</td><td class="nw"><a href="https://ine.com" target="_blank" rel="noopener">INE</a></td><td>ปรับปรุงเมื่อ มี.ค. 2026: 45 คำถาม สอบภาคปฏิบัติ 48 ชั่วโมง</td><td class="nw">Junior</td><td>สาย Penetration Testing ที่ต้องการใบรับรองภาคปฏิบัติใบแรก เน้นลงมือจริง</td></tr>
+      <tr><td class="nw">OffSec OSCP / OSCP+</td><td class="nw"><a href="https://www.offsec.com" target="_blank" rel="noopener">OffSec</a></td><td>ผู้ที่สอบผ่านตั้งแต่ 1 พ.ย. 2024 จะได้ทั้ง OSCP และ <strong>OSCP+</strong> โดย OSCP+ มีอายุ 3 ปี</td><td class="nw">Mid</td><td>สาย Penetration Tester และ Red Team ที่ต้องการใบรับรองที่เป็นที่ยอมรับสูงในสายรุก</td></tr>
+    </tbody>
+  </table></div>
+  <p>ลำดับที่แนะนำ: เริ่มจาก <strong>ISC2 CC</strong> หรือ <strong>CompTIA Security+ SY0-701</strong> หลังจบหัวข้อนี้ จากนั้นเลือกตามสายงาน คือ <strong>CySA+ CS0-004</strong> สำหรับสาย Blue Team/SOC หรือ <strong>eJPT</strong> แล้วต่อ <strong>OSCP+</strong> สำหรับสาย Penetration Testing การมีบัญชีและผลงานบน TryHackMe หรือ Hack The Box ควบคู่ไปด้วยช่วยให้ Resume โดดเด่นขึ้น เพราะแสดงว่าฝึกจริงสม่ำเสมอ</p>
+
+  <h4>เรื่องเงินเดือน</h4>
+  <div class="callout note"><span class="c-label note">หมายเหตุ</span><p>หลักสูตรนี้ไม่ใส่ตัวเลขเงินเดือน เพราะเงินเดือนต่างกันมากตามบริษัท ขนาดองค์กร อุตสาหกรรม ประสบการณ์ ทำเลที่ตั้ง ใบรับรองที่มี ทักษะภาษาอังกฤษ และช่วงเวลา ให้หาข้อมูลล่าสุดด้วยตัวเองดังนี้</p>
+    <ul>
+      <li>ค้นหาชื่อตำแหน่ง เช่น "SOC Analyst" หรือ "Security Engineer" ใน <a href="https://th.jobsdb.com" target="_blank" rel="noopener">JobsDB</a> แล้วดูช่วงเงินเดือนในหลายประกาศ พร้อมจดทักษะและใบรับรองที่ประกาศต้องการบ่อยที่สุด</li>
+      <li>ค้นหาตำแหน่งเดียวกันใน <a href="https://www.linkedin.com/jobs" target="_blank" rel="noopener">LinkedIn Jobs</a> และดูโปรไฟล์ของคนที่ทำตำแหน่งนั้นว่ามีประสบการณ์และใบรับรองอะไร</li>
+      <li>อ่านรายงานผลสำรวจเงินเดือนสาย IT ประจำปีของบริษัทจัดหางาน และสังเกตว่ารายงานสำรวจเมื่อไรและจากกลุ่มตัวอย่างใด</li>
+      <li>ถามคนที่ทำงานสายความปลอดภัยจริงในชุมชนหรือกลุ่มสายเทค เพราะได้ข้อมูลที่ใกล้ความจริงและเป็นปัจจุบันที่สุด</li>
+    </ul>
+  </div>
+
+  <h3 id="s5-1-next">จบหัวข้อนี้แล้วไปต่อที่ไหน</h3>
+  <p>หัวข้อนี้เป็นหัวข้อ Role สุดท้ายสายความปลอดภัยในเส้นทางที่แนะนำ เมื่อผ่าน Checkpoint ของ Step 12 และ Mini Project อยู่บน GitHub แล้ว ให้ต่อยอดดังนี้</p>
+  <ol>
+    <li>สอบใบรับรองใบแรก <strong>ISC2 CC</strong> หรือ <strong>CompTIA Security+ SY0-701</strong> เพื่อยืนยันพื้นฐานและช่วยให้ Resume ผ่านการคัดกรอง</li>
+    <li>ฝึกต่อเนื่องบน <strong>TryHackMe</strong>, <strong>Hack The Box</strong> และ <strong>picoCTF</strong> เพื่อสะสมชั่วโมงลงมือจริงและสร้างผลงานที่แสดงให้ผู้สัมภาษณ์เห็น</li>
+    <li>เลือกสายที่สนใจแล้วเจาะลึก: สาย Blue Team ต่อด้วย CySA+ และ Detection Engineering ส่วนสายรุกต่อด้วย eJPT แล้ว OSCP+</li>
+    <li>นำความปลอดภัยไปใช้กับหัวข้อที่สร้างระบบ เช่น <a data-t="12"></a> ให้เขียน API ที่ปลอดภัยตั้งแต่ต้น และ <a data-t="11"></a> ให้ดูแลความปลอดภัยของระบบ AI และ Secret ของ API Key</li>
+    <li>ติดตามข่าวช่องโหว่และภัยคุกคามใหม่ทุกสัปดาห์ เพราะความปลอดภัยคือสายงานที่ต้องเรียนรู้ตลอดเวลา สิ่งที่จริงวันนี้อาจเปลี่ยนในเดือนหน้า</li>
+  </ol>
+  <div class="callout tip"><span class="c-label tip">Tip</span><p>งานความปลอดภัยให้คุณค่ากับคนที่ "อธิบายให้คนอื่นเข้าใจได้" พอๆ กับคนที่ "ทำได้" ฝึกเขียนสรุปสิ่งที่เรียนรู้ลง Lab Journal และรายงานทุกครั้ง เพราะในงานจริงคุณต้องสื่อสารความเสี่ยงให้ทั้งทีมเทคนิคและผู้บริหารที่ไม่ใช่สายเทคเข้าใจตรงกัน</p></div>
+</section>

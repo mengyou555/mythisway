@@ -1,0 +1,1916 @@
+<section class="part" data-part="4">
+<h2 id="s6-4"><span class="sec-no">6.4</span>ส่วนเสริม: Mini Project, Cheat Sheet, Interview</h2>
+<p>ส่วนนี้นำทุกอย่างที่เรียนใน Part 1–3 มารวมเป็นงานชิ้นเดียวที่ใส่ใน Portfolio ได้จริง คุณจะสร้าง <strong>gohealth</strong> ซึ่งเป็นโปรแกรม Command Line (CLI) สำหรับตรวจว่าเว็บไซต์หลายเว็บยังทำงานปกติหรือไม่ โดยตรวจพร้อมกันหลายเว็บด้วย Goroutine และ Channel</p>
+<p>เครื่องมือแบบนี้มีอยู่ในงานจริงแทบทุกทีม เช่น ใช้ตรวจ Service หลัง Deploy ใช้ใน Pipeline ของ CI เพื่อให้ Build ล้มเมื่อมี Endpoint ล่ม หรือใช้ตั้งเวลาให้รันทุก 5 นาทีแล้วส่งผลไปยังระบบแจ้งเตือน ท้ายส่วนมี Cheat Sheet สำหรับเปิดดูระหว่างทำงาน คำถามสัมภาษณ์งาน 5 ข้อพร้อมแนวคำตอบ และแหล่งเรียนต่อ</p>
+
+<h3 id="s6-4-project">Mini Project: Concurrent Website Health Checker (gohealth)</h3>
+<h4>เป้าหมายของโปรเจกต์</h4>
+<p>สร้าง CLI ชื่อ <code>gohealth</code> ที่โฟลเดอร์ <code>~/projects/gohealth</code> เป็น Module แยกชื่อ <code>github.com/somchai/gohealth</code> (เปลี่ยน <code>somchai</code> เป็นชื่อบัญชี GitHub ของคุณได้) โปรแกรมรับรายการ URL จากไฟล์หรือจาก Argument แล้วส่ง <code>GET</code> ไปยังทุก URL พร้อมกันผ่าน Worker Pool ที่จำกัดจำนวน Worker ไว้ จากนั้นรายงานผลเป็นตาราง JSON หรือ CSV และจบด้วย Exit Code ที่ CI อ่านเข้าใจ</p>
+<p>โปรเจกต์นี้ใช้ <strong>Standard Library ล้วน</strong> ไม่มี Dependency ภายนอกแม้แต่ตัวเดียว ไฟล์ <code>go.sum</code> จึงไม่ถูกสร้างขึ้น เหตุผลคือ Go มีทุกอย่างที่ต้องใช้อยู่ในตัวแล้ว ตั้งแต่ <code>net/http</code>, <code>context</code>, <code>sync</code> ไปจนถึง <code>encoding/json</code> และ <code>log/slog</code> การไม่มี Dependency ทำให้ Build ได้ทุกที่ ตรวจความปลอดภัยง่าย และผู้สัมภาษณ์เห็นชัดว่าคุณเข้าใจภาษาเอง ไม่ได้พึ่ง Library</p>
+<p>หัวใจของโปรเจกต์มี 5 ข้อ</p>
+<ol>
+  <li><strong>Concurrency ที่ควบคุมได้:</strong> ไม่ได้เปิด Goroutine หนึ่งตัวต่อหนึ่ง URL แบบไม่จำกัด แต่ใช้ Worker Pool ขนาด <code>-workers</code> เพื่อไม่ให้ยิง Request ใส่ปลายทางมากเกินไป</li>
+  <li><strong>ทุก Request มี Timeout:</strong> ใช้ <code>context.WithTimeout</code> ต่อหนึ่ง Request และผูกทั้งหมดไว้กับ context หลักที่สร้างจาก <code>signal.NotifyContext</code> กด <kbd>Ctrl</kbd>+<kbd>C</kbd> เมื่อไรทุกอย่างหยุดทันที</li>
+  <li><strong>Retry อย่างมีเหตุผล:</strong> ลองซ้ำเฉพาะ Network Error และ 5xx ซึ่งเป็นปัญหาชั่วคราว ไม่ลองซ้ำ 4xx เพราะลองกี่ครั้งก็ได้ผลเดิม และรอนานขึ้นทีละรอบ (Backoff)</li>
+  <li><strong>stdout สะอาด:</strong> ผลลัพธ์ออก stdout ส่วน Log ออก stderr จึงส่งต่อด้วย <code>|</code> ไปให้ <code>jq</code> หรือโปรแกรมอื่นได้ทันที</li>
+  <li><strong>ทดสอบได้โดยไม่ต้องมีอินเทอร์เน็ต:</strong> Test ทุกตัวใช้ <code>httptest.NewServer</code> จำลอง Server ที่ตอบ 200, 404, 500, 503 หรือตอบช้า และผ่าน <code>go test -race</code></li>
+</ol>
+
+<div class="callout sec"><span class="c-label sec">Security</span><p>ใช้ gohealth ตรวจเฉพาะเว็บที่คุณเป็นเจ้าของ หรือได้รับอนุญาตให้ทดสอบเท่านั้น การยิง Request จำนวนมากใส่ระบบของคนอื่นโดยไม่ได้รับอนุญาตอาจเข้าข่ายความผิดตาม พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์ และอาจทำให้ระบบนั้นช้าหรือล่มได้ ตั้ง <code>-workers</code> และ <code>-retries</code> ให้ต่ำเสมอเมื่อตรวจระบบจริง ในบทเรียนนี้เราทดสอบกับ Server ในเครื่องตัวเอง (<code>127.0.0.1</code>) และใช้ <code>https://go.dev</code> กับ <code>https://example.com</code> เป็นเพียงตัวอย่างในไฟล์เท่านั้น</p></div>
+
+<h4>ความสามารถของโปรแกรม (Features)</h4>
+<div class="tbl wide"><table class="explain">
+<thead><tr><th>Feature</th><th>รายละเอียด</th><th>เรียนมาจาก</th></tr></thead>
+<tbody>
+<tr><td class="nw">Flag</td><td><code>gohealth [flags] [url ...]</code> รองรับ <code>-file</code>, <code>-workers 5</code> (1..100), <code>-timeout 3s</code>, <code>-retries 2</code> (0..10), <code>-format table|json|csv</code>, <code>-expect-max 399</code>, <code>-verbose</code>, <code>-version</code></td><td>แนวคิดที่ 9 (flag)</td></tr>
+<tr><td class="nw">อ่านไฟล์ URL</td><td>หนึ่ง URL ต่อหนึ่งบรรทัด ข้ามบรรทัดว่างและบรรทัดที่ขึ้นต้นด้วย <code>#</code> ถ้า URL ผิดรูปแบบจะบอกเลขบรรทัด</td><td>แนวคิดที่ 9 (bufio.Scanner), แนวคิดที่ 3 (error wrapping)</td></tr>
+<tr><td class="nw">ตรวจ URL</td><td>ใช้ <code>net/url</code> ยอมรับเฉพาะ <code>http</code> และ <code>https</code> ที่มี Host</td><td>แนวคิดที่ 3 (Sentinel Error)</td></tr>
+<tr><td class="nw">Worker Pool</td><td>Channel <code>jobs</code> ส่งงาน <code>{index, url}</code> ให้ N Worker ผลลัพธ์เก็บตาม index จึงเรียงตรงกับลำดับ input เสมอ ใช้ <code>sync.WaitGroup</code> กับ <code>wg.Go</code></td><td>แนวคิดที่ 10–11</td></tr>
+<tr><td class="nw">Timeout</td><td><code>context.WithTimeout</code> ต่อหนึ่ง Request แตกออกมาจาก context หลักของ <code>signal.NotifyContext</code></td><td>แนวคิดที่ 11 (context)</td></tr>
+<tr><td class="nw">Retry + Backoff</td><td>ลองซ้ำเฉพาะ Network Error และ 5xx รอ 200ms × รอบที่ และหยุดทันทีถ้า context ถูกยกเลิก</td><td>แนวคิดที่ 12 (Client, Retry)</td></tr>
+<tr><td class="nw">HTTP Client</td><td><code>http.Client</code> ตัวเดียวใช้ร่วมกันทุก Worker ตั้ง <code>Timeout</code> สำรอง ส่ง <code>User-Agent: gohealth/1.0</code> อ่าน Body ทิ้งแล้วปิดทุกครั้ง</td><td>แนวคิดที่ 12</td></tr>
+<tr><td class="nw">Output</td><td>ตาราง (<code>text/tabwriter</code>) พร้อมบรรทัดสรุป, JSON (<code>json.MarshalIndent</code>), CSV (<code>encoding/csv</code>)</td><td>แนวคิดที่ 9</td></tr>
+<tr><td class="nw">Logging</td><td><code>log/slog</code> TextHandler ไปที่ stderr ระดับ INFO และ DEBUG เมื่อใช้ <code>-verbose</code></td><td>แนวคิดที่ 9</td></tr>
+<tr><td class="nw">Exit Code</td><td><code>0</code> ทุก URL ปกติ, <code>1</code> มีอย่างน้อยหนึ่ง URL ล่ม, <code>2</code> ใช้คำสั่งผิดหรือ config ผิด</td><td>แนวคิดที่ 9</td></tr>
+<tr><td class="nw">Test</td><td>Table-driven Test กับ <code>httptest.NewServer</code> ครอบคลุม 200, 404, 500 แล้ว 200, 503 ตลอด, ตอบช้าจน Timeout, Connection Refused, context ถูกยกเลิก, ลำดับผลลัพธ์ และ Test ของ report ที่เขียนลง <code>bytes.Buffer</code></td><td>แนวคิดที่ 8, 12</td></tr>
+<tr><td class="nw">Release</td><td>Build พร้อม <code>-ldflags "-X main.version=v1.0.0"</code>, Cross-compile ไป Windows และ macOS, GitHub Actions รัน gofmt, go vet และ go test -race</td><td>แนวคิดที่ 1, 12</td></tr>
+</tbody>
+</table></div>
+
+<h4>เครื่องมือและเวอร์ชันที่ใช้</h4>
+<ul>
+  <li><strong>Go 1.27.2</strong> (ไฟล์ <code>go.mod</code> มีบรรทัด <code>go 1.27.2</code>) ติดตั้งจาก Tarball ของ go.dev ตามที่ทำใน Part 2</li>
+  <li><strong>gcc</strong> จาก apt (<code>sudo apt install -y gcc</code>) จำเป็นสำหรับ <code>go test -race</code></li>
+  <li><strong>Git 2.43.0</strong> และบัญชี GitHub สำหรับขั้นตอนสุดท้าย</li>
+  <li>Python 3.12 ที่มากับ Ubuntu 24.04 ใช้เปิด Server ทดสอบด้วย <code>python3 -m http.server</code> เท่านั้น</li>
+  <li>เครื่องมือเสริม (ไม่บังคับ): staticcheck v0.8.2, golangci-lint v2.15.0, govulncheck v1.9.0</li>
+</ul>
+
+<h4>ภาพรวมการทำงาน (Architecture)</h4>
+<p>ดูแผนภาพนี้ก่อนเขียนโค้ด จะเข้าใจว่าข้อมูลไหลผ่านส่วนไหนบ้าง</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Architecture · gohealth"><code class="language-plaintext">  urls.txt / argument
+          │
+          ▼
+  main.go ── flag.Parse ── ตรวจค่า flag ── loadURLs (checker.ParseTargets)
+          │                                   │ ผิด → exit 2
+          ▼
+  signal.NotifyContext (Ctrl+C = ยกเลิกทุกอย่าง)
+          │
+          ▼
+  checker.Run ── jobs channel ──┬─► worker 0 ─► Check ─► once (ctx + timeout) ─► HTTP GET
+                                ├─► worker 1 ─► Check ─► Retry + Backoff เมื่อ 5xx / network error
+                                └─► worker N ─► Check ─► results[index] = Result
+          │ wg.Wait()
+          ▼
+  []Result (เรียงตาม input) ── report.Write ─► stdout (table | json | csv)
+          │
+          └─ report.Summarize ── down &gt; 0 ? exit 1 : exit 0
+  Log ทั้งหมด (slog) ─► stderr</code></pre>
+
+<h4>โครงสร้างโฟลเดอร์สุดท้าย</h4>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Plaintext · โครงสร้างโปรเจกต์"><code class="language-plaintext">gohealth/
+├── go.mod                      # module github.com/somchai/gohealth, go 1.27.2
+├── main.go                     # flag, อ่าน URL, signal, เรียก checker และ report, exit code
+├── internal/
+│   ├── checker/
+│   │   ├── checker.go          # Result, Config, Worker Pool, Retry, Timeout, ParseTargets
+│   │   └── checker_test.go     # Table-driven Test ด้วย httptest.NewServer
+│   └── report/
+│       ├── report.go           # table / json / csv และ Summarize
+│       └── report_test.go      # Test ที่เขียนลง bytes.Buffer
+├── testdata/
+│   └── urls.txt                # ข้อมูลตายตัวสำหรับ Test (go build ข้ามโฟลเดอร์นี้)
+├── urls.txt                    # ตัวอย่างไฟล์รายการ URL
+├── .github/
+│   └── workflows/
+│       └── ci.yml              # GitHub Actions: gofmt, go vet, go test -race
+├── .gitignore                  # bin/, *.exe, cover.out
+└── README.md</code></pre>
+<p>โฟลเดอร์ <code>internal/</code> ทำให้ Package ข้างในถูก import ได้เฉพาะโค้ดใน Module นี้ (เรียนในแนวคิดที่ 6) ส่วนชื่อ <code>testdata</code> เป็นชื่อพิเศษที่คำสั่ง <code>go</code> ข้ามเสมอ จึงเหมาะกับไฟล์ข้อมูลของ Test</p>
+
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>โปรเจกต์นี้ทดสอบจริงด้วย Go 1.27.2 แล้ว ทั้ง <code>gofmt -l</code>, <code>go vet ./...</code> และ <code>go test -race -cover ./...</code> ผ่านทั้งหมด ผลลัพธ์ที่เห็นในแต่ละขั้นคัดลอกมาจากการรันจริง ค่าที่ขึ้นกับเครื่อง เช่น เวลาใน Log, Latency และขนาดไฟล์ จะต่างจากเครื่องของคุณ ซึ่งเป็นเรื่องปกติ</p></div>
+<h4>ขั้นตอนการสร้าง</h4>
+<p>ทำตามทีละขั้นตามลำดับ ทุกขั้นมีโค้ดครบทั้งไฟล์ คัดลอกไปวางได้เลย แต่แนะนำให้พิมพ์เองอย่างน้อยหนึ่งรอบ เพราะจะจำรูปแบบของภาษาได้เร็วกว่ามาก</p>
+<ol class="proj-steps">
+<li>
+<h4>Step 1: สร้าง Module และไฟล์ตั้งต้น</h4>
+<p>โปรเจกต์นี้เป็น Module ใหม่ แยกจาก <code>~/projects/go-lab</code> ที่ใช้ฝึกใน Part 1–3 เพราะเราจะ push ขึ้น GitHub เป็น Repository ของตัวเอง ชื่อ Module ตั้งให้ตรงกับที่อยู่บน GitHub (<code>github.com/ชื่อบัญชี/gohealth</code>) เพื่อให้คนอื่นติดตั้งด้วย <code>go install</code> ได้ในอนาคต</p>
+<p>ก่อนเริ่ม ตรวจว่า <code>go</code> เป็นเวอร์ชัน 1.27.2 และติดตั้ง <code>gcc</code> ไว้แล้ว เพราะ Race Detector ต้องใช้ cgo</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ติดตั้ง gcc (ทำครั้งเดียว ถ้าเคยติดตั้งใน Part 2 แล้วข้ามได้)
+sudo apt update &amp;&amp; sudo apt install -y gcc</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างโฟลเดอร์โปรเจกต์และเข้าไปข้างใน
+mkdir -p ~/projects/gohealth &amp;&amp; cd ~/projects/gohealth
+
+# ตรวจเวอร์ชัน Go
+go version
+
+# สร้าง Module (เปลี่ยน somchai เป็นชื่อบัญชี GitHub ของคุณ)
+go mod init github.com/somchai/gohealth
+cat go.mod
+
+# สร้างโฟลเดอร์ย่อยทั้งหมดในครั้งเดียว
+mkdir -p internal/checker internal/report testdata .github/workflows</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>go version go1.27.2 linux/amd64
+go: creating new go.mod: module github.com/somchai/gohealth
+go: to add module requirements and sums:
+	go mod tidy
+module github.com/somchai/gohealth
+
+go 1.27.2</code></pre>
+<p>ข้อความ <code>go mod tidy</code> เป็นคำแนะนำทั่วไป ตอนนี้ยังไม่ต้องรัน เพราะเราไม่มี Dependency ภายนอก</p>
+<p>ต่อไปสร้างไฟล์ <code>.gitignore</code> เพื่อไม่ให้ไฟล์ Binary และไฟล์ Coverage ถูก commit ขึ้น GitHub</p>
+<pre class="code" data-env="file" data-label="Plaintext · .gitignore"><code class="language-plaintext"># ไฟล์ Binary ที่ได้จาก go build
+bin/
+*.exe
+
+# ไฟล์ผลลัพธ์ Coverage
+cover.out</code></pre>
+<p>สร้างไฟล์รายการ URL ตัวอย่าง <code>urls.txt</code> ไว้ที่รากของโปรเจกต์ ไฟล์นี้ใช้แสดงใน README ว่ารูปแบบไฟล์เป็นอย่างไร</p>
+<pre class="code" data-env="file" data-label="Plaintext · urls.txt"><code class="language-plaintext"># รายการเว็บที่จะตรวจ
+https://go.dev
+
+https://example.com</code></pre>
+<p>และไฟล์ <code>testdata/urls.txt</code> สำหรับ Test โดยตั้งใจใส่ช่องว่างหน้าและหลัง URL บรรทัดหนึ่ง เพื่อทดสอบว่าโปรแกรมตัดช่องว่างออกจริง</p>
+<pre class="code" data-env="file" data-label="Plaintext · testdata/urls.txt"><code class="language-plaintext"># รายการเว็บที่จะตรวจ (ใช้ใน Test)
+https://go.dev
+
+   https://example.com
+# Service ในเครื่อง
+http://127.0.0.1:8080/health</code></pre>
+<p>สุดท้ายเริ่ม Git Repository ไว้ตั้งแต่ตอนนี้ จะได้ commit ทีละขั้นได้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gohealth
+# สร้าง Repository โดยตั้งชื่อ Branch หลักเป็น main
+git init -b main
+git add .
+git commit -m "chore: init module and sample url lists"</code></pre>
+<div class="callout"><span class="c-label tip">Tip</span><p>commit ทุกครั้งที่จบหนึ่ง Step ประวัติ commit ที่เป็นขั้นเป็นตอนจะช่วยให้ผู้สัมภาษณ์เห็นวิธีคิดของคุณ และถ้าพังเมื่อไรก็ย้อนกลับได้ด้วย <code>git restore</code> หรือ <code>git switch</code> ทบทวนคำสั่ง Git ได้ที่ <a data-t="17"></a></p></div>
+</li>
+
+<li>
+<h4>Step 2: เขียนหัวใจของโปรแกรม internal/checker/checker.go</h4>
+<p>ไฟล์นี้ใหญ่ที่สุดในโปรเจกต์ และรวมเกือบทุกแนวคิดใน Part 2 ไว้ด้วยกัน มีหน้าที่ 4 อย่าง</p>
+<ol>
+  <li>กำหนด <code>Result</code> และ <code>Config</code></li>
+  <li><code>Run</code> แจกงานให้ Worker Pool และเก็บผลตามลำดับเดิม</li>
+  <li><code>Check</code> ตรวจหนึ่ง URL พร้อม Retry และ <code>once</code> ส่งหนึ่ง Request ภายใต้ Timeout</li>
+  <li><code>ValidateURL</code> และ <code>ParseTargets</code> อ่านและตรวจรายการ URL</li>
+</ol>
+<pre class="code" data-env="file" data-label="Go · internal/checker/checker.go"><code class="language-go">// Package checker ตรวจสถานะเว็บไซต์หลายเว็บพร้อมกันด้วย Worker Pool
+package checker
+
+import (
+	"bufio"
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"log/slog"
+	"net"
+	"net/http"
+	"net/url"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+)
+
+// ErrInvalidURL ใช้กับ URL ที่รูปแบบไม่ถูกต้อง (ตรวจด้วย errors.Is ได้)
+var ErrInvalidURL = errors.New("invalid url")
+
+// Result คือผลการตรวจ URL หนึ่งรายการ (Struct Tag กำหนดชื่อ field ใน JSON)
+type Result struct {
+	URL        string `json:"url"`
+	Up         bool   `json:"up"`
+	StatusCode int    `json:"status_code"`
+	LatencyMS  int64  `json:"latency_ms"`
+	Attempts   int    `json:"attempts"`
+	Error      string `json:"error,omitempty"`
+}
+
+// Config เก็บค่าที่ใช้ควบคุมการตรวจ
+type Config struct {
+	Workers   int           // จำนวน Worker ที่ทำงานพร้อมกัน
+	Timeout   time.Duration // Timeout ต่อหนึ่ง Request
+	Retries   int           // จำนวนครั้งที่ลองซ้ำเพิ่ม (ไม่นับครั้งแรก)
+	ExpectMax int           // Status Code ที่ไม่เกินค่านี้ถือว่า UP
+	Backoff   time.Duration // เวลารอพื้นฐานก่อน Retry (คูณด้วยรอบที่)
+	UserAgent string
+	Logger    *slog.Logger
+}
+
+// Checker ตรวจ URL ตาม Config โดยใช้ http.Client ตัวเดียวร่วมกันทุก Worker
+type Checker struct {
+	cfg    Config
+	client *http.Client
+}
+
+// New สร้าง Checker และเติมค่าเริ่มต้นให้ field ที่ยังเป็น Zero Value
+func New(cfg Config) *Checker {
+	if cfg.Workers &lt; 1 {
+		cfg.Workers = 1
+	}
+	if cfg.Timeout &lt;= 0 {
+		cfg.Timeout = 3 * time.Second
+	}
+	if cfg.ExpectMax == 0 {
+		cfg.ExpectMax = 399
+	}
+	if cfg.Backoff &lt;= 0 {
+		cfg.Backoff = 200 * time.Millisecond
+	}
+	if cfg.UserAgent == "" {
+		cfg.UserAgent = "gohealth/1.0"
+	}
+	if cfg.Logger == nil {
+		// ถ้าไม่ส่ง Logger มา ให้ทิ้ง Log ทั้งหมด (สะดวกตอนเขียน Test)
+		cfg.Logger = slog.New(slog.DiscardHandler)
+	}
+	return &amp;Checker{
+		cfg: cfg,
+		// Timeout ของ Client ยาวกว่า context 1 วินาที เป็นตาข่ายกันพลาดชั้นที่สอง
+		client: &amp;http.Client{Timeout: cfg.Timeout + time.Second},
+	}
+}
+
+// Run ตรวจทุก URL ด้วย Worker Pool แล้วคืนผลเรียงตามลำดับเดิมของ input
+func (c *Checker) Run(ctx context.Context, urls []string) []Result {
+	type job struct {
+		index int
+		url   string
+	}
+	jobs := make(chan job)
+	results := make([]Result, len(urls))
+
+	workers := min(c.cfg.Workers, len(urls))
+	var wg sync.WaitGroup
+	for w := range workers {
+		// wg.Go (Go 1.25+) เรียก Add(1) และ Done() ให้อัตโนมัติ
+		wg.Go(func() {
+			for j := range jobs {
+				c.cfg.Logger.Debug("checking", "worker", w, "url", j.url)
+				// แต่ละงานเขียนลงช่อง index ของตัวเอง จึงไม่เกิด Data Race
+				results[j.index] = c.Check(ctx, j.url)
+			}
+		})
+	}
+
+	for i, u := range urls {
+		jobs &lt;- job{index: i, url: u}
+	}
+	close(jobs) // ผู้ส่งเป็นคนปิด Channel เพื่อบอก Worker ว่าหมดงานแล้ว
+	wg.Wait()
+	return results
+}
+
+// Check ตรวจ URL เดียว พร้อม Retry เมื่อเจอ Network Error หรือ 5xx
+func (c *Checker) Check(ctx context.Context, rawURL string) Result {
+	res := Result{URL: rawURL}
+	for attempt := 1; ; attempt++ {
+		res.Attempts = attempt
+		code, latency, err := c.once(ctx, rawURL)
+		res.StatusCode = code
+		res.LatencyMS = latency.Milliseconds()
+
+		if !retryable(code, err) || attempt &gt; c.cfg.Retries || ctx.Err() != nil {
+			c.finish(&amp;res, err)
+			return res
+		}
+
+		wait := c.cfg.Backoff * time.Duration(attempt)
+		c.cfg.Logger.Debug("retrying", "url", rawURL, "attempt", attempt, "wait", wait)
+		select {
+		case &lt;-ctx.Done():
+			// ผู้ใช้กด Ctrl+C หรือ context หลักหมดเวลา: หยุดทันที ไม่รอ Backoff
+			c.finish(&amp;res, ctx.Err())
+			return res
+		case &lt;-time.After(wait):
+		}
+	}
+}
+
+// once ส่ง GET หนึ่งครั้งภายใต้ Timeout ของตัวเอง
+func (c *Checker) once(ctx context.Context, rawURL string) (int, time.Duration, error) {
+	ctx, cancel := context.WithTimeout(ctx, c.cfg.Timeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+	if err != nil {
+		return 0, 0, err
+	}
+	req.Header.Set("User-Agent", c.cfg.UserAgent)
+
+	start := time.Now()
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return 0, time.Since(start), err
+	}
+	defer resp.Body.Close()
+	// อ่าน Body ทิ้ง (ไม่เกิน 1 MB) เพื่อให้ Connection กลับไปใช้ซ้ำได้
+	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 1&lt;&lt;20))
+	return resp.StatusCode, time.Since(start), nil
+}
+
+// finish สรุปว่า UP หรือ DOWN และเขียนข้อความ Error ที่อ่านง่าย
+func (c *Checker) finish(res *Result, err error) {
+	switch {
+	case err != nil:
+		res.Up = false
+		res.StatusCode = 0
+		res.Error = describe(err, c.cfg.Timeout)
+	case res.StatusCode &lt;= c.cfg.ExpectMax:
+		res.Up = true
+		res.Error = ""
+	default:
+		res.Up = false
+		res.Error = fmt.Sprintf("HTTP %d %s", res.StatusCode, http.StatusText(res.StatusCode))
+	}
+}
+
+// retryable ลองซ้ำเฉพาะ Network Error และ 5xx เท่านั้น (4xx ลองซ้ำก็ไม่หาย)
+func retryable(code int, err error) bool {
+	return err != nil || code &gt;= 500
+}
+
+// describe แปลง error ยาว ๆ จาก net/http ให้เหลือข้อความสั้นที่คนอ่านเข้าใจ
+func describe(err error, timeout time.Duration) string {
+	var dnsErr *net.DNSError
+	var netErr net.Error
+	switch {
+	case errors.Is(err, context.DeadlineExceeded):
+		return fmt.Sprintf("timeout after %s", timeout)
+	case errors.Is(err, context.Canceled):
+		return "canceled"
+	case errors.As(err, &amp;dnsErr):
+		return "dns lookup failed: " + dnsErr.Err
+	case errors.Is(err, syscall.ECONNREFUSED):
+		return "connection refused"
+	case errors.As(err, &amp;netErr) &amp;&amp; netErr.Timeout():
+		return fmt.Sprintf("timeout after %s", timeout)
+	default:
+		return err.Error()
+	}
+}
+
+// ValidateURL ยอมรับเฉพาะ http/https ที่มี host
+func ValidateURL(s string) error {
+	u, err := url.Parse(s)
+	if err != nil {
+		return fmt.Errorf("%w %q: %v", ErrInvalidURL, s, err)
+	}
+	if u.Scheme != "http" &amp;&amp; u.Scheme != "https" {
+		return fmt.Errorf("%w %q: scheme must be http or https", ErrInvalidURL, s)
+	}
+	if u.Host == "" {
+		return fmt.Errorf("%w %q: missing host", ErrInvalidURL, s)
+	}
+	return nil
+}
+
+// ParseTargets อ่าน URL ทีละบรรทัด ข้ามบรรทัดว่างและบรรทัดที่ขึ้นต้นด้วย #
+func ParseTargets(r io.Reader) ([]string, error) {
+	var urls []string
+	sc := bufio.NewScanner(r)
+	line := 0
+	for sc.Scan() {
+		line++
+		s := strings.TrimSpace(sc.Text())
+		if s == "" || strings.HasPrefix(s, "#") {
+			continue
+		}
+		if err := ValidateURL(s); err != nil {
+			return nil, fmt.Errorf("line %d: %w", line, err)
+		}
+		urls = append(urls, s)
+	}
+	if err := sc.Err(); err != nil {
+		return nil, err
+	}
+	return urls, nil
+}</code></pre>
+<p>ตรวจว่า Package นี้ Compile ผ่านก่อนไปขั้นต่อไป คำสั่ง <code>go build</code> กับ Package ที่ไม่ใช่ <code>main</code> จะไม่สร้างไฟล์อะไรออกมา ถ้าไม่มีข้อความแปลว่าผ่าน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gohealth
+go build ./internal/checker &amp;&amp; echo "checker OK"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>checker OK</code></pre>
+<h5>อธิบายส่วนสำคัญ</h5>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>var ErrInvalidURL = errors.New(...)</code></td><td>Sentinel Error ที่ผู้เรียกตรวจด้วย <code>errors.Is(err, checker.ErrInvalidURL)</code> ได้ แม้ error จะถูกห่อด้วย <code>%w</code> หลายชั้น</td></tr>
+<tr><td><code>Result</code> กับ Struct Tag</td><td>กำหนดชื่อ key ใน JSON เป็น snake_case และ <code>omitempty</code> ทำให้รายการที่ UP ไม่มี key <code>error</code> ทุก field ขึ้นต้นด้วยตัวใหญ่ ถ้าเป็นตัวเล็ก <code>encoding/json</code> จะมองไม่เห็น</td></tr>
+<tr><td><code>func New(cfg Config) *Checker</code></td><td>Constructor ที่เติมค่าเริ่มต้นแทน Zero Value เช่น Workers เป็น 0 จะกลายเป็น 1 ทำให้ Test สร้าง Checker ด้วยค่าเท่าที่สนใจได้</td></tr>
+<tr><td><code>slog.New(slog.DiscardHandler)</code></td><td>Logger ที่ไม่พิมพ์อะไร (มีตั้งแต่ Go 1.24) ทำให้โค้ดเรียก <code>c.cfg.Logger.Debug</code> ได้เสมอโดยไม่ต้องเช็ก nil</td></tr>
+<tr><td><code>&amp;http.Client{Timeout: cfg.Timeout + time.Second}</code></td><td>Client ตัวเดียวใช้ร่วมกันได้อย่างปลอดภัยจากหลาย Goroutine และช่วยใช้ Connection ซ้ำ ค่า Timeout นี้เป็นตาข่ายชั้นที่สอง เผื่อมีจุดไหนลืมใส่ context</td></tr>
+<tr><td><code>jobs := make(chan job)</code></td><td>Unbuffered Channel สำหรับแจกงาน ผู้ส่งจะรอจนมี Worker ว่างมารับ จึงไม่มีงานค้างในหน่วยความจำ</td></tr>
+<tr><td><code>results := make([]Result, len(urls))</code></td><td>จองช่องไว้เท่าจำนวน URL ล่วงหน้า แต่ละงานเขียนลงช่อง <code>index</code> ของตัวเอง สอง Goroutine ไม่เคยเขียนช่องเดียวกัน จึงไม่ต้องใช้ Mutex และผลยังเรียงตาม input</td></tr>
+<tr><td><code>min(c.cfg.Workers, len(urls))</code></td><td>ฟังก์ชัน built-in <code>min</code> (Go 1.21+) ถ้ามี 2 URL ก็ไม่ต้องเปิด 5 Worker</td></tr>
+<tr><td><code>for w := range workers</code> และ <code>wg.Go(func() {...})</code></td><td>Range over int (Go 1.22+) วนรอบตามจำนวน Worker ส่วน <code>wg.Go</code> (Go 1.25+) เรียก <code>Add(1)</code> ก่อนเริ่ม Goroutine และ <code>Done()</code> เมื่อจบให้เอง ตัวแปร <code>w</code> เป็นของแต่ละรอบ (Go 1.22+) จึงอ้างถึงใน Closure ได้ปลอดภัย</td></tr>
+<tr><td><code>close(jobs)</code> แล้ว <code>wg.Wait()</code></td><td>ปิด Channel เพื่อให้ <code>for j := range jobs</code> ของทุก Worker จบ แล้วรอจนทุก Worker ออกจาก Loop ก่อนคืนผล</td></tr>
+<tr><td><code>for attempt := 1; ; attempt++</code></td><td>Loop ที่ไม่มีเงื่อนไขหยุดในหัว Loop ออกด้วย <code>return</code> เมื่อไม่ควรลองซ้ำ ลองครบแล้ว หรือ context ถูกยกเลิก</td></tr>
+<tr><td><code>select { case &lt;-ctx.Done(): ... case &lt;-time.After(wait): }</code></td><td>รอ Backoff แบบยกเลิกได้ ถ้าใช้ <code>time.Sleep(wait)</code> ตรง ๆ กด Ctrl+C แล้วโปรแกรมจะยังค้างจนครบเวลารอ</td></tr>
+<tr><td><code>context.WithTimeout(ctx, c.cfg.Timeout)</code> และ <code>defer cancel()</code></td><td>Timeout ต่อหนึ่ง Request ที่แตกจาก context หลัก ถ้า context หลักถูกยกเลิก ตัวลูกก็ถูกยกเลิกด้วย <code>defer cancel()</code> คืนทรัพยากรทันทีที่ฟังก์ชันจบ (ถ้าลืม <code>go vet</code> จะเตือน)</td></tr>
+<tr><td><code>io.Copy(io.Discard, io.LimitReader(resp.Body, 1&lt;&lt;20))</code></td><td>อ่าน Body ทิ้งไม่เกิน 1 MB ก่อนปิด ทำให้ Transport นำ Connection กลับมาใช้ซ้ำได้ และกัน Server ที่ส่ง Body ใหญ่ผิดปกติ</td></tr>
+<tr><td><code>retryable</code></td><td>Network Error และ 5xx เป็นปัญหาชั่วคราว ลองใหม่อาจหาย ส่วน 4xx เช่น 404 เป็นปัญหาถาวร ลองซ้ำก็เปลืองเวลาและสร้างภาระให้ปลายทางเปล่า ๆ</td></tr>
+<tr><td><code>describe</code></td><td>ใช้ <code>errors.Is</code> และ <code>errors.As</code> แปลง error ยาวอย่าง <code>Get "http://...": dial tcp 127.0.0.1:9: connect: connection refused</code> ให้เหลือ <code>connection refused</code> ลำดับ case สำคัญ เพราะ Timeout ต้องถูกจับก่อน case ทั่วไป</td></tr>
+<tr><td><code>fmt.Errorf("line %d: %w", line, err)</code></td><td>เพิ่มเลขบรรทัดเข้าไปใน error โดยยังรักษา error เดิมไว้ข้างใน ผู้ใช้เห็นทันทีว่าผิดบรรทัดไหน</td></tr>
+</tbody>
+</table></div>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>อย่าเขียนผลด้วย <code>results = append(results, r)</code> จากหลาย Goroutine พร้อมกัน นั่นคือ Data Race แบบคลาสสิก ผลอาจหายหรือโปรแกรม panic และลำดับจะสลับตามว่าใครเสร็จก่อน การจองช่องล่วงหน้าแล้วเขียนตาม index แก้ได้ทั้งสองปัญหาในคราวเดียว</p></div>
+</li>
+<li>
+<h4>Step 3: เขียนส่วนรายงานผล internal/report/report.go</h4>
+<p>แยกการแสดงผลออกจากการตรวจ เพราะเป็นคนละหน้าที่กัน ถ้าวันหนึ่งอยากเพิ่มรูปแบบ Markdown หรือส่งผลเข้า Slack ก็แก้แค่ Package นี้ ไม่ต้องแตะ Worker Pool เลย</p>
+<p>ฟังก์ชัน <code>Write</code> รับ <code>io.Writer</code> ไม่ใช่ <code>*os.File</code> นี่คือหลัก "Accept interfaces, return structs" จากแนวคิดที่ 6 ตอนใช้งานจริงเราส่ง <code>os.Stdout</code> เข้าไป ตอนเขียน Test เราส่ง <code>bytes.Buffer</code> แล้วตรวจข้อความที่ได้ได้ทันที</p>
+<pre class="code" data-env="file" data-label="Go · internal/report/report.go"><code class="language-go">// Package report แปลงผลการตรวจเป็น table, JSON หรือ CSV
+package report
+
+import (
+	"encoding/csv"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"slices"
+	"strconv"
+	"text/tabwriter"
+
+	"github.com/somchai/gohealth/internal/checker"
+)
+
+// ErrUnknownFormat คืนเมื่อผู้ใช้ขอรูปแบบที่ไม่รองรับ
+var ErrUnknownFormat = errors.New("unknown format")
+
+// Formats คือรูปแบบที่รองรับ (ใช้ทั้งตรวจ flag และแสดงใน Usage)
+var Formats = []string{"table", "json", "csv"}
+
+// Summary นับจำนวน URL ที่ UP และ DOWN
+type Summary struct {
+	Total, Up, Down int
+}
+
+// ValidFormat ตอบว่า format นี้รองรับหรือไม่
+func ValidFormat(format string) bool {
+	return slices.Contains(Formats, format)
+}
+
+// Summarize นับผลรวมจาก Slice ของ Result
+func Summarize(results []checker.Result) Summary {
+	s := Summary{Total: len(results)}
+	for _, r := range results {
+		if r.Up {
+			s.Up++
+		} else {
+			s.Down++
+		}
+	}
+	return s
+}
+
+// Write เขียนผลลง w ตาม format ที่เลือก (w เป็น os.Stdout หรือ bytes.Buffer ก็ได้)
+func Write(w io.Writer, format string, results []checker.Result) error {
+	switch format {
+	case "table":
+		return writeTable(w, results)
+	case "json":
+		return writeJSON(w, results)
+	case "csv":
+		return writeCSV(w, results)
+	default:
+		return fmt.Errorf("%w: %q (use table, json or csv)", ErrUnknownFormat, format)
+	}
+}
+
+func writeTable(w io.Writer, results []checker.Result) error {
+	// minwidth=0, tabwidth=0, padding=2, padchar=' '
+	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(tw, "URL\tSTATUS\tCODE\tLATENCY\tATTEMPTS\tERROR")
+	for _, r := range results {
+		status, code, errText := "UP", strconv.Itoa(r.StatusCode), r.Error
+		if !r.Up {
+			status = "DOWN"
+		}
+		if r.StatusCode == 0 {
+			code = "-"
+		}
+		if errText == "" {
+			errText = "-"
+		}
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%dms\t%d\t%s\n",
+			r.URL, status, code, r.LatencyMS, r.Attempts, errText)
+	}
+	// ลืม Flush = ไม่มีอะไรออกมาเลย เพราะ tabwriter เก็บข้อมูลไว้คำนวณความกว้างก่อน
+	if err := tw.Flush(); err != nil {
+		return err
+	}
+	s := Summarize(results)
+	_, err := fmt.Fprintf(w, "checked %d urls: %d up, %d down\n", s.Total, s.Up, s.Down)
+	return err
+}
+
+func writeJSON(w io.Writer, results []checker.Result) error {
+	if results == nil {
+		results = []checker.Result{} // ให้ได้ [] แทน null
+	}
+	data, err := json.MarshalIndent(results, "", "  ")
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(w, "%s\n", data)
+	return err
+}
+
+func writeCSV(w io.Writer, results []checker.Result) error {
+	cw := csv.NewWriter(w)
+	if err := cw.Write([]string{"url", "up", "status_code", "latency_ms", "attempts", "error"}); err != nil {
+		return err
+	}
+	for _, r := range results {
+		row := []string{
+			r.URL,
+			strconv.FormatBool(r.Up),
+			strconv.Itoa(r.StatusCode),
+			strconv.FormatInt(r.LatencyMS, 10),
+			strconv.Itoa(r.Attempts),
+			r.Error,
+		}
+		if err := cw.Write(row); err != nil {
+			return err
+		}
+	}
+	cw.Flush()
+	return cw.Error()
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gohealth
+go build ./internal/report &amp;&amp; echo "report OK"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>report OK</code></pre>
+<h5>อธิบายส่วนสำคัญ</h5>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>import ".../internal/checker"</code></td><td>Package <code>report</code> ใช้ Type <code>checker.Result</code> ได้เพราะอยู่ใน Module เดียวกัน ทิศทางการ import เป็นทางเดียว (report → checker) ถ้า checker import report กลับด้วยจะเกิด <code>import cycle not allowed</code></td></tr>
+<tr><td><code>var Formats = []string{...}</code></td><td>แหล่งความจริงเดียวของรายชื่อรูปแบบ ทั้ง Usage ใน <code>main.go</code> และ <code>ValidFormat</code> อ่านจากที่นี่ เพิ่มรูปแบบใหม่ก็แก้จุดเดียว</td></tr>
+<tr><td><code>slices.Contains</code></td><td>ฟังก์ชันจาก Package <code>slices</code> (Go 1.21+) ที่เป็น Generic ใช้ได้กับ Slice ทุกชนิดที่ Element เป็น <code>comparable</code></td></tr>
+<tr><td><code>tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)</code></td><td>จัดคอลัมน์ให้ตรงกันโดยดูจากตัวคั่น <code>\t</code> เว้นระยะอย่างน้อย 2 ช่องระหว่างคอลัมน์ และใช้ช่องว่างแทน Tab</td></tr>
+<tr><td><code>tw.Flush()</code></td><td>tabwriter ต้องเห็นทุกบรรทัดก่อนจึงจะรู้ความกว้างของแต่ละคอลัมน์ ข้อมูลจึงค้างอยู่ใน Buffer จนกว่าจะ Flush</td></tr>
+<tr><td><code>results = []checker.Result{}</code></td><td>Slice ที่เป็น <code>nil</code> แปลงเป็น JSON ได้ <code>null</code> แต่ Slice ว่างได้ <code>[]</code> โปรแกรมที่อ่าน JSON ต่อ (เช่น <code>jq '.[]'</code>) ทำงานกับ <code>[]</code> ได้ แต่จะ Error กับ <code>null</code></td></tr>
+<tr><td><code>cw.Flush()</code> แล้ว <code>return cw.Error()</code></td><td><code>csv.Writer</code> มี Buffer เหมือนกัน และไม่คืน error จาก <code>Flush</code> โดยตรง ต้องถาม <code>cw.Error()</code> หลัง Flush เสมอ</td></tr>
+<tr><td><code>strconv.FormatBool</code>, <code>strconv.Itoa</code>, <code>strconv.FormatInt</code></td><td>CSV เป็นข้อความล้วน ทุกค่าต้องแปลงเป็น string ก่อน Go ไม่แปลงชนิดให้อัตโนมัติ</td></tr>
+</tbody>
+</table></div>
+<div class="callout"><span class="c-label tip">Tip</span><p>ค่าในตารางเป็นภาษาอังกฤษทั้งหมดโดยตั้งใจ tabwriter นับความกว้างตามจำนวนตัวอักษร แต่สระบนและวรรณยุกต์ภาษาไทยไม่กินที่บนจอ ถ้าใส่ข้อความไทยในคอลัมน์ ตารางจะดูเบี้ยว</p></div>
+</li>
+
+<li>
+<h4>Step 4: เขียนจุดเริ่มโปรแกรม main.go</h4>
+<p><code>main.go</code> ทำหน้าที่ "ประกอบชิ้นส่วน" อ่าน flag ตรวจค่า โหลด URL สร้าง Checker เรียก Report และตัดสิน Exit Code สังเกตว่าโค้ดจริงทั้งหมดอยู่ในฟังก์ชัน <code>run</code> ซึ่งคืน <code>int</code> ส่วน <code>main</code> มีแค่บรรทัดเดียว เหตุผลอยู่ในตารางอธิบายด้านล่าง</p>
+<pre class="code" data-env="file" data-label="Go · main.go"><code class="language-go">// gohealth ตรวจสถานะเว็บไซต์หลายเว็บพร้อมกัน แล้วรายงานผลเป็น table, JSON หรือ CSV
+package main
+
+import (
+	"context"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"log/slog"
+	"os"
+	"os/signal"
+	"strings"
+	"time"
+
+	"github.com/somchai/gohealth/internal/checker"
+	"github.com/somchai/gohealth/internal/report"
+)
+
+// version ถูกแทนค่าตอน build ด้วย -ldflags "-X main.version=v1.0.0"
+var version = "dev"
+
+// Exit Code ที่ CI ใช้ตัดสินผล
+const (
+	exitOK    = 0 // ทุก URL ปกติ
+	exitDown  = 1 // มีอย่างน้อยหนึ่ง URL ล่ม
+	exitUsage = 2 // ใช้คำสั่งผิดหรือ config ผิด
+)
+
+func main() {
+	// แยก logic ไปไว้ใน run เพื่อให้ main สั้น และทุก defer ใน run ทำงานก่อน os.Exit
+	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
+}
+
+func run(args []string, stdout, stderr io.Writer) int {
+	fs := flag.NewFlagSet("gohealth", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	file := fs.String("file", "", "read URLs from `path` (one per line, # for comments)")
+	workers := fs.Int("workers", 5, "number of concurrent workers (1..100)")
+	timeout := fs.Duration("timeout", 3*time.Second, "timeout per request, e.g. 500ms, 3s")
+	retries := fs.Int("retries", 2, "extra attempts on network errors and 5xx (0..10)")
+	format := fs.String("format", "table", "output format: "+strings.Join(report.Formats, "|"))
+	expectMax := fs.Int("expect-max", 399, "status codes &lt;= this value count as up")
+	verbose := fs.Bool("verbose", false, "enable debug logs on stderr")
+	showVersion := fs.Bool("version", false, "print version and exit")
+	fs.Usage = func() {
+		fmt.Fprintf(stderr, "Usage: gohealth [flags] [url ...]\n\nFlags:\n")
+		fs.PrintDefaults()
+		fmt.Fprintf(stderr, "\nExit codes: 0 all up, 1 at least one down, 2 usage error\n")
+	}
+
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return exitOK // -h หรือ -help ไม่ถือว่าผิด
+		}
+		return exitUsage
+	}
+	if *showVersion {
+		fmt.Fprintf(stdout, "gohealth %s\n", version)
+		return exitOK
+	}
+
+	// Log ไปที่ stderr เสมอ เพื่อให้ stdout มีแต่ผลลัพธ์ (ส่งต่อด้วย | หรือ &gt; ได้สะอาด)
+	level := slog.LevelInfo
+	if *verbose {
+		level = slog.LevelDebug
+	}
+	logger := slog.New(slog.NewTextHandler(stderr, &amp;slog.HandlerOptions{Level: level}))
+
+	usageErr := func(msg string, a ...any) int {
+		fmt.Fprintf(stderr, "gohealth: "+msg+"\n", a...)
+		return exitUsage
+	}
+	switch {
+	case *workers &lt; 1 || *workers &gt; 100:
+		return usageErr("-workers must be between 1 and 100, got %d", *workers)
+	case *timeout &lt;= 0:
+		return usageErr("-timeout must be positive, got %s", *timeout)
+	case *retries &lt; 0 || *retries &gt; 10:
+		return usageErr("-retries must be between 0 and 10, got %d", *retries)
+	case !report.ValidFormat(*format):
+		return usageErr("unknown -format %q (use %s)", *format, strings.Join(report.Formats, ", "))
+	}
+
+	urls, err := loadURLs(*file, fs.Args())
+	if err != nil {
+		return usageErr("%v", err)
+	}
+	if len(urls) == 0 {
+		fs.Usage()
+		return usageErr("no URLs given: use -file or pass URLs as arguments")
+	}
+
+	// Ctrl+C จะยกเลิก ctx และทุก Request ที่แตกออกมาจาก ctx นี้
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+
+	c := checker.New(checker.Config{
+		Workers:   *workers,
+		Timeout:   *timeout,
+		Retries:   *retries,
+		ExpectMax: *expectMax,
+		Logger:    logger,
+	})
+
+	logger.Info("starting", "urls", len(urls), "workers", *workers, "timeout", *timeout, "retries", *retries)
+	start := time.Now()
+	results := c.Run(ctx, urls)
+	sum := report.Summarize(results)
+	logger.Info("finished", "up", sum.Up, "down", sum.Down, "elapsed", time.Since(start).Round(time.Millisecond))
+
+	if err := report.Write(stdout, *format, results); err != nil {
+		fmt.Fprintf(stderr, "gohealth: write output: %v\n", err)
+		return exitUsage
+	}
+	if ctx.Err() != nil {
+		logger.Warn("interrupted by user")
+	}
+	if sum.Down &gt; 0 {
+		return exitDown
+	}
+	return exitOK
+}
+
+// loadURLs รวม URL จากไฟล์ (ถ้ามี) กับ URL ที่พิมพ์ต่อท้ายคำสั่ง
+func loadURLs(path string, args []string) ([]string, error) {
+	var urls []string
+	if path != "" {
+		f, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+		fromFile, err := checker.ParseTargets(f)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", path, err)
+		}
+		urls = append(urls, fromFile...)
+	}
+	for _, a := range args {
+		if err := checker.ValidateURL(a); err != nil {
+			return nil, fmt.Errorf("argument: %w", err)
+		}
+		urls = append(urls, a)
+	}
+	return urls, nil
+}</code></pre>
+<p>Build แล้วลองดูเวอร์ชันและหน้า Help ก่อน ตอนนี้ยังไม่ได้ใส่ <code>-ldflags</code> เวอร์ชันจึงเป็นค่าเริ่มต้น <code>dev</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gohealth
+go build -o bin/gohealth .
+./bin/gohealth -version
+./bin/gohealth -h
+echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>gohealth dev
+Usage: gohealth [flags] [url ...]
+
+Flags:
+  -expect-max int
+    	status codes &lt;= this value count as up (default 399)
+  -file path
+    	read URLs from path (one per line, # for comments)
+  -format string
+    	output format: table|json|csv (default "table")
+  -retries int
+    	extra attempts on network errors and 5xx (0..10) (default 2)
+  -timeout duration
+    	timeout per request, e.g. 500ms, 3s (default 3s)
+  -verbose
+    	enable debug logs on stderr
+  -version
+    	print version and exit
+  -workers int
+    	number of concurrent workers (1..100) (default 5)
+
+Exit codes: 0 all up, 1 at least one down, 2 usage error
+exit code: 0</code></pre>
+<p>สังเกตบรรทัด <code>-file path</code> คำว่า <code>path</code> มาจากเครื่องหมาย Backquote ในข้อความ Help (<code>`path`</code>) ซึ่ง <code>flag</code> นำมาใช้เป็นชื่อค่าที่ต้องใส่ ส่วน flag เรียงตามตัวอักษรเสมอ ไม่ได้เรียงตามลำดับที่ประกาศในโค้ด</p>
+<h5>อธิบายส่วนสำคัญ</h5>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>var version = "dev"</code></td><td>ต้องเป็น <code>var</code> ระดับ Package ชนิด string เท่านั้น <code>-ldflags "-X main.version=..."</code> จึงแทนค่าได้ ถ้าเป็น <code>const</code> จะแทนไม่ได้</td></tr>
+<tr><td><code>os.Exit(run(...))</code></td><td><code>os.Exit</code> จบโปรแกรมทันทีโดยไม่รัน <code>defer</code> ที่ค้างอยู่ ถ้าเรียกกลาง <code>main</code> ไฟล์ที่เปิดไว้หรือ <code>stop()</code> ของ signal จะไม่ถูกเรียก การย้ายงานไปไว้ใน <code>run</code> ทำให้ทุก defer ทำงานครบก่อน แล้วค่อย Exit</td></tr>
+<tr><td><code>run(args, stdout, stderr)</code></td><td>รับ Argument และ Writer เป็นพารามิเตอร์ ไม่อ่าน <code>os.Args</code> หรือเขียน <code>os.Stdout</code> ตรง ๆ ในอนาคตจึงเขียน Test ให้ <code>run</code> ได้ โดยส่ง <code>bytes.Buffer</code> เข้าไป</td></tr>
+<tr><td><code>flag.NewFlagSet(..., flag.ContinueOnError)</code></td><td>FlagSet ของตัวเองแทน <code>flag.CommandLine</code> เมื่อ flag ผิด <code>Parse</code> จะคืน error ให้เราเลือก Exit Code เอง (2) แทนที่จะให้ Package จบโปรแกรมให้</td></tr>
+<tr><td><code>errors.Is(err, flag.ErrHelp)</code></td><td>ผู้ใช้พิมพ์ <code>-h</code> ไม่ใช่ความผิดพลาด จึงคืน 0</td></tr>
+<tr><td><code>slog.NewTextHandler(stderr, ...)</code></td><td>Log ทุกบรรทัดไป stderr ผลลัพธ์จริงไป stdout แยกกันชัดเจน คำสั่ง <code>&gt; result.json</code> จึงได้ JSON ล้วน ไม่มี Log ปน</td></tr>
+<tr><td><code>usageErr := func(...) int</code></td><td>Closure ช่วยลดโค้ดซ้ำ พิมพ์ข้อความขึ้นต้นด้วย <code>gohealth:</code> แล้วคืน 2 ทุกครั้ง</td></tr>
+<tr><td><code>switch { case ...: }</code></td><td>Tagless switch ตรวจค่า flag ทีละเงื่อนไข อ่านง่ายกว่า <code>if</code> ซ้อนหลายชั้น และหยุดที่เงื่อนไขแรกที่ผิด</td></tr>
+<tr><td><code>signal.NotifyContext(context.Background(), os.Interrupt)</code></td><td>สร้าง context ที่ถูกยกเลิกเมื่อกด Ctrl+C ทุก Request แตกออกมาจาก ctx นี้ จึงหยุดพร้อมกันทั้งหมด และยังพิมพ์ผลเท่าที่ได้ออกมาก่อนจบ</td></tr>
+<tr><td><code>sum.Down &gt; 0</code> คืน <code>exitDown</code></td><td>CI อ่าน Exit Code ไม่ใช่ข้อความ ค่าที่ไม่ใช่ 0 ทำให้ Step ใน Pipeline ล้มทันที</td></tr>
+<tr><td><code>loadURLs</code></td><td>รวม URL จากไฟล์และจาก Argument ตรวจทุกตัวก่อนเริ่มยิง Request ถ้าตัวไหนผิดรูปแบบจะหยุดเลยด้วย Exit 2 ไม่ปล่อยให้ไปพังกลางทาง</td></tr>
+</tbody>
+</table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ตรวจ Input ทั้งหมดก่อนเริ่มงานหนัก (Fail Fast) ผู้ใช้ไม่ต้องรอ 30 วินาทีแล้วค่อยรู้ว่าพิมพ์ flag ผิด</li>
+<li>ข้อความ Error ขึ้นต้นด้วยชื่อโปรแกรม (<code>gohealth: ...</code>) เมื่อรันหลายคำสั่งต่อกันใน Script จะรู้ทันทีว่าข้อความมาจากโปรแกรมไหน</li>
+<li>Exit Code เป็นสัญญาที่ต้องรักษา เขียนไว้ทั้งใน Usage และ README เพราะคนอื่นจะเขียน Script ที่พึ่งพาค่านี้</li>
+</ul></div>
+</li>
+<li>
+<h4>Step 5: เขียน Test ด้วย httptest และ Table-driven Test</h4>
+<p>ขั้นนี้คือสิ่งที่ทำให้โปรเจกต์ดูเป็นงานมืออาชีพ เราจะทดสอบทุกกรณีสำคัญโดย<strong>ไม่ต้องใช้อินเทอร์เน็ตเลย</strong> เครื่องมือหลักคือ <code>httptest.NewServer</code> ซึ่งเปิด HTTP Server ตัวจริงบน <code>127.0.0.1</code> ที่พอร์ตสุ่ม แล้วคืน URL ให้เราใช้ เราจึงกำหนดได้เองว่า Server จะตอบ 200, 404, 500 หรือตอบช้าจนเกิน Timeout</p>
+<p>Test แบ่งเป็นสองไฟล์ตามสอง Package ไฟล์แรกทดสอบ <code>internal/checker</code> ซึ่งเป็นหัวใจของโปรแกรม ครอบคลุมกรณีต่อไปนี้</p>
+<ul>
+<li><strong>200 OK:</strong> ต้อง UP และใช้ 1 ครั้ง</li>
+<li><strong>404:</strong> ต้อง DOWN และ<strong>ไม่</strong> Retry เพราะ 4xx เป็นความผิดของฝั่ง Client ลองใหม่ก็ได้ผลเดิม</li>
+<li><strong>500 แล้วตามด้วย 200:</strong> Retry ครั้งที่สองต้องสำเร็จ จำนวนครั้งต้องเป็น 2</li>
+<li><strong>503 ตลอด:</strong> ลองครบ 1 + 2 = 3 ครั้งแล้วยอมแพ้</li>
+<li><strong>Handler ตอบช้า:</strong> ต้องได้ <code>timeout after 50ms</code> ไม่ใช่รอ 2 วินาที</li>
+<li><strong>พอร์ตที่ปิดอยู่:</strong> ต้องได้ <code>connection refused</code></li>
+<li><strong>context ถูกยกเลิกก่อนเริ่ม:</strong> ต้องหยุดทันทีหลังครั้งแรก ไม่ Retry</li>
+<li><strong>ลำดับผลลัพธ์:</strong> URL ที่ตอบเร็วกว่าต้องไม่แซงขึ้นไปก่อนในผลลัพธ์</li>
+<li><strong>การอ่านไฟล์ URL:</strong> ข้าม Comment และบรรทัดว่าง ตัดช่องว่าง และแจ้งเลขบรรทัดเมื่อ URL ผิด</li>
+</ul>
+<pre class="code" data-env="file" data-label="Go · internal/checker/checker_test.go"><code class="language-go">package checker
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"slices"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
+)
+
+// newTestChecker สร้าง Checker ที่ Backoff สั้นมาก เพื่อให้ Test เร็ว
+func newTestChecker(retries int, timeout time.Duration) *Checker {
+	return New(Config{Workers: 3, Timeout: timeout, Retries: retries, Backoff: time.Millisecond})
+}
+
+func TestCheck(t *testing.T) {
+	tests := []struct {
+		name         string
+		handler      func() http.HandlerFunc // สร้าง Handler ใหม่ทุกเคส เพื่อให้ตัวนับเริ่มที่ 0
+		retries      int
+		timeout      time.Duration
+		wantUp       bool
+		wantCode     int
+		wantAttempts int
+		wantErr      string // ข้อความที่ต้องมีใน Result.Error ("" = ต้องไม่มี error)
+	}{
+		{
+			name: "200 ok",
+			handler: func() http.HandlerFunc {
+				return func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) }
+			},
+			retries: 2, timeout: time.Second,
+			wantUp: true, wantCode: 200, wantAttempts: 1,
+		},
+		{
+			name: "404 is down and not retried",
+			handler: func() http.HandlerFunc {
+				return func(w http.ResponseWriter, r *http.Request) { http.NotFound(w, r) }
+			},
+			retries: 2, timeout: time.Second,
+			wantUp: false, wantCode: 404, wantAttempts: 1, wantErr: "HTTP 404 Not Found",
+		},
+		{
+			name: "500 then 200 succeeds on retry",
+			handler: func() http.HandlerFunc {
+				var calls atomic.Int64
+				return func(w http.ResponseWriter, r *http.Request) {
+					if calls.Add(1) == 1 {
+						w.WriteHeader(http.StatusInternalServerError)
+						return
+					}
+					w.WriteHeader(http.StatusOK)
+				}
+			},
+			retries: 2, timeout: time.Second,
+			wantUp: true, wantCode: 200, wantAttempts: 2,
+		},
+		{
+			name: "always 503 exhausts retries",
+			handler: func() http.HandlerFunc {
+				return func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusServiceUnavailable) }
+			},
+			retries: 2, timeout: time.Second,
+			wantUp: false, wantCode: 503, wantAttempts: 3, wantErr: "HTTP 503 Service Unavailable",
+		},
+		{
+			name: "slow handler hits timeout",
+			handler: func() http.HandlerFunc {
+				return func(w http.ResponseWriter, r *http.Request) {
+					// รอ 2 วินาที หรือจนกว่า Client จะยกเลิก Request
+					select {
+					case &lt;-time.After(2 * time.Second):
+					case &lt;-r.Context().Done():
+					}
+				}
+			},
+			retries: 0, timeout: 50 * time.Millisecond,
+			wantUp: false, wantCode: 0, wantAttempts: 1, wantErr: "timeout after 50ms",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(tt.handler())
+			defer srv.Close()
+
+			got := newTestChecker(tt.retries, tt.timeout).Check(context.Background(), srv.URL)
+
+			if got.Up != tt.wantUp {
+				t.Errorf("Up = %v, want %v", got.Up, tt.wantUp)
+			}
+			if got.StatusCode != tt.wantCode {
+				t.Errorf("StatusCode = %d, want %d", got.StatusCode, tt.wantCode)
+			}
+			if got.Attempts != tt.wantAttempts {
+				t.Errorf("Attempts = %d, want %d", got.Attempts, tt.wantAttempts)
+			}
+			if tt.wantErr == "" &amp;&amp; got.Error != "" {
+				t.Errorf("Error = %q, want empty", got.Error)
+			}
+			if !strings.Contains(got.Error, tt.wantErr) {
+				t.Errorf("Error = %q, want it to contain %q", got.Error, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestCheckConnectionRefused(t *testing.T) {
+	// เปิด Server แล้วปิดทันที จะได้ URL ของพอร์ตที่ไม่มีใครฟังอยู่
+	srv := httptest.NewServer(http.NotFoundHandler())
+	url := srv.URL
+	srv.Close()
+
+	got := newTestChecker(1, time.Second).Check(context.Background(), url)
+	if got.Up || got.Attempts != 2 || got.Error != "connection refused" {
+		t.Fatalf("got %+v, want down after 2 attempts with connection refused", got)
+	}
+}
+
+func TestCheckCanceledContext(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	defer srv.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // ยกเลิกก่อนเริ่ม เหมือนผู้ใช้กด Ctrl+C
+
+	got := newTestChecker(3, time.Second).Check(ctx, srv.URL)
+	if got.Up || got.Attempts != 1 || got.Error != "canceled" {
+		t.Fatalf("got %+v, want canceled after 1 attempt", got)
+	}
+}
+
+func TestRunKeepsInputOrder(t *testing.T) {
+	// URL ที่มาก่อนตอบช้ากว่า ถ้าเก็บผลตามลำดับที่เสร็จ ลำดับจะสลับ
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var n int
+		fmt.Sscanf(r.URL.Path, "/%d", &amp;n)
+		time.Sleep(time.Duration(10-n) * 5 * time.Millisecond)
+	}))
+	defer srv.Close()
+
+	var urls []string
+	for i := range 10 {
+		urls = append(urls, fmt.Sprintf("%s/%d", srv.URL, i))
+	}
+
+	results := newTestChecker(0, time.Second).Run(context.Background(), urls)
+
+	if len(results) != len(urls) {
+		t.Fatalf("got %d results, want %d", len(results), len(urls))
+	}
+	for i, r := range results {
+		if r.URL != urls[i] {
+			t.Errorf("results[%d].URL = %s, want %s", i, r.URL, urls[i])
+		}
+		if !r.Up {
+			t.Errorf("results[%d] is down: %s", i, r.Error)
+		}
+	}
+}
+
+func TestParseTargets(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    []string
+		wantErr string
+	}{
+		{name: "skip comments and blanks", input: "# รายการเว็บ\nhttps://go.dev\n\n  https://example.com  \n", want: []string{"https://go.dev", "https://example.com"}},
+		{name: "empty input", input: "", want: nil},
+		{name: "bad scheme", input: "https://go.dev\nftp://example.com\n", wantErr: "line 2: invalid url"},
+		{name: "missing host", input: "http://\n", wantErr: "line 1: invalid url \"http://\": missing host"},
+		{name: "no scheme", input: "example.com\n", wantErr: "scheme must be http or https"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ParseTargets(strings.NewReader(tt.input))
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("err = %v, want it to contain %q", err, tt.wantErr)
+				}
+				if !errors.Is(err, ErrInvalidURL) {
+					t.Errorf("errors.Is(err, ErrInvalidURL) = false, want true")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !slices.Equal(got, tt.want) {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseTargetsFile(t *testing.T) {
+	f, err := os.Open("../../testdata/urls.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	got, err := ParseTargets(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"https://go.dev", "https://example.com", "http://127.0.0.1:8080/health"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}</code></pre>
+<h5>อธิบายส่วนสำคัญ</h5>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>package checker</code></td><td>ไฟล์ Test อยู่ใน Package เดียวกับโค้ดจริง จึงเรียกฟังก์ชันได้ทุกตัว ชื่อไฟล์ต้องลงท้ายด้วย <code>_test.go</code> คำสั่ง <code>go build</code> จะข้ามไฟล์นี้ไป Binary จึงไม่ใหญ่ขึ้น</td></tr>
+<tr><td><code>newTestChecker(...)</code></td><td>Helper ที่ตั้ง <code>Backoff: time.Millisecond</code> ถ้าใช้ค่าจริง 200ms กรณี 503 จะต้องรอ 200 + 400 = 600ms ทุกครั้งที่รัน Test ชุด Test ที่ช้าทำให้คนไม่อยากรัน</td></tr>
+<tr><td><code>tests := []struct{...}</code></td><td>Table-driven Test เก็บกรณีทดสอบเป็นแถวในตาราง เพิ่มกรณีใหม่แค่เพิ่มหนึ่งแถว ไม่ต้องเขียนฟังก์ชันใหม่</td></tr>
+<tr><td><code>handler func() http.HandlerFunc</code></td><td>เก็บเป็น "ฟังก์ชันที่สร้าง Handler" ไม่ใช่ Handler ตรง ๆ เพื่อให้ตัวนับ <code>calls</code> ในกรณี 500-then-200 เริ่มที่ 0 ใหม่ทุกครั้งที่รัน แม้รันซ้ำด้วย <code>-count=3</code></td></tr>
+<tr><td><code>var calls atomic.Int64</code></td><td>Handler ของ httptest ทำงานใน Goroutine ของ Server ถ้าใช้ <code>int</code> ธรรมดาแล้วรันด้วย <code>-race</code> อาจเจอ Data Race การใช้ <code>atomic</code> จึงปลอดภัยกว่า</td></tr>
+<tr><td><code>case &lt;-r.Context().Done():</code></td><td>Handler ที่ตอบช้าคอยฟังว่า Client ยกเลิกหรือยัง ถ้าไม่มีบรรทัดนี้ <code>srv.Close()</code> จะต้องรอ Handler ครบ 2 วินาที Test จะช้าลงโดยไม่จำเป็น</td></tr>
+<tr><td><code>t.Run(tt.name, ...)</code></td><td>สร้าง Subtest หนึ่งตัวต่อหนึ่งแถว ชื่อแถวจะไปปรากฏใน Output (ช่องว่างกลายเป็น <code>_</code>) และใช้กับ <code>-run</code> เพื่อรันเฉพาะบางกรณีได้</td></tr>
+<tr><td><code>srv := httptest.NewServer(...)</code> และ <code>defer srv.Close()</code></td><td>เปิด Server จริงบนพอร์ตสุ่มแล้วปิดเมื่อ Subtest จบ <code>srv.URL</code> มีหน้าตาแบบ <code>http://127.0.0.1:41235</code> พอร์ตเปลี่ยนทุกครั้ง</td></tr>
+<tr><td><code>t.Errorf</code> หลายบรรทัด</td><td>ใช้ <code>Errorf</code> ไม่ใช่ <code>Fatalf</code> เพื่อให้รายงานทุก field ที่ผิดในรอบเดียว เห็นภาพรวมของปัญหาได้เร็วกว่า</td></tr>
+<tr><td><code>strings.Contains(got.Error, tt.wantErr)</code></td><td>ตรวจแค่ "มีข้อความนี้อยู่" ไม่เทียบทั้งข้อความ ถ้า Go รุ่นใหม่เปลี่ยนรายละเอียดข้อความเล็กน้อย Test จะไม่พังโดยไม่มีเหตุผล เมื่อ <code>wantErr</code> เป็น <code>""</code> เงื่อนไขนี้ผ่านเสมอ จึงมีอีกเงื่อนไขหนึ่งตรวจว่าต้องไม่มี Error</td></tr>
+<tr><td><code>TestCheckConnectionRefused</code></td><td>เปิด Server แล้วปิดทันทีเพื่อให้ได้พอร์ตที่แน่ใจว่าว่าง ไม่ต้องเดาเลขพอร์ตเอง และ <code>retries=1</code> จึงคาดว่าลอง 2 ครั้ง</td></tr>
+<tr><td><code>cancel()</code> ก่อนเรียก <code>Check</code></td><td>จำลองผู้ใช้กด Ctrl+C ยืนยันว่าโปรแกรมไม่ Retry ต่อเมื่อ context ถูกยกเลิกแล้ว ทั้งที่ตั้ง <code>retries=3</code></td></tr>
+<tr><td><code>time.Sleep(time.Duration(10-n) * 5 * time.Millisecond)</code></td><td>URL ลำดับ 0 ตอบช้าที่สุด (50ms) ลำดับ 9 ตอบเร็วที่สุด (5ms) ถ้า Worker Pool เก็บผลตามลำดับที่ "เสร็จก่อน" ลำดับจะกลับหัว Test นี้จึงจับ Bug เรื่องลำดับได้แน่นอน</td></tr>
+<tr><td><code>for i := range 10</code></td><td>Range over int ของ Go 1.22 วนค่า 0 ถึง 9</td></tr>
+<tr><td><code>errors.Is(err, ErrInvalidURL)</code></td><td>ยืนยันว่า Error ถูก Wrap ด้วย <code>%w</code> อย่างถูกต้อง โค้ดฝั่ง <code>main.go</code> จึงแยกแยะประเภท Error ได้โดยไม่ต้องเทียบข้อความ</td></tr>
+<tr><td><code>os.Open("../../testdata/urls.txt")</code></td><td>ตอนรัน Test คำสั่ง <code>go test</code> จะเปลี่ยน Working Directory ไปที่โฟลเดอร์ของ Package (<code>internal/checker</code>) จึงต้องถอยขึ้นสองชั้นเพื่อไปถึง <code>testdata</code></td></tr>
+</tbody>
+</table></div>
+<p>ไฟล์ที่สองทดสอบ <code>internal/report</code> จุดเด่นคือ <code>Write</code> รับ <code>io.Writer</code> เราจึงส่ง <code>bytes.Buffer</code> เข้าไปแทน <code>os.Stdout</code> แล้วเอาข้อความที่ได้มาตรวจได้ทันที ข้อมูลตัวอย่างเป็นค่าตายตัว ผลลัพธ์จึงเหมือนเดิมทุกครั้งที่รัน</p>
+<pre class="code" data-env="file" data-label="Go · internal/report/report_test.go"><code class="language-go">package report
+
+import (
+	"bytes"
+	"encoding/csv"
+	"encoding/json"
+	"errors"
+	"strings"
+	"testing"
+
+	"github.com/somchai/gohealth/internal/checker"
+)
+
+// sample คือข้อมูลตายตัว ทำให้ผลลัพธ์ของ Test เหมือนเดิมทุกครั้ง
+var sample = []checker.Result{
+	{URL: "https://go.dev", Up: true, StatusCode: 200, LatencyMS: 120, Attempts: 1},
+	{URL: "https://example.com/missing", Up: false, StatusCode: 404, LatencyMS: 45, Attempts: 1, Error: "HTTP 404 Not Found"},
+	{URL: "http://127.0.0.1:9", Up: false, StatusCode: 0, LatencyMS: 0, Attempts: 3, Error: "connection refused"},
+}
+
+func TestWriteTable(t *testing.T) {
+	var buf bytes.Buffer
+	if err := Write(&amp;buf, "table", sample); err != nil {
+		t.Fatal(err)
+	}
+	want := `URL                          STATUS  CODE  LATENCY  ATTEMPTS  ERROR
+https://go.dev               UP      200   120ms    1         -
+https://example.com/missing  DOWN    404   45ms     1         HTTP 404 Not Found
+http://127.0.0.1:9           DOWN    -     0ms      3         connection refused
+checked 3 urls: 1 up, 2 down
+`
+	if got := buf.String(); got != want {
+		t.Errorf("table output mismatch\n got:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestWriteJSON(t *testing.T) {
+	var buf bytes.Buffer
+	if err := Write(&amp;buf, "json", sample); err != nil {
+		t.Fatal(err)
+	}
+	// แปลงกลับเป็น Struct เพื่อยืนยันว่า JSON ถูกต้องครบทุก field
+	var got []checker.Result
+	if err := json.Unmarshal(buf.Bytes(), &amp;got); err != nil {
+		t.Fatalf("invalid JSON: %v\n%s", err, buf.String())
+	}
+	if len(got) != len(sample) || got[2] != sample[2] {
+		t.Errorf("round trip mismatch: %+v", got)
+	}
+	// omitempty: รายการที่ UP ต้องไม่มี key "error"
+	first := strings.Split(buf.String(), "}")[0]
+	if strings.Contains(first, `"error"`) {
+		t.Errorf("first item should not contain error key:\n%s", first)
+	}
+}
+
+func TestWriteJSONEmpty(t *testing.T) {
+	var buf bytes.Buffer
+	if err := Write(&amp;buf, "json", nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := buf.String(); got != "[]\n" {
+		t.Errorf("got %q, want %q", got, "[]\n")
+	}
+}
+
+func TestWriteCSV(t *testing.T) {
+	var buf bytes.Buffer
+	if err := Write(&amp;buf, "csv", sample); err != nil {
+		t.Fatal(err)
+	}
+	rows, err := csv.NewReader(&amp;buf).ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 4 {
+		t.Fatalf("got %d rows, want 4 (header + 3)", len(rows))
+	}
+	tests := []struct {
+		row, col int
+		want     string
+	}{
+		{0, 0, "url"},
+		{0, 5, "error"},
+		{1, 1, "true"},
+		{2, 2, "404"},
+		{3, 4, "3"},
+		{3, 5, "connection refused"},
+	}
+	for _, tt := range tests {
+		if got := rows[tt.row][tt.col]; got != tt.want {
+			t.Errorf("rows[%d][%d] = %q, want %q", tt.row, tt.col, got, tt.want)
+		}
+	}
+}
+
+func TestWriteUnknownFormat(t *testing.T) {
+	err := Write(&amp;bytes.Buffer{}, "yaml", sample)
+	if !errors.Is(err, ErrUnknownFormat) {
+		t.Fatalf("err = %v, want ErrUnknownFormat", err)
+	}
+}
+
+func TestSummarize(t *testing.T) {
+	got := Summarize(sample)
+	want := Summary{Total: 3, Up: 1, Down: 2}
+	if got != want {
+		t.Errorf("got %+v, want %+v", got, want)
+	}
+}</code></pre>
+<h5>อธิบายส่วนสำคัญ</h5>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>var sample = []checker.Result{...}</code></td><td>ข้อมูลตายตัว 3 แบบ: UP, DOWN ด้วย 404 และ DOWN ด้วย Network Error (Status Code เป็น 0) ครอบคลุมทุกแบบที่ตารางต้องแสดง</td></tr>
+<tr><td><code>var buf bytes.Buffer</code></td><td><code>bytes.Buffer</code> มี Method <code>Write</code> จึงเป็น <code>io.Writer</code> โดยอัตโนมัติ นี่คือประโยชน์ของ Interface แบบ Implicit ที่เรียนในแนวคิดที่ 6</td></tr>
+<tr><td><code>want := `URL ... `</code></td><td>Raw String ใส่ผลลัพธ์ทั้งตารางแบบตัวอักษรต่อตัวอักษร ถ้ามีคนแก้ความกว้างคอลัมน์หรือหัวตารางโดยไม่ตั้งใจ Test จะพังทันที เทคนิคนี้เรียกว่า Golden Output</td></tr>
+<tr><td><code>json.Unmarshal(buf.Bytes(), &amp;got)</code></td><td>แปลง JSON กลับเป็น Struct (Round Trip) เพื่อยืนยันว่า JSON ที่ได้ใช้งานได้จริง แทนการเทียบข้อความที่เปราะบางกว่า</td></tr>
+<tr><td><code>got[2] != sample[2]</code></td><td>Struct ที่ทุก field เทียบกันได้ ใช้ <code>!=</code> เทียบทั้งก้อนได้เลย</td></tr>
+<tr><td><code>strings.Split(buf.String(), "}")[0]</code></td><td>ตัดเอาเฉพาะ Object แรก (รายการที่ UP) แล้วตรวจว่าไม่มี key <code>"error"</code> ยืนยันว่า Tag <code>omitempty</code> ทำงาน</td></tr>
+<tr><td><code>TestWriteJSONEmpty</code></td><td>กรณีขอบ: ไม่มีผลลัพธ์เลยต้องได้ <code>[]</code> ไม่ใช่ <code>null</code> เพราะโปรแกรมอื่นที่อ่าน JSON นี้มักคาดหวัง Array เสมอ</td></tr>
+<tr><td><code>csv.NewReader(&amp;buf).ReadAll()</code></td><td>อ่าน CSV กลับด้วย Parser จริง ไม่ต้องกังวลเรื่องเครื่องหมายคำพูดหรือ comma ในข้อความ Error</td></tr>
+<tr><td>ตาราง <code>{row, col, want}</code></td><td>Table-driven Test ขนาดเล็กภายใน Test เดียว ตรวจทีละช่องที่สำคัญ เช่น หัวตาราง ค่า <code>true</code> และจำนวนครั้ง</td></tr>
+<tr><td><code>errors.Is(err, ErrUnknownFormat)</code></td><td>ยืนยันว่า format ที่ไม่รองรับได้ Sentinel Error ที่ตรวจได้ ไม่ใช่ข้อความลอย ๆ</td></tr>
+<tr><td><code>got != want</code> ใน <code>TestSummarize</code></td><td><code>Summary</code> เป็น Struct ของ <code>int</code> ล้วน เทียบทั้งก้อนด้วย <code>!=</code> ได้ และพิมพ์ด้วย <code>%+v</code> จะเห็นชื่อ field ชัดเจนเมื่อ Test พัง</td></tr>
+</tbody>
+</table></div>
+
+<p>รัน Test ทั้งหมดแบบละเอียดจากรากของโปรเจกต์ ใส่ <code>-count=1</code> เพื่อบังคับให้รันใหม่ ไม่ใช้ผลที่ Cache ไว้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gohealth
+go test -count=1 -v ./...</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>?   	github.com/somchai/gohealth	[no test files]
+=== RUN   TestCheck
+=== RUN   TestCheck/200_ok
+=== RUN   TestCheck/404_is_down_and_not_retried
+=== RUN   TestCheck/500_then_200_succeeds_on_retry
+=== RUN   TestCheck/always_503_exhausts_retries
+=== RUN   TestCheck/slow_handler_hits_timeout
+--- PASS: TestCheck (0.06s)
+    --- PASS: TestCheck/200_ok (0.00s)
+    --- PASS: TestCheck/404_is_down_and_not_retried (0.00s)
+    --- PASS: TestCheck/500_then_200_succeeds_on_retry (0.00s)
+    --- PASS: TestCheck/always_503_exhausts_retries (0.00s)
+    --- PASS: TestCheck/slow_handler_hits_timeout (0.05s)
+=== RUN   TestCheckConnectionRefused
+--- PASS: TestCheckConnectionRefused (0.00s)
+=== RUN   TestCheckCanceledContext
+--- PASS: TestCheckCanceledContext (0.00s)
+=== RUN   TestRunKeepsInputOrder
+--- PASS: TestRunKeepsInputOrder (0.10s)
+=== RUN   TestParseTargets
+=== RUN   TestParseTargets/skip_comments_and_blanks
+=== RUN   TestParseTargets/empty_input
+=== RUN   TestParseTargets/bad_scheme
+=== RUN   TestParseTargets/missing_host
+=== RUN   TestParseTargets/no_scheme
+--- PASS: TestParseTargets (0.00s)
+    --- PASS: TestParseTargets/skip_comments_and_blanks (0.00s)
+    --- PASS: TestParseTargets/empty_input (0.00s)
+    --- PASS: TestParseTargets/bad_scheme (0.00s)
+    --- PASS: TestParseTargets/missing_host (0.00s)
+    --- PASS: TestParseTargets/no_scheme (0.00s)
+=== RUN   TestParseTargetsFile
+--- PASS: TestParseTargetsFile (0.00s)
+PASS
+ok  	github.com/somchai/gohealth/internal/checker	0.170s
+=== RUN   TestWriteTable
+--- PASS: TestWriteTable (0.00s)
+=== RUN   TestWriteJSON
+--- PASS: TestWriteJSON (0.00s)
+=== RUN   TestWriteJSONEmpty
+--- PASS: TestWriteJSONEmpty (0.00s)
+=== RUN   TestWriteCSV
+--- PASS: TestWriteCSV (0.00s)
+=== RUN   TestWriteUnknownFormat
+--- PASS: TestWriteUnknownFormat (0.00s)
+=== RUN   TestSummarize
+--- PASS: TestSummarize (0.00s)
+PASS
+ok  	github.com/somchai/gohealth/internal/report	0.006s</code></pre>
+<p>เวลาในวงเล็บ เช่น <code>(0.06s)</code> และเวลาท้ายบรรทัด <code>ok</code> จะต่างจากเครื่องของคุณเล็กน้อย สังเกตว่า Subtest <code>slow_handler_hits_timeout</code> ใช้เวลาประมาณ 0.05 วินาที ตรงกับ Timeout 50ms ที่ตั้งไว้ พิสูจน์ว่าโปรแกรมไม่รอจนครบ 2 วินาที ส่วนบรรทัด <code>[no test files]</code> หมายถึง Package <code>main</code> ที่รากยังไม่มี Test ซึ่งเราจะทดสอบด้วยการรันจริงใน Step 6</p>
+
+<p>ต่อไปรันด้วย Race Detector และวัด Coverage ไปพร้อมกัน Race Detector ต้องใช้ <code>gcc</code> ถ้ายังไม่ได้ติดตั้ง ให้ติดตั้งก่อน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">sudo apt update
+sudo apt install -y gcc</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gohealth
+go test -count=1 -race -cover ./...</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>	github.com/somchai/gohealth		coverage: 0.0% of statements
+ok  	github.com/somchai/gohealth/internal/checker	1.185s	coverage: 88.4% of statements
+ok  	github.com/somchai/gohealth/internal/report	1.018s	coverage: 88.6% of statements</code></pre>
+<p>ไม่มีคำว่า <code>WARNING: DATA RACE</code> แปลว่า Worker Pool ของเราไม่มี Data Race แม้ Worker หลายตัวเขียนลง Slice <code>results</code> พร้อมกัน เพราะแต่ละตัวเขียนคนละ Index เท่านั้น สังเกตว่าเวลารันนานขึ้นประมาณ 1 วินาทีเมื่อเปิด <code>-race</code> นี่คือเหตุผลที่ไม่เปิด <code>-race</code> ใน Binary ที่ใช้งานจริง แต่เปิดเสมอใน CI</p>
+
+<p>ดู Coverage รายฟังก์ชันว่าโค้ดส่วนไหนยังไม่ถูกทดสอบ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gohealth
+go test -count=1 -coverprofile=cover.out ./internal/...
+go tool cover -func=cover.out</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>github.com/somchai/gohealth/internal/checker/checker.go:51:	New		76.9%
+github.com/somchai/gohealth/internal/checker/checker.go:79:	Run		100.0%
+github.com/somchai/gohealth/internal/checker/checker.go:109:	Check		85.7%
+github.com/somchai/gohealth/internal/checker/checker.go:135:	once		92.3%
+github.com/somchai/gohealth/internal/checker/checker.go:157:	finish		100.0%
+github.com/somchai/gohealth/internal/checker/checker.go:173:	retryable	100.0%
+github.com/somchai/gohealth/internal/checker/checker.go:178:	describe	66.7%
+github.com/somchai/gohealth/internal/checker/checker.go:198:	ValidateURL	87.5%
+github.com/somchai/gohealth/internal/checker/checker.go:213:	ParseTargets	92.9%
+github.com/somchai/gohealth/internal/report/report.go:29:	ValidFormat	0.0%
+github.com/somchai/gohealth/internal/report/report.go:34:	Summarize	100.0%
+github.com/somchai/gohealth/internal/report/report.go:47:	Write		100.0%
+github.com/somchai/gohealth/internal/report/report.go:60:	writeTable	93.8%
+github.com/somchai/gohealth/internal/report/report.go:87:	writeJSON	85.7%
+github.com/somchai/gohealth/internal/report/report.go:99:	writeCSV	77.8%
+total:								(statements)	88.5%</code></pre>
+<p>Coverage รวม 88.5% ถือว่าดีมากสำหรับ CLI ฟังก์ชัน <code>ValidFormat</code> ได้ 0% เพราะถูกเรียกจาก <code>main.go</code> เท่านั้น ไม่มี Test ใน Package <code>report</code> เรียกตรง ๆ ถ้าต้องการดูเป็นสีบน Browser ให้รัน <code>go tool cover -html=cover.out</code> แล้วเปิดไฟล์ที่ได้ บรรทัดสีแดงคือโค้ดที่ยังไม่ถูกรัน ไฟล์ <code>cover.out</code> อยู่ใน <code>.gitignore</code> แล้ว จึงไม่หลุดขึ้น GitHub</p>
+
+<p>เมื่อต้องการรันเฉพาะบาง Subtest ให้ใช้ <code>-run</code> ซึ่งรับ Regular Expression คั่นระดับด้วย <code>/</code> ตัวอย่างนี้รันเฉพาะ Subtest ของ <code>TestCheck</code> ที่ชื่อมีคำว่า <code>retr</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gohealth
+go test -count=1 -run 'TestCheck$/retr' -v ./internal/checker/</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>=== RUN   TestCheck
+=== RUN   TestCheck/404_is_down_and_not_retried
+=== RUN   TestCheck/500_then_200_succeeds_on_retry
+=== RUN   TestCheck/always_503_exhausts_retries
+--- PASS: TestCheck (0.01s)
+    --- PASS: TestCheck/404_is_down_and_not_retried (0.00s)
+    --- PASS: TestCheck/500_then_200_succeeds_on_retry (0.00s)
+    --- PASS: TestCheck/always_503_exhausts_retries (0.00s)
+PASS
+ok  	github.com/somchai/gohealth/internal/checker	0.013s</code></pre>
+<p>ทำไมได้ 3 กรณี ทั้งที่ชื่อ <code>404_is_down_and_not_retried</code> ไม่ได้พูดถึง Retry สำเร็จ เพราะคำว่า <code>retried</code> ก็มี <code>retr</code> อยู่ข้างใน และเครื่องหมาย <code>$</code> หลัง <code>TestCheck</code> สำคัญมาก ถ้าไม่ใส่ Regex <code>TestCheck</code> จะไปตรงกับ <code>TestCheckConnectionRefused</code> และ <code>TestCheckCanceledContext</code> ด้วย</p>
+
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ทำให้ Test พังโดยตั้งใจ เพื่อฝึกอ่านข้อความ <code>--- FAIL</code></p>
+<ol>
+<li>เปิด <code>internal/checker/checker_test.go</code> แก้กรณี <code>always 503 exhausts retries</code> จาก <code>wantAttempts: 3</code> เป็น <code>wantAttempts: 2</code></li>
+<li>รัน <code>go test -count=1 ./internal/checker/</code></li>
+<li>อ่านว่าบรรทัดไหนบอกชื่อ Subtest เลขบรรทัด ค่าที่ได้ และค่าที่ต้องการ</li>
+<li>แก้กลับเป็น 3 แล้วรันใหม่ให้ผ่าน</li>
+</ol>
+<p>ผลลัพธ์ตอนพังควรหน้าตาแบบนี้</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>--- FAIL: TestCheck (0.06s)
+    --- FAIL: TestCheck/always_503_exhausts_retries (0.00s)
+        checker_test.go:102: Attempts = 3, want 2
+FAIL
+FAIL	github.com/somchai/gohealth/internal/checker	0.168s
+FAIL</code></pre>
+</div>
+
+<div class="callout warn"><span class="c-label warn">ระวัง</span><ul>
+<li>อย่าเขียน Test ที่ยิงไป <code>https://go.dev</code> หรือเว็บจริง Test จะพังเมื่อเน็ตหลุดหรือเว็บปลายทางช้า และ CI จะ "แดง" แบบสุ่มโดยที่โค้ดไม่ได้ผิด</li>
+<li>ถ้าลืม <code>defer srv.Close()</code> Server จะค้างอยู่จนจบการรัน Test ทั้งชุด และกินพอร์ตไปเรื่อย ๆ</li>
+<li>ถ้าตั้งชื่อไฟล์ผิดเป็น <code>checker_tests.go</code> คำสั่ง <code>go test</code> จะไม่เห็น Test เลย และขึ้นว่า <code>[no test files]</code></li>
+</ul></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>Test ที่ดีต้อง<strong>เร็ว</strong> (ชุดนี้ใช้ไม่ถึง 0.2 วินาที) <strong>ไม่ขึ้นกับอินเทอร์เน็ต</strong> และ<strong>ให้ผลเหมือนเดิมทุกครั้ง</strong> ทั้งสามข้อทำให้ทีมกล้ารัน Test บ่อย ๆ</li>
+<li>เพิ่ม Test ทุกครั้งที่เจอ Bug: เขียน Test ที่จับ Bug นั้นให้พังก่อน แล้วค่อยแก้โค้ดให้ผ่าน Bug เดิมจะไม่กลับมาอีก</li>
+<li>ตั้งเป้า Coverage ที่สมเหตุสมผล เช่น 70–90% สำหรับ Logic หลัก ไม่จำเป็นต้องไล่ให้ถึง 100% เพราะบางบรรทัด (เช่น Error ที่แทบไม่เกิด) ทดสอบยากแต่ได้ประโยชน์น้อย</li>
+</ul></div>
+</li>
+<li>
+<h4>Step 6: ทดสอบการทำงานจริงกับ Server ในเครื่อง (Verification)</h4>
+<p>Test ใน Step 5 ยืนยัน Logic ทีละส่วน ขั้นนี้คือการรันโปรแกรมทั้งตัวแบบที่ผู้ใช้จะใช้จริง เพื่อดูตาราง JSON CSV Log และ Exit Code ครบทุกกรณี เราจะไม่ยิงเว็บของคนอื่น แต่เปิด Server ในเครื่องเอง 3 ตัว</p>
+<div class="callout sec"><span class="c-label sec">Security</span><p>ตรวจเฉพาะเว็บไซต์ที่คุณเป็นเจ้าของหรือได้รับอนุญาตเท่านั้น การยิง Request จำนวนมากใส่ระบบของผู้อื่นโดยไม่ได้รับอนุญาตอาจทำให้ระบบเขาล่ม และอาจผิด พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์ ตั้ง <code>-workers</code> และ <code>-retries</code> ให้พอดี อย่าตั้งสูงเกินความจำเป็น</p></div>
+<p><strong>Terminal ที่ 1:</strong> เปิด Static Server ของ Python ที่พอร์ต 8000 (ตอบ 200 สำหรับ <code>/</code> และ 404 สำหรับไฟล์ที่ไม่มี)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/site8000
+cd ~/projects/site8000
+echo ok &gt; index.html
+python3 -m http.server 8000 --bind 127.0.0.1</code></pre>
+<p><strong>Terminal ที่ 2:</strong> เปิด Items API จากแนวคิดที่ 12 ซึ่งมี <code>GET /health</code> ที่พอร์ต 8080</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./concepts/c12</code></pre>
+<p><strong>Terminal ที่ 3:</strong> สร้าง Server ที่ตั้งใจตอบช้า 10 วินาที ไว้ทดสอบ Timeout และ Ctrl+C</p>
+<pre class="code" data-env="file" data-label="Python · ~/projects/slow8001/slow.py"><code class="language-python"># Server ที่ตอบช้า 10 วินาที ใช้ทดสอบ Timeout ของ gohealth เท่านั้น
+import http.server
+import time
+
+
+class SlowHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        time.sleep(10)  # หน่วงเวลาก่อนตอบ
+        self.send_response(200)
+        self.end_headers()
+
+
+# ThreadingHTTPServer รับหลาย Request พร้อมกันได้
+http.server.ThreadingHTTPServer(("127.0.0.1", 8001), SlowHandler).serve_forever()</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/slow8001
+python3 slow.py</code></pre>
+<p><strong>Terminal ที่ 4:</strong> กลับมาที่โปรเจกต์ สร้างไฟล์ <code>local-urls.txt</code> ที่รวมทุกกรณี: UP, 404, พอร์ตที่ไม่มีใครฟัง (<code>127.0.0.1:9</code>) และโดเมน <code>.invalid</code> ซึ่งมาตรฐาน RFC 2606 กำหนดว่าจะไม่มีอยู่จริงตลอดไป</p>
+<pre class="code" data-env="file" data-label="Plaintext · local-urls.txt"><code class="language-plaintext"># Service ในเครื่องสำหรับทดสอบ
+http://127.0.0.1:8000/
+http://127.0.0.1:8080/health
+http://127.0.0.1:8000/nope.html
+
+# พอร์ตที่ไม่มีใครฟัง และโดเมนที่ไม่มีอยู่จริง
+http://127.0.0.1:9
+https://down.invalid</code></pre>
+<p>Build Binary แล้วรันแบบตาราง (ค่าเริ่มต้น)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gohealth
+go build -ldflags "-s -w -X main.version=v1.0.0" -o bin/gohealth .
+./bin/gohealth -file local-urls.txt -timeout 2s -retries 1
+echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>time=2026-10-19T14:05:32.208+07:00 level=INFO msg=starting urls=5 workers=5 timeout=2s retries=1
+time=2026-10-19T14:05:32.413+07:00 level=INFO msg=finished up=2 down=3 elapsed=205ms
+URL                              STATUS  CODE  LATENCY  ATTEMPTS  ERROR
+http://127.0.0.1:8000/           UP      200   3ms      1         -
+http://127.0.0.1:8080/health     UP      200   1ms      1         -
+http://127.0.0.1:8000/nope.html  DOWN    404   1ms      1         HTTP 404 Not Found
+http://127.0.0.1:9               DOWN    -     0ms      2         connection refused
+https://down.invalid             DOWN    -     1ms      2         dns lookup failed: no such host
+checked 5 urls: 2 up, 3 down
+exit code: 1</code></pre>
+<p>เวลาในบรรทัด <code>time=</code>, ค่า <code>elapsed</code> และคอลัมน์ <code>LATENCY</code> จะต่างจากเครื่องของคุณ สิ่งที่ต้องตรงคือ: ลำดับแถวตรงกับลำดับในไฟล์, 404 ลองแค่ 1 ครั้ง, Network Error ลอง 2 ครั้ง (1 + <code>-retries 1</code>) และ Exit Code เป็น 1 เพราะมี URL ที่ล่ม สังเกตว่า <code>elapsed=205ms</code> สั้นกว่าผลรวมของทุก URL เพราะ Worker ทำงานพร้อมกัน เวลาส่วนใหญ่คือ Backoff 200ms ก่อน Retry</p>
+
+<p>ผลลัพธ์แบบ JSON โดยส่ง Log ทิ้งด้วย <code>2&gt;/dev/null</code> ให้เหลือแต่ JSON</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gohealth
+./bin/gohealth -format json http://127.0.0.1:8000/ http://127.0.0.1:8000/nope.html 2&gt;/dev/null
+echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[
+  {
+    "url": "http://127.0.0.1:8000/",
+    "up": true,
+    "status_code": 200,
+    "latency_ms": 2,
+    "attempts": 1
+  },
+  {
+    "url": "http://127.0.0.1:8000/nope.html",
+    "up": false,
+    "status_code": 404,
+    "latency_ms": 1,
+    "attempts": 1,
+    "error": "HTTP 404 Not Found"
+  }
+]
+exit code: 1</code></pre>
+<p>รายการแรกไม่มี key <code>error</code> เพราะ Tag <code>omitempty</code> ตามที่ Test ใน Step 5 ตรวจไว้</p>
+
+<p>ผลลัพธ์แบบ CSV เปิดใน Excel หรือ Google Sheets ได้ทันที (ปิด Retry ด้วย <code>-retries 0</code>)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gohealth
+./bin/gohealth -format csv -file local-urls.txt -retries 0 2&gt;/dev/null
+echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>url,up,status_code,latency_ms,attempts,error
+http://127.0.0.1:8000/,true,200,2,1,
+http://127.0.0.1:8080/health,true,200,1,1,
+http://127.0.0.1:8000/nope.html,false,404,1,1,HTTP 404 Not Found
+http://127.0.0.1:9,false,0,0,1,connection refused
+https://down.invalid,false,0,1,1,dns lookup failed: no such host
+exit code: 1</code></pre>
+
+<p>กรณีทุก URL ปกติ Exit Code ต้องเป็น 0</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gohealth
+./bin/gohealth http://127.0.0.1:8000/ http://127.0.0.1:8080/health
+echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>time=2026-10-19T14:05:32.432+07:00 level=INFO msg=starting urls=2 workers=5 timeout=3s retries=2
+time=2026-10-19T14:05:32.433+07:00 level=INFO msg=finished up=2 down=0 elapsed=1ms
+URL                           STATUS  CODE  LATENCY  ATTEMPTS  ERROR
+http://127.0.0.1:8000/        UP      200   1ms      1         -
+http://127.0.0.1:8080/health  UP      200   0ms      1         -
+checked 2 urls: 2 up, 0 down
+exit code: 0</code></pre>
+
+<p>ทดสอบ Timeout กับ Server ที่ตอบช้า และดู Debug Log ของการ Retry ด้วย <code>-verbose</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gohealth
+./bin/gohealth -timeout 500ms -retries 1 http://127.0.0.1:8001/
+echo "exit code: $?"
+./bin/gohealth -verbose -retries 1 http://127.0.0.1:9 &gt; /dev/null
+echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>time=2026-10-19T14:05:32.648+07:00 level=INFO msg=starting urls=1 workers=5 timeout=500ms retries=1
+time=2026-10-19T14:05:33.850+07:00 level=INFO msg=finished up=0 down=1 elapsed=1.202s
+URL                     STATUS  CODE  LATENCY  ATTEMPTS  ERROR
+http://127.0.0.1:8001/  DOWN    -     500ms    2         timeout after 500ms
+checked 1 urls: 0 up, 1 down
+exit code: 1
+time=2026-10-19T14:05:33.861+07:00 level=INFO msg=starting urls=1 workers=5 timeout=3s retries=1
+time=2026-10-19T14:05:33.861+07:00 level=DEBUG msg=checking worker=0 url=http://127.0.0.1:9
+time=2026-10-19T14:05:33.861+07:00 level=DEBUG msg=retrying url=http://127.0.0.1:9 attempt=1 wait=200ms
+time=2026-10-19T14:05:34.062+07:00 level=INFO msg=finished up=0 down=1 elapsed=201ms
+exit code: 1</code></pre>
+<p><code>elapsed=1.202s</code> มาจาก 500ms (ครั้งแรก) + 200ms (Backoff) + 500ms (ครั้งที่สอง) แม้ Server จะหน่วง 10 วินาที โปรแกรมก็ไม่รอ นี่คือผลของ <code>context.WithTimeout</code> ต่อ Request</p>
+
+<p>ทดสอบ Ctrl+C: รันกับ Server ที่ตอบช้าโดยตั้ง Timeout 5 วินาที แล้วกด <kbd>Ctrl</kbd>+<kbd>C</kbd> หลังผ่านไปประมาณ 1 วินาที</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gohealth
+./bin/gohealth -timeout 5s http://127.0.0.1:8001/ http://127.0.0.1:8000/
+echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>time=2026-10-19T14:06:46.801+07:00 level=INFO msg=starting urls=2 workers=5 timeout=5s retries=2
+^Ctime=2026-10-19T14:06:47.798+07:00 level=INFO msg=finished up=1 down=1 elapsed=997ms
+URL                     STATUS  CODE  LATENCY  ATTEMPTS  ERROR
+http://127.0.0.1:8001/  DOWN    -     997ms    1         canceled
+http://127.0.0.1:8000/  UP      200   1ms      1         -
+checked 2 urls: 1 up, 1 down
+time=2026-10-19T14:06:47.798+07:00 level=WARN msg="interrupted by user"
+exit code: 1</code></pre>
+<p>โปรแกรมไม่ตายกลางคัน แต่ยกเลิก Request ที่ค้าง ไม่ Retry ต่อ แล้วยังพิมพ์ผลที่ได้ครบทุกแถวก่อนจบ นี่คือพฤติกรรมที่เครื่องมือ CLI ที่ดีควรมี</p>
+
+<p>สุดท้าย ทดสอบกรณีใช้งานผิด ทุกกรณีต้องได้ Exit Code 2 และข้อความที่บอกวิธีแก้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gohealth
+printf 'https://go.dev\nftp://files.example.com\n' &gt; bad.txt
+./bin/gohealth -file bad.txt; echo "exit code: $?"
+./bin/gohealth -file nofile.txt; echo "exit code: $?"
+./bin/gohealth -workers 0 https://go.dev; echo "exit code: $?"
+./bin/gohealth -format yaml https://go.dev; echo "exit code: $?"
+./bin/gohealth -fromat json 2&gt;&amp;1 | head -n 1; echo "exit code: ${PIPESTATUS[0]}"
+./bin/gohealth 2&gt;&amp;1 | tail -n 1; echo "exit code: ${PIPESTATUS[0]}"
+./bin/gohealth -version; echo "exit code: $?"
+rm bad.txt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>gohealth: bad.txt: line 2: invalid url "ftp://files.example.com": scheme must be http or https
+exit code: 2
+gohealth: open nofile.txt: no such file or directory
+exit code: 2
+gohealth: -workers must be between 1 and 100, got 0
+exit code: 2
+gohealth: unknown -format "yaml" (use table, json, csv)
+exit code: 2
+flag provided but not defined: -fromat
+exit code: 2
+gohealth: no URLs given: use -file or pass URLs as arguments
+exit code: 2
+gohealth v1.0.0
+exit code: 0</code></pre>
+<p>คำสั่งที่มี <code>| head</code> หรือ <code>| tail</code> ต้องอ่าน Exit Code จาก <code>${PIPESTATUS[0]}</code> เพราะ <code>$?</code> จะเป็น Exit Code ของคำสั่งสุดท้ายใน Pipe (คือ <code>head</code>) ไม่ใช่ของ gohealth</p>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ถ้าทดสอบด้วย <code>go run .</code> แทน Binary จะเห็น Exit Code ผิด เพราะ <code>go run</code> พิมพ์ <code>exit status 2</code> แล้วตัวมันเองจบด้วย 1 เสมอ</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>$ go run . -format yaml https://go.dev
+gohealth: unknown -format "yaml" (use table, json, csv)
+exit status 2
+exit code: 1</code></pre>
+<p>ทุกครั้งที่ต้องการตรวจ Exit Code ให้ Build เป็น Binary ก่อนเสมอ</p></div>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป ตรวจว่าเครื่องคุณได้ผลตรงกันครบ: ตารางเรียงตามลำดับไฟล์, JSON ไม่มี key <code>error</code> ในรายการที่ UP, Timeout หยุดที่ประมาณ 1.2 วินาที, Ctrl+C แล้วยังได้ตารางครบ, Exit Code เป็น 0, 1 และ 2 ตามกรณี เมื่อทดสอบเสร็จให้กด Ctrl+C ปิด Server ทั้ง 3 ตัว</p></div>
+</li>
+
+<li>
+<h4>Step 7: ตรวจคุณภาพ Build Release และ Cross-compile</h4>
+<p>ก่อนแจกจ่ายโปรแกรม ให้ผ่านด่านตรวจคุณภาพ 3 ด่านเดียวกับที่ CI จะรัน: <code>gofmt</code> (รูปแบบโค้ด), <code>go vet</code> (Bug ที่พบบ่อย) และ <code>go test -race</code> (Logic และ Data Race)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gohealth
+gofmt -l .
+go vet ./...
+go test -race ./... &gt; /dev/null &amp;&amp; echo "all checks passed"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>all checks passed</code></pre>
+<p><code>gofmt -l</code> และ <code>go vet</code> ไม่พิมพ์อะไรเลยเมื่อทุกอย่างถูกต้อง ถ้า <code>gofmt -l</code> พิมพ์ชื่อไฟล์ออกมา ให้รัน <code>gofmt -w .</code> เพื่อจัดรูปแบบให้อัตโนมัติ</p>
+<p>ต่อไป Build Binary สำหรับ 3 ระบบปฏิบัติการจากเครื่อง Linux เครื่องเดียว Go ทำ Cross-compile ได้ด้วยตัวแปร <code>GOOS</code> และ <code>GOARCH</code> โดยไม่ต้องติดตั้งอะไรเพิ่ม เพราะโปรเจกต์นี้ใช้แต่ Standard Library</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gohealth
+# Linux (เครื่องปัจจุบัน) ปิด cgo ให้เป็น Static Binary ย้ายไปเครื่องอื่นได้ง่าย
+CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=v1.0.0" -o bin/gohealth .
+# Windows 64-bit
+GOOS=windows GOARCH=amd64 go build -ldflags "-s -w -X main.version=v1.0.0" -o bin/gohealth.exe .
+# macOS บนชิป Apple Silicon
+GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w -X main.version=v1.0.0" -o bin/gohealth-darwin-arm64 .
+ls -lh bin
+file bin/*</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>total 20M
+-rwxr-xr-x 1 somchai somchai 6.7M Oct 19 14:12 gohealth
+-rwxr-xr-x 1 somchai somchai 6.3M Oct 19 14:12 gohealth-darwin-arm64
+-rwxr-xr-x 1 somchai somchai 6.8M Oct 19 14:12 gohealth.exe
+bin/gohealth:              ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, Go BuildID=zEYXWdj2uZ3UV99qmUT9/OSOGMmGkw37gOptIuDPa/EktuYoxa_B3xR3oPMRBI/2KbPhr0D8LfxKroye6HS, BuildID[sha1]=8047bd3c3d966f3eddd92269ee62aba5a2862a14, stripped
+bin/gohealth-darwin-arm64: Mach-O 64-bit arm64 executable, flags:&lt;|DYLDLINK|PIE&gt;
+bin/gohealth.exe:          PE32+ executable (console) x86-64, for MS Windows, 8 sections</code></pre>
+<p>ขนาดไฟล์ วันที่ และ BuildID จะต่างจากเครื่องของคุณ ถ้าไม่มีคำสั่ง <code>file</code> ให้ติดตั้งด้วย <code>sudo apt install -y file</code></p>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>ส่วนของคำสั่ง</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>-ldflags "-s -w"</code></td><td>ตัด Symbol Table และข้อมูล Debug ออก ไฟล์เล็กลงประมาณ 30% (Build ปกติได้ราว 10 MB) แลกกับการ Debug ด้วย Delve ไม่ได้</td></tr>
+<tr><td><code>-X main.version=v1.0.0</code></td><td>แทนค่าตัวแปร <code>version</code> ใน Package <code>main</code> ตอน Link ทำให้ <code>-version</code> แสดงเวอร์ชันจริงโดยไม่ต้องแก้โค้ด</td></tr>
+<tr><td><code>CGO_ENABLED=0</code></td><td>ไม่ลิงก์กับไลบรารี C ของระบบ ได้ Binary แบบ <code>statically linked</code> ใช้ได้แม้ใน Container แบบ <code>distroless</code> หรือ <code>scratch</code></td></tr>
+<tr><td><code>GOOS=windows GOARCH=amd64</code></td><td>ระบุระบบปฏิบัติการและสถาปัตยกรรมปลายทาง ดูคู่ที่รองรับทั้งหมดได้ด้วย <code>go tool dist list</code></td></tr>
+</tbody>
+</table></div>
+<p>ลองรันไฟล์ <code>.exe</code> บน Windows จริง โดยคัดลอกไปไว้ที่ Desktop ของ Windows ก่อน (เปลี่ยน <code>somchai</code> เป็นชื่อผู้ใช้ Windows ของคุณ)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cp ~/projects/gohealth/bin/gohealth.exe /mnt/c/Users/somchai/Desktop/</code></pre>
+<pre class="code" data-env="win" data-label="PowerShell · Windows"><code class="language-powershell">cd $HOME\Desktop
+.\gohealth.exe -version
+.\gohealth.exe https://go.dev https://example.com</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>gohealth v1.0.0</code></pre>
+<p>บรรทัดที่สองจะแสดงตารางผลการตรวจสองเว็บ ค่า Latency ขึ้นกับอินเทอร์เน็ตของคุณ ถ้าต้องการติดตั้งไว้ใช้เองบน WSL ให้รัน <code>go install .</code> ไฟล์จะไปอยู่ที่ <code>~/go/bin/gohealth</code> (ซึ่งอยู่ใน PATH แล้วจากการตั้งค่าใน Part 2) แต่ <code>gohealth -version</code> จะแสดง <code>gohealth dev</code> เพราะ <code>go install</code> ไม่ได้ใส่ <code>-ldflags</code></p>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ตั้งชื่อเวอร์ชันตาม Semantic Versioning (<code>v1.0.0</code>, <code>v1.1.0</code>, <code>v2.0.0</code>) และสร้าง Git Tag ชื่อเดียวกัน เพื่อให้ <code>go install github.com/somchai/gohealth@v1.0.0</code> ทำงานได้</li>
+<li>อย่า commit ไฟล์ Binary ขึ้น Git ให้แนบไว้ในหน้า GitHub Releases แทน โปรเจกต์นี้กันไว้แล้วด้วย <code>bin/</code> และ <code>*.exe</code> ใน <code>.gitignore</code></li>
+<li>ถ้าต้องการทำ Release หลายระบบอัตโนมัติในอนาคต เครื่องมือยอดนิยมคือ GoReleaser (ตรวจวิธีติดตั้งล่าสุดจากเว็บทางการก่อนใช้)</li>
+</ul></div>
+</li>
+<li>
+<h4>Step 8: ตั้ง CI ด้วย GitHub Actions</h4>
+<p>CI (Continuous Integration) คือการให้ GitHub รันด่านตรวจคุณภาพจาก Step 7 ให้อัตโนมัติทุกครั้งที่ push หรือเปิด Pull Request ถ้าใครส่งโค้ดที่ไม่ผ่าน <code>gofmt</code>, <code>go vet</code> หรือ Test จะเห็นเครื่องหมายกากบาทสีแดงทันที ก่อนโค้ดนั้นจะถูก Merge</p>
+<pre class="code" data-env="file" data-label="YAML · .github/workflows/ci.yml"><code class="language-yaml"># CI ของ gohealth: รันทุกครั้งที่ push หรือเปิด Pull Request
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.2'
+
+      - name: Check formatting (gofmt)
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "These files need gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test with race detector
+        run: go test -race -cover ./...
+
+      - name: Build
+        run: go build -ldflags "-s -w -X main.version=${{ github.sha }}" -o bin/gohealth .</code></pre>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>on: push</code> / <code>pull_request</code></td><td>รันเมื่อ push เข้า Branch <code>main</code> และเมื่อมี Pull Request ใด ๆ</td></tr>
+<tr><td><code>runs-on: ubuntu-latest</code></td><td>ใช้เครื่อง Ubuntu ของ GitHub ซึ่งมี <code>gcc</code> อยู่แล้ว จึงรัน <code>-race</code> ได้ทันที</td></tr>
+<tr><td><code>actions/checkout@v5</code></td><td>ดึงโค้ดจาก Repository ลงเครื่อง CI เลข Major Version ของ Action เปลี่ยนได้ ตรวจเวอร์ชันล่าสุดที่ GitHub Marketplace ก่อนใช้</td></tr>
+<tr><td><code>actions/setup-go@v6</code> กับ <code>go-version: '1.27.2'</code></td><td>ติดตั้ง Go เวอร์ชันเดียวกับเครื่องเรา (ตรวจเวอร์ชันล่าสุดของ Action ที่ Marketplace เช่นกัน) ใส่เครื่องหมายคำพูดเพื่อให้ YAML มองเป็นข้อความ ไม่ใช่ตัวเลข</td></tr>
+<tr><td><code>unformatted=$(gofmt -l .)</code></td><td><code>gofmt -l</code> คืน Exit Code 0 เสมอแม้มีไฟล์ที่ยังไม่จัดรูปแบบ จึงต้องเช็กเองว่ามีชื่อไฟล์พิมพ์ออกมาหรือไม่ แล้ว <code>exit 1</code> ให้ Step ล้ม</td></tr>
+<tr><td><code>go test -race -cover ./...</code></td><td>ด่านสำคัญที่สุด ถ้า Test ใดพังหรือเจอ Data Race Job จะล้ม</td></tr>
+<tr><td><code>${{ github.sha }}</code></td><td>ใส่ Commit Hash เป็นเวอร์ชันของ Binary ที่ Build ใน CI เพื่อยืนยันว่าโค้ด Build ผ่านจริง</td></tr>
+</tbody>
+</table></div>
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>YAML ใช้การเว้นวรรคแทนวงเล็บ ห้ามใช้ Tab และต้องเว้นวรรคให้ตรงกันทุกระดับ ถ้าเว้นผิด GitHub จะแจ้ง <code>Invalid workflow file</code> ในแท็บ Actions</p></div>
+</li>
+
+<li>
+<h4>Step 9: เขียน README และ Push ขึ้น GitHub</h4>
+<p>README คือหน้าแรกที่ผู้สัมภาษณ์งานจะเห็น ต้องตอบให้ได้ภายใน 30 วินาทีว่า โปรแกรมนี้ทำอะไร ติดตั้งอย่างไร ใช้อย่างไร และ Exit Code หมายถึงอะไร ใช้ Template ด้านล่างนี้ได้เลย เปลี่ยน <code>somchai</code> เป็นชื่อบัญชี GitHub ของคุณ</p>
+<pre class="code" data-env="file" data-label="Markdown · README.md"><code class="language-markdown"># gohealth
+
+![ci](https://github.com/somchai/gohealth/actions/workflows/ci.yml/badge.svg)
+
+Concurrent website health checker written in Go (standard library only).
+ตรวจสถานะเว็บไซต์หลายเว็บพร้อมกันด้วย Worker Pool มี Timeout ต่อ Request, Retry พร้อม Backoff
+และ Exit Code ที่ใช้ใน CI ได้ทันที
+
+## Features
+
+- ตรวจหลาย URL พร้อมกันด้วย Worker Pool (`-workers`)
+- Timeout ต่อ Request ด้วย `context` และกด Ctrl+C เพื่อยกเลิกทุก Request ได้
+- Retry เฉพาะ Network Error และ HTTP 5xx พร้อม Backoff
+- ผลลัพธ์แบบ `table`, `json`, `csv` เรียงตามลำดับ Input เสมอ
+- Log ไป stderr ผลลัพธ์ไป stdout ใช้ต่อ Pipe ได้
+- ไม่มี Dependency ภายนอก
+
+## Install
+
+```bash
+go install github.com/somchai/gohealth@latest
+```
+
+หรือ Build เอง:
+
+```bash
+git clone https://github.com/somchai/gohealth.git
+cd gohealth
+go build -ldflags "-s -w -X main.version=v1.0.0" -o bin/gohealth .
+```
+
+## Usage
+
+```bash
+gohealth [flags] [url ...]
+gohealth -file urls.txt -workers 10 -timeout 2s -format json
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `-file` | | อ่าน URL จากไฟล์ (บรรทัดละ 1 URL, `#` คือ comment) |
+| `-workers` | 5 | จำนวน Worker (1..100) |
+| `-timeout` | 3s | Timeout ต่อ Request |
+| `-retries` | 2 | จำนวนครั้งที่ลองซ้ำ (0..10) |
+| `-format` | table | `table`, `json`, `csv` |
+| `-expect-max` | 399 | Status Code ที่ไม่เกินค่านี้ถือว่า UP |
+| `-verbose` | false | แสดง Debug Log |
+| `-version` | false | แสดงเวอร์ชัน |
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| 0 | ทุก URL ปกติ (UP) |
+| 1 | มีอย่างน้อย 1 URL ล่ม (DOWN) หรือผู้ใช้กด Ctrl+C |
+| 2 | ใช้คำสั่งผิด, ไม่มี URL, อ่านไฟล์ไม่ได้ หรือ URL ผิดรูปแบบ |
+
+## Sample output
+
+```text
+URL                              STATUS  CODE  LATENCY  ATTEMPTS  ERROR
+http://127.0.0.1:8000/           UP      200   3ms      1         -
+http://127.0.0.1:8000/nope.html  DOWN    404   2ms      1         HTTP 404 Not Found
+http://127.0.0.1:9               DOWN    -     0ms      2         connection refused
+checked 3 urls: 1 up, 2 down
+```
+
+## Architecture
+
+```text
+main.go            flags, validation, signal.NotifyContext, exit codes
+  |
+  v
+internal/checker   ParseTargets -&gt; jobs channel -&gt; N workers -&gt; results[index]
+  |                (context.WithTimeout per request, retry + backoff)
+  v
+internal/report    table (tabwriter) | json | csv  -&gt; stdout
+```
+
+## Development
+
+```bash
+gofmt -l .
+go vet ./...
+go test -race -cover ./...
+```
+
+## Responsible use
+
+ตรวจเฉพาะเว็บไซต์ที่คุณเป็นเจ้าของหรือได้รับอนุญาตเท่านั้น และจำกัดจำนวน Worker และ Retry
+ให้เหมาะสม (พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์)
+
+## License
+
+MIT</code></pre>
+<p>ต่อไป commit งานทั้งหมด (ทบทวนคำสั่ง Git ได้ใน <a data-t="17"></a>) ลบไฟล์ <code>local-urls.txt</code> ที่ใช้ทดสอบในเครื่องออกก่อน เพราะเป็น URL เฉพาะเครื่องเรา</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gohealth
+rm -f local-urls.txt
+git init -b main
+git add .
+git status --short
+git commit -m "feat: concurrent website health checker"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Initialized empty Git repository in /home/somchai/projects/gohealth/.git/
+A  .github/workflows/ci.yml
+A  .gitignore
+A  README.md
+A  go.mod
+A  internal/checker/checker.go
+A  internal/checker/checker_test.go
+A  internal/report/report.go
+A  internal/report/report_test.go
+A  main.go
+A  testdata/urls.txt
+A  urls.txt
+[main (root-commit) 0f3ac62] feat: concurrent website health checker
+ 11 files changed, 977 insertions(+)
+ create mode 100644 .github/workflows/ci.yml
+ create mode 100644 .gitignore
+ create mode 100644 README.md
+ create mode 100644 go.mod
+ create mode 100644 internal/checker/checker.go
+ create mode 100644 internal/checker/checker_test.go
+ create mode 100644 internal/report/report.go
+ create mode 100644 internal/report/report_test.go
+ create mode 100644 main.go
+ create mode 100644 testdata/urls.txt
+ create mode 100644 urls.txt</code></pre>
+<p>Commit Hash (<code>0f3ac62</code>) จะต่างจากเครื่องของคุณ สิ่งที่ต้องตรวจคือรายการไฟล์: ต้อง<strong>ไม่มี</strong> <code>bin/</code>, <code>*.exe</code> และ <code>cover.out</code> ถ้าเห็นไฟล์เหล่านี้ แปลว่า <code>.gitignore</code> ผิด</p>
+<p>สร้าง Repository เปล่าชื่อ <code>gohealth</code> บน GitHub ที่ <a href="https://github.com/new" target="_blank" rel="noopener">github.com/new</a> (ไม่ต้องติ๊กสร้าง README เพราะเรามีแล้ว) จากนั้นเชื่อมและ push พร้อมสร้าง Tag เวอร์ชันแรก</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gohealth
+git remote add origin git@github.com:somchai/gohealth.git
+git push -u origin main
+git tag v1.0.0
+git push origin v1.0.0</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Enumerating objects: 19, done.
+Counting objects: 100% (19/19), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (14/14), done.
+Writing objects: 100% (19/19), 10.21 KiB | 1.70 MiB/s, done.
+Total 19 (delta 0), reused 0 (delta 0), pack-reused 0
+To github.com:somchai/gohealth.git
+ * [new branch]      main -&gt; main
+branch 'main' set up to track 'origin/main'.
+Total 0 (delta 0), reused 0 (delta 0), pack-reused 0
+To github.com:somchai/gohealth.git
+ * [new tag]         v1.0.0 -&gt; v1.0.0</code></pre>
+<p>จำนวน Object ขนาด ความเร็ว และจำนวน Thread จะต่างจากเครื่องของคุณ ถ้ายังไม่ได้ตั้งค่า SSH Key ให้ใช้ URL แบบ <code>https://github.com/somchai/gohealth.git</code> แทน แล้วล็อกอินด้วย Personal Access Token ตามที่เรียนใน <a data-t="17"></a></p>
+<p>เปิดแท็บ <strong>Actions</strong> ใน Repository จะเห็น Workflow <code>ci</code> กำลังรัน รอประมาณ 1–2 นาทีจนขึ้นเครื่องหมายถูกสีเขียว ป้าย (Badge) บนหัว README จะเปลี่ยนเป็น <code>passing</code> ต่อไปถ้าต้องการให้ Binary ดาวน์โหลดได้ ให้ไปที่ <strong>Releases</strong> → <strong>Draft a new release</strong> เลือก Tag <code>v1.0.0</code> แล้วแนบไฟล์ทั้ง 3 ไฟล์จากโฟลเดอร์ <code>bin/</code></p>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>โปรเจกต์เสร็จสมบูรณ์เมื่อ: หน้า Repository แสดง README พร้อม Badge สีเขียว, แท็บ Actions ผ่านครบ 6 Step, คนอื่นรัน <code>go install github.com/somchai/gohealth@v1.0.0</code> ได้ และคุณอธิบายได้ว่าทำไมผลลัพธ์เรียงตามลำดับ Input ทั้งที่ Worker ทำงานพร้อมกัน</p></div>
+</li>
+</ol>
+
+<h4>ไอเดียต่อยอด</h4>
+<p>เมื่อทำครบทุกขั้นแล้ว เลือกต่อยอดอย่างน้อย 2 ข้อ แต่ละข้อฝึกทักษะที่ใช้ในงาน Backend จริง</p>
+<ol>
+<li><strong>ตรวจเนื้อหาของหน้าเว็บ:</strong> เพิ่ม flag <code>-contains "Welcome"</code> ถ้า Body ไม่มีข้อความนี้ให้ถือว่า DOWN ใช้ <code>io.LimitReader</code> อ่านไม่เกิน 1 MB เพื่อป้องกันหน้าใหญ่ผิดปกติ</li>
+<li><strong>โหมดเฝ้าระวังต่อเนื่อง:</strong> เพิ่ม <code>-interval 30s</code> ให้ตรวจซ้ำทุก 30 วินาทีด้วย <code>time.NewTicker</code> และแจ้งเตือนเฉพาะตอนสถานะเปลี่ยน (UP เป็น DOWN หรือกลับกัน)</li>
+<li><strong>แจ้งเตือนผ่าน Webhook:</strong> เมื่อมีเว็บล่ม ให้ POST JSON ไปที่ URL ที่อ่านจากตัวแปรสภาพแวดล้อม <code>GOHEALTH_WEBHOOK_URL</code> (เช่น Discord หรือ Slack) ถ้าไม่ได้ตั้งค่าไว้ให้พิมพ์ลง stderr แทน และทดสอบด้วย <code>httptest.NewServer</code> ที่จำลองเป็น Webhook</li>
+<li><strong>Rate Limit ต่อ Host:</strong> ถ้าไฟล์มีหลาย URL ของ Host เดียวกัน ให้จำกัดไม่เกิน 2 Request พร้อมกันต่อ Host ด้วย Map ของ Buffered Channel ที่ใช้เป็น Semaphore</li>
+<li><strong>Prometheus Metrics:</strong> เพิ่มโหมด <code>-serve :9090</code> เปิด <code>GET /metrics</code> แสดงสถานะล่าสุดของแต่ละ URL ในรูปแบบข้อความของ Prometheus เพื่อนำไปทำ Dashboard ใน Grafana</li>
+<li><strong>ตรวจวันหมดอายุของ TLS Certificate:</strong> อ่าน <code>resp.TLS.PeerCertificates[0].NotAfter</code> แล้วเตือนเมื่อเหลือน้อยกว่า 14 วัน เป็นฟีเจอร์ที่ทีม DevOps ต้องการจริง</li>
+<li><strong>Docker Image ขนาดเล็ก:</strong> เขียน Dockerfile แบบ Multi-stage: Build ด้วย Image <code>golang:1.27.2</code> แล้วคัดลอก Binary ไปใส่ <code>gcr.io/distroless/static-debian12</code> (ตรวจ Tag ล่าสุดบน Docker Hub และ Registry ก่อนใช้)</li>
+<li><strong>Linter เพิ่มเติม:</strong> เพิ่ม <code>staticcheck</code> v0.8.2 และ <code>govulncheck</code> v1.9.0 ลงใน CI เพื่อจับโค้ดที่ไม่จำเป็นและ Dependency ที่มีช่องโหว่</li>
+</ol>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><p>ทุกครั้งที่เพิ่มฟีเจอร์ ให้เพิ่ม Test ก่อนหรือพร้อมกัน ทำงานใน Branch แยก เปิด Pull Request ของตัวเอง และรอให้ CI เขียวก่อน Merge ประวัติ Commit ที่เป็นระเบียบแบบนี้คือหลักฐานที่ผู้สัมภาษณ์ชอบดูมากที่สุด</p></div>
+
+<h3 id="s6-4-cheat">Cheat Sheet</h3>
+<p>สรุปคำสั่งและ Syntax ที่ใช้บ่อยที่สุดของ Go 1.27 แบ่งตามหมวด เปิดหน้านี้ค้างไว้ระหว่างเขียนโค้ดได้เลย ทุกตัวอย่างเป็นโค้ดที่ใช้ได้จริงกับ Go 1.22 ขึ้นไป</p>
+
+<h4>คำสั่ง go และเครื่องมือ</h4>
+<div class="tbl"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td class="nw"><code>go mod init</code></td><td>สร้าง Module ใหม่ ได้ไฟล์ <code>go.mod</code></td><td><code>go mod init github.com/somchai/gohealth</code></td></tr>
+<tr><td class="nw"><code>go run</code></td><td>Compile แล้วรันทันที ไม่เก็บ Binary</td><td><code>go run ./concepts/c01 somchai</code></td></tr>
+<tr><td class="nw"><code>go build -o</code></td><td>Compile เป็นไฟล์ Binary ตามชื่อที่กำหนด</td><td><code>go build -o bin/gohealth .</code></td></tr>
+<tr><td class="nw"><code>go install</code></td><td>Build แล้วติดตั้งไปที่ <code>~/go/bin</code></td><td><code>go install honnef.co/go/tools/cmd/staticcheck@v0.8.2</code></td></tr>
+<tr><td class="nw"><code>go mod tidy</code></td><td>เพิ่ม Dependency ที่ขาดและลบตัวที่ไม่ใช้ใน <code>go.mod</code> และ <code>go.sum</code></td><td><code>go get golang.org/x/sync@v0.24.0 &amp;&amp; go mod tidy</code></td></tr>
+<tr><td class="nw"><code>gofmt -l</code> / <code>-w</code></td><td>แสดงไฟล์ที่ยังไม่จัดรูปแบบ / จัดรูปแบบให้เลย</td><td><code>gofmt -w .</code></td></tr>
+<tr><td class="nw"><code>go vet ./...</code></td><td>ตรวจ Bug ที่พบบ่อย เช่น Printf ผิดชนิด ส่ง Mutex แบบ Value</td><td><code>go vet ./...</code></td></tr>
+<tr><td class="nw"><code>go doc</code></td><td>อ่านเอกสารของ Package หรือฟังก์ชันใน Terminal</td><td><code>go doc net/http.Client</code></td></tr>
+<tr><td class="nw"><code>GOOS</code> / <code>GOARCH</code></td><td>Cross-compile ไประบบอื่น</td><td><code>GOOS=windows GOARCH=amd64 go build -o bin/app.exe .</code></td></tr>
+<tr><td class="nw"><code>-ldflags "-s -w -X"</code></td><td>ลดขนาด Binary และฝังค่าตัวแปรตอน Build</td><td><code>go build -ldflags "-s -w -X main.version=v1.0.0" .</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>Syntax พื้นฐาน</h4>
+<div class="tbl"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td class="nw"><code>:=</code> / <code>var</code></td><td>ประกาศตัวแปร (<code>:=</code> ใช้ได้เฉพาะในฟังก์ชัน)</td><td><code>name := "somchai"</code> / <code>var count int</code></td></tr>
+<tr><td class="nw"><code>const</code> + <code>iota</code></td><td>ค่าคงที่ที่เพิ่มทีละ 1 อัตโนมัติ</td><td><code>const ( Low = iota; Mid; High )</code></td></tr>
+<tr><td class="nw"><code>for i := range n</code></td><td>วนจาก 0 ถึง n-1 (Go 1.22+)</td><td><code>for i := range 3 { fmt.Println(i) }</code></td></tr>
+<tr><td class="nw"><code>for k, v := range</code></td><td>วน Slice, Map, String หรือ Channel</td><td><code>for i, s := range scores { ... }</code></td></tr>
+<tr><td class="nw"><code>switch { case ...: }</code></td><td>Tagless switch แทน if-else ยาว ๆ ไม่ต้องใส่ break</td><td><code>switch { case score &gt;= 80: grade = "A" }</code></td></tr>
+<tr><td class="nw"><code>if v, err := f(); err != nil</code></td><td>if ที่มี Init Statement ตัวแปรอยู่แค่ใน if</td><td><code>if n, err := strconv.Atoi(s); err != nil { return err }</code></td></tr>
+<tr><td class="nw"><code>defer</code></td><td>เลื่อนคำสั่งไปทำตอนฟังก์ชันจบ (ทำแบบ LIFO)</td><td><code>defer resp.Body.Close()</code></td></tr>
+<tr><td class="nw"><code>func (r *T) M()</code></td><td>Method แบบ Pointer Receiver แก้ค่าใน Struct ได้</td><td><code>func (a *Account) Deposit(n int) { a.balance += n }</code></td></tr>
+<tr><td class="nw"><code>type I interface</code></td><td>Interface ที่ Type ใดมี Method ครบก็ Implement อัตโนมัติ</td><td><code>type Notifier interface { Notify(msg string) error }</code></td></tr>
+<tr><td class="nw"><code>v, ok := x.(T)</code></td><td>Type Assertion แบบปลอดภัย ไม่ panic</td><td><code>if s, ok := v.(fmt.Stringer); ok { ... }</code></td></tr>
+<tr><td class="nw"><code>func F[T any]()</code></td><td>Generic Function พร้อม Constraint</td><td><code>func Max[T cmp.Ordered](a, b T) T</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>Slice, Map และ Error</h4>
+<div class="tbl"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td class="nw"><code>make([]T, len, cap)</code></td><td>สร้าง Slice โดยจองที่ล่วงหน้า</td><td><code>results := make([]Result, len(urls))</code></td></tr>
+<tr><td class="nw"><code>append</code></td><td>เพิ่มข้อมูลท้าย Slice ต้องรับค่ากลับเสมอ</td><td><code>urls = append(urls, u)</code></td></tr>
+<tr><td class="nw"><code>slices.Clone</code> / <code>a[:n:n]</code></td><td>ตัดการแชร์ Backing Array ป้องกัน append ทับข้อมูลเดิม</td><td><code>b := slices.Clone(a)</code></td></tr>
+<tr><td class="nw"><code>v, ok := m[k]</code></td><td>อ่าน Map แบบ Comma-ok แยก "ไม่มี key" ออกจาก Zero Value</td><td><code>if n, ok := counts["go"]; ok { ... }</code></td></tr>
+<tr><td class="nw"><code>slices.Sorted(maps.Keys(m))</code></td><td>ดึง key ของ Map แบบเรียงลำดับ (Go 1.23+)</td><td><code>for _, k := range slices.Sorted(maps.Keys(m)) { ... }</code></td></tr>
+<tr><td class="nw"><code>fmt.Errorf("...: %w", err)</code></td><td>Wrap Error พร้อมเพิ่มบริบท</td><td><code>return fmt.Errorf("line %d: %w", n, ErrInvalidURL)</code></td></tr>
+<tr><td class="nw"><code>errors.Is</code></td><td>ตรวจว่าในสาย Error มี Sentinel Error ตัวนี้หรือไม่</td><td><code>errors.Is(err, context.DeadlineExceeded)</code></td></tr>
+<tr><td class="nw"><code>errors.As</code></td><td>ดึง Custom Error Type ออกจากสาย Error</td><td><code>var ve *ValidationError; if errors.As(err, &amp;ve) { ... }</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>Concurrency และ context</h4>
+<div class="tbl"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td class="nw"><code>go f()</code></td><td>เริ่ม Goroutine ใหม่</td><td><code>go worker(jobs, results)</code></td></tr>
+<tr><td class="nw"><code>make(chan T, n)</code></td><td>สร้าง Channel (n = 0 คือ Unbuffered)</td><td><code>jobs := make(chan job)</code></td></tr>
+<tr><td class="nw"><code>close(ch)</code> + <code>range ch</code></td><td>ผู้ส่งปิด Channel ผู้รับวนจนหมด</td><td><code>for j := range jobs { ... }</code></td></tr>
+<tr><td class="nw"><code>select</code></td><td>รอหลาย Channel พร้อมกัน ใช้ทำ Timeout และยกเลิก</td><td><code>select { case &lt;-ctx.Done(): return; case &lt;-time.After(wait): }</code></td></tr>
+<tr><td class="nw"><code>wg.Go(func(){...})</code></td><td>เริ่ม Goroutine และนับใน WaitGroup ให้อัตโนมัติ (Go 1.25+)</td><td><code>var wg sync.WaitGroup; wg.Go(work); wg.Wait()</code></td></tr>
+<tr><td class="nw"><code>sync.Mutex</code></td><td>ล็อกข้อมูลที่หลาย Goroutine เขียนพร้อมกัน</td><td><code>mu.Lock(); defer mu.Unlock()</code></td></tr>
+<tr><td class="nw"><code>atomic.Int64</code></td><td>ตัวนับที่ปลอดภัยโดยไม่ต้องใช้ Mutex</td><td><code>var n atomic.Int64; n.Add(1)</code></td></tr>
+<tr><td class="nw"><code>context.WithTimeout</code></td><td>สร้าง context ที่หมดเวลาเอง ต้อง <code>defer cancel()</code></td><td><code>ctx, cancel := context.WithTimeout(ctx, 3*time.Second)</code></td></tr>
+<tr><td class="nw"><code>signal.NotifyContext</code></td><td>context ที่ถูกยกเลิกเมื่อกด Ctrl+C</td><td><code>ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>HTTP, Testing และ CLI</h4>
+<div class="tbl"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td class="nw"><code>mux.HandleFunc("GET /x/{id}")</code></td><td>Routing แบบระบุ Method และ Wildcard (Go 1.22+)</td><td><code>id := r.PathValue("id")</code></td></tr>
+<tr><td class="nw"><code>http.Client{Timeout}</code></td><td>Client ที่มี Timeout ห้ามใช้ <code>http.Get</code> ใน Production</td><td><code>c := &amp;http.Client{Timeout: 4 * time.Second}</code></td></tr>
+<tr><td class="nw"><code>http.NewRequestWithContext</code></td><td>สร้าง Request ที่ยกเลิกได้ด้วย context</td><td><code>req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)</code></td></tr>
+<tr><td class="nw"><code>json.NewEncoder(w).Encode</code></td><td>เขียน JSON ลง <code>io.Writer</code> โดยตรง</td><td><code>json.NewEncoder(w).Encode(item)</code></td></tr>
+<tr><td class="nw"><code>go test -run</code></td><td>รันเฉพาะ Test หรือ Subtest ที่ชื่อตรงกับ Regex</td><td><code>go test -run 'TestCheck$/retr' -v ./internal/checker/</code></td></tr>
+<tr><td class="nw"><code>go test -race -cover</code></td><td>ตรวจ Data Race และวัด Coverage</td><td><code>go test -race -cover ./...</code></td></tr>
+<tr><td class="nw"><code>go test -bench . -benchmem</code></td><td>รัน Benchmark พร้อมดูการจองหน่วยความจำ</td><td><code>func BenchmarkX(b *testing.B) { for b.Loop() { X() } }</code></td></tr>
+<tr><td class="nw"><code>httptest.NewServer</code></td><td>เปิด Server จริงบนพอร์ตสุ่มสำหรับ Test</td><td><code>srv := httptest.NewServer(h); defer srv.Close()</code></td></tr>
+<tr><td class="nw"><code>httptest.NewRecorder</code></td><td>ทดสอบ Handler โดยไม่เปิดพอร์ต</td><td><code>rec := httptest.NewRecorder(); h.ServeHTTP(rec, req)</code></td></tr>
+<tr><td class="nw"><code>flag.Duration</code></td><td>รับ flag ที่เป็นระยะเวลา เช่น <code>500ms</code>, <code>3s</code></td><td><code>timeout := fs.Duration("timeout", 3*time.Second, "per request")</code></td></tr>
+<tr><td class="nw"><code>slog.New(slog.NewTextHandler(...))</code></td><td>Structured Logging แบบ key=value ไปที่ stderr</td><td><code>logger.Info("finished", "up", 2, "down", 1)</code></td></tr>
+<tr><td class="nw"><code>os.Exit(code)</code></td><td>จบโปรแกรมพร้อม Exit Code (ไม่รัน defer)</td><td><code>os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))</code></td></tr>
+</tbody>
+</table></div>
+
+<h3 id="s6-4-interview">Interview Questions</h3>
+<p>คำถามสัมภาษณ์งาน Go ที่เจอบ่อยในตำแหน่ง Junior ถึง Mid-level Backend Developer ลองตอบด้วยตัวเองออกเสียงก่อน แล้วค่อยเปิดดูแนวคำตอบ ถ้าอ้างถึงโปรเจกต์ gohealth ของคุณได้ คำตอบจะน่าเชื่อถือขึ้นมาก</p>
+
+<details class="iq"><summary>1. Goroutine ต่างจาก OS Thread อย่างไร และทำไม Go สร้าง Goroutine ได้เป็นแสนตัว</summary><div>
+<p><strong>แนวคำตอบ:</strong> Goroutine คือหน่วยการทำงานที่ Go Runtime จัดการเอง ไม่ใช่ Thread ของระบบปฏิบัติการโดยตรง ประเด็นที่ควรพูดให้ครบ:</p>
+<ul>
+<li><strong>Stack เล็กและโตได้:</strong> Goroutine เริ่มด้วย Stack เพียงไม่กี่ KB (ปัจจุบันประมาณ 2 KB) และขยายหรือหดได้ตามต้องการ ส่วน OS Thread มักจอง Stack ระดับ MB ตั้งแต่แรก</li>
+<li><strong>Scheduler แบบ M:N:</strong> Runtime กระจาย Goroutine จำนวนมาก (G) ลงบน OS Thread จำนวนน้อย (M) ผ่าน Processor (P) ซึ่งมีจำนวนเท่ากับ <code>GOMAXPROCS</code> (ค่าเริ่มต้นคือจำนวน CPU ที่ใช้ได้)</li>
+<li><strong>สลับงานถูก:</strong> การสลับ Goroutine เกิดใน User Space ไม่ต้องเข้า Kernel เมื่อ Goroutine รอ I/O เช่น รอ Network Runtime จะพักมันไว้และเอาตัวอื่นมารันแทน</li>
+<li><strong>Concurrency ไม่ใช่ Parallelism:</strong> Concurrency คือการออกแบบให้หลายงานดำเนินไปพร้อมกันได้ Parallelism คือการรันพร้อมกันจริงบนหลาย Core Go ให้ทั้งสองอย่าง</li>
+</ul>
+<p>ตัวอย่างจากงานจริง: "ใน gohealth ผมใช้ Worker 5 ตัวตรวจ URL เวลาส่วนใหญ่ของแต่ละ Worker คือรอ Network ระหว่างนั้น Runtime ก็ให้ Worker ตัวอื่นทำงานแทน จึงตรวจ 5 URL ได้ในเวลาใกล้เคียงกับ URL ที่ช้าที่สุดเพียงตัวเดียว"</p>
+<p>จุดที่ทำให้คำตอบโดดเด่น: บอกว่าแม้ Goroutine จะถูก แต่ต้องจำกัดจำนวนเมื่อไปเรียกทรัพยากรภายนอก (เช่น ใช้ Worker Pool) และต้องมีทางให้มันจบเสมอ ไม่เช่นนั้นจะเกิด Goroutine Leak</p>
+</div></details>
+
+<details class="iq"><summary>2. Unbuffered Channel กับ Buffered Channel ต่างกันอย่างไร ใครควรเป็นคนปิด Channel</summary><div>
+<p><strong>แนวคำตอบ:</strong></p>
+<ul>
+<li><strong>Unbuffered</strong> (<code>make(chan T)</code>): การส่งจะรอจนกว่ามีผู้รับมารับ ทั้งสองฝั่งต้อง "นัดเจอกัน" ณ จุดเดียว จึงใช้ซิงโครไนซ์ได้ด้วย</li>
+<li><strong>Buffered</strong> (<code>make(chan T, n)</code>): ส่งได้ทันทีจนกว่า Buffer จะเต็ม ช่วยลดการรอเมื่อผู้ส่งและผู้รับทำงานเร็วไม่เท่ากัน แต่ไม่ใช่วิธีแก้ Deadlock</li>
+<li><strong>ผู้ส่งเป็นคนปิด</strong> เพราะผู้ส่งเท่านั้นที่รู้ว่าไม่มีข้อมูลเพิ่มแล้ว ถ้าผู้รับปิด ผู้ส่งที่ยังทำงานอยู่จะ <code>panic: send on closed channel</code> ถ้ามีผู้ส่งหลายตัว ให้ใช้ <code>sync.WaitGroup</code> รอทุกตัวเสร็จแล้วปิดจาก Goroutine แยก</li>
+<li>การอ่านจาก Channel ที่ปิดแล้วได้ Zero Value ทันที ใช้ <code>v, ok := &lt;-ch</code> หรือ <code>for v := range ch</code> เพื่อรู้ว่าจบแล้ว</li>
+</ul>
+<p>ตัวอย่าง Deadlock ที่ผู้สัมภาษณ์ชอบถาม:</p>
+<pre class="code" data-env="file" data-label="Go · main.go"><code class="language-go">package main
+
+func main() {
+	ch := make(chan int)
+	ch &lt;- 1 // ไม่มีผู้รับเลย main รอตลอดไป
+}</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>fatal error: all goroutines are asleep - deadlock!
+
+goroutine 1 [chan send]:
+main.main()
+	/home/somchai/projects/deadlock/main.go:5 +0x28
+exit status 2</code></pre>
+<p>แก้ได้สองแบบ: ให้มี Goroutine อื่นรับ หรือใช้ <code>make(chan int, 1)</code> แต่ควรอธิบายว่าแบบหลังแค่เลื่อนปัญหาถ้าส่งเกินขนาด Buffer</p>
+</div></details>
+
+<details class="iq"><summary>3. อธิบาย Slice ว่าทำงานอย่างไร (len, cap, Backing Array) และ Bug ที่เกิดจาก append</summary><div>
+<p><strong>แนวคำตอบ:</strong> Slice เป็น Struct เล็ก ๆ 3 ช่อง คือ Pointer ไปยัง Backing Array, ความยาว (len) และความจุ (cap) การส่ง Slice เข้าฟังก์ชันจึงคัดลอกแค่ 3 ช่องนี้ แต่ยังชี้ไปที่ Array เดียวกัน</p>
+<ul>
+<li>เมื่อ <code>append</code> แล้ว cap ยังพอ ข้อมูลจะถูกเขียนลง Backing Array เดิม ซึ่งอาจทับข้อมูลของ Slice อื่นที่แชร์ Array เดียวกัน</li>
+<li>เมื่อ cap ไม่พอ Go จะจอง Array ใหม่ที่ใหญ่ขึ้นแล้วคัดลอกข้อมูลไป Slice ใหม่จึงไม่เกี่ยวกับของเดิมอีก</li>
+<li>เพราะไม่รู้ล่วงหน้าว่าจะเกิดแบบไหน ต้องรับค่ากลับเสมอ: <code>s = append(s, x)</code></li>
+<li>วิธีป้องกัน: <code>slices.Clone(s)</code>, <code>copy</code> หรือ Full Slice Expression <code>a[:2:2]</code> เพื่อจำกัด cap</li>
+</ul>
+<pre class="code" data-env="file" data-label="Go · main.go"><code class="language-go">package main
+
+import "fmt"
+
+func main() {
+	a := []int{1, 2, 3, 4}
+	b := a[:2]        // b ใช้ Backing Array เดียวกับ a
+	b = append(b, 99) // cap ยังพอ จึงเขียนทับ a[2]
+	fmt.Println(a, b)
+	c := a[:2:2]      // จำกัด cap = 2
+	c = append(c, 77) // cap ไม่พอ จึงจองที่ใหม่ a ไม่เปลี่ยน
+	fmt.Println(a, c)
+}</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[1 2 99 4] [1 2 99]
+[1 2 99 4] [1 2 77]</code></pre>
+<p>จุดที่ทำให้คำตอบโดดเด่น: พูดถึงการจองที่ล่วงหน้าด้วย <code>make([]T, 0, n)</code> เมื่อรู้ขนาด เพื่อลดการจองหน่วยความจำซ้ำ และใน gohealth ใช้ <code>make([]Result, len(urls))</code> ให้แต่ละ Worker เขียนคนละ Index จึงไม่มี Data Race</p>
+</div></details>
+
+<details class="iq"><summary>4. Go จัดการ Error อย่างไร ทำไมไม่มี Exception และใช้ errors.Is กับ errors.As ต่างกันอย่างไร</summary><div>
+<p><strong>แนวคำตอบ:</strong> ใน Go Error เป็นค่าธรรมดาที่ Implement Interface <code>error</code> (มี Method <code>Error() string</code>) ฟังก์ชันคืน Error เป็นค่าสุดท้าย และผู้เรียกต้องตรวจทันที แนวคิดคือทำให้ทุกเส้นทางที่อาจผิดพลาดมองเห็นได้ชัดในโค้ด ไม่มีการกระโดดข้ามหลายชั้นแบบ Exception</p>
+<ul>
+<li><strong>เพิ่มบริบทด้วย <code>%w</code>:</strong> <code>fmt.Errorf("line %d: %w", n, err)</code> Wrap Error เดิมไว้ข้างใน ถ้าใช้ <code>%v</code> สายจะขาดและตรวจย้อนไม่ได้</li>
+<li><strong><code>errors.Is(err, target)</code>:</strong> ตรวจว่าในสายมี Error <em>ตัวนี้</em> หรือไม่ ใช้กับ Sentinel Error เช่น <code>ErrInvalidURL</code>, <code>context.DeadlineExceeded</code>, <code>os.ErrNotExist</code></li>
+<li><strong><code>errors.As(err, &amp;target)</code>:</strong> ตรวจว่าในสายมี Error <em>ชนิดนี้</em> หรือไม่ แล้วดึงออกมาใช้ field เช่น <code>var ne net.Error</code> แล้วเรียก <code>ne.Timeout()</code></li>
+<li><strong>ห้ามเทียบข้อความ Error</strong> ด้วย <code>err.Error() == "..."</code> เพราะข้อความเปลี่ยนได้ทุกเมื่อ</li>
+<li><strong><code>panic</code> ใช้เฉพาะความผิดพลาดของโปรแกรมเมอร์</strong> ที่ไม่ควรเกิด เช่น Index เกินขอบเขต ไม่ใช่สำหรับ Input ผิดหรือ Network ล่ม</li>
+</ul>
+<p>ตัวอย่างจากงานจริง: "ใน gohealth ฟังก์ชัน <code>ParseTargets</code> Wrap <code>ErrInvalidURL</code> พร้อมเลขบรรทัด ส่วน <code>main.go</code> แค่แสดงข้อความและคืน Exit Code 2 และใน Test ผมใช้ <code>errors.Is</code> ยืนยันว่าการ Wrap ถูกต้อง ส่วนการแปลง Network Error เป็นข้อความสั้น ๆ ใช้ <code>errors.Is(err, syscall.ECONNREFUSED)</code> และ <code>errors.As</code> กับ <code>*net.DNSError</code>"</p>
+</div></details>
+
+<details class="iq"><summary>5. ออกแบบโปรแกรมที่เรียก HTTP ไปยัง 10,000 URL ให้เร็ว ปลอดภัย และยกเลิกได้ จะทำอย่างไร และทดสอบอย่างไร</summary><div>
+<p><strong>แนวคำตอบ</strong> (คำถามระดับ Mid ที่วัดทั้ง Concurrency และ Engineering): ตอบเป็นข้อ ๆ ตามลำดับการออกแบบ</p>
+<ol>
+<li><strong>จำกัด Concurrency ด้วย Worker Pool:</strong> ไม่สร้าง Goroutine 10,000 ตัวพร้อมกัน เพราะจะเปิด Connection มากเกินไปจนเครื่องเราหรือปลายทางรับไม่ไหว ใช้ Channel ของงานกับ Worker จำนวน N ที่ปรับได้ด้วย flag</li>
+<li><strong>รักษาลำดับผลลัพธ์:</strong> ส่ง Index ไปพร้อมงาน แล้วให้ Worker เขียนผลลง <code>results[i]</code> ของ Slice ที่จองไว้ล่วงหน้า ไม่ต้องใช้ Mutex เพราะแต่ละตัวเขียนคนละช่อง และ <code>wg.Wait()</code> รับประกันว่าอ่านหลังทุกตัวเขียนเสร็จ</li>
+<li><strong>Timeout หลายชั้น:</strong> <code>context.WithTimeout</code> ต่อ Request, <code>http.Client{Timeout}</code> เป็นตาข่ายสำรอง และ Root Context จาก <code>signal.NotifyContext</code> เพื่อให้ Ctrl+C ยกเลิกทุกอย่าง</li>
+<li><strong>Retry อย่างมีวินัย:</strong> Retry เฉพาะ Network Error และ 5xx ไม่ Retry 4xx ใช้ Backoff ที่เพิ่มขึ้น (ถ้าจะให้ดีขึ้นอีกเพิ่ม Jitter) และหยุดทันทีเมื่อ <code>ctx.Done()</code></li>
+<li><strong>ใช้ทรัพยากรถูกต้อง:</strong> ใช้ <code>http.Client</code> ตัวเดียวร่วมกันเพื่อ Reuse Connection, อ่าน Body ทิ้งและ <code>Close</code> ทุกครั้ง ไม่เช่นนั้น Connection จะรั่ว</li>
+<li><strong>แยก Output:</strong> ผลลัพธ์ไป stdout, Log ไป stderr ด้วย <code>log/slog</code> และใช้ Exit Code ที่มีความหมายสำหรับ CI</li>
+<li><strong>ทดสอบ:</strong> Table-driven Test กับ <code>httptest.NewServer</code> จำลอง 200, 404, 500-then-200, 503 ตลอด และ Handler ที่ช้ากว่า Timeout รวมถึง Test ที่ทำให้ URL แรกตอบช้าที่สุดเพื่อพิสูจน์ว่าลำดับไม่สลับ รันทั้งหมดด้วย <code>go test -race</code> ใน CI</li>
+</ol>
+<p>จุดที่ทำให้คำตอบโดดเด่น: พูดถึงความรับผิดชอบด้วย เช่น จำกัด Request ต่อ Host เพื่อไม่ให้กลายเป็นการโจมตีปลายทางโดยไม่ตั้งใจ ตั้ง <code>User-Agent</code> ที่บอกว่าเป็นใคร และตรวจเฉพาะระบบที่ได้รับอนุญาต แล้วปิดท้ายด้วย "ผมทำโปรเจกต์นี้จริงชื่อ gohealth ดูโค้ดและ CI ได้ที่ GitHub ของผม"</p>
+</div></details>
+
+<h3 id="s6-4-resources">แหล่งเรียนต่อ</h3>
+<p>เรียงจากแหล่งที่ควรเปิดบ่อยที่สุด เอกสารทางการของ Go เขียนดีมากและอัปเดตตามทุกเวอร์ชัน ควรฝึกอ่านให้เป็นนิสัย</p>
+<ul class="res">
+<li><a href="https://go.dev/doc/" target="_blank" rel="noopener">Go Documentation</a> — ศูนย์รวมเอกสารทางการ ทั้งวิธีติดตั้ง บทเรียน และ Release Notes ของแต่ละเวอร์ชัน <span class="pill">ฟรี</span></li>
+<li><a href="https://go.dev/tour/" target="_blank" rel="noopener">A Tour of Go</a> — บทเรียนแบบลองเขียนโค้ดบน Browser ทีละหัวข้อ เหมาะสำหรับทบทวน Syntax ทั้งหมดในวันเดียว <span class="pill">ฟรี</span></li>
+<li><a href="https://pkg.go.dev/std" target="_blank" rel="noopener">Go Standard Library</a> — เอกสารของทุก Package มาตรฐาน เช่น net/http, context, sync, log/slog พร้อมตัวอย่างที่รันได้ <span class="pill">ฟรี</span></li>
+<li><a href="https://go.dev/doc/effective_go" target="_blank" rel="noopener">Effective Go</a> — แนวทางการเขียน Go ให้เป็นธรรมชาติของภาษา (Idiomatic Go) ทั้งการตั้งชื่อ Error และ Concurrency <span class="pill">ฟรี</span></li>
+<li><a href="https://gobyexample.com/" target="_blank" rel="noopener">Go by Example</a> — ตัวอย่างโค้ดสั้น ๆ ที่รันได้ทีละหัวข้อ เปิดดูเร็วเมื่อลืม Syntax ของ select, Ticker หรือ Worker Pool <span class="pill">ฟรี</span></li>
+<li><a href="https://quii.gitbook.io/learn-go-with-tests" target="_blank" rel="noopener">Learn Go with Tests</a> — หนังสือออนไลน์ที่สอน Go ผ่านการเขียน Test ก่อน (TDD) ต่อยอดทักษะ Testing จากโปรเจกต์นี้โดยตรง <span class="pill">ฟรี</span></li>
+<li><a href="https://go.dev/ref/spec" target="_blank" rel="noopener">The Go Programming Language Specification</a> — ข้อกำหนดของภาษาอย่างเป็นทางการ ใช้หาคำตอบที่แน่นอนเมื่อสงสัยว่าภาษาทำงานอย่างไร <span class="pill">ฟรี</span></li>
+<li><a href="https://go.dev/blog/" target="_blank" rel="noopener">The Go Blog</a> — บทความจากทีมพัฒนา Go อธิบายฟีเจอร์ใหม่ เช่น Range-over-func, Routing ใน ServeMux และ Generics อย่างละเอียด <span class="pill">ฟรี</span></li>
+<li><a href="https://exercism.org/tracks/go" target="_blank" rel="noopener">Exercism: Go Track</a> — โจทย์ฝึกกว่าร้อยข้อพร้อมระบบส่งคำตอบและ Mentor อาสาสมัครช่วยรีวิวโค้ด <span class="pill">ฟรี</span></li>
+<li><a href="https://docs.github.com/en/actions" target="_blank" rel="noopener">GitHub Actions Documentation</a> — คู่มือเขียน Workflow สำหรับต่อยอด CI ของ gohealth เช่น Matrix หลายเวอร์ชันและ Release อัตโนมัติ <span class="pill">ฟรี</span></li>
+<li><a href="https://www.gopl.io/" target="_blank" rel="noopener">The Go Programming Language (Donovan &amp; Kernighan)</a> — หนังสือคลาสสิกที่อธิบายพื้นฐานภาษาอย่างลึก แม้ออกก่อนยุค Generics แต่เนื้อหาหลักยังใช้ได้ดี <span class="pill">มีค่าใช้จ่าย</span></li>
+</ul>
+<div class="callout"><span class="c-label tip">Tip</span><p>Go ไม่มีใบรับรองทางการ สิ่งที่ผู้สัมภาษณ์ดูคือผลงานจริง ให้ปักหมุด gohealth ไว้บนโปรไฟล์ GitHub เขียน README ให้ดี และลองส่ง Pull Request เล็ก ๆ ให้โปรเจกต์ Open Source ที่เขียนด้วย Go เช่น แก้เอกสารหรือเพิ่ม Test ก่อน แล้วค่อยขยับไปแก้ Bug ต่อยอดสาย Backend ได้ที่ <a data-t="12"></a> และสาย Cyber Security ที่ใช้ Go ทำเครื่องมือได้ที่ <a data-t="5"></a></p></div>
+</section>

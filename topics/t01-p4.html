@@ -1,0 +1,1257 @@
+<section class="part" data-part="4">
+<h2 id="s1-4"><span class="sec-no">1.4</span>ส่วนเสริม: Mini Project, Cheat Sheet, Interview</h2>
+<p>ส่วนนี้คือการรวบรวมทุกอย่างที่เรียนมาใน Network Engineer ให้กลายเป็นผลงานที่ใส่ Portfolio ได้จริง เริ่มจาก Mini Project ที่เขียนเครื่องมือสำรวจเครือข่ายด้วย Python ตามด้วย Cheat Sheet สำหรับเปิดดูระหว่างทำงาน คำถามสัมภาษณ์งานพร้อมแนวคำตอบ และแหล่งเรียนต่อ</p>
+<p>ก่อนเริ่ม ควรผ่าน Part 2 มาแล้วอย่างน้อยแนวคิดที่ 3 (Subnetting), 5 (DNS), 6 (TCP/UDP) และ 12 (Troubleshooting และ Automation) เพราะ Mini Project หยิบโค้ดและแนวคิดจากส่วนเหล่านั้นมาประกอบกัน ถ้ายังไม่คล่อง Python ให้ทบทวน <a data-t="9"></a> และถ้ายังไม่เคย Push งานขึ้น GitHub ให้ทบทวน <a data-t="17"></a></p>
+
+<h3 id="s1-4-project">Mini Project: Home Network Toolkit</h3>
+<p><span class="lvl" data-lvl="i">Intermediate</span> <span class="pill">ฟรี</span> <span class="muted small">ใช้เวลาประมาณ 6–10 ชั่วโมง</span></p>
+
+<h4>เป้าหมายของโปรเจกต์</h4>
+<p>เราจะสร้างเครื่องมือ Command Line ชื่อ <strong>Home Network Toolkit</strong> (เรียกสั้นๆ ว่า <code>hnt</code>) ที่ Network Engineer มือใหม่ใช้สำรวจเครือข่ายในบ้านของตัวเองได้ เขียนด้วย Python 3.12 และใช้เฉพาะ Standard Library จึงไม่ต้องติดตั้ง Package จาก pip เลย โปรเจกต์นี้ฝึกทักษะ 4 อย่างที่ผู้สัมภาษณ์งานสายเครือข่ายชอบถาม คือ Subnetting, DNS, TCP Port และการเก็บข้อมูลเพื่อ Troubleshooting พร้อมเอกสารแผนผังเครือข่ายที่อ่านแล้วเข้าใจทันที</p>
+<p>เมื่อทำเสร็จ คุณจะมี Repository บน GitHub ที่มีโค้ดแยกเป็น Module ชัดเจน มี Unit test ผ่านครบ มี README สองภาษา และมี Safety guard ที่แสดงว่าคุณเข้าใจเรื่องกฎหมายและจริยธรรม ซึ่งเป็นจุดที่ทำให้ Portfolio ดูเป็นมืออาชีพ</p>
+
+<h4>ความสามารถ (Features)</h4>
+<ul>
+  <li><strong>คำสั่ง <code>subnet</code></strong>: รับ CIDR เช่น <code>192.168.1.0/24</code> แล้วแสดง Network, Netmask, Wildcard, Broadcast, Host แรก/สุดท้าย, จำนวน Host ที่ใช้ได้ และแบ่ง Subnet ย่อยด้วย <code>--new-prefix</code> รองรับทั้ง IPv4 และ IPv6 (ต่อยอดจาก <code>subnet_calc.py</code> ในแนวคิดที่ 3)</li>
+  <li><strong>คำสั่ง <code>dns</code></strong>: Forward lookup (A/AAAA) ผ่าน <code>socket.getaddrinfo</code>, Reverse lookup (PTR) ผ่าน <code>socket.gethostbyaddr</code> และถาม DNS server ที่ระบุด้วย <code>dig</code> ผ่าน <code>subprocess</code> เช่น DNS Lab ของเราบน 127.0.0.1 Port 5300</li>
+  <li><strong>คำสั่ง <code>ports</code></strong>: ตรวจ TCP Port ด้วย <code>socket.create_connection</code> (Timeout 0.5 วินาที) <strong>เฉพาะเครื่องของตัวเอง</strong> คือ 127.0.0.0/8, <code>::1</code> และชื่อ <code>localhost</code> เป้าหมายอื่นจะถูกปฏิเสธพร้อมข้อความภาษาไทยและ Exit code 2</li>
+  <li><strong>คำสั่ง <code>report</code></strong>: รวบรวม Hostname, Interface จาก <code>ip -j -4 addr</code>, Default route จาก <code>ip -j route show default</code>, DNS server จาก <code>/etc/resolv.conf</code> และสถานะ Port แล้วเขียนเป็นไฟล์ <code>reports/network-report-YYYYMMDD-HHMMSS.txt</code></li>
+  <li><strong>Unit test</strong> ด้วย <code>unittest</code> (ไม่ต้องติดตั้ง pytest) ครอบคลุมการคำนวณ Subnet, Allowlist และการตรวจ Port ที่เปิดด้วย Server ชั่วคราว</li>
+  <li><strong>เอกสาร</strong>: <code>docs/home-network.md</code> มีแผนผังเครือข่ายแบบ Mermaid (GitHub แสดงเป็นภาพให้อัตโนมัติ) และแบบ ASCII, <code>docs/ip-plan.md</code> มีตาราง IP Plan ของวง 192.168.1.0/24</li>
+</ul>
+
+<h4>เครื่องมือและเวอร์ชันที่ใช้</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>เครื่องมือ</th><th>เวอร์ชัน / หมายเหตุ</th></tr></thead><tbody>
+<tr><td>Ubuntu ใน WSL2</td><td>24.04 LTS "noble" ติดตั้งด้วย <code>wsl --install -d Ubuntu-24.04</code></td></tr>
+<tr><td>Python</td><td>3.12.3 (คำสั่ง <code>python3</code> ของระบบ) ใช้ Standard Library ล้วน: <code>ipaddress</code>, <code>socket</code>, <code>subprocess</code>, <code>argparse</code>, <code>json</code>, <code>datetime</code>, <code>pathlib</code>, <code>shutil</code>, <code>unittest</code> โค้ดทดสอบแล้วว่ารันบน 3.13 ได้ด้วย</td></tr>
+<tr><td>iproute2</td><td>6.1.0 ให้คำสั่ง <code>ip</code> ที่รองรับ Output แบบ JSON (<code>-j</code>)</td></tr>
+<tr><td>bind9-dnsutils</td><td>9.18 ให้คำสั่ง <code>dig</code> (ไม่บังคับ ถ้าไม่มี คำสั่ง <code>dns --server</code> จะแจ้งวิธีติดตั้ง)</td></tr>
+<tr><td>Git</td><td>2.43.0 และบัญชี GitHub</td></tr>
+<tr><td>Virtual environment</td><td>โปรเจกต์นี้ไม่มี Package จาก pip จึงยังไม่ต้องสร้าง แต่ถ้าต่อยอดด้วย Package ภายนอก ให้สร้างด้วย <code>python3 -m venv .venv</code> ก่อนเสมอ (เรา Ignore <code>.venv/</code> ไว้ให้แล้ว)</td></tr>
+</tbody></table></div>
+
+<h4>โครงสร้างโฟลเดอร์สุดท้าย</h4>
+<pre class="code" data-env="file" data-label="Plaintext · โครงสร้างโปรเจกต์"><code class="language-plaintext">/home/somchai/projects/home-network-toolkit/
+├── .gitignore
+├── README.md
+├── docs/
+│   ├── home-network.md      # แผนผังเครือข่าย Mermaid + ASCII
+│   └── ip-plan.md           # ตาราง IP Plan ของ 192.168.1.0/24
+├── hnt/
+│   ├── __init__.py          # เลขเวอร์ชัน 1.0.0
+│   ├── __main__.py          # argparse และ Subcommand ทั้ง 4 ตัว
+│   ├── subnet.py            # คำนวณและแบ่ง Subnet
+│   ├── dnslookup.py         # socket lookup และ dig
+│   ├── portcheck.py         # ตรวจ Port พร้อม Allowlist
+│   └── report.py            # เก็บข้อมูลเครื่องแล้วเขียนรายงาน
+├── reports/                 # รายงานที่สร้าง (ถูก Ignore ไม่ขึ้น Git)
+└── tests/
+    ├── __init__.py
+    ├── test_portcheck.py
+    └── test_subnet.py</code></pre>
+
+<div class="callout sec"><span class="c-label sec">Security</span><p>คำสั่ง <code>ports</code> ของโปรเจกต์นี้ออกแบบให้ตรวจได้เฉพาะเครื่องของตัวเองเท่านั้น อย่าแก้โค้ดให้สแกนเครื่องหรือเครือข่ายของผู้อื่น การเข้าถึงหรือสแกนระบบคอมพิวเตอร์ของผู้อื่นโดยไม่ได้รับอนุญาตอาจเป็นความผิดตาม <strong>พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์</strong> แม้แต่ Router ของหอพักหรือที่ทำงานก็ต้องได้รับอนุญาตเป็นลายลักษณ์อักษรก่อน ถ้าอยากฝึกสแกนหลายเครื่อง ให้ใช้ Network Namespace หรือ Container ของตัวเองตามแนวคิดที่ 11</p></div>
+
+<h4>ขั้นตอนการสร้าง</h4>
+<ol class="proj-steps">
+<li>
+<h4>Step 1: สร้างโฟลเดอร์โปรเจกต์ Git Repository และ Package <code>hnt</code></h4>
+<p>เริ่มจากสร้างโครงโปรเจกต์ใน <code>~/projects/home-network-toolkit</code> แล้วทำให้เป็น Git Repository บน Branch <code>main</code> ทันที การ Commit ตั้งแต่ต้นช่วยให้ย้อนกลับได้เมื่อแก้โค้ดพัง</p>
+<p>โฟลเดอร์ <code>hnt</code> คือ Python Package (มีไฟล์ <code>__init__.py</code>) ซึ่งทำให้เราเรียกโปรแกรมด้วย <code>python3 -m hnt</code> ได้ในขั้นต่อไป ไฟล์ <code>.gitignore</code> สำคัญมาก เพราะรายงานในโฟลเดอร์ <code>reports/</code> มี IP ภายในบ้านของเรา ซึ่งไม่ควรขึ้นไปอยู่บน GitHub สาธารณะ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างโฟลเดอร์โปรเจกต์และเข้าไปทำงานข้างใน
+mkdir -p ~/projects/home-network-toolkit
+cd ~/projects/home-network-toolkit
+# สร้าง Git Repository บน Branch main
+git init -b main
+# สร้างโฟลเดอร์ย่อยทั้งหมด
+mkdir -p hnt tests docs
+# สร้างไฟล์ว่างให้ tests เป็น Package (unittest จะหา Test เจอ)
+touch tests/__init__.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Initialized empty Git repository in /home/somchai/projects/home-network-toolkit/.git/</code></pre>
+<p>สร้างไฟล์ <code>.gitignore</code> ที่รากโปรเจกต์ด้วย <code>nano .gitignore</code> หรือ VS Code</p>
+<pre class="code" data-env="file" data-label="Gitignore · .gitignore"><code class="language-plaintext"># รายงานที่สร้างจากเครื่องจริง อาจมี IP ภายในบ้าน
+reports/
+# Virtual environment และไฟล์ Cache ของ Python
+.venv/
+__pycache__/
+*.pyc</code></pre>
+<p>สร้างไฟล์ <code>hnt/__init__.py</code> เก็บคำอธิบาย Package และเลขเวอร์ชัน ไฟล์อื่นจะ Import <code>__version__</code> จากที่นี่ เวลาออกเวอร์ชันใหม่จึงแก้แค่จุดเดียว</p>
+<pre class="code" data-env="file" data-label="Python · hnt/__init__.py"><code class="language-python">"""Home Network Toolkit: เครื่องมือสำรวจเครือข่ายในบ้านด้วย Python Standard Library"""
+
+__version__ = "1.0.0"</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ตรวจว่า Python มองเห็น Package แล้ว (ต้องรันจากรากโปรเจกต์)
+python3 -c "import hnt; print(hnt.__version__)"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>1.0.0</code></pre>
+</li>
+
+<li>
+<h4>Step 2: เขียน <code>hnt/subnet.py</code> สำหรับคำนวณและแบ่ง Subnet</h4>
+<p>Module นี้ต่อยอดจาก <code>subnet_calc.py</code> ในแนวคิดที่ 3 โดยแยกส่วนคำนวณออกจากส่วนพิมพ์ผล เพื่อให้เขียน Unit test ได้ง่าย และเพิ่มการรองรับ IPv6 ซึ่งไม่มี Broadcast จึงต้องแยกกรณีด้วย <code>net.version</code></p>
+<p>ฟังก์ชัน <code>split()</code> มีพารามิเตอร์ <code>limit</code> เพราะการแบ่ง <code>/48</code> ของ IPv6 เป็น <code>/64</code> ได้ถึง 65,536 วง ถ้าพิมพ์ทั้งหมดหน้าจอจะเต็มทันที เราจึงคืนค่าจำนวนทั้งหมด (<code>total</code>) แยกจากรายการที่แสดง และใช้ <code>2 ** (new_prefix - net.prefixlen)</code> คำนวณจำนวนวงโดยไม่ต้องวนลูปทั้งหมด</p>
+<pre class="code" data-env="file" data-label="Python · hnt/subnet.py"><code class="language-python">"""คำนวณและแบ่ง Subnet ทั้ง IPv4 และ IPv6 ด้วยโมดูล ipaddress (ต่อยอดจาก subnet_calc.py)"""
+import ipaddress
+
+
+def describe(net):
+    """คืนค่า dict ข้อมูลสำคัญของ Network หนึ่งวง (รองรับ IPv4 และ IPv6)"""
+    info = {
+        "Network": f"{net.network_address}/{net.prefixlen}",
+        "Version": f"IPv{net.version}",
+    }
+    if net.version == 4:
+        if net.num_addresses &gt; 2:
+            # Subnet ปกติ: ตัด Network address และ Broadcast ออก
+            first, last = net.network_address + 1, net.broadcast_address - 1
+            usable = net.num_addresses - 2
+        else:
+            # /31 (ลิงก์ Point-to-Point) และ /32 (Host เดียว) ใช้ได้ทุก Address
+            first, last = net.network_address, net.broadcast_address
+            usable = net.num_addresses
+        info.update({
+            "Netmask": str(net.netmask),
+            "Wildcard": str(net.hostmask),
+            "Broadcast": str(net.broadcast_address),
+        })
+    else:
+        # IPv6 ไม่มี Broadcast จึงนับทุก Address ในวง
+        first, last = net.network_address, net.broadcast_address
+        usable = net.num_addresses
+    info.update({
+        "First host": str(first),
+        "Last host": str(last),
+        "Usable hosts": usable,
+        "Private": net.is_private,
+    })
+    return info
+
+
+def parse_network(cidr):
+    """แปลงข้อความเป็น Network; strict=False ยอมรับ IP ที่มี Host bits เช่น 172.16.45.200/21"""
+    return ipaddress.ip_network(cidr, strict=False)
+
+
+def split(net, new_prefix, limit=16):
+    """แบ่ง Network เป็น Subnet ย่อยตาม new_prefix คืนค่า (รายการ, จำนวนทั้งหมด)"""
+    if new_prefix &lt;= net.prefixlen or new_prefix &gt; net.max_prefixlen:
+        raise ValueError(
+            f"new prefix ต้องอยู่ระหว่าง {net.prefixlen + 1} ถึง {net.max_prefixlen}")
+    total = 2 ** (new_prefix - net.prefixlen)
+    subs = []
+    for sub in net.subnets(new_prefix=new_prefix):
+        if len(subs) &gt;= limit:
+            break
+        subs.append(sub)
+    return subs, total
+
+
+def format_info(net):
+    """จัดข้อมูลของ Network เป็นข้อความหลายบรรทัด"""
+    return "\n".join(f"{key:&lt;13}: {value}" for key, value in describe(net).items())
+
+
+def format_split(net, new_prefix, limit=16):
+    """จัดผลการแบ่ง Subnet เป็นข้อความหลายบรรทัด"""
+    subs, total = split(net, new_prefix, limit)
+    lines = [f"แบ่ง {net} เป็น /{new_prefix} ได้ {total} วง (แสดง {len(subs)} วงแรก):"]
+    for i, sub in enumerate(subs, 1):
+        info = describe(sub)
+        lines.append(f"{i:&gt;3}. {info['Network']:&lt;22} {info['First host']}"
+                     f" - {info['Last host']} ({info['Usable hosts']})")
+    return "\n".join(lines)</code></pre>
+<p>ลองเรียก Module นี้ตรงๆ ก่อนจะมี CLI เพื่อยืนยันว่าคำนวณถูก ใช้โจทย์เดียวกับแนวคิดที่ 3 คือหาวงของ <code>172.16.45.200/21</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/home-network-toolkit
+# เรียกฟังก์ชันจาก Module โดยตรง
+python3 -c "from hnt import subnet; print(subnet.format_info(subnet.parse_network('172.16.45.200/21')))"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Network      : 172.16.40.0/21
+Version      : IPv4
+Netmask      : 255.255.248.0
+Wildcard     : 0.0.7.255
+Broadcast    : 172.16.47.255
+First host   : 172.16.40.1
+Last host    : 172.16.47.254
+Usable hosts : 2046
+Private      : True</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>net.num_addresses &gt; 2</code></td><td>แยก Subnet ปกติออกจาก <code>/31</code> และ <code>/32</code> ซึ่งไม่ต้องหักค่า 2</td></tr>
+<tr><td><code>net.hostmask</code></td><td>ได้ Wildcard mask (กลับบิตของ Netmask) ที่ใช้ใน OSPF และ ACL ของ Cisco</td></tr>
+<tr><td><code>strict=False</code></td><td>ยอมรับ <code>172.16.45.200/21</code> ที่มี Host bits แล้วปัดเป็น Network address ให้ ถ้าไม่ใส่จะเจอ <code>ValueError: ... has host bits set</code></td></tr>
+<tr><td><code>net.max_prefixlen</code></td><td>32 สำหรับ IPv4 และ 128 สำหรับ IPv6 ใช้ตรวจว่า Prefix ใหม่ไม่เกินขอบเขต</td></tr>
+<tr><td><code>{key:&lt;13}</code></td><td>f-string จัดชิดซ้ายกว้าง 13 ตัวอักษร ทำให้เครื่องหมาย <code>:</code> ตรงกันทุกบรรทัด</td></tr>
+</tbody></table></div>
+<div class="callout"><span class="c-label tip">Tip</span><p>ถ้าเห็น <code>ModuleNotFoundError: No module named 'hnt'</code> แปลว่ารันจากโฟลเดอร์อื่น ให้ <code>cd ~/projects/home-network-toolkit</code> ก่อนเสมอ Python จะหา Package จากโฟลเดอร์ปัจจุบัน</p></div>
+</li>
+<li>
+<h4>Step 3: เขียน <code>hnt/dnslookup.py</code> สำหรับค้นหา DNS</h4>
+<p>Module นี้มี 2 วิธีถาม DNS ซึ่ง Network Engineer ต้องแยกให้ออก วิธีแรกคือถามผ่าน <strong>Resolver ของระบบ</strong> ด้วย <code>socket.getaddrinfo</code> แบบเดียวกับที่ Browser และโปรแกรมทั่วไปทำ ผลจึงขึ้นกับ <code>/etc/hosts</code> และ <code>/etc/resolv.conf</code> ของเครื่อง วิธีที่สองคือถาม <strong>DNS server ที่ระบุตรงๆ</strong> ด้วย <code>dig @server</code> ซึ่งข้าม Resolver ของระบบ ใช้ตรวจว่า Server ตัวนั้นตอบอะไร</p>
+<p>เวลาผู้ใช้บอกว่า "เข้าเว็บไม่ได้" แล้ววิธีแรกล้มเหลวแต่วิธีที่สองได้คำตอบ แปลว่าปัญหาอยู่ที่การตั้งค่า Resolver ของเครื่อง ไม่ใช่ที่ DNS server นี่คือเหตุผลที่เครื่องมือนี้มีทั้งสองแบบ เราเรียก <code>dig</code> ด้วย <code>subprocess.run</code> แบบส่ง List ของ Argument (ไม่ใช้ <code>shell=True</code>) เพื่อกัน Command injection และตั้ง <code>timeout</code> ไว้เสมอ</p>
+<pre class="code" data-env="file" data-label="Python · hnt/dnslookup.py"><code class="language-python">"""ค้นหา DNS ด้วย socket และเรียก dig (ถ้ามี) ผ่าน subprocess"""
+import ipaddress
+import shutil
+import socket
+import subprocess
+
+
+def forward(name):
+    """หา A/AAAA ผ่าน Resolver ของระบบ คืนค่า list ของ (ชนิด, IP) โดยไม่ซ้ำ"""
+    results = []
+    for family, _, _, _, sockaddr in socket.getaddrinfo(name, None):
+        kind = "A" if family == socket.AF_INET else "AAAA"
+        item = (kind, sockaddr[0])
+        if item not in results:
+            results.append(item)
+    return results
+
+
+def reverse(ip):
+    """หาชื่อจาก IP (PTR) คืนค่า None ถ้าหาไม่เจอ"""
+    try:
+        return socket.gethostbyaddr(ip)[0]
+    except (socket.herror, socket.gaierror):
+        return None
+
+
+def is_ip(text):
+    """ตรวจว่าข้อความเป็น IP address หรือไม่"""
+    try:
+        ipaddress.ip_address(text)
+        return True
+    except ValueError:
+        return False
+
+
+def dig_query(name, server, port=53, rtype="A", timeout=5):
+    """ถาม DNS server ที่ระบุด้วย dig +short คืนค่า list ของคำตอบ
+    คืน None ถ้าเครื่องไม่มี dig (ติดตั้งด้วย sudo apt install bind9-dnsutils)"""
+    if shutil.which("dig") is None:
+        return None
+    cmd = ["dig", f"@{server}", "-p", str(port), "+short",
+           "+time=2", "+tries=1", name, rtype]
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    return [line for line in proc.stdout.splitlines() if line.strip()]</code></pre>
+<p>ก่อนทดสอบ ให้เปิด DNS Lab จากแนวคิดที่ 5 (dnsmasq บน 127.0.0.1 Port 5300 โซน <code>home.arpa</code>) ในอีกหน้าต่าง Terminal หนึ่ง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># หน้าต่างที่ 1: เปิด DNS Lab เดิมจากแนวคิดที่ 5
+cd ~/projects/network-lab/dns-lab
+bash start_dns.sh</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># หน้าต่างที่ 2: ทดสอบฟังก์ชันทีละตัว
+cd ~/projects/home-network-toolkit
+python3 -c "
+from hnt import dnslookup as d
+print(d.forward('localhost'))
+print(d.reverse('127.0.0.1'))
+print(d.reverse('192.0.2.10'))
+print(d.dig_query('nas.home.arpa', '127.0.0.1', 5300))
+print(d.dig_query('home.arpa', '127.0.0.1', 5300, 'MX'))
+"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[('A', '127.0.0.1')]
+localhost
+None
+['192.168.1.20']
+['10 mail.home.arpa.']</code></pre>
+<p class="muted small">บนเครื่องที่ <code>/etc/hosts</code> มีบรรทัดของ <code>::1</code> สำหรับชื่อ <code>localhost</code> บรรทัดแรกอาจมี <code>('AAAA', '::1')</code> เพิ่มมาด้วย ซึ่งถูกต้องเช่นกัน ส่วน <code>192.0.2.10</code> เป็นช่วง Documentation จึงไม่มีชื่อ และได้ <code>None</code></p>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>socket.getaddrinfo(name, None)</code></td><td>คืนค่า Tuple 5 ช่องต่อหนึ่งผลลัพธ์ เราใช้ช่องแรก (Address family) และช่องสุดท้าย (sockaddr ซึ่งช่องแรกคือ IP)</td></tr>
+<tr><td><code>if item not in results</code></td><td><code>getaddrinfo</code> คืน IP เดิมซ้ำหลายครั้ง (แยกตาม TCP, UDP, RAW) จึงต้องตัดตัวซ้ำ</td></tr>
+<tr><td><code>socket.herror</code></td><td>Error ที่เกิดเมื่อหา PTR ไม่เจอ เราจับแล้วคืน <code>None</code> แทนที่จะให้โปรแกรมหยุด</td></tr>
+<tr><td><code>shutil.which("dig")</code></td><td>ตรวจว่ามีคำสั่ง <code>dig</code> ใน PATH ก่อนเรียก ถ้าไม่มีจะไม่เกิด <code>FileNotFoundError</code></td></tr>
+<tr><td><code>"+time=2", "+tries=1"</code></td><td>ให้ <code>dig</code> รอแค่ 2 วินาทีและไม่ลองซ้ำ เครื่องมือจะไม่ค้างนานเมื่อ Server ไม่ตอบ</td></tr>
+<tr><td><code>+short</code></td><td>ให้ <code>dig</code> พิมพ์เฉพาะคำตอบ บรรทัดละหนึ่งค่า ทำให้ไม่ต้อง Parse ข้อความยาว</td></tr>
+</tbody></table></div>
+</li>
+
+<li>
+<h4>Step 4: เขียน <code>hnt/portcheck.py</code> พร้อม Safety guard</h4>
+<p>หัวใจของ Module นี้คือฟังก์ชัน <code>is_allowed_target()</code> ที่อนุญาตเฉพาะ Loopback เท่านั้น เราใช้ <code>ipaddress.ip_address(host).is_loopback</code> ซึ่งเป็นจริงสำหรับทั้งวง 127.0.0.0/8 และ <code>::1</code> ส่วนชื่อเครื่อง เราอนุญาตเฉพาะ <code>localhost</code> และ <strong>ไม่ Resolve ชื่ออื่นเลย</strong> เพราะถ้า Resolve ก่อนตรวจ คนอาจตั้งชื่อ DNS ที่ชี้ไปยังเครื่องของคนอื่นเพื่อหลบ Guard ได้</p>
+<p>ฟังก์ชัน <code>check_port()</code> ตรวจ Guard ซ้ำอีกชั้นแล้วโยน <code>PermissionError</code> ทำให้แม้มีคนเรียก Module นี้จากโค้ดอื่นโดยไม่ผ่าน CLI ก็ยังสแกนเครื่องอื่นไม่ได้ ผลลัพธ์แยก 3 สถานะตามที่เรียนในแนวคิดที่ 6 คือ <code>open</code> (Handshake สำเร็จ), <code>closed</code> (ได้ RST กลับมา หรือ <code>Connection refused</code>) และ <code>timeout</code> (ไม่มีใครตอบ มักเกิดเมื่อ Firewall Drop Packet)</p>
+<pre class="code" data-env="file" data-label="Python · hnt/portcheck.py"><code class="language-python">"""ตรวจ TCP Port เฉพาะเครื่องของตัวเอง (127.0.0.0/8 และ ::1) เท่านั้น"""
+import ipaddress
+import socket
+
+# ชื่อเครื่องที่อนุญาตโดยไม่ต้อง Resolve DNS
+ALLOWED_NAMES = {"localhost": "127.0.0.1"}
+
+
+def is_allowed_target(host):
+    """อนุญาตเฉพาะ Loopback: 127.0.0.0/8, ::1 และชื่อ localhost
+    ไม่ Resolve ชื่ออื่น เพื่อกันการใช้ชื่อ DNS พาไปสแกนเครื่องคนอื่น"""
+    if host in ALLOWED_NAMES:
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def parse_ports(text):
+    """แปลง '22,80,8000-8002' เป็น list ของเลข Port ที่ไม่ซ้ำและเรียงแล้ว"""
+    ports = set()
+    for part in text.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            start, end = (int(x) for x in part.split("-", 1))
+            if end - start &gt; 1024:
+                raise ValueError("ช่วง Port กว้างเกิน 1024 พอร์ต")
+            ports.update(range(start, end + 1))
+        else:
+            ports.add(int(part))
+    for port in ports:
+        if not 1 &lt;= port &lt;= 65535:
+            raise ValueError(f"Port {port} ไม่อยู่ในช่วง 1-65535")
+    return sorted(ports)
+
+
+def check_port(host, port, timeout=0.5):
+    """ลองเชื่อมต่อ TCP คืนค่า 'open', 'closed' หรือ 'timeout'"""
+    if not is_allowed_target(host):
+        raise PermissionError(f"ปฏิเสธเป้าหมาย {host}: ตรวจได้เฉพาะเครื่องตัวเอง")
+    target = ALLOWED_NAMES.get(host, host)
+    try:
+        with socket.create_connection((target, port), timeout=timeout):
+            return "open"
+    except ConnectionRefusedError:
+        return "closed"
+    except (socket.timeout, TimeoutError):
+        return "timeout"
+    except OSError:
+        return "closed"
+
+
+def scan(host, ports, timeout=0.5):
+    """ตรวจหลาย Port คืนค่า list ของ (port, สถานะ, ชื่อบริการ)"""
+    results = []
+    for port in ports:
+        try:
+            service = socket.getservbyport(port, "tcp")
+        except OSError:
+            service = "-"
+        results.append((port, check_port(host, port, timeout), service))
+    return results</code></pre>
+<p>ทดสอบโดยเปิด Web server ของ Lab เดิมไว้ที่ Port 8000 ก่อน แล้วเรียกฟังก์ชันจาก Python</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># หน้าต่างที่ 3: เปิด Web server ของ Lab เดิมไว้ที่ 127.0.0.1:8000
+cd ~/projects/network-lab/site
+python3 -m http.server 8000 --bind 127.0.0.1</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># หน้าต่างที่ 2: ทดสอบ Allowlist, การแปลง Port และการตรวจ Port
+cd ~/projects/home-network-toolkit
+python3 -c "
+from hnt import portcheck as p
+print(p.is_allowed_target('127.0.0.1'), p.is_allowed_target('::1'),
+      p.is_allowed_target('192.168.1.1'), p.is_allowed_target('example.com'))
+print(p.parse_ports('80, 22,8000-8002'))
+print(p.check_port('127.0.0.1', 8000), p.check_port('127.0.0.1', 8001))
+print(p.scan('localhost', [22, 8000]))
+"
+# ลองสั่งตรวจเครื่องในช่วง Documentation เพื่อดูว่า Guard ทำงาน
+python3 -c "from hnt import portcheck as p; p.check_port('192.0.2.10', 80)"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>True True False False
+[22, 80, 8000, 8001, 8002]
+open closed
+[(22, 'closed', 'ssh'), (8000, 'open', '-')]
+Traceback (most recent call last):
+  ...
+PermissionError: ปฏิเสธเป้าหมาย 192.0.2.10: ตรวจได้เฉพาะเครื่องตัวเอง</code></pre>
+<p class="muted small">ตัด Traceback ช่วงกลางออกเพื่อให้อ่านง่าย บรรทัดสุดท้ายคือส่วนสำคัญ ถ้าเครื่องของคุณเปิด SSH server ไว้ Port 22 จะเป็น <code>open</code> แทน</p>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>ipaddress.ip_address(host).is_loopback</code></td><td>คืน <code>True</code> สำหรับ 127.0.0.0/8 และ <code>::1</code> ถ้า <code>host</code> ไม่ใช่ IP จะเกิด <code>ValueError</code> ซึ่งเราตีความว่า "ไม่อนุญาต"</td></tr>
+<tr><td><code>ports = set()</code></td><td>ใช้ Set ตัด Port ซ้ำ เช่น ผู้ใช้พิมพ์ <code>80,80</code> แล้วค่อยเรียงด้วย <code>sorted()</code></td></tr>
+<tr><td><code>end - start &gt; 1024</code></td><td>จำกัดช่วงไม่ให้กว้างเกินไป เครื่องมือนี้ใช้ตรวจบริการที่เราเปิดเอง ไม่ใช่สแกนทั้ง 65,535 Port</td></tr>
+<tr><td><code>socket.create_connection(..., timeout=timeout)</code></td><td>ทำ TCP 3-way handshake ถ้าสำเร็จแปลว่ามีโปรแกรมรอรับ (LISTEN) อยู่ที่ Port นั้น <code>with</code> ปิด Socket ให้ทันที</td></tr>
+<tr><td><code>except ConnectionRefusedError</code></td><td>เครื่องปลายทางตอบ RST กลับมา แปลว่าไม่มีโปรแกรมฟังอยู่ (closed)</td></tr>
+<tr><td><code>socket.getservbyport(port, "tcp")</code></td><td>หาชื่อบริการจากไฟล์ <code>/etc/services</code> เช่น 22 คือ <code>ssh</code> Port ที่ไม่มีในไฟล์ (เช่น 8000) จะได้ <code>-</code></td></tr>
+</tbody></table></div>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>อย่าแก้ <code>is_allowed_target()</code> ให้ Resolve ชื่อก่อนตรวจ และอย่าเพิ่ม <code>shell=True</code> ใน <code>subprocess</code> ทั้งสองอย่างเป็นช่องโหว่ที่ผู้สัมภาษณ์สาย Security ชอบถาม ถ้าต้องการรองรับ Container ของตัวเองในอนาคต ให้เพิ่มเป็น Allowlist ของ IP ที่ระบุชัด เช่นวง Docker bridge ของเครื่องตัวเอง และเขียน Test ให้ครอบคลุมก่อน</p></div>
+</li>
+<li>
+<h4>Step 5: เขียน <code>hnt/report.py</code> สำหรับเก็บข้อมูลเครื่องและเขียนรายงาน</h4>
+<p>เวลาแจ้งปัญหาเครือข่ายให้ทีม IT หรือ ISP สิ่งแรกที่เขาขอคือข้อมูลพื้นฐานของเครื่อง Module นี้รวบรวมข้อมูลชุดนั้นให้อัตโนมัติ ตาม Command ladder ในแนวคิดที่ 12 คือ Interface และ IP (Layer 3), Default route (ทางออก), DNS server (การแปลงชื่อ) และ Port ที่เปิดบนเครื่อง (Layer 4)</p>
+<p>เราเรียก <code>ip -j</code> เพื่อให้ได้ Output แบบ JSON แล้วแปลงด้วย <code>json.loads</code> วิธีนี้แม่นยำกว่าการตัดข้อความจาก Output ที่คนอ่าน เพราะรูปแบบ JSON ไม่เปลี่ยนตามภาษาหรือความกว้างหน้าจอ ทุกฟังก์ชันออกแบบให้ "ล้มอย่างนุ่มนวล" คือถ้าไม่มีคำสั่ง <code>ip</code> หรืออ่านไฟล์ไม่ได้ จะคืนค่าว่างแล้วรายงานยังเขียนต่อได้</p>
+<pre class="code" data-env="file" data-label="Python · hnt/report.py"><code class="language-python">"""รวบรวมข้อมูลเครือข่ายของเครื่องแล้วเขียนเป็นรายงาน Text"""
+import datetime
+import json
+import shutil
+import socket
+import subprocess
+from pathlib import Path
+
+from . import __version__
+from .portcheck import scan
+
+DEFAULT_PORTS = [22, 80, 443, 5432, 8000]
+
+
+def run_ip_json(args):
+    """เรียกคำสั่ง ip แบบ JSON (-j) คืนค่า list ว่างถ้าไม่มีคำสั่งหรือเกิด Error"""
+    if shutil.which("ip") is None:
+        return []
+    proc = subprocess.run(["ip", "-j", *args], capture_output=True,
+                          text=True, timeout=5)
+    if proc.returncode != 0 or not proc.stdout.strip():
+        return []
+    return json.loads(proc.stdout)
+
+
+def interfaces():
+    """คืนค่า list ของ (ชื่อ Interface, IPv4/prefix, สถานะ)"""
+    rows = []
+    for link in run_ip_json(["-4", "addr"]):
+        for addr in link.get("addr_info", []):
+            rows.append((link["ifname"], f"{addr['local']}/{addr['prefixlen']}",
+                         link.get("operstate", "?")))
+    return rows
+
+
+def default_route():
+    """คืนค่า (gateway, dev) ของ Default route หรือ None"""
+    routes = run_ip_json(["route", "show", "default"])
+    if not routes:
+        return None
+    return routes[0].get("gateway", "-"), routes[0].get("dev", "-")
+
+
+def dns_servers(path="/etc/resolv.conf"):
+    """อ่านบรรทัด nameserver จาก resolv.conf"""
+    try:
+        lines = Path(path).read_text().splitlines()
+    except OSError:
+        return []
+    return [line.split()[1] for line in lines
+            if line.startswith("nameserver") and len(line.split()) &gt; 1]
+
+
+def build_report(now=None, ports=None):
+    """สร้างเนื้อหารายงานเป็นข้อความ"""
+    now = now or datetime.datetime.now()
+    ports = ports or DEFAULT_PORTS
+    lines = [
+        "=" * 60,
+        f"Home Network Report (hnt {__version__})",
+        f"สร้างเมื่อ : {now:%Y-%m-%d %H:%M:%S}",
+        f"Hostname  : {socket.gethostname()}",
+        "=" * 60,
+        "",
+        "[1] Interfaces (IPv4)",
+    ]
+    for name, cidr, state in interfaces() or [("-", "ไม่พบข้อมูล", "-")]:
+        lines.append(f"  {name:&lt;10} {cidr:&lt;20} {state}")
+    lines += ["", "[2] Default route"]
+    route = default_route()
+    if route:
+        lines.append(f"  gateway {route[0]} via {route[1]}")
+    else:
+        lines.append("  ไม่พบ Default route (ออก Internet ไม่ได้)")
+    lines += ["", "[3] DNS servers (/etc/resolv.conf)"]
+    for server in dns_servers() or ["ไม่พบ nameserver"]:
+        lines.append(f"  {server}")
+    lines += ["", "[4] TCP ports on 127.0.0.1"]
+    for port, state, service in scan("127.0.0.1", ports):
+        lines.append(f"  {port:&gt;5}/tcp  {state:&lt;8} {service}")
+    lines += ["", "หมายเหตุ: รายงานนี้ตรวจเฉพาะเครื่องของตัวเองเท่านั้น", ""]
+    return "\n".join(lines)
+
+
+def write_report(out_dir="reports", now=None, ports=None):
+    """เขียนรายงานลงไฟล์ network-report-YYYYMMDD-HHMMSS.txt คืนค่า Path"""
+    now = now or datetime.datetime.now()
+    folder = Path(out_dir)
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / f"network-report-{now:%Y%m%d-%H%M%S}.txt"
+    path.write_text(build_report(now, ports), encoding="utf-8")
+    return path</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>from . import __version__</code></td><td>Relative import จาก Package <code>hnt</code> เอง ใช้ได้เพราะเรารันด้วย <code>python3 -m hnt</code></td></tr>
+<tr><td><code>["ip", "-j", *args]</code></td><td>สร้าง List คำสั่ง เช่น <code>["ip", "-j", "-4", "addr"]</code> เครื่องหมาย <code>*</code> กระจาย List <code>args</code> เข้าไป</td></tr>
+<tr><td><code>link.get("addr_info", [])</code></td><td>Interface ที่ไม่มี IPv4 จะไม่มี Key นี้ ใช้ <code>.get</code> พร้อมค่า Default กัน <code>KeyError</code></td></tr>
+<tr><td><code>routes[0].get("gateway", "-")</code></td><td>อ่านค่า Next hop ของ Default route ตัวแรก ใน WSL โหมด NAT จะเป็น IP ของ Windows เช่น 172.24.80.1</td></tr>
+<tr><td><code>line.startswith("nameserver")</code></td><td>เลือกเฉพาะบรรทัด DNS server ข้ามบรรทัด Comment และ <code>search</code> หรือ <code>options</code></td></tr>
+<tr><td><code>interfaces() or [...]</code></td><td>ถ้าได้ List ว่าง ให้ใช้แถว "ไม่พบข้อมูล" แทน รายงานจึงไม่มีหัวข้อที่ว่างเปล่า</td></tr>
+<tr><td><code>f"network-report-{now:%Y%m%d-%H%M%S}.txt"</code></td><td>ใส่วันเวลาในชื่อไฟล์ เรียงตามเวลาได้และไม่ทับไฟล์เก่า ช่วยเปรียบเทียบก่อนและหลังแก้ปัญหา</td></tr>
+<tr><td><code>encoding="utf-8"</code></td><td>บังคับ UTF-8 เพราะรายงานมีภาษาไทย</td></tr>
+</tbody></table></div>
+</li>
+
+<li>
+<h4>Step 6: เขียน <code>hnt/__main__.py</code> เป็น CLI ที่มี Subcommand</h4>
+<p>ไฟล์ <code>__main__.py</code> ทำให้สั่ง <code>python3 -m hnt</code> ได้ เราใช้ <code>argparse</code> แบบ Subcommand (<code>add_subparsers</code>) เหมือนคำสั่ง <code>git</code> ที่มี <code>git add</code>, <code>git commit</code> แต่ละคำสั่งย่อยผูกกับฟังก์ชันของตัวเองด้วย <code>set_defaults(func=...)</code></p>
+<p>ทุกฟังก์ชันคืน <strong>Exit code</strong> ตามความหมายที่ตกลงไว้ คือ <code>0</code> สำเร็จ, <code>1</code> ข้อมูลผิดหรือหาไม่เจอ และ <code>2</code> ถูกปฏิเสธเพราะเป้าหมายไม่ใช่เครื่องของเรา Exit code ที่ชัดเจนทำให้นำเครื่องมือนี้ไปใช้ใน Shell script หรือ CI ได้ ข้อความ Error ทั้งหมดพิมพ์ไปที่ <code>sys.stderr</code> แยกจากผลลัพธ์ปกติ</p>
+<pre class="code" data-env="file" data-label="Python · hnt/__main__.py"><code class="language-python">"""จุดเริ่มโปรแกรม: python3 -m hnt &lt;command&gt;"""
+import argparse
+import socket
+import sys
+
+from . import __version__, dnslookup, portcheck, report, subnet
+
+
+def cmd_subnet(args):
+    """คำสั่ง subnet: แสดงข้อมูล Network และแบ่ง Subnet"""
+    try:
+        net = subnet.parse_network(args.cidr)
+        print(subnet.format_info(net))
+        if args.new_prefix is not None:
+            print()
+            print(subnet.format_split(net, args.new_prefix, args.limit))
+    except ValueError as err:
+        print(f"ข้อผิดพลาด: {err}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def cmd_dns(args):
+    """คำสั่ง dns: Forward/Reverse lookup และถาม DNS server ที่ระบุ"""
+    if args.server:
+        answers = dnslookup.dig_query(args.name, args.server, args.port, args.type)
+        if answers is None:
+            print("ไม่พบคำสั่ง dig: sudo apt install bind9-dnsutils", file=sys.stderr)
+            return 1
+        print(f"ถาม {args.server}#{args.port} หา {args.name} ({args.type}):")
+        for line in answers or ["(ไม่มีคำตอบ)"]:
+            print(f"  {line}")
+        return 0 if answers else 1
+    if dnslookup.is_ip(args.name):
+        name = dnslookup.reverse(args.name)
+        print(f"PTR {args.name} -&gt; {name or '(ไม่พบชื่อ)'}")
+        return 0 if name else 1
+    try:
+        for kind, ip in dnslookup.forward(args.name):
+            print(f"{kind:&lt;5}{args.name} -&gt; {ip}")
+    except socket.gaierror as err:
+        print(f"หาชื่อ {args.name} ไม่เจอ: {err}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def cmd_ports(args):
+    """คำสั่ง ports: ตรวจ TCP Port บนเครื่องตัวเอง"""
+    if not portcheck.is_allowed_target(args.host):
+        print(f"ปฏิเสธ: {args.host} ไม่ใช่เครื่องของคุณ ตรวจได้เฉพาะ 127.0.0.0/8, ::1"
+              " และ localhost (พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์)",
+              file=sys.stderr)
+        return 2
+    try:
+        ports = portcheck.parse_ports(args.ports)
+    except ValueError as err:
+        print(f"ข้อผิดพลาด: {err}", file=sys.stderr)
+        return 1
+    print(f"ตรวจ {args.host} จำนวน {len(ports)} พอร์ต (timeout {args.timeout} s)")
+    for port, state, service in portcheck.scan(args.host, ports, args.timeout):
+        print(f"{port:&gt;5}/tcp  {state:&lt;8} {service}")
+    return 0
+
+
+def cmd_report(args):
+    """คำสั่ง report: เขียนรายงานเครือข่ายลงไฟล์"""
+    path = report.write_report(args.out)
+    print(f"เขียนรายงานแล้ว: {path}")
+    return 0
+
+
+def build_parser():
+    """สร้าง argparse พร้อม Subcommand ทั้ง 4 ตัว"""
+    parser = argparse.ArgumentParser(
+        prog="hnt", description="Home Network Toolkit: สำรวจเครือข่ายในบ้านอย่างปลอดภัย")
+    parser.add_argument("--version", action="version", version=f"hnt {__version__}")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    p = sub.add_parser("subnet", help="คำนวณและแบ่ง Subnet")
+    p.add_argument("cidr", help="เช่น 192.168.1.0/24 หรือ 2001:db8:abcd::/48")
+    p.add_argument("--new-prefix", type=int, help="Prefix ของ Subnet ย่อย")
+    p.add_argument("--limit", type=int, default=16, help="จำนวน Subnet ที่แสดงสูงสุด")
+    p.set_defaults(func=cmd_subnet)
+
+    p = sub.add_parser("dns", help="ค้นหา DNS")
+    p.add_argument("name", help="ชื่อโดเมน หรือ IP สำหรับ Reverse lookup")
+    p.add_argument("--server", help="IP ของ DNS server ที่จะถามด้วย dig")
+    p.add_argument("--port", type=int, default=53)
+    p.add_argument("--type", default="A", help="ชนิด Record เช่น A, AAAA, MX, TXT")
+    p.set_defaults(func=cmd_dns)
+
+    p = sub.add_parser("ports", help="ตรวจ TCP Port บนเครื่องตัวเอง")
+    p.add_argument("--host", default="127.0.0.1")
+    p.add_argument("--ports", default="22,80,443,5432,8000")
+    p.add_argument("--timeout", type=float, default=0.5)
+    p.set_defaults(func=cmd_ports)
+
+    p = sub.add_parser("report", help="เขียนรายงานเครือข่ายลงไฟล์")
+    p.add_argument("--out", default="reports")
+    p.set_defaults(func=cmd_report)
+    return parser
+
+
+def main(argv=None):
+    """แยกคำสั่งแล้วเรียกฟังก์ชันที่ตรงกัน คืนค่า Exit code"""
+    args = build_parser().parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())</code></pre>
+<p>ลองเรียกหน้า Help และคำสั่ง <code>subnet</code> กับ <code>dns</code> (DNS Lab จาก Step 3 ยังต้องเปิดอยู่)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/home-network-toolkit
+python3 -m hnt --version
+python3 -m hnt --help</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>hnt 1.0.0
+usage: hnt [-h] [--version] {subnet,dns,ports,report} ...
+
+Home Network Toolkit: สำรวจเครือข่ายในบ้านอย่างปลอดภัย
+
+positional arguments:
+  {subnet,dns,ports,report}
+    subnet              คำนวณและแบ่ง Subnet
+    dns                 ค้นหา DNS
+    ports               ตรวจ TCP Port บนเครื่องตัวเอง
+    report              เขียนรายงานเครือข่ายลงไฟล์
+
+options:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># แบ่งวงบ้าน 192.168.1.0/24 เป็น 4 วง /26 (โจทย์เดียวกับแนวคิดที่ 3)
+python3 -m hnt subnet 192.168.1.0/24 --new-prefix 26</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Network      : 192.168.1.0/24
+Version      : IPv4
+Netmask      : 255.255.255.0
+Wildcard     : 0.0.0.255
+Broadcast    : 192.168.1.255
+First host   : 192.168.1.1
+Last host    : 192.168.1.254
+Usable hosts : 254
+Private      : True
+
+แบ่ง 192.168.1.0/24 เป็น /26 ได้ 4 วง (แสดง 4 วงแรก):
+  1. 192.168.1.0/26         192.168.1.1 - 192.168.1.62 (62)
+  2. 192.168.1.64/26        192.168.1.65 - 192.168.1.126 (62)
+  3. 192.168.1.128/26       192.168.1.129 - 192.168.1.190 (62)
+  4. 192.168.1.192/26       192.168.1.193 - 192.168.1.254 (62)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># แบ่ง IPv6 /48 ช่วง Documentation เป็น /64 แสดงแค่ 4 วงแรก
+python3 -m hnt subnet 2001:db8:abcd::/48 --new-prefix 64 --limit 4</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Network      : 2001:db8:abcd::/48
+Version      : IPv6
+First host   : 2001:db8:abcd::
+Last host    : 2001:db8:abcd:ffff:ffff:ffff:ffff:ffff
+Usable hosts : 1208925819614629174706176
+Private      : True
+
+แบ่ง 2001:db8:abcd::/48 เป็น /64 ได้ 65536 วง (แสดง 4 วงแรก):
+  1. 2001:db8:abcd::/64     2001:db8:abcd:: - 2001:db8:abcd:0:ffff:ffff:ffff:ffff (18446744073709551616)
+  2. 2001:db8:abcd:1::/64   2001:db8:abcd:1:: - 2001:db8:abcd:1:ffff:ffff:ffff:ffff (18446744073709551616)
+  3. 2001:db8:abcd:2::/64   2001:db8:abcd:2:: - 2001:db8:abcd:2:ffff:ffff:ffff:ffff (18446744073709551616)
+  4. 2001:db8:abcd:3::/64   2001:db8:abcd:3:: - 2001:db8:abcd:3:ffff:ffff:ffff:ffff (18446744073709551616)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Forward, Reverse และถาม DNS Lab ตรงๆ
+python3 -m hnt dns localhost
+python3 -m hnt dns 127.0.0.1
+python3 -m hnt dns files.home.arpa --server 127.0.0.1 --port 5300
+python3 -m hnt dns home.arpa --server 127.0.0.1 --port 5300 --type MX
+python3 -m hnt dns home.arpa --server 127.0.0.1 --port 5300 --type TXT
+# ชื่อที่ไม่มีจริง: ดู Exit code ด้วย echo $?
+python3 -m hnt dns printer.home.arpa; echo "exit=$?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>A    localhost -&gt; 127.0.0.1
+PTR 127.0.0.1 -&gt; localhost
+ถาม 127.0.0.1#5300 หา files.home.arpa (A):
+  nas.home.arpa.
+  192.168.1.20
+ถาม 127.0.0.1#5300 หา home.arpa (MX):
+  10 mail.home.arpa.
+ถาม 127.0.0.1#5300 หา home.arpa (TXT):
+  "v=spf1 mx -all"
+หาชื่อ printer.home.arpa ไม่เจอ: [Errno -2] Name or service not known
+exit=1</code></pre>
+<p>สังเกตคำตอบของ <code>files.home.arpa</code> มี 2 บรรทัด บรรทัดแรกคือ CNAME ที่ชี้ไป <code>nas.home.arpa.</code> และบรรทัดที่สองคือ A record ปลายทาง ตรงกับที่ตั้งไว้ใน DNS Lab ส่วน <code>printer.home.arpa</code> ถามผ่าน Resolver ของระบบ ซึ่งไม่รู้จักโซน <code>home.arpa</code> ของ Lab จึงหาไม่เจอ</p>
+<div class="callout"><span class="c-label tip">Tip</span><p>ถ้าบรรทัดแรกแสดง <code>AAAA localhost -&gt; ::1</code> เพิ่มมาด้วย ไม่ใช่ข้อผิดพลาด แปลว่า <code>/etc/hosts</code> ของคุณผูกชื่อ <code>localhost</code> กับ IPv6 ไว้ด้วย</p></div>
+</li>
+<li>
+<h4>Step 7: เขียน Unit test ด้วย <code>unittest</code></h4>
+<p>Test คือหลักฐานว่าโค้ดทำงานถูก และเป็นสิ่งแรกที่ผู้ตรวจ Portfolio มองหา เราใช้ <code>unittest</code> ที่มากับ Python จึงไม่ต้องติดตั้งอะไรเพิ่ม ไฟล์ Test ต้องขึ้นต้นด้วย <code>test_</code> และอยู่ในโฟลเดอร์ <code>tests/</code> ที่มี <code>__init__.py</code> (สร้างไว้แล้วใน Step 1) คำสั่ง <code>python3 -m unittest</code> จะค้นหาเองทั้งหมด</p>
+<p>Test ชุดแรกตรวจผลคำนวณ Subnet กับคำตอบที่เราคิดด้วยมือในแนวคิดที่ 3 ชุดที่สองตรวจ Safety guard และการตรวจ Port จริง โดยเปิด Server ชั่วคราวที่ Port 0 ซึ่งหมายถึง "ให้ระบบเลือก Port ว่างให้" Test จึงไม่ชนกับโปรแกรมอื่นบนเครื่อง และไม่ต้องพึ่ง Web server ที่เปิดค้างไว้</p>
+<pre class="code" data-env="file" data-label="Python · tests/test_subnet.py"><code class="language-python">"""ทดสอบโมดูล hnt.subnet"""
+import ipaddress
+import unittest
+
+from hnt import subnet
+
+
+class TestSubnet(unittest.TestCase):
+    def test_slash24(self):
+        # /24 มี 256 Address ใช้งานได้ 254
+        info = subnet.describe(ipaddress.ip_network("192.168.1.0/24"))
+        self.assertEqual(info["Broadcast"], "192.168.1.255")
+        self.assertEqual(info["Usable hosts"], 254)
+        self.assertEqual(info["Wildcard"], "0.0.0.255")
+
+    def test_host_bits_allowed(self):
+        # 172.16.45.200/21 อยู่ในวง 172.16.40.0/21
+        net = subnet.parse_network("172.16.45.200/21")
+        self.assertEqual(str(net), "172.16.40.0/21")
+
+    def test_split_into_four(self):
+        subs, total = subnet.split(ipaddress.ip_network("192.168.1.0/24"), 26)
+        self.assertEqual(total, 4)
+        self.assertEqual(str(subs[-1]), "192.168.1.192/26")
+
+    def test_point_to_point_31(self):
+        # /31 ใช้ได้ทั้ง 2 Address (RFC 3021)
+        info = subnet.describe(ipaddress.ip_network("10.0.12.0/31"))
+        self.assertEqual(info["Usable hosts"], 2)
+
+    def test_ipv6_split(self):
+        subs, total = subnet.split(ipaddress.ip_network("2001:db8:abcd::/48"), 64, limit=4)
+        self.assertEqual(total, 65536)
+        self.assertEqual(str(subs[1]), "2001:db8:abcd:1::/64")
+
+    def test_bad_prefix(self):
+        with self.assertRaises(ValueError):
+            subnet.split(ipaddress.ip_network("192.168.1.0/24"), 20)
+
+
+if __name__ == "__main__":
+    unittest.main()</code></pre>
+<pre class="code" data-env="file" data-label="Python · tests/test_portcheck.py"><code class="language-python">"""ทดสอบโมดูล hnt.portcheck"""
+import socket
+import unittest
+
+from hnt import portcheck
+
+
+class TestAllowlist(unittest.TestCase):
+    def test_loopback_allowed(self):
+        for host in ("127.0.0.1", "127.5.5.5", "::1", "localhost"):
+            self.assertTrue(portcheck.is_allowed_target(host), host)
+
+    def test_others_refused(self):
+        for host in ("192.168.1.1", "192.0.2.10", "8.8.8.8", "2001:db8::1", "example.com"):
+            self.assertFalse(portcheck.is_allowed_target(host), host)
+
+    def test_check_port_refuses_remote(self):
+        with self.assertRaises(PermissionError):
+            portcheck.check_port("192.0.2.10", 80)
+
+
+class TestPorts(unittest.TestCase):
+    def test_parse_ports(self):
+        self.assertEqual(portcheck.parse_ports("80, 22,8000-8002,80"),
+                         [22, 80, 8000, 8001, 8002])
+
+    def test_parse_ports_invalid(self):
+        with self.assertRaises(ValueError):
+            portcheck.parse_ports("70000")
+
+    def test_open_and_closed(self):
+        # เปิด Server ชั่วคราวบน Port ว่างที่ระบบเลือกให้ (Port 0)
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.bind(("127.0.0.1", 0))
+        server.listen(1)
+        port = server.getsockname()[1]
+        try:
+            self.assertEqual(portcheck.check_port("127.0.0.1", port), "open")
+        finally:
+            server.close()
+        # ปิด Server แล้ว Port เดิมต้องกลายเป็น closed
+        self.assertEqual(portcheck.check_port("127.0.0.1", port), "closed")
+
+
+if __name__ == "__main__":
+    unittest.main()</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/home-network-toolkit
+# ค้นหาและรัน Test ทั้งหมดแบบแสดงรายละเอียด
+python3 -m unittest -v</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>test_check_port_refuses_remote (tests.test_portcheck.TestAllowlist.test_check_port_refuses_remote) ... ok
+test_loopback_allowed (tests.test_portcheck.TestAllowlist.test_loopback_allowed) ... ok
+test_others_refused (tests.test_portcheck.TestAllowlist.test_others_refused) ... ok
+test_open_and_closed (tests.test_portcheck.TestPorts.test_open_and_closed) ... ok
+test_parse_ports (tests.test_portcheck.TestPorts.test_parse_ports) ... ok
+test_parse_ports_invalid (tests.test_portcheck.TestPorts.test_parse_ports_invalid) ... ok
+test_bad_prefix (tests.test_subnet.TestSubnet.test_bad_prefix) ... ok
+test_host_bits_allowed (tests.test_subnet.TestSubnet.test_host_bits_allowed) ... ok
+test_ipv6_split (tests.test_subnet.TestSubnet.test_ipv6_split) ... ok
+test_point_to_point_31 (tests.test_subnet.TestSubnet.test_point_to_point_31) ... ok
+test_slash24 (tests.test_subnet.TestSubnet.test_slash24) ... ok
+test_split_into_four (tests.test_subnet.TestSubnet.test_split_into_four) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.003s
+
+OK</code></pre>
+<p class="muted small">เวลาที่ใช้ (<code>0.003s</code>) จะต่างกันในแต่ละเครื่อง สิ่งที่ต้องเห็นคือ <code>Ran 12 tests</code> และ <code>OK</code></p>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>Ran 0 tests in 0.000s</code> และ <code>NO TESTS RAN</code></td><td>ลืมสร้าง <code>tests/__init__.py</code> หรือชื่อไฟล์ไม่ขึ้นต้นด้วย <code>test_</code></td><td><code>touch tests/__init__.py</code> และเปลี่ยนชื่อไฟล์ให้ขึ้นต้นด้วย <code>test_</code></td></tr>
+<tr><td><code>ModuleNotFoundError: No module named 'hnt'</code></td><td>รัน <code>unittest</code> จากในโฟลเดอร์ <code>tests/</code></td><td>กลับไปรันที่รากโปรเจกต์ <code>~/projects/home-network-toolkit</code></td></tr>
+<tr><td><code>AssertionError: 'closed' != 'open'</code> ใน <code>test_open_and_closed</code></td><td>ลืม <code>server.listen(1)</code> ทำให้ Socket ยังไม่อยู่ในสถานะ LISTEN</td><td>เรียก <code>listen()</code> หลัง <code>bind()</code> เสมอ</td></tr>
+</tbody></table></div>
+</li>
+
+<li>
+<h4>Step 8: ตรวจสอบการทำงานทั้งระบบ (Verification)</h4>
+<p>ขั้นนี้คือการทดสอบแบบที่ผู้ใช้จริงจะใช้ ให้ Web server ของ Lab ยังเปิดอยู่ที่ Port 8000 (Step 4) แล้วรันคำสั่ง <code>ports</code> ทั้งกรณีปกติ กรณีถูกปฏิเสธ และกรณีข้อมูลผิด พร้อมตรวจ Exit code ทุกครั้ง จากนั้นสร้างรายงานและเปิดอ่าน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/home-network-toolkit
+# 1) ตรวจ Port มาตรฐานบนเครื่องตัวเอง
+python3 -m hnt ports; echo "exit=$?"
+# 2) ใช้ชื่อ localhost และช่วง Port
+python3 -m hnt ports --host localhost --ports 8000-8002; echo "exit=$?"
+# 3) ลองเป้าหมายที่ไม่ใช่เครื่องเรา ต้องถูกปฏิเสธด้วย Exit code 2
+python3 -m hnt ports --host 192.168.1.1; echo "exit=$?"
+python3 -m hnt ports --host example.com; echo "exit=$?"
+# 4) ข้อมูล Port ผิดรูปแบบ
+python3 -m hnt ports --ports 70000; echo "exit=$?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ตรวจ 127.0.0.1 จำนวน 5 พอร์ต (timeout 0.5 s)
+   22/tcp  closed   ssh
+   80/tcp  closed   http
+  443/tcp  closed   https
+ 5432/tcp  open     postgresql
+ 8000/tcp  open     -
+exit=0
+ตรวจ localhost จำนวน 3 พอร์ต (timeout 0.5 s)
+ 8000/tcp  open     -
+ 8001/tcp  closed   -
+ 8002/tcp  closed   -
+exit=0
+ปฏิเสธ: 192.168.1.1 ไม่ใช่เครื่องของคุณ ตรวจได้เฉพาะ 127.0.0.0/8, ::1 และ localhost (พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์)
+exit=2
+ปฏิเสธ: example.com ไม่ใช่เครื่องของคุณ ตรวจได้เฉพาะ 127.0.0.0/8, ::1 และ localhost (พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์)
+exit=2
+ข้อผิดพลาด: Port 70000 ไม่อยู่ในช่วง 1-65535
+exit=1</code></pre>
+<p class="muted small">Port 5432 เป็น <code>open</code> เพราะเครื่องนี้ติดตั้ง PostgreSQL 16 ไว้จากหัวข้อ SQL ถ้าเครื่องของคุณไม่ได้เปิด PostgreSQL จะเห็นเป็น <code>closed</code> ส่วน Port 8000 จะเป็น <code>open</code> ก็ต่อเมื่อ Web server จาก Step 4 ยังทำงานอยู่</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># 5) สร้างรายงานแล้วเปิดอ่านไฟล์ล่าสุด
+python3 -m hnt report
+cat "$(ls -t reports/*.txt | head -n 1)"
+# 6) ยืนยันว่า Git จะไม่นำโฟลเดอร์ reports ขึ้น Repository
+git check-ignore -v reports/*.txt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>เขียนรายงานแล้ว: reports/network-report-20261021-113512.txt
+============================================================
+Home Network Report (hnt 1.0.0)
+สร้างเมื่อ : 2026-10-21 11:35:12
+Hostname  : DESKTOP-K7Q2M4P
+============================================================
+
+[1] Interfaces (IPv4)
+  lo         127.0.0.1/8          UNKNOWN
+  eth0       172.24.85.123/20     UP
+
+[2] Default route
+  gateway 172.24.80.1 via eth0
+
+[3] DNS servers (/etc/resolv.conf)
+  10.255.255.254
+
+[4] TCP ports on 127.0.0.1
+     22/tcp  closed   ssh
+     80/tcp  closed   http
+    443/tcp  closed   https
+   5432/tcp  open     postgresql
+   8000/tcp  open     -
+
+หมายเหตุ: รายงานนี้ตรวจเฉพาะเครื่องของตัวเองเท่านั้น
+
+.gitignore:2:reports/	reports/network-report-20261021-113512.txt</code></pre>
+<p class="muted small">ชื่อไฟล์รายงาน วันเวลา Hostname, IP ของ <code>eth0</code>, Gateway และ DNS server จะต่างกันในแต่ละเครื่อง ใน WSL โหมด NAT ค่า Gateway คือ IP ฝั่ง Windows ของ Virtual switch ส่วน DNS server อาจเป็น <code>10.255.255.254</code> (เมื่อเปิด DNS Tunneling) หรือเป็น IP เดียวกับ Gateway ก็ได้ ถ้าใช้โหมด <code>networkingMode=mirrored</code> จะเห็น IP เดียวกับ Windows เช่น 192.168.1.37</p>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป ต้องได้ผลครบทุกข้อ: Test ผ่าน 12 ข้อ, คำสั่ง <code>ports</code> กับ 127.0.0.1 ได้ Exit code 0, เป้าหมายอื่นได้ Exit code 2, ไฟล์รายงานถูกสร้างในโฟลเดอร์ <code>reports/</code> และ <code>git check-ignore</code> แสดงว่าไฟล์รายงานถูก Ignore</p></div>
+</li>
+
+<li>
+<h4>Step 9: ทำแผนผังเครือข่ายบ้านและ IP Plan ในโฟลเดอร์ <code>docs/</code></h4>
+<p>Network Engineer ที่ดีต้องทำเอกสาร เพราะเครือข่ายที่ไม่มีแผนผังจะแก้ปัญหายากมากเมื่อเกิดเหตุ เราเขียนแผนผังด้วย <strong>Mermaid</strong> ซึ่ง GitHub แปลงเป็นภาพให้อัตโนมัติเมื่อเปิดไฟล์ <code>.md</code> และเขียนแบบ ASCII ไว้ด้วยสำหรับคนที่อ่านใน Terminal ถ้าอยากได้ภาพสวยขึ้น สามารถวาดด้วย draw.io แล้ว Export เป็น PNG ใส่ไว้ในโฟลเดอร์ <code>docs/</code> ได้ (ไม่บังคับ)</p>
+<p>ข้อมูลในแผนผังใช้เครือข่ายตัวอย่างเดียวกับทุกบทในหัวข้อนี้ ถ้าเครือข่ายบ้านของคุณใช้ IP ต่างจากนี้ ให้แก้ตามจริง แต่<strong>อย่าใส่รหัส Wi-Fi หรือ Public IP ของบ้าน</strong>ลงใน Repository สาธารณะ</p>
+<pre class="code" data-env="file" data-label="Markdown · docs/home-network.md"><code class="language-markdown"># แผนผังเครือข่ายในบ้าน (Home Network Diagram)
+
+## Mermaid (GitHub แสดงเป็นภาพให้อัตโนมัติ)
+
+```mermaid
+flowchart TD
+    ISP((Internet / ISP)) --&gt; ONT["ONT + Router&lt;br/&gt;192.168.1.1&lt;br/&gt;DHCP 192.168.1.100-199"]
+    ONT --&gt; AP["Wi-Fi AP&lt;br/&gt;SSID: somchai-home (WPA3)"]
+    ONT --&gt; NAS["NAS&lt;br/&gt;192.168.1.20&lt;br/&gt;nas.home.arpa"]
+    ONT --&gt; PRN["Printer&lt;br/&gt;192.168.1.50"]
+    AP --&gt; LAPTOP["Laptop (Windows 11)&lt;br/&gt;192.168.1.37"]
+    AP --&gt; PHONE["Phone&lt;br/&gt;DHCP 192.168.1.1xx"]
+    LAPTOP --&gt; WSL["WSL2 Ubuntu 24.04&lt;br/&gt;eth0 172.24.85.123/20&lt;br/&gt;NAT ผ่าน Windows (gw 172.24.80.1)"]
+```
+
+## ASCII (อ่านได้แม้ไม่มีตัวแสดงผล Mermaid)
+
+```text
+                 Internet (ISP)
+                       |
+          +---------------------------+
+          | ONT + Router 192.168.1.1  |
+          | DHCP pool .100 - .199     |
+          +---------------------------+
+             |          |          |
+        Wi-Fi AP    NAS .20    Printer .50
+         /     \    (nas.home.arpa)
+   Laptop .37   Phone (DHCP)
+       |
+   WSL2 Ubuntu 24.04
+   eth0 172.24.85.123/20 --NAT--&gt; Windows 192.168.1.37
+```</code></pre>
+<pre class="code" data-env="file" data-label="Markdown · docs/ip-plan.md"><code class="language-markdown"># IP Plan: 192.168.1.0/24
+
+| ช่วง / IP | อุปกรณ์ | วิธีได้ IP | หมายเหตุ |
+|---|---|---|---|
+| 192.168.1.0 | Network address | - | ใช้ไม่ได้ |
+| 192.168.1.1 | ONT + Router (Default Gateway) | Static | DNS forwarder ของบ้าน |
+| 192.168.1.2 - 192.168.1.19 | สำรองสำหรับอุปกรณ์เครือข่าย | Static | เช่น Switch, Wi-Fi AP |
+| 192.168.1.20 | NAS (nas.home.arpa) | Static | แชร์ไฟล์ |
+| 192.168.1.25 | Mail lab (mail.home.arpa) | Static | ใช้ใน DNS Lab |
+| 192.168.1.37 | Laptop ของ somchai | DHCP Reservation | ผูกกับ MAC ของ Wi-Fi card |
+| 192.168.1.50 | Printer | DHCP Reservation | พิมพ์ผ่าน Wi-Fi |
+| 192.168.1.100 - 192.168.1.199 | DHCP pool | DHCP | มือถือ แท็บเล็ต แขก |
+| 192.168.1.200 - 192.168.1.254 | ว่าง | - | สำรองไว้ขยาย |
+| 192.168.1.255 | Broadcast | - | ใช้ไม่ได้ |</code></pre>
+<p>ใช้เครื่องมือของเราเองยืนยันว่า IP Plan ถูกต้อง โดยตรวจว่าวง /24 มี Host ให้ใช้ 254 ตัว ตั้งแต่ .1 ถึง .254 ตรงกับตาราง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 -m hnt subnet 192.168.1.0/24 | grep -E "host|Broadcast"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Broadcast    : 192.168.1.255
+First host   : 192.168.1.1
+Last host    : 192.168.1.254
+Usable hosts : 254</code></pre>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>แยก DHCP pool ออกจากช่วง Static ให้ชัดเจน อุปกรณ์ที่ต้องเข้าถึงด้วย IP คงที่ (NAS, Printer) ใช้ DHCP Reservation หรือ Static นอก Pool เพื่อกัน IP ชนกัน</li>
+<li>ใช้โดเมน <code>home.arpa</code> สำหรับชื่อภายในบ้าน (สงวนไว้ใน RFC 8375) แทนการตั้งชื่อโดเมนเองที่อาจชนกับโดเมนจริงบน Internet</li>
+<li>อัปเดต <code>docs/ip-plan.md</code> ทุกครั้งที่เพิ่มอุปกรณ์ และ Commit พร้อมข้อความที่บอกว่าเปลี่ยนอะไร เอกสารจะได้ตรงกับของจริงเสมอ</li>
+</ul></div>
+</li>
+<li>
+<h4>Step 10: เขียน README.md ตาม Template</h4>
+<p>README คือหน้าแรกที่คนเห็นเมื่อเปิด Repository ผู้ตรวจ Portfolio มักใช้เวลาไม่ถึงหนึ่งนาทีตัดสินว่าจะอ่านต่อหรือไม่ จึงต้องตอบให้ได้ทันทีว่าโปรเจกต์ทำอะไร ใช้อย่างไร และผลลัพธ์หน้าตาแบบไหน เราใช้หัวข้อสองภาษา (English / ไทย) เพื่อให้ทั้งบริษัทไทยและบริษัทต่างชาติอ่านได้</p>
+<p>สร้างไฟล์ <code>README.md</code> ที่รากโปรเจกต์ด้วยเนื้อหาด้านล่าง แล้วแก้ส่วนที่เป็นข้อมูลส่วนตัว เช่น ตัวอย่าง Output ให้ตรงกับเครื่องของคุณ</p>
+<pre class="code" data-env="file" data-label="Markdown · README.md"><code class="language-markdown"># Home Network Toolkit (hnt)
+
+เครื่องมือ Command Line สำหรับสำรวจเครือข่ายในบ้าน เขียนด้วย Python 3.12 Standard Library ล้วน ไม่ต้องติดตั้ง Package เพิ่ม
+
+## Features / ความสามารถ
+
+- `subnet` คำนวณ Network, Netmask, Wildcard, Broadcast, ช่วง Host และแบ่ง Subnet (IPv4 และ IPv6)
+- `dns` Forward lookup (A/AAAA), Reverse lookup (PTR) และถาม DNS server ที่ระบุด้วย `dig`
+- `ports` ตรวจ TCP Port **เฉพาะเครื่องตัวเอง** (127.0.0.0/8, ::1, localhost)
+- `report` เขียนรายงานเครือข่ายของเครื่องลงไฟล์ `reports/network-report-YYYYMMDD-HHMMSS.txt`
+- เอกสารแผนผังเครือข่ายใน `docs/home-network.md` และ IP Plan ใน `docs/ip-plan.md`
+
+## Requirements / สิ่งที่ต้องมี
+
+- Ubuntu 24.04 LTS (WSL2) และ Python 3.12 ขึ้นไป
+- ไม่บังคับ: `sudo apt install -y iproute2 bind9-dnsutils` (สำหรับ `ip` และ `dig`)
+
+## Usage / วิธีใช้
+
+```bash
+python3 -m hnt subnet 192.168.1.0/24 --new-prefix 26
+python3 -m hnt dns localhost
+python3 -m hnt dns nas.home.arpa --server 127.0.0.1 --port 5300
+python3 -m hnt ports --ports 22,80,443,5432,8000
+python3 -m hnt report
+```
+
+## Sample output / ตัวอย่างผลลัพธ์
+
+```text
+$ python3 -m hnt ports --ports 8000-8002
+ตรวจ 127.0.0.1 จำนวน 3 พอร์ต (timeout 0.5 s)
+ 8000/tcp  open     -
+ 8001/tcp  closed   -
+ 8002/tcp  closed   -
+```
+
+## Tests / การทดสอบ
+
+```bash
+python3 -m unittest -v
+```
+
+## Safety / ความปลอดภัยและกฎหมาย
+
+คำสั่ง `ports` ปฏิเสธทุกเป้าหมายที่ไม่ใช่ Loopback และออกด้วย Exit code 2
+การสแกนหรือเข้าถึงระบบของผู้อื่นโดยไม่ได้รับอนุญาตเป็นความผิดตาม
+พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์ ใช้เครื่องมือนี้กับเครื่องของตัวเองเท่านั้น
+
+## Project structure / โครงสร้าง
+
+```text
+hnt/        โค้ดหลัก (subnet, dnslookup, portcheck, report)
+tests/      Unit test ด้วย unittest
+docs/       แผนผังเครือข่ายและ IP Plan
+reports/    รายงานที่สร้าง (ไม่ขึ้น Git)
+```
+
+## License
+
+MIT</code></pre>
+<div class="callout"><span class="c-label tip">Tip</span><p>ถ้าระบุ License เป็น MIT ใน README ควรสร้างไฟล์ <code>LICENSE</code> ด้วย วิธีง่ายที่สุดคือตอนสร้าง Repository บนเว็บ GitHub ให้เลือก "Add a license" แล้วเลือก MIT License จากนั้นค่อย <code>git pull</code> ลงมา หรือจะสร้างภายหลังผ่านปุ่ม "Add file" บนหน้า Repository ก็ได้</p></div>
+</li>
+
+<li>
+<h4>Step 11: Commit แล้ว Push ขึ้น GitHub</h4>
+<p>ขั้นสุดท้ายคือนำผลงานขึ้น GitHub ตามที่เรียนใน <a data-t="17"></a> ก่อน Commit ให้ตรวจด้วย <code>git status --short</code> ว่าไม่มีไฟล์ในโฟลเดอร์ <code>reports/</code> หรือ <code>__pycache__/</code> หลุดเข้ามา ถ้าเคยรัน Test แล้ว Python จะสร้างโฟลเดอร์ <code>__pycache__</code> ไว้ แต่ <code>.gitignore</code> จะกันไว้ให้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/home-network-toolkit
+# ตั้งชื่อและอีเมลสำหรับ Commit (ทำครั้งเดียวต่อเครื่อง ข้ามได้ถ้าเคยตั้งแล้ว)
+git config --global user.name "somchai"
+git config --global user.email "somchai@example.com"
+# เพิ่มไฟล์ทั้งหมดแล้วดูสิ่งที่จะ Commit
+git add .
+git status --short</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>A  .gitignore
+A  README.md
+A  docs/home-network.md
+A  docs/ip-plan.md
+A  hnt/__init__.py
+A  hnt/__main__.py
+A  hnt/dnslookup.py
+A  hnt/portcheck.py
+A  hnt/report.py
+A  hnt/subnet.py
+A  tests/__init__.py
+A  tests/test_portcheck.py
+A  tests/test_subnet.py</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Commit แรกของโปรเจกต์
+git commit -m "feat: Home Network Toolkit v1.0.0"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[main (root-commit) ace45ac] feat: Home Network Toolkit v1.0.0
+ 13 files changed, 586 insertions(+)
+ create mode 100644 .gitignore
+ create mode 100644 README.md
+ create mode 100644 docs/home-network.md
+ create mode 100644 docs/ip-plan.md
+ create mode 100644 hnt/__init__.py
+ create mode 100644 hnt/__main__.py
+ create mode 100644 hnt/dnslookup.py
+ create mode 100644 hnt/portcheck.py
+ create mode 100644 hnt/report.py
+ create mode 100644 hnt/subnet.py
+ create mode 100644 tests/__init__.py
+ create mode 100644 tests/test_portcheck.py
+ create mode 100644 tests/test_subnet.py</code></pre>
+<p class="muted small">Hash ของ Commit (<code>ace45ac</code>) จะต่างกันทุกเครื่อง จำนวนบรรทัดอาจต่างเล็กน้อยถ้าคุณแก้ README</p>
+<p>ไปที่ <a href="https://github.com/new" target="_blank" rel="noopener">github.com/new</a> สร้าง Repository ชื่อ <code>home-network-toolkit</code> แบบ Public <strong>ไม่ต้อง</strong>ติ๊กสร้าง README เพราะเรามีแล้ว จากนั้นเชื่อม Remote แล้ว Push (ตัวอย่างนี้ใช้ SSH key ที่ตั้งไว้ในหัวข้อ Git and GitHub)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เชื่อม Repository บน GitHub (เปลี่ยน somchai เป็น Username ของคุณ)
+git remote add origin git@github.com:somchai/home-network-toolkit.git
+# Push Branch main และตั้งให้ติดตาม origin/main
+git push -u origin main
+# ติด Tag เวอร์ชันแรก แล้ว Push Tag ขึ้นไปด้วย
+git tag -a v1.0.0 -m "Home Network Toolkit v1.0.0"
+git push origin v1.0.0</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Enumerating objects: 18, done.
+Counting objects: 100% (18/18), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (16/16), done.
+Writing objects: 100% (18/18), 9.12 KiB | 1.82 MiB/s, done.
+Total 18 (delta 0), reused 0 (delta 0), pack-reused 0
+To github.com:somchai/home-network-toolkit.git
+ * [new branch]      main -&gt; main
+branch 'main' set up to track 'origin/main'.
+Enumerating objects: 1, done.
+Counting objects: 100% (1/1), done.
+Writing objects: 100% (1/1), 182 bytes | 182.00 KiB/s, done.
+Total 1 (delta 0), reused 0 (delta 0), pack-reused 0
+To github.com:somchai/home-network-toolkit.git
+ * [new tag]         v1.0.0 -&gt; v1.0.0</code></pre>
+<p class="muted small">ขั้นนี้รันในเครื่องทดสอบไม่ได้เพราะต้องเชื่อมต่อบัญชี GitHub จริง Output ข้างบนเป็นตัวอย่างที่สมจริง จำนวน Object ขนาดไฟล์ จำนวน Thread และความเร็วจะต่างกันในแต่ละเครื่อง ถ้าใช้ HTTPS แทน SSH ให้ใช้ URL <code>https://github.com/somchai/home-network-toolkit.git</code> และล็อกอินด้วย Personal Access Token แทนรหัสผ่าน</p>
+<p>เปิดหน้า Repository บน GitHub แล้วตรวจ 3 อย่าง: README แสดงผลถูกต้อง, ไฟล์ <code>docs/home-network.md</code> แสดงแผนผัง Mermaid เป็นภาพ และ<strong>ไม่มี</strong>โฟลเดอร์ <code>reports/</code> ขึ้นไป สุดท้ายเพิ่ม Description และ Topics ของ Repository เช่น <code>networking</code>, <code>python</code>, <code>subnetting</code>, <code>dns</code> เพื่อให้ค้นเจอง่าย</p>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>git@github.com: Permission denied (publickey).</code></td><td>ยังไม่ได้เพิ่ม SSH public key ในบัญชี GitHub หรือ ssh-agent ไม่มี Key</td><td>ทำตามขั้นตอน SSH key ในหัวข้อ Git and GitHub แล้วทดสอบด้วย <code>ssh -T git@github.com</code></td></tr>
+<tr><td><code>error: remote origin already exists.</code></td><td>เคยรัน <code>git remote add</code> ไปแล้ว</td><td>แก้ URL ด้วย <code>git remote set-url origin &lt;url ใหม่&gt;</code></td></tr>
+<tr><td><code>! [rejected] main -&gt; main (fetch first)</code></td><td>ตอนสร้าง Repository บนเว็บเผลอติ๊กสร้าง README หรือ LICENSE ทำให้ฝั่ง GitHub มี Commit ที่เครื่องเราไม่มี</td><td><code>git pull --rebase origin main</code> แล้วค่อย <code>git push</code> อีกครั้ง</td></tr>
+<tr><td>รายงานใน <code>reports/</code> ขึ้นไปอยู่บน GitHub</td><td>สร้าง <code>.gitignore</code> หลังจาก <code>git add</code> ไปแล้ว</td><td><code>git rm -r --cached reports</code> แล้ว Commit ใหม่ ถ้าเป็นข้อมูลอ่อนไหว ให้ถือว่าข้อมูลนั้นถูกเปิดเผยแล้ว เพราะยังอยู่ในประวัติ Commit</td></tr>
+</tbody></table></div>
+</li>
+</ol>
+
+<h4>สรุปสิ่งที่โปรเจกต์นี้พิสูจน์</h4>
+<ul>
+  <li><strong>Subnetting</strong>: คำนวณและแบ่งวง IPv4/IPv6 ได้ถูกต้อง และมี Test ยืนยัน</li>
+  <li><strong>DNS</strong>: แยกได้ว่าการถามผ่าน Resolver ของระบบต่างจากการถาม DNS server ตรงๆ อย่างไร และอ่าน CNAME, MX, TXT ได้</li>
+  <li><strong>TCP</strong>: เข้าใจสถานะ open, closed, timeout จาก Handshake และ RST</li>
+  <li><strong>Troubleshooting</strong>: เก็บข้อมูล Interface, Route, DNS และ Port เป็นรายงานที่ส่งต่อให้คนอื่นได้</li>
+  <li><strong>Professionalism</strong>: มี Safety guard, เอกสารแผนผัง, IP Plan, README และ Version tag</li>
+</ul>
+
+<h4>ไอเดียต่อยอด</h4>
+<ol>
+  <li><strong>รายงานแบบ JSON</strong>: เพิ่ม <code>report --format json</code> โดยใช้ <code>json.dumps</code> เพื่อให้โปรแกรมอื่นอ่านต่อได้ แล้วเขียน Test ตรวจว่า JSON มี Key ครบ</li>
+  <li><strong>เปรียบเทียบรายงาน</strong>: เพิ่มคำสั่ง <code>diff</code> ที่รับไฟล์รายงานสองไฟล์ แล้วบอกว่า Port ไหนเปลี่ยนสถานะ หรือ Default gateway เปลี่ยนหรือไม่ ใช้ตอนตรวจก่อนและหลังแก้ปัญหา</li>
+  <li><strong>VLSM planner</strong>: เพิ่มคำสั่ง <code>vlsm</code> ที่รับจำนวน Host ของแต่ละแผนก เช่น 60, 28, 12, 2 แล้วจัดสรร Subnet จาก 192.168.100.0/24 ให้อัตโนมัติ ตามโจทย์ VLSM ในแนวคิดที่ 3</li>
+  <li><strong>ตรวจ Port ของ Container ตัวเอง</strong>: ขยาย Allowlist ให้รับ IP ในวง Docker bridge ของเครื่องตัวเองที่ผู้ใช้ระบุในไฟล์ Config อย่างชัดเจน พร้อม Test ว่า IP นอกวงยังถูกปฏิเสธ</li>
+  <li><strong>GitHub Actions</strong>: เพิ่ม Workflow <code>.github/workflows/test.yml</code> ให้รัน <code>python3 -m unittest -v</code> ทุกครั้งที่ Push แล้วใส่ Badge ใน README</li>
+  <li><strong>ตรวจ Latency</strong>: เพิ่มคำสั่ง <code>ping</code> ที่เรียก <code>ping -c 4</code> ไปยัง Default gateway ผ่าน <code>subprocess</code> แล้วสรุปค่า min/avg/max ลงในรายงาน (Gateway เป็นอุปกรณ์ในบ้านของเราเอง)</li>
+  <li><strong>ติดตั้งเป็นคำสั่ง <code>hnt</code></strong>: เพิ่มไฟล์ <code>pyproject.toml</code> ที่มี <code>[project.scripts]</code> แล้วติดตั้งด้วย <code>python3 -m pip install -e .</code> ภายใน venv ที่สร้างด้วย <code>python3 -m venv .venv</code> จะพิมพ์ <code>hnt subnet ...</code> ได้โดยไม่ต้องใส่ <code>python3 -m</code></li>
+  <li><strong>Network Automation</strong>: เมื่อมี Lab ของอุปกรณ์จริงหรือ Lab จำลอง ลองศึกษา Netmiko หรือ NAPALM เพื่อดึง <code>show ip interface brief</code> จาก Router มาใส่รายงาน (ติดตั้งใน venv และตรวจสอบเวอร์ชันล่าสุดที่ pypi.org ก่อนใช้)</li>
+</ol>
+
+<h3 id="s1-4-cheat">Cheat Sheet</h3>
+<p>รวมคำสั่งที่ใช้บ่อยที่สุดในงาน Network Engineer จัดกลุ่มตามเครื่องมือ คำสั่งฝั่ง Linux ใช้ได้บน Ubuntu 24.04 ใน WSL (คำสั่งที่ต้องใช้สิทธิ์ root ใส่ <code>sudo</code> ไว้แล้ว) คำสั่ง Windows พิมพ์ใน PowerShell และคำสั่ง Cisco IOS ใช้ใน Packet Tracer หรืออุปกรณ์จริงใน Lab ของคุณ</p>
+<div class="callout sec"><span class="c-label sec">Security</span><p>คำสั่งดักจับ Packet (<code>tcpdump</code>) และสแกน Port (<code>nmap</code>, <code>nc -z</code>) ใช้ได้เฉพาะกับเครื่อง Network Namespace หรือ Container ของตัวเองเท่านั้น การดักข้อมูลหรือสแกนระบบของผู้อื่นโดยไม่ได้รับอนุญาตเป็นความผิดตาม พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์</p></div>
+
+<h4>Linux: ip และ ss (iproute2)</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>ip -br addr</code></td><td>ดู Interface และ IP แบบสรุปบรรทัดเดียวต่อ Interface</td><td><code>ip -br addr</code> แสดง <code>eth0 UP 172.24.85.123/20</code></td></tr>
+<tr><td><code>ip -br link</code></td><td>ดูสถานะ Interface (UP/DOWN) และ MAC address</td><td><code>ip -br link show eth0</code></td></tr>
+<tr><td><code>ip route</code></td><td>ดู Routing Table ทั้งหมด รวม Default route</td><td><code>ip route show default</code></td></tr>
+<tr><td><code>ip route get &lt;IP&gt;</code></td><td>ถามว่า Packet ไปยัง IP นี้จะออก Interface ไหน ผ่าน Next hop ใด</td><td><code>ip route get 1.1.1.1</code></td></tr>
+<tr><td><code>ip neigh</code></td><td>ดู ARP cache (IPv4) และ Neighbor table (IPv6)</td><td><code>ip neigh show dev eth0</code></td></tr>
+<tr><td><code>ip -j &lt;object&gt;</code></td><td>ขอ Output เป็น JSON สำหรับ Script</td><td><code>ip -j route show default | python3 -m json.tool</code></td></tr>
+<tr><td><code>ss -tlnp</code></td><td>ดู TCP Port ที่เปิดรอรับ (LISTEN) พร้อมชื่อโปรแกรม</td><td><code>sudo ss -tlnp | grep 8000</code></td></tr>
+<tr><td><code>ss -ulnp</code></td><td>ดู UDP Port ที่เปิดรอรับ</td><td><code>ss -ulnp | grep 5300</code></td></tr>
+<tr><td><code>ss -tn state established</code></td><td>ดู TCP Connection ที่เชื่อมต่ออยู่</td><td><code>ss -tn state established '( dport = :443 )'</code></td></tr>
+<tr><td><code>ip netns add / exec / del</code></td><td>สร้าง รันคำสั่งใน และลบ Network Namespace สำหรับทำ Lab</td><td><code>sudo ip netns exec pc1 ping -c 2 192.168.50.2</code></td></tr>
+</tbody></table></div>
+
+<h4>ทดสอบการเชื่อมต่อ: ping, tracepath, mtr, nc, curl</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>ping -c N &lt;host&gt;</code></td><td>ทดสอบ Layer 3 ด้วย ICMP Echo ส่ง N ครั้งแล้วหยุด</td><td><code>ping -c 4 172.24.80.1</code></td></tr>
+<tr><td><code>tracepath -n &lt;host&gt;</code></td><td>ดูเส้นทางทีละ Hop โดยไม่ต้องใช้ sudo และไม่แปลงชื่อ</td><td><code>tracepath -n 1.1.1.1</code></td></tr>
+<tr><td><code>mtr -rwc N &lt;host&gt;</code></td><td>รวม ping กับ traceroute แล้วสรุปเป็นรายงาน เห็น Packet loss ราย Hop</td><td><code>mtr -rwc 10 1.1.1.1</code></td></tr>
+<tr><td><code>nc -zv &lt;host&gt; &lt;port&gt;</code></td><td>ทดสอบว่า TCP Port เปิดหรือไม่ (เฉพาะเครื่องตัวเอง)</td><td><code>nc -zv 127.0.0.1 8000</code></td></tr>
+<tr><td><code>curl -v &lt;url&gt;</code></td><td>ดู DNS, TCP connect, TLS handshake และ HTTP header ครบในคำสั่งเดียว</td><td><code>curl -sv --cacert cert.pem https://localhost:8443/ -o /dev/null</code></td></tr>
+<tr><td><code>curl -I &lt;url&gt;</code></td><td>ขอเฉพาะ Response header (HEAD request) ดู Status code</td><td><code>curl -I http://127.0.0.1:8000/</code></td></tr>
+</tbody></table></div>
+
+<h4>DNS: dig</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>dig &lt;name&gt; +short</code></td><td>ถาม A record แล้วแสดงเฉพาะคำตอบ</td><td><code>dig @127.0.0.1 -p 5300 nas.home.arpa +short</code></td></tr>
+<tr><td><code>dig &lt;name&gt; &lt;TYPE&gt;</code></td><td>ถาม Record ชนิดอื่น เช่น AAAA, MX, TXT, NS, SOA</td><td><code>dig @127.0.0.1 -p 5300 home.arpa MX</code></td></tr>
+<tr><td><code>dig @&lt;server&gt;</code></td><td>ถาม DNS server ที่ระบุตรงๆ ข้าม Resolver ของระบบ</td><td><code>dig @1.1.1.1 example.com</code></td></tr>
+<tr><td><code>dig -x &lt;IP&gt;</code></td><td>Reverse lookup (PTR record)</td><td><code>dig @127.0.0.1 -p 5300 -x 192.168.1.20 +short</code></td></tr>
+<tr><td><code>dig +noall +answer</code></td><td>แสดงเฉพาะ Answer section พร้อม TTL</td><td><code>dig +noall +answer example.com</code></td></tr>
+<tr><td><code>dig +trace &lt;name&gt;</code></td><td>ไล่การ Resolve ตั้งแต่ Root, TLD จนถึง Authoritative server</td><td><code>dig +trace example.com</code></td></tr>
+<tr><td><code>resolvectl status</code> / <code>cat /etc/resolv.conf</code></td><td>ดูว่าเครื่องใช้ DNS server ตัวไหน (ใน WSL ไฟล์ resolv.conf ถูกสร้างอัตโนมัติ)</td><td><code>grep nameserver /etc/resolv.conf</code></td></tr>
+</tbody></table></div>
+
+<h4>Capture: tcpdump (เฉพาะ Traffic ของตัวเอง)</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>tcpdump -i &lt;if&gt; -nn</code></td><td>ดักจับ Packet บน Interface โดยไม่แปลงชื่อเครื่องและชื่อ Port</td><td><code>sudo tcpdump -i lo -nn</code></td></tr>
+<tr><td><code>tcpdump -c N</code></td><td>จับครบ N Packet แล้วหยุดเอง</td><td><code>sudo tcpdump -i lo -nn -c 6 'tcp port 9000'</code></td></tr>
+<tr><td><code>tcpdump -e</code></td><td>แสดง MAC address และ EtherType (ดู VLAN tag 802.1Q ได้)</td><td><code>sudo ip netns exec pc1 tcpdump -e -nn -c 4 'arp or icmp'</code></td></tr>
+<tr><td><code>tcpdump -w file.pcap</code></td><td>บันทึกลงไฟล์ เพื่อนำไปเปิดใน Wireshark บน Windows</td><td><code>sudo tcpdump -i lo -nn -w lab.pcap 'port 8000'</code></td></tr>
+<tr><td>BPF filter</td><td>กรอง Packet ด้วย <code>host</code>, <code>port</code>, <code>tcp</code>, <code>udp</code>, <code>icmp</code>, <code>and</code>, <code>or</code>, <code>not</code></td><td><code>'udp port 5300 and host 127.0.0.1'</code></td></tr>
+</tbody></table></div>
+
+<h4>Windows: PowerShell และ Command Prompt</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>ipconfig /all</code></td><td>ดู IP, Subnet Mask, Default Gateway, DNS server, MAC และสถานะ DHCP ทุก Adapter</td><td><code>ipconfig /all</code></td></tr>
+<tr><td><code>ipconfig /release</code> และ <code>/renew</code></td><td>คืนและขอ IP จาก DHCP ใหม่</td><td><code>ipconfig /renew</code></td></tr>
+<tr><td><code>ipconfig /flushdns</code></td><td>ล้าง DNS cache ของ Windows</td><td><code>ipconfig /flushdns</code></td></tr>
+<tr><td><code>Get-NetIPAddress</code></td><td>ดู IP ของแต่ละ Interface แบบ Object</td><td><code>Get-NetIPAddress -AddressFamily IPv4</code></td></tr>
+<tr><td><code>Get-NetRoute</code></td><td>ดู Routing Table ของ Windows</td><td><code>Get-NetRoute -DestinationPrefix 0.0.0.0/0</code></td></tr>
+<tr><td><code>Test-NetConnection</code></td><td>ทดสอบ ping และ TCP Port ในคำสั่งเดียว</td><td><code>Test-NetConnection 127.0.0.1 -Port 8000</code></td></tr>
+<tr><td><code>Resolve-DnsName</code></td><td>ถาม DNS แบบเดียวกับ dig ระบุชนิด Record และ Server ได้</td><td><code>Resolve-DnsName example.com -Type MX -Server 1.1.1.1</code></td></tr>
+<tr><td><code>tracert -d</code></td><td>ดูเส้นทางทีละ Hop โดยไม่แปลงชื่อ</td><td><code>tracert -d 1.1.1.1</code></td></tr>
+<tr><td><code>Get-NetTCPConnection</code></td><td>ดู TCP Port ที่เปิดรอรับบน Windows (คล้าย <code>ss -tln</code>)</td><td><code>Get-NetTCPConnection -State Listen</code></td></tr>
+<tr><td><code>arp -a</code></td><td>ดู ARP cache ของ Windows</td><td><code>arp -a</code></td></tr>
+</tbody></table></div>
+
+<h4>Cisco IOS (Packet Tracer)</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>enable</code> / <code>configure terminal</code></td><td>เข้าโหมด Privileged EXEC แล้วเข้าโหมด Global configuration</td><td><code>enable</code> แล้ว <code>configure terminal</code></td></tr>
+<tr><td><code>interface</code> + <code>ip address</code> + <code>no shutdown</code></td><td>ตั้ง IP ให้ Interface ของ Router แล้วเปิดใช้งาน</td><td><code>interface GigabitEthernet0/0</code>, <code>ip address 192.168.10.1 255.255.255.0</code>, <code>no shutdown</code></td></tr>
+<tr><td><code>show ip interface brief</code></td><td>สรุป IP และสถานะ Status/Protocol ของทุก Interface</td><td><code>show ip interface brief</code></td></tr>
+<tr><td><code>show running-config</code></td><td>ดู Config ที่ใช้งานอยู่ตอนนี้</td><td><code>show running-config | section interface</code></td></tr>
+<tr><td><code>copy running-config startup-config</code></td><td>บันทึก Config ให้คงอยู่หลัง Reboot</td><td><code>copy running-config startup-config</code></td></tr>
+<tr><td><code>vlan &lt;id&gt;</code> + <code>name</code></td><td>สร้าง VLAN และตั้งชื่อบน Switch</td><td><code>vlan 10</code>, <code>name SALES</code></td></tr>
+<tr><td><code>switchport mode access</code> / <code>trunk</code></td><td>กำหนด Port เป็น Access port ของ VLAN เดียว หรือ Trunk ที่ส่งหลาย VLAN</td><td><code>switchport access vlan 10</code>, <code>switchport trunk allowed vlan 10,20</code></td></tr>
+<tr><td><code>show vlan brief</code> / <code>show interfaces trunk</code></td><td>ตรวจว่า Port อยู่ VLAN ไหน และ Trunk อนุญาต VLAN อะไรบ้าง</td><td><code>show interfaces trunk</code></td></tr>
+<tr><td><code>ip route &lt;net&gt; &lt;mask&gt; &lt;next-hop&gt;</code></td><td>เพิ่ม Static route</td><td><code>ip route 192.168.20.0 255.255.255.0 10.0.12.2</code></td></tr>
+<tr><td><code>router ospf 1</code> + <code>network</code></td><td>เปิด OSPF และประกาศวงด้วย Wildcard mask</td><td><code>network 192.168.10.0 0.0.0.255 area 0</code></td></tr>
+<tr><td><code>show ip route</code> / <code>show ip ospf neighbor</code></td><td>ดู Routing Table และสถานะ Neighbor ของ OSPF (ต้องเป็น FULL)</td><td><code>show ip route ospf</code></td></tr>
+<tr><td><code>ip access-list extended &lt;name&gt;</code></td><td>สร้าง Named extended ACL แล้วผูกกับ Interface ด้วย <code>ip access-group</code></td><td><code>ip access-group SALES-IN in</code></td></tr>
+</tbody></table></div>
+
+<h4>Subnetting ฉบับพกพา (IPv4)</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>/24</code> = <code>255.255.255.0</code></td><td>256 Address, Host ใช้ได้ 254, Block size 256 ในออกเต็ตที่ 4</td><td>192.168.1.0/24: Host .1 ถึง .254, Broadcast .255</td></tr>
+<tr><td><code>/25</code> = <code>255.255.255.128</code></td><td>128 Address, Host ใช้ได้ 126, Block size 128</td><td>192.168.1.128/25: Host .129 ถึง .254</td></tr>
+<tr><td><code>/26</code> = <code>255.255.255.192</code></td><td>64 Address, Host ใช้ได้ 62, Block size 64</td><td>192.168.1.64/26: Host .65 ถึง .126, Broadcast .127</td></tr>
+<tr><td><code>/27</code> = <code>255.255.255.224</code></td><td>32 Address, Host ใช้ได้ 30, Block size 32</td><td>192.168.100.64/27: Host .65 ถึง .94</td></tr>
+<tr><td><code>/28</code> = <code>255.255.255.240</code></td><td>16 Address, Host ใช้ได้ 14, Block size 16</td><td>192.168.100.96/28: Host .97 ถึง .110</td></tr>
+<tr><td><code>/30</code> = <code>255.255.255.252</code></td><td>4 Address, Host ใช้ได้ 2 ใช้กับลิงก์ระหว่าง Router</td><td>10.0.12.0/30: R1 .1, R2 .2</td></tr>
+<tr><td><code>/31</code> และ <code>/32</code></td><td>/31 ใช้ได้ทั้ง 2 Address บนลิงก์ Point-to-Point (RFC 3021), /32 คือ Host เดียว</td><td>10.0.12.0/31, 1.1.1.1/32 (Loopback ของ Router)</td></tr>
+<tr><td>สูตร Host</td><td>Host ใช้ได้ = 2<sup>(32 − prefix)</sup> − 2</td><td>/20: 2<sup>12</sup> − 2 = 4094</td></tr>
+<tr><td>Wildcard mask</td><td>255.255.255.255 ลบด้วย Subnet Mask ใช้ใน OSPF และ ACL</td><td>/24 = 0.0.0.255, /26 = 0.0.0.63</td></tr>
+<tr><td>Private (RFC 1918)</td><td>วงที่ใช้ภายในองค์กร ออก Internet ต้องผ่าน NAT</td><td>10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16</td></tr>
+<tr><td>วงพิเศษ</td><td>Loopback, APIPA (DHCP ไม่ตอบ), CGNAT และวงสำหรับเอกสาร</td><td>127.0.0.0/8, 169.254.0.0/16, 100.64.0.0/10, 192.0.2.0/24</td></tr>
+</tbody></table></div>
+
+<h4>Python: ipaddress และ socket</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>ipaddress.ip_network(cidr, strict=False)</code></td><td>สร้าง Network object ยอมรับ IP ที่มี Host bits</td><td><code>ip_network("172.16.45.200/21", strict=False)</code> ได้ 172.16.40.0/21</td></tr>
+<tr><td><code>net.subnets(new_prefix=N)</code></td><td>แบ่ง Network เป็น Subnet ย่อย</td><td><code>list(net.subnets(new_prefix=26))</code></td></tr>
+<tr><td><code>net.netmask</code>, <code>net.hostmask</code>, <code>net.broadcast_address</code></td><td>ดู Subnet Mask, Wildcard และ Broadcast</td><td><code>str(net.hostmask)</code> ได้ <code>0.0.0.255</code></td></tr>
+<tr><td><code>ip_address(x) in net</code></td><td>ตรวจว่า IP อยู่ใน Subnet หรือไม่</td><td><code>ip_address("192.168.1.37") in ip_network("192.168.1.0/24")</code> ได้ <code>True</code></td></tr>
+<tr><td><code>.is_private</code>, <code>.is_loopback</code>, <code>.is_link_local</code></td><td>จำแนกชนิดของ IP</td><td><code>ip_address("::1").is_loopback</code> ได้ <code>True</code></td></tr>
+<tr><td><code>socket.getaddrinfo(name, None)</code></td><td>Resolve ชื่อผ่าน Resolver ของระบบ ได้ทั้ง IPv4 และ IPv6</td><td><code>socket.getaddrinfo("localhost", None)</code></td></tr>
+<tr><td><code>socket.create_connection((host, port), timeout=0.5)</code></td><td>เปิด TCP Connection มี Timeout ใช้ตรวจ Port ของตัวเอง</td><td><code>socket.create_connection(("127.0.0.1", 8000), timeout=0.5)</code></td></tr>
+<tr><td><code>subprocess.run([...], capture_output=True, text=True, timeout=5)</code></td><td>เรียกคำสั่ง Linux จาก Python อย่างปลอดภัย (ไม่ใช้ <code>shell=True</code>)</td><td><code>subprocess.run(["ip", "-j", "route"], capture_output=True, text=True)</code></td></tr>
+</tbody></table></div>
+
+<h3 id="s1-4-interview">Interview Questions</h3>
+<p>คำถามด้านล่างเป็นคำถามที่พบบ่อยในการสัมภาษณ์ตำแหน่ง Network Engineer ระดับ Junior ถึง Mid-level, IT Support และ NOC Engineer ลองตอบด้วยตัวเองออกเสียงก่อนเปิดดูแนวคำตอบ ผู้สัมภาษณ์ไม่ได้ต้องการคำตอบที่ท่องมา แต่อยากเห็นว่าคุณคิดเป็นขั้นตอนและอธิบายด้วยเหตุผลได้</p>
+
+<details class="iq"><summary>1. ผู้ใช้แจ้งว่า "เข้าเว็บไม่ได้" คุณจะตรวจอะไรก่อน และตรวจตามลำดับอย่างไร <span class="lvl" data-lvl="b">Junior</span></summary><div>
+<p><strong>แนวคำตอบที่ดี:</strong> เริ่มจากถามข้อมูลให้ชัดก่อน (เข้าไม่ได้ทุกเว็บหรือเว็บเดียว, เป็นคนเดียวหรือหลายคน, เริ่มเมื่อไร, มีอะไรเปลี่ยนไปบ้าง) จากนั้นไล่ตรวจแบบ Bottom-up ตาม OSI ทีละชั้น ทุกขั้นที่ผ่านจะตัดสาเหตุออกไปได้ครึ่งหนึ่ง</p>
+<ol>
+<li><strong>Layer 1–2</strong>: สายหรือ Wi-Fi เชื่อมต่ออยู่ไหม Interface เป็น UP หรือไม่ (<code>ip -br link</code> หรือดูไอคอน Wi-Fi)</li>
+<li><strong>IP ของเครื่อง</strong>: ได้ IP ถูกวงไหม (<code>ip -br addr</code> หรือ <code>ipconfig /all</code>) ถ้าได้ <code>169.254.x.x</code> แปลว่า DHCP ไม่ตอบ</li>
+<li><strong>Stack ของเครื่อง</strong>: <code>ping 127.0.0.1</code> ผ่านไหม</li>
+<li><strong>Default Gateway</strong>: มี Default route ไหม (<code>ip route</code>) และ <code>ping</code> Gateway ได้ไหม ถ้าไม่ได้ ปัญหาอยู่ในวง LAN</li>
+<li><strong>ออก Internet ด้วย IP</strong>: <code>ping 1.1.1.1</code> ได้ไหม ถ้าไม่ได้ ปัญหาอยู่ที่ Router, NAT หรือ ISP</li>
+<li><strong>DNS</strong>: <code>dig example.com</code> หรือ <code>nslookup</code> ได้คำตอบไหม ถ้า ping IP ได้แต่ Resolve ชื่อไม่ได้ ปัญหาคือ DNS (อาการที่พบบ่อยที่สุด)</li>
+<li><strong>Port และ Application</strong>: <code>nc -zv</code> หรือ <code>Test-NetConnection -Port 443</code> แล้ว <code>curl -v https://...</code> ดู TLS และ HTTP Status code อาจเป็น Proxy, Firewall, Certificate หมดอายุ หรือ Server ล่มเอง</li>
+</ol>
+<p>ปิดท้ายด้วยการบอกว่าจะ <strong>บันทึกสิ่งที่ตรวจและผลลัพธ์</strong> แจ้งผู้ใช้ และถ้าแก้ไม่ได้จะ Escalate พร้อมข้อมูลครบ เช่น ใช้รายงานแบบเดียวกับคำสั่ง <code>hnt report</code> ใน Mini Project จุดที่ทำให้คำตอบโดดเด่นคือการอธิบายว่า "ถ้าผลเป็นแบบนี้ ผมจะสรุปว่าปัญหาอยู่ที่ไหน" ไม่ใช่แค่ท่องรายชื่อคำสั่ง</p>
+</div></details>
+
+<details class="iq"><summary>2. บริษัทได้วง 192.168.1.0/24 ต้องแบ่งให้ 4 แผนก แผนกละไม่เกิน 50 เครื่อง ควรใช้ Prefix เท่าไร และแต่ละวงคืออะไร <span class="lvl" data-lvl="b">Junior</span></summary><div>
+<p><strong>แนวคำตอบที่ดี:</strong> หาจำนวน Host bit ที่น้อยที่สุดที่รองรับ 50 เครื่อง: 2<sup>5</sup> − 2 = 30 ไม่พอ, 2<sup>6</sup> − 2 = 62 พอ จึงใช้ Host bit 6 บิต Prefix = 32 − 6 = <strong>/26</strong> (Subnet Mask 255.255.255.192) ยืมบิตจาก /24 มา 2 บิตได้ 2<sup>2</sup> = 4 วงพอดี Block size = 256 − 192 = 64</p>
+<div class="tbl wide"><table class="explain"><thead><tr><th>แผนก</th><th>Network</th><th>Host ที่ใช้ได้</th><th>Broadcast</th></tr></thead><tbody>
+<tr><td>1</td><td>192.168.1.0/26</td><td>192.168.1.1 – 192.168.1.62</td><td>192.168.1.63</td></tr>
+<tr><td>2</td><td>192.168.1.64/26</td><td>192.168.1.65 – 192.168.1.126</td><td>192.168.1.127</td></tr>
+<tr><td>3</td><td>192.168.1.128/26</td><td>192.168.1.129 – 192.168.1.190</td><td>192.168.1.191</td></tr>
+<tr><td>4</td><td>192.168.1.192/26</td><td>192.168.1.193 – 192.168.1.254</td><td>192.168.1.255</td></tr>
+</tbody></table></div>
+<p>คำตอบที่แสดงประสบการณ์จะพูดต่อว่า วงแต่ละวงเหลือที่ว่างสำหรับขยายประมาณ 12 เครื่อง ถ้าแผนกโตเร็วอาจต้องวางแผนใช้วงที่ใหญ่กว่า เช่นเริ่มจาก 10.x.x.x และถ้าแต่ละแผนกขนาดต่างกันมาก ควรใช้ <strong>VLSM</strong> คือจัดวงใหญ่ให้แผนกใหญ่ก่อน แล้วค่อยแบ่งวงเล็กลงตามลำดับ เพื่อไม่ให้ IP เสียเปล่า และบอกได้ว่าตรวจคำตอบซ้ำด้วยเครื่องมือ เช่น <code>python3 -m hnt subnet 192.168.1.0/24 --new-prefix 26</code></p>
+</div></details>
+
+<details class="iq"><summary>3. TCP กับ UDP ต่างกันอย่างไร อธิบาย 3-way handshake และยกตัวอย่างว่าเมื่อไรควรใช้ UDP <span class="lvl" data-lvl="b">Junior</span></summary><div>
+<p><strong>แนวคำตอบที่ดี:</strong> ทั้งสองเป็นโปรโตคอล Layer 4 ที่ใช้ Port แยกโปรแกรม แต่ต่างกันที่การรับประกันการส่ง</p>
+<ul>
+<li><strong>TCP</strong> เป็นแบบ Connection-oriented ต้องเปิด Connection ก่อน มีเลขลำดับ (Sequence number), ส่งซ้ำเมื่อข้อมูลหาย, เรียงลำดับให้ และควบคุมการไหลของข้อมูล (Flow control และ Congestion control) จึงเชื่อถือได้แต่มี Overhead มากกว่า ใช้กับ HTTP/1.1, HTTP/2, SSH, SMTP และฐานข้อมูล</li>
+<li><strong>UDP</strong> เป็นแบบ Connectionless ส่งได้ทันที ไม่รับประกันว่าถึงหรือถึงตามลำดับ Header เล็กเพียง 8 ไบต์ ใช้กับงานที่ต้องการความเร็วหรือรับข้อมูลหายได้บ้าง เช่น DNS query, VoIP, วิดีโอสด, เกมออนไลน์, DHCP และ QUIC ที่เป็นฐานของ HTTP/3</li>
+</ul>
+<p><strong>3-way handshake</strong>: Client ส่ง <code>SYN</code> พร้อม Sequence number เริ่มต้น, Server ตอบ <code>SYN-ACK</code> (รับทราบและส่ง Sequence ของตัวเอง), Client ตอบ <code>ACK</code> จากนั้น Connection อยู่ในสถานะ ESTABLISHED การปิดใช้ <code>FIN</code>/<code>ACK</code> ทั้งสองฝั่ง ฝั่งที่ปิดก่อนจะค้างใน TIME-WAIT ชั่วครู่</p>
+<p>จุดที่ทำให้คำตอบโดดเด่น: อธิบายได้ว่า <code>Connection refused</code> คือปลายทางตอบ RST (เครื่องอยู่ แต่ไม่มีโปรแกรมฟัง Port นั้น) ส่วน <code>Connection timed out</code> คือไม่มีใครตอบเลย มักเกิดจาก Firewall Drop Packet หรือ Route ไม่ถึง และบอกได้ว่าดูด้วย <code>sudo tcpdump -i lo -nn 'tcp port 9000'</code> ในเครื่องตัวเองจะเห็น Flag <code>[S]</code>, <code>[S.]</code>, <code>[.]</code> ตามลำดับ</p>
+</div></details>
+
+<details class="iq"><summary>4. VLAN, Trunk และ Inter-VLAN Routing คืออะไร ถ้าเครื่องใน VLAN 10 คุยกับ VLAN 20 ไม่ได้ คุณจะตรวจอะไร <span class="lvl" data-lvl="i">Mid-level</span></summary><div>
+<p><strong>แนวคำตอบที่ดี:</strong> VLAN แบ่ง Switch ตัวเดียวออกเป็นหลาย Broadcast domain ทาง Logic ช่วยแยกแผนก ลด Broadcast และเพิ่มความปลอดภัย <strong>Access port</strong> เป็นของ VLAN เดียวและส่ง Frame แบบไม่มี Tag ส่วน <strong>Trunk</strong> ส่งหลาย VLAN บนสายเดียว โดยใส่ Tag 802.1Q ขนาด 4 ไบต์ที่มี VLAN ID 12 บิต (ใช้ได้ 1–4094) Frame ของ <strong>Native VLAN</strong> วิ่งบน Trunk แบบไม่มี Tag</p>
+<p>เพราะแต่ละ VLAN เป็นคนละ Subnet การข้าม VLAN จึงต้องผ่าน Layer 3 มี 2 แบบหลัก: <strong>Router-on-a-stick</strong> (Sub-interface บน Router เช่น <code>Gi0/0.10</code> กับ <code>encapsulation dot1Q 10</code>) และ <strong>SVI</strong> บน Multilayer switch (<code>interface vlan 10</code> และ <code>ip routing</code>) ซึ่งเร็วกว่าและนิยมในองค์กร</p>
+<p>ลำดับการตรวจเมื่อ VLAN 10 คุยกับ VLAN 20 ไม่ได้:</p>
+<ol>
+<li><code>show vlan brief</code>: Port ของเครื่องอยู่ถูก VLAN หรือไม่</li>
+<li><code>show interfaces trunk</code>: Trunk ขึ้นไหม และ VLAN 10, 20 อยู่ใน Allowed list หรือไม่ Native VLAN สองฝั่งตรงกันไหม (ถ้าไม่ตรงจะเห็น <code>%CDP-4-NATIVE_VLAN_MISMATCH</code>)</li>
+<li>Sub-interface หรือ SVI มี IP ถูกต้องและสถานะ up/up (<code>show ip interface brief</code>)</li>
+<li>เครื่องลูกข่ายตั้ง Default Gateway เป็น IP ของ Sub-interface หรือ SVI ในวงของตัวเองหรือไม่ เช่น 192.168.10.1</li>
+<li>มี ACL หรือ Firewall กั้นระหว่าง VLAN หรือไม่ เช่น ACL <code>SALES-IN</code> ที่ตั้งใจอนุญาตเฉพาะ HTTPS ไปยัง Server</li>
+</ol>
+<p>คำตอบระดับ Mid-level จะพูดถึง STP ด้วย ว่าเมื่อมีหลาย Switch ต่อกันเป็น Loop ต้องใช้ STP/RSTP ป้องกัน Broadcast storm และ Port ที่ต่อเครื่องลูกข่ายควรเปิด PortFast พร้อม BPDU Guard</p>
+</div></details>
+
+<details class="iq"><summary>5. OSPF เลือกเส้นทางอย่างไร และต่างจาก BGP อย่างไร ควรใช้แต่ละตัวเมื่อไร <span class="lvl" data-lvl="i">Mid-level</span></summary><div>
+<p><strong>แนวคำตอบที่ดี:</strong> OSPF เป็น <strong>Link-state IGP</strong> ใช้ภายในองค์กร (Autonomous System เดียว) Router ทุกตัวแลก LSA จนมีแผนที่เครือข่ายเหมือนกัน แล้วคำนวณเส้นทางสั้นที่สุดด้วยอัลกอริทึม SPF (Dijkstra) ตัวชี้วัดคือ <strong>Cost = Reference bandwidth / Interface bandwidth</strong> ค่า Default ของ Reference คือ 100 Mbps ทำให้ลิงก์ 100 Mbps กับ 1 Gbps มี Cost เท่ากันคือ 1 จึงควรตั้ง <code>auto-cost reference-bandwidth</code> ให้เท่ากันทุก Router เช่น 1000 ส่วนการจะเป็น Neighbor กันได้ ต้องมี Area, Hello/Dead timer (Default 10/40 วินาทีบนลิงก์ Ethernet), Subnet และ Authentication ตรงกัน และ Router ID ต้องไม่ซ้ำ</p>
+<p>BGP เป็น <strong>Path-vector EGP</strong> ใช้แลกเส้นทางระหว่าง AS เช่น ระหว่างองค์กรกับ ISP หรือระหว่าง ISP ด้วยกัน ทำงานบน TCP Port 179 เลือกเส้นทางตาม Attribute และนโยบาย (Policy) เช่น AS_PATH ที่สั้นกว่า มากกว่าความเร็วของลิงก์ แบ่งเป็น eBGP (ต่าง AS) และ iBGP (AS เดียวกัน) Private ASN อยู่ในช่วง 64512–65534</p>
+<div class="tbl wide"><table class="explain"><thead><tr><th>หัวข้อ</th><th>OSPF</th><th>BGP</th></tr></thead><tbody>
+<tr><td>ประเภท</td><td>Link-state, IGP</td><td>Path-vector, EGP</td></tr>
+<tr><td>ขอบเขต</td><td>ภายในองค์กร</td><td>ระหว่างองค์กรและ Internet</td></tr>
+<tr><td>การเลือกเส้นทาง</td><td>Cost ต่ำสุดจาก Bandwidth</td><td>Attribute และ Policy เช่น AS_PATH</td></tr>
+<tr><td>Transport</td><td>IP Protocol 89</td><td>TCP Port 179</td></tr>
+<tr><td>Administrative Distance (Cisco)</td><td>110</td><td>eBGP 20, iBGP 200</td></tr>
+</tbody></table></div>
+<p>คำตอบที่ดีปิดท้ายว่า องค์กรขนาดเล็กอาจใช้ Static route ก็พอ, องค์กรขนาดกลางถึงใหญ่ใช้ OSPF ภายใน และใช้ BGP เมื่อต่อ ISP มากกว่าหนึ่งราย (Multihoming) และเสริมว่าความผิดพลาดของ BGP เช่น Route leak กระทบ Internet วงกว้างได้ จึงมีมาตรการอย่าง RPKI สำหรับตรวจสอบที่มาของ Prefix</p>
+</div></details>
+
+<h3 id="s1-4-resources">แหล่งเรียนต่อ</h3>
+<ul class="res">
+<li><a href="https://www.netacad.com/" target="_blank" rel="noopener">Cisco Networking Academy</a> – คอร์สเครือข่ายของ Cisco และที่ดาวน์โหลด Cisco Packet Tracer สำหรับทำ Lab อุปกรณ์ Cisco IOS (สมัครบัญชีฟรี) <span class="pill">ฟรี</span></li>
+<li><a href="https://learningnetwork.cisco.com/" target="_blank" rel="noopener">Cisco Learning Network</a> – ชุมชนและข้อมูลการสอบ CCNA 200-301 (v1.1 ถึง 2027-02-02 และ v2.0 ตั้งแต่ 2027-02-03) รวมถึง CCNP Enterprise ตรวจรายละเอียดข้อสอบล่าสุดก่อนลงสอบ <span class="pill">ฟรี</span></li>
+<li><a href="https://www.comptia.org/" target="_blank" rel="noopener">CompTIA</a> – ข้อมูลใบรับรอง Network+ (N10-009) ที่เหมาะเป็นใบแรกสาย Network ค่าสอบมีค่าใช้จ่าย <span class="pill">มีค่าใช้จ่าย</span></li>
+<li><a href="https://www.professormesser.com/" target="_blank" rel="noopener">Professor Messer</a> – วิดีโอสอน CompTIA Network+ ครบทุกหัวข้อของข้อสอบ ภาษาอังกฤษ ดูได้ฟรี <span class="pill">ฟรี</span></li>
+<li><a href="https://docs.python.org/3/library/ipaddress.html" target="_blank" rel="noopener">Python ipaddress documentation</a> – เอกสารทางการของโมดูลที่ใช้คำนวณ Subnet ใน Mini Project <span class="pill">ฟรี</span></li>
+<li><a href="https://docs.python.org/3/library/socket.html" target="_blank" rel="noopener">Python socket documentation</a> – เอกสารทางการของการเขียนโปรแกรมเครือข่ายระดับ TCP/UDP <span class="pill">ฟรี</span></li>
+<li><a href="https://learn.microsoft.com/en-us/windows/wsl/networking" target="_blank" rel="noopener">Microsoft Learn: Accessing network applications with WSL</a> – อธิบายเครือข่ายของ WSL2 ทั้งโหมด NAT และ Mirrored พร้อมการตั้งค่าใน .wslconfig <span class="pill">ฟรี</span></li>
+<li><a href="https://www.wireshark.org/docs/" target="_blank" rel="noopener">Wireshark Documentation</a> – คู่มือผู้ใช้ Wireshark และ Display filter สำหรับวิเคราะห์ไฟล์ .pcap ที่จับจาก Lab <span class="pill">ฟรี</span></li>
+<li><a href="https://www.tcpdump.org/" target="_blank" rel="noopener">TCPDUMP &amp; LIBPCAP</a> – เว็บทางการของ tcpdump มี Manual page และรูปแบบ Filter ครบ <span class="pill">ฟรี</span></li>
+<li><a href="https://www.rfc-editor.org/" target="_blank" rel="noopener">RFC Editor</a> – ต้นฉบับมาตรฐานเครือข่าย เช่น RFC 1918 (Private IPv4), RFC 8375 (home.arpa) และ RFC 9293 (TCP) ใช้ค้นคว้าเมื่อต้องการคำตอบที่แม่นยำที่สุด <span class="pill">ฟรี</span></li>
+</ul>
+<div class="callout"><span class="c-label tip">Tip</span><p>เมื่อเรียนจบหัวข้อนี้แล้ว เส้นทางที่ต่อยอดได้ดีคือ <a data-t="5"></a> เพราะ Firewall, VPN และการวิเคราะห์ Packet เป็นพื้นฐานของงาน Security โดยตรง และ <a data-t="12"></a> ซึ่งต้องเข้าใจ DNS, HTTP และ TLS เพื่อสร้างและดูแล API</p></div>
+</section>

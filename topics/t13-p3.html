@@ -1,0 +1,1464 @@
+<section class="part" data-part="3">
+<h2 id="s13-3"><span class="sec-no">13.3</span>Practice Exercises &amp; Quizzes</h2>
+<p>ส่วนนี้ใช้ทบทวนทั้ง 12 แนวคิดของ Part 2 ตั้งแต่พื้นฐานว่า Node.js คืออะไร ระบบ Module, npm และ Core Modules ไปจนถึง Express 5, zod, better-sqlite3, การเขียน Test, Security, Streams และ <code>worker_threads</code> แบบฝึกหัดเรียงจากง่ายไปยาก ทุกข้อมีป้ายระดับกำกับไว้ ให้เริ่มจากข้อที่ตรงกับระดับของคุณก่อน</p>
+<p>คำตอบทุกข้ออยู่ท้ายหน้าในหัวข้อ "เฉลย" โค้ดทุกชิ้นในเฉลยผ่านการรันจริงแล้ว ใช้ Express 5.3.0, zod 4.6.7, better-sqlite3 13.0.3, helmet 8.3.0 และ supertest 7.3.1 ตามเวอร์ชันเดียวกับ Part 2 โค้ดเขียนให้รันได้บน Node.js 22, 24 และ 26 และใช้ ES Modules (<code>"type": "module"</code>) ทุกไฟล์</p>
+
+<h3 id="s13-3-howto">วิธีใช้แบบฝึกหัดนี้</h3>
+<ol>
+<li>เปิด Terminal ของ Ubuntu (WSL) แล้วตรวจว่า <code>node -v</code> ได้ v24 ขึ้นไป (หลักสูตรนี้ใช้ v24.22.0 เป็นเวอร์ชันอ้างอิง) ถ้าขึ้นว่า <code>Command 'node' not found</code> ให้ปิดแล้วเปิด Terminal ใหม่ หรือรัน <code>source ~/.bashrc</code> เพื่อโหลด nvm</li>
+<li>ข้อ Fill-in-the-blank และ Multiple Choice ให้ลองตอบในหัวก่อน จากนั้นพิมพ์โค้ดลงไฟล์ใน <code>~/projects/node-lab/quiz</code> แล้วรันดูว่า Node ตอบเหมือนที่คุณคิดหรือไม่ การรันพิสูจน์เองช่วยให้จำได้นานกว่าการอ่านเฉลย</li>
+<li>Hands-on Challenge ทั้ง 3 ข้อให้สร้างโฟลเดอร์แยกใน <code>~/projects/node-lab/</code> ตามที่โจทย์บอก ทำทีละขั้นตาม "สิ่งที่ต้องทำ" และเปิด Hint เมื่อติดเกิน 15 นาทีเท่านั้น</li>
+<li>ถ้าตอบผิด ให้กลับไปอ่านแนวคิดที่เกี่ยวข้องใน Part 2 แล้วลองใหม่ เฉลยของแต่ละข้อบอกไว้ว่าข้อนั้นทดสอบแนวคิดไหน</li>
+<li>ถ้าโจทย์ Hands-on ทำเสร็จแล้ว ให้ Commit เก็บไว้ใน Git (<a data-t="17"></a>) เพราะโจทย์ข้อ 2 และ 3 นำไปใช้เป็นชิ้นงานใน Portfolio ได้</li>
+</ol>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างโฟลเดอร์สำหรับลองโค้ดของ Quiz และตรวจเวอร์ชัน
+mkdir -p ~/projects/node-lab/quiz &amp;&amp; cd ~/projects/node-lab/quiz
+npm init -y &gt; /dev/null &amp;&amp; npm pkg set type=module
+node -v
+npm -v</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>v24.22.0
+11.6.2</code></pre>
+<p><span class="muted small">เวอร์ชันของ npm บนเครื่องคุณอาจต่างจากนี้ได้ เพราะ npm มากับ Node แต่ละรุ่นย่อย ขอแค่เป็น npm 10 หรือ 11 ก็ใช้แบบฝึกหัดนี้ได้</span></p>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>โจทย์ข้อ 2 และ 3 เปิด Server ที่ Port 3000 ถ้ายังมี Server จาก Part 2 ค้างอยู่ จะเจอ <code>Error: listen EADDRINUSE: address already in use :::3000</code> ให้กลับไปที่ Terminal เดิมแล้วกด <kbd>Ctrl</kbd>+<kbd>C</kbd> หรือหา Process ด้วย <code>ss -ltnp | grep 3000</code> ก่อนเริ่ม</p></div>
+<div class="tbl mid"><table class="explain"><thead><tr><th>ส่วนของแบบฝึกหัด</th><th>ทดสอบแนวคิดใน Part 2</th></tr></thead><tbody>
+<tr><td>Fill-in-the-blank ง่าย</td><td>แนวคิดที่ 1–4: REPL และ <code>node -p</code>, ES Modules, Core Modules, Semantic Versioning</td></tr>
+<tr><td>Fill-in-the-blank กลาง</td><td>แนวคิดที่ 5–8: <code>--env-file</code>, <code>Promise.allSettled</code>, Error-handling Middleware</td></tr>
+<tr><td>Fill-in-the-blank ยาก</td><td>แนวคิดที่ 9–12: zod <code>safeParse</code>, Backpressure, <code>worker_threads</code></td></tr>
+<tr><td>Multiple Choice 13 ข้อ</td><td>ครบทั้ง 12 แนวคิด ระดับง่าย 4 ข้อ กลาง 5 ข้อ ยาก 4 ข้อ</td></tr>
+<tr><td>Hands-on ข้อ 1</td><td>แนวคิดที่ 1–5: สคริปต์ CLI อ่านเขียนไฟล์ด้วย <code>node:fs/promises</code></td></tr>
+<tr><td>Hands-on ข้อ 2</td><td>แนวคิดที่ 5–8: Express 5 API พร้อม Middleware และ Error Handler</td></tr>
+<tr><td>Hands-on ข้อ 3</td><td>แนวคิดที่ 9–11: zod, better-sqlite3, Transaction, helmet และ Test ด้วย <code>node:test</code> + supertest</td></tr>
+</tbody></table></div>
+
+<h3 id="s13-3-fill">Fill-in-the-blank</h3>
+<p>เติมคำในช่อง <code>_____</code> ให้โค้ดหรือประโยคถูกต้อง แต่ละช่องเติมได้หนึ่งคำหรือหนึ่งสัญลักษณ์ ข้อที่เป็นโค้ด ให้ลองพิมพ์คำตอบลงไฟล์แล้วรันเพื่อตรวจเองก่อนดูเฉลย</p>
+<ol class="qlist fill">
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>สมชายอยากให้ Node คำนวณ <code>1 + 2</code> แล้ว<strong>พิมพ์ผลลัพธ์ออกมาทันที</strong>โดยไม่ต้องสร้างไฟล์และไม่ต้องเขียน <code>console.log</code> เขาต้องใช้ Option ใด</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">node _____ "1 + 2"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>3</code></pre>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>ในโปรเจกต์ที่ตั้ง <code>"type": "module"</code> ไว้ สมชายต้องการอ่านไฟล์ด้วย <code>await</code> แบบ Promise จึงต้อง import จาก Core Module ตัวใด</p>
+<pre class="code" data-env="file" data-label="JavaScript · read-note.js"><code class="language-javascript">// อ่านไฟล์ note.txt ที่อยู่โฟลเดอร์เดียวกับสคริปต์
+import { readFile } from 'node:_____';
+import path from 'node:path';
+
+const text = await readFile(path.join(import.meta.dirname, 'note.txt'), 'utf8');
+console.log(text);</code></pre>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>ทีมตกลงว่ารับ Express รุ่น <code>5.3.0</code> ขึ้นไป และยอมรับ Minor กับ Patch ใหม่ทั้งหมด (เช่น 5.4.0 หรือ 5.9.2) แต่<strong>ไม่ยอมรับ</strong> 6.0.0 เพราะอาจมี Breaking Change ช่อง Version ใน <code>package.json</code> ต้องขึ้นต้นด้วยสัญลักษณ์ใด</p>
+<pre class="code" data-env="file" data-label="JSON · package.json"><code class="language-json">{
+  "dependencies": {
+    "express": "_____5.3.0"
+  }
+}</code></pre>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ไฟล์ <code>.env</code> มี <code>PORT=4000</code> สมชายต้องการให้ Node อ่านไฟล์นี้เข้า <code>process.env</code> โดยไม่ต้องติดตั้ง Package เพิ่ม (มีตั้งแต่ Node 20.6) ช่องว่างคือ Option ใด</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">node _____=.env server.js</code></pre>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>สมชายเรียก API 3 ตัวพร้อมกัน และต้องการผลของ<strong>ทุกตัว</strong>แม้บางตัวจะ Reject ก็ตาม โดยแต่ละผลมี <code>status</code> เป็น <code>'fulfilled'</code> หรือ <code>'rejected'</code> ต้องใช้ Method ใดของ <code>Promise</code></p>
+<pre class="code" data-env="file" data-label="JavaScript · settled.js"><code class="language-javascript">// จำลองงาน 2 งาน งานแรกสำเร็จ งานที่สองล้มเหลว
+const results = await Promise._____([
+  Promise.resolve('ได้ข้อมูลสินค้า'),
+  Promise.reject(new Error('ระบบสต็อกล่ม')),
+]);
+console.log(results.map((r) =&gt; r.status));</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[ 'fulfilled', 'rejected' ]</code></pre>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>Express จะถือว่า Middleware ตัวนี้เป็น <strong>Error-handling Middleware</strong> ก็ต่อเมื่อฟังก์ชันรับพารามิเตอร์ครบ 4 ตัว และตัวแรกคือ Error ที่ถูกส่งมา ให้เติมชื่อพารามิเตอร์ตัวแรกตามธรรมเนียมที่ใช้กันทั่วไป</p>
+<pre class="code" data-env="file" data-label="JavaScript · app.js"><code class="language-javascript">// วางไว้ท้ายสุด หลังทุก Route และหลัง 404 handler
+app.use((_____, req, res, next) =&gt; {
+  console.error(_____);
+  res.status(500).json({ error: 'InternalServerError', message: 'เกิดข้อผิดพลาดภายในระบบ' });
+});</code></pre>
+<p><span class="muted small">ทั้งสองช่องคือคำเดียวกัน</span></p>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>สคริปต์เขียน Log 200,000 บรรทัดลงไฟล์ ต้องเคารพ Backpressure เมื่อ <code>write()</code> คืนค่า <code>false</code> ให้หยุดรอจนกว่า Buffer ภายในจะว่าง ต้องรอ Event ชื่ออะไร</p>
+<pre class="code" data-env="file" data-label="JavaScript · write-log.js"><code class="language-javascript">import { createWriteStream } from 'node:fs';
+import { once } from 'node:events';
+
+const out = createWriteStream('access.log');
+for (let i = 1; i &lt;= 200_000; i++) {
+  const line = `GET /api/books/${i % 50} 200\n`;
+  // write() คืน false เมื่อ Buffer เต็มเกิน highWaterMark
+  if (!out.write(line)) {
+    await once(out, '_____');
+  }
+}
+out.end();</code></pre>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>Middleware ตรวจข้อมูลด้วย zod 4 ต้อง<strong>ไม่ throw</strong> ออกมาเอง แต่ให้คืน Object ที่มี <code>success</code> เป็น <code>true</code> หรือ <code>false</code> เพื่อเลือกตอบ 400 เอง ต้องเรียก Method ใดของ Schema</p>
+<pre class="code" data-env="file" data-label="JavaScript · validate.js"><code class="language-javascript">import { z } from 'zod';
+
+export function validate(schema) {
+  return (req, res, next) =&gt; {
+    const result = schema._____(req.body);
+    if (!result.success) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'ข้อมูลไม่ถูกต้อง',
+        details: z.flattenError(result.error).fieldErrors,
+      });
+    }
+    req.body = result.data;
+    next();
+  };
+}</code></pre>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>สมชายย้ายงานคำนวณจำนวนเฉพาะไปไว้ใน <code>worker.js</code> ที่อยู่โฟลเดอร์เดียวกับ <code>main.js</code> เขาต้องการให้ Path ของ Worker ถูกต้อง<strong>ไม่ว่าจะรันคำสั่งจากโฟลเดอร์ไหน</strong> จึงสร้าง URL โดยอ้างอิงจากที่อยู่ของไฟล์ ES Module ปัจจุบัน ช่องว่างคืออะไร</p>
+<pre class="code" data-env="file" data-label="JavaScript · main.js"><code class="language-javascript">import { Worker } from 'node:worker_threads';
+import { once } from 'node:events';
+
+const worker = new Worker(new URL('./worker.js', import.meta._____), {
+  workerData: { max: 100_000 },
+});
+const [count] = await once(worker, 'message');
+console.log('จำนวนเฉพาะที่พบ:', count);</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>จำนวนเฉพาะที่พบ: 9592</code></pre>
+</li>
+</ol>
+
+<h3 id="s13-3-mcq">Multiple Choice</h3>
+<p>เลือกคำตอบที่ถูกต้องที่สุดเพียงข้อเดียว ข้อที่มีโค้ด ให้ลองทายผลก่อน แล้วค่อยรันพิสูจน์ในโฟลเดอร์ <code>~/projects/node-lab/quiz</code> (ตั้ง <code>"type": "module"</code> ไว้แล้ว) เฉลยอธิบายทั้งเหตุผลของข้อถูก และเหตุผลที่อีก 3 ตัวเลือกผิด</p>
+<ol class="qlist mcq">
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>ข้อใดอธิบาย Node.js ได้ถูกต้องที่สุด</p>
+<ol class="choices">
+<li>ภาษาโปรแกรมใหม่ที่ออกแบบมาแทน JavaScript สำหรับงานฝั่ง Server</li>
+<li>Runtime ที่รัน JavaScript นอกเบราว์เซอร์ ประกอบด้วย V8 Engine, libuv (Event Loop และ I/O แบบ Non-blocking) และ Core Modules</li>
+<li>Web Framework สำหรับสร้าง Route และ Middleware คล้ายกับ Express</li>
+<li>ฐานข้อมูลแบบ NoSQL ที่เก็บข้อมูลเป็น JSON</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>รันคำสั่งต่อไปนี้ใน Terminal ของ Ubuntu (WSL) จะได้ผลลัพธ์ใด</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">node -p "typeof window"</code></pre>
+<ol class="choices">
+<li><code>object</code></li>
+<li><code>ReferenceError: window is not defined</code></li>
+<li><code>undefined</code></li>
+<li><code>function</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ไฟล์ <code>order.js</code> ด้านล่างจะพิมพ์ตัวอักษรออกมาในลำดับใด (รันด้วย <code>node order.js</code>)</p>
+<pre class="code" data-env="file" data-label="JavaScript · order.js"><code class="language-javascript">console.log('A');
+setTimeout(() =&gt; console.log('B'), 0);
+Promise.resolve().then(() =&gt; console.log('C'));
+console.log('E');</code></pre>
+<ol class="choices">
+<li>A B C E</li>
+<li>A E B C</li>
+<li>A C E B</li>
+<li>A E C B</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>สมชายสร้างโปรเจกต์ Node และติดตั้ง Express แล้ว ในโฟลเดอร์มี <code>package.json</code>, <code>package-lock.json</code> และ <code>node_modules/</code> ข้อใดคือสิ่งที่ควร Commit เข้า Git</p>
+<ol class="choices">
+<li>Commit ทั้ง <code>node_modules/</code> และ <code>package-lock.json</code> เพื่อให้เพื่อนไม่ต้องรัน <code>npm install</code></li>
+<li>Commit <code>package.json</code> และ <code>package-lock.json</code> แต่ใส่ <code>node_modules/</code> ไว้ใน <code>.gitignore</code></li>
+<li>Commit แค่ <code>package.json</code> ส่วน <code>package-lock.json</code> ให้ใส่ใน <code>.gitignore</code> เพราะ npm สร้างใหม่ได้</li>
+<li>Commit แค่ <code>node_modules/</code> เพราะเป็นโค้ดที่โปรแกรมใช้รันจริง</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ไฟล์ <code>.env</code> มีบรรทัด <code>PORT=3000</code> แล้วรัน <code>node --env-file=.env app.js</code> โดยใน <code>app.js</code> มีบรรทัด <code>console.log(process.env.PORT + 1);</code> จะเห็นอะไรบนจอ</p>
+<ol class="choices">
+<li><code>30001</code> เพราะค่าใน <code>process.env</code> เป็น String เสมอ</li>
+<li><code>3001</code> เพราะ <code>--env-file</code> แปลงตัวเลขให้อัตโนมัติ</li>
+<li><code>NaN</code> เพราะ String บวกกับ Number ไม่ได้</li>
+<li><code>TypeError: Cannot add string and number</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>ตัวแปร <code>title</code> มาจาก Query String ที่ผู้ใช้พิมพ์เอง เช่น <code>x' OR '1'='1</code> ข้อใดค้นหาหนังสือจาก SQLite ด้วย better-sqlite3 ได้<strong>ปลอดภัยจาก SQL Injection</strong></p>
+<ol class="choices">
+<li><code>db.prepare(`SELECT * FROM books WHERE title = '${title}'`).all()</code></li>
+<li><code>db.exec("SELECT * FROM books WHERE title = '" + title + "'")</code></li>
+<li><code>db.prepare('SELECT * FROM books WHERE title = ?').all(title)</code></li>
+<li><code>db.prepare(`SELECT * FROM books WHERE title = '${title.replaceAll("'", "\\'")}'`).all()</code> (หนี Single Quote ด้วย Backslash เอง)</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>ใน <code>package.json</code> เขียนไว้ว่า <code>"express": "~5.3.0"</code> เมื่อรัน <code>npm install</code> ครั้งแรก (ยังไม่มี <code>package-lock.json</code>) npm เลือกเวอร์ชันใดต่อไปนี้ได้</p>
+<ol class="choices">
+<li>5.4.0</li>
+<li>5.2.9</li>
+<li>6.0.0</li>
+<li>5.3.7</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>สมชายย้ายโค้ดจาก Express 4 มาเป็น Express 5.3.0 แล้วเจอ Error <code>TypeError: Missing parameter name at index 1: *; visit https://git.new/pathToRegexpError for info</code> ตอนเปิด Server เขาต้องการ Route ที่จับทุก Path ย่อย เช่น <code>/a/b/c</code> ควรเขียน Path แบบใด</p>
+<ol class="choices">
+<li><code>app.get('*', handler)</code></li>
+<li><code>app.get('/*splat', handler)</code></li>
+<li><code>app.get('/:all*', handler)</code></li>
+<li><code>app.get('(.*)', handler)</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>ใน Writable Stream ถ้า <code>out.write(chunk)</code> คืนค่า <code>false</code> หมายความว่าอะไร และควรทำอย่างไร</p>
+<ol class="choices">
+<li>Buffer ภายในมีข้อมูลเกิน <code>highWaterMark</code> แล้ว ข้อมูลชิ้นนี้ยังไม่หาย แต่ควรหยุดเขียนแล้วรอ Event <code>'drain'</code> ก่อนเขียนต่อ</li>
+<li>การเขียนล้มเหลวและข้อมูลชิ้นนั้นหายไป ต้องเขียนชิ้นเดิมซ้ำทันที</li>
+<li>Stream ถูกปิดไปแล้ว ต้องสร้าง Stream ใหม่ด้วย <code>createWriteStream</code></li>
+<li>ต้องเรียก <code>out.end()</code> ทันที เพราะไฟล์ปลายทางเต็มแล้ว</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ใน Express 5.3.0 มี Route นี้ และมี Error-handling Middleware แบบ 4 พารามิเตอร์ที่ตอบ JSON 500 อยู่ท้ายแอป เมื่อเรียก <code>GET /api/boom</code> จะเกิดอะไรขึ้น</p>
+<pre class="code" data-env="file" data-label="JavaScript · app.js"><code class="language-javascript">app.get('/api/boom', async () =&gt; {
+  throw new Error('พังแบบ async');
+});</code></pre>
+<ol class="choices">
+<li>Process ของ Node ล่มทันทีพร้อมข้อความ Unhandled Promise Rejection</li>
+<li>Request ค้างไปเรื่อย ๆ จน Client Timeout เพราะไม่มีใครส่ง Response</li>
+<li>Express 5 จับ Promise ที่ Reject แล้วส่ง Error ต่อให้ Error-handling Middleware ซึ่งตอบ 500 เป็น JSON</li>
+<li>Express ตอบ 200 พร้อม Body ว่าง เพราะ Handler ไม่ได้เรียก <code>res.json()</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>ในไฟล์ Test เราเขียน <code>await request(app).get('/api/books/99')</code> โดยส่ง <code>app</code> ที่ได้จาก <code>createApp()</code> ให้ supertest ตรง ๆ แทนที่จะเรียก <code>app.listen(3000)</code> เอง เหตุผลหลักคือข้อใด</p>
+<ol class="choices">
+<li>supertest ทำงานได้กับ <code>node:http</code> เท่านั้น ใช้กับ Express ที่ listen แล้วไม่ได้</li>
+<li><code>app.listen()</code> ช้ากว่ามากจนทำให้ Test Timeout ทุกครั้ง</li>
+<li><code>request(app)</code> สร้างฐานข้อมูลจริงให้อัตโนมัติ จึงไม่ต้องเตรียมข้อมูลเอง</li>
+<li>supertest เปิด Server ชั่วคราวบน Port ว่างที่สุ่มให้เอง แล้วปิดให้หลังจบ Request จึงไม่ชนกับ Port 3000 (<code>EADDRINUSE</code>) และไม่ต้องคอยปิด Server ในทุก Test</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>Route <code>GET /api/report</code> คำนวณ Hash วนซ้ำนานประมาณ 3 วินาทีบน Main Thread ระหว่างนั้น <code>GET /health</code> ของผู้ใช้คนอื่นค้างรอทั้งหมด วิธีแก้ใดถูกต้องที่สุด</p>
+<ol class="choices">
+<li>ห่อโค้ดคำนวณไว้ใน <code>async function</code> แล้ว <code>await</code> ผลลัพธ์</li>
+<li>ย้ายงานคำนวณไปไว้ใน Worker ของ <code>node:worker_threads</code> แล้วรอผลผ่าน Event <code>'message'</code></li>
+<li>ห่อโค้ดคำนวณไว้ใน <code>setTimeout(fn, 0)</code> เพื่อให้ไปทำทีหลัง</li>
+<li>ตั้ง Environment Variable <code>UV_THREADPOOL_SIZE=16</code> เพื่อเพิ่ม Thread ให้ libuv</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>รันไฟล์นี้ด้วย <code>node queue.js</code> จะเกิดอะไรขึ้น</p>
+<pre class="code" data-env="file" data-label="JavaScript · queue.js"><code class="language-javascript">import { EventEmitter } from 'node:events';
+
+const queue = new EventEmitter();
+queue.emit('error', new Error('คิวเต็ม'));
+console.log('ทำงานต่อ');</code></pre>
+<ol class="choices">
+<li>Node throw <code>Error: คิวเต็ม</code> ออกมา Process จบด้วย Exit Code 1 และไม่พิมพ์ <code>ทำงานต่อ</code></li>
+<li>พิมพ์ <code>ทำงานต่อ</code> ตามปกติ เพราะ Event ที่ไม่มีใครฟังจะถูกทิ้งไปเฉย ๆ</li>
+<li>พิมพ์คำเตือน <code>MaxListenersExceededWarning</code> แล้วพิมพ์ <code>ทำงานต่อ</code></li>
+<li><code>emit()</code> คืนค่า <code>false</code> แล้วพิมพ์ <code>ทำงานต่อ</code> โดยไม่มี Error</li>
+</ol>
+</li>
+</ol>
+
+<h3 id="s13-3-hands">Hands-on Challenge</h3>
+<p>โจทย์ 3 ข้อนี้จำลองงานจริงที่นักพัฒนา Node.js มือใหม่มักได้รับ ข้อ 1 เป็นสคริปต์ CLI ข้อ 2 เป็น REST API แบบเก็บข้อมูลใน Memory และข้อ 3 เป็น API ที่มีฐานข้อมูล การตรวจข้อมูล และชุด Test ครบ ทำให้ได้ผลลัพธ์ตาม "ผลลัพธ์ที่คาดหวัง" ก่อน แล้วค่อยเปิดเฉลยมาเทียบวิธีคิด</p>
+
+<article class="challenge" data-lvl="b">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 1</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h4>สรุปยอดขายร้านกาแฟรายวันจากไฟล์ JSON</h4>
+<h5>สถานการณ์</h5>
+<p>ร้านกาแฟของพี่สาวสมชายใช้แอป POS ที่ Export ยอดขายแต่ละวันออกมาเป็นไฟล์ JSON ชื่อ <code>sales-YYYY-MM-DD.json</code> ทุกเย็นพี่สาวต้องเปิดไฟล์แล้วนั่งรวมยอดด้วยเครื่องคิดเลข สมชายจึงอาสาเขียนสคริปต์ Node.js ที่รันคำสั่งเดียวแล้วได้สรุปยอดขายแยกตามเมนู ยอดรวม และเมนูที่ทำเงินได้มากที่สุด พร้อมบันทึกเป็นไฟล์ข้อความไว้ส่งต่อใน LINE กลุ่มของร้าน สคริปต์ต้องไม่พังแบบงง ๆ ถ้าวันนั้นยังไม่มีไฟล์ หรือไฟล์เสีย</p>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+<li>สร้างโปรเจกต์ <code>~/projects/node-lab/cafe-report</code> ด้วย <code>npm init -y</code> และตั้ง <code>"type": "module"</code></li>
+<li>สร้างไฟล์ <code>data/sales-2026-10-20.json</code> ตามข้อมูลตัวอย่างด้านล่าง (7 รายการ: Americano 55 บาท, Latte 65 บาท, ชาไทย 45 บาท และ Croissant 70 บาท)</li>
+<li>เขียน <code>report.js</code> ที่รับวันที่จาก <code>process.argv[2]</code> (ถ้าไม่ส่งมาให้ใช้ <code>2026-10-20</code>) แล้วสร้าง Path ของไฟล์ด้วย <code>path.join(import.meta.dirname, ...)</code> เพื่อให้รันจากโฟลเดอร์ไหนก็ได้</li>
+<li>อ่านไฟล์ด้วย <code>readFile</code> จาก <code>node:fs/promises</code> ถ้าไม่พบไฟล์ (<code>err.code === 'ENOENT'</code>) หรือไฟล์ไม่ใช่ JSON (<code>SyntaxError</code>) ให้พิมพ์ข้อความภาษาไทยทาง <code>console.error</code> และตั้ง <code>process.exitCode = 1</code></li>
+<li>รวมจำนวนชิ้นและยอดเงินของแต่ละเมนู เรียงจากยอดเงินมากไปน้อย คำนวณยอดรวมทั้งวัน และหาเมนูที่ทำเงินได้มากที่สุด</li>
+<li>สร้างโฟลเดอร์ <code>reports/</code> ด้วย <code>mkdir(..., { recursive: true })</code> แล้วเขียนรายงานลง <code>reports/report-2026-10-20.txt</code> และพิมพ์รายงานเดียวกันออกจอ</li>
+<li>เพิ่ม npm script ชื่อ <code>report</code> ใน <code>package.json</code> ให้รัน <code>node report.js</code> แล้วทดสอบทั้งกรณีปกติ กรณีไม่มีไฟล์ (<code>node report.js 2026-10-21</code>) และตรวจ Exit Code ด้วย <code>echo $?</code></li>
+</ol>
+<pre class="code" data-env="file" data-label="JSON · data/sales-2026-10-20.json"><code class="language-json">[
+  { "menu": "Americano", "qty": 2, "price": 55 },
+  { "menu": "Latte", "qty": 1, "price": 65 },
+  { "menu": "Americano", "qty": 1, "price": 55 },
+  { "menu": "ชาไทย", "qty": 3, "price": 45 },
+  { "menu": "Latte", "qty": 2, "price": 65 },
+  { "menu": "Croissant", "qty": 2, "price": 70 },
+  { "menu": "ชาไทย", "qty": 1, "price": 45 }
+]</code></pre>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<p>รัน <code>npm run report</code> แล้วได้รายงานเรียงจากยอดเงินมากไปน้อย ยอดรวม 680 บาท และเมนูที่ทำเงินได้มากที่สุดคือ Latte ส่วนวันที่ไม่มีไฟล์ต้องได้ข้อความแจ้งเตือนและ Exit Code เป็น 1</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>&gt; cafe-report@1.0.0 report
+&gt; node report.js
+
+รายงานยอดขายวันที่ 2026-10-20
+- Latte: 3 ชิ้น 195 บาท
+- ชาไทย: 4 ชิ้น 180 บาท
+- Americano: 3 ชิ้น 165 บาท
+- Croissant: 2 ชิ้น 140 บาท
+รวมทั้งหมด: 680 บาท
+เมนูขายดีที่สุด: Latte
+บันทึกรายงานที่ reports/report-2026-10-20.txt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ไม่พบไฟล์ยอดขายของวันที่ 2026-10-21: sales-2026-10-21.json
+1</code></pre>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+<li>ใช้ Object เป็นตัวสะสมยอด เช่น <code>byMenu[item.menu] ??= { qty: 0, amount: 0 };</code> แล้วค่อยบวกเพิ่ม</li>
+<li><code>Object.entries(byMenu)</code> แปลงเป็น Array ของ <code>[menu, ค่า]</code> ทำให้เรียงด้วย <code>.sort((a, b) =&gt; b[1].amount - a[1].amount)</code> ได้</li>
+<li>Error จาก <code>JSON.parse</code> เป็น <code>SyntaxError</code> ตรวจได้ด้วย <code>err instanceof SyntaxError</code></li>
+<li>ใช้ <code>process.exitCode = 1</code> แทน <code>process.exit(1)</code> เพื่อให้ Node ปิดตัวเองหลังงานที่ค้างอยู่ทำเสร็จ</li>
+</ul>
+</div></details>
+</article>
+
+<article class="challenge" data-lvl="i">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 2</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h4>REST API คิวงานร้านซ่อมมือถือด้วย Express 5</h4>
+<h5>สถานการณ์</h5>
+<p>ร้านซ่อมมือถือของสมชายเขียนใบรับซ่อมบนกระดาษ ลูกค้าโทรมาถามสถานะบ่อยจนช่างไม่มีเวลาซ่อม เจ้าของร้านอยากได้ API เล็ก ๆ ที่หน้าร้านใช้เพิ่มใบรับซ่อม ช่างใช้เปลี่ยนสถานะงาน และหน้าเว็บใช้ดึงสถานะไปแสดงให้ลูกค้าดู รุ่นแรกนี้ขอให้เก็บข้อมูลใน Memory ก่อน แต่ต้องมีโครงสร้างที่พร้อมต่อยอด ทุก Error ต้องตอบเป็น JSON รูปแบบเดียวกัน และทุก Request ต้องมีรหัสติดตาม (Request ID) เพื่อให้ไล่ปัญหาจาก Log ได้</p>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+<li>สร้างโปรเจกต์ <code>~/projects/node-lab/repair-queue</code> ตั้ง <code>"type": "module"</code> แล้วติดตั้ง <code>express@5.3.0</code></li>
+<li>สร้าง <code>.env</code> ที่มี <code>PORT=3000</code> และ <code>SHOP_NAME=ร้านซ่อมมือถือสมชาย</code> พร้อม <code>.env.example</code> และเพิ่ม npm script <code>start</code> เป็น <code>node --env-file=.env src/server.js</code></li>
+<li>แยกไฟล์เป็น <code>src/app.js</code> (export <code>createApp()</code> ที่ยังไม่ listen) และ <code>src/server.js</code> (อ่าน <code>PORT</code> แปลงเป็นตัวเลข ตรวจความถูกต้อง แล้ว listen)</li>
+<li>เขียน Middleware 2 ตัว: <code>requestId</code> ที่สร้าง UUID ด้วย <code>crypto.randomUUID()</code> แล้วใส่ใน Header <code>X-Request-Id</code> และ <code>logger</code> ที่พิมพ์ Method, URL, Status Code และเวลาที่ใช้หลัง Response ส่งเสร็จ</li>
+<li>ทำ Router <code>/api/tickets</code> ที่มี <code>GET /</code> (กรองด้วย <code>?status=</code>), <code>GET /stats</code> (เป็น <code>async</code>), <code>GET /:id</code>, <code>POST /</code> (ตอบ 201 พร้อม Header <code>Location</code>) และ <code>PATCH /:id/status</code> โดย status ต้องเป็น <code>waiting</code>, <code>repairing</code> หรือ <code>done</code> เท่านั้น</li>
+<li>ตรวจ Body ของ <code>POST</code> ว่า <code>customer</code>, <code>device</code> และ <code>problem</code> เป็นข้อความไม่ว่าง ยาวไม่เกิน 100 ตัวอักษร ถ้าไม่ผ่านให้ตอบ 400 พร้อม <code>details</code> แยกตามช่อง</li>
+<li>เพิ่ม 404 handler และ Error-handling Middleware ที่ตอบ <code>{ error, message, details? }</code> เสมอ รวมถึงกรณี Body ไม่ใช่ JSON และ Route <code>GET /api/boom</code> ที่ throw ใน <code>async</code> handler เพื่อพิสูจน์ว่า Express 5 ส่ง Error ต่อให้อัตโนมัติ</li>
+<li>ทดสอบทุก Route ด้วย <code>curl</code> จาก Terminal ที่สอง</li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<p>ทุก Response มี Header <code>X-Request-Id</code> การสร้างใบรับซ่อมได้ 201 พร้อม <code>Location</code> ข้อมูลผิดได้ 400 หาไม่เจอได้ 404 และ Error ที่ไม่คาดคิดได้ 500 ที่ไม่เปิดเผยรายละเอียดภายใน ตัวอย่างบางส่วน:</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>HTTP/1.1 201 Created
+X-Request-Id: ae1e09aa-374e-4a22-82af-83038532ba79
+Location: /api/tickets/3
+Content-Type: application/json; charset=utf-8
+
+{"id":3,"customer":"มานี","device":"Redmi Note 13","problem":"ชาร์จไม่เข้า","status":"waiting"}
+
+{"error":"ValidationError","message":"ข้อมูลใบรับซ่อมไม่ถูกต้อง","details":{"customer":"ต้องเป็นข้อความและห้ามว่าง","problem":"ต้องเป็นข้อความและห้ามว่าง"}}
+{"error":"NotFound","message":"ไม่พบใบรับซ่อม id 99"}
+{"error":"InternalServerError","message":"เกิดข้อผิดพลาดภายในระบบ"}</code></pre>
+<p>และหน้าต่าง Server พิมพ์ Log ทีละ Request ประมาณนี้ (เวลาและรหัส Request ID บนเครื่องคุณจะต่างไป)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ร้านซ่อมมือถือสมชาย พร้อมรับงานที่ http://localhost:3000
+GET /health 200 3.9ms id=92cc0a1e
+POST /api/tickets 201 7.6ms id=ae1e09aa
+GET /api/tickets/99 404 0.6ms id=03b60ae7</code></pre>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+<li>สร้าง Class <code>HttpError extends Error</code> ที่เก็บ <code>status</code>, <code>error</code> และ <code>details</code> แล้ว <code>throw new HttpError(404, 'NotFound', ...)</code> จาก Handler ได้เลย Express 5 ส่งต่อให้ Error Handler ทั้งแบบ sync และ async</li>
+<li>Logger ต้องรอ <code>res.on('finish', ...)</code> เพราะตอนที่ Middleware ทำงาน ยังไม่รู้ Status Code สุดท้าย</li>
+<li>ลำดับ <code>app.use</code> สำคัญ: requestId → logger → <code>express.json()</code> → Route → 404 → Error Handler</li>
+<li>Route <code>/stats</code> ต้องประกาศ<strong>ก่อน</strong> <code>/:id</code> ไม่อย่างนั้น Express จะจับคำว่า <code>stats</code> เป็น <code>id</code></li>
+<li>Error จาก <code>express.json()</code> เมื่อ Body เสียมี <code>err.type === 'entity.parse.failed'</code></li>
+</ul>
+</div></details>
+</article>
+
+<article class="challenge" data-lvl="a">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 3</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h4>API ลงทะเบียนเวิร์กช็อปด้วย zod, better-sqlite3 และชุด Test</h4>
+<h5>สถานการณ์</h5>
+<p>ชุมชนนักพัฒนาในเชียงใหม่จัดเวิร์กช็อปฟรีทุกเดือน แต่ละครั้งรับได้จำนวนจำกัด ปีที่แล้วใช้ Google Form แล้วมีคนลงทะเบียนเกินจำนวนที่นั่ง และมีคนลงชื่อซ้ำด้วยอีเมลเดิมหลายครั้ง ทีมงานจึงขอ API ที่ (1) ตรวจข้อมูลผู้สมัครอย่างเข้มงวด (2) เก็บข้อมูลถาวรใน SQLite (3) รับคนไม่เกินจำนวนที่นั่งแม้มีคนกดพร้อมกัน (4) กันอีเมลซ้ำในเวิร์กช็อปเดียวกัน และ (5) มีชุด Test อัตโนมัติที่รันได้ด้วย <code>npm test</code> ก่อน Deploy ทุกครั้ง</p>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+<li>สร้างโปรเจกต์ <code>~/projects/node-lab/workshop-api</code> ติดตั้ง <code>express@5.3.0 zod@4.6.7 better-sqlite3@13.0.3 helmet@8.3.0</code> และ <code>-D supertest@7.3.1</code> ตั้ง npm script <code>test</code> เป็น <code>node --test --test-reporter=spec 'test/*.test.js'</code></li>
+<li>เขียน <code>src/db.js</code> ที่ export <code>openDb(file)</code> สร้างตาราง <code>workshops(id, title, seats)</code> และ <code>registrations(id, workshop_id, name, email, created_at)</code> โดยมี <code>UNIQUE (workshop_id, email)</code> และใส่เวิร์กช็อปตัวอย่าง 2 รายการ: "Node.js สำหรับมือใหม่" 2 ที่นั่ง และ "Express 5 REST API" 30 ที่นั่ง</li>
+<li>เขียน <code>src/schemas.js</code> ด้วย zod 4: <code>id</code> ใน URL ต้องเป็นจำนวนเต็มบวก (ใช้ <code>z.coerce</code>) และ Body ต้องมี <code>name</code> 1–100 ตัวอักษร และ <code>email</code> ที่ถูกรูปแบบ แปลงเป็นตัวพิมพ์เล็กก่อนบันทึก</li>
+<li>เขียน <code>src/app.js</code> ที่ export <code>createApp({ db })</code> มี <code>GET /api/workshops/:id</code> (ตอบ <code>seatsLeft</code>), <code>POST /api/workshops/:id/registrations</code> (201 + <code>Location</code>) และ <code>DELETE /api/workshops/:id/registrations/:regId</code> (204) ใช้ Prepared Statement ทุกคำสั่ง</li>
+<li>ตรวจที่นั่งว่างและ INSERT ภายใน <code>db.transaction()</code> เดียวกัน ถ้าเต็มให้ตอบ 409 และถ้าอีเมลซ้ำ (<code>SQLITE_CONSTRAINT_UNIQUE</code>) ให้ตอบ 409 ด้วยข้อความที่ต่างกัน</li>
+<li>ใส่ <code>helmet()</code> และ <code>express.json({ limit: '10kb' })</code> โดย Body ที่ใหญ่เกินต้องได้ 413 เป็น JSON</li>
+<li>เขียน <code>src/server.js</code> ที่เปิดไฟล์ <code>data/workshops.db</code> แล้ว listen พร้อมปิด Server และฐานข้อมูลเมื่อได้ <code>SIGINT</code> หรือ <code>SIGTERM</code></li>
+<li>เขียน <code>test/registrations.test.js</code> อย่างน้อย 10 กรณีด้วย <code>node:test</code> + supertest โดยแต่ละ Test ใช้ฐานข้อมูล <code>':memory:'</code> ใหม่</li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<p><code>npm test</code> ผ่านทั้ง 10 กรณี (เวลาในวงเล็บบนเครื่องคุณจะต่างไป)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>▶ Workshop Registration API
+  ✔ GET เวิร์กช็อปที่มีอยู่ ได้ 200 พร้อม seatsLeft (47.120336ms)
+  ✔ ลงทะเบียนสำเร็จ ได้ 201, Location และอีเมลตัวเล็ก (26.019991ms)
+  ✔ อีเมลผิดรูปแบบ ได้ 400 พร้อม details.email (8.661519ms)
+  ✔ id ไม่ใช่ตัวเลข ได้ 400 (6.368799ms)
+  ✔ ลงทะเบียนอีเมลเดิมซ้ำ ได้ 409 (10.03441ms)
+  ✔ ที่นั่งเต็ม ได้ 409 และจำนวนคนไม่เกินที่นั่ง (14.177023ms)
+  ✔ ยกเลิกการลงทะเบียน ได้ 204 แล้วลบซ้ำได้ 404 (9.824559ms)
+  ✔ เวิร์กช็อปที่ไม่มีอยู่ ได้ 404 (5.657284ms)
+  ✔ Body ใหญ่เกิน 10kb ได้ 413 (6.299921ms)
+  ✔ มี Security Header จาก helmet และไม่มี X-Powered-By (4.560187ms)
+✔ Workshop Registration API (140.476699ms)
+ℹ tests 10
+ℹ suites 1
+ℹ pass 10
+ℹ fail 0</code></pre>
+<p>และเมื่อเปิด Server จริง คนที่ 3 ของเวิร์กช็อปที่มี 2 ที่นั่งต้องได้ 409 ข้อมูลยังอยู่ครบหลังปิดแล้วเปิด Server ใหม่</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"error":"Conflict","message":"เวิร์กช็อป \"Node.js สำหรับมือใหม่\" เต็มแล้ว"}</code></pre>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+<li>ค่าใน <code>req.params</code> เป็น String เสมอ <code>z.coerce.number().int().positive()</code> จะแปลง <code>"1"</code> เป็น <code>1</code> และปฏิเสธ <code>"abc"</code></li>
+<li>ใน zod 4 ใช้ <code>z.email()</code> แทน <code>z.string().email()</code> และใช้ <code>z.flattenError(result.error).fieldErrors</code> ทำ <code>details</code> ของ 400</li>
+<li><code>db.transaction(fn)</code> คืนฟังก์ชันใหม่ เรียกแล้วทุกคำสั่งข้างในจะ Commit พร้อมกัน ถ้า throw จะ Rollback ทั้งหมด</li>
+<li>JOIN แบบ <code>LEFT JOIN registrations</code> พร้อม <code>COUNT(r.id)</code> และ <code>GROUP BY w.id</code> ช่วยนับคนที่ลงทะเบียนแล้วได้ในคำสั่งเดียว (ทบทวน <a data-t="14"></a>)</li>
+<li>เปิด <code>PRAGMA foreign_keys = ON</code> เพราะ SQLite ปิด Foreign Key ไว้เป็นค่าเริ่มต้น</li>
+</ul>
+</div></details>
+</article>
+
+<h3 id="s13-3-answers">เฉลย</h3>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ลองทำทุกข้อด้วยตัวเองก่อนเปิดเฉลย โดยเฉพาะ Hands-on Challenge ต่อให้ทำได้แค่ครึ่งเดียวก็ได้ประโยชน์มากกว่าอ่านเฉลยทั้งหมด เพราะ Error ที่คุณเจอระหว่างทางคือสิ่งที่จะเจอในงานจริง เมื่อเปิดเฉลยแล้ว ให้พิมพ์โค้ดเองแทนการ Copy และรันเทียบผลลัพธ์ทุกครั้ง</p></div>
+
+<h4>เฉลย Fill-in-the-blank</h4>
+<details class="ans"><summary>ข้อ 1</summary><div>
+<p><strong>คำตอบ: <code>-p</code></strong> (หรือเขียนเต็มว่า <code>--print</code>)</p>
+<p><code>node -p</code> รัน JavaScript ที่ส่งมาเป็นข้อความ แล้ว<strong>พิมพ์ค่าของ Expression สุดท้าย</strong>ออกมาให้เอง ต่างจาก <code>node -e</code> (<code>--eval</code>) ที่รันโค้ดเฉย ๆ ถ้าอยากเห็นค่าต้องเขียน <code>console.log</code> เอง ทั้งสองแบบเหมาะกับการเช็กอะไรสั้น ๆ ใน Terminal โดยไม่ต้องสร้างไฟล์หรือเปิด REPL (แนวคิดที่ 1)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">node -p "1 + 2"
+node --print "1 + 2"
+node -e "console.log(1 + 2)"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>3
+3
+3</code></pre>
+</div></details>
+<details class="ans"><summary>ข้อ 2</summary><div>
+<p><strong>คำตอบ: <code>fs/promises</code></strong> ทำให้บรรทัดเต็มเป็น <code>import { readFile } from 'node:fs/promises';</code></p>
+<p><code>node:fs/promises</code> คือ fs เวอร์ชันที่ทุกฟังก์ชันคืน Promise จึงใช้ <code>await</code> ได้ทันที และไม่ Block Event Loop ระหว่างรอดิสก์ ถ้า import จาก <code>node:fs</code> เฉย ๆ จะได้ <code>readFile</code> แบบ Callback ซึ่งใช้ <code>await</code> ตรง ๆ ไม่ได้ ส่วน Prefix <code>node:</code> บอกชัดว่าเป็น Core Module ไม่ใช่ Package จาก npm ที่ชื่อซ้ำกัน การใช้ <code>import.meta.dirname</code> ทำให้สคริปต์หาไฟล์ <code>note.txt</code> เจอแม้รันจากโฟลเดอร์อื่น (แนวคิดที่ 2 และ 4)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/node-lab/quiz
+echo 'สวัสดี Node' &gt; note.txt
+cd / &amp;&amp; node ~/projects/node-lab/quiz/read-note.js</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>สวัสดี Node
+</code></pre>
+<p><span class="muted small">มีบรรทัดว่างต่อท้าย เพราะไฟล์ที่สร้างด้วย <code>echo</code> ลงท้ายด้วยตัวขึ้นบรรทัดใหม่ และ <code>console.log</code> ขึ้นบรรทัดใหม่ให้อีกหนึ่งครั้ง</span></p>
+</div></details>
+<details class="ans"><summary>ข้อ 3</summary><div>
+<p><strong>คำตอบ: <code>^</code></strong> ทำให้เป็น <code>"express": "^5.3.0"</code></p>
+<p>Caret (<code>^</code>) หมายถึง "ยอมรับทุกเวอร์ชันที่ Major เท่าเดิม" คือ <code>&gt;=5.3.0 &lt;6.0.0</code> ตามหลัก Semantic Versioning ที่ Major เปลี่ยนเมื่อมี Breaking Change ส่วน Tilde (<code>~5.3.0</code>) แคบกว่า ยอมรับแค่ Patch คือ <code>&gt;=5.3.0 &lt;5.4.0</code> และถ้าไม่มีสัญลักษณ์เลย (<code>5.3.0</code>) คือ Pin ไว้ที่เวอร์ชันเดียว ตรวจได้ด้วย <code>npx semver</code> ที่พิมพ์เฉพาะเวอร์ชันที่เข้าเงื่อนไข (แนวคิดที่ 3)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/node-lab/npm-lab
+npx semver -r '^5.3.0' 5.4.0 5.3.7 6.0.0 5.2.9</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>5.3.7
+5.4.0</code></pre>
+</div></details>
+<details class="ans"><summary>ข้อ 4</summary><div>
+<p><strong>คำตอบ: <code>--env-file</code></strong> ทำให้เป็น <code>node --env-file=.env server.js</code></p>
+<p>ตั้งแต่ Node 20.6 ขึ้นไป Option <code>--env-file</code> อ่านไฟล์รูปแบบ <code>KEY=value</code> แล้วใส่ลง <code>process.env</code> ก่อนโค้ดเริ่มทำงาน จึงไม่ต้องติดตั้ง Package <code>dotenv</code> อีก ข้อควรจำคือ Option นี้ต้องอยู่<strong>ก่อนชื่อไฟล์สคริปต์</strong> ถ้าวางไว้หลัง <code>server.js</code> มันจะกลายเป็น Argument ของสคริปต์แทน และถ้าไม่มีไฟล์ <code>.env</code> อยู่จริง Node จะหยุดพร้อมข้อความ <code>node: .env: not found</code> (แนวคิดที่ 5)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">printf 'PORT=4000\n' &gt; .env
+node --env-file=.env -p "process.env.PORT"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>4000</code></pre>
+</div></details>
+<details class="ans"><summary>ข้อ 5</summary><div>
+<p><strong>คำตอบ: <code>allSettled</code></strong> ทำให้เป็น <code>await Promise.allSettled([...])</code></p>
+<p><code>Promise.allSettled</code> รอจนทุก Promise "จบ" ไม่ว่าจะสำเร็จหรือล้มเหลว แล้วคืน Array ของ Object ที่มี <code>status</code> เป็น <code>'fulfilled'</code> (พร้อม <code>value</code>) หรือ <code>'rejected'</code> (พร้อม <code>reason</code>) จึงไม่ throw ออกมาเลย ต่างจาก <code>Promise.all</code> ที่ Reject ทันทีเมื่อมีตัวใดตัวหนึ่งล้มเหลว และ <code>Promise.race</code> ที่เอาแค่ตัวที่จบก่อน เหมาะกับหน้า Dashboard ที่ต้องแสดงข้อมูลส่วนที่โหลดได้ แม้บางส่วนจะล่ม (แนวคิดที่ 6)</p>
+</div></details>
+<details class="ans"><summary>ข้อ 6</summary><div>
+<p><strong>คำตอบ: <code>err</code></strong> ทำให้เป็น <code>app.use((err, req, res, next) =&gt; { console.error(err); ... })</code></p>
+<p>Express ดูจาก<strong>จำนวนพารามิเตอร์</strong>ของฟังก์ชัน (<code>fn.length</code>) ถ้ามี 4 ตัว จะถือว่าเป็น Error-handling Middleware และเรียกเฉพาะเมื่อมี Error ส่งมาจาก <code>next(err)</code>, การ <code>throw</code> ใน Handler หรือ Promise ที่ Reject ใน Express 5 ชื่อ <code>err</code> เป็นธรรมเนียม จะตั้งชื่ออื่นก็ทำงานได้ แต่ต้องมีครบ 4 ตัวเสมอ แม้ไม่ได้ใช้ <code>next</code> ก็ตาม ถ้าเหลือ 3 ตัว Express จะมองว่าเป็น Middleware ธรรมดา และส่ง Error ไปที่ Handler มาตรฐานซึ่งตอบเป็นหน้า HTML แทน JSON (แนวคิดที่ 8)</p>
+</div></details>
+<details class="ans"><summary>ข้อ 7</summary><div>
+<p><strong>คำตอบ: <code>drain</code></strong> ทำให้เป็น <code>await once(out, 'drain');</code></p>
+<p>เมื่อ <code>write()</code> คืน <code>false</code> แปลว่า Buffer ภายในของ Stream มีข้อมูลเกิน <code>highWaterMark</code> แล้ว (ข้อมูลชิ้นนั้นไม่หาย) Writable Stream จะส่ง Event <code>'drain'</code> เมื่อเขียน Buffer ลงดิสก์จนว่างพอที่จะรับต่อ การรอ <code>'drain'</code> คือการเคารพ Backpressure ทำให้หน่วยความจำไม่บวมขึ้นเรื่อย ๆ เมื่อผู้ผลิตข้อมูลเร็วกว่าดิสก์ <code>once()</code> จาก <code>node:events</code> แปลง Event เป็น Promise จึงใช้ <code>await</code> ได้ ผลลัพธ์ด้านล่างเพิ่มตัวนับจำนวนครั้งที่ต้องรอ (จำนวนครั้งขึ้นกับความเร็วดิสก์ บนเครื่องคุณอาจต่างไป) (แนวคิดที่ 12)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>รอ drain 66 ครั้ง
+200000 access.log</code></pre>
+</div></details>
+<details class="ans"><summary>ข้อ 8</summary><div>
+<p><strong>คำตอบ: <code>safeParse</code></strong> ทำให้เป็น <code>const result = schema.safeParse(req.body);</code></p>
+<p>zod มี 2 วิธีหลัก <code>schema.parse(data)</code> จะ throw <code>ZodError</code> เมื่อข้อมูลไม่ผ่าน ส่วน <code>schema.safeParse(data)</code> ไม่ throw แต่คืน <code>{ success: true, data }</code> หรือ <code>{ success: false, error }</code> ทำให้เขียน <code>if</code> ตอบ 400 พร้อมรายละเอียดได้ตรง ๆ ส่วน <code>result.data</code> คือค่าที่ผ่านการแปลงแล้ว (เช่น <code>trim</code> หรือ <code>coerce</code>) จึงควรใช้แทน <code>req.body</code> เดิม (แนวคิดที่ 9)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>false { title: [ 'Too small: expected string to have &gt;=1 characters' ] }
+{ success: true, data: { title: 'Clean Code' } }</code></pre>
+<p><span class="muted small">ผลลัพธ์นี้มาจาก Schema <code>z.object({ title: z.string().min(1) })</code> ที่ทดสอบด้วยค่าว่างและค่าปกติ</span></p>
+</div></details>
+<details class="ans"><summary>ข้อ 9</summary><div>
+<p><strong>คำตอบ: <code>url</code></strong> ทำให้เป็น <code>new URL('./worker.js', import.meta.url)</code></p>
+<p><code>import.meta.url</code> คือ URL แบบ <code>file:///home/somchai/projects/node-lab/.../main.js</code> ของไฟล์ ES Module ปัจจุบัน เมื่อใช้เป็นฐานของ <code>new URL('./worker.js', ...)</code> จะได้ Path ของ <code>worker.js</code> ที่อยู่ข้างกัน<strong>เสมอ</strong> ไม่ขึ้นกับว่ารัน <code>node</code> จากโฟลเดอร์ไหน ถ้าเขียน <code>new Worker('./worker.js')</code> ตรง ๆ Node จะหาไฟล์เทียบกับ <code>process.cwd()</code> และเจอ <code>Error: Cannot find module '/worker.js'</code> (code <code>MODULE_NOT_FOUND</code>) เมื่อรันจากโฟลเดอร์อื่น เช่นรันจาก <code>/</code> ส่วน 9592 คือจำนวนจำนวนเฉพาะที่ไม่เกิน 100,000 (แนวคิดที่ 12)</p>
+</div></details>
+
+<h4>เฉลย Multiple Choice</h4>
+<details class="ans"><summary>ข้อ 1</summary><div>
+<p><strong>คำตอบ: B</strong> Node.js เป็น <strong>Runtime</strong> คือสภาพแวดล้อมที่ใช้รัน JavaScript นอกเบราว์เซอร์ หัวใจมี 3 ส่วน V8 (Engine ตัวเดียวกับใน Chrome) แปลง JavaScript เป็นคำสั่งเครื่อง libuv ดูแล Event Loop และ I/O แบบ Non-blocking เช่นอ่านไฟล์หรือรับ Network Request โดยไม่ต้องหยุดรอ และ Core Modules อย่าง <code>node:fs</code>, <code>node:http</code>, <code>node:crypto</code> ที่ให้ JavaScript ทำงานกับระบบปฏิบัติการได้ ภาษาที่เขียนยังคงเป็น JavaScript ตัวเดิม (แนวคิดที่ 1)</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ Node.js ไม่ใช่ภาษาใหม่ โค้ดที่เขียนคือ JavaScript มาตรฐานเดียวกับใน <a data-t="4"></a> สิ่งที่ต่างคือ API รอบตัว เช่นมี <code>process</code> แต่ไม่มี <code>document</code></li>
+<li><strong>C</strong> ผิดเพราะนั่นคือคำอธิบายของ Express ซึ่งเป็น Package ที่ติดตั้งเพิ่มจาก npm และทำงาน<strong>บน</strong> Node.js อีกชั้นหนึ่ง Node เองมีแค่ <code>node:http</code> ระดับล่างที่ไม่มีระบบ Route หรือ Middleware</li>
+<li><strong>D</strong> ผิดเพราะ Node.js ไม่ได้เก็บข้อมูลเอง ถ้าต้องการฐานข้อมูลต้องเชื่อมต่อแยก เช่น SQLite ผ่าน better-sqlite3 หรือ PostgreSQL ผ่าน Driver สิ่งที่อาจทำให้สับสนคือ Node ใช้ JSON ได้สะดวก แต่ JSON เป็นแค่รูปแบบข้อมูล</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 2</summary><div>
+<p><strong>คำตอบ: C</strong> Node.js ไม่มีตัวแปร <code>window</code> เพราะไม่มีหน้าต่างเบราว์เซอร์ และ Operator <code>typeof</code> มีกฎพิเศษว่าถ้าใช้กับชื่อที่ไม่เคยประกาศ จะคืนข้อความ <code>"undefined"</code> โดยไม่ throw Error <code>node -p</code> พิมพ์ String นั้นออกมาเป็น <code>undefined</code> เทคนิคนี้ใช้เช็กได้ว่าโค้ดกำลังรันในเบราว์เซอร์หรือใน Node (แนวคิดที่ 1)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>undefined</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ <code>object</code> คือคำตอบเมื่อรันใน Browser Console ซึ่งมี <code>window</code> เป็น Global Object ใน Node ตัวที่เทียบเท่าคือ <code>globalThis</code> (ลอง <code>node -p "typeof globalThis"</code> จะได้ <code>object</code>)</li>
+<li><strong>B</strong> ผิดเพราะ <code>ReferenceError: window is not defined</code> เกิดเมื่อ<strong>ใช้งาน</strong>ตัวแปรที่ไม่มีอยู่ เช่น <code>window.location</code> แต่ <code>typeof</code> ได้รับการยกเว้นจากกฎนี้ จึงไม่ throw</li>
+<li><strong>D</strong> ผิดเพราะ <code>window</code> ไม่ใช่ฟังก์ชันแม้ในเบราว์เซอร์ และใน Node ไม่มีตัวแปรนี้เลย จึงเป็น <code>function</code> ไม่ได้</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 3</summary><div>
+<p><strong>คำตอบ: D</strong> ลำดับคือ <code>A E C B</code> โค้ดแบบ Synchronous (<code>A</code> และ <code>E</code>) ทำงานจนจบก่อนเสมอ จากนั้น Node ล้างคิว Microtask ซึ่งมี Callback ของ <code>Promise.then</code> (<code>C</code>) แล้วจึงเข้าสู่ Event Loop รอบถัดไปที่เฟส Timers ซึ่งรัน Callback ของ <code>setTimeout(..., 0)</code> (<code>B</code>) (แนวคิดที่ 6)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>A
+E
+C
+B</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะคิดว่า Callback ทำงานทันทีตามลำดับบรรทัด ความจริง <code>setTimeout</code> และ <code>then</code> แค่ "จองคิว" ไว้ Callback ยังไม่ทำงานจนกว่าโค้ด Synchronous ทั้งหมดจะจบ <code>E</code> จึงต้องมาก่อน <code>B</code> และ <code>C</code></li>
+<li><strong>B</strong> ผิดเพราะวาง <code>B</code> ไว้ก่อน <code>C</code> แม้ Delay จะเป็น 0 แต่ <code>setTimeout</code> เป็น Macrotask ที่รอถึงเฟส Timers ส่วน Promise เป็น Microtask ที่ถูกล้างทันทีหลังโค้ด Synchronous จบ จึงชนะเสมอ</li>
+<li><strong>C</strong> ผิดเพราะวาง <code>C</code> ไว้ก่อน <code>E</code> ซึ่งเป็นไปไม่ได้ Microtask ไม่แทรกกลางโค้ด Synchronous ที่กำลังทำงานอยู่</li>
+</ul>
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>ถ้าเพิ่ม <code>process.nextTick</code> เข้าไป ลำดับระหว่าง nextTick กับ Promise จะขึ้นกับชนิดไฟล์ ในไฟล์ CommonJS (<code>.cjs</code>) nextTick มาก่อน Promise แต่ใน ES Module ระดับบนสุด Promise มาก่อน เพราะ Node ประมวลผล Module ภายใน Microtask อยู่แล้ว ทดสอบจริงด้วยโค้ด <code>console.log('A'); Promise.resolve().then(() =&gt; console.log('C')); process.nextTick(() =&gt; console.log('D'));</code> ได้ <code>A C D</code> ใน <code>.js</code> ที่เป็น ESM และ <code>A D C</code> ใน <code>.cjs</code> จึงไม่ควรเขียนโค้ดที่พึ่งพาลำดับนี้</p></div>
+</div></details>
+<details class="ans"><summary>ข้อ 4</summary><div>
+<p><strong>คำตอบ: B</strong> <code>package.json</code> บอกว่าโปรเจกต์ต้องการ Package อะไรในช่วงเวอร์ชันใด ส่วน <code>package-lock.json</code> บันทึกเวอร์ชัน<strong>ที่ติดตั้งจริง</strong>ของทุก Package รวมถึง Package ย่อย ทั้งสองไฟล์จึงต้อง Commit เพื่อให้เพื่อนร่วมทีมและ CI รัน <code>npm ci</code> แล้วได้ชุดเดียวกันทุกเครื่อง ส่วน <code>node_modules/</code> สร้างใหม่ได้เสมอจากสองไฟล์นี้ จึงใส่ไว้ใน <code>.gitignore</code> (แนวคิดที่ 3)</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ <code>node_modules/</code> ใหญ่มาก (หลายหมื่นไฟล์ได้ง่าย) ทำให้ Repository บวม และบาง Package มี Native Binary ที่ Build ตามระบบปฏิบัติการ เช่น better-sqlite3 ที่ Build สำหรับ Linux จะใช้บน Windows หรือ macOS ไม่ได้</li>
+<li><strong>C</strong> ผิดเพราะถ้าไม่มี Lockfile แต่ละเครื่องจะได้เวอร์ชันล่าสุดที่เข้ากับ <code>^</code> หรือ <code>~</code> ในวันที่ติดตั้ง จึงเกิดปัญหา "เครื่องฉันรันได้" และ <code>npm ci</code> ก็ใช้ไม่ได้ เพราะจะจบด้วย <code>npm error code EUSAGE</code></li>
+<li><strong>D</strong> ผิดเพราะถ้าไม่มี <code>package.json</code> คนอื่นจะไม่รู้ว่าโปรเจกต์ต้องการ Package อะไร ไม่มี npm scripts และไม่มี <code>"type": "module"</code> ซึ่งทำให้ ES Modules ใช้งานไม่ได้</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 5</summary><div>
+<p><strong>คำตอบ: A</strong> ค่าทุกตัวใน <code>process.env</code> เป็น <strong>String</strong> เสมอ ไม่ว่าจะมาจาก <code>export</code>, การเขียนหน้าคำสั่ง หรือ <code>--env-file</code> เมื่อใช้ <code>+</code> ระหว่าง String กับ Number JavaScript จะต่อ String แทนการบวก จึงได้ <code>'3000' + 1 = '30001'</code> วิธีที่ถูกคือแปลงก่อนด้วย <code>Number(process.env.PORT)</code> แล้วตรวจว่าเป็นจำนวนเต็มที่ถูกต้อง หรือใช้ <code>z.coerce.number()</code> ของ zod (แนวคิดที่ 5)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>30001</code></pre>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะ <code>--env-file</code> แค่อ่านไฟล์แล้วใส่ค่าลง <code>process.env</code> ไม่ได้แปลงชนิดข้อมูลให้ ระบบ Environment Variable ของ Linux เก็บทุกค่าเป็นข้อความ</li>
+<li><strong>C</strong> ผิดเพราะ <code>NaN</code> เกิดจากการคำนวณทางคณิตศาสตร์ที่ไม่ได้ตัวเลข เช่น <code>Number('abc')</code> หรือ <code>'3000' * 'x'</code> แต่ Operator <code>+</code> เมื่อมี String อยู่ด้านหนึ่งจะต่อข้อความ ไม่ได้คำนวณ</li>
+<li><strong>D</strong> ผิดเพราะ JavaScript ไม่ throw Error เมื่อบวก String กับ Number มันแปลง Number เป็น String ให้อัตโนมัติ (Type Coercion) ซึ่งเป็นเหตุผลที่ Bug แบบนี้หาเจอยาก</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 6</summary><div>
+<p><strong>คำตอบ: C</strong> การใช้ Placeholder <code>?</code> กับ Prepared Statement ส่งค่า <code>title</code> ไปให้ SQLite <strong>แยกจากคำสั่ง SQL</strong> SQLite จะมองค่านั้นเป็นข้อมูลล้วน ไม่ว่าจะมี Single Quote หรือคำว่า <code>OR</code> อยู่ข้างในก็ตาม จึงค้นหาหนังสือที่ชื่อ <code>x' OR '1'='1</code> ตรงตัว และได้ 0 แถว (ทบทวนเรื่อง SQL Injection ใน <a data-t="14"></a> และแนวคิดที่ 9) ผลจากการทดสอบกับตาราง <code>books</code> ที่มี 2 แถว:</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>template 2
+prepared 0</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ Template String ต่อค่าของผู้ใช้เข้าไปเป็นส่วนหนึ่งของคำสั่ง SQL ก่อนส่งให้ SQLite คำสั่งจึงกลายเป็น <code>WHERE title = 'x' OR '1'='1'</code> ซึ่งเป็นจริงทุกแถว ได้หนังสือออกมาทั้งตาราง (ผลข้างบนคือ 2 แถว) การใช้ <code>prepare()</code> ไม่ช่วยถ้าต่อ String เอง</li>
+<li><strong>B</strong> ผิดเพราะเป็นการต่อ String แบบเดียวกับข้อ A แถมใช้ <code>db.exec()</code> ซึ่งรันได้หลายคำสั่งในครั้งเดียว ผู้โจมตีจึงอาจปิดคำสั่งด้วย <code>;</code> แล้วต่อ <code>DROP TABLE books</code> ได้ และ <code>exec()</code> ก็ไม่คืนแถวข้อมูลด้วย</li>
+<li><strong>D</strong> ผิดเพราะ SQLite ไม่ใช้ Backslash เป็นตัว Escape (ใช้การเขียน Single Quote ซ้อนกันสองตัว) กับค่าในโจทย์ คำสั่งพังด้วย <code>SqliteError: unrecognized token: "\"</code> ส่วนค่าที่ผู้โจมตีเลือกเองได้อันตรายกว่านั้น ทดสอบจริงด้วยค่า <code>x' OR 1=1 --</code> คำสั่งกลายเป็น <code>title = 'x\' OR 1=1 --'</code> ข้อความจบที่ <code>\'</code> แล้ว <code>OR 1=1</code> ทำงาน ส่วน <code>--</code> ทำให้ที่เหลือเป็น Comment ได้หนังสือทั้ง 2 แถว การ Escape เองเสี่ยงพลาดเสมอ ให้ใช้ Placeholder</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 7</summary><div>
+<p><strong>คำตอบ: D</strong> Tilde (<code>~5.3.0</code>) ยอมรับเฉพาะการเปลี่ยน Patch ช่วงจริงคือ <code>&gt;=5.3.0 &lt;5.4.0</code> ในตัวเลือกจึงมีแค่ 5.3.7 ที่เข้าเงื่อนไข ตรวจได้ด้วย <code>npx semver</code> ซึ่งพิมพ์เฉพาะเวอร์ชันที่ผ่าน (แนวคิดที่ 3)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">npx semver -r '~5.3.0' 5.4.0 5.2.9 6.0.0 5.3.7</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>5.3.7</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ 5.4.0 เปลี่ยน Minor ซึ่ง Tilde ไม่ยอมรับ ถ้าต้องการให้ได้ 5.4.0 ต้องเขียน <code>^5.3.0</code></li>
+<li><strong>B</strong> ผิดเพราะ 5.2.9 ต่ำกว่า 5.3.0 ซึ่งเป็นขั้นต่ำของช่วง ทั้ง <code>~</code> และ <code>^</code> ไม่ยอมลดเวอร์ชันลงต่ำกว่าที่เขียนไว้</li>
+<li><strong>C</strong> ผิดเพราะ 6.0.0 เปลี่ยน Major ซึ่งหมายถึงอาจมี Breaking Change แม้แต่ <code>^5.3.0</code> ก็ไม่ยอมรับ ต้องแก้ <code>package.json</code> และทดสอบเองเมื่อจะขึ้น Major ใหม่</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 8</summary><div>
+<p><strong>คำตอบ: B</strong> Express 5 ใช้ <code>path-to-regexp</code> รุ่นใหม่ ที่บังคับให้ Wildcard ต้องมีชื่อ รูปแบบ <code>/*splat</code> แปลว่า "จับทุก Segment ที่เหลือ แล้วเก็บไว้ใน <code>req.params.splat</code> เป็น Array" ทดสอบกับ <code>/a/b/c</code> ได้ผลดังนี้ ถ้าต้องการให้จับ <code>/</code> ด้วย ให้เขียน <code>/{*splat}</code> ซึ่งทำให้ส่วน Wildcard เป็น Optional (แนวคิดที่ 8)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"splat":["a","b","c"]}</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ <code>'*'</code> เป็นรูปแบบของ Express 4 ใน Express 5.3.0 ทำให้เกิด Error ตามโจทย์ตั้งแต่ตอนประกาศ Route: <code>Missing parameter name at index 1: *</code></li>
+<li><strong>C</strong> ผิดเพราะ <code>'/:all*'</code> เป็นรูปแบบ "Parameter ตามด้วย Modifier" ของ path-to-regexp รุ่นเก่า ทดสอบใน Express 5.3.0 ได้ <code>Missing parameter name at index 6: /:all*</code></li>
+<li><strong>D</strong> ผิดเพราะ Express 5 ไม่รองรับ Regular Expression ที่เขียนอยู่ในวงเล็บภายใน String แล้ว ทดสอบได้ <code>Unexpected ( at index 0: (.*)</code> ถ้าจำเป็นต้องใช้ Regex จริง ๆ ให้ส่ง RegExp Object เช่น <code>/.*/</code> แทน String</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 9</summary><div>
+<p><strong>คำตอบ: A</strong> ค่า <code>false</code> เป็น "สัญญาณขอให้ชะลอ" ไม่ใช่ความล้มเหลว Stream รับข้อมูลชิ้นนั้นไว้ใน Buffer แล้ว แต่ Buffer มีขนาดเกิน <code>highWaterMark</code> ถ้ายังเขียนต่อไม่หยุด ข้อมูลจะกองใน RAM เรื่อย ๆ จนอาจเจอ <code>JavaScript heap out of memory</code> วิธีที่ถูกคือหยุดแล้ว <code>await once(out, 'drain')</code> หรือใช้ <code>pipeline()</code> จาก <code>node:stream/promises</code> ที่จัดการ Backpressure ให้อัตโนมัติ (แนวคิดที่ 12)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>write returns false
+drained</code></pre>
+<p><span class="muted small">ผลลัพธ์นี้มาจากการเขียนข้อความ 100 ตัวอักษรลง Stream ที่ตั้ง <code>highWaterMark: 16</code> แล้วรอ <code>'drain'</code></span></p>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะข้อมูลชิ้นนั้นไม่ได้หาย ถ้าเขียนซ้ำจะได้ข้อมูลซ้ำสองชุดในไฟล์ ความล้มเหลวจริงของ Stream แจ้งผ่าน Event <code>'error'</code> ไม่ใช่ค่าที่ <code>write()</code> คืน</li>
+<li><strong>C</strong> ผิดเพราะถ้า Stream ถูกปิดแล้ว การเรียก <code>write()</code> จะเกิด Error <code>ERR_STREAM_WRITE_AFTER_END</code> ไม่ใช่การคืน <code>false</code> และไม่จำเป็นต้องสร้าง Stream ใหม่</li>
+<li><strong>D</strong> ผิดเพราะ <code>false</code> ไม่ได้บอกว่าดิสก์เต็ม (กรณีนั้นจะได้ Error <code>ENOSPC</code> ผ่าน Event <code>'error'</code>) การเรียก <code>end()</code> ทันทีจะทำให้ข้อมูลที่เหลือไม่ถูกเขียน</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 10</summary><div>
+<p><strong>คำตอบ: C</strong> Express 5 ตรวจว่า Handler คืน Promise หรือไม่ ถ้า Promise นั้น Reject (รวมถึงการ <code>throw</code> ภายใน <code>async</code> function) Express จะเรียก <code>next(err)</code> ให้อัตโนมัติ Error จึงไปถึง Error-handling Middleware ที่ตอบ 500 เป็น JSON ไม่ต้องติดตั้ง <code>express-async-errors</code> หรือห่อทุก Handler ด้วย <code>try/catch</code> เหมือนสมัย Express 4 (แนวคิดที่ 8) ผลทดสอบจริง:</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>/api/boom 500 {"error":"InternalServerError","message":"พังแบบ async"}</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะเป็นพฤติกรรมที่อันตรายของการไม่มีใครจับ Promise ที่ Reject ซึ่งเกิดได้ถ้าโค้ดแบบนี้อยู่นอก Express หรือสร้าง Promise ลอยไว้โดยไม่ <code>await</code> แต่ภายใน Handler ของ Express 5 Router เป็นผู้จับให้แล้ว</li>
+<li><strong>B</strong> ผิดเพราะนั่นคือปัญหาของ Express 4 ที่ไม่รู้จัก Promise ถ้า <code>async</code> handler throw ใน Express 4 Request จะค้างและเกิด Unhandled Rejection ส่วน Express 5 แก้ปัญหานี้แล้ว</li>
+<li><strong>D</strong> ผิดเพราะ Express ไม่ส่ง 200 ให้เองเมื่อ Handler ไม่ตอบ ถ้า Handler จบโดยไม่ตอบและไม่ throw Request จะค้าง แต่ในโจทย์นี้มีการ throw จึงไปทาง Error Handler</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 11</summary><div>
+<p><strong>คำตอบ: D</strong> เมื่อส่ง <code>app</code> (ซึ่งเป็น Request Handler) ให้ <code>request()</code> supertest จะสร้าง HTTP Server ชั่วคราวและให้ระบบปฏิบัติการสุ่ม Port ว่างให้ (Ephemeral Port) ยิง Request แล้วปิด Server เองหลังได้ Response ทำให้หลายไฟล์ Test รันพร้อมกันได้ (<code>node --test</code> รันไฟล์ Test แบบขนานโดยค่าเริ่มต้น) ไม่เจอ <code>Error: listen EADDRINUSE</code> และไม่มี Server ค้างจน Test Runner ไม่จบ นี่คือเหตุผลที่แยก <code>app.js</code> (ไม่ listen) ออกจาก <code>server.js</code> (แนวคิดที่ 10)</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ supertest ทำงานกับ Express ได้ดี และยังรับ URL ของ Server ที่ listen อยู่แล้วได้ด้วย เช่น <code>request('http://localhost:3000')</code> แต่วิธีนั้นต้องเปิด Server ไว้ก่อนและเสี่ยงชน Port</li>
+<li><strong>B</strong> ผิดเพราะ <code>app.listen()</code> ไม่ได้ช้าจน Timeout ปัญหาจริงคือการชนกันของ Port และการต้องปิด Server ให้ครบทุกครั้ง ไม่ใช่เรื่องความเร็ว</li>
+<li><strong>C</strong> ผิดเพราะ supertest ไม่รู้จักฐานข้อมูลเลย หน้าที่ของมันคือยิง HTTP Request การเตรียมฐานข้อมูลแยกต่อ Test เป็นงานของเรา เช่นส่ง <code>openDb(':memory:')</code> ให้ <code>createApp({ db })</code> ใน <code>beforeEach</code></li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 12</summary><div>
+<p><strong>คำตอบ: B</strong> JavaScript ของเราทั้งหมดรันบน Main Thread เดียว งานคำนวณหนักที่ใช้ CPU ต่อเนื่องจึงยึด Thread ไว้จน Event Loop หมุนต่อไม่ได้ <code>worker_threads</code> สร้าง Thread ใหม่ที่มี V8 และ Event Loop ของตัวเอง งานหนักจึงไปทำที่นั่น ส่วน Main Thread ว่างพอรับ <code>/health</code> และ Request อื่นต่อได้ เมื่อ Worker เสร็จจะส่งผลกลับผ่าน <code>postMessage</code> (แนวคิดที่ 12)</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ <code>async</code> ไม่ได้ย้ายงานไป Thread อื่น ลูปคำนวณใน <code>async function</code> ยังทำงานบน Main Thread แบบต่อเนื่องจนจบ <code>async/await</code> ช่วยเฉพาะงานที่ "รอ" เช่น I/O ไม่ช่วยงานที่ "คิด"</li>
+<li><strong>C</strong> ผิดเพราะ <code>setTimeout(fn, 0)</code> แค่เลื่อนเวลาเริ่ม เมื่อถึงคิว <code>fn</code> ก็ยังรันบน Main Thread และ Block นานเท่าเดิม Request ที่เข้ามาช่วงนั้นก็ยังค้าง</li>
+<li><strong>D</strong> ผิดเพราะ Thread Pool ของ libuv ใช้กับงานที่ Node ส่งไปทำเบื้องหลัง เช่น <code>fs</code>, <code>crypto.pbkdf2</code> แบบ Callback, <code>zlib</code> แบบ async และ <code>dns.lookup</code> เท่านั้น ลูป JavaScript ที่เราเขียนเองไม่ได้ไปใช้ Thread Pool นี้</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 13</summary><div>
+<p><strong>คำตอบ: A</strong> Event ชื่อ <code>'error'</code> มีกฎพิเศษใน EventEmitter ถ้า <code>emit('error', err)</code> ตอนที่ไม่มี Listener ของ <code>'error'</code> เลย EventEmitter จะ <strong>throw</strong> Error นั้นออกมา ในไฟล์นี้ไม่มีใครจับ Process จึงจบด้วย Exit Code 1 ทันที บรรทัด <code>console.log</code> ไม่ได้ทำงาน วิธีป้องกันคือเพิ่ม <code>queue.on('error', (err) =&gt; { ... })</code> เสมอสำหรับ Emitter ที่อาจส่ง Error (แนวคิดที่ 7) ผลจริง (ตัดบรรทัด Stack Trace ภายในของ Node ออกบางส่วน):</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>file:///home/somchai/projects/node-lab/quiz/queue.js:4
+queue.emit('error', new Error('คิวเต็ม'));
+                    ^
+
+Error: คิวเต็ม
+    at file:///home/somchai/projects/node-lab/quiz/queue.js:4:21
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+Emitted 'error' event at:
+    at file:///home/somchai/projects/node-lab/quiz/queue.js:4:7
+
+Node.js v24.22.0</code></pre>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะกฎ "ไม่มีคนฟังก็ทิ้งไป" ใช้กับ Event ชื่ออื่นทุกชื่อ ยกเว้น <code>'error'</code> ซึ่ง Node ออกแบบให้ throw เพื่อไม่ให้ Error เงียบหายไปโดยไม่มีใครรู้</li>
+<li><strong>C</strong> ผิดเพราะ <code>MaxListenersExceededWarning</code> เกิดเมื่อเพิ่ม Listener ให้ Event เดียวกันเกิน 10 ตัว (ค่าเริ่มต้น) ซึ่งเป็นสัญญาณของ Memory Leak ไม่เกี่ยวกับการ emit โดยไม่มี Listener</li>
+<li><strong>D</strong> ผิดเพราะ <code>emit()</code> คืน <code>false</code> เมื่อไม่มี Listener ก็จริง แต่เป็นกรณีของ Event ชื่ออื่น สำหรับ <code>'error'</code> Node throw ก่อนจะได้คืนค่าใด ๆ</li>
+</ul>
+</div></details>
+
+<h4>เฉลย Hands-on Challenge</h4>
+<details class="ans"><summary>โจทย์ที่ 1: สรุปยอดขายร้านกาแฟรายวัน</summary><div>
+<h5>ขั้นที่ 1: สร้างโปรเจกต์และ npm script</h5>
+<p>ใช้ <code>npm pkg set</code> แก้ <code>package.json</code> จาก Command Line ได้เลย ไม่ต้องเปิดไฟล์แก้เอง ส่วน <code>npm pkg delete scripts.test</code> ลบ Script <code>test</code> ตัวอย่างที่ <code>npm init</code> ใส่มาให้ ซึ่งยังไม่ได้ใช้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างโฟลเดอร์โปรเจกต์และโฟลเดอร์ข้อมูล
+mkdir -p ~/projects/node-lab/cafe-report/data
+cd ~/projects/node-lab/cafe-report
+npm init -y &gt; /dev/null
+# ใช้ ES Modules และเพิ่ม Script ชื่อ report
+npm pkg set type=module
+npm pkg set scripts.report="node report.js"
+npm pkg delete scripts.test
+cat package.json</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{
+  "name": "cafe-report",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "report": "node report.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module"
+}</code></pre>
+<h5>ขั้นที่ 2: ไฟล์ข้อมูลตัวอย่าง</h5>
+<pre class="code" data-env="file" data-label="JSON · data/sales-2026-10-20.json"><code class="language-json">[
+  { "menu": "Americano", "qty": 2, "price": 55 },
+  { "menu": "Latte", "qty": 1, "price": 65 },
+  { "menu": "Americano", "qty": 1, "price": 55 },
+  { "menu": "ชาไทย", "qty": 3, "price": 45 },
+  { "menu": "Latte", "qty": 2, "price": 65 },
+  { "menu": "Croissant", "qty": 2, "price": 70 },
+  { "menu": "ชาไทย", "qty": 1, "price": 45 }
+]</code></pre>
+<h5>ขั้นที่ 3: สคริปต์ report.js</h5>
+<pre class="code" data-env="file" data-label="JavaScript · report.js"><code class="language-javascript">// report.js — สรุปยอดขายร้านกาแฟจากไฟล์ JSON รายวัน
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
+
+// 1) รับวันที่จาก argv ถ้าไม่ส่งมาให้ใช้ค่าเริ่มต้น
+const date = process.argv[2] ?? '2026-10-20';
+
+// 2) สร้าง path จากโฟลเดอร์ของสคริปต์ ไม่ใช่โฟลเดอร์ที่เราเปิด Terminal อยู่
+const inputFile = path.join(import.meta.dirname, 'data', `sales-${date}.json`);
+const outputDir = path.join(import.meta.dirname, 'reports');
+const outputFile = path.join(outputDir, `report-${date}.txt`);
+
+// 3) อ่านไฟล์และแปลง JSON พร้อมจัดการ Error ที่เจอบ่อย
+let sales;
+try {
+  const text = await readFile(inputFile, 'utf8');
+  sales = JSON.parse(text);
+} catch (err) {
+  if (err.code === 'ENOENT') {
+    console.error(`ไม่พบไฟล์ยอดขายของวันที่ ${date}: ${path.basename(inputFile)}`);
+  } else if (err instanceof SyntaxError) {
+    console.error(`ไฟล์ ${path.basename(inputFile)} ไม่ใช่ JSON ที่ถูกต้อง: ${err.message}`);
+  } else {
+    console.error('อ่านไฟล์ไม่สำเร็จ:', err.message);
+  }
+  process.exitCode = 1; // ให้ Shell รู้ว่าทำงานไม่สำเร็จ
+}
+
+if (sales) {
+  // 4) รวมจำนวนแก้วและยอดเงินแยกตามเมนู
+  const byMenu = {};
+  for (const item of sales) {
+    byMenu[item.menu] ??= { qty: 0, amount: 0 };
+    byMenu[item.menu].qty += item.qty;
+    byMenu[item.menu].amount += item.qty * item.price;
+  }
+
+  // 5) เรียงเมนูจากยอดเงินมากไปน้อย
+  const rows = Object.entries(byMenu).sort((a, b) =&gt; b[1].amount - a[1].amount);
+  const total = rows.reduce((sum, [, v]) =&gt; sum + v.amount, 0);
+  const [bestMenu] = rows[0];
+
+  // 6) สร้างข้อความรายงาน ใช้ os.EOL เป็นตัวขึ้นบรรทัด
+  const lines = [
+    `รายงานยอดขายวันที่ ${date}`,
+    ...rows.map(([menu, v]) =&gt; `- ${menu}: ${v.qty} ชิ้น ${v.amount} บาท`),
+    `รวมทั้งหมด: ${total} บาท`,
+    `เมนูขายดีที่สุด: ${bestMenu}`,
+  ];
+  const report = lines.join(os.EOL) + os.EOL;
+
+  // 7) สร้างโฟลเดอร์ reports (ถ้ามีอยู่แล้วก็ไม่ Error) แล้วเขียนไฟล์
+  await mkdir(outputDir, { recursive: true });
+  await writeFile(outputFile, report, 'utf8');
+
+  console.log(report.trimEnd());
+  console.log(`บันทึกรายงานที่ ${path.relative(process.cwd(), outputFile)}`);
+}</code></pre>
+<h5>ขั้นที่ 4: รันและตรวจผล</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># กรณีปกติ ผ่าน npm script
+npm run report
+echo "exit code: $?"
+# ดูไฟล์รายงานที่บันทึกไว้
+cat reports/report-2026-10-20.txt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>&gt; cafe-report@1.0.0 report
+&gt; node report.js
+
+รายงานยอดขายวันที่ 2026-10-20
+- Latte: 3 ชิ้น 195 บาท
+- ชาไทย: 4 ชิ้น 180 บาท
+- Americano: 3 ชิ้น 165 บาท
+- Croissant: 2 ชิ้น 140 บาท
+รวมทั้งหมด: 680 บาท
+เมนูขายดีที่สุด: Latte
+บันทึกรายงานที่ reports/report-2026-10-20.txt
+exit code: 0
+รายงานยอดขายวันที่ 2026-10-20
+- Latte: 3 ชิ้น 195 บาท
+- ชาไทย: 4 ชิ้น 180 บาท
+- Americano: 3 ชิ้น 165 บาท
+- Croissant: 2 ชิ้น 140 บาท
+รวมทั้งหมด: 680 บาท
+เมนูขายดีที่สุด: Latte</code></pre>
+<p>ทดสอบกรณีผิดพลาด 3 แบบ: ไม่มีไฟล์ของวันนั้น, รันจากโฟลเดอร์อื่น (ต้องยังหาไฟล์เจอ) และไฟล์ JSON เสีย</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># 1) ไม่มีไฟล์ของวันที่ 21
+node report.js 2026-10-21
+echo "exit code: $?"
+
+# 2) รันจากโฟลเดอร์ /tmp ต้องยังหาไฟล์ data/ เจอ เพราะใช้ import.meta.dirname
+cd /tmp &amp;&amp; node ~/projects/node-lab/cafe-report/report.js &gt; /dev/null
+echo "exit code: $?"
+cd ~/projects/node-lab/cafe-report
+
+# 3) สร้างไฟล์ JSON ที่ตัดจบกลางทาง แล้วลองรัน
+echo '[{"menu": "Latte",' &gt; data/sales-2026-10-22.json
+node report.js 2026-10-22
+echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ไม่พบไฟล์ยอดขายของวันที่ 2026-10-21: sales-2026-10-21.json
+exit code: 1
+exit code: 0
+ไฟล์ sales-2026-10-22.json ไม่ใช่ JSON ที่ถูกต้อง: Expected double-quoted property name in JSON at position 19 (line 2 column 1)
+exit code: 1</code></pre>
+<p><span class="muted small">ข้อความต่อท้ายของ <code>SyntaxError</code> มาจาก V8 ถ้อยคำอาจต่างเล็กน้อยใน Node แต่ละรุ่น ส่วนที่เราเขียนเองเป็นภาษาไทยจะเหมือนเดิม</span></p>
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>Path อิงตำแหน่งสคริปต์:</strong> <code>path.join(import.meta.dirname, 'data', ...)</code> ทำให้ผลไม่ขึ้นกับ <code>process.cwd()</code> การทดสอบข้อ 2 ที่รันจาก <code>/tmp</code> แล้วยังได้ Exit Code 0 พิสูจน์เรื่องนี้ ถ้าเขียน <code>'data/sales.json'</code> ตรง ๆ จะเจอ <code>ENOENT</code> ทันทีที่รันจากโฟลเดอร์อื่น</li>
+<li><strong>แยก Error ตามชนิด:</strong> <code>err.code === 'ENOENT'</code> คือไม่พบไฟล์ <code>err instanceof SyntaxError</code> คือ JSON เสีย และกรณีอื่น เช่น <code>EACCES</code> (ไม่มีสิทธิ์อ่าน) ใช้ข้อความกลาง ผู้ใช้จึงรู้ว่าต้องแก้อะไร แทนที่จะเห็น Stack Trace ยาว ๆ</li>
+<li><strong>Exit Code:</strong> ใช้ <code>process.exitCode = 1</code> ให้ Shell และระบบอัตโนมัติอย่าง cron หรือ CI รู้ว่าล้มเหลว โดยไม่ตัดการทำงานกลางคันแบบ <code>process.exit(1)</code></li>
+<li><strong>รวมยอดด้วย Object:</strong> <code>??=</code> สร้างช่องเก็บของเมนูใหม่เฉพาะครั้งแรก แล้ว <code>Object.entries</code> + <code>sort</code> เรียงตามยอดเงิน วิธีนี้วนข้อมูลรอบเดียว (O(n)) ใช้ได้แม้ไฟล์มีหลายพันรายการ</li>
+<li><strong>เขียนไฟล์อย่างปลอดภัย:</strong> <code>mkdir(..., { recursive: true })</code> ไม่ Error ถ้าโฟลเดอร์มีอยู่แล้ว และ <code>os.EOL</code> ให้ตัวขึ้นบรรทัดที่ถูกต้องตามระบบปฏิบัติการ</li>
+</ul>
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+<li>เปลี่ยนการรับวันที่ไปใช้ <code>util.parseArgs</code> พร้อม Option <code>--date</code> และ <code>--format json|text</code> และตรวจรูปแบบวันที่ด้วย Regular Expression <code>^\d{4}-\d{2}-\d{2}$</code> ก่อนอ่านไฟล์</li>
+<li>เพิ่มโหมดสรุปรายสัปดาห์ ที่อ่านทุกไฟล์ในโฟลเดอร์ <code>data/</code> ด้วย <code>readdir</code> แล้วอ่านพร้อมกันด้วย <code>Promise.all</code> และแสดงยอดรายวันเทียบกัน</li>
+<li>ตรวจข้อมูลแต่ละรายการด้วย zod (<code>qty</code> ต้องเป็นจำนวนเต็มบวก <code>price</code> ต้องไม่ติดลบ) แล้วรายงานแถวที่เสียแยกไว้ แทนที่จะคำนวณผิดเงียบ ๆ</li>
+<li>แยกฟังก์ชันคำนวณ <code>summarize(sales)</code> ออกไปไว้ใน <code>lib/summary.js</code> แล้วเขียน Unit Test ด้วย <code>node:test</code> ให้ครอบคลุมกรณีไฟล์ว่าง (<code>[]</code>) ซึ่งตอนนี้ <code>rows[0]</code> จะเป็น <code>undefined</code> และทำให้สคริปต์พัง</li>
+<li>ตั้ง cron ใน WSL ให้รันทุกวันเวลา 21:00 แล้วส่งรายงานเข้า Discord Webhook หรือ Telegram Bot โดยอ่าน Token จาก Environment Variable</li>
+</ol>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 2: REST API คิวงานร้านซ่อมมือถือ</summary><div>
+<h5>ขั้นที่ 1: สร้างโปรเจกต์ ติดตั้ง Express และตั้งค่า</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างโปรเจกต์และโฟลเดอร์ย่อยทั้งหมด
+mkdir -p ~/projects/node-lab/repair-queue/src/{routes,middleware}
+cd ~/projects/node-lab/repair-queue
+npm init -y &gt; /dev/null
+npm pkg set type=module
+# ติดตั้ง Express แบบระบุเวอร์ชันตรงตัว
+npm install express@5.3.0
+# เพิ่ม npm scripts และลบ test ตัวอย่าง
+npm pkg set scripts.start="node --env-file=.env src/server.js" scripts.dev="node --watch --env-file=.env src/server.js"
+npm pkg delete scripts.test
+# ไฟล์ Config (อย่าลืมใส่ .env ไว้ใน .gitignore)
+printf 'PORT=3000\nSHOP_NAME=ร้านซ่อมมือถือสมชาย\n' &gt; .env
+printf 'PORT=3000\nSHOP_NAME=ชื่อร้านของคุณ\n' &gt; .env.example
+printf 'node_modules/\n.env\n' &gt; .gitignore</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>added 65 packages, and audited 66 packages in 2s
+
+28 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities</code></pre>
+<p><span class="muted small">จำนวน Package และเวลาที่ npm พิมพ์บนเครื่องคุณอาจต่างจากนี้เล็กน้อย</span></p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Plaintext · โครงสร้างโฟลเดอร์"><code class="language-plaintext">repair-queue/
+├── .env
+├── .env.example
+├── .gitignore
+├── package.json
+├── package-lock.json
+└── src/
+    ├── app.js
+    ├── server.js
+    ├── middleware/
+    │   ├── errors.js
+    │   ├── logger.js
+    │   └── request-id.js
+    └── routes/
+        └── tickets.js</code></pre>
+<h5>ขั้นที่ 2: Middleware</h5>
+<pre class="code" data-env="file" data-label="JavaScript · src/middleware/request-id.js"><code class="language-javascript">// middleware/request-id.js — แปะรหัสประจำ Request เพื่อใช้ไล่ Log
+import { randomUUID } from 'node:crypto';
+
+export function requestId(req, res, next) {
+  req.id = randomUUID();
+  res.setHeader('X-Request-Id', req.id);
+  next(); // ส่งต่อให้ Middleware ตัวถัดไป
+}</code></pre>
+<pre class="code" data-env="file" data-label="JavaScript · src/middleware/logger.js"><code class="language-javascript">// middleware/logger.js — พิมพ์ Method, URL, Status Code และเวลาที่ใช้ของทุก Request
+export function logger(req, res, next) {
+  const start = performance.now();
+  // Event 'finish' เกิดหลังส่ง Response ครบแล้ว จึงรู้ Status Code จริง
+  res.on('finish', () =&gt; {
+    const ms = (performance.now() - start).toFixed(1);
+    console.log(`${req.method} ${req.originalUrl} ${res.statusCode} ${ms}ms id=${req.id.slice(0, 8)}`);
+  });
+  next();
+}</code></pre>
+<pre class="code" data-env="file" data-label="JavaScript · src/middleware/errors.js"><code class="language-javascript">// middleware/errors.js — 404 และ Error-handling Middleware ที่ตอบ JSON รูปแบบเดียวกันทั้งระบบ
+export class HttpError extends Error {
+  constructor(status, error, message, details) {
+    super(message);
+    this.status = status;
+    this.error = error;
+    this.details = details;
+  }
+}
+
+export function notFound(req, res) {
+  res.status(404).json({ error: 'NotFound', message: `ไม่พบ ${req.method} ${req.originalUrl}` });
+}
+
+// ต้องมี 4 พารามิเตอร์ Express จึงจะรู้ว่าเป็น Error Handler
+export function errorHandler(err, req, res, next) {
+  // Body ที่เป็น JSON เสีย express.json() จะส่ง Error ที่มี status 400 มาให้
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'ValidationError', message: 'Body ไม่ใช่ JSON ที่ถูกต้อง' });
+  }
+  if (err instanceof HttpError) {
+    const body = { error: err.error, message: err.message };
+    if (err.details) body.details = err.details;
+    return res.status(err.status).json(body);
+  }
+  console.error(`[${req.id}]`, err); // Error ที่ไม่คาดคิด เก็บรายละเอียดไว้ใน Log ฝั่ง Server
+  res.status(500).json({ error: 'InternalServerError', message: 'เกิดข้อผิดพลาดภายในระบบ' });
+}</code></pre>
+<h5>ขั้นที่ 3: Router ของใบรับซ่อม</h5>
+<pre class="code" data-env="file" data-label="JavaScript · src/routes/tickets.js"><code class="language-javascript">// routes/tickets.js — Router ของใบรับซ่อม เก็บข้อมูลไว้ในหน่วยความจำ
+import express from 'express';
+import { setTimeout as sleep } from 'node:timers/promises';
+import { HttpError } from '../middleware/errors.js';
+
+const STATUSES = ['waiting', 'repairing', 'done'];
+
+// ข้อมูลตัวอย่าง (หายเมื่อปิด Server เพราะอยู่ใน Memory)
+const tickets = [
+  { id: 1, customer: 'สมศรี', device: 'iPhone 13', problem: 'จอแตก', status: 'repairing' },
+  { id: 2, customer: 'วิชัย', device: 'Galaxy A54', problem: 'แบตเสื่อม', status: 'waiting' },
+];
+let nextId = 3;
+
+// ตรวจ Body ของใบรับซ่อมใหม่ คืนค่า Object ของ Error แยกตามช่อง
+function validateTicket(body) {
+  const errors = {};
+  for (const field of ['customer', 'device', 'problem']) {
+    const value = body?.[field];
+    if (typeof value !== 'string' || value.trim() === '') {
+      errors[field] = 'ต้องเป็นข้อความและห้ามว่าง';
+    } else if (value.length &gt; 100) {
+      errors[field] = 'ยาวได้ไม่เกิน 100 ตัวอักษร';
+    }
+  }
+  return errors;
+}
+
+function findTicket(idParam) {
+  const id = Number(idParam);
+  const ticket = tickets.find((t) =&gt; t.id === id);
+  if (!ticket) throw new HttpError(404, 'NotFound', `ไม่พบใบรับซ่อม id ${idParam}`);
+  return ticket;
+}
+
+export const ticketsRouter = express.Router();
+
+// GET /api/tickets?status=waiting
+ticketsRouter.get('/', (req, res) =&gt; {
+  const { status } = req.query;
+  if (status !== undefined &amp;&amp; !STATUSES.includes(status)) {
+    throw new HttpError(400, 'ValidationError', `status ต้องเป็น ${STATUSES.join(', ')}`);
+  }
+  const items = status ? tickets.filter((t) =&gt; t.status === status) : tickets;
+  res.json({ count: items.length, items });
+});
+
+// GET /api/tickets/stats — จำลองงานแบบ async เช่นการถามฐานข้อมูล
+ticketsRouter.get('/stats', async (req, res) =&gt; {
+  await sleep(50);
+  const stats = Object.fromEntries(STATUSES.map((s) =&gt; [s, tickets.filter((t) =&gt; t.status === s).length]));
+  res.json({ shop: req.app.locals.shopName, total: tickets.length, ...stats });
+});
+
+// GET /api/tickets/:id
+ticketsRouter.get('/:id', (req, res) =&gt; {
+  res.json(findTicket(req.params.id));
+});
+
+// POST /api/tickets
+ticketsRouter.post('/', (req, res) =&gt; {
+  const errors = validateTicket(req.body);
+  if (Object.keys(errors).length &gt; 0) {
+    throw new HttpError(400, 'ValidationError', 'ข้อมูลใบรับซ่อมไม่ถูกต้อง', errors);
+  }
+  const ticket = {
+    id: nextId++,
+    customer: req.body.customer.trim(),
+    device: req.body.device.trim(),
+    problem: req.body.problem.trim(),
+    status: 'waiting',
+  };
+  tickets.push(ticket);
+  res.status(201).location(`/api/tickets/${ticket.id}`).json(ticket);
+});
+
+// PATCH /api/tickets/:id/status
+ticketsRouter.patch('/:id/status', async (req, res) =&gt; {
+  const ticket = findTicket(req.params.id);
+  const { status } = req.body ?? {};
+  if (!STATUSES.includes(status)) {
+    throw new HttpError(400, 'ValidationError', `status ต้องเป็น ${STATUSES.join(', ')}`);
+  }
+  ticket.status = status;
+  res.json(ticket);
+});</code></pre>
+<h5>ขั้นที่ 4: ประกอบ App และเปิด Server</h5>
+<pre class="code" data-env="file" data-label="JavaScript · src/app.js"><code class="language-javascript">// app.js — ประกอบ Express App แต่ยังไม่ listen เพื่อให้นำไปเทสต์ได้
+import express from 'express';
+import { requestId } from './middleware/request-id.js';
+import { logger } from './middleware/logger.js';
+import { notFound, errorHandler } from './middleware/errors.js';
+import { ticketsRouter } from './routes/tickets.js';
+
+export function createApp({ shopName = 'ร้านซ่อมมือถือ' } = {}) {
+  const app = express();
+  app.disable('x-powered-by');
+  app.locals.shopName = shopName;
+
+  // ลำดับสำคัญ: requestId ต้องมาก่อน logger เพราะ logger ใช้ req.id
+  app.use(requestId);
+  app.use(logger);
+  app.use(express.json({ limit: '10kb' }));
+
+  app.get('/health', (req, res) =&gt; res.json({ status: 'ok', shop: shopName }));
+  app.use('/api/tickets', ticketsRouter);
+
+  // Route ทดสอบ: throw ใน async handler แล้ว Express 5 ส่งต่อให้ errorHandler เอง
+  app.get('/api/boom', async () =&gt; {
+    throw new Error('ฐานข้อมูลจำลองล่ม');
+  });
+
+  app.use(notFound); // ต้องอยู่หลังทุก Route
+  app.use(errorHandler); // ต้องอยู่ท้ายสุด
+  return app;
+}</code></pre>
+<pre class="code" data-env="file" data-label="JavaScript · src/server.js"><code class="language-javascript">// server.js — อ่าน Config จาก Environment แล้วเปิด Server
+import { createApp } from './app.js';
+
+const port = Number(process.env.PORT ?? 3000);
+if (!Number.isInteger(port) || port &lt; 1 || port &gt; 65535) {
+  console.error(`PORT ไม่ถูกต้อง: ${process.env.PORT}`);
+  process.exit(1);
+}
+const shopName = process.env.SHOP_NAME ?? 'ร้านซ่อมมือถือ';
+
+const app = createApp({ shopName });
+app.listen(port, () =&gt; {
+  console.log(`${shopName} พร้อมรับงานที่ http://localhost:${port}`);
+});</code></pre>
+<h5>ขั้นที่ 5: รันและทดสอบด้วย curl</h5>
+<p>Terminal แรกเปิด Server ไว้:</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/node-lab/repair-queue
+npm start</code></pre>
+<p>Terminal ที่สองยิง Request ทีละคำสั่ง:</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">B=http://localhost:3000
+# 1) Health check ดู Header ด้วย -i
+curl -i -s $B/health; echo
+# 2) กรองเฉพาะงานที่รอคิว
+curl -s "$B/api/tickets?status=waiting"; echo
+# 3) เพิ่มใบรับซ่อมใหม่
+curl -i -s -X POST $B/api/tickets -H 'Content-Type: application/json' \
+  -d '{"customer":"มานี","device":"Redmi Note 13","problem":"ชาร์จไม่เข้า"}'; echo
+# 4) ข้อมูลไม่ครบ
+curl -s -X POST $B/api/tickets -H 'Content-Type: application/json' -d '{"customer":"","device":"iPad"}'; echo
+# 5) Body ไม่ใช่ JSON
+curl -s -X POST $B/api/tickets -H 'Content-Type: application/json' -d '{"customer": oops}'; echo
+# 6) เปลี่ยนสถานะเป็นกำลังซ่อม และลองสถานะที่ไม่มีอยู่
+curl -s -X PATCH $B/api/tickets/3/status -H 'Content-Type: application/json' -d '{"status":"repairing"}'; echo
+curl -s -X PATCH $B/api/tickets/3/status -H 'Content-Type: application/json' -d '{"status":"lost"}'; echo
+# 7) หาไม่เจอ, สถิติ, ตัวกรองผิด, Error ที่ไม่คาดคิด และ Route ที่ไม่มีอยู่
+curl -s $B/api/tickets/99; echo
+curl -s $B/api/tickets/stats; echo
+curl -s "$B/api/tickets?status=broken"; echo
+curl -s $B/api/boom; echo
+curl -s $B/api/ticket; echo</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>HTTP/1.1 200 OK
+X-Request-Id: 92cc0a1e-ede5-463d-a21c-d01e7c9318e8
+Content-Type: application/json; charset=utf-8
+Content-Length: 82
+ETag: W/"52-qNDFx421hxYbu8udnEnS4JjQCvE"
+Date: Wed, 21 Oct 2026 16:41:46 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"status":"ok","shop":"ร้านซ่อมมือถือสมชาย"}
+{"count":1,"items":[{"id":2,"customer":"วิชัย","device":"Galaxy A54","problem":"แบตเสื่อม","status":"waiting"}]}
+HTTP/1.1 201 Created
+X-Request-Id: ae1e09aa-374e-4a22-82af-83038532ba79
+Location: /api/tickets/3
+Content-Type: application/json; charset=utf-8
+Content-Length: 127
+ETag: W/"7f-5jXyItEt7sp92Wwg6EawOA+fxm0"
+Date: Wed, 21 Oct 2026 16:41:46 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"id":3,"customer":"มานี","device":"Redmi Note 13","problem":"ชาร์จไม่เข้า","status":"waiting"}
+{"error":"ValidationError","message":"ข้อมูลใบรับซ่อมไม่ถูกต้อง","details":{"customer":"ต้องเป็นข้อความและห้ามว่าง","problem":"ต้องเป็นข้อความและห้ามว่าง"}}
+{"error":"ValidationError","message":"Body ไม่ใช่ JSON ที่ถูกต้อง"}
+{"id":3,"customer":"มานี","device":"Redmi Note 13","problem":"ชาร์จไม่เข้า","status":"repairing"}
+{"error":"ValidationError","message":"status ต้องเป็น waiting, repairing, done"}
+{"error":"NotFound","message":"ไม่พบใบรับซ่อม id 99"}
+{"shop":"ร้านซ่อมมือถือสมชาย","total":3,"waiting":1,"repairing":2,"done":0}
+{"error":"ValidationError","message":"status ต้องเป็น waiting, repairing, done"}
+{"error":"InternalServerError","message":"เกิดข้อผิดพลาดภายในระบบ"}
+{"error":"NotFound","message":"ไม่พบ GET /api/ticket"}</code></pre>
+<p>หน้าต่าง Server แสดง Log ทุก Request และพิมพ์รายละเอียดของ Error ที่ไม่คาดคิดไว้ฝั่ง Server เท่านั้น (ตัด Stack Trace ที่เหลือซึ่งยาวราว 10 บรรทัดออก) ค่า Request ID, เวลา และวันที่ใน Header <code>Date</code> บนเครื่องคุณจะต่างไป</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>&gt; repair-queue@1.0.0 start
+&gt; node --env-file=.env src/server.js
+
+ร้านซ่อมมือถือสมชาย พร้อมรับงานที่ http://localhost:3000
+GET /health 200 3.9ms id=92cc0a1e
+GET /api/tickets?status=waiting 200 1.0ms id=53597583
+POST /api/tickets 201 7.6ms id=ae1e09aa
+POST /api/tickets 400 1.2ms id=e4d2a957
+POST /api/tickets 400 1.5ms id=8de8a10c
+PATCH /api/tickets/3/status 200 1.0ms id=60bd1503
+PATCH /api/tickets/3/status 400 1.1ms id=2fb648af
+GET /api/tickets/99 404 0.6ms id=03b60ae7
+GET /api/tickets/stats 200 51.8ms id=5f055801
+GET /api/tickets?status=broken 400 0.8ms id=dd926a39
+[43df7397-8906-4206-9613-8771df5f5add] Error: ฐานข้อมูลจำลองล่ม
+    at file:///home/somchai/projects/node-lab/repair-queue/src/app.js:23:11
+    at Layer.handleRequest (/home/somchai/projects/node-lab/repair-queue/node_modules/router/lib/layer.js:152:17)
+GET /api/boom 500 0.9ms id=43df7397
+GET /api/ticket 404 0.7ms id=9832d79e</code></pre>
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>แยก app กับ server:</strong> <code>createApp()</code> คืน Express App ที่ยังไม่ listen ส่วน <code>server.js</code> ดูแลเรื่อง Port และ Environment ทำให้นำ App ไปเทสต์ด้วย supertest ได้ทันทีโดยไม่ต้องเปิด Port จริง และส่ง Config อย่าง <code>shopName</code> เข้าไปได้โดยไม่ผูกกับ <code>process.env</code></li>
+<li><strong>ลำดับ Middleware คือ Pipeline:</strong> <code>requestId</code> ต้องมาก่อน <code>logger</code> เพราะ Logger ใช้ <code>req.id</code> ส่วน <code>notFound</code> อยู่หลังทุก Route เพื่อจับเฉพาะ Request ที่ไม่มี Route ไหนรับ และ <code>errorHandler</code> อยู่ท้ายสุดเพื่อรับ Error จากทุกจุด</li>
+<li><strong>Logger รอ Event <code>finish</code>:</strong> ตอน Middleware ทำงาน Handler ยังไม่ตัดสินว่าจะตอบ Status อะไร จึงต้องฟัง <code>res.on('finish')</code> ซึ่งเกิดหลังส่ง Response ครบ ใช้ <code>performance.now()</code> วัดเวลาละเอียดระดับเศษของมิลลิวินาที</li>
+<li><strong>throw แทนการตอบ Error เอง:</strong> Handler ทุกตัว <code>throw new HttpError(...)</code> แล้วให้ <code>errorHandler</code> แปลงเป็น JSON ที่จุดเดียว รูปแบบ <code>{ error, message, details? }</code> จึงเหมือนกันทั้งระบบ Express 5 ส่งต่อ Error ให้ทั้งจาก Handler ปกติและ <code>async</code> handler เช่น <code>PATCH</code> และ <code>/api/boom</code></li>
+<li><strong>ไม่เปิดเผยรายละเอียดภายใน:</strong> Error ที่ไม่ใช่ <code>HttpError</code> ตอบ Client แค่ "เกิดข้อผิดพลาดภายในระบบ" แต่ Log Stack Trace ฝั่ง Server พร้อม Request ID ทีมงานจึงเอา Header <code>X-Request-Id</code> ที่ลูกค้าแจ้งมาค้นใน Log ได้ตรงตัว</li>
+<li><strong>ลำดับ Route:</strong> <code>/stats</code> ถูกประกาศก่อน <code>/:id</code> ไม่อย่างนั้น <code>GET /api/tickets/stats</code> จะไปตกที่ <code>/:id</code> แล้วได้ 404 "ไม่พบใบรับซ่อม id stats"</li>
+</ul>
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+<li>เปลี่ยนการตรวจข้อมูลด้วยมือเป็น zod 4 Schema พร้อม Middleware <code>validate(schema, 'body')</code> และใช้ <code>z.enum(['waiting', 'repairing', 'done'])</code> แทน Array <code>STATUSES</code></li>
+<li>ย้ายข้อมูลจาก Array ใน Memory ไปเก็บใน SQLite ด้วย better-sqlite3 ให้ข้อมูลอยู่รอดหลัง Restart และเพิ่มคอลัมน์ <code>created_at</code> กับ <code>updated_at</code></li>
+<li>เขียน Test ด้วย <code>node:test</code> + supertest ให้ครอบคลุม 201, 400, 404 และ 500 โดยเพิ่มฟังก์ชัน <code>resetTickets()</code> หรือย้ายข้อมูลเข้าไปใน <code>createApp()</code> เพื่อให้แต่ละ Test เริ่มจากข้อมูลชุดเดิม</li>
+<li>เปลี่ยน Logger เป็น pino + pino-http ให้ได้ Log แบบ JSON ที่ค้นหาได้ และส่ง <code>genReqId</code> ให้ใช้ค่า <code>req.id</code> เดียวกับ Header <code>X-Request-Id</code></li>
+<li>เพิ่มการแจ้งเตือนเมื่อสถานะเปลี่ยนเป็น <code>done</code> โดยใช้ EventEmitter (<code>ticketEvents.emit('done', ticket)</code>) แล้วให้ Listener แยกเป็นผู้ส่ง SMS หรือข้อความ ทำให้ Route ไม่ต้องรู้รายละเอียดการแจ้งเตือน</li>
+</ol>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 3: API ลงทะเบียนเวิร์กช็อป</summary><div>
+<h5>ขั้นที่ 1: สร้างโปรเจกต์และติดตั้ง Package</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/node-lab/workshop-api/{src,test}
+cd ~/projects/node-lab/workshop-api
+npm init -y &gt; /dev/null
+npm pkg set type=module
+# Dependencies ที่ใช้ตอนรันจริง (ระบุเวอร์ชันตรงตัว)
+npm install express@5.3.0 zod@4.6.7 better-sqlite3@13.0.3 helmet@8.3.0
+# devDependencies ใช้เฉพาะตอนพัฒนาและเทสต์
+npm install -D supertest@7.3.1
+# npm scripts (Quote Glob ของ Test ไว้เสมอ)
+npm pkg set scripts.start="node --env-file=.env src/server.js" scripts.test="node --test --test-reporter=spec 'test/*.test.js'"
+printf 'PORT=3000\nDB_FILE=data/workshops.db\n' &gt; .env
+printf 'node_modules/\n.env\ndata/\n' &gt; .gitignore</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>added 69 packages, and audited 70 packages in 1s
+
+30 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+
+added 20 packages, and audited 90 packages in 919ms
+
+34 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities</code></pre>
+<p><span class="muted small">เวลาที่ใช้และจำนวน Package บนเครื่องคุณอาจต่างไป ถ้า npm ต้อง Build better-sqlite3 จาก Source เอง (ไม่มี Prebuilt Binary สำหรับเครื่องนั้น) จะใช้เวลานานขึ้นและต้องมี <code>build-essential</code> กับ <code>python3</code></span></p>
+<h5>ขั้นที่ 2: ฐานข้อมูล</h5>
+<pre class="code" data-env="file" data-label="JavaScript · src/db.js"><code class="language-javascript">// db.js — เปิดฐานข้อมูล SQLite สร้างตาราง และใส่ข้อมูลเวิร์กช็อปตัวอย่าง
+import Database from 'better-sqlite3';
+import { mkdirSync } from 'node:fs';
+import path from 'node:path';
+
+export function openDb(file = ':memory:') {
+  if (file !== ':memory:') {
+    // better-sqlite3 ไม่สร้างโฟลเดอร์ให้ ต้องสร้างเองก่อนเปิดไฟล์
+    mkdirSync(path.dirname(file), { recursive: true });
+  }
+  const db = new Database(file);
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS workshops (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      seats INTEGER NOT NULL CHECK (seats &gt; 0)
+    );
+    CREATE TABLE IF NOT EXISTS registrations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      workshop_id INTEGER NOT NULL REFERENCES workshops(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (workshop_id, email)
+    );
+  `);
+  // ใส่ข้อมูลตัวอย่างเฉพาะตอนที่ตารางยังว่าง
+  const { n } = db.prepare('SELECT COUNT(*) AS n FROM workshops').get();
+  if (n === 0) {
+    const insert = db.prepare('INSERT INTO workshops (title, seats) VALUES (@title, @seats)');
+    insert.run({ title: 'Node.js สำหรับมือใหม่', seats: 2 });
+    insert.run({ title: 'Express 5 REST API', seats: 30 });
+  }
+  return db;
+}</code></pre>
+<h5>ขั้นที่ 3: Schema ของ zod</h5>
+<pre class="code" data-env="file" data-label="JavaScript · src/schemas.js"><code class="language-javascript">// schemas.js — กฎตรวจข้อมูลด้วย zod 4
+import { z } from 'zod';
+
+// params มาจาก URL เป็นข้อความเสมอ จึงต้องใช้ coerce แปลงเป็นตัวเลข
+export const idParams = z.object({
+  id: z.coerce.number().int().positive(),
+});
+
+export const registrationBody = z.object({
+  name: z.string().trim().min(1).max(100),
+  email: z.email().max(254).transform((s) =&gt; s.toLowerCase()),
+});</code></pre>
+<h5>ขั้นที่ 4: Express App</h5>
+<pre class="code" data-env="file" data-label="JavaScript · src/app.js"><code class="language-javascript">// app.js — สร้าง Express App จาก db ที่ส่งเข้ามา (ทดสอบด้วย ':memory:' ได้)
+import express from 'express';
+import helmet from 'helmet';
+import { z } from 'zod';
+import { idParams, registrationBody } from './schemas.js';
+
+class HttpError extends Error {
+  constructor(status, error, message, details) {
+    super(message);
+    Object.assign(this, { status, error, details });
+  }
+}
+
+// Middleware ตรวจข้อมูล: ผ่านแล้วเก็บค่าที่แปลงแล้วไว้ที่ req.valid
+function validate(schema, source) {
+  return (req, res, next) =&gt; {
+    const result = schema.safeParse(req[source]);
+    if (!result.success) {
+      throw new HttpError(400, 'ValidationError', `ข้อมูลใน ${source} ไม่ถูกต้อง`,
+        z.flattenError(result.error).fieldErrors);
+    }
+    req.valid = { ...req.valid, [source]: result.data };
+    next();
+  };
+}
+
+export function createApp({ db }) {
+  // เตรียม Prepared Statement ครั้งเดียว ใช้ซ้ำได้ทุก Request
+  const stmt = {
+    workshop: db.prepare(`
+      SELECT w.id, w.title, w.seats, COUNT(r.id) AS registered
+      FROM workshops w LEFT JOIN registrations r ON r.workshop_id = w.id
+      WHERE w.id = ? GROUP BY w.id`),
+    insertReg: db.prepare(
+      'INSERT INTO registrations (workshop_id, name, email) VALUES (@workshopId, @name, @email)'),
+    getReg: db.prepare('SELECT id, workshop_id AS workshopId, name, email, created_at AS createdAt FROM registrations WHERE id = ?'),
+    deleteReg: db.prepare('DELETE FROM registrations WHERE id = ? AND workshop_id = ?'),
+  };
+
+  function loadWorkshop(id) {
+    const w = stmt.workshop.get(id);
+    if (!w) throw new HttpError(404, 'NotFound', `ไม่พบเวิร์กช็อป id ${id}`);
+    return { ...w, seatsLeft: w.seats - w.registered };
+  }
+
+  // ตรวจที่นั่งและบันทึกใน Transaction เดียว ป้องกันการจองเกินจำนวนที่นั่ง
+  const register = db.transaction((workshopId, name, email) =&gt; {
+    const w = loadWorkshop(workshopId);
+    if (w.seatsLeft &lt;= 0) throw new HttpError(409, 'Conflict', `เวิร์กช็อป "${w.title}" เต็มแล้ว`);
+    const info = stmt.insertReg.run({ workshopId, name, email });
+    return stmt.getReg.get(info.lastInsertRowid);
+  });
+
+  const app = express();
+  app.use(helmet());
+  app.use(express.json({ limit: '10kb' }));
+
+  app.get('/api/workshops/:id', validate(idParams, 'params'), (req, res) =&gt; {
+    res.json(loadWorkshop(req.valid.params.id));
+  });
+
+  app.post('/api/workshops/:id/registrations',
+    validate(idParams, 'params'), validate(registrationBody, 'body'),
+    (req, res) =&gt; {
+      const { id } = req.valid.params;
+      const { name, email } = req.valid.body;
+      try {
+        const reg = register(id, name, email);
+        res.status(201).location(`/api/workshops/${id}/registrations/${reg.id}`).json(reg);
+      } catch (err) {
+        if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+          throw new HttpError(409, 'Conflict', `อีเมล ${email} ลงทะเบียนเวิร์กช็อปนี้แล้ว`);
+        }
+        throw err;
+      }
+    });
+
+  app.delete('/api/workshops/:id/registrations/:regId', (req, res) =&gt; {
+    const info = stmt.deleteReg.run(Number(req.params.regId), Number(req.params.id));
+    if (info.changes === 0) throw new HttpError(404, 'NotFound', `ไม่พบการลงทะเบียน id ${req.params.regId}`);
+    res.status(204).end();
+  });
+
+  app.use((req, res) =&gt; {
+    res.status(404).json({ error: 'NotFound', message: `ไม่พบ ${req.method} ${req.originalUrl}` });
+  });
+
+  app.use((err, req, res, next) =&gt; {
+    if (err instanceof HttpError) {
+      return res.status(err.status).json({ error: err.error, message: err.message, ...(err.details &amp;&amp; { details: err.details }) });
+    }
+    if (err.type === 'entity.too.large') {
+      return res.status(413).json({ error: 'PayloadTooLarge', message: 'Body ใหญ่เกิน 10kb' });
+    }
+    if (err.type === 'entity.parse.failed') {
+      return res.status(400).json({ error: 'ValidationError', message: 'Body ไม่ใช่ JSON ที่ถูกต้อง' });
+    }
+    console.error(err);
+    res.status(500).json({ error: 'InternalServerError', message: 'เกิดข้อผิดพลาดภายในระบบ' });
+  });
+
+  return app;
+}</code></pre>
+<h5>ขั้นที่ 5: Server พร้อม Graceful Shutdown</h5>
+<pre class="code" data-env="file" data-label="JavaScript · src/server.js"><code class="language-javascript">// server.js — เปิดฐานข้อมูลจากไฟล์จริงแล้ว listen พร้อมปิดอย่างนุ่มนวลเมื่อกด Ctrl+C
+import path from 'node:path';
+import { openDb } from './db.js';
+import { createApp } from './app.js';
+
+const port = Number(process.env.PORT ?? 3000);
+const dbFile = path.resolve(import.meta.dirname, '..', process.env.DB_FILE ?? 'data/workshops.db');
+
+const db = openDb(dbFile);
+const server = createApp({ db }).listen(port, () =&gt; {
+  console.log(`Workshop API พร้อมที่ http://localhost:${port} (db: ${path.basename(dbFile)})`);
+});
+
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, () =&gt; {
+    console.log(`ได้รับ ${signal} กำลังปิด Server`);
+    server.close(() =&gt; {
+      db.close();
+      process.exit(0);
+    });
+  });
+}</code></pre>
+<h5>ขั้นที่ 6: ชุด Test</h5>
+<pre class="code" data-env="file" data-label="JavaScript · test/registrations.test.js"><code class="language-javascript">// test/registrations.test.js — ทดสอบ API ด้วย node:test + supertest และฐานข้อมูล ':memory:'
+import { describe, it, beforeEach, afterEach } from 'node:test';
+import assert from 'node:assert/strict';
+import request from 'supertest';
+import { openDb } from '../src/db.js';
+import { createApp } from '../src/app.js';
+
+describe('Workshop Registration API', () =&gt; {
+  let db;
+  let app;
+
+  // สร้างฐานข้อมูลใหม่ทุกเทสต์ เทสต์จึงไม่กระทบกัน
+  beforeEach(() =&gt; {
+    db = openDb(':memory:');
+    app = createApp({ db });
+  });
+  afterEach(() =&gt; db.close());
+
+  const somchai = { name: 'สมชาย ใจดี', email: 'Somchai@Example.com' };
+
+  it('GET เวิร์กช็อปที่มีอยู่ ได้ 200 พร้อม seatsLeft', async () =&gt; {
+    const res = await request(app).get('/api/workshops/1').expect(200);
+    assert.equal(res.body.title, 'Node.js สำหรับมือใหม่');
+    assert.equal(res.body.seatsLeft, 2);
+  });
+
+  it('ลงทะเบียนสำเร็จ ได้ 201, Location และอีเมลตัวเล็ก', async () =&gt; {
+    const res = await request(app).post('/api/workshops/1/registrations').send(somchai).expect(201);
+    assert.equal(res.headers.location, `/api/workshops/1/registrations/${res.body.id}`);
+    assert.equal(res.body.email, 'somchai@example.com');
+  });
+
+  it('อีเมลผิดรูปแบบ ได้ 400 พร้อม details.email', async () =&gt; {
+    const res = await request(app).post('/api/workshops/1/registrations')
+      .send({ name: 'สมศรี', email: 'not-an-email' }).expect(400);
+    assert.equal(res.body.error, 'ValidationError');
+    assert.ok(Array.isArray(res.body.details.email));
+  });
+
+  it('id ไม่ใช่ตัวเลข ได้ 400', async () =&gt; {
+    const res = await request(app).get('/api/workshops/abc').expect(400);
+    assert.ok(res.body.details.id);
+  });
+
+  it('ลงทะเบียนอีเมลเดิมซ้ำ ได้ 409', async () =&gt; {
+    await request(app).post('/api/workshops/1/registrations').send(somchai).expect(201);
+    const res = await request(app).post('/api/workshops/1/registrations')
+      .send({ ...somchai, email: 'somchai@example.com' }).expect(409);
+    assert.match(res.body.message, /ลงทะเบียนเวิร์กช็อปนี้แล้ว/);
+  });
+
+  it('ที่นั่งเต็ม ได้ 409 และจำนวนคนไม่เกินที่นั่ง', async () =&gt; {
+    await request(app).post('/api/workshops/1/registrations').send({ name: 'A', email: 'a@example.com' }).expect(201);
+    await request(app).post('/api/workshops/1/registrations').send({ name: 'B', email: 'b@example.com' }).expect(201);
+    const res = await request(app).post('/api/workshops/1/registrations')
+      .send({ name: 'C', email: 'c@example.com' }).expect(409);
+    assert.match(res.body.message, /เต็มแล้ว/);
+    const w = await request(app).get('/api/workshops/1').expect(200);
+    assert.equal(w.body.seatsLeft, 0);
+  });
+
+  it('ยกเลิกการลงทะเบียน ได้ 204 แล้วลบซ้ำได้ 404', async () =&gt; {
+    const created = await request(app).post('/api/workshops/1/registrations').send(somchai).expect(201);
+    await request(app).delete(created.headers.location).expect(204);
+    await request(app).delete(created.headers.location).expect(404);
+  });
+
+  it('เวิร์กช็อปที่ไม่มีอยู่ ได้ 404', async () =&gt; {
+    const res = await request(app).post('/api/workshops/99/registrations').send(somchai).expect(404);
+    assert.equal(res.body.message, 'ไม่พบเวิร์กช็อป id 99');
+  });
+
+  it('Body ใหญ่เกิน 10kb ได้ 413', async () =&gt; {
+    await request(app).post('/api/workshops/1/registrations')
+      .send({ name: 'x'.repeat(20_000), email: 'big@example.com' }).expect(413);
+  });
+
+  it('มี Security Header จาก helmet และไม่มี X-Powered-By', async () =&gt; {
+    const res = await request(app).get('/api/workshops/2').expect(200);
+    assert.equal(res.headers['x-content-type-options'], 'nosniff');
+    assert.equal(res.headers['x-powered-by'], undefined);
+  });
+});</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">npm test</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>&gt; workshop-api@1.0.0 test
+&gt; node --test --test-reporter=spec 'test/*.test.js'
+
+▶ Workshop Registration API
+  ✔ GET เวิร์กช็อปที่มีอยู่ ได้ 200 พร้อม seatsLeft (47.120336ms)
+  ✔ ลงทะเบียนสำเร็จ ได้ 201, Location และอีเมลตัวเล็ก (26.019991ms)
+  ✔ อีเมลผิดรูปแบบ ได้ 400 พร้อม details.email (8.661519ms)
+  ✔ id ไม่ใช่ตัวเลข ได้ 400 (6.368799ms)
+  ✔ ลงทะเบียนอีเมลเดิมซ้ำ ได้ 409 (10.03441ms)
+  ✔ ที่นั่งเต็ม ได้ 409 และจำนวนคนไม่เกินที่นั่ง (14.177023ms)
+  ✔ ยกเลิกการลงทะเบียน ได้ 204 แล้วลบซ้ำได้ 404 (9.824559ms)
+  ✔ เวิร์กช็อปที่ไม่มีอยู่ ได้ 404 (5.657284ms)
+  ✔ Body ใหญ่เกิน 10kb ได้ 413 (6.299921ms)
+  ✔ มี Security Header จาก helmet และไม่มี X-Powered-By (4.560187ms)
+✔ Workshop Registration API (140.476699ms)
+ℹ tests 10
+ℹ suites 1
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 460.469723</code></pre>
+<p><span class="muted small">ตัวเลขเวลาในวงเล็บและ <code>duration_ms</code> เปลี่ยนทุกครั้งที่รัน</span></p>
+<h5>ขั้นที่ 7: ลองกับ Server จริงและตรวจว่าข้อมูลอยู่รอดหลัง Restart</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Terminal แรก
+npm start
+
+# Terminal ที่สอง
+B=http://localhost:3000; J='Content-Type: application/json'
+curl -s $B/api/workshops/1; echo
+curl -i -s -X POST $B/api/workshops/1/registrations -H "$J" -d '{"name":"สมชาย ใจดี","email":"Somchai@Example.com"}'; echo
+curl -s -X POST $B/api/workshops/1/registrations -H "$J" -d '{"name":"","email":"not-an-email"}'; echo
+curl -s -X POST $B/api/workshops/1/registrations -H "$J" -d '{"name":"สมชาย","email":"somchai@example.com"}'; echo
+curl -s -X POST $B/api/workshops/1/registrations -H "$J" -d '{"name":"สมศรี","email":"somsri@example.com"}'; echo
+curl -s -X POST $B/api/workshops/1/registrations -H "$J" -d '{"name":"วิชัย","email":"wichai@example.com"}'; echo
+curl -s $B/api/workshops/abc; echo</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"id":1,"title":"Node.js สำหรับมือใหม่","seats":2,"registered":0,"seatsLeft":2}
+HTTP/1.1 201 Created
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+X-Content-Type-Options: nosniff
+X-DNS-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-XSS-Protection: 0
+Location: /api/workshops/1/registrations/1
+Content-Type: application/json; charset=utf-8
+Content-Length: 125
+ETag: W/"7d-5a7vLeBChY3/dv5gpD7gtDqmeHk"
+Date: Wed, 21 Oct 2026 16:51:14 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"id":1,"workshopId":1,"name":"สมชาย ใจดี","email":"somchai@example.com","createdAt":"2026-10-21 16:51:14"}
+{"error":"ValidationError","message":"ข้อมูลใน body ไม่ถูกต้อง","details":{"name":["Too small: expected string to have &gt;=1 characters"],"email":["Invalid email address"]}}
+{"error":"Conflict","message":"อีเมล somchai@example.com ลงทะเบียนเวิร์กช็อปนี้แล้ว"}
+{"id":2,"workshopId":1,"name":"สมศรี","email":"somsri@example.com","createdAt":"2026-10-21 16:51:14"}
+{"error":"Conflict","message":"เวิร์กช็อป \"Node.js สำหรับมือใหม่\" เต็มแล้ว"}
+{"error":"ValidationError","message":"ข้อมูลใน params ไม่ถูกต้อง","details":{"id":["Invalid input: expected number, received NaN"]}}</code></pre>
+<p>สังเกตว่าอีเมล <code>somchai@example.com</code> ตัวพิมพ์เล็กถูกจับว่าซ้ำกับ <code>Somchai@Example.com</code> ที่ส่งมาก่อน เพราะ Schema แปลงเป็นตัวพิมพ์เล็กก่อนบันทึก จากนั้นกด <kbd>Ctrl</kbd>+<kbd>C</kbd> ที่ Terminal แรก แล้ว <code>npm start</code> ใหม่ และเรียก <code>GET /api/workshops/1</code> อีกครั้ง</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>&gt; workshop-api@1.0.0 start
+&gt; node --env-file=.env src/server.js
+
+Workshop API พร้อมที่ http://localhost:3000 (db: workshops.db)
+^Cได้รับ SIGINT กำลังปิด Server
+
+&gt; workshop-api@1.0.0 start
+&gt; node --env-file=.env src/server.js
+
+Workshop API พร้อมที่ http://localhost:3000 (db: workshops.db)</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"id":1,"title":"Node.js สำหรับมือใหม่","seats":2,"registered":2,"seatsLeft":0}</code></pre>
+<p>ข้อมูล 2 คนยังอยู่ครบ เพราะเก็บในไฟล์ <code>data/workshops.db</code> และเวิร์กช็อปตัวอย่างไม่ถูกใส่ซ้ำ เพราะ <code>openDb</code> ใส่ข้อมูลเฉพาะตอนตารางว่าง (เวลาใน <code>createdAt</code> และ Header <code>Date</code> บนเครื่องคุณจะต่างไป และ <code>datetime('now')</code> ของ SQLite เป็นเวลา UTC)</p>
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>Dependency Injection ของฐานข้อมูล:</strong> <code>createApp({ db })</code> รับฐานข้อมูลจากภายนอก Server จริงส่งไฟล์ <code>data/workshops.db</code> ส่วน Test ส่ง <code>':memory:'</code> ที่สร้างใหม่ใน <code>beforeEach</code> ทุก Test จึงเริ่มจากสถานะเดียวกัน ไม่ทิ้งข้อมูลค้างให้ Test อื่น และไม่ต้องลบไฟล์หลังเทสต์</li>
+<li><strong>ตรวจข้อมูลที่ขอบระบบ:</strong> Middleware <code>validate(schema, source)</code> เรียก <code>safeParse</code> กับ <code>params</code> และ <code>body</code> ก่อนถึง Handler แล้วเก็บค่าที่แปลงแล้วไว้ที่ <code>req.valid</code> Handler จึงเชื่อได้ว่า <code>id</code> เป็นจำนวนเต็มบวก และ <code>email</code> เป็นตัวพิมพ์เล็กที่ถูกรูปแบบ (ใน Express 5 <code>req.query</code> เป็น Getter ที่เขียนทับไม่ได้ จึงเลือกเก็บผลไว้ใน Property ใหม่)</li>
+<li><strong>Transaction กันจองเกิน:</strong> <code>db.transaction()</code> ห่อการนับที่นั่งว่างและ INSERT ไว้ด้วยกัน ถ้าตรวจแล้วเต็มจะ throw ทำให้ Rollback และ better-sqlite3 เป็นแบบ Synchronous จึงไม่มี Request อื่นแทรกระหว่างสองคำสั่งนี้ได้ภายใน Process เดียวกัน</li>
+<li><strong>ให้ฐานข้อมูลเป็นด่านสุดท้าย:</strong> <code>UNIQUE (workshop_id, email)</code> กันอีเมลซ้ำแม้โค้ดฝั่ง JavaScript จะพลาด เราแค่จับ <code>err.code === 'SQLITE_CONSTRAINT_UNIQUE'</code> แล้วแปลงเป็น 409 แทนที่จะปล่อยให้เป็น 500</li>
+<li><strong>Prepared Statement ทั้งหมด:</strong> ทุกคำสั่งใช้ <code>?</code> หรือ <code>@name</code> และเตรียมครั้งเดียวตอนสร้าง App จึงปลอดภัยจาก SQL Injection และเร็วกว่าการ <code>prepare</code> ใหม่ทุก Request</li>
+<li><strong>Security เบื้องต้น:</strong> <code>helmet()</code> ใส่ Security Header ชุดใหญ่และลบ <code>X-Powered-By</code> ให้ ส่วน <code>express.json({ limit: '10kb' })</code> ปฏิเสธ Body ใหญ่ด้วย 413 ก่อนที่จะกิน Memory</li>
+<li><strong>Graceful Shutdown:</strong> เมื่อได้ <code>SIGINT</code> หรือ <code>SIGTERM</code> จะหยุดรับ Connection ใหม่ด้วย <code>server.close()</code> รอ Request ที่ค้างอยู่จบ แล้วค่อย <code>db.close()</code> ไฟล์ฐานข้อมูลจึงไม่ค้างอยู่ในสถานะที่เขียนไม่เสร็จ</li>
+</ul>
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+<li>เพิ่ม <code>GET /api/workshops/:id/registrations?limit=20&amp;offset=0</code> ที่ตรวจ Query ด้วย <code>z.coerce.number().int().min(1).max(100)</code> และเพิ่ม Test สำหรับ Pagination</li>
+<li>เพิ่ม express-rate-limit 8.7.1 เฉพาะ Route ลงทะเบียน (เช่น 5 ครั้งต่อนาทีต่อ IP) เพื่อกัน Bot ยิงลงทะเบียนรัว ๆ และเขียน Test ที่คาดหวัง 429 โดยส่งค่า <code>limit</code> ต่ำ ๆ เข้า <code>createApp()</code></li>
+<li>เปลี่ยน <code>console.error</code> เป็น pino + pino-http พร้อม <code>redact</code> อีเมลผู้สมัคร เพราะอีเมลเป็นข้อมูลส่วนบุคคลตาม พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล (PDPA) ไม่ควรอยู่ใน Log แบบเต็ม</li>
+<li>เพิ่มรายชื่อสำรอง (Waitlist): เมื่อที่นั่งเต็มให้บันทึกสถานะ <code>waitlisted</code> แทนการตอบ 409 และเลื่อนคนแรกในรายชื่อสำรองขึ้นมาอัตโนมัติเมื่อมีคนยกเลิก โดยทำทั้งหมดใน Transaction เดียว</li>
+<li>เขียน <code>Dockerfile</code> จาก <code>node:24-slim</code> ที่รันด้วย <code>USER node</code> และ Mount โฟลเดอร์ <code>data/</code> เป็น Volume เพื่อให้ฐานข้อมูลอยู่รอดเมื่อสร้าง Container ใหม่</li>
+</ol>
+</div></details>
+</section>

@@ -1,0 +1,2535 @@
+<section class="part" data-part="2">
+<h2 id="s9-2"><span class="sec-no">9.2</span>Core Concept &amp; Quick Guide</h2>
+<p>ส่วนนี้คือหัวใจของหัวข้อ Python เราจะเรียน 12 แนวคิดหลัก เรียงจากง่ายไปยาก แนวคิดที่ 1–4 เป็นระดับ Beginner สำหรับคนที่ไม่เคยเขียนโปรแกรมมาก่อนเลย แนวคิดที่ 5–9 เป็นระดับ Intermediate ที่ทำให้เขียนโปรแกรมใช้งานได้จริง และแนวคิดที่ 10–12 เป็นระดับ Advanced ที่ใช้ในงานมืออาชีพ ทุกแนวคิดมีโค้ดที่รันได้ครบ ผลลัพธ์จริงที่ได้จากการรันบน Python 3.12.3 ตารางอธิบายโค้ด ข้อผิดพลาดที่พบบ่อย และแบบฝึกหัด "ลองเอง"</p>
+<p>วิธีเรียนที่ได้ผลที่สุดคือ <strong>พิมพ์โค้ดเองทุกบรรทัด</strong> อย่าคัดลอกแล้ววาง การพิมพ์เองทำให้นิ้วและสมองจำ Syntax ได้เร็วกว่ามาก และเมื่อพิมพ์ผิดคุณจะได้เห็น Error จริง ซึ่งเป็นบทเรียนที่ดีที่สุด ถ้ายังไม่คล่องการใช้ Terminal ให้กลับไปทบทวน <a data-t="19"></a> ก่อน และเราจะเก็บงานทั้งหมดไว้ใน Git ตามที่เรียนใน <a data-t="17"></a></p>
+
+<h3 id="s9-2-setup">เตรียมเครื่องสำหรับหัวข้อนี้</h3>
+<p>เราจะใช้ <code>python3</code> ที่มากับ Ubuntu 24.04 LTS ใน WSL2 ซึ่งเป็นเวอร์ชัน 3.12.3 ไม่ต้องดาวน์โหลด Python จากเว็บเพิ่ม (Python ล่าสุดในวันที่ 2026-10-19 คือ 3.15.0 แต่โค้ดในหลักสูตรนี้เขียนให้รันได้บน 3.12 ขึ้นไป) ทำตามขั้นตอนด้านล่างใน Terminal ของ Ubuntu ทีละขั้น</p>
+
+<h4>ขั้นที่ 1: ตรวจเวอร์ชัน Python และติดตั้งเครื่องมือที่จำเป็น</h4>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 --version
+sudo apt update
+sudo apt install -y python3-venv python3-pip</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Python 3.12.3</code></pre>
+<p><code>python3-venv</code> คือเครื่องมือสร้าง Virtual Environment (venv) ซึ่งเป็นห้องแยกสำหรับติดตั้ง Package ของแต่ละโปรเจกต์ ส่วน <code>python3-pip</code> คือตัวติดตั้ง Package จาก PyPI ทั้งสองตัวไม่ได้ติดมากับ Ubuntu 24.04 ตั้งแต่แรก จึงต้องติดตั้งเพิ่ม</p>
+
+<h4>ขั้นที่ 2: สร้างโฟลเดอร์ฝึกและ Virtual Environment</h4>
+<p>เราจะใช้โฟลเดอร์ <code>~/projects/python-lab</code> สำหรับทุกตัวอย่างใน Part 2 และ Part 3 ส่วน Mini Project ใน Part 4 จะอยู่ที่ <code>~/projects/expense-tracker</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/python-lab/data
+cd ~/projects/python-lab
+python3 -m venv .venv
+source .venv/bin/activate
+which python3
+python3 --version
+python3 -m pip --version</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>/home/somchai/projects/python-lab/.venv/bin/python3
+Python 3.12.3
+pip 24.0 from /home/somchai/projects/python-lab/.venv/lib/python3.12/site-packages/pip (python 3.12)</code></pre>
+<p>หลังรัน <code>source .venv/bin/activate</code> หน้า Prompt จะมีคำว่า <code>(.venv)</code> นำหน้า เช่น <code>(.venv) somchai@DESKTOP:~/projects/python-lab$</code> แปลว่าตอนนี้ <code>python3</code> และ <code>pip</code> ชี้ไปที่ venv ของโปรเจกต์นี้ ชื่อผู้ใช้และชื่อเครื่องในเครื่องของคุณจะต่างจาก <code>somchai</code> และ <code>DESKTOP</code> เมื่อเลิกใช้ให้พิมพ์ <code>deactivate</code> และเมื่อกลับมาทำงานครั้งหน้าให้ <code>cd</code> เข้าโฟลเดอร์แล้วพิมพ์ <code>source .venv/bin/activate</code> อีกครั้ง</p>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>อย่าใช้ <code>sudo pip install</code> หรือ <code>pip install</code> นอก venv บน Ubuntu 24.04 ระบบจะปฏิเสธด้วยข้อความ <code>error: externally-managed-environment</code> เพื่อป้องกันไม่ให้ Package ของเราไปทับ Package ที่ระบบปฏิบัติการใช้อยู่ เราจะอธิบายเรื่องนี้ละเอียดในแนวคิดที่ 6 สำหรับตอนนี้ให้จำกฎเดียว: <strong>ติดตั้ง Package เฉพาะตอนที่เห็น (.venv) เท่านั้น</strong></p></div>
+
+<h4>ขั้นที่ 3: สร้างไฟล์ข้อมูลตัวอย่าง</h4>
+<p>หลายแนวคิดจะใช้ไฟล์ค่าใช้จ่าย <code>data/expenses.csv</code> ชุดเดียวกัน (8 รายการ) ให้สร้างด้วยคำสั่งนี้ คำสั่ง <code>cat</code> กับ <code>&lt;&lt;'EOF'</code> จะเขียนทุกบรรทัดจนถึงคำว่า <code>EOF</code> ลงไฟล์</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/python-lab
+cat &gt; data/expenses.csv &lt;&lt;'EOF'
+id,date,category,amount,note
+1,2026-09-28,food,50.00,ข้าวมันไก่
+2,2026-09-30,transport,47.00,BTS ไปทำงาน
+3,2026-10-01,bills,1250.50,ค่าไฟฟ้า
+4,2026-10-02,food,65.00,กาแฟเย็น
+5,2026-10-03,shopping,299.00,เสื้อยืด
+6,2026-10-05,transport,184.00,Grab กลับบ้าน
+7,2026-10-07,food,120.00,ส้มตำไก่ย่าง
+8,2026-10-10,health,85.00,ยาแก้แพ้
+EOF
+wc -l data/expenses.csv
+head -3 data/expenses.csv</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>9 data/expenses.csv
+id,date,category,amount,note
+1,2026-09-28,food,50.00,ข้าวมันไก่
+2,2026-09-30,transport,47.00,BTS ไปทำงาน</code></pre>
+<p>9 บรรทัด คือหัวตาราง 1 บรรทัด กับข้อมูล 8 รายการ ยอดเดือนตุลาคม 2026 รวม 2,003.50 บาท และเดือนกันยายนรวม 97.00 บาท เราจะใช้ตัวเลขนี้ตรวจคำตอบในหลายแนวคิด</p>
+
+<h4>ขั้นที่ 4: เตรียม VS Code</h4>
+<ol>
+<li>ติดตั้ง VS Code บน Windows จาก <a href="https://code.visualstudio.com/" target="_blank" rel="noopener">code.visualstudio.com</a></li>
+<li>ติดตั้ง Extension 3 ตัว: <strong>WSL</strong> (Microsoft), <strong>Python</strong> (Microsoft ซึ่งรวม Pylance และ Python Debugger มาให้) และ <strong>Ruff</strong> (Astral)</li>
+<li>ใน Terminal ของ Ubuntu ให้รัน <code>cd ~/projects/python-lab</code> แล้ว <code>code .</code> VS Code จะเปิดโฟลเดอร์นี้ผ่าน WSL (มุมซ้ายล่างจะเขียนว่า <code>WSL: Ubuntu-24.04</code>)</li>
+<li>กด <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> พิมพ์ <code>Python: Select Interpreter</code> แล้วเลือก <code>./.venv/bin/python</code> เพื่อให้ VS Code ใช้ venv เดียวกับ Terminal</li>
+</ol>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/python-lab
+code .</code></pre>
+<p>คำสั่ง <code>code .</code> ไม่แสดงผลอะไรใน Terminal ถ้าสำเร็จ หน้าต่าง VS Code จะเปิดขึ้นมาแทน ครั้งแรกจะใช้เวลาสักครู่เพราะต้องติดตั้ง VS Code Server ใน Ubuntu</p>
+
+<div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนเริ่มแนวคิดที่ 1 ตรวจว่า: (1) <code>python3 --version</code> แสดง 3.12 ขึ้นไป (2) Prompt มี <code>(.venv)</code> หลัง activate (3) <code>wc -l data/expenses.csv</code> ได้ 9 บรรทัด (4) VS Code เปิดโฟลเดอร์ผ่าน WSL ได้</p></div>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 1</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h3 id="s9-2-c01">โปรแกรมแรก: REPL, Script, ตัวแปร ชนิดข้อมูล และตัวเลข</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p><strong>โปรแกรม</strong> คือชุดคำสั่งที่เราเขียนเรียงกันเพื่อบอกคอมพิวเตอร์ว่าต้องทำอะไรทีละขั้น ข้อความคำสั่งที่เราพิมพ์เรียกว่า <strong>Source Code</strong> คอมพิวเตอร์อ่านภาษา Python ตรง ๆ ไม่ได้ จึงต้องมีโปรแกรมตัวกลางชื่อ <strong>Interpreter</strong> (คือคำสั่ง <code>python3</code>) ทำหน้าที่อ่านโค้ดของเราทีละบรรทัดจากบนลงล่าง แล้วสั่งให้เครื่องทำงานตามนั้น</p>
+<p>เราใช้ Python ได้ 2 แบบ แบบแรกคือ <strong>REPL</strong> (Read-Eval-Print Loop) เปิดด้วยการพิมพ์ <code>python3</code> เฉย ๆ จะเห็นเครื่องหมาย <code>&gt;&gt;&gt;</code> พิมพ์คำสั่งหนึ่งบรรทัดแล้วเห็นผลทันที เหมาะกับการทดลองสั้น ๆ แบบที่สองคือ <strong>Script</strong> คือไฟล์นามสกุล <code>.py</code> ที่เก็บคำสั่งหลายบรรทัด แล้วรันด้วย <code>python3 ชื่อไฟล์.py</code> เหมาะกับงานจริงเพราะบันทึกไว้แก้และรันซ้ำได้ จำความต่างให้ดี: ถ้าเห็น <code>$</code> แปลว่าอยู่ใน Bash ให้พิมพ์คำสั่ง Linux ถ้าเห็น <code>&gt;&gt;&gt;</code> แปลว่าอยู่ใน Python ให้พิมพ์โค้ด Python ออกจาก REPL ด้วย <code>exit()</code> หรือกด <kbd>Ctrl</kbd>+<kbd>D</kbd> และดูคู่มือได้ด้วย <code>help(print)</code> (กด <kbd>q</kbd> เพื่อออกจากหน้าคู่มือ)</p>
+<p><strong>Variable (ตัวแปร)</strong> คือชื่อที่เราตั้งให้ข้อมูล เพื่อเรียกใช้ภายหลัง เขียนแบบ <code>price = 45</code> เครื่องหมาย <code>=</code> ใน Python แปลว่า "เอาค่าทางขวาใส่ชื่อทางซ้าย" ไม่ได้แปลว่า "เท่ากับ" แบบในวิชาคณิตศาสตร์ เราเปลี่ยนค่าตัวแปรได้ตลอด (Reassignment) กฎการตั้งชื่อมีดังนี้:</p>
+<ul>
+<li>ใช้ตัวอักษรภาษาอังกฤษ ตัวเลข และ <code>_</code> ได้ แต่ห้ามขึ้นต้นด้วยตัวเลข (<code>2price</code> ผิด)</li>
+<li>ตัวพิมพ์เล็กกับตัวพิมพ์ใหญ่ถือเป็นคนละชื่อ (<code>Price</code> กับ <code>price</code> ต่างกัน)</li>
+<li>ห้ามใช้คำสงวน เช่น <code>if</code>, <code>for</code>, <code>class</code> และไม่ควรตั้งทับชื่อฟังก์ชันที่มีอยู่ เช่น <code>list</code>, <code>str</code>, <code>sum</code></li>
+<li>ใช้รูปแบบ <strong>snake_case</strong> คือตัวพิมพ์เล็กคั่นด้วย <code>_</code> เช่น <code>discount_amount</code> ตามมาตรฐาน PEP 8</li>
+</ul>
+<p>ข้อมูลทุกค่ามี <strong>ชนิด (Type)</strong> ตรวจได้ด้วย <code>type()</code> ชนิดพื้นฐานที่ต้องรู้คือ <code>int</code> (จำนวนเต็ม), <code>float</code> (ทศนิยม), <code>str</code> (ข้อความ อยู่ในเครื่องหมายคำพูด), <code>bool</code> (<code>True</code>/<code>False</code>) และ <code>None</code> (ยังไม่มีค่า) ชนิดของข้อมูลกำหนดว่าทำอะไรกับมันได้บ้าง เช่น <code>45 + 3</code> ได้ 48 แต่ <code>"45" + "3"</code> ได้ <code>"453"</code> เราใช้ความรู้นี้ทุกครั้งที่เขียนโปรแกรม ตั้งแต่คำนวณราคาสินค้าไปจนถึงอ่านข้อมูลจากไฟล์</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ตัวแปรเหมือน <strong>กล่องที่แปะป้ายชื่อ</strong> ป้าย <code>price</code> แปะอยู่บนกล่องที่มีเลข 45 อยู่ข้างใน ถ้าเขียน <code>price = 50</code> ก็คือเอาของในกล่องออกแล้วใส่ 50 แทน ส่วนชนิดข้อมูลเหมือน <strong>ประเภทของของในกล่อง</strong> กล่องเงินกับกล่องจดหมายใช้งานต่างกัน เอาเงินมาบวกกันได้ แต่เอาจดหมายมาบวกกันจะได้จดหมายที่ต่อกันยาวขึ้น ส่วน Interpreter เหมือน <strong>ล่ามแปลภาษา</strong> ที่อ่านคำสั่งของเราทีละประโยคแล้วแปลให้เครื่องเข้าใจ</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>เริ่มจากลอง REPL ก่อน พิมพ์ <code>python3</code> ใน Terminal แล้วพิมพ์ตามบรรทัดที่ขึ้นต้นด้วย <code>&gt;&gt;&gt;</code> (ไม่ต้องพิมพ์ <code>&gt;&gt;&gt;</code> เอง)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Python 3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+&gt;&gt;&gt; 2 + 3
+5
+&gt;&gt;&gt; name = "สมชาย"
+&gt;&gt;&gt; name
+'สมชาย'
+&gt;&gt;&gt; type(name)
+&lt;class 'str'&gt;
+&gt;&gt;&gt; len(name)
+5
+&gt;&gt;&gt; exit()</code></pre>
+<p>วันที่และเวลาในบรรทัดแรกเป็นวันที่ Build ของ Python ซึ่งในเครื่องของคุณอาจต่างไป ต่อไปสร้าง Script จริง เปิดไฟล์ใหม่ใน VS Code ชื่อ <code>~/projects/python-lab/types_demo.py</code> (หรือใช้ <code>nano types_demo.py</code>) แล้วพิมพ์โค้ดนี้</p>
+<pre class="code" data-env="file" data-label="Python · types_demo.py"><code class="language-python"># types_demo.py : ตัวแปร ชนิดข้อมูล และการคำนวณ
+# ข้อมูลออเดอร์ 1 รายการของร้านเครื่องดื่ม
+item = "ชาไทย"  # str = ข้อความ
+price = 45  # int = จำนวนเต็ม (บาทต่อแก้ว)
+qty = 3  # int
+discount = 0.1  # float = ทศนิยม (ลด 10%)
+is_member = True  # bool = จริง/เท็จ
+coupon = None  # None = ยังไม่มีค่า
+
+print("=== ข้อมูลออเดอร์ ===")
+print("item      =", item, type(item))
+print("price     =", price, type(price))
+print("qty       =", qty, type(qty))
+print("discount  =", discount, type(discount))
+print("is_member =", is_member, type(is_member))
+print("coupon    =", coupon, type(coupon))
+
+# คำนวณราคา
+subtotal = price * qty
+discount_amount = subtotal * discount
+total = subtotal - discount_amount
+print("=== คำนวณราคา ===")
+print("ราคารวมก่อนลด:", subtotal)
+print("ส่วนลดสมาชิก:", discount_amount)
+print("ยอดสุทธิ:", total)
+print("ยอดสุทธิ (ปัด 2 ตำแหน่ง):", round(total, 2))
+
+# แปลงชนิดข้อมูล
+qty_text = "3"  # ข้อความที่หน้าตาเหมือนตัวเลข
+print("=== แปลงชนิด ===")
+print("int('3') * 45 =", int(qty_text) * price)
+print("str(45) + ' บาท' =", str(price) + " บาท")
+print("float(45) =", float(price))
+
+# แปลงวินาทีเป็น ชั่วโมง นาที วินาที ด้วย // และ %
+seconds = 98765
+hours = seconds // 3600  # หารปัดเศษทิ้ง
+remain = seconds % 3600  # เศษที่เหลือ
+minutes = remain // 60
+secs = remain % 60
+print("=== แปลงเวลา ===")
+print(seconds, "วินาที =", hours, "ชั่วโมง", minutes, "นาที", secs, "วินาที")
+
+# ตัวดำเนินการและลำดับการคำนวณ
+print("=== ตัวดำเนินการ ===")
+print("7 / 2 =", 7 / 2)
+print("7 // 2 =", 7 // 2)
+print("7 % 2 =", 7 % 2)
+print("2 ** 10 =", 2**10)
+print("2 + 3 * 4 =", 2 + 3 * 4)
+print("(2 + 3) * 4 =", (2 + 3) * 4)
+
+# ทศนิยมในคอมพิวเตอร์ไม่แม่นยำ 100%
+print("=== float ===")
+print("0.1 + 0.2 =", 0.1 + 0.2)
+print("0.1 + 0.2 == 0.3 -&gt;", 0.1 + 0.2 == 0.3)
+print("round(0.1 + 0.2, 2) =", round(0.1 + 0.2, 2))</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/python-lab
+python3 types_demo.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>=== ข้อมูลออเดอร์ ===
+item      = ชาไทย &lt;class 'str'&gt;
+price     = 45 &lt;class 'int'&gt;
+qty       = 3 &lt;class 'int'&gt;
+discount  = 0.1 &lt;class 'float'&gt;
+is_member = True &lt;class 'bool'&gt;
+coupon    = None &lt;class 'NoneType'&gt;
+=== คำนวณราคา ===
+ราคารวมก่อนลด: 135
+ส่วนลดสมาชิก: 13.5
+ยอดสุทธิ: 121.5
+ยอดสุทธิ (ปัด 2 ตำแหน่ง): 121.5
+=== แปลงชนิด ===
+int('3') * 45 = 135
+str(45) + ' บาท' = 45 บาท
+float(45) = 45.0
+=== แปลงเวลา ===
+98765 วินาที = 27 ชั่วโมง 26 นาที 5 วินาที
+=== ตัวดำเนินการ ===
+7 / 2 = 3.5
+7 // 2 = 3
+7 % 2 = 1
+2 ** 10 = 1024
+2 + 3 * 4 = 14
+(2 + 3) * 4 = 20
+=== float ===
+0.1 + 0.2 = 0.30000000000000004
+0.1 + 0.2 == 0.3 -&gt; False
+round(0.1 + 0.2, 2) = 0.3</code></pre>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code># types_demo.py : ...</code></td><td>บรรทัดที่ขึ้นต้นด้วย <code>#</code> คือ Comment Python ไม่รันส่วนนี้ ใช้เขียนอธิบายให้คนอ่าน</td></tr>
+<tr><td><code>item = "ชาไทย"</code></td><td>สร้างตัวแปร <code>item</code> เก็บข้อความ ข้อความต้องอยู่ใน <code>"..."</code> หรือ <code>'...'</code> เสมอ</td></tr>
+<tr><td><code>price = 45</code>, <code>qty = 3</code></td><td>เก็บจำนวนเต็ม (<code>int</code>) ไม่มีเครื่องหมายคำพูด จึงเป็นตัวเลขที่คำนวณได้</td></tr>
+<tr><td><code>discount = 0.1</code></td><td>ตัวเลขที่มีจุดทศนิยมเป็น <code>float</code></td></tr>
+<tr><td><code>is_member = True</code></td><td>ค่า <code>bool</code> มีแค่ <code>True</code> กับ <code>False</code> ต้องขึ้นต้นด้วยตัวพิมพ์ใหญ่</td></tr>
+<tr><td><code>coupon = None</code></td><td><code>None</code> แปลว่า "ไม่มีค่า" ใช้บอกว่ายังไม่มีคูปอง ชนิดของมันคือ <code>NoneType</code></td></tr>
+<tr><td><code>print("item =", item, type(item))</code></td><td><code>print()</code> แสดงหลายค่าคั่นด้วยจุลภาค Python จะเว้นวรรคให้ 1 ช่องระหว่างค่า <code>type()</code> บอกชนิดข้อมูล</td></tr>
+<tr><td><code>subtotal = price * qty</code></td><td>คูณ 45 × 3 ได้ 135 ผลของ int คูณ int ยังเป็น int</td></tr>
+<tr><td><code>discount_amount = subtotal * discount</code></td><td>int คูณ float ได้ float คือ 13.5</td></tr>
+<tr><td><code>round(total, 2)</code></td><td>ปัดเศษให้เหลือทศนิยม 2 ตำแหน่ง ใช้ตอนแสดงผลเงิน</td></tr>
+<tr><td><code>int(qty_text)</code></td><td>แปลงข้อความ <code>"3"</code> เป็นตัวเลข 3 ก่อนคำนวณ ส่วน <code>str(price)</code> แปลงตัวเลขเป็นข้อความเพื่อต่อกับ <code>" บาท"</code></td></tr>
+<tr><td><code>seconds // 3600</code></td><td><code>//</code> คือหารแล้วปัดเศษทิ้ง 98765 // 3600 ได้ 27 ชั่วโมง</td></tr>
+<tr><td><code>seconds % 3600</code></td><td><code>%</code> คือเศษจากการหาร (Modulo) ได้วินาทีที่เหลือ 1565 แล้วนำไปหารต่อเป็น 26 นาที 5 วินาที</td></tr>
+<tr><td><code>2 + 3 * 4</code> กับ <code>(2 + 3) * 4</code></td><td>ลำดับการคำนวณ: <code>**</code> ก่อน แล้ว <code>* / // %</code> แล้วค่อย <code>+ -</code> ใส่วงเล็บเมื่ออยากให้คำนวณส่วนไหนก่อน</td></tr>
+<tr><td><code>0.1 + 0.2</code></td><td>ได้ <code>0.30000000000000004</code> เพราะคอมพิวเตอร์เก็บทศนิยมเป็นเลขฐาน 2 ซึ่งแทน 0.1 ได้ไม่ตรงเป๊ะ จึงห้ามเทียบ float ด้วย <code>==</code> ตรง ๆ สำหรับเงินจริงเราจะใช้ <code>Decimal</code> ในแนวคิดที่ 10</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>NameError: name 'pirce' is not defined. Did you mean: 'price'?</code></td><td>พิมพ์ชื่อตัวแปรผิด หรือใช้ตัวแปรก่อนสร้าง</td><td>อ่านคำแนะนำ <code>Did you mean</code> แล้วแก้ชื่อให้ตรงทุกตัวอักษร ตรวจว่าบรรทัดที่สร้างตัวแปรอยู่ก่อนบรรทัดที่ใช้</td></tr>
+<tr><td><code>SyntaxError: unterminated string literal (detected at line 1)</code></td><td>ลืมปิดเครื่องหมายคำพูด เช่น <code>print("hello)</code></td><td>ใส่ <code>"</code> ปิดให้ครบคู่ VS Code จะแสดงสีข้อความยาวผิดปกติเป็นสัญญาณเตือน</td></tr>
+<tr><td><code>SyntaxError: '(' was never closed</code></td><td>ลืมวงเล็บปิด เช่น <code>print("a"</code></td><td>นับวงเล็บเปิดกับปิดให้เท่ากัน</td></tr>
+<tr><td><code>IndentationError: unexpected indent</code></td><td>มีช่องว่างหน้าบรรทัดโดยไม่จำเป็น Python ถือว่าการย่อหน้ามีความหมาย</td><td>ลบช่องว่างหน้าบรรทัดออก ให้บรรทัดปกติชิดซ้ายสุด</td></tr>
+<tr><td><code>ValueError: invalid literal for int() with base 10: '3.5'</code></td><td>ใช้ <code>int()</code> กับข้อความที่มีทศนิยมหรือมีตัวอักษร</td><td>ใช้ <code>float("3.5")</code> แทน หรือ <code>int(float("3.5"))</code> ถ้าต้องการจำนวนเต็ม</td></tr>
+<tr><td><code>0.1 + 0.2 == 0.3</code> ได้ <code>False</code></td><td>float เก็บทศนิยมไม่แม่นยำ 100%</td><td>ใช้ <code>round()</code> ก่อนเทียบ ใช้ <code>math.isclose()</code> หรือใช้ <code>Decimal</code> กับเรื่องเงิน</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ตั้งชื่อตัวแปรให้บอกความหมาย เช่น <code>discount_amount</code> ดีกว่า <code>d</code> หรือ <code>x2</code> โค้ดถูกอ่านบ่อยกว่าถูกเขียน</li>
+<li>ใช้ REPL ทดลองแนวคิดเล็ก ๆ แต่เขียนงานจริงเป็นไฟล์ <code>.py</code> เสมอ และเก็บไว้ใน Git</li>
+<li>รันโค้ดบ่อย ๆ ทุกครั้งที่เพิ่ม 2–3 บรรทัด จะหาจุดผิดได้ง่ายกว่ารันครั้งเดียวตอนเขียนเสร็จ 100 บรรทัด</li>
+<li>ห้ามใช้ float กับเงินในระบบจริง ให้ใช้ <code>decimal.Decimal</code> หรือเก็บเป็นหน่วยสตางค์ (int)</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>แก้ <code>types_demo.py</code> ให้เป็นออเดอร์ของคุณเอง</p><ol>
+<li>เปลี่ยนสินค้าเป็น <code>"กาแฟเย็น"</code> ราคา 55 บาท จำนวน 2 แก้ว แล้วรันดูว่ายอดสุทธิเป็นเท่าไร (ควรได้ 99.0)</li>
+<li>เพิ่มตัวแปร <code>vat_rate = 0.07</code> แล้วคำนวณ VAT จากยอดสุทธิ พิมพ์ผลแบบปัด 2 ตำแหน่ง</li>
+<li>เปลี่ยน <code>seconds</code> เป็น 200000 แล้วตรวจว่าได้ 55 ชั่วโมง 33 นาที 20 วินาที</li>
+<li>เปิด REPL แล้วลองพิมพ์ <code>type(3 / 1)</code> กับ <code>type(3 // 1)</code> สังเกตว่าทำไมได้ชนิดต่างกัน</li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 2</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h3 id="s9-2-c02">String, f-string และการรับ Input จากผู้ใช้</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p><strong>String</strong> (ชนิด <code>str</code>) คือข้อความ เช่น ชื่อลูกค้า อีเมล หรือที่อยู่ ใน Python String คือ <strong>ลำดับของตัวอักษร</strong> แต่ละตัวมีเลขตำแหน่ง (Index) เริ่มจาก 0 ทางซ้าย และนับถอยหลังด้วยเลขติดลบจากทางขวา (<code>-1</code> คือตัวสุดท้าย) เราตัดบางช่วงได้ด้วย <strong>Slicing</strong> รูปแบบ <code>[start:stop:step]</code> โดยได้ตั้งแต่ <code>start</code> ถึงก่อน <code>stop</code> สิ่งสำคัญคือ String <strong>แก้ไขไม่ได้ (Immutable)</strong> ทุก Method เช่น <code>.upper()</code> จะคืน String ใหม่ ไม่ได้แก้ตัวเดิม ตัวอักษรพิเศษเขียนด้วย Escape เช่น <code>\n</code> คือขึ้นบรรทัดใหม่ และ <code>\t</code> คือ Tab</p>
+<p>งานจริงเกือบทุกงานต้องทำความสะอาดข้อความที่ผู้ใช้พิมพ์มา (ช่องว่างเกิน ตัวพิมพ์ใหญ่เล็กไม่สม่ำเสมอ) และต้องแสดงผลให้อ่านง่าย Method ที่ใช้บ่อยมีดังนี้:</p>
+<ul>
+<li><code>strip()</code> ตัดช่องว่างหัวท้าย, <code>lower()</code>/<code>upper()</code>/<code>title()</code> เปลี่ยนตัวพิมพ์</li>
+<li><code>replace(old, new)</code> แทนที่ข้อความ, <code>split()</code> แยกเป็น list, <code>" ".join(list)</code> ต่อ list กลับเป็นข้อความ</li>
+<li><code>startswith()</code>/<code>endswith()</code> ตรวจหัวท้าย และ <code>"คำ" in ข้อความ</code> ตรวจว่ามีคำนั้นอยู่ไหม</li>
+<li><strong>f-string</strong> คือ String ที่มี <code>f</code> นำหน้า ใส่ตัวแปรใน <code>{}</code> ได้ตรง ๆ และกำหนดรูปแบบได้ เช่น <code>{x:,.2f}</code> (คั่นหลักพัน ทศนิยม 2 ตำแหน่ง), <code>{p:.1%}</code> (เปอร์เซ็นต์), <code>{s:&gt;10}</code> (ชิดขวากว้าง 10 ช่อง), <code>{n:05d}</code> (เติม 0 ข้างหน้าให้ครบ 5 หลัก) และ <code>{x=}</code> (แสดงทั้งชื่อและค่า ใช้ตอนดีบัก)</li>
+</ul>
+<p>ส่วน <code>input("ข้อความถาม")</code> ใช้รับข้อมูลที่ผู้ใช้พิมพ์ทางคีย์บอร์ด จุดที่มือใหม่พลาดบ่อยที่สุดคือ <strong><code>input()</code> คืนค่าเป็น <code>str</code> เสมอ</strong> แม้ผู้ใช้จะพิมพ์ตัวเลข ถ้าจะคำนวณต้องแปลงด้วย <code>int()</code> หรือ <code>float()</code> ก่อน</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>String เหมือน <strong>ลูกปัดที่ร้อยอยู่บนเชือก</strong> ลูกปัดแต่ละเม็ดมีหมายเลขกำกับ เม็ดแรกคือเบอร์ 0 Slicing คือการตัดเชือกเอาลูกปัดบางช่วงมาเป็นสร้อยเส้นใหม่ โดยสร้อยเส้นเดิมไม่เสียหาย ส่วน f-string เหมือน <strong>แบบฟอร์มที่มีช่องว่างให้เติม</strong> เช่น "เรียนคุณ ____ ยอดชำระ ____ บาท" เราแค่บอกว่าช่องไหนใส่ค่าอะไรและจัดรูปแบบอย่างไร</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>สร้างไฟล์ <code>~/projects/python-lab/fstring_demo.py</code></p>
+<pre class="code" data-env="file" data-label="Python · fstring_demo.py"><code class="language-python"># fstring_demo.py : จัดการข้อความและจัดรูปแบบด้วย f-string
+raw_name = "  SOMSRI   ใจดี "
+
+# ทำความสะอาดชื่อ: ตัดช่องว่างเกิน แล้วทำตัวแรกเป็นตัวใหญ่
+words = raw_name.split()  # แยกตามช่องว่าง ได้เป็น list
+print("split()  -&gt;", words)
+clean_name = " ".join(words).title()  # ต่อกลับด้วยช่องว่าง 1 ช่อง
+print("ชื่อที่สะอาด -&gt;", clean_name)
+print("ความยาว  -&gt;", len(clean_name))
+
+# Indexing และ Slicing (เริ่มนับจาก 0)
+print("ตัวแรก   -&gt;", clean_name[0])
+print("ตัวสุดท้าย -&gt;", clean_name[-1])
+print("3 ตัวแรก  -&gt;", clean_name[:3])
+print("กลับด้าน 6 ตัวแรก -&gt;", clean_name[:6][::-1])
+
+# Method ที่ใช้บ่อย
+email = "Somsri@Example.COM"
+print("lower()  -&gt;", email.lower())
+print("upper()  -&gt;", clean_name.upper())
+print("replace  -&gt;", "2026-10-19".replace("-", "/"))
+print("startswith -&gt;", email.lower().startswith("somsri"))
+print("'ใจดี' in -&gt;", "ใจดี" in clean_name)
+
+# f-string กับ Format Specification
+balance = 1234567.891
+rate = 0.075
+order_no = 42
+print(f"ยอดเงิน: {balance:,.2f} บาท")
+print(f"ดอกเบี้ย: {rate:.1%}")
+print(f"เลขที่ออเดอร์: {order_no:05d}")
+print(f"ดีบัก: {order_no=}")
+
+# ใบเสร็จจัดคอลัมน์ให้ตรงกัน
+items = [("Coffee", 2, 55.0), ("Croissant", 1, 79.5), ("Water", 3, 10.0)]
+print(f"{'Item':&lt;12}{'Qty':&gt;5}{'Total':&gt;10}")
+for name, qty, price in items:
+    print(f"{name:&lt;12}{qty:&gt;5}{qty * price:&gt;10.2f}")
+print(f"{'Sum':&lt;12}{'':&gt;5}{2 * 55.0 + 79.5 + 3 * 10.0:&gt;10.2f}")</code></pre>
+<p>สร้างไฟล์ที่สอง <code>~/projects/python-lab/add_two.py</code> สำหรับฝึก <code>input()</code></p>
+<pre class="code" data-env="file" data-label="Python · add_two.py"><code class="language-python"># add_two.py : รับตัวเลข 2 ตัวจากผู้ใช้แล้วบวกกัน
+a_text = input("ตัวเลขที่ 1: ")  # input() คืนค่าเป็น str เสมอ
+b_text = input("ตัวเลขที่ 2: ")
+
+print("ต่อข้อความ:", a_text + b_text)  # "10" + "20" = "1020"
+
+a = int(a_text)  # แปลงเป็น int ก่อนคำนวณ
+b = int(b_text)
+print(f"ผลบวก: {a} + {b} = {a + b}")</code></pre>
+<p>รัน <code>fstring_demo.py</code> ตามปกติ ส่วน <code>add_two.py</code> ปกติจะรอให้เราพิมพ์ตัวเลข แต่ในที่นี้เราส่งคำตอบเข้าไปล่วงหน้าด้วย <code>printf '10\n20\n' |</code> เพื่อให้ผลลัพธ์เหมือนกันทุกครั้ง (ลองรัน <code>python3 add_two.py</code> เฉย ๆ แล้วพิมพ์ตัวเลขเองก็ได้)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/python-lab
+python3 fstring_demo.py
+printf '10\n20\n' | python3 add_two.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · fstring_demo.py"><code>split()  -&gt; ['SOMSRI', 'ใจดี']
+ชื่อที่สะอาด -&gt; Somsri ใจดี
+ความยาว  -&gt; 11
+ตัวแรก   -&gt; S
+ตัวสุดท้าย -&gt; ี
+3 ตัวแรก  -&gt; Som
+กลับด้าน 6 ตัวแรก -&gt; irsmoS
+lower()  -&gt; somsri@example.com
+upper()  -&gt; SOMSRI ใจดี
+replace  -&gt; 2026/10/19
+startswith -&gt; True
+'ใจดี' in -&gt; True
+ยอดเงิน: 1,234,567.89 บาท
+ดอกเบี้ย: 7.5%
+เลขที่ออเดอร์: 00042
+ดีบัก: order_no=42
+Item          Qty     Total
+Coffee          2    110.00
+Croissant       1     79.50
+Water           3     30.00
+Sum                  219.50</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · add_two.py"><code>ตัวเลขที่ 1: ตัวเลขที่ 2: ต่อข้อความ: 1020
+ผลบวก: 10 + 20 = 30</code></pre>
+<p>สังเกต 3 จุด: (1) ความยาวของ <code>Somsri ใจดี</code> คือ 11 เพราะภาษาไทยนับสระและวรรณยุกต์เป็นตัวอักษรแยก (<code>ใ จ ด ี</code> = 4 ตัว) (2) ตัวสุดท้ายจึงเป็นสระ <code>ี</code> ไม่ใช่ <code>ดี</code> (3) ใน <code>add_two.py</code> คำถามทั้งสองบรรทัดติดกันเพราะเราส่งคำตอบผ่าน Pipe ตัวเลขที่พิมพ์จึงไม่ปรากฏบนจอ ถ้าพิมพ์เองจะเห็นแยกบรรทัด</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>raw_name.split()</code></td><td>แยกข้อความตามช่องว่าง (กี่ช่องก็ได้) ได้ list <code>['SOMSRI', 'ใจดี']</code> ช่องว่างหัวท้ายหายไปด้วย</td></tr>
+<tr><td><code>" ".join(words).title()</code></td><td>ต่อ list กลับเป็นข้อความโดยคั่นด้วยช่องว่าง 1 ช่อง แล้ว <code>title()</code> ทำให้ตัวแรกของแต่ละคำเป็นตัวใหญ่ ภาษาไทยไม่มีตัวพิมพ์ใหญ่จึงไม่เปลี่ยน</td></tr>
+<tr><td><code>len(clean_name)</code></td><td>นับจำนวนตัวอักษรทั้งหมด รวมช่องว่าง</td></tr>
+<tr><td><code>clean_name[0]</code>, <code>clean_name[-1]</code></td><td>ดึงตัวแรก (Index 0) และตัวสุดท้าย (Index -1)</td></tr>
+<tr><td><code>clean_name[:3]</code></td><td>Slice ตั้งแต่ต้นจนถึงก่อน Index 3 ได้ 3 ตัวแรก</td></tr>
+<tr><td><code>clean_name[:6][::-1]</code></td><td>ตัด 6 ตัวแรกได้ <code>Somsri</code> แล้วใช้ step <code>-1</code> กลับด้าน ได้ <code>irsmoS</code></td></tr>
+<tr><td><code>email.lower()</code></td><td>คืน String ใหม่ที่เป็นตัวเล็กทั้งหมด นิยมใช้ก่อนเทียบอีเมลหรือชื่อผู้ใช้</td></tr>
+<tr><td><code>"2026-10-19".replace("-", "/")</code></td><td>แทนที่ <code>-</code> ทุกตัวด้วย <code>/</code></td></tr>
+<tr><td><code>"ใจดี" in clean_name</code></td><td>ได้ <code>True</code> ถ้ามีคำนี้อยู่ในข้อความ</td></tr>
+<tr><td><code>f"{balance:,.2f}"</code></td><td><code>,</code> คั่นหลักพัน <code>.2f</code> ทศนิยม 2 ตำแหน่ง ได้ <code>1,234,567.89</code></td></tr>
+<tr><td><code>f"{rate:.1%}"</code></td><td>คูณ 100 แล้วเติม <code>%</code> ทศนิยม 1 ตำแหน่ง 0.075 จึงเป็น <code>7.5%</code></td></tr>
+<tr><td><code>f"{order_no:05d}"</code></td><td>จำนวนเต็มกว้าง 5 หลัก เติม 0 ข้างหน้า ได้ <code>00042</code></td></tr>
+<tr><td><code>f"{order_no=}"</code></td><td>แสดง <code>order_no=42</code> ช่วยดีบักโดยไม่ต้องพิมพ์ชื่อตัวแปรซ้ำ</td></tr>
+<tr><td><code>f"{name:&lt;12}{qty:&gt;5}{qty * price:&gt;10.2f}"</code></td><td><code>&lt;12</code> ชิดซ้ายกว้าง 12 ช่อง <code>&gt;5</code> ชิดขวากว้าง 5 ช่อง ทำให้คอลัมน์ตรงกันทุกแถว ใน <code>{}</code> ใส่การคำนวณได้</td></tr>
+<tr><td><code>for name, qty, price in items:</code></td><td>วนอ่านทีละรายการและแยกค่า 3 ตัวออกมา (จะเรียนละเอียดในแนวคิดที่ 3 และ 4)</td></tr>
+<tr><td><code>a_text + b_text</code></td><td>String บวก String คือการต่อข้อความ <code>"10" + "20"</code> จึงได้ <code>"1020"</code></td></tr>
+<tr><td><code>a = int(a_text)</code></td><td>แปลงเป็นตัวเลขก่อน แล้ว <code>a + b</code> จึงได้ 30</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>TypeError: can only concatenate str (not "int") to str</code></td><td>เอา String ไปบวกกับตัวเลข เช่น <code>"อายุ " + 20</code></td><td>ใช้ f-string <code>f"อายุ {age}"</code> หรือแปลงด้วย <code>str(age)</code></td></tr>
+<tr><td><code>IndexError: string index out of range</code></td><td>ขอ Index ที่เกินความยาว เช่น <code>"abc"[3]</code> (Index สูงสุดคือ 2)</td><td>จำว่า Index สุดท้ายคือ <code>len(s) - 1</code> หรือใช้ <code>s[-1]</code> ถ้าอยากได้ตัวสุดท้าย Slicing ไม่ Error แม้เกินช่วง</td></tr>
+<tr><td><code>ValueError: invalid literal for int() with base 10: '3.5'</code></td><td>ผู้ใช้พิมพ์ทศนิยมแต่โค้ดใช้ <code>int()</code></td><td>ใช้ <code>float()</code> สำหรับค่าที่มีทศนิยมได้ และจัดการ Error ด้วย <code>try/except</code> (แนวคิดที่ 8)</td></tr>
+<tr><td>พิมพ์ออกมาเป็น <code>ยอดเงิน: {balance:,.2f} บาท</code> ตรงตัว</td><td>ลืมตัว <code>f</code> หน้าเครื่องหมายคำพูด Python จึงมองเป็น String ธรรมดา</td><td>เติม <code>f</code> เป็น <code>f"..."</code> ไม่มี Error เตือน จึงต้องสังเกตผลลัพธ์เอง</td></tr>
+<tr><td><code>TypeError: 'str' object does not support item assignment</code></td><td>พยายามแก้ตัวอักษรใน String เช่น <code>name[0] = "s"</code></td><td>String แก้ไม่ได้ ให้สร้างใหม่ เช่น <code>name = "s" + name[1:]</code></td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ใช้ f-string เป็นค่าเริ่มต้นในการสร้างข้อความ อ่านง่ายและเร็วกว่าการต่อด้วย <code>+</code></li>
+<li>ทำความสะอาด Input ทันทีที่รับเข้ามา เช่น <code>input().strip()</code> และแปลงเป็น <code>lower()</code> ก่อนเทียบคำสั่งหรืออีเมล</li>
+<li>แยก "ข้อมูล" ออกจาก "การแสดงผล" เก็บตัวเลขเป็น int/float แล้วค่อยจัดรูปแบบตอน print ด้วย <code>:,.2f</code></li>
+<li>ใช้เครื่องหมายคำพูดแบบเดียวกันทั้งโปรเจกต์ (หลักสูตรนี้ใช้ <code>"</code> ตามค่าเริ่มต้นของ ruff format)</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ต่อยอดจากสองไฟล์นี้</p><ol>
+<li>เปลี่ยน <code>raw_name</code> เป็น <code>"   mana   RAKDEE  "</code> แล้วรันดูว่าได้ <code>Mana Rakdee</code> หรือไม่</li>
+<li>เพิ่มบรรทัดในใบเสร็จอีก 1 รายการ เช่น <code>("Brownie", 2, 65.0)</code> และแก้บรรทัด <code>Sum</code> ให้คำนวณถูก</li>
+<li>แก้ <code>add_two.py</code> ให้ใช้ <code>float()</code> แทน <code>int()</code> แล้วรันด้วย <code>printf '1.5\n2.25\n' | python3 add_two.py</code> ควรได้ผลบวก 3.75</li>
+<li>แสดงผลบวกด้วย <code>{a + b:,.2f}</code> แล้วลองใส่ <code>1000000</code> กับ <code>2500</code> สังเกตเครื่องหมายคั่นหลักพัน</li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 3</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h3 id="s9-2-c03">ตัดสินใจด้วย if/elif/else และทำซ้ำด้วย Loop (for, while, range, break, continue)</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>โปรแกรมที่ทำงานจากบนลงล่างตรง ๆ ทำได้แค่งานง่าย งานจริงต้อง <strong>ตัดสินใจ</strong> (ถ้าคะแนนถึง 80 ให้เกรด A ถ้าไม่ถึงให้ดูเงื่อนไขถัดไป) และต้อง <strong>ทำซ้ำ</strong> (ตรวจข้อสอบ 40 คนด้วยกฎเดียวกัน) Python ใช้ <code>if</code>/<code>elif</code>/<code>else</code> สำหรับการตัดสินใจ และใช้ <code>for</code>/<code>while</code> สำหรับการทำซ้ำ</p>
+<p>เงื่อนไขสร้างจาก <strong>ตัวดำเนินการเปรียบเทียบ</strong> <code>==</code> (เท่ากับ), <code>!=</code> (ไม่เท่ากับ), <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code> และรวมเงื่อนไขด้วย <code>and</code>, <code>or</code>, <code>not</code> Python เขียนช่วงแบบคณิตศาสตร์ได้ เช่น <code>0 &lt;= score &lt;= 100</code> ค่าบางค่าถูกมองเป็น "เท็จ" อัตโนมัติ (Falsy) ได้แก่ <code>0</code>, <code>0.0</code>, <code>""</code>, <code>[]</code>, <code>{}</code> และ <code>None</code> ส่วนค่าอื่นเป็น "จริง" (Truthy) เราจึงเขียน <code>if name:</code> แทน <code>if name != "":</code> ได้</p>
+<p>สิ่งที่ต้องเข้าใจเกี่ยวกับ Loop มีดังนี้:</p>
+<ul>
+<li><strong>บล็อกคำสั่งกำหนดด้วยการย่อหน้า</strong> (Indentation) 4 ช่องว่าง ทุกบรรทัดที่ย่อหน้าเท่ากันใต้ <code>if</code> หรือ <code>for</code> คือบล็อกเดียวกัน และบรรทัด <code>if</code>/<code>for</code>/<code>while</code> ต้องจบด้วย <code>:</code></li>
+<li><code>if</code>/<code>elif</code> ถูกตรวจจากบนลงล่าง และหยุดที่เงื่อนไขแรกที่เป็นจริง <strong>ลำดับจึงสำคัญ</strong></li>
+<li><code>for</code> ใช้วนตามสมาชิกของ list หรือ String ส่วน <code>range(start, stop, step)</code> สร้างลำดับตัวเลข และ <code>enumerate(list, start=1)</code> ให้ทั้งลำดับที่และค่า</li>
+<li><code>while</code> วนไปเรื่อย ๆ ตราบที่เงื่อนไขยังจริง ต้องเปลี่ยนค่าที่ใช้ในเงื่อนไขทุกรอบ ไม่อย่างนั้นจะเป็น Infinite Loop (กด <kbd>Ctrl</kbd>+<kbd>C</kbd> เพื่อหยุด)</li>
+<li><code>break</code> ออกจาก Loop ทันที, <code>continue</code> ข้ามไปรอบถัดไป และ <code>for ... else</code>/<code>while ... else</code> จะทำบล็อก <code>else</code> เมื่อ Loop จบครบโดยไม่โดน <code>break</code></li>
+</ul>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p><code>if/elif/else</code> เหมือน <strong>ป้ายบอกทางที่ทางแยก</strong> คนขับดูป้ายแรกก่อน ถ้าตรงก็เลี้ยวทันทีโดยไม่สนป้ายถัดไป ส่วน <code>for</code> เหมือน <strong>ครูตรวจข้อสอบทีละแผ่นจนหมดกอง</strong> <code>continue</code> คือหยิบแผ่นที่เขียนชื่อไม่ครบวางข้างไปแล้วตรวจแผ่นถัดไป <code>break</code> คือเจอแผ่นที่มีปัญหาร้ายแรงจนต้องหยุดตรวจทั้งกอง ส่วน <code>while</code> เหมือน <strong>ตู้ ATM ที่ให้ใส่ PIN ได้ไม่เกิน 3 ครั้ง</strong> ทำซ้ำจนกว่าจะถูกหรือจนหมดสิทธิ์</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>สร้างไฟล์ <code>~/projects/python-lab/grade_loop.py</code> ไฟล์นี้ยังไม่ใช้ Function (จะเรียนในแนวคิดที่ 5) เพื่อให้เห็นการทำงานของ Loop ชัด ๆ</p>
+<pre class="code" data-env="file" data-label="Python · grade_loop.py"><code class="language-python"># grade_loop.py : ตัดเกรดด้วย if/elif/else และวนซ้ำด้วย for/while
+scores = [95, 82, 74, 61, 48, 105]
+passed = 0
+
+print("=== ตัดเกรด ===")
+for no, score in enumerate(scores, start=1):
+    if score == 0:
+        print("พบคะแนน 0 หยุดตรวจทันที")
+        break  # ออกจาก loop ทันที
+    if score &lt; 0 or score &gt; 100:
+        print(f"คนที่ {no}: คะแนน {score} ไม่ถูกต้อง ข้าม")
+        continue  # ข้ามไปรอบถัดไป
+    # ตรวจจากเกรดสูงไปต่ำ ลำดับสำคัญมาก
+    if score &gt;= 80:
+        grade = "A"
+    elif score &gt;= 70:
+        grade = "B"
+    elif score &gt;= 60:
+        grade = "C"
+    elif score &gt;= 50:
+        grade = "D"
+    else:
+        grade = "F"
+    if grade != "F":
+        passed += 1
+    print(f"คนที่ {no}: {score} คะแนน ได้เกรด {grade}")
+else:
+    # for-else: ทำงานเมื่อ loop จบครบโดยไม่เจอ break
+    print("ตรวจครบทุกคน ไม่พบคะแนน 0")
+
+print(f"ผ่าน {passed} คน")
+
+print("=== range ===")
+print(list(range(5)))
+print(list(range(1, 11, 3)))
+for i in range(3, 0, -1):
+    print("นับถอยหลัง", i)
+
+print("=== ใส่ PIN ===")
+correct_pin = "1234"
+attempts = ["1111", "2580", "0000"]  # สมมติว่าผู้ใช้พิมพ์ 3 ครั้ง
+tries = 0
+max_tries = 3
+while tries &lt; max_tries:
+    pin = attempts[tries]
+    tries += 1  # อย่าลืมเพิ่มตัวนับ ไม่อย่างนั้นจะวนไม่จบ
+    if pin == correct_pin:
+        print("PIN ถูกต้อง เข้าสู่ระบบ")
+        break
+    print(f"ครั้งที่ {tries}: PIN {pin} ไม่ถูกต้อง (เหลือ {max_tries - tries} ครั้ง)")
+else:
+    print("ใส่ผิดครบ 3 ครั้ง ล็อกบัญชี")</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/python-lab
+python3 grade_loop.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>=== ตัดเกรด ===
+คนที่ 1: 95 คะแนน ได้เกรด A
+คนที่ 2: 82 คะแนน ได้เกรด A
+คนที่ 3: 74 คะแนน ได้เกรด B
+คนที่ 4: 61 คะแนน ได้เกรด C
+คนที่ 5: 48 คะแนน ได้เกรด F
+คนที่ 6: คะแนน 105 ไม่ถูกต้อง ข้าม
+ตรวจครบทุกคน ไม่พบคะแนน 0
+ผ่าน 4 คน
+=== range ===
+[0, 1, 2, 3, 4]
+[1, 4, 7, 10]
+นับถอยหลัง 3
+นับถอยหลัง 2
+นับถอยหลัง 1
+=== ใส่ PIN ===
+ครั้งที่ 1: PIN 1111 ไม่ถูกต้อง (เหลือ 2 ครั้ง)
+ครั้งที่ 2: PIN 2580 ไม่ถูกต้อง (เหลือ 1 ครั้ง)
+ครั้งที่ 3: PIN 0000 ไม่ถูกต้อง (เหลือ 0 ครั้ง)
+ใส่ผิดครบ 3 ครั้ง ล็อกบัญชี</code></pre>
+<p>ในรายการคะแนนไม่มีเลข 0 คำสั่ง <code>break</code> ในส่วนตัดเกรดจึงไม่เคยทำงาน Loop จบครบทุกคน บล็อก <code>else</code> ของ <code>for</code> จึงพิมพ์ "ตรวจครบทุกคน" ถ้าลองเพิ่ม 0 เข้าไปกลางรายการ ข้อความนี้จะหายไป ส่วน Loop ใส่ PIN ไม่เจอ PIN ที่ถูกเลย จึงจบครบ 3 รอบและเข้า <code>else</code> ของ <code>while</code></p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>scores = [95, 82, 74, 61, 48, 105]</code></td><td>list ของคะแนน 6 คน (105 เป็นข้อมูลผิดที่ใส่ไว้ทดสอบ)</td></tr>
+<tr><td><code>passed = 0</code></td><td>ตัวนับคนที่ผ่าน ต้องตั้งค่าเริ่มต้นก่อนเข้า Loop</td></tr>
+<tr><td><code>for no, score in enumerate(scores, start=1):</code></td><td>วนทีละคะแนน <code>enumerate</code> ให้ลำดับที่ <code>no</code> เริ่มจาก 1 พร้อมค่า <code>score</code></td></tr>
+<tr><td><code>if score == 0: ... break</code></td><td>ใช้ <code>==</code> เพื่อเปรียบเทียบ ถ้าเจอ 0 ให้ออกจาก Loop ทันที</td></tr>
+<tr><td><code>if score &lt; 0 or score &gt; 100: ... continue</code></td><td>คะแนนนอกช่วง 0–100 ถือว่าผิด พิมพ์แจ้งแล้วข้ามไปคนถัดไปโดยไม่ตัดเกรด</td></tr>
+<tr><td><code>if score &gt;= 80 ... elif ... else</code></td><td>ตรวจจากเกรดสูงไปต่ำ 82 ตรงเงื่อนไขแรก (<code>&gt;= 80</code>) จึงได้ A และไม่ตรวจเงื่อนไขอื่นต่อ</td></tr>
+<tr><td><code>if grade != "F": passed += 1</code></td><td><code>passed += 1</code> คือ <code>passed = passed + 1</code> นับคนที่ไม่ได้ F</td></tr>
+<tr><td><code>else:</code> ที่อยู่ระดับเดียวกับ <code>for</code></td><td>for-else ทำงานเมื่อ Loop วนครบโดยไม่เจอ <code>break</code></td></tr>
+<tr><td><code>range(5)</code>, <code>range(1, 11, 3)</code>, <code>range(3, 0, -1)</code></td><td>0 ถึง 4, เริ่ม 1 เพิ่มทีละ 3 ไม่เกิน 10, และนับถอยหลัง 3 2 1 (ค่า stop ไม่ถูกรวม) ใช้ <code>list()</code> เพื่อดูค่าทั้งหมด</td></tr>
+<tr><td><code>while tries &lt; max_tries:</code></td><td>วนตราบที่ยังใช้สิทธิ์ไม่ครบ 3 ครั้ง</td></tr>
+<tr><td><code>pin = attempts[tries]</code> แล้ว <code>tries += 1</code></td><td>หยิบ PIN ที่ผู้ใช้ "พิมพ์" รอบนั้น และเพิ่มตัวนับ บรรทัดนี้คือสิ่งที่ทำให้ Loop จบได้</td></tr>
+<tr><td><code>if pin == correct_pin: ... break</code></td><td>ถ้าถูกให้เข้าสู่ระบบและออกจาก Loop โดยไม่ล็อก</td></tr>
+<tr><td><code>else: print("... ล็อกบัญชี")</code></td><td>while-else ทำงานเมื่อเงื่อนไข <code>tries &lt; max_tries</code> กลายเป็นเท็จ คือใช้สิทธิ์ครบแล้ว</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>SyntaxError: expected ':'</code></td><td>ลืม <code>:</code> ท้ายบรรทัด <code>if</code>, <code>elif</code>, <code>else</code>, <code>for</code> หรือ <code>while</code></td><td>เติม <code>:</code> ทุกครั้งที่บรรทัดต่อไปต้องย่อหน้า</td></tr>
+<tr><td><code>SyntaxError: invalid syntax. Maybe you meant '==' or ':=' instead of '='?</code></td><td>เขียน <code>if x = 5:</code> ใช้ <code>=</code> (กำหนดค่า) แทน <code>==</code> (เปรียบเทียบ)</td><td>ใช้ <code>==</code> ในเงื่อนไขเสมอ</td></tr>
+<tr><td><code>IndentationError: expected an indented block after 'if' statement on line 2</code></td><td>บรรทัดใต้ <code>if</code> ไม่ได้ย่อหน้า</td><td>ย่อหน้า 4 ช่องว่าง ตั้ง VS Code ให้กด <kbd>Tab</kbd> แล้วได้ช่องว่าง 4 ช่อง (ค่าเริ่มต้นของ Python Extension)</td></tr>
+<tr><td>คะแนน 95 ได้เกรด D ทั้งที่ควรเป็น A (ไม่มี Error)</td><td>เรียง <code>elif</code> จากต่ำไปสูง เช่น <code>if score &gt;= 50</code> ก่อน <code>score &gt;= 80</code> ทำให้เงื่อนไขแรกจริงเสมอ</td><td>เรียงจากเงื่อนไขที่แคบที่สุด (คะแนนสูงสุด) ไปกว้างที่สุด และทดสอบค่าขอบ เช่น 80, 79, 50, 49</td></tr>
+<tr><td>โปรแกรมค้าง พิมพ์ข้อความซ้ำไม่หยุด</td><td>Infinite Loop เพราะลืม <code>tries += 1</code> เงื่อนไข <code>while</code> จึงจริงตลอด</td><td>กด <kbd>Ctrl</kbd>+<kbd>C</kbd> จะเห็น <code>KeyboardInterrupt</code> แล้วเพิ่มบรรทัดที่เปลี่ยนตัวแปรในเงื่อนไข หรือใช้ <code>for ... in range(3)</code> แทนเมื่อรู้จำนวนรอบ</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ถ้ารู้จำนวนรอบหรือวนตามรายการ ให้ใช้ <code>for</code> ใช้ <code>while</code> เฉพาะเมื่อไม่รู้ว่าจะวนกี่รอบ</li>
+<li>ใช้ <code>enumerate()</code> แทนการสร้างตัวนับเองด้วย <code>i = 0</code> และ <code>i += 1</code></li>
+<li>ตรวจกรณีผิดก่อนแล้ว <code>continue</code> ออกไป (Guard Clause) ทำให้โค้ดส่วนหลักไม่ต้องซ้อน <code>if</code> หลายชั้น</li>
+<li>ทดสอบค่าขอบเขตทุกครั้ง (0, 100, 79.9, ค่าติดลบ) เพราะบั๊กเรื่องเงื่อนไขมักซ่อนอยู่ตรงขอบ</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>แก้ <code>grade_loop.py</code> ตามนี้แล้วรันดูผลทุกข้อ</p><ol>
+<li>เปลี่ยน <code>scores</code> เป็น <code>[95, 82, 0, 61]</code> แล้วสังเกตว่า "ตรวจครบทุกคน" หายไป เพราะโดน <code>break</code></li>
+<li>เพิ่มเกรด B+ สำหรับคะแนน 75–79 โดยแทรก <code>elif</code> ในตำแหน่งที่ถูกต้อง</li>
+<li>แก้ <code>attempts</code> เป็น <code>["1111", "1234", "0000"]</code> แล้วดูว่าโปรแกรมหยุดที่ครั้งที่ 2 และไม่ล็อกบัญชี</li>
+<li>เขียน Loop ใหม่ด้วย <code>range(1, 13)</code> พิมพ์สูตรคูณแม่ 7 ในรูปแบบ <code>7 x 1 = 7</code></li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 4</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h3 id="s9-2-c04">เก็บข้อมูลหลายค่า: List, Tuple, Set, Dict และ Comprehension</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>ถ้ามีสินค้า 100 ชิ้น เราคงไม่สร้างตัวแปร <code>item1</code> ถึง <code>item100</code> Python มีโครงสร้างข้อมูล (Data Structure) ในตัว 4 แบบสำหรับเก็บหลายค่าในตัวแปรเดียว แต่ละแบบเหมาะกับงานต่างกัน การเลือกให้ถูกทำให้โค้ดสั้นลง อ่านง่าย และเร็วขึ้น</p>
+<div class="tbl wide"><table><thead><tr><th>ชนิด</th><th>เขียนแบบ</th><th>คุณสมบัติ</th><th>ใช้เมื่อไร</th></tr></thead><tbody>
+<tr><td class="nw"><code>list</code></td><td><code>[45, 50, 35]</code></td><td>เรียงลำดับ แก้ไขได้ ค่าซ้ำได้</td><td>รายการที่เพิ่ม ลบ เรียงได้ เช่น ตะกร้าสินค้า (<code>append</code>, <code>insert</code>, <code>remove</code>, <code>pop</code>, <code>sort</code>)</td></tr>
+<tr><td class="nw"><code>tuple</code></td><td><code>(13.7563, 100.5018)</code></td><td>เรียงลำดับ แก้ไขไม่ได้</td><td>ข้อมูลชุดที่ตายตัว เช่น พิกัด วันเดือนปี และใช้แยกค่า (Unpacking) <code>lat, lon = point</code></td></tr>
+<tr><td class="nw"><code>set</code></td><td><code>{"เชียงใหม่", "ภูเก็ต"}</code></td><td>ไม่เรียงลำดับ ค่าไม่ซ้ำ</td><td>ตัดค่าซ้ำ ตรวจสมาชิกเร็ว หาส่วนร่วม <code>&amp;</code> ส่วนรวม <code>|</code> ผลต่าง <code>-</code></td></tr>
+<tr><td class="nw"><code>dict</code></td><td><code>{"มานะ": "089-111-2222"}</code></td><td>คู่ key → value, key ไม่ซ้ำ</td><td>ค้นหาด้วยชื่อ เช่น สมุดโทรศัพท์ ข้อมูลหนึ่งแถวของตาราง (<code>[]</code>, <code>.get()</code>, <code>.items()</code>, <code>.keys()</code>, <code>update</code>, <code>del</code>)</td></tr>
+</tbody></table></div>
+<p><strong>Comprehension</strong> คือวิธีเขียนสั้นสำหรับ "สร้างข้อมูลชุดใหม่จากข้อมูลชุดเดิม" เช่น <code>[x * 2 for x in nums if x &gt; 0]</code> มีความหมายเท่ากับ for loop 4 บรรทัดที่สร้าง list ว่าง วนทีละค่า ตรวจเงื่อนไข แล้ว <code>append</code> มีทั้งแบบ list <code>[...]</code>, dict <code>{k: v for ...}</code> และ set <code>{x for ...}</code> ใช้เมื่อตรรกะสั้นอ่านจบในบรรทัดเดียว ถ้าซับซ้อนกว่านั้นให้กลับไปใช้ for loop ปกติ ข้อควรจำอีกข้อคือ <code>list.sort()</code> แก้ list เดิมและคืนค่า <code>None</code> ส่วน <code>sorted(list)</code> คืน list ใหม่</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p><strong>list</strong> เหมือนคิวคนต่อแถวซื้อข้าว มีลำดับ คนแทรกหรือออกได้ <strong>tuple</strong> เหมือนเลขบัตรประชาชนที่พิมพ์ลงบัตรแล้ว แก้ไม่ได้ <strong>set</strong> เหมือนรายชื่อจังหวัดที่เคยไปเที่ยว ไปเชียงใหม่ 3 ครั้งก็นับเป็น 1 จังหวัด <strong>dict</strong> เหมือนสมุดโทรศัพท์ เปิดหาด้วยชื่อแล้วเจอเบอร์ทันทีโดยไม่ต้องไล่ทีละหน้า</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>สร้างไฟล์ <code>~/projects/python-lab/collections_basics.py</code> ตะกร้าสินค้าเป็น list ที่มีสมาชิกแต่ละตัวเป็น dict ซึ่งเป็นรูปแบบเดียวกับข้อมูล JSON ที่ได้จาก API ในงานจริง</p>
+<pre class="code" data-env="file" data-label="Python · collections_basics.py"><code class="language-python"># collections_basics.py : list, tuple, set, dict และ comprehension
+cart = [
+    {"name": "ชาไทย", "price": 45, "qty": 2},
+    {"name": "ข้าวมันไก่", "price": 50, "qty": 1},
+    {"name": "ขนมปังสังขยา", "price": 35, "qty": 3},
+    {"name": "น้ำเปล่า", "price": 10, "qty": 4},
+]
+
+# --- list: เพิ่ม ลบ เรียง ---
+print("=== list ===")
+print("จำนวนสินค้า:", len(cart))
+print("สินค้าชิ้นแรก:", cart[0]["name"])
+cart.append({"name": "กล้วยทอด", "price": 20, "qty": 1})  # เพิ่มท้าย list
+removed = cart.pop()  # ดึงตัวสุดท้ายออก
+print("ลบออก:", removed["name"], "| เหลือ", len(cart), "ชิ้น")
+
+# รวมยอดด้วย for loop
+total = 0
+for line in cart:
+    total += line["price"] * line["qty"]
+print("ยอดรวม (for):", total)
+# รวมยอดด้วย sum() + generator expression
+print("ยอดรวม (sum):", sum(line["price"] * line["qty"] for line in cart))
+
+# sorted() คืน list ใหม่ ส่วน .sort() แก้ list เดิม
+by_price = sorted(cart, key=lambda line: line["price"], reverse=True)
+print("เรียงราคามากไปน้อย:", [line["name"] for line in by_price])
+nums = [3, 1, 2]
+print("nums.sort() คืนค่า:", nums.sort(), "| nums ตอนนี้:", nums)
+
+# --- tuple: ข้อมูลชุดที่ไม่เปลี่ยน ---
+print("=== tuple ===")
+bangkok = (13.7563, 100.5018)
+lat, lon = bangkok  # unpacking
+print(f"ละติจูด {lat}, ลองจิจูด {lon}")
+
+# --- set: ค่าไม่ซ้ำ ---
+print("=== set ===")
+provinces = ["เชียงใหม่", "ขอนแก่น", "เชียงใหม่", "ภูเก็ต"]
+unique = set(provinces)
+print("จังหวัดไม่ซ้ำ:", sorted(unique), "| จำนวน", len(unique))
+north = {"เชียงใหม่", "เชียงราย", "น่าน"}
+print("อยู่ทั้งสองชุด:", unique &amp; north)
+print("รวมกัน:", sorted(unique | north))
+print("มีใน unique แต่ไม่มีใน north:", sorted(unique - north))
+
+# --- dict: key -&gt; value ---
+print("=== dict ===")
+phonebook = {"สมศรี": "081-234-5678", "มานะ": "089-111-2222"}
+phonebook["ปิติ"] = "062-333-4444"  # เพิ่ม key ใหม่
+print("เบอร์มานะ:", phonebook["มานะ"])
+print("เบอร์สมชาย:", phonebook.get("สมชาย", "ไม่พบ"))
+del phonebook["ปิติ"]
+for name, phone in phonebook.items():
+    print(f"{name}: {phone}")
+
+# --- comprehension ---
+print("=== comprehension ===")
+line_totals = {line["name"]: line["price"] * line["qty"] for line in cart}
+print("ยอดต่อรายการ:", line_totals)
+pricey = [line["name"] for line in cart if line["price"] &gt;= 40]
+print("ราคาตั้งแต่ 40 บาท:", pricey)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/python-lab
+python3 collections_basics.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>=== list ===
+จำนวนสินค้า: 4
+สินค้าชิ้นแรก: ชาไทย
+ลบออก: กล้วยทอด | เหลือ 4 ชิ้น
+ยอดรวม (for): 285
+ยอดรวม (sum): 285
+เรียงราคามากไปน้อย: ['ข้าวมันไก่', 'ชาไทย', 'ขนมปังสังขยา', 'น้ำเปล่า']
+nums.sort() คืนค่า: None | nums ตอนนี้: [1, 2, 3]
+=== tuple ===
+ละติจูด 13.7563, ลองจิจูด 100.5018
+=== set ===
+จังหวัดไม่ซ้ำ: ['ขอนแก่น', 'ภูเก็ต', 'เชียงใหม่'] | จำนวน 3
+อยู่ทั้งสองชุด: {'เชียงใหม่'}
+รวมกัน: ['ขอนแก่น', 'น่าน', 'ภูเก็ต', 'เชียงราย', 'เชียงใหม่']
+มีใน unique แต่ไม่มีใน north: ['ขอนแก่น', 'ภูเก็ต']
+=== dict ===
+เบอร์มานะ: 089-111-2222
+เบอร์สมชาย: ไม่พบ
+สมศรี: 081-234-5678
+มานะ: 089-111-2222
+=== comprehension ===
+ยอดต่อรายการ: {'ชาไทย': 90, 'ข้าวมันไก่': 50, 'ขนมปังสังขยา': 105, 'น้ำเปล่า': 40}
+ราคาตั้งแต่ 40 บาท: ['ชาไทย', 'ข้าวมันไก่']</code></pre>
+<p>ลำดับของ set ไม่แน่นอน เราจึงใช้ <code>sorted()</code> ก่อนพิมพ์เพื่อให้ผลลัพธ์เหมือนกันทุกครั้ง การเรียงข้อความภาษาไทยใช้รหัส Unicode คำที่ขึ้นต้นด้วยสระหน้า (เ แ โ ใ ไ) จึงไปอยู่ท้ายสุด ไม่ได้เรียงตามพจนานุกรม</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>cart = [{...}, {...}]</code></td><td>list ที่มี dict 4 ตัว แต่ละ dict คือสินค้า 1 รายการ มี key <code>name</code>, <code>price</code>, <code>qty</code></td></tr>
+<tr><td><code>cart[0]["name"]</code></td><td>หยิบสมาชิกตัวแรกของ list แล้วดึงค่าจาก key <code>"name"</code></td></tr>
+<tr><td><code>cart.append(...)</code> / <code>cart.pop()</code></td><td>เพิ่มสมาชิกท้าย list และดึงตัวสุดท้ายออกพร้อมคืนค่าตัวนั้นมาให้ <code>pop(0)</code> ใช้ดึงตัวแรก</td></tr>
+<tr><td><code>total += line["price"] * line["qty"]</code></td><td>วนสะสมยอดรวมแบบ for loop ได้ 90 + 50 + 105 + 40 = 285</td></tr>
+<tr><td><code>sum(line["price"] * line["qty"] for line in cart)</code></td><td>Generator Expression ส่งค่าทีละตัวเข้า <code>sum()</code> ได้ผลเท่ากันในบรรทัดเดียว</td></tr>
+<tr><td><code>sorted(cart, key=lambda line: line["price"], reverse=True)</code></td><td><code>key</code> บอกว่าจะเรียงตามอะไร <code>lambda</code> คือ Function สั้นไม่มีชื่อ ที่รับ <code>line</code> แล้วคืนราคา <code>reverse=True</code> เรียงมากไปน้อย</td></tr>
+<tr><td><code>nums.sort()</code> คืนค่า <code>None</code></td><td><code>sort()</code> เรียง list เดิมในที่ ไม่คืน list ใหม่ จึงห้ามเขียน <code>x = nums.sort()</code></td></tr>
+<tr><td><code>lat, lon = bangkok</code></td><td>Unpacking แยก tuple 2 ค่าออกเป็น 2 ตัวแปร จำนวนตัวแปรต้องเท่ากับจำนวนค่า</td></tr>
+<tr><td><code>set(provinces)</code></td><td>แปลง list เป็น set ค่าซ้ำ "เชียงใหม่" หายไป เหลือ 3 จังหวัด</td></tr>
+<tr><td><code>unique &amp; north</code>, <code>|</code>, <code>-</code></td><td>Intersection (มีทั้งสองชุด), Union (รวมทั้งหมด), Difference (มีในชุดแรกแต่ไม่มีในชุดสอง)</td></tr>
+<tr><td><code>phonebook["ปิติ"] = "..."</code></td><td>เพิ่ม key ใหม่ ถ้ามี key อยู่แล้วจะเป็นการแก้ค่า</td></tr>
+<tr><td><code>phonebook.get("สมชาย", "ไม่พบ")</code></td><td>ดึงค่าแบบปลอดภัย ถ้าไม่มี key จะคืนค่าเริ่มต้นแทนการเกิด <code>KeyError</code></td></tr>
+<tr><td><code>del phonebook["ปิติ"]</code></td><td>ลบ key ออกจาก dict</td></tr>
+<tr><td><code>for name, phone in phonebook.items():</code></td><td><code>.items()</code> ให้คู่ (key, value) ทีละคู่ dict จำลำดับที่เพิ่มเข้าไป</td></tr>
+<tr><td><code>{line["name"]: line["price"] * line["qty"] for line in cart}</code></td><td>Dict Comprehension สร้าง dict ใหม่ ชื่อสินค้า → ยอดของรายการนั้น</td></tr>
+<tr><td><code>[line["name"] for line in cart if line["price"] &gt;= 40]</code></td><td>List Comprehension พร้อมตัวกรอง <code>if</code> เก็บเฉพาะชื่อสินค้าราคาตั้งแต่ 40 บาท</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>KeyError: 'สมชาย'</code></td><td>ใช้ <code>phonebook["สมชาย"]</code> ทั้งที่ไม่มี key นี้</td><td>ใช้ <code>.get("สมชาย", "ไม่พบ")</code> หรือตรวจก่อนด้วย <code>if "สมชาย" in phonebook:</code></td></tr>
+<tr><td><code>IndexError: list index out of range</code></td><td>ขอสมาชิกที่ Index เกินความยาว เช่น list มี 1 ตัวแต่ขอ <code>[5]</code></td><td>ตรวจ <code>len()</code> ก่อน หรือวนด้วย <code>for</code> แทนการเข้าถึงด้วยเลข Index</td></tr>
+<tr><td><code>AttributeError: 'tuple' object has no attribute 'append'</code></td><td>tuple แก้ไขไม่ได้ จึงไม่มี <code>append</code></td><td>ใช้ list ถ้าต้องเพิ่มหรือลบ หรือสร้าง tuple ใหม่ <code>t = t + (3,)</code></td></tr>
+<tr><td><code>result = cart.sort()</code> แล้ว <code>result</code> เป็น <code>None</code></td><td><code>sort()</code> แก้ list เดิมและคืน <code>None</code></td><td>ใช้ <code>result = sorted(cart, key=...)</code> เมื่ออยากได้ list ใหม่</td></tr>
+<tr><td><code>TypeError: unhashable type: 'list'</code></td><td>ใช้ list เป็นสมาชิกของ set หรือเป็น key ของ dict เช่น <code>{[1, 2]}</code></td><td>ใช้ tuple แทน <code>{(1, 2)}</code> เพราะค่าที่เป็น key ต้องแก้ไขไม่ได้ (Hashable)</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ใช้ dict หรือ set เมื่อต้องค้นหาบ่อย การค้นใน set/dict ใช้เวลาเกือบคงที่ ส่วนการค้นใน list ต้องไล่ทีละตัว (จะวัดจริงในแนวคิดที่ 12)</li>
+<li>เขียน Comprehension เฉพาะเมื่ออ่านจบในบรรทัดเดียว ถ้ามี <code>if</code> ซ้อนหลายชั้น ให้ใช้ for loop ธรรมดา</li>
+<li>ใช้ <code>.get()</code> กับข้อมูลที่มาจากภายนอก (ไฟล์ API ผู้ใช้) ซึ่งอาจไม่มี key ที่คาดไว้</li>
+<li>อย่าแก้ list ระหว่างที่กำลังวน for อยู่ (เช่น <code>remove</code> ใน loop) ให้สร้าง list ใหม่ด้วย Comprehension แทน</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ฝึกเลือกโครงสร้างข้อมูลให้เหมาะกับงาน</p><ol>
+<li>เพิ่มสินค้า <code>{"name": "ชาเขียว", "price": 40, "qty": 2}</code> ด้วย <code>append</code> ก่อนคำนวณยอดรวม แล้วตรวจว่ายอดรวมเป็น 365</li>
+<li>เขียน List Comprehension หาชื่อสินค้าที่ซื้อตั้งแต่ 2 ชิ้นขึ้นไป</li>
+<li>ใช้ <code>phonebook.update({"สมชาย": "080-000-0000"})</code> แล้วพิมพ์ <code>phonebook.get("สมชาย", "ไม่พบ")</code> อีกครั้ง</li>
+<li>สร้าง set ของจังหวัดที่เพื่อนเคยไป แล้วหาจังหวัดที่ทั้งคุณและเพื่อนเคยไปด้วย <code>&amp;</code></li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 5</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h3 id="s9-2-c05">Functions: Parameters, Default, *args/**kwargs, Return, Type Hints และ Docstring</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p><strong>Function</strong> คือชุดคำสั่งที่ตั้งชื่อไว้แล้วเรียกใช้ซ้ำได้ เราใช้ Function มาตั้งแต่แนวคิดแรกแล้ว เช่น <code>print()</code>, <code>len()</code>, <code>round()</code> ตอนนี้เราจะสร้าง Function ของเราเองด้วย <code>def</code> เหตุผลที่ต้องใช้มี 3 ข้อ (1) <strong>ใช้ซ้ำ</strong> เขียนสูตรตัดเกรดครั้งเดียวแล้วเรียกได้ทุกที่ (2) <strong>ตั้งชื่อให้ความคิด</strong> <code>vat(price)</code> อ่านเข้าใจทันทีกว่าสูตรยาว ๆ (3) <strong>ทดสอบได้</strong> Function ที่รับค่าแล้วคืนค่า ตรวจได้ง่ายด้วย pytest (แนวคิดที่ 12) กฎง่าย ๆ คือ ถ้าเขียนโค้ดเดียวกันซ้ำครั้งที่สาม ให้แยกเป็น Function</p>
+<p>คำศัพท์ที่ต้องแยกให้ออก: <strong>Parameter</strong> คือชื่อตัวแปรที่ประกาศไว้ใน <code>def</code> ส่วน <strong>Argument</strong> คือค่าจริงที่ส่งตอนเรียก รายละเอียดที่ต้องรู้มีดังนี้:</p>
+<ul>
+<li><strong>Positional</strong> ส่งตามลำดับ <code>vat(1000, 0.1)</code> และ <strong>Keyword</strong> ส่งด้วยชื่อ <code>vat(1000, rate=0.1)</code> แบบ Keyword อ่านง่ายกว่าเมื่อมีหลาย Argument</li>
+<li><strong>Default</strong> <code>rate: float = 0.07</code> ทำให้ไม่ต้องส่งค่านั้นทุกครั้ง</li>
+<li><strong><code>return</code></strong> ส่งผลลัพธ์กลับไปให้ผู้เรียกใช้ต่อ ต่างจาก <code>print</code> ที่แค่แสดงบนจอ Function ที่ไม่มี <code>return</code> จะคืน <code>None</code> และถ้า <code>return a, b</code> จะได้ tuple</li>
+<li><strong>Scope</strong> ตัวแปรที่สร้างใน Function เป็น Local ใช้ได้แค่ข้างใน ไม่กระทบตัวแปร Global ชื่อเดียวกัน</li>
+<li><strong><code>*args</code></strong> รับ Positional กี่ตัวก็ได้ (ได้เป็น tuple) และ <strong><code>**kwargs</code></strong> รับ Keyword กี่ตัวก็ได้ (ได้เป็น dict) Parameter ที่อยู่หลัง <code>*</code> เดี่ยว ๆ ต้องส่งแบบ Keyword เท่านั้น (Keyword-only)</li>
+<li><strong>Type Hint</strong> เช่น <code>score: int</code>, <code>-&gt; str</code>, <code>list[float]</code>, <code>dict[str, int]</code>, <code>str | None</code> เป็นคำอธิบายให้คนและเครื่องมืออย่าง VS Code (Pylance) หรือ mypy ตรวจ แต่ <strong>Python ไม่บังคับตอนรัน</strong></li>
+<li><strong>Docstring</strong> คือข้อความใน <code>"""..."""</code> บรรทัดแรกใต้ <code>def</code> แสดงผ่าน <code>help(vat)</code> หรือ <code>vat.__doc__</code> และ VS Code จะโชว์ตอนเอาเมาส์ชี้</li>
+</ul>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Function เหมือน <strong>เครื่องชงกาแฟอัตโนมัติ</strong> Parameter คือช่องใส่ของที่ออกแบบไว้ (เมล็ดกาแฟ นม ระดับความหวาน) Argument คือของจริงที่เราใส่ตอนกดชง ค่า Default คือ "หวานปกติ" ถ้าไม่เลือก <code>return</code> คือแก้วกาแฟที่ไหลออกมาให้เราถือไปใช้ต่อ ส่วน <code>print</code> เหมือนเครื่องแค่ขึ้นข้อความบนหน้าจอว่า "ชงแล้ว" แต่ไม่มีแก้วออกมา Docstring คือฉลากวิธีใช้ที่แปะข้างเครื่อง</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>สร้างไฟล์ <code>~/projects/python-lab/functions_demo.py</code> ตั้งแต่แนวคิดนี้ไป ทุก Function ในหลักสูตรจะมี Type Hint</p>
+<pre class="code" data-env="file" data-label="Python · functions_demo.py"><code class="language-python"># functions_demo.py : สร้างและเรียกใช้ Function แบบต่าง ๆ
+
+
+def grade(score: int) -&gt; str:
+    """คืนเกรด A-F จากคะแนน 0-100"""
+    if score &gt;= 80:
+        return "A"
+    if score &gt;= 70:
+        return "B"
+    if score &gt;= 60:
+        return "C"
+    if score &gt;= 50:
+        return "D"
+    return "F"
+
+
+def average(*numbers: float) -&gt; float:
+    """หาค่าเฉลี่ยของตัวเลขกี่ตัวก็ได้"""
+    if not numbers:
+        raise ValueError("ต้องส่งตัวเลขอย่างน้อย 1 ตัว")
+    return sum(numbers) / len(numbers)
+
+
+def vat(amount: float, rate: float = 0.07) -&gt; float:
+    """คำนวณภาษีมูลค่าเพิ่ม
+
+    amount: ราคาก่อนภาษี
+    rate: อัตราภาษี ค่าเริ่มต้น 0.07 (7%)
+    """
+    return round(amount * rate, 2)
+
+
+def describe(name: str, **info: str) -&gt; str:
+    """สร้างข้อความแนะนำตัวจากข้อมูลที่ส่งมาแบบ keyword"""
+    details = ", ".join(f"{key}={value}" for key, value in info.items())
+    return f"{name} ({details})"
+
+
+def split_bill(total: float, people: int, *, tip: float = 0.0) -&gt; tuple[float, float]:
+    """หารค่าอาหาร คืน (ยอดรวมทิป, ยอดต่อคน) โดย tip ต้องส่งแบบ keyword"""
+    grand_total = total * (1 + tip)
+    return round(grand_total, 2), round(grand_total / people, 2)
+
+
+def add_item_bad(item: str, basket: list[str] = []) -&gt; list[str]:  # noqa: B006
+    """ตัวอย่างที่ผิด: list ค่าเริ่มต้นถูกสร้างครั้งเดียวแล้วใช้ร่วมกัน"""
+    basket.append(item)
+    return basket
+
+
+def add_item(item: str, basket: list[str] | None = None) -&gt; list[str]:
+    """ตัวอย่างที่ถูก: ใช้ None แล้วสร้าง list ใหม่ทุกครั้ง"""
+    if basket is None:
+        basket = []
+    basket.append(item)
+    return basket
+
+
+counter = 0  # ตัวแปร global
+
+
+def show_scope() -&gt; None:
+    """แสดงว่าตัวแปรใน Function เป็นของ Function นั้นเท่านั้น"""
+    counter = 99  # ตัวแปร local คนละตัวกับ global
+    print("ใน Function counter =", counter)
+
+
+print("=== return ค่ากลับ ===")
+print("grade(85) =", grade(85))
+print("grade(score=55) =", grade(score=55))
+print("average(80, 90, 100) =", average(80, 90, 100))
+
+print("=== ค่าเริ่มต้นและ keyword ===")
+print("vat(1000) =", vat(1000))
+print("vat(1000, rate=0.1) =", vat(1000, rate=0.1))
+print(describe("สมศรี", city="ขอนแก่น", job="Data Analyst"))
+
+print("=== คืนหลายค่า ===")
+grand, each = split_bill(1250, 4, tip=0.1)
+print(f"รวมทิป {grand:,.2f} บาท | คนละ {each:,.2f} บาท")
+
+print("=== ขอบเขตตัวแปร ===")
+show_scope()
+print("นอก Function counter =", counter)
+
+print("=== กับดัก mutable default ===")
+print(add_item_bad("นม"))
+print(add_item_bad("ไข่"))
+print(add_item("นม"))
+print(add_item("ไข่"))
+
+print("=== type hint ไม่ถูกบังคับตอนรัน ===")
+print("grade(85.5) =", grade(85.5))
+
+print("=== docstring ===")
+print(vat.__doc__)
+
+print("=== lambda ===")
+drinks = [("ชาไทย", 45), ("กาแฟ", 55), ("น้ำเปล่า", 10)]
+print(sorted(drinks, key=lambda drink: drink[1]))</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/python-lab
+python3 functions_demo.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>=== return ค่ากลับ ===
+grade(85) = A
+grade(score=55) = D
+average(80, 90, 100) = 90.0
+=== ค่าเริ่มต้นและ keyword ===
+vat(1000) = 70.0
+vat(1000, rate=0.1) = 100.0
+สมศรี (city=ขอนแก่น, job=Data Analyst)
+=== คืนหลายค่า ===
+รวมทิป 1,375.00 บาท | คนละ 343.75 บาท
+=== ขอบเขตตัวแปร ===
+ใน Function counter = 99
+นอก Function counter = 0
+=== กับดัก mutable default ===
+['นม']
+['นม', 'ไข่']
+['นม']
+['ไข่']
+=== type hint ไม่ถูกบังคับตอนรัน ===
+grade(85.5) = A
+=== docstring ===
+คำนวณภาษีมูลค่าเพิ่ม
+
+    amount: ราคาก่อนภาษี
+    rate: อัตราภาษี ค่าเริ่มต้น 0.07 (7%)
+    
+=== lambda ===
+[('น้ำเปล่า', 10), ('ชาไทย', 45), ('กาแฟ', 55)]</code></pre>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>def grade(score: int) -&gt; str:</code></td><td>ประกาศ Function ชื่อ <code>grade</code> รับ Parameter <code>score</code> (ควรเป็น int) และคืนค่า str โค้ดข้างในต้องย่อหน้า</td></tr>
+<tr><td><code>return "A"</code> หลาย ๆ จุด</td><td><code>return</code> จบ Function ทันที จึงใช้ <code>if</code> ธรรมดาเรียงกันแทน <code>elif</code> ได้</td></tr>
+<tr><td><code>def average(*numbers: float)</code></td><td><code>*numbers</code> รวบทุก Positional Argument เป็น tuple <code>(80, 90, 100)</code></td></tr>
+<tr><td><code>if not numbers: raise ValueError(...)</code></td><td>tuple ว่างเป็น Falsy ถ้าไม่มีตัวเลขเลยจะโยน Error พร้อมข้อความชัดเจน แทนที่จะไปเจอ <code>ZeroDivisionError</code> ที่งงกว่า (เรื่อง <code>raise</code> ละเอียดในแนวคิดที่ 8)</td></tr>
+<tr><td><code>def vat(amount: float, rate: float = 0.07)</code></td><td><code>rate</code> มีค่า Default ถ้าเรียก <code>vat(1000)</code> จะใช้ 0.07 Docstring หลายบรรทัดอธิบายแต่ละ Parameter</td></tr>
+<tr><td><code>def describe(name: str, **info: str)</code></td><td><code>**info</code> รวบ Keyword Argument ที่ไม่ได้ประกาศไว้เป็น dict <code>{"city": "ขอนแก่น", "job": "Data Analyst"}</code></td></tr>
+<tr><td><code>def split_bill(total, people, *, tip=0.0)</code></td><td><code>*</code> เดี่ยว ๆ บังคับให้ <code>tip</code> ส่งแบบ <code>tip=0.1</code> เท่านั้น ป้องกันการส่งตัวเลขผิดตำแหน่ง</td></tr>
+<tr><td><code>-&gt; tuple[float, float]</code> และ <code>grand, each = split_bill(...)</code></td><td>คืน 2 ค่าเป็น tuple แล้วแยกเก็บด้วย Unpacking</td></tr>
+<tr><td><code>show_scope()</code></td><td><code>counter = 99</code> ใน Function สร้างตัวแปร Local ใหม่ ตัวแปร Global <code>counter</code> ยังเป็น 0</td></tr>
+<tr><td><code>add_item_bad(item, basket=[])</code></td><td>list Default ถูกสร้าง <strong>ครั้งเดียว</strong> ตอน <code>def</code> ทำงาน การเรียกครั้งที่สองจึงเห็น "นม" จากครั้งแรก <code># noqa: B006</code> บอก ruff ว่าเราตั้งใจเขียนผิดเพื่อสาธิต</td></tr>
+<tr><td><code>basket: list[str] | None = None</code></td><td>วิธีที่ถูก: Default เป็น <code>None</code> แล้วสร้าง list ใหม่ใน Function ทุกครั้งที่เรียก</td></tr>
+<tr><td><code>grade(85.5)</code></td><td>ส่ง float ทั้งที่ Hint บอก int ก็ยังรันได้ เพราะ Type Hint ไม่ถูกบังคับตอนรัน แต่ VS Code หรือ mypy จะเตือนตอนเขียน</td></tr>
+<tr><td><code>print(vat.__doc__)</code></td><td>แสดง Docstring ดิบ (รวมช่องว่างย่อหน้า) ใน REPL พิมพ์ <code>help(vat)</code> จะได้หน้าคู่มือที่จัดรูปแบบสวยกว่า</td></tr>
+<tr><td><code>key=lambda drink: drink[1]</code></td><td><code>lambda</code> คือ Function สั้นหนึ่งบรรทัดไม่มีชื่อ ใช้ส่งเป็น Argument ให้ <code>sorted</code> เรียงตามราคา</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>TypeError: grade() missing 1 required positional argument: 'score'</code></td><td>เรียก <code>grade()</code> โดยไม่ส่ง Argument ที่จำเป็น</td><td>ส่งค่าให้ครบทุก Parameter ที่ไม่มี Default หรือเพิ่ม Default ถ้าเหมาะสม</td></tr>
+<tr><td><code>TypeError: split_bill() takes 2 positional arguments but 3 were given</code></td><td>ส่ง <code>split_bill(1250, 4, 0.1)</code> แต่ <code>tip</code> เป็น Keyword-only</td><td>เรียกเป็น <code>split_bill(1250, 4, tip=0.1)</code></td></tr>
+<tr><td><code>TypeError: unsupported operand type(s) for +: 'NoneType' and 'int'</code></td><td>Function ใช้ <code>print()</code> แสดงผลแต่ไม่มี <code>return</code> ค่าที่ได้จึงเป็น <code>None</code> แล้วนำไปบวกต่อ</td><td>ใช้ <code>return</code> ใน Function ที่คำนวณ และให้ผู้เรียกเป็นคนตัดสินใจว่าจะ <code>print</code> หรือไม่</td></tr>
+<tr><td><code>UnboundLocalError: cannot access local variable 'total' where it is not associated with a value</code></td><td>ใน Function มี <code>total = total + x</code> Python ถือว่า <code>total</code> เป็น Local แต่ยังไม่มีค่า</td><td>ส่งค่าเข้ามาเป็น Parameter แล้ว <code>return</code> ค่าใหม่กลับไป แทนการแก้ตัวแปร Global (ใช้ <code>global</code> เฉพาะกรณีจำเป็นจริง)</td></tr>
+<tr><td>list Default สะสมค่าจากการเรียกครั้งก่อน (ไม่มี Error)</td><td>ใช้ <code>[]</code> หรือ <code>{}</code> เป็นค่า Default</td><td>ใช้ <code>None</code> เป็น Default แล้วสร้างใหม่ข้างใน ruff กฎ B006 ช่วยจับให้อัตโนมัติ</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>Function หนึ่งตัวทำงานเดียว ตั้งชื่อเป็นคำกริยา เช่น <code>calculate_vat</code>, <code>load_expenses</code></li>
+<li>Function ที่คำนวณควร <code>return</code> ค่า ไม่ <code>print</code> เอง เพื่อให้นำไปใช้ต่อและทดสอบได้</li>
+<li>ใส่ Type Hint และ Docstring ให้ Function ที่คนอื่นจะเรียกใช้ ทีมส่วนใหญ่ใช้ mypy (เช่นเวอร์ชัน 2.4.0) หรือ Pylance ตรวจ Type ใน CI</li>
+<li>ใช้ Keyword-only (<code>*</code>) กับ Parameter ที่เป็นตัวเลือกหรือ Flag เพื่อให้จุดที่เรียกอ่านเข้าใจทันที เช่น <code>split_bill(1250, 4, tip=0.1)</code></li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>เพิ่ม Function ใหม่ใน <code>functions_demo.py</code></p><ol>
+<li>เขียน <code>def bmi(weight_kg: float, height_m: float) -&gt; float:</code> คืนค่า BMI ปัด 1 ตำแหน่ง ทดสอบ <code>bmi(60, 1.65)</code> ควรได้ 22.0</li>
+<li>เพิ่ม Docstring ให้ <code>bmi</code> แล้วพิมพ์ <code>bmi.__doc__</code></li>
+<li>เขียน <code>def total_price(*prices: float, discount: float = 0.0) -&gt; float:</code> ที่รวมราคาทุกตัวแล้วหักส่วนลด ทดสอบ <code>total_price(100, 200, discount=0.1)</code> ควรได้ 270.0</li>
+<li>เรียก <code>average()</code> โดยไม่ส่งอะไรเลย แล้วอ่านบรรทัดสุดท้ายของ Traceback ว่าได้ <code>ValueError</code> พร้อมข้อความภาษาไทยที่เราเขียนไว้</li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 6</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h3 id="s9-2-c06">Modules, Packages, if __name__ == "__main__", venv, pip และ requirements.txt (พร้อมเรียก HTTP API ในเครื่อง)</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>เมื่อโปรแกรมยาวขึ้น การเขียนทุกอย่างในไฟล์เดียวจะอ่านยากและแก้ยาก Python แบ่งโค้ดเป็นชิ้นได้ 2 ระดับ <strong>Module</strong> คือไฟล์ <code>.py</code> หนึ่งไฟล์ ไฟล์อื่นนำไปใช้ได้ด้วย <code>import convert</code>, <code>from convert import format_baht</code> หรือ <code>import datetime as dt</code> (ตั้งชื่อย่อ) ส่วน <strong>Package</strong> คือโฟลเดอร์ที่รวมหลาย Module และมีไฟล์ <code>__init__.py</code> ซึ่งทำงานตอนที่ Package ถูก import ครั้งแรก นิยมใช้เลือกว่าจะเปิดให้ภายนอกใช้ Function ไหนบ้าง</p>
+<p>ตอน <code>import</code> Python จะหา Module ตามรายการโฟลเดอร์ใน <code>sys.path</code> โดย <strong>โฟลเดอร์ของ Script ที่รันอยู่มาก่อน</strong> แล้วจึงเป็น Standard Library และ Package ใน venv ผลที่ตามมาคือ ถ้าเราตั้งชื่อไฟล์ว่า <code>random.py</code>, <code>csv.py</code> หรือ <code>requests.py</code> Python จะ import ไฟล์ของเราแทนของจริง ทุกไฟล์ยังมีตัวแปรพิเศษ <code>__name__</code> ถ้ารันไฟล์นั้นโดยตรง ค่าจะเป็น <code>"__main__"</code> ถ้าถูก import ค่าจะเป็นชื่อ Module เราจึงเขียน <code>if __name__ == "__main__":</code> เพื่อแยก "โค้ดที่รันเมื่อเป็นโปรแกรมหลัก" ออกจาก "Function ที่ให้คนอื่น import"</p>
+<p>ส่วน Package ภายนอก เช่น <code>requests</code> มาจาก PyPI (pypi.org) และติดตั้งด้วย <code>pip</code> บน Ubuntu 24.04 ระบบห้ามติดตั้งลง Python ของระบบโดยตรง (มาตรฐาน PEP 668) เพราะ Ubuntu เองก็ใช้ Python ทำงานหลายอย่าง ถ้า Package ของเราไปทับเวอร์ชันที่ระบบต้องการ เครื่องมือของระบบอาจพัง ทางแก้คือ <strong>Virtual Environment (venv)</strong> ซึ่งเป็นโฟลเดอร์ <code>.venv</code> ที่มี Python และ Package แยกเฉพาะโปรเจกต์ แล้วบันทึกรายชื่อ Package พร้อมเวอร์ชันลง <code>requirements.txt</code> ให้คนอื่นสร้างสภาพแวดล้อมเหมือนเราได้ทุกตัวอักษร</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Module เหมือน <strong>บทหนึ่งในหนังสือ</strong> Package เหมือน <strong>หนังสือทั้งเล่ม</strong> ที่มีสารบัญ (<code>__init__.py</code>) ส่วน venv เหมือน <strong>กล่องเครื่องมือของแต่ละงาน</strong> ช่างไฟกับช่างประปามีกล่องของตัวเอง ไม่หยิบเครื่องมือของบ้าน (ระบบ) ไปใช้จนพัง และ <code>requirements.txt</code> คือ <strong>ใบรายการเครื่องมือ</strong> ที่ระบุยี่ห้อและรุ่น ใครได้ใบนี้ไปก็จัดกล่องได้เหมือนกันทุกชิ้น</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>เริ่มจากดูว่าทำไมต้องใช้ venv ลองรัน <code>pip</code> ตอนที่ <strong>ยังไม่ได้ activate</strong> venv (ใน Prompt ไม่มี <code>(.venv)</code>)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">deactivate 2&gt;/dev/null
+python3 -m pip install requests</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>error: externally-managed-environment
+
+× This environment is externally managed
+╰─&gt; To install Python packages system-wide, try apt install
+    python3-xyz, where xyz is the package you are trying to
+    install.
+
+    If you wish to install a non-Debian-packaged Python package,
+    create a virtual environment using python3 -m venv path/to/venv.
+    Then use path/to/venv/bin/python and path/to/venv/bin/pip. Make
+    sure you have python3-full installed.
+
+    If you wish to install a non-Debian packaged Python application,
+    it may be easiest to use pipx install xyz, which will manage a
+    virtual environment for you. Make sure you have pipx installed.
+
+    See /usr/share/doc/python3.12/README.venv for more information.
+
+note: If you believe this is a mistake, please contact your Python installation or OS distribution provider. You can override this, at the risk of breaking your Python installation or OS, by passing --break-system-packages.
+hint: See PEP 668 for the detailed specification.</code></pre>
+<p>ข้อความนี้บอกตรง ๆ ว่าให้สร้าง venv อย่าใช้ <code>--break-system-packages</code> แก้ปัญหานี้ ต่อไปเปิด venv ที่สร้างไว้ในหัวข้อเตรียมเครื่อง แล้วติดตั้ง <code>requests</code> แบบระบุเวอร์ชัน (ใช้เครื่องหมายคำพูดครอบ เพื่อไม่ให้ Bash ตีความเครื่องหมาย <code>=</code>)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">sudo apt install -y python3-venv python3-pip
+cd ~/projects/python-lab
+source .venv/bin/activate
+which python3
+python3 -m pip install "requests==2.34.2"
+python3 -m pip freeze &gt; requirements.txt
+cat requirements.txt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>/home/somchai/projects/python-lab/.venv/bin/python3
+Installing collected packages: urllib3, idna, charset_normalizer, certifi, requests
+Successfully installed certifi-2026.10.19 charset_normalizer-3.5.2 idna-3.20 requests-2.34.2 urllib3-2.8.0
+certifi==2026.10.19
+charset-normalizer==3.5.2
+idna==3.20
+requests==2.34.2
+urllib3==2.8.0</code></pre>
+<p>ผลลัพธ์ด้านบนตัดบรรทัด <code>Collecting ...</code> และ <code>Downloading ...</code> ที่อยู่ก่อน <code>Installing collected packages</code> ออก เพื่อให้เห็นส่วนสำคัญ ในเครื่องของคุณจะเห็นบรรทัดเหล่านั้นด้วย <code>requests</code> ดึง Package อื่นที่มันต้องใช้ (Dependency) มาอีก 4 ตัว และ <code>pip freeze</code> บันทึกครบทุกตัวพร้อมเวอร์ชัน</p>
+<p>ต่อไปสร้างโปรเจกต์ย่อย <code>~/projects/python-lab/pkg-lab</code> โครงสร้างไฟล์เป็นดังนี้</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Plaintext · โครงสร้างโฟลเดอร์"><code class="language-plaintext">pkg-lab/
+├── fetch_rates.py        # โปรแกรมหลัก
+├── public/
+│   └── rates.json        # ข้อมูลที่ http.server จะส่งให้
+└── thaimoney/            # Package ของเรา
+    ├── __init__.py
+    └── convert.py</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/python-lab/pkg-lab/thaimoney ~/projects/python-lab/pkg-lab/public
+cd ~/projects/python-lab/pkg-lab</code></pre>
+<pre class="code" data-env="file" data-label="JSON · public/rates.json"><code class="language-json">{"base": "THB", "date": "2026-10-19", "rates": {"USD": 0.0305, "JPY": 4.62, "EUR": 0.0281}}</code></pre>
+<pre class="code" data-env="file" data-label="Python · thaimoney/convert.py"><code class="language-python">"""ฟังก์ชันจัดรูปแบบเงินบาทและแปลงสกุลเงิน"""
+
+
+def format_baht(amount: float) -&gt; str:
+    """คืนข้อความเงินบาท เช่น 1234.5 -&gt; '1,234.50 บาท'"""
+    return f"{amount:,.2f} บาท"
+
+
+def thb_to(amount: float, rate: float) -&gt; float:
+    """แปลงเงินบาทเป็นสกุลอื่นตามอัตรา (1 บาท = rate หน่วย)"""
+    return round(amount * rate, 2)
+
+
+# บรรทัดสาธิต: แสดงค่า __name__ ทุกครั้งที่ไฟล์นี้ถูกโหลด (งานจริงไม่ควร print ตอน import)
+print(f"[convert.py] __name__ = {__name__}")
+
+if __name__ == "__main__":
+    # ส่วนนี้ทำงานเฉพาะตอนรันไฟล์นี้โดยตรง ไม่ทำงานตอนถูก import
+    print("ทดสอบ format_baht:", format_baht(1234.5))
+    print("ทดสอบ thb_to:", thb_to(1000, 0.0305))</code></pre>
+<pre class="code" data-env="file" data-label="Python · thaimoney/__init__.py"><code class="language-python">"""thaimoney: Package เล็ก ๆ สำหรับจัดรูปแบบและแปลงสกุลเงินบาท"""
+
+from thaimoney.convert import format_baht, thb_to
+
+__all__ = ["format_baht", "thb_to"]</code></pre>
+<pre class="code" data-env="file" data-label="Python · fetch_rates.py"><code class="language-python">"""ดึงอัตราแลกเปลี่ยนจาก HTTP API ในเครื่อง แล้วแสดงเงิน 1,000 บาทในแต่ละสกุล"""
+
+import requests
+
+from thaimoney import format_baht, thb_to
+
+RATES_URL = "http://127.0.0.1:8000/rates.json"
+
+
+def fetch_rates(url: str) -&gt; dict:
+    """เรียก API แล้วคืนข้อมูล JSON เป็น dict"""
+    response = requests.get(url, timeout=5)  # รอไม่เกิน 5 วินาที
+    print("Status code:", response.status_code)
+    response.raise_for_status()  # ถ้าเป็น 4xx/5xx จะโยน HTTPError
+    return response.json()
+
+
+def main() -&gt; None:
+    data = fetch_rates(RATES_URL)
+    amount = 1000
+    print(f"อัตราวันที่ {data['date']} (ฐาน {data['base']})")
+    for currency, rate in data["rates"].items():
+        print(f"{format_baht(amount)} = {thb_to(amount, rate):,.2f} {currency}")
+
+
+if __name__ == "__main__":
+    main()</code></pre>
+<p>ขั้นแรก ทดสอบ <code>__name__</code> โดยรัน <code>convert.py</code> ตรง ๆ เทียบกับการ import</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/python-lab/pkg-lab
+python3 thaimoney/convert.py
+python3 -c "import thaimoney; print(thaimoney.format_baht(99))"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[convert.py] __name__ = __main__
+ทดสอบ format_baht: 1,234.50 บาท
+ทดสอบ thb_to: 30.5
+[convert.py] __name__ = thaimoney.convert
+99.00 บาท</code></pre>
+<p>ขั้นที่สอง เปิด Terminal 2 หน้าต่าง <strong>Terminal 1</strong> ใช้เปิด Web Server ในเครื่องที่ส่งไฟล์ในโฟลเดอร์ <code>public/</code> (ปล่อยหน้าต่างนี้ทิ้งไว้ ปิดด้วย <kbd>Ctrl</kbd>+<kbd>C</kbd> เมื่อเลิกใช้)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 1"><code class="language-bash">cd ~/projects/python-lab/pkg-lab/public
+python3 -m http.server 8000 --bind 127.0.0.1</code></pre>
+<p><strong>Terminal 2</strong> ใช้รันโปรแกรม (ต้อง activate venv ในหน้าต่างนี้ด้วย เพราะแต่ละหน้าต่างแยกกัน)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 2"><code class="language-bash">cd ~/projects/python-lab
+source .venv/bin/activate
+cd pkg-lab
+python3 fetch_rates.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · Terminal 2"><code>[convert.py] __name__ = thaimoney.convert
+Status code: 200
+อัตราวันที่ 2026-10-19 (ฐาน THB)
+1,000.00 บาท = 30.50 USD
+1,000.00 บาท = 4,620.00 JPY
+1,000.00 บาท = 28.10 EUR</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · Terminal 1"><code>Serving HTTP on 127.0.0.1 port 8000 (http://127.0.0.1:8000/) ...
+127.0.0.1 - - [20/Oct/2026 03:59:20] "GET /rates.json HTTP/1.1" 200 -</code></pre>
+<p>Terminal 1 แสดง Log ทุกครั้งที่มีคนขอไฟล์ วันเวลาในวงเล็บเหลี่ยมในเครื่องของคุณจะต่างไป รหัส <code>200</code> แปลว่าสำเร็จ ถ้าขอไฟล์ที่ไม่มี เช่น <code>/nope.json</code> จะได้ <code>404</code> (ไม่พบ) และ <code>raise_for_status()</code> จะโยน <code>requests.exceptions.HTTPError: 404 Client Error: File not found for url: http://127.0.0.1:8000/nope.json</code> ทางเลือกที่นิยมอีกตัวคือ <code>httpx</code> (0.28.1) ซึ่งใช้ <code>httpx.get(url, timeout=5)</code> และ <code>.json()</code> แบบเดียวกัน การจัดการ Error ของ HTTP แบบละเอียดจะอยู่ใน Part 3 และ Part 4</p>
+<p>ปิดท้ายด้วยการสร้างไฟล์ <code>.gitignore</code> ที่ <code>~/projects/python-lab</code> เพื่อไม่ให้ venv ขึ้น Git (venv มีไฟล์หลายพันไฟล์และผูกกับเครื่องของเรา) แล้วทดลองสร้าง venv ใหม่จาก <code>requirements.txt</code></p>
+<pre class="code" data-env="file" data-label="Plaintext · .gitignore"><code class="language-plaintext">.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/python-lab
+deactivate
+rm -rf .venv
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+python3 -m pip freeze</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output (บรรทัดท้าย)"><code>Successfully installed certifi-2026.10.19 charset-normalizer-3.5.2 idna-3.20 requests-2.34.2 urllib3-2.8.0
+certifi==2026.10.19
+charset-normalizer==3.5.2
+idna==3.20
+requests==2.34.2
+urllib3==2.8.0</code></pre>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>source .venv/bin/activate</code></td><td>เปิดใช้ venv ทำให้ <code>python3</code> และ <code>pip</code> ชี้ไปที่ <code>.venv/bin/</code> ตรวจได้ด้วย <code>which python3</code></td></tr>
+<tr><td><code>python3 -m pip install "requests==2.34.2"</code></td><td>ใช้ <code>python3 -m pip</code> เพื่อให้แน่ใจว่าติดตั้งลง Python ตัวเดียวกับที่รัน <code>==</code> ล็อกเวอร์ชันให้ตรง</td></tr>
+<tr><td><code>pip freeze &gt; requirements.txt</code></td><td>บันทึก Package ทุกตัวใน venv พร้อมเวอร์ชันลงไฟล์ (ควร Commit ไฟล์นี้)</td></tr>
+<tr><td><code>pip install -r requirements.txt</code></td><td>ติดตั้งทุก Package ตามไฟล์ ใช้ตอน Clone โปรเจกต์มาเครื่องใหม่</td></tr>
+<tr><td><code>thaimoney/convert.py</code></td><td>Module ที่มี 2 Function คือ <code>format_baht</code> (จัดรูปแบบ <code>1,234.50 บาท</code>) และ <code>thb_to</code> (คูณอัตราแลกเปลี่ยน)</td></tr>
+<tr><td><code>print(f"[convert.py] __name__ = {__name__}")</code></td><td>บรรทัดสาธิต รันตรงได้ <code>__main__</code> ถูก import ได้ <code>thaimoney.convert</code></td></tr>
+<tr><td><code>if __name__ == "__main__":</code></td><td>บล็อกทดสอบนี้ทำงานเฉพาะตอนรัน <code>python3 thaimoney/convert.py</code> ตอนถูก import จะไม่ทำงาน</td></tr>
+<tr><td><code>from thaimoney.convert import format_baht, thb_to</code> ใน <code>__init__.py</code></td><td>ยก Function ขึ้นมาที่ระดับ Package ผู้ใช้จึงเขียน <code>from thaimoney import format_baht</code> ได้เลย <code>__all__</code> บอกว่าอะไรคือส่วนสาธารณะ</td></tr>
+<tr><td><code>import requests</code> แล้วเว้นบรรทัด <code>from thaimoney import ...</code></td><td>เรียง import เป็นกลุ่ม: Standard Library, Package ภายนอก, Package ของเรา (ruff กฎ I จัดให้อัตโนมัติ)</td></tr>
+<tr><td><code>requests.get(url, timeout=5)</code></td><td>ส่ง HTTP GET ไปที่ URL ถ้า Server ไม่ตอบใน 5 วินาทีให้เลิกรอ ถ้าไม่ใส่ timeout โปรแกรมอาจค้างตลอดไป</td></tr>
+<tr><td><code>response.status_code</code></td><td>รหัสสถานะ HTTP: 200 สำเร็จ, 404 ไม่พบ, 500 Server ผิดพลาด</td></tr>
+<tr><td><code>response.raise_for_status()</code></td><td>ถ้ารหัสเป็น 4xx หรือ 5xx ให้โยน <code>HTTPError</code> แทนที่จะทำงานต่อด้วยข้อมูลผิด</td></tr>
+<tr><td><code>response.json()</code></td><td>แปลงข้อความ JSON ที่ได้เป็น dict ของ Python</td></tr>
+<tr><td><code>for currency, rate in data["rates"].items():</code></td><td>วนทุกสกุลเงินใน dict ย่อย <code>rates</code> แล้วแสดงเงิน 1,000 บาทในสกุลนั้น</td></tr>
+<tr><td><code>python3 -m http.server 8000 --bind 127.0.0.1</code></td><td>Web Server ในตัว Python ส่งไฟล์ในโฟลเดอร์ปัจจุบัน <code>--bind 127.0.0.1</code> ให้เข้าได้จากเครื่องเราเท่านั้น</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>error: externally-managed-environment</code></td><td>รัน <code>pip install</code> นอก venv บน Ubuntu 24.04</td><td><code>source .venv/bin/activate</code> ก่อน แล้วตรวจว่า Prompt มี <code>(.venv)</code> ห้ามแก้ด้วย <code>--break-system-packages</code></td></tr>
+<tr><td><code>ModuleNotFoundError: No module named 'requests'</code></td><td>ติดตั้งแล้วแต่ลืม activate venv ในหน้าต่าง Terminal นี้ หรือ VS Code เลือก Interpreter ผิดตัว</td><td>activate venv แล้วรันใหม่ ใน VS Code เลือก <code>./.venv/bin/python</code> ผ่าน <code>Python: Select Interpreter</code></td></tr>
+<tr><td><code>ModuleNotFoundError: No module named 'thaimoney'</code></td><td>รันจากโฟลเดอร์ที่ไม่มี Package อยู่ข้างใน เช่น อยู่ที่ <code>~/projects/python-lab</code> แล้วพิมพ์ <code>python3 -c "import thaimoney"</code> ซึ่ง Python จะค้นหาในโฟลเดอร์ปัจจุบัน ไม่ได้มองลงไปใน <code>pkg-lab/</code></td><td><code>cd</code> เข้าโฟลเดอร์ที่มี Package (<code>pkg-lab</code>) ก่อนรัน ตรวจได้ด้วย <code>python3 -c "import sys; print(sys.path)"</code></td></tr>
+<tr><td><code>AttributeError: partially initialized module 'random' has no attribute 'randint' (most likely due to a circular import)</code></td><td>ตั้งชื่อไฟล์ของเราว่า <code>random.py</code> Python จึง import ไฟล์ตัวเองแทน Standard Library</td><td>เปลี่ยนชื่อไฟล์ เช่น <code>dice_game.py</code> และลบโฟลเดอร์ <code>__pycache__</code> ที่เกิดจากชื่อเดิม</td></tr>
+<tr><td><code>requests.exceptions.ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8000): Max retries exceeded with url: /rates.json (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8000): Failed to establish a new connection: [Errno 111] Connection refused"))</code></td><td>ยังไม่ได้เปิด <code>http.server</code> ใน Terminal 1 หรือเปิดคนละ Port</td><td>เปิด Server ก่อน แล้วตรวจว่า Port ตรงกัน (8000) ทดสอบด้วย <code>curl http://127.0.0.1:8000/rates.json</code></td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>หนึ่งโปรเจกต์ หนึ่ง venv ชื่อ <code>.venv</code> อยู่ที่รากโปรเจกต์ และใส่ <code>.venv/</code> ใน <code>.gitignore</code> เสมอ</li>
+<li>ล็อกเวอร์ชันทุก Package ใน <code>requirements.txt</code> แล้ว Commit ไฟล์นี้ ทีมจะได้ผลลัพธ์เหมือนกันทุกเครื่อง</li>
+<li>ทุกไฟล์ที่รันได้ควรมี <code>def main()</code> และ <code>if __name__ == "__main__": main()</code> เพื่อให้ import ไปทดสอบได้โดยไม่รันโปรแกรมทั้งก้อน</li>
+<li>ใส่ <code>timeout</code> ทุกครั้งที่เรียก HTTP และอย่าเขียน API Key ไว้ในโค้ด ให้อ่านจาก Environment Variable เช่น <code>os.environ.get("RATES_API_KEY")</code> ถ้าไม่มี Key ให้ใช้ข้อมูลในเครื่องแทน</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ต่อยอด <code>pkg-lab</code></p><ol>
+<li>เพิ่ม <code>"SGD": 0.0395</code> ใน <code>public/rates.json</code> แล้วรัน <code>fetch_rates.py</code> ใหม่ (ไม่ต้องปิด Server) ควรเห็น <code>1,000.00 บาท = 39.50 SGD</code></li>
+<li>เพิ่ม Function <code>to_satang(amount: float) -&gt; int</code> ใน <code>convert.py</code> แล้ว export ผ่าน <code>__init__.py</code> และ <code>__all__</code></li>
+<li>แก้ <code>RATES_URL</code> ให้ชี้ไปที่ <code>/nope.json</code> แล้วอ่าน <code>HTTPError</code> ที่ได้ จากนั้นแก้กลับ</li>
+<li>ปิด Server ใน Terminal 1 แล้วรัน <code>fetch_rates.py</code> อีกครั้ง เพื่อดู <code>ConnectionError</code> ด้วยตาตัวเอง</li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 7</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h3 id="s9-2-c07">ทำงานกับไฟล์: pathlib, open, csv และ json</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>ตัวแปรทุกตัวหายไปเมื่อโปรแกรมจบ ถ้าอยากเก็บข้อมูลไว้ใช้ครั้งหน้า ต้องเขียนลง <strong>ไฟล์</strong> งานจริงที่ใช้ Python มากที่สุดงานหนึ่งคือ "อ่านไฟล์ ประมวลผล แล้วเขียนผลลัพธ์" เช่น รวมยอดขายจาก CSV ที่ Excel ส่งออกมา หรือบันทึกการตั้งค่าเป็น JSON แนวคิดนี้ใช้เครื่องมือในตัว Python ทั้งหมด ไม่ต้องติดตั้งเพิ่ม</p>
+<ul>
+<li><strong><code>pathlib.Path</code></strong> แทนที่อยู่ไฟล์เป็น Object ต่อ Path ด้วย <code>/</code> เช่น <code>BASE_DIR / "data" / "expenses.csv"</code> มี <code>.exists()</code>, <code>.mkdir(parents=True, exist_ok=True)</code>, <code>.glob("*.csv")</code>, <code>.read_text()</code>/<code>.write_text()</code> และส่วนประกอบชื่อ <code>.name</code>, <code>.suffix</code>, <code>.stem</code> ใช้ได้เหมือนกันทั้ง Linux และ Windows</li>
+<li><strong><code>open(path, mode, encoding=...)</code></strong> โหมด <code>"r"</code> อ่าน (ค่าเริ่มต้น), <code>"w"</code> เขียนทับ (ไฟล์เดิมหายทันที), <code>"a"</code> เขียนต่อท้าย ใช้คู่กับ <code>with</code> เสมอ เพื่อให้ไฟล์ถูกปิดอัตโนมัติแม้เกิด Error</li>
+<li><strong><code>encoding="utf-8"</code></strong> ต้องใส่ทุกครั้งที่มีภาษาไทย และใส่ <strong><code>newline=""</code></strong> ทุกครั้งที่เปิดไฟล์ให้ Module <code>csv</code></li>
+<li><strong><code>csv.DictReader</code></strong> อ่านแต่ละแถวเป็น dict โดยใช้หัวตารางเป็น key (ค่าทุกช่องเป็น str ต้องแปลงเอง) และ <strong><code>csv.DictWriter</code></strong> เขียน dict เป็นแถว เรียก <code>writeheader()</code> ก่อน</li>
+<li><strong><code>json.dump</code>/<code>json.load</code></strong> แปลง dict/list ไปเป็นไฟล์ JSON และกลับมา ใส่ <code>ensure_ascii=False</code> ให้ภาษาไทยอ่านออก และ <code>indent=2</code> ให้จัดบรรทัดสวย</li>
+</ul>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ไฟล์เหมือน <strong>สมุดบัญชีในตู้เอกสาร</strong> <code>Path</code> คือป้ายบอกว่าสมุดเล่มนี้อยู่ตู้ไหน ลิ้นชักไหน <code>open</code> คือการหยิบสมุดออกมาเปิด <code>with</code> คือกฎว่า "ใช้เสร็จต้องเก็บเข้าตู้ทุกครั้ง" แม้จะมีโทรศัพท์เข้ามาขัดจังหวะ โหมด <code>"w"</code> เหมือนฉีกทุกหน้าทิ้งแล้วเขียนใหม่ ส่วนโหมด <code>"a"</code> คือเขียนต่อหน้าถัดไป CSV คือสมุดที่ตีตารางไว้แล้ว JSON คือแฟ้มที่จัดหมวดหมู่ซ้อนกันได้หลายชั้น</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>ใช้ไฟล์ <code>data/expenses.csv</code> ที่สร้างไว้ในหัวข้อเตรียมเครื่อง แล้วสร้างไฟล์ <code>~/projects/python-lab/read_expenses.py</code></p>
+<pre class="code" data-env="file" data-label="Python · read_expenses.py"><code class="language-python">"""อ่านไฟล์ค่าใช้จ่าย CSV สรุปยอดเดือนตุลาคม แล้วบันทึกเป็น JSON"""
+
+import csv
+import json
+from pathlib import Path
+
+BASE_DIR = Path(__file__).parent  # โฟลเดอร์ที่ไฟล์ .py นี้อยู่ ไม่ขึ้นกับว่ารันจากไหน
+DATA_DIR = BASE_DIR / "data"
+CSV_PATH = DATA_DIR / "expenses.csv"
+MONTH = "2026-10"
+
+
+def load_expenses(path: Path) -&gt; list[dict[str, str]]:
+    """อ่าน CSV ทุกแถวเป็น list ของ dict (ค่าทุกช่องเป็น str)"""
+    with open(path, encoding="utf-8", newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def summarize(rows: list[dict[str, str]], month: str) -&gt; dict[str, float]:
+    """รวมยอดแยกตามหมวด เฉพาะรายการในเดือนที่กำหนด"""
+    totals: dict[str, float] = {}
+    for row in rows:
+        if not row["date"].startswith(month):
+            continue
+        amount = float(row["amount"])  # แปลงข้อความเป็นตัวเลข
+        totals[row["category"]] = totals.get(row["category"], 0.0) + amount
+    return totals
+
+
+def main() -&gt; None:
+    print("ไฟล์:", CSV_PATH.name, "| นามสกุล:", CSV_PATH.suffix)
+    print("มีไฟล์อยู่จริง:", CSV_PATH.exists())
+    rows = load_expenses(CSV_PATH)
+    print("อ่านได้", len(rows), "รายการ แถวแรก:", rows[0])
+
+    totals = summarize(rows, MONTH)
+    print(f"ยอดรวมเดือน {MONTH}:", sum(totals.values()))
+    print("แยกตามหมวด:", totals)
+
+    # บันทึก JSON ภาษาไทยอ่านออก
+    out_path = DATA_DIR / f"summary-{MONTH}.json"
+    report = {"month": MONTH, "total": sum(totals.values()), "by_category": totals}
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(report, f, ensure_ascii=False, indent=2)
+    print("บันทึกแล้ว:", out_path.relative_to(BASE_DIR))
+
+    # อ่านกลับมาตรวจ
+    with open(out_path, encoding="utf-8") as f:
+        loaded = json.load(f)
+    print("อ่านกลับ total =", loaded["total"], "| ตรงกัน:", loaded == report)
+
+    # เพิ่มบรรทัดลงไฟล์ log ด้วยโหมด "a" (ต่อท้าย ไม่ลบของเดิม)
+    log_path = DATA_DIR / "run.log"
+    with open(log_path, "a", encoding="utf-8") as f:
+        f.write(f"สรุปเดือน {MONTH} ได้ {len(totals)} หมวด\n")
+    print("run.log มี", len(log_path.read_text(encoding="utf-8").splitlines()), "บรรทัด")
+
+    # เขียน CSV ใหม่ด้วย DictWriter
+    out_csv = DATA_DIR / f"by-category-{MONTH}.csv"
+    with open(out_csv, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["category", "total"])
+        writer.writeheader()
+        for category, total in sorted(totals.items()):
+            writer.writerow({"category": category, "total": f"{total:.2f}"})
+
+    # ไฟล์ .csv ทั้งหมดในโฟลเดอร์ data
+    for csv_file in sorted(DATA_DIR.glob("*.csv")):
+        print("พบไฟล์ CSV:", csv_file.name, "| stem:", csv_file.stem)
+
+
+if __name__ == "__main__":
+    main()</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/python-lab
+python3 read_expenses.py
+cat data/summary-2026-10.json; echo
+cat data/by-category-2026-10.csv</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · read_expenses.py"><code>ไฟล์: expenses.csv | นามสกุล: .csv
+มีไฟล์อยู่จริง: True
+อ่านได้ 8 รายการ แถวแรก: {'id': '1', 'date': '2026-09-28', 'category': 'food', 'amount': '50.00', 'note': 'ข้าวมันไก่'}
+ยอดรวมเดือน 2026-10: 2003.5
+แยกตามหมวด: {'bills': 1250.5, 'food': 185.0, 'shopping': 299.0, 'transport': 184.0, 'health': 85.0}
+บันทึกแล้ว: data/summary-2026-10.json
+อ่านกลับ total = 2003.5 | ตรงกัน: True
+run.log มี 1 บรรทัด
+พบไฟล์ CSV: by-category-2026-10.csv | stem: by-category-2026-10
+พบไฟล์ CSV: expenses.csv | stem: expenses</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · cat"><code>{
+  "month": "2026-10",
+  "total": 2003.5,
+  "by_category": {
+    "bills": 1250.5,
+    "food": 185.0,
+    "shopping": 299.0,
+    "transport": 184.0,
+    "health": 85.0
+  }
+}
+category,total
+bills,1250.50
+food,185.00
+health,85.00
+shopping,299.00
+transport,184.00</code></pre>
+<p>ยอดเดือนตุลาคม 2,003.50 บาท ตรงกับที่คำนวณไว้ตอนเตรียมข้อมูล ถ้ารันซ้ำครั้งที่สอง บรรทัด <code>run.log มี 1 บรรทัด</code> จะกลายเป็น <code>2 บรรทัด</code> เพราะโหมด <code>"a"</code> เขียนต่อท้าย ส่วนไฟล์ JSON และ CSV สรุปจะถูกเขียนทับด้วยข้อมูลเดิม (โหมด <code>"w"</code>) สังเกตว่า <code>glob("*.csv")</code> เจอไฟล์ CSV ที่เราเพิ่งสร้างด้วย</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>import csv</code>, <code>import json</code>, <code>from pathlib import Path</code></td><td>Module ใน Standard Library ทั้งหมด ไม่ต้อง pip install</td></tr>
+<tr><td><code>BASE_DIR = Path(__file__).parent</code></td><td><code>__file__</code> คือที่อยู่ของไฟล์ <code>.py</code> นี้ <code>.parent</code> คือโฟลเดอร์ที่มันอยู่ ทำให้หาไฟล์ข้อมูลเจอไม่ว่าจะรันจากโฟลเดอร์ไหน</td></tr>
+<tr><td><code>DATA_DIR / "expenses.csv"</code></td><td>ต่อ Path ด้วย <code>/</code> ไม่ต้องคิดเรื่อง <code>/</code> หรือ <code>\</code> เอง</td></tr>
+<tr><td><code>with open(path, encoding="utf-8", newline="") as f:</code></td><td>เปิดไฟล์อ่านแบบ UTF-8 และส่งการจัดการบรรทัดให้ Module <code>csv</code> ไฟล์ปิดเองเมื่อออกจากบล็อก</td></tr>
+<tr><td><code>list(csv.DictReader(f))</code></td><td>อ่านทุกแถวเป็น list ของ dict เช่น <code>{'id': '1', 'amount': '50.00', ...}</code> สังเกตว่าตัวเลขยังเป็น str</td></tr>
+<tr><td><code>if not row["date"].startswith(month): continue</code></td><td>ข้ามรายการที่ไม่ใช่เดือน <code>2026-10</code> วันที่รูปแบบ ISO จึงกรองด้วยการเทียบต้นข้อความได้ง่าย</td></tr>
+<tr><td><code>totals.get(category, 0.0) + amount</code></td><td>ถ้ายังไม่มีหมวดนี้ใน dict ให้เริ่มจาก 0.0 แล้วบวกเพิ่ม เป็นรูปแบบการรวมยอดตามกลุ่มที่ใช้บ่อยมาก</td></tr>
+<tr><td><code>CSV_PATH.name</code>, <code>.suffix</code>, <code>.exists()</code></td><td>ชื่อไฟล์เต็ม นามสกุล และตรวจว่าไฟล์มีอยู่จริงไหม</td></tr>
+<tr><td><code>json.dump(report, f, ensure_ascii=False, indent=2)</code></td><td>เขียน dict ลงไฟล์ JSON ภาษาไทยอ่านออก ย่อหน้า 2 ช่อง</td></tr>
+<tr><td><code>out_path.relative_to(BASE_DIR)</code></td><td>แสดง Path แบบสั้นเทียบกับโฟลเดอร์โปรเจกต์ (<code>data/summary-2026-10.json</code>)</td></tr>
+<tr><td><code>json.load(f)</code> และ <code>loaded == report</code></td><td>อ่าน JSON กลับเป็น dict แล้วเทียบว่าข้อมูลครบเหมือนตอนเขียน</td></tr>
+<tr><td><code>open(log_path, "a", ...)</code> และ <code>f.write(... + "\n")</code></td><td>เขียนต่อท้ายไฟล์ <code>write</code> ไม่เติมขึ้นบรรทัดใหม่ให้ ต้องใส่ <code>\n</code> เอง</td></tr>
+<tr><td><code>log_path.read_text(encoding="utf-8").splitlines()</code></td><td>อ่านทั้งไฟล์เป็น str ในคำสั่งเดียว แล้วแยกเป็นบรรทัดเพื่อนับ</td></tr>
+<tr><td><code>csv.DictWriter(f, fieldnames=[...])</code>, <code>writeheader()</code>, <code>writerow()</code></td><td>เขียนหัวตารางก่อน แล้วเขียนทีละแถวจาก dict ที่ key ตรงกับ <code>fieldnames</code></td></tr>
+<tr><td><code>sorted(DATA_DIR.glob("*.csv"))</code></td><td>หาไฟล์ที่ชื่อลงท้าย <code>.csv</code> ในโฟลเดอร์ แล้วเรียงชื่อให้ผลคงที่ <code>.stem</code> คือชื่อที่ไม่มีนามสกุล</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>FileNotFoundError: [Errno 2] No such file or directory: 'data/expenses.csv'</code></td><td>ใช้ Path แบบสัมพัทธ์ <code>"data/expenses.csv"</code> แล้วรันจากโฟลเดอร์อื่น เช่น <code>cd ~</code> แล้ว <code>python3 projects/python-lab/read_expenses.py</code> Path จะถูกตีความจากโฟลเดอร์ปัจจุบัน</td><td>สร้าง Path จาก <code>Path(__file__).parent</code> แบบในตัวอย่าง หรือ <code>cd</code> เข้าโฟลเดอร์โปรเจกต์ก่อนรัน</td></tr>
+<tr><td><code>UnicodeDecodeError: 'utf-8' codec can't decode byte 0xa4 in position 10: invalid start byte</code></td><td>ไฟล์ถูกบันทึกจาก Excel บน Windows ด้วย Encoding ภาษาไทยแบบเก่า (cp874/TIS-620) แต่เปิดด้วย UTF-8</td><td>เปิดด้วย <code>encoding="cp874"</code> หรือให้ Excel บันทึกเป็น "CSV UTF-8" ถ้าหัวคอลัมน์แรกกลายเป็น <code>'﻿id'</code> แปลว่าไฟล์มี BOM ให้ใช้ <code>encoding="utf-8-sig"</code></td></tr>
+<tr><td>ไฟล์ JSON มีข้อความ <code>{"note": "ค่าไฟฟ้า"}</code></td><td><code>json.dump</code>/<code>json.dumps</code> ค่าเริ่มต้นแปลงตัวอักษรที่ไม่ใช่ ASCII เป็นรหัส <code>\uXXXX</code></td><td>ใส่ <code>ensure_ascii=False</code> และเปิดไฟล์ด้วย <code>encoding="utf-8"</code> (ข้อมูลยังถูกต้องทั้งสองแบบ แต่แบบหลังคนอ่านออก)</td></tr>
+<tr><td>ไฟล์ CSV ที่เขียนมีบรรทัดว่างคั่นทุกแถวเมื่อเปิดบน Windows</td><td>ไม่ได้ใส่ <code>newline=""</code> ตอนเปิดไฟล์ให้ <code>csv.writer</code> ทำให้ขึ้นบรรทัดใหม่ซ้ำสองครั้ง (<code>\r\r\n</code>)</td><td>ใส่ <code>newline=""</code> ทุกครั้งที่ <code>open</code> ไฟล์ CSV ทั้งอ่านและเขียน</td></tr>
+<tr><td>ข้อมูลเก่าในไฟล์หายหมด (ไม่มี Error)</td><td>เปิดด้วย <code>"w"</code> ทั้งที่ตั้งใจจะเพิ่มข้อมูล โหมดนี้ล้างไฟล์ทันทีที่เปิด</td><td>ใช้ <code>"a"</code> เพื่อเพิ่มท้ายไฟล์ และสำรองข้อมูลสำคัญก่อนทดลอง (Commit ไฟล์ตัวอย่างใน Git)</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ใช้ <code>pathlib</code> แทน <code>os.path</code> และสร้าง Path จาก <code>Path(__file__).parent</code> หรือรับ Path เป็น Argument เพื่อให้ทดสอบกับโฟลเดอร์ชั่วคราวได้ (แนวคิดที่ 12)</li>
+<li>ใส่ <code>encoding="utf-8"</code> ทุกครั้งที่ <code>open()</code> และ <code>newline=""</code> สำหรับ CSV ข้อนี้เป็นกฎของหลักสูตรทั้งหมด</li>
+<li>แยก Function อ่านไฟล์ (<code>load_expenses</code>) ออกจาก Function คำนวณ (<code>summarize</code>) Function คำนวณที่ไม่ยุ่งกับไฟล์ทดสอบได้ง่ายกว่ามาก</li>
+<li>ก่อนเขียนไฟล์ลงโฟลเดอร์ใหม่ ให้เรียก <code>path.parent.mkdir(parents=True, exist_ok=True)</code> เพื่อสร้างโฟลเดอร์ที่ยังไม่มี</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>แก้ <code>read_expenses.py</code> ให้ทำงานได้มากขึ้น</p><ol>
+<li>เปลี่ยน <code>MONTH</code> เป็น <code>"2026-09"</code> แล้วตรวจว่ายอดรวมเป็น 97.0 และมีไฟล์ <code>summary-2026-09.json</code> เพิ่มขึ้น</li>
+<li>เพิ่มการนับจำนวนรายการต่อหมวด (dict อีกตัว) แล้วใส่ลงใน JSON เป็น key <code>"count_by_category"</code></li>
+<li>ให้โปรแกรมบันทึก JSON ลงโฟลเดอร์ใหม่ <code>reports/</code> โดยใช้ <code>mkdir(parents=True, exist_ok=True)</code></li>
+<li>ลองลบ <code>ensure_ascii=False</code> แล้วเปิดไฟล์ JSON ดูว่าภาษาไทยเปลี่ยนเป็น <code>\u0e...</code> จากนั้นใส่คืน</li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 8</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h3 id="s9-2-c08">Exceptions และการ Debug: try/except/else/finally, raise, Custom Exception และ pdb</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p><strong>Exception</strong> คือสัญญาณว่าเกิดเหตุผิดปกติระหว่างรัน เช่น แปลง <code>"abc"</code> เป็นตัวเลขไม่ได้ (<code>ValueError</code>) หาไฟล์ไม่เจอ (<code>FileNotFoundError</code>) หรือหารด้วยศูนย์ (<code>ZeroDivisionError</code>) ถ้าไม่มีใครจัดการ โปรแกรมจะหยุดและพิมพ์ <strong>Traceback</strong> ออกมา วิธีอ่าน Traceback คือ <strong>อ่านจากล่างขึ้นบน</strong>: บรรทัดสุดท้ายบอกชนิด Error และข้อความ บรรทัดเหนือขึ้นไปบอกไฟล์และเลขบรรทัดที่เกิดเหตุ และไล่ขึ้นไปคือลำดับการเรียก Function ที่พามาถึงจุดนั้น</p>
+<p>โค้ดที่ดีไม่ได้ป้องกันไม่ให้เกิด Error ทุกกรณี แต่ <strong>จัดการ Error ที่คาดได้อย่างตั้งใจ</strong> และแสดงข้อความที่ผู้ใช้เข้าใจ โครงสร้างที่ใช้มีดังนี้:</p>
+<ul>
+<li><code>try:</code> ครอบโค้ดที่อาจพัง, <code>except ValueError as e:</code> จับเฉพาะชนิดที่รู้วิธีจัดการ (มีหลาย <code>except</code> ได้), <code>else:</code> ทำเมื่อ <code>try</code> ไม่มี Error, <code>finally:</code> ทำทุกครั้ง เหมาะกับงานเก็บกวาด</li>
+<li><code>raise ValueError("ข้อความชัดเจน")</code> โยน Error เองเมื่อข้อมูลผิดกฎ และสร้าง <strong>Custom Exception</strong> ด้วยการสืบทอด เช่น <code>class InvalidAmountError(ValueError)</code> ผู้เรียกจึงจับได้ทั้งแบบเจาะจงและแบบกว้าง</li>
+<li><code>raise NewError(...) from e</code> แปลง Error ทางเทคนิคเป็น Error ของแอป โดยเก็บต้นเหตุไว้ใน <code>__cause__</code> สำหรับดีบัก</li>
+<li>ห้ามเขียน <code>except:</code> เปล่า ๆ หรือ <code>except Exception: pass</code> เพราะจะกลืนทุก Error รวมถึงบั๊กที่เราพิมพ์ผิดเอง ทำให้หาสาเหตุไม่เจอ</li>
+</ul>
+<p>เมื่อโปรแกรมทำงานผิดแต่ไม่มี Error เราต้อง <strong>Debug</strong> วิธีพื้นฐานคือ print ค่าด้วย <code>print(f"{amount=}")</code> วิธีที่ทรงพลังกว่าคือ <code>breakpoint()</code> ซึ่งหยุดโปรแกรมแล้วเปิด <strong>pdb</strong> ให้พิมพ์คำสั่งดูค่าได้: <code>p ตัวแปร</code> (ดูค่า), <code>n</code> (ไปบรรทัดถัดไป), <code>s</code> (ก้าวเข้าไปใน Function), <code>c</code> (รันต่อจนถึงจุดหยุดถัดไป), <code>l</code> (ดูโค้ดรอบ ๆ), <code>w</code> (ดูลำดับการเรียก) และ <code>q</code> (ออก) ตั้ง <code>PYTHONBREAKPOINT=0</code> เพื่อปิดทุก <code>breakpoint()</code> ชั่วคราว ใน VS Code ใช้ Debugger แบบกราฟิกได้: คลิกหน้าเลขบรรทัดหรือกด <kbd>F9</kbd> เพื่อตั้ง Breakpoint แล้วกด <kbd>F5</kbd> เลือก <code>Python Debugger: Current File</code> ค่าตัวแปรจะแสดงในแผง Variables ด้านซ้าย</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p><code>try/except</code> เหมือน <strong>ตาข่ายใต้นักกายกรรม</strong> ถ้าพลาดตกลงมา (Exception) ตาข่ายรับไว้และการแสดงดำเนินต่อได้ แต่ตาข่ายต้องกางเฉพาะจุดที่เสี่ยง ถ้ากางคลุมทั้งเวที (<code>except Exception</code>) คนดูจะไม่รู้เลยว่ามีใครตกบ้าง <code>finally</code> เหมือน <strong>การปิดไฟเวทีหลังจบการแสดง</strong> ทำทุกครั้งไม่ว่าการแสดงจะราบรื่นหรือไม่ ส่วน Traceback เหมือน <strong>รายงานอุบัติเหตุ</strong> บรรทัดล่างสุดบอกว่าเกิดอะไรขึ้น บรรทัดบนบอกเส้นทางที่พามาถึงจุดเกิดเหตุ</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>สร้างไฟล์ <code>~/projects/python-lab/safe_parse.py</code> ตัวอย่างนี้คือการตรวจจำนวนเงินที่ผู้ใช้พิมพ์ ซึ่งจะใช้ซ้ำใน Mini Project</p>
+<pre class="code" data-env="file" data-label="Python · safe_parse.py"><code class="language-python">"""แปลงข้อความจำนวนเงินอย่างปลอดภัย พร้อม Custom Exception"""
+
+
+class InvalidAmountError(ValueError):
+    """จำนวนเงินไม่ถูกต้องตามกฎของแอป"""
+
+
+def parse_amount(text: str) -&gt; float:
+    """แปลงข้อความเป็นจำนวนเงิน ต้องมากกว่า 0 และทศนิยมไม่เกิน 2 ตำแหน่ง"""
+    cleaned = text.replace(",", "").strip()  # ตัดเครื่องหมายคั่นหลักพัน
+    try:
+        amount = float(cleaned)
+    except ValueError as e:
+        # แปลง Error ทางเทคนิคเป็นข้อความที่ผู้ใช้เข้าใจ และเก็บต้นเหตุไว้
+        raise InvalidAmountError(f"'{text}' ไม่ใช่ตัวเลข") from e
+    if amount &lt;= 0:
+        raise InvalidAmountError(f"จำนวนเงินต้องมากกว่า 0 (ได้ {amount})")
+    if "." in cleaned and len(cleaned.split(".")[1]) &gt; 2:
+        raise InvalidAmountError(f"'{text}' มีทศนิยมเกิน 2 ตำแหน่ง")
+    return amount
+
+
+def main() -&gt; None:
+    inputs = ["89.50", "abc", "-20", "120.555", "1,250.50"]
+    processed = 0
+    total = 0.0
+    for text in inputs:
+        try:
+            amount = parse_amount(text)
+        except InvalidAmountError as e:
+            print(f"ข้าม: {e}")
+        else:
+            # ทำงานเฉพาะเมื่อ try ไม่มี Error
+            total += amount
+            print(f"OK: {text!r} -&gt; {amount:,.2f}")
+        finally:
+            # ทำงานทุกครั้ง ไม่ว่าจะมี Error หรือไม่
+            processed += 1
+    print(f"ตรวจแล้ว {processed} รายการ | ยอดรวมที่ถูกต้อง {total:,.2f} บาท")
+
+    # ดูต้นเหตุ (__cause__) ที่เก็บไว้ด้วย raise ... from e
+    try:
+        parse_amount("abc")
+    except InvalidAmountError as e:
+        print("ชนิด Error:", type(e).__name__, "| ต้นเหตุ:", repr(e.__cause__))
+        print("เป็น ValueError ด้วยไหม:", isinstance(e, ValueError))
+
+
+if __name__ == "__main__":
+    main()</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/python-lab
+python3 safe_parse.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>OK: '89.50' -&gt; 89.50
+ข้าม: 'abc' ไม่ใช่ตัวเลข
+ข้าม: จำนวนเงินต้องมากกว่า 0 (ได้ -20.0)
+ข้าม: '120.555' มีทศนิยมเกิน 2 ตำแหน่ง
+OK: '1,250.50' -&gt; 1,250.50
+ตรวจแล้ว 5 รายการ | ยอดรวมที่ถูกต้อง 1,340.00 บาท
+ชนิด Error: InvalidAmountError | ต้นเหตุ: ValueError("could not convert string to float: 'abc'")
+เป็น ValueError ด้วยไหม: True</code></pre>
+<p>ถ้าเรียก <code>parse_amount("abc")</code> โดยไม่มี <code>try</code> ครอบ จะเห็น Traceback แบบมีต้นเหตุ 2 ชั้น ลองสร้างไฟล์ <code>tb_demo.py</code> ข้าง ๆ กัน</p>
+<pre class="code" data-env="file" data-label="Python · tb_demo.py"><code class="language-python">from safe_parse import parse_amount
+
+print(parse_amount("abc"))</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 tb_demo.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Traceback (most recent call last):
+  File "/home/somchai/projects/python-lab/safe_parse.py", line 12, in parse_amount
+    amount = float(cleaned)
+             ^^^^^^^^^^^^^^
+ValueError: could not convert string to float: 'abc'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/somchai/projects/python-lab/tb_demo.py", line 3, in &lt;module&gt;
+    print(parse_amount("abc"))
+          ^^^^^^^^^^^^^^^^^^^
+  File "/home/somchai/projects/python-lab/safe_parse.py", line 15, in parse_amount
+    raise InvalidAmountError(f"'{text}' ไม่ใช่ตัวเลข") from e
+safe_parse.InvalidAmountError: 'abc' ไม่ใช่ตัวเลข</code></pre>
+<p>อ่านจากล่างขึ้นบน: Error สุดท้ายคือ <code>InvalidAmountError</code> เกิดที่บรรทัด 15 ของ <code>safe_parse.py</code> ซึ่งถูกเรียกจากบรรทัด 3 ของ <code>tb_demo.py</code> และช่วงบนบอกต้นเหตุจริงคือ <code>float()</code> แปลง <code>'abc'</code> ไม่ได้ ข้อความ "The above exception was the direct cause" มาจาก <code>raise ... from e</code></p>
+<h4>ทดลอง pdb</h4>
+<p>เปิด <code>safe_parse.py</code> แล้วแทรก 2 บรรทัดนี้ไว้ก่อนบรรทัด <code>cleaned = ...</code> ใน <code>parse_amount</code> (ย่อหน้า 4 ช่องเท่ากับบรรทัด <code>cleaned</code>): <code>if text == "abc":</code> และบรรทัดถัดไปย่อหน้าเพิ่มอีก 4 ช่อง <code>breakpoint()  # หยุดเฉพาะกรณีที่สงสัย (ลบออกก่อน Commit)</code> การหยุดเฉพาะเมื่อเจอค่าที่สงสัยเรียกว่า Conditional Breakpoint จากนั้นรันโปรแกรม แล้วพิมพ์คำสั่งหลัง <code>(Pdb)</code> ตามลำดับ <code>p text</code>, <code>n</code>, <code>p cleaned</code>, <code>n</code>, <code>w</code>, <code>c</code>, <code>c</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 safe_parse.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · pdb session"><code>OK: '89.50' -&gt; 89.50
+&gt; /home/somchai/projects/python-lab/safe_parse.py(12)parse_amount()
+-&gt; cleaned = text.replace(",", "").strip()  # ตัดเครื่องหมายคั่นหลักพัน
+(Pdb) p text
+'abc'
+(Pdb) n
+&gt; /home/somchai/projects/python-lab/safe_parse.py(13)parse_amount()
+-&gt; try:
+(Pdb) p cleaned
+'abc'
+(Pdb) n
+&gt; /home/somchai/projects/python-lab/safe_parse.py(14)parse_amount()
+-&gt; amount = float(cleaned)
+(Pdb) w
+  /home/somchai/projects/python-lab/safe_parse.py(52)&lt;module&gt;()
+-&gt; main()
+  /home/somchai/projects/python-lab/safe_parse.py(31)main()
+-&gt; amount = parse_amount(text)
+&gt; /home/somchai/projects/python-lab/safe_parse.py(14)parse_amount()
+-&gt; amount = float(cleaned)
+(Pdb) c
+ข้าม: 'abc' ไม่ใช่ตัวเลข
+ข้าม: จำนวนเงินต้องมากกว่า 0 (ได้ -20.0)
+ข้าม: '120.555' มีทศนิยมเกิน 2 ตำแหน่ง
+OK: '1,250.50' -&gt; 1,250.50
+ตรวจแล้ว 5 รายการ | ยอดรวมที่ถูกต้อง 1,340.00 บาท
+&gt; /home/somchai/projects/python-lab/safe_parse.py(12)parse_amount()
+-&gt; cleaned = text.replace(",", "").strip()  # ตัดเครื่องหมายคั่นหลักพัน
+(Pdb) c
+ชนิด Error: InvalidAmountError | ต้นเหตุ: ValueError("could not convert string to float: 'abc'")
+เป็น ValueError ด้วยไหม: True</code></pre>
+<p>โปรแกรมหยุด 2 ครั้ง เพราะ <code>"abc"</code> ถูกส่งเข้า <code>parse_amount</code> 2 ครั้ง (ใน Loop และในส่วนตรวจ <code>__cause__</code>) Path ในเครื่องของคุณจะเป็นโฟลเดอร์ของคุณเอง เมื่อดีบักเสร็จให้ <strong>ลบ 2 บรรทัดนั้นออก</strong> ถ้าอยากรันโดยไม่หยุดชั่วคราวให้ใช้ <code>PYTHONBREAKPOINT=0 python3 safe_parse.py</code></p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>class InvalidAmountError(ValueError):</code></td><td>Custom Exception สืบทอดจาก <code>ValueError</code> Docstring อย่างเดียวก็เพียงพอเป็นเนื้อหาของ Class (เรื่อง Class ละเอียดในแนวคิดที่ 10)</td></tr>
+<tr><td><code>cleaned = text.replace(",", "").strip()</code></td><td>ตัด <code>,</code> ที่คั่นหลักพันและช่องว่างออก <code>"1,250.50"</code> จึงเป็น <code>"1250.50"</code></td></tr>
+<tr><td><code>try: amount = float(cleaned)</code></td><td>บรรทัดเดียวที่อาจพังจากข้อมูลผิด จึงครอบด้วย <code>try</code> ให้แคบที่สุด</td></tr>
+<tr><td><code>except ValueError as e: raise InvalidAmountError(...) from e</code></td><td>จับ Error ของ <code>float()</code> แล้วโยน Error ของแอปที่ข้อความภาษาไทยชัดเจน พร้อมเก็บต้นเหตุ</td></tr>
+<tr><td><code>if amount &lt;= 0: raise ...</code></td><td>กฎของแอป: เงินต้องเป็นบวก เป็น Error ที่ Python ไม่รู้เอง เราจึงต้อง <code>raise</code> เอง</td></tr>
+<tr><td><code>len(cleaned.split(".")[1]) &gt; 2</code></td><td>แยกส่วนหลังจุดทศนิยมแล้วนับความยาว ถ้าเกิน 2 ตำแหน่งถือว่าผิด</td></tr>
+<tr><td><code>except InvalidAmountError as e: print(f"ข้าม: {e}")</code></td><td>ใน <code>main</code> จับเฉพาะ Error ของแอป แสดงข้อความแล้วไปรายการถัดไป <code>{e}</code> คือข้อความที่ส่งตอน <code>raise</code></td></tr>
+<tr><td><code>else: total += amount</code></td><td>บวกยอดเฉพาะรายการที่ผ่าน แยกจาก <code>try</code> เพื่อไม่ให้ <code>except</code> จับ Error จากโค้ดส่วนนี้โดยไม่ตั้งใจ</td></tr>
+<tr><td><code>finally: processed += 1</code></td><td>นับทุกรายการ ทั้งที่ผ่านและไม่ผ่าน ได้ 5</td></tr>
+<tr><td><code>{text!r}</code></td><td><code>!r</code> แสดงค่าแบบ <code>repr()</code> คือมีเครื่องหมายคำพูด ทำให้เห็นช่องว่างที่ซ่อนอยู่</td></tr>
+<tr><td><code>repr(e.__cause__)</code></td><td>ดู Error ต้นเหตุที่เก็บไว้ด้วย <code>from e</code> คือ <code>ValueError</code> ของ <code>float()</code></td></tr>
+<tr><td><code>isinstance(e, ValueError)</code></td><td>ได้ <code>True</code> เพราะ <code>InvalidAmountError</code> เป็นลูกของ <code>ValueError</code> โค้ดที่จับ <code>ValueError</code> อยู่แล้วจึงยังทำงานได้</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td>โปรแกรมทำงานผิดเงียบ ๆ ไม่มี Error ให้เห็นเลย</td><td>เขียน <code>except Exception: pass</code> หรือ <code>except:</code> เปล่า ซึ่งกลืน Error ทุกชนิด รวมถึง <code>NameError</code> จากการพิมพ์ชื่อผิด</td><td>จับเฉพาะชนิดที่รู้วิธีจัดการ เช่น <code>except InvalidAmountError</code> ถ้าต้องจับกว้างจริงให้ Log ด้วย <code>logger.exception(...)</code> แล้ว <code>raise</code> ต่อ</td></tr>
+<tr><td><code>ValueError: could not convert string to float: 'abc'</code></td><td>แปลงข้อความที่ไม่ใช่ตัวเลขด้วย <code>float()</code> โดยไม่มี <code>try</code></td><td>ครอบด้วย <code>try/except ValueError</code> แล้วแจ้งผู้ใช้ด้วยข้อความที่เข้าใจง่าย</td></tr>
+<tr><td><code>ZeroDivisionError: division by zero</code></td><td>หารด้วย 0 เช่น หาค่าเฉลี่ยจาก list ว่าง <code>sum(x) / len(x)</code></td><td>ตรวจก่อนหาร <code>if not x: raise ValueError("ไม่มีข้อมูล")</code> หรือคืนค่าเริ่มต้นที่เหมาะสม</td></tr>
+<tr><td>โปรแกรมค้างที่ <code>(Pdb)</code> บนเครื่องเพื่อนหรือใน CI</td><td>ลืมลบ <code>breakpoint()</code> ก่อน Commit</td><td>ค้นด้วย <code>grep -rn "breakpoint()" .</code> ก่อน Commit ทุกครั้ง ruff กฎ T100 (กลุ่ม flake8-debugger) ช่วยตรวจได้</td></tr>
+<tr><td>Function คืนค่าผิด หรือ Error หายไปเฉย ๆ</td><td>เขียน <code>return</code> ไว้ใน <code>finally</code> ค่าใน <code>finally</code> จะทับ <code>return</code> ใน <code>try</code> และกลืน Exception ที่กำลังถูกโยน</td><td>ใช้ <code>finally</code> เฉพาะงานเก็บกวาด เช่น ปิดไฟล์ นับจำนวน ห้ามมี <code>return</code>, <code>break</code> หรือ <code>continue</code> ใน <code>finally</code></td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ครอบ <code>try</code> ให้แคบที่สุด เฉพาะบรรทัดที่อาจพัง และจับ Exception ชนิดที่เจาะจงที่สุด</li>
+<li>สร้าง Custom Exception สำหรับกฎของแอป และสืบทอดจาก Built-in ที่ใกล้เคียง เช่น <code>ValueError</code> ใช้ <code>raise ... from e</code> เพื่อเก็บต้นเหตุ</li>
+<li>ข้อความ Error ควรบอก "ค่าที่ได้" และ "สิ่งที่คาดหวัง" เช่น <code>'120.555' มีทศนิยมเกิน 2 ตำแหน่ง</code> ผู้ใช้แก้ได้ทันทีโดยไม่ต้องถามโปรแกรมเมอร์</li>
+<li>เมื่อเจอบั๊ก อ่าน Traceback จากล่างขึ้นบนก่อนเสมอ แล้วใช้ Breakpoint ใน VS Code (<kbd>F9</kbd>, <kbd>F5</kbd>) แทนการโรย <code>print</code> ทั่วไฟล์</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>เพิ่มกฎและทดลองดีบัก</p><ol>
+<li>เพิ่ม <code>"0"</code> และ <code>"  45.00  "</code> ลงใน <code>inputs</code> แล้วทายก่อนรันว่าแต่ละค่าจะ OK หรือ ข้าม</li>
+<li>เพิ่มกฎ: จำนวนเงินต้องไม่เกิน 100,000 ถ้าเกินให้ <code>raise InvalidAmountError</code> พร้อมข้อความบอกค่าที่ได้</li>
+<li>ตั้ง Breakpoint ใน VS Code ที่บรรทัด <code>total += amount</code> กด <kbd>F5</kbd> แล้วดูค่า <code>total</code> ในแผง Variables ทุกรอบ</li>
+<li>สร้าง Custom Exception ตัวที่สอง <code>AmountTooLargeError(InvalidAmountError)</code> สำหรับกฎข้อ 2 แล้วตรวจว่า <code>main()</code> เดิมยังจับได้โดยไม่ต้องแก้</li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 9</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h3 id="s9-2-c09">Standard Library ที่ใช้บ่อย: datetime, collections, itertools, random/secrets, argparse และ logging</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>Python ได้ฉายาว่า "Batteries included" เพราะมี <strong>Standard Library</strong> หลายร้อย Module มาให้พร้อมใช้โดยไม่ต้อง pip install ก่อนเขียนโค้ดเองทุกครั้ง ให้ถามก่อนว่า "Standard Library มีหรือยัง" เพราะโค้ดในนั้นผ่านการทดสอบจากคนทั่วโลกมาแล้ว แนวคิดนี้รวม Module ที่ใช้บ่อยที่สุดในงาน Script และ CLI:</p>
+<ul>
+<li><strong><code>datetime</code></strong>: <code>date.fromisoformat("2026-10-19")</code> แปลงข้อความเป็นวันที่, <code>timedelta(days=30)</code> บวกลบวัน, ลบวันที่กันได้ <code>timedelta</code> แล้วดู <code>.days</code>, <code>strftime("%d/%m/%Y")</code> จัดรูปแบบแสดงผล ส่วน <code>date.today()</code> ให้วันที่ปัจจุบันซึ่งต่างกันทุกวัน</li>
+<li><strong><code>collections</code></strong>: <code>Counter</code> นับความถี่และมี <code>.most_common(n)</code>, <code>defaultdict(float)</code> สร้างค่าเริ่มต้นให้ key ใหม่อัตโนมัติ เหมาะกับรวมยอดตามกลุ่ม และ <code>namedtuple("Point", "lat lon")</code> สร้าง tuple ที่เรียกค่าด้วยชื่อได้</li>
+<li><strong><code>itertools</code></strong>: <code>accumulate</code> ยอดสะสม, <code>groupby</code> จัดกลุ่มรายการที่ติดกัน (ต้องเรียงก่อน), <code>chain</code> ต่อหลาย list เป็นสายเดียว, <code>islice</code> ตัดช่วงจาก Iterator</li>
+<li><strong><code>random</code> กับ <code>secrets</code></strong>: <code>random</code> (<code>seed</code>, <code>choice</code>, <code>sample</code>, <code>shuffle</code>) ใช้กับเกมและการจำลอง ใส่ <code>random.seed(42)</code> เมื่ออยากได้ผลเดิมทุกครั้ง ส่วน <code>secrets</code> (<code>token_urlsafe</code>, <code>choice</code>) ใช้กับรหัสผ่านและ Token เพราะเดาไม่ได้</li>
+<li><strong><code>argparse</code></strong>: รับ Argument จาก Command Line ทั้งแบบ Positional และ Option (<code>--month</code>) พร้อมแปลงชนิด (<code>type=int</code>, <code>type=float</code>), ค่า Default, จำกัดตัวเลือก (<code>choices</code>) และสร้างหน้า <code>--help</code> ให้อัตโนมัติ</li>
+<li><strong><code>logging</code></strong>: บันทึกเหตุการณ์ตามระดับ DEBUG &lt; INFO &lt; WARNING &lt; ERROR &lt; CRITICAL ส่งไปหลายปลายทางได้ด้วย Handler ใช้ <code>logger = logging.getLogger(__name__)</code> ในทุก Module</li>
+</ul>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Standard Library เหมือน <strong>กล่องเครื่องมือที่แถมมากับบ้านใหม่</strong> มีทั้งไขควง ค้อน ตลับเมตร ไม่ต้องไปซื้อเพิ่มสำหรับงานทั่วไป <code>argparse</code> เหมือน <strong>แบบฟอร์มรับออเดอร์</strong> ที่บังคับว่าช่องไหนต้องกรอก ช่องไหนเลือกได้ และมีคำอธิบายพิมพ์ไว้ด้านหลัง <code>logging</code> เหมือน <strong>สมุดบันทึกเวรของ รปภ.</strong> เรื่องเล็กจดลงสมุดอย่างเดียว (DEBUG, INFO ลงไฟล์) เรื่องสำคัญต้องแจ้งหัวหน้าทันที (WARNING ขึ้นจอ)</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>สร้างไฟล์ <code>~/projects/python-lab/expense_stats.py</code> เป็นโปรแกรม CLI ที่อ่าน <code>data/expenses.csv</code> แล้วสรุปสถิติ ตัวอย่างนี้คือต้นแบบของ Mini Project ใน Part 4</p>
+<pre class="code" data-env="file" data-label="Python · expense_stats.py"><code class="language-python">"""สถิติค่าใช้จ่ายรายเดือน: ตัวอย่าง Standard Library ที่ใช้บ่อย"""
+
+import argparse
+import csv
+import logging
+import random
+import secrets
+from collections import Counter, defaultdict
+from datetime import date, timedelta
+from itertools import accumulate, groupby
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
+CATEGORIES = [
+    "food",
+    "transport",
+    "bills",
+    "shopping",
+    "health",
+    "entertainment",
+    "other",
+]
+
+
+def setup_logging(log_file: Path) -&gt; None:
+    """ส่ง Log ทุกระดับลงไฟล์ และแสดงบนจอเฉพาะ WARNING ขึ้นไป"""
+    file_handler = logging.FileHandler(log_file, encoding="utf-8")
+    file_handler.setLevel(logging.DEBUG)
+    screen_handler = logging.StreamHandler()
+    screen_handler.setLevel(logging.WARNING)
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        handlers=[file_handler, screen_handler],
+    )
+
+
+def parse_args(argv: list[str] | None = None) -&gt; argparse.Namespace:
+    """กำหนด Argument ของโปรแกรม argparse สร้าง --help ให้อัตโนมัติ"""
+    parser = argparse.ArgumentParser(description="สรุปสถิติค่าใช้จ่ายรายเดือน")
+    parser.add_argument("csv_file", type=Path, help="ไฟล์ CSV ค่าใช้จ่าย")
+    parser.add_argument("--month", default="2026-10", help="เดือน YYYY-MM")
+    parser.add_argument("--top", type=int, default=3, help="จำนวนหมวดยอดนิยม")
+    parser.add_argument(
+        "--min-amount", type=float, default=0.0, help="นับเฉพาะรายการที่ไม่ต่ำกว่าค่านี้"
+    )
+    parser.add_argument("--category", choices=CATEGORIES, help="ดูเฉพาะหมวดนี้")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -&gt; None:
+    args = parse_args(argv)
+    setup_logging(Path("app.log"))
+
+    with open(args.csv_file, encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    logger.info("อ่าน %d รายการ จาก %s", len(rows), args.csv_file)
+
+    month_rows = [
+        r
+        for r in rows
+        if r["date"].startswith(args.month)
+        and float(r["amount"]) &gt;= args.min_amount
+        and (args.category is None or r["category"] == args.category)
+    ]
+    if not month_rows:
+        logger.warning("ไม่พบข้อมูลของเดือน %s", args.month)
+        return
+
+    # defaultdict(float): key ใหม่เริ่มที่ 0.0 อัตโนมัติ
+    totals: defaultdict[str, float] = defaultdict(float)
+    for r in month_rows:
+        totals[r["category"]] += float(r["amount"])
+    print(f"== ยอดรวมแยกหมวด เดือน {args.month} ==")
+    for category, total in sorted(totals.items(), key=lambda kv: kv[1], reverse=True):
+        print(f"{category:&lt;10}{total:&gt;10,.2f}")
+
+    # Counter: นับจำนวนครั้ง แล้วเอาอันดับต้น ๆ
+    counts = Counter(r["category"] for r in month_rows)
+    print(f"== {args.top} หมวดที่ใช้บ่อยที่สุด ==", counts.most_common(args.top))
+
+    # datetime: แปลงข้อความเป็นวันที่ แล้วหาระยะห่าง
+    dates = [date.fromisoformat(r["date"]) for r in month_rows]
+    first, last = min(dates), max(dates)
+    print("ช่วงวันที่:", first.strftime("%d/%m/%Y"), "ถึง", last.strftime("%d/%m/%Y"))
+    print(
+        "ห่างกัน:",
+        (last - first).days,
+        "วัน | อีก 30 วันหลังรายการสุดท้าย:",
+        last + timedelta(days=30),
+    )
+
+    # itertools.accumulate: ยอดสะสมทีละรายการ
+    amounts = [float(r["amount"]) for r in month_rows]
+    print("ยอดสะสม:", list(accumulate(amounts)))
+
+    # itertools.groupby: ต้องเรียงตาม key ก่อน
+    by_cat = sorted(month_rows, key=lambda r: r["category"])
+    for category, group in groupby(by_cat, key=lambda r: r["category"]):
+        print(f"กลุ่ม {category}:", [r["note"] for r in group])
+
+    # random สำหรับจำลอง (seed ทำให้ผลซ้ำได้) และ secrets สำหรับความปลอดภัย
+    random.seed(42)
+    print("สุ่มรายการมาตรวจ:", random.choice(month_rows)["note"])
+    print("สุ่ม 2 หมวด:", random.sample(sorted(totals), 2))
+    token = secrets.token_urlsafe(16)
+    print("ความยาว token สำหรับลิงก์รีเซ็ตรหัสผ่าน:", len(token), "ตัวอักษร")
+    logger.debug("สรุปเสร็จ %d หมวด", len(totals))
+
+
+if __name__ == "__main__":
+    main()</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/python-lab
+python3 expense_stats.py --help
+python3 expense_stats.py data/expenses.csv --month 2026-10 --top 3
+python3 expense_stats.py data/expenses.csv --month 2026-12
+cat app.log</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · --help"><code>usage: expense_stats.py [-h] [--month MONTH] [--top TOP]
+                        [--min-amount MIN_AMOUNT]
+                        [--category {food,transport,bills,shopping,health,entertainment,other}]
+                        csv_file
+
+สรุปสถิติค่าใช้จ่ายรายเดือน
+
+positional arguments:
+  csv_file              ไฟล์ CSV ค่าใช้จ่าย
+
+options:
+  -h, --help            show this help message and exit
+  --month MONTH         เดือน YYYY-MM
+  --top TOP             จำนวนหมวดยอดนิยม
+  --min-amount MIN_AMOUNT
+                        นับเฉพาะรายการที่ไม่ต่ำกว่าค่านี้
+  --category {food,transport,bills,shopping,health,entertainment,other}
+                        ดูเฉพาะหมวดนี้</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · --month 2026-10 --top 3"><code>== ยอดรวมแยกหมวด เดือน 2026-10 ==
+bills       1,250.50
+shopping      299.00
+food          185.00
+transport     184.00
+health         85.00
+== 3 หมวดที่ใช้บ่อยที่สุด == [('food', 2), ('bills', 1), ('shopping', 1)]
+ช่วงวันที่: 01/10/2026 ถึง 10/10/2026
+ห่างกัน: 9 วัน | อีก 30 วันหลังรายการสุดท้าย: 2026-11-09
+ยอดสะสม: [1250.5, 1315.5, 1614.5, 1798.5, 1918.5, 2003.5]
+กลุ่ม bills: ['ค่าไฟฟ้า']
+กลุ่ม food: ['กาแฟเย็น', 'ส้มตำไก่ย่าง']
+กลุ่ม health: ['ยาแก้แพ้']
+กลุ่ม shopping: ['เสื้อยืด']
+กลุ่ม transport: ['Grab กลับบ้าน']
+สุ่มรายการมาตรวจ: ยาแก้แพ้
+สุ่ม 2 หมวด: ['bills', 'transport']
+ความยาว token สำหรับลิงก์รีเซ็ตรหัสผ่าน: 22 ตัวอักษร</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · --month 2026-12"><code>2026-10-19 04:04:43,003 WARNING __main__: ไม่พบข้อมูลของเดือน 2026-12</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · cat app.log"><code>2026-10-19 04:04:42,962 INFO __main__: อ่าน 8 รายการ จาก data/expenses.csv
+2026-10-19 04:04:42,962 DEBUG __main__: สรุปเสร็จ 5 หมวด
+2026-10-19 04:04:43,003 INFO __main__: อ่าน 8 รายการ จาก data/expenses.csv
+2026-10-19 04:04:43,003 WARNING __main__: ไม่พบข้อมูลของเดือน 2026-12
+2026-10-19 04:04:43,133 INFO __main__: อ่าน 8 รายการ จาก data/expenses.csv</code></pre>
+<p>หน้าจอแสดงเฉพาะ WARNING ส่วนไฟล์ <code>app.log</code> เก็บทุกระดับ วันเวลาใน Log ของคุณจะเป็นเวลาที่รันจริง ผลของ <code>random</code> เหมือนเดิมทุกครั้งเพราะใส่ <code>random.seed(42)</code> ส่วนค่า Token จาก <code>secrets</code> สุ่มใหม่ทุกครั้ง เราจึงแสดงแค่ความยาว (22 ตัวอักษรจาก 16 ไบต์)</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>logger = logging.getLogger(__name__)</code></td><td>สร้าง Logger ชื่อเดียวกับ Module (<code>__main__</code> เมื่อรันตรง) ทำให้รู้ว่า Log มาจากไฟล์ไหน</td></tr>
+<tr><td><code>FileHandler(..., encoding="utf-8")</code> + <code>setLevel(logging.DEBUG)</code></td><td>ปลายทางที่ 1: เขียนทุกระดับลงไฟล์ <code>app.log</code> แบบต่อท้าย</td></tr>
+<tr><td><code>StreamHandler()</code> + <code>setLevel(logging.WARNING)</code></td><td>ปลายทางที่ 2: แสดงบนจอ (stderr) เฉพาะ WARNING ขึ้นไป</td></tr>
+<tr><td><code>logging.basicConfig(level=..., format=..., handlers=[...])</code></td><td>ตั้งค่าครั้งเดียวตอนเริ่มโปรแกรม <code>%(asctime)s %(levelname)s %(name)s: %(message)s</code> คือรูปแบบบรรทัด Log</td></tr>
+<tr><td><code>parser.add_argument("csv_file", type=Path)</code></td><td>Positional Argument ต้องใส่เสมอ แปลงเป็น <code>Path</code> ให้อัตโนมัติ</td></tr>
+<tr><td><code>"--top", type=int, default=3</code></td><td>Option ไม่บังคับ แปลงเป็น int ถ้าแปลงไม่ได้ argparse แจ้ง Error และจบด้วย Exit Code 2</td></tr>
+<tr><td><code>"--min-amount", type=float</code></td><td>ชื่อที่มี <code>-</code> จะกลายเป็น <code>args.min_amount</code></td></tr>
+<tr><td><code>"--category", choices=CATEGORIES</code></td><td>รับเฉพาะค่าในรายการ ค่าอื่นถูกปฏิเสธพร้อมบอกตัวเลือกที่ถูก</td></tr>
+<tr><td><code>def main(argv: list[str] | None = None)</code></td><td>รับ <code>argv</code> ได้ ทำให้ทดสอบด้วย <code>main(["data/expenses.csv", "--top", "2"])</code> ได้ ถ้าเป็น <code>None</code> argparse อ่านจาก <code>sys.argv</code></td></tr>
+<tr><td><code>logger.info("อ่าน %d รายการ จาก %s", len(rows), args.csv_file)</code></td><td>ส่งค่าเป็น Argument แยก แทน f-string Logging จะประกอบข้อความเฉพาะเมื่อระดับนั้นถูกบันทึกจริง</td></tr>
+<tr><td><code>defaultdict(float)</code> แล้ว <code>totals[cat] += ...</code></td><td>บวกได้เลยโดยไม่ต้องเช็กว่ามี key หรือยัง key ใหม่เริ่มที่ 0.0</td></tr>
+<tr><td><code>Counter(...).most_common(args.top)</code></td><td>นับจำนวนรายการต่อหมวด แล้วคืน list ของ (หมวด, จำนวน) เรียงจากมากไปน้อย</td></tr>
+<tr><td><code>date.fromisoformat(r["date"])</code>, <code>(last - first).days</code></td><td>แปลงข้อความ ISO เป็น <code>date</code> แล้วลบกันได้ <code>timedelta</code> 9 วัน</td></tr>
+<tr><td><code>strftime("%d/%m/%Y")</code>, <code>last + timedelta(days=30)</code></td><td>จัดรูปแบบวันที่แบบไทย และบวกวันข้ามเดือนได้ถูกต้อง (10 ต.ค. + 30 วัน = 9 พ.ย.)</td></tr>
+<tr><td><code>list(accumulate(amounts))</code></td><td>ยอดสะสมทีละรายการ ตัวสุดท้ายคือยอดรวม 2003.5</td></tr>
+<tr><td><code>sorted(...)</code> แล้ว <code>groupby(..., key=...)</code></td><td>จัดกลุ่มรายการหมวดเดียวกัน <code>group</code> เป็น Iterator ใช้ได้รอบเดียว</td></tr>
+<tr><td><code>random.seed(42)</code>, <code>choice</code>, <code>sample</code></td><td>สุ่ม 1 รายการ และสุ่ม 2 หมวดไม่ซ้ำ ผลเหมือนเดิมทุกครั้งเพราะกำหนด seed</td></tr>
+<tr><td><code>secrets.token_urlsafe(16)</code></td><td>สร้าง Token สุ่มที่ปลอดภัยสำหรับลิงก์รีเซ็ตรหัสผ่านหรือ API Token</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>ValueError: Invalid isoformat string: '19/10/2026'</code></td><td><code>fromisoformat</code> รับเฉพาะรูปแบบ ISO <code>YYYY-MM-DD</code></td><td>เก็บวันที่ในไฟล์เป็น ISO เสมอ ถ้าข้อมูลเป็นแบบไทยให้ใช้ <code>datetime.strptime("19/10/2026", "%d/%m/%Y").date()</code></td></tr>
+<tr><td><code>expense_stats.py: error: argument --top: invalid int value: 'three'</code></td><td>ผู้ใช้พิมพ์ <code>--top three</code> แต่ Option กำหนด <code>type=int</code></td><td>นี่คือพฤติกรรมที่ถูกต้องของ argparse ผู้ใช้ต้องพิมพ์ตัวเลข ถ้าใส่ตัวเลือกผิดจาก <code>choices</code> จะเห็น <code>invalid choice: 'coffee' (choose from ...)</code></td></tr>
+<tr><td><code>groupby</code> ได้กลุ่ม <code>food</code> สองกลุ่มแยกกัน</td><td>ข้อมูลไม่ได้เรียงก่อน <code>groupby</code> รวมเฉพาะรายการที่ติดกัน เช่น <code>["food", "bills", "food"]</code> ได้ 3 กลุ่ม</td><td><code>sorted()</code> ด้วย key เดียวกันก่อน <code>groupby</code> ทุกครั้ง หรือใช้ <code>defaultdict(list)</code> แทน</td></tr>
+<tr><td>รหัสผ่านที่สร้างถูกเดาได้ (ไม่มี Error)</td><td>ใช้ <code>random.choice</code> สร้างรหัสผ่าน <code>random</code> ออกแบบมาเพื่อการจำลอง ถ้ารู้สถานะภายในจะทำนายค่าถัดไปได้</td><td>ใช้ <code>secrets.choice</code> หรือ <code>secrets.token_urlsafe()</code> กับทุกอย่างที่เกี่ยวกับความปลอดภัย</td></tr>
+<tr><td>ตั้ง <code>level=logging.DEBUG</code> แล้ว แต่ INFO ไม่ขึ้น และรูปแบบยังเป็น <code>WARNING:root:...</code></td><td>เรียก <code>logging.warning()</code> ก่อน <code>basicConfig</code> ระบบจึงตั้งค่าเริ่มต้นไปแล้ว <code>basicConfig</code> ครั้งหลังไม่มีผล</td><td>เรียก <code>basicConfig</code> ครั้งเดียวที่ต้น <code>main()</code> ก่อน Log แรก (หรือใส่ <code>force=True</code> ถ้าจำเป็นจริง)</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ใช้ <code>logging</code> แทน <code>print</code> สำหรับข้อความวินิจฉัย ปรับระดับได้โดยไม่ต้องแก้โค้ด และ Log ลงไฟล์ไว้ตรวจย้อนหลังได้</li>
+<li>เก็บวันที่ในไฟล์และฐานข้อมูลเป็น ISO 8601 (<code>2026-10-19</code>) และแปลงเป็นรูปแบบไทยเฉพาะตอนแสดงผล</li>
+<li>CLI ทุกตัวควรมี <code>main(argv=None)</code> ที่รับ list ได้ เพื่อเขียน Test เรียกตรง ๆ โดยไม่ต้องเปิด Terminal</li>
+<li>ใช้ <code>secrets</code> กับรหัสผ่าน Token และ OTP เสมอ ใช้ <code>random.seed()</code> เมื่อต้องการผลจำลองที่ทำซ้ำได้</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>เพิ่มความสามารถให้ <code>expense_stats.py</code></p><ol>
+<li>รัน <code>python3 expense_stats.py data/expenses.csv --min-amount 100 --top 2</code> แล้วอธิบายว่าทำไม <code>food</code> เหลือ 120.00</li>
+<li>เพิ่ม Option <code>--verbose</code> (<code>action="store_true"</code>) ที่ทำให้ StreamHandler แสดงระดับ INFO ด้วย</li>
+<li>ใช้ <code>itertools.chain</code> รวมรายการเดือน 2026-09 กับ 2026-10 แล้วพิมพ์ยอดรวมทั้งสองเดือน (ควรได้ 2100.5)</li>
+<li>แสดงชื่อวันในสัปดาห์ของรายการแรกด้วย <code>first.strftime("%A")</code> (ได้ภาษาอังกฤษ ลองเขียน list ชื่อวันภาษาไทยแล้วใช้ <code>first.weekday()</code> เป็น Index)</li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 10</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h3 id="s9-2-c10">Object-Oriented Programming: Class, Object, Inheritance, @property และ Dataclass</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>จนถึงตอนนี้เราเก็บข้อมูลใน dict และเขียน Function แยกไว้ต่างหาก เมื่อโปรแกรมใหญ่ขึ้น ข้อมูลกับกฎที่ใช้กับข้อมูลนั้นควรอยู่ด้วยกัน <strong>Object-Oriented Programming (OOP)</strong> คือการจัดโค้ดเป็น <strong>Class</strong> ซึ่งเป็นแม่แบบที่บอกว่าของชนิดนี้มีข้อมูลอะไร (<strong>Attribute</strong>) และทำอะไรได้ (<strong>Method</strong>) แล้วสร้าง <strong>Object</strong> หลายชิ้นจากแม่แบบเดียว เช่น Class <code>Account</code> หนึ่งตัว สร้างบัญชีของสมชายและสมศรีได้ แต่ละบัญชีมียอดเงินของตัวเอง ข้อดีคือ กฎ "ห้ามถอนเกินยอด" เขียนไว้ที่เดียวใน Method <code>withdraw</code> ไม่มีใครแก้ยอดเงินผิดกฎจากที่อื่นได้</p>
+<p>ส่วนประกอบสำคัญมีดังนี้:</p>
+<ul>
+<li><code>__init__(self, ...)</code> ทำงานตอนสร้าง Object <code>self</code> คือ Object ตัวที่กำลังถูกใช้ Python ส่งให้อัตโนมัติ จึงต้องเป็น Parameter แรกของทุก Method</li>
+<li><strong>Instance Attribute</strong> (<code>self.owner</code>) เป็นของแต่ละ Object ส่วน <strong>Class Attribute</strong> (ประกาศใต้ <code>class</code>) ใช้ร่วมกันทุก Object</li>
+<li><code>__str__</code> คือข้อความสำหรับผู้ใช้ (ใช้โดย <code>print</code>) และ <code>__repr__</code> คือข้อความสำหรับนักพัฒนา ควรบอกวิธีสร้าง Object นั้นซ้ำได้</li>
+<li><strong>Inheritance</strong> <code>class SavingsAccount(Account)</code> สืบทอดทุกอย่างจาก Class แม่ เรียก <code>super().__init__(...)</code> ให้แม่ตั้งค่าส่วนของตัวเอง และ <strong>Override</strong> คือเขียน Method ชื่อเดิมทับเพื่อเปลี่ยนพฤติกรรม</li>
+<li><code>@property</code> ทำให้ Method ถูกเรียกเหมือน Attribute (<code>acc.balance</code>) ถ้าไม่มี Setter จะอ่านได้อย่างเดียว ถ้าต้องการให้แก้ได้แต่ตรวจค่าก่อน ให้เพิ่ม <code>@balance.setter</code></li>
+<li><code>@classmethod</code> รับ <code>cls</code> แทน <code>self</code> ใช้สร้าง Alternate Constructor เช่น <code>Expense.from_row(row)</code></li>
+<li><strong>Composition over Inheritance</strong>: ถ้าความสัมพันธ์คือ "มี" (งบประมาณ <em>มี</em> รายการค่าใช้จ่าย) ให้เก็บ Object ไว้ใน Attribute ใช้ Inheritance เฉพาะเมื่อเป็น "เป็น" จริง (บัญชีออมทรัพย์ <em>เป็น</em> บัญชี)</li>
+</ul>
+<p><strong><code>@dataclass</code></strong> ช่วยเขียน Class ที่เน้นเก็บข้อมูลโดยสร้าง <code>__init__</code>, <code>__repr__</code> และ <code>__eq__</code> ให้อัตโนมัติจาก Type Hint ตัวเลือกที่ใช้บ่อยคือ <code>field(default_factory=list)</code> สำหรับค่าเริ่มต้นที่เป็น list, <code>frozen=True</code> ทำให้แก้ไม่ได้, <code>order=True</code> ทำให้เปรียบเทียบมากน้อยได้ และ <code>__post_init__</code> สำหรับตรวจค่าหลังสร้าง Dataclass ดีกว่า dict เมื่อข้อมูลมีโครงสร้างตายตัว เพราะพิมพ์ชื่อ Field ผิดจะเจอ Error ทันที VS Code เติมชื่อให้ได้ และใส่การตรวจความถูกต้องไว้ในตัว ส่วนเรื่องเงินให้ใช้ <code>decimal.Decimal</code> แทน float เพื่อไม่ให้เจอปัญหา 0.1 + 0.2 จากแนวคิดที่ 1</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Class เหมือน <strong>แบบพิมพ์ขนมครก</strong> ส่วน Object คือ <strong>ขนมครกแต่ละลูก</strong> ที่ออกมาจากแบบพิมพ์เดียวกัน แต่ละลูกใส่หน้าต่างกันได้ (Attribute ต่างกัน) Inheritance เหมือน <strong>สูตรอาหารที่ต่อยอดจากสูตรแม่</strong> สูตรขนมครกใบเตยใช้ทุกอย่างจากสูตรดั้งเดิมแล้วเพิ่มใบเตย <code>@property</code> แบบไม่มี Setter เหมือน <strong>หน้าจอแสดงยอดเงินบนตู้ ATM</strong> ดูได้ แต่จะแก้ตัวเลขต้องผ่านปุ่มฝากหรือถอนเท่านั้น</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>สร้างไฟล์ <code>~/projects/python-lab/oop_demo.py</code> Class <code>Expense</code> ในไฟล์นี้คือ Model เดียวกับที่ใช้ใน Mini Project ของ Part 4</p>
+<pre class="code" data-env="file" data-label="Python · oop_demo.py"><code class="language-python">"""OOP: Class, Inheritance, @property, @classmethod และ Dataclass"""
+
+from dataclasses import dataclass, field
+from datetime import date
+from decimal import Decimal
+
+CATEGORIES = (
+    "food",
+    "transport",
+    "bills",
+    "shopping",
+    "health",
+    "entertainment",
+    "other",
+)
+
+
+class Account:
+    """บัญชีเงินฝากพื้นฐาน"""
+
+    bank_name = "Python Bank"  # Class Attribute: ใช้ร่วมกันทุก Object
+
+    def __init__(self, owner: str, balance: Decimal = Decimal("0")) -&gt; None:
+        self.owner = owner  # Instance Attribute: ของใครของมัน
+        self._balance = balance  # _ นำหน้า = ใช้ภายใน Class
+
+    @property
+    def balance(self) -&gt; Decimal:
+        """ยอดเงินแบบอ่านอย่างเดียว"""
+        return self._balance
+
+    def deposit(self, amount: Decimal) -&gt; None:
+        if amount &lt;= 0:
+            raise ValueError("จำนวนเงินฝากต้องมากกว่า 0")
+        self._balance += amount
+
+    def withdraw(self, amount: Decimal) -&gt; None:
+        if amount &gt; self._balance:
+            raise ValueError(f"ยอดเงินไม่พอ (มี {self._balance:,.2f} บาท)")
+        self._balance -= amount
+
+    def __str__(self) -&gt; str:  # สำหรับผู้ใช้ทั่วไป
+        return f"บัญชีของ {self.owner}: {self._balance:,.2f} บาท"
+
+    def __repr__(self) -&gt; str:  # สำหรับนักพัฒนา
+        return f"Account(owner={self.owner!r}, balance={self._balance!r})"
+
+
+class SavingsAccount(Account):
+    """บัญชีออมทรัพย์: สืบทอดจาก Account แล้วเพิ่มดอกเบี้ย"""
+
+    def __init__(self, owner: str, balance: Decimal, rate: Decimal) -&gt; None:
+        super().__init__(owner, balance)  # ให้ Class แม่ตั้งค่า owner และ _balance
+        self.rate = rate
+
+    def add_interest(self) -&gt; Decimal:
+        interest = (self._balance * self.rate).quantize(Decimal("0.01"))
+        self.deposit(interest)
+        return interest
+
+    def __str__(self) -&gt; str:  # Override: เขียนทับ Method ของ Class แม่
+        return f"{super().__str__()} (ออมทรัพย์ {self.rate:.2%})"
+
+
+@dataclass
+class Expense:
+    """รายการค่าใช้จ่าย 1 รายการ (Model เดียวกับ Mini Project)"""
+
+    id: int
+    date: date
+    category: str
+    amount: Decimal
+    note: str = ""
+
+    def __post_init__(self) -&gt; None:
+        # ตรวจข้อมูลทันทีหลัง __init__ ที่ Dataclass สร้างให้
+        if self.category not in CATEGORIES:
+            raise ValueError(f"ไม่รู้จักหมวด {self.category!r}")
+        if self.amount &lt;= 0:
+            raise ValueError("amount ต้องมากกว่า 0")
+
+    @classmethod
+    def from_row(cls, row: dict[str, str]) -&gt; "Expense":
+        """สร้าง Expense จาก 1 แถวของ csv.DictReader (Alternate Constructor)"""
+        return cls(
+            id=int(row["id"]),
+            date=date.fromisoformat(row["date"]),
+            category=row["category"],
+            amount=Decimal(row["amount"]),
+            note=row["note"],
+        )
+
+
+@dataclass(frozen=True, order=True)
+class Rate:
+    """อัตราแลกเปลี่ยน: แก้ไขไม่ได้ (frozen) และเปรียบเทียบมากน้อยได้ (order)"""
+
+    value: Decimal
+    currency: str
+
+
+@dataclass
+class Budget:
+    """งบประมาณรายเดือน: Composition คือ "มี" Expense อยู่ข้างใน"""
+
+    month: str
+    limit: Decimal
+    expenses: list[Expense] = field(default_factory=list)  # list ใหม่ทุก Object
+
+    def spent(self) -&gt; Decimal:
+        return sum((e.amount for e in self.expenses), Decimal("0"))
+
+    def remaining(self) -&gt; Decimal:
+        return self.limit - self.spent()
+
+
+def main() -&gt; None:
+    print("=== Class และ Object ===")
+    acc = Account("สมชาย", Decimal("1000"))
+    acc.deposit(Decimal("250.50"))
+    acc.withdraw(Decimal("100"))
+    print(acc)
+    print(repr(acc))
+    print("ธนาคาร:", acc.bank_name, "| ยอด (property):", acc.balance)
+    try:
+        acc.withdraw(Decimal("5000"))
+    except ValueError as e:
+        print("ถอนไม่ได้:", e)
+
+    print("=== Inheritance ===")
+    sav = SavingsAccount("สมศรี", Decimal("20000"), Decimal("0.0125"))
+    print("ดอกเบี้ย:", sav.add_interest())
+    print(sav)
+    print("เป็น Account ด้วยไหม:", isinstance(sav, Account))
+
+    print("=== Dataclass ===")
+    row = {"id": "3", "date": "2026-10-01", "category": "bills"}
+    row |= {"amount": "1250.50", "note": "ค่าไฟฟ้า"}  # รวม dict 2 ก้อน
+    e1 = Expense.from_row(row)
+    e2 = Expense.from_row(row)
+    print(repr(e1))
+    print("e1 == e2:", e1 == e2, "| เป็น Object เดียวกันไหม:", e1 is e2)
+    e4 = Expense(4, date(2026, 10, 2), "food", Decimal("65.00"), "กาแฟเย็น")
+    e5 = Expense(
+        id=5, date=date(2026, 10, 3), category="shopping", amount=Decimal("299")
+    )
+    by_amount = sorted([e1, e4, e5], key=lambda e: e.amount)
+    print("เรียงตาม amount:", [f"{e.amount:,.2f}" for e in by_amount])
+    try:
+        Expense(9, date(2026, 10, 19), "coffee", Decimal("10"))
+    except ValueError as e:
+        print("สร้างไม่ได้:", e)
+
+    print("=== frozen / order / composition ===")
+    rates = [Rate(Decimal("4.62"), "JPY"), Rate(Decimal("0.0305"), "USD")]
+    print("Rate ต่ำสุด:", min(rates))
+    budget = Budget("2026-10", Decimal("3000"))
+    budget.expenses.extend([e1, e4, e5])
+    print(f"ใช้ไป {budget.spent():,.2f} | เหลือ {budget.remaining():,.2f} บาท")
+    print("Budget ใหม่มี expenses:", Budget("2026-11", Decimal("1000")).expenses)
+
+
+if __name__ == "__main__":
+    main()</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/python-lab
+python3 oop_demo.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>=== Class และ Object ===
+บัญชีของ สมชาย: 1,150.50 บาท
+Account(owner='สมชาย', balance=Decimal('1150.50'))
+ธนาคาร: Python Bank | ยอด (property): 1150.50
+ถอนไม่ได้: ยอดเงินไม่พอ (มี 1,150.50 บาท)
+=== Inheritance ===
+ดอกเบี้ย: 250.00
+บัญชีของ สมศรี: 20,250.00 บาท (ออมทรัพย์ 1.25%)
+เป็น Account ด้วยไหม: True
+=== Dataclass ===
+Expense(id=3, date=datetime.date(2026, 10, 1), category='bills', amount=Decimal('1250.50'), note='ค่าไฟฟ้า')
+e1 == e2: True | เป็น Object เดียวกันไหม: False
+เรียงตาม amount: ['65.00', '299.00', '1,250.50']
+สร้างไม่ได้: ไม่รู้จักหมวด 'coffee'
+=== frozen / order / composition ===
+Rate ต่ำสุด: Rate(value=Decimal('0.0305'), currency='USD')
+ใช้ไป 1,614.50 | เหลือ 1,385.50 บาท
+Budget ใหม่มี expenses: []</code></pre>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>bank_name = "Python Bank"</code></td><td>Class Attribute ทุกบัญชีเห็นค่าเดียวกัน อ่านได้ทั้ง <code>Account.bank_name</code> และ <code>acc.bank_name</code></td></tr>
+<tr><td><code>def __init__(self, owner, balance=Decimal("0"))</code></td><td>ตั้งค่าเริ่มต้นของ Object ใหม่ <code>self.owner</code> และ <code>self._balance</code> เป็นของบัญชีนั้น ๆ</td></tr>
+<tr><td><code>self._balance</code></td><td>ขีดล่างนำหน้าเป็นธรรมเนียมว่า "ใช้ภายใน Class อย่าแก้จากภายนอก" Python ไม่ได้ห้ามจริง แต่ทุกคนเคารพธรรมเนียมนี้</td></tr>
+<tr><td><code>@property def balance(self)</code></td><td>เรียก <code>acc.balance</code> โดยไม่ต้องมีวงเล็บ ไม่มี Setter จึงกำหนดค่าตรง ๆ ไม่ได้</td></tr>
+<tr><td><code>deposit</code> / <code>withdraw</code></td><td>Method ที่บังคับกฎ: ฝากต้องมากกว่า 0 และถอนเกินยอดไม่ได้ ผิดกฎจะ <code>raise ValueError</code></td></tr>
+<tr><td><code>__str__</code> / <code>__repr__</code></td><td><code>print(acc)</code> ใช้ <code>__str__</code> ส่วน <code>repr(acc)</code> และการแสดงใน list ใช้ <code>__repr__</code></td></tr>
+<tr><td><code>class SavingsAccount(Account)</code> + <code>super().__init__(owner, balance)</code></td><td>สืบทอดจาก Account และให้ Class แม่ตั้งค่า <code>owner</code> กับ <code>_balance</code> ก่อนเพิ่ม <code>rate</code></td></tr>
+<tr><td><code>(self._balance * self.rate).quantize(Decimal("0.01"))</code></td><td>คำนวณดอกเบี้ยด้วย Decimal แล้วปัดเป็นสตางค์ 20000 × 0.0125 = 250.00 พอดี</td></tr>
+<tr><td><code>def __str__</code> ใน SavingsAccount</td><td>Override แล้วเรียก <code>super().__str__()</code> เพื่อนำข้อความของแม่มาต่อท้าย</td></tr>
+<tr><td><code>@dataclass class Expense</code></td><td>ประกาศ Field ด้วย Type Hint 5 ตัว Dataclass สร้าง <code>__init__</code>, <code>__repr__</code>, <code>__eq__</code> ให้ <code>note</code> มีค่าเริ่มต้นจึงต้องอยู่หลัง Field ที่ไม่มีค่าเริ่มต้น</td></tr>
+<tr><td><code>__post_init__</code></td><td>ทำงานต่อจาก <code>__init__</code> อัตโนมัติ ใช้ตรวจหมวดและจำนวนเงิน ข้อมูลผิดจะสร้าง Object ไม่สำเร็จเลย</td></tr>
+<tr><td><code>@classmethod def from_row(cls, row)</code></td><td>แปลงแถว CSV (ทุกค่าเป็น str) เป็น Expense ที่มีชนิดถูกต้อง <code>cls(...)</code> คือการเรียก Constructor ของ Class นี้</td></tr>
+<tr><td><code>e1 == e2</code> ได้ <code>True</code> แต่ <code>e1 is e2</code> ได้ <code>False</code></td><td><code>==</code> เทียบค่าทุก Field (<code>__eq__</code> ที่ Dataclass สร้าง) <code>is</code> เทียบว่าเป็น Object ตัวเดียวกันในหน่วยความจำ</td></tr>
+<tr><td><code>sorted([...], key=lambda e: e.amount)</code></td><td>Expense ไม่ได้ใส่ <code>order=True</code> จึงบอกวิธีเรียงด้วย <code>key</code></td></tr>
+<tr><td><code>@dataclass(frozen=True, order=True) class Rate</code></td><td>แก้ค่าไม่ได้ และเทียบ <code>&lt;</code>/<code>&gt;</code> ได้ตามลำดับ Field (value ก่อน) <code>min(rates)</code> จึงได้ USD</td></tr>
+<tr><td><code>expenses: list[Expense] = field(default_factory=list)</code></td><td>สร้าง list ใหม่ให้ทุก Budget (แก้ปัญหาเดียวกับ Mutable Default ในแนวคิดที่ 5) Budget ใหม่จึงได้ <code>[]</code> ของตัวเอง</td></tr>
+<tr><td><code>sum((e.amount for e in ...), Decimal("0"))</code></td><td>ใส่ค่าเริ่มต้นเป็น Decimal เพื่อให้ผลรวมเป็น Decimal ตลอดสาย</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>TypeError: Account.deposit() takes 1 positional argument but 2 were given</code></td><td>ลืมเขียน <code>self</code> เป็น Parameter แรก <code>def deposit(amount):</code> Python ส่ง Object เข้ามาเป็นตัวแรกเสมอ จึงนับได้ 2 ตัว</td><td>เขียน <code>def deposit(self, amount):</code> ทุก Method ปกติต้องมี <code>self</code></td></tr>
+<tr><td><code>AttributeError: property 'balance' of 'Account' object has no setter</code></td><td>พยายามกำหนด <code>acc.balance = Decimal("1")</code> ทั้งที่ property อ่านได้อย่างเดียว</td><td>เปลี่ยนยอดผ่าน <code>deposit</code>/<code>withdraw</code> หรือเพิ่ม <code>@balance.setter</code> ที่ตรวจค่าก่อนถ้าจำเป็นต้องให้แก้ได้</td></tr>
+<tr><td><code>AttributeError: 'SavingsAccount' object has no attribute 'owner'</code></td><td>เขียน <code>__init__</code> ใน Class ลูกแต่ลืม <code>super().__init__(...)</code> โค้ดตั้งค่าของ Class แม่จึงไม่ทำงาน</td><td>เรียก <code>super().__init__(owner, balance)</code> เป็นบรรทัดแรกใน <code>__init__</code> ของ Class ลูก</td></tr>
+<tr><td><code>ValueError: mutable default &lt;class 'list'&gt; for field tags is not allowed: use default_factory</code></td><td>เขียน <code>tags: list[str] = []</code> ใน Dataclass</td><td>ใช้ <code>tags: list[str] = field(default_factory=list)</code></td></tr>
+<tr><td><code>dataclasses.FrozenInstanceError: cannot assign to field 'value'</code></td><td>แก้ค่า Field ของ Dataclass ที่ <code>frozen=True</code> เช่น <code>rate.value = Decimal("2")</code></td><td>สร้าง Object ใหม่แทนด้วย <code>dataclasses.replace(rate, value=Decimal("2"))</code> หรือเอา <code>frozen=True</code> ออกถ้าต้องแก้ได้จริง</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>เริ่มจาก Dataclass สำหรับข้อมูล และเพิ่ม Method เมื่อมีกฎที่ผูกกับข้อมูลนั้นจริง ไม่ต้องสร้าง Class ให้ทุกอย่าง Function ธรรมดาก็ดีพอในหลายกรณี</li>
+<li>ตรวจความถูกต้องของข้อมูลใน <code>__post_init__</code> หรือ Setter เพื่อให้ "Object ที่สร้างได้ถูกต้องเสมอ" โค้ดส่วนอื่นจะไม่ต้องตรวจซ้ำ</li>
+<li>ใช้ Inheritance ไม่เกิน 1–2 ชั้น และเลือก Composition ก่อนเมื่อไม่แน่ใจ ลำดับชั้นที่ลึกทำให้แก้ไขยาก</li>
+<li>เก็บเงินเป็น <code>Decimal</code> สร้างจาก str (<code>Decimal("89.50")</code>) ไม่ใช่จาก float และเขียน <code>__repr__</code> ที่ช่วยดีบักได้</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ต่อยอด <code>oop_demo.py</code></p><ol>
+<li>เพิ่ม Method <code>transfer(self, other: "Account", amount: Decimal) -&gt; None</code> ใน Account ที่ถอนจากบัญชีนี้แล้วฝากเข้าอีกบัญชี ทดสอบโอน 100 บาทจากสมชายไปสมศรี</li>
+<li>สร้าง Class <code>FixedAccount(Account)</code> ที่ Override <code>withdraw</code> ให้ <code>raise ValueError("บัญชีฝากประจำถอนก่อนกำหนดไม่ได้")</code> เสมอ</li>
+<li>อ่าน <code>data/expenses.csv</code> ด้วย <code>csv.DictReader</code> แล้วแปลงทุกแถวด้วย <code>Expense.from_row</code> ใส่ใน <code>Budget("2026-10", Decimal("3000"))</code> เฉพาะเดือนตุลาคม ยอด <code>spent()</code> ควรเป็น 2003.50</li>
+<li>ลองสร้าง Expense ที่ amount เป็น <code>Decimal("-5")</code> แล้วอ่านข้อความ Error จาก <code>__post_init__</code></li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 11</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h3 id="s9-2-c11">Iterator, Generator, Decorator และ Context Manager</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>สี่เรื่องนี้คือกลไกที่อยู่เบื้องหลังโค้ด Python ที่เราใช้มาตลอด เมื่อเข้าใจแล้วจะอ่าน Library ของคนอื่นออก และเขียนโค้ดที่สั้น ประหยัดหน่วยความจำ และปลอดภัยขึ้น</p>
+<ul>
+<li><strong>Iterator</strong>: ทุกครั้งที่เขียน <code>for x in data:</code> Python เรียก <code>iter(data)</code> เพื่อขอ Iterator แล้วเรียก <code>next()</code> ซ้ำ ๆ จนเจอ <code>StopIteration</code> จึงหยุด นี่คือ Iteration Protocol ที่ list, str, dict, file และ range ใช้ร่วมกัน</li>
+<li><strong>Generator</strong>: Function ที่มี <code>yield</code> แทน <code>return</code> ทุกครั้งที่ถูก <code>next()</code> จะทำงานจนถึง <code>yield</code> ส่งค่าออกมาแล้วหยุดรอ ค่าถูกสร้างทีละตัวเมื่อมีคนขอ (Lazy Evaluation) จึงใช้หน่วยความจำคงที่แม้ข้อมูลมีล้านบรรทัด Generator Expression <code>(x for x in ...)</code> คือแบบย่อในวงเล็บกลม และ <code>yield from</code> ส่งต่อทุกค่าจาก Iterable อื่น ข้อควรจำ: Generator ใช้ได้ <strong>รอบเดียว</strong></li>
+<li><strong>Decorator</strong>: ใน Python Function เป็น Object ส่งเป็น Argument และคืนจาก Function อื่นได้ Decorator คือ Function ที่รับ Function แล้วคืน Function ใหม่ที่ห่อของเดิมไว้ (ใช้ Closure คือ Function ข้างในจำตัวแปรของ Function ข้างนอกได้) เขียน <code>@timer</code> เหนือ <code>def</code> มีความหมายเท่ากับ <code>func = timer(func)</code> ใช้เพิ่มพฤติกรรมร่วม เช่น วัดเวลา Log ลองใหม่ ตรวจสิทธิ์ หรือ Cache โดยไม่แก้โค้ดของ Function เดิม</li>
+<li><strong>Context Manager</strong>: Object ที่ใช้กับ <code>with</code> มี <code>__enter__</code> (ทำตอนเข้า) และ <code>__exit__</code> (ทำตอนออก แม้เกิด Error) เราใช้มาแล้วกับ <code>with open(...)</code> สร้างเองได้ทั้งแบบ Class และแบบ <code>@contextlib.contextmanager</code> ใช้กับทุกอย่างที่ "เปิดแล้วต้องปิด" เช่น ไฟล์ การเชื่อมต่อฐานข้อมูล Lock หรือการจับเวลา</li>
+</ul>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>list เหมือน <strong>บุฟเฟต์ที่วางอาหารทุกจานบนโต๊ะพร้อมกัน</strong> ใช้พื้นที่มาก ส่วน Generator เหมือน <strong>ร้านซูชิสายพาน</strong> จานมาทีละจานเมื่อพร้อม กินจานไหนแล้วจานนั้นก็หมดไป ย้อนกลับไม่ได้ Decorator เหมือน <strong>การห่อของขวัญ</strong> ของข้างในยังเหมือนเดิม แต่ได้กระดาษห่อ ริบบิ้น และการ์ดเพิ่ม (<code>functools.wraps</code> คือการแปะป้ายชื่อของข้างในไว้บนกล่องด้วย) Context Manager เหมือน <strong>ประตูห้องเย็นที่ปิดเองอัตโนมัติ</strong> เดินเข้าไปหยิบของ จะหยิบสำเร็จหรือทำของหล่น เมื่อเดินออกประตูก็ปิดเสมอ</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>สร้างไฟล์ <code>~/projects/python-lab/advanced_demo.py</code> (ใช้ <code>data/expenses.csv</code> เดิม)</p>
+<pre class="code" data-env="file" data-label="Python · advanced_demo.py"><code class="language-python">"""Iterator, Generator, Decorator และ Context Manager"""
+
+import functools
+import sys
+import time
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Any
+
+CSV_PATH = Path(__file__).parent / "data" / "expenses.csv"
+
+
+# ---------- Generator ----------
+def read_lines(path: Path) -&gt; Iterator[str]:
+    """อ่านไฟล์ทีละบรรทัดแบบ lazy คืนเฉพาะบรรทัดที่ไม่ว่าง"""
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                yield line  # หยุดตรงนี้ ส่งค่าออกไป แล้วรอถูกเรียกครั้งถัดไป
+
+
+def countdown(n: int) -&gt; Iterator[int]:
+    """Generator ง่าย ๆ ที่นับถอยหลัง"""
+    while n &gt; 0:
+        yield n
+        n -= 1
+
+
+def all_numbers() -&gt; Iterator[int]:
+    """yield from ส่งต่อทุกค่าจาก Generator อื่น"""
+    yield from countdown(2)
+    yield from [10, 20]
+
+
+# ---------- Decorator ----------
+def timer(func: Callable[..., Any]) -&gt; Callable[..., Any]:
+    """วัดเวลาที่ Function ใช้"""
+
+    @functools.wraps(func)  # รักษาชื่อและ docstring ของ func เดิม
+    def wrapper(*args: Any, **kwargs: Any) -&gt; Any:
+        start = time.perf_counter()
+        result = func(*args, **kwargs)
+        elapsed_ms = (time.perf_counter() - start) * 1000
+        label = "น้อยกว่า 100 ms" if elapsed_ms &lt; 100 else f"{elapsed_ms:.1f} ms"
+        print(f"[timer] {func.__name__} ใช้เวลา {label}")
+        return result  # อย่าลืมคืนผลลัพธ์
+
+    return wrapper
+
+
+def log_call(func: Callable[..., Any]) -&gt; Callable[..., Any]:
+    """พิมพ์ Argument และผลลัพธ์ทุกครั้งที่ถูกเรียก"""
+
+    @functools.wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -&gt; Any:
+        result = func(*args, **kwargs)
+        print(f"[log] {func.__name__}{args} kwargs={kwargs} -&gt; {result!r}")
+        return result
+
+    return wrapper
+
+
+def retry(times: int = 3) -&gt; Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Decorator ที่รับ Argument: ลองใหม่ได้สูงสุด times ครั้ง"""
+
+    def decorator(func: Callable[..., Any]) -&gt; Callable[..., Any]:
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -&gt; Any:
+            for attempt in range(1, times + 1):
+                try:
+                    return func(*args, **kwargs)
+                except ConnectionError as e:
+                    print(f"[retry] ครั้งที่ {attempt} ล้มเหลว: {e}")
+            raise ConnectionError(f"ลองครบ {times} ครั้งแล้วยังไม่สำเร็จ")
+
+        return wrapper
+
+    return decorator
+
+
+calls = {"n": 0}
+
+
+@retry(times=3)
+def flaky_fetch() -&gt; str:
+    """จำลองการเรียก API ที่ล้มเหลว 2 ครั้งแรก"""
+    calls["n"] += 1
+    if calls["n"] &lt; 3:
+        raise ConnectionError("server ไม่ตอบ")
+    return "ได้ข้อมูลแล้ว"
+
+
+@log_call
+def add_vat(amount: float, rate: float = 0.07) -&gt; float:
+    return round(amount * (1 + rate), 2)
+
+
+@functools.cache
+def fib(n: int) -&gt; int:
+    """Fibonacci แบบ Recursive ที่จำผลลัพธ์ไว้ (Memoization)"""
+    if n &lt; 2:
+        return n
+    return fib(n - 1) + fib(n - 2)
+
+
+@timer
+def sum_october(path: Path) -&gt; float:
+    """Pipeline ของ Generator: ไม่มีการสร้าง list ระหว่างทาง"""
+    lines = read_lines(path)
+    rows = (line.split(",") for line in lines)
+    october = (row for row in rows if row[1].startswith("2026-10"))
+    return sum(float(row[3]) for row in october)
+
+
+# ---------- Context Manager ----------
+class Section:
+    """Context Manager แบบ Class"""
+
+    def __init__(self, name: str) -&gt; None:
+        self.name = name
+
+    def __enter__(self) -&gt; "Section":
+        print(f"-&gt; เข้า {self.name}")
+        return self
+
+    def __exit__(self, exc_type: Any, exc: Any, tb: Any) -&gt; bool:
+        print(f"&lt;- ออก {self.name} (มี Error: {exc_type is not None})")
+        return False  # False = ไม่กลืน Error ปล่อยให้ไหลต่อ
+
+
+@contextmanager
+def section(name: str) -&gt; Iterator[None]:
+    """Context Manager แบบ Generator"""
+    print(f"-&gt; เข้า {name}")
+    try:
+        yield
+    finally:
+        print(f"&lt;- ออก {name} (cleanup ทำงานเสมอ)")
+
+
+def main() -&gt; None:
+    print("=== Iterator Protocol ===")
+    it = iter(["ชา", "กาแฟ"])
+    print(next(it), next(it))
+    try:
+        next(it)
+    except StopIteration:
+        print("หมดแล้ว: StopIteration")
+
+    print("=== Generator ===")
+    gen = countdown(3)
+    print(type(gen).__name__, list(gen), "| ใช้ซ้ำ:", list(gen))
+    print("yield from:", list(all_numbers()))
+    print("list 1 ล้านตัว:", sys.getsizeof(list(range(1_000_000))), "bytes")
+    print("generator:", sys.getsizeof(x for x in range(1_000_000)), "bytes")
+    print("ยอดเดือนตุลาคม:", sum_october(CSV_PATH))
+
+    print("=== Decorator ===")
+    add_vat(100)
+    add_vat(250, rate=0.1)
+    print(flaky_fetch())
+    print("fib(80) =", fib(80))
+    print("ชื่อ Function หลังใส่ Decorator:", sum_october.__name__)
+
+    print("=== Context Manager ===")
+    with Section("งานปกติ"):
+        print("   ทำงานใน with")
+    try:
+        with section("งานที่พัง"):
+            raise ValueError("ข้อมูลผิด")
+    except ValueError as e:
+        print("จับ Error ได้นอก with:", e)
+
+
+if __name__ == "__main__":
+    main()</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/python-lab
+python3 advanced_demo.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>=== Iterator Protocol ===
+ชา กาแฟ
+หมดแล้ว: StopIteration
+=== Generator ===
+generator [3, 2, 1] | ใช้ซ้ำ: []
+yield from: [2, 1, 10, 20]
+list 1 ล้านตัว: 8000056 bytes
+generator: 192 bytes
+[timer] sum_october ใช้เวลา น้อยกว่า 100 ms
+ยอดเดือนตุลาคม: 2003.5
+=== Decorator ===
+[log] add_vat(100,) kwargs={} -&gt; 107.0
+[log] add_vat(250,) kwargs={'rate': 0.1} -&gt; 275.0
+[retry] ครั้งที่ 1 ล้มเหลว: server ไม่ตอบ
+[retry] ครั้งที่ 2 ล้มเหลว: server ไม่ตอบ
+ได้ข้อมูลแล้ว
+fib(80) = 23416728348467685
+ชื่อ Function หลังใส่ Decorator: sum_october
+=== Context Manager ===
+-&gt; เข้า งานปกติ
+   ทำงานใน with
+&lt;- ออก งานปกติ (มี Error: False)
+-&gt; เข้า งานที่พัง
+&lt;- ออก งานที่พัง (cleanup ทำงานเสมอ)
+จับ Error ได้นอก with: ข้อมูลผิด</code></pre>
+<p>ขนาด 8000056 bytes กับ 192 bytes เป็นค่าบน Python 3.12 แบบ 64-bit ใน Python เวอร์ชันอื่นตัวเลขอาจต่างไปเล็กน้อย แต่ความต่างระดับ "หลายล้าน" กับ "หลักร้อย" จะเหมือนเดิม ส่วน <code>@timer</code> ออกแบบให้พิมพ์ "น้อยกว่า 100 ms" เพราะเวลาจริงต่างกันทุกเครื่องและทุกครั้งที่รัน</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>def read_lines(path) -&gt; Iterator[str]:</code> + <code>yield line</code></td><td>Generator ที่อ่านไฟล์ทีละบรรทัด ไฟล์ขนาด 10 GB ก็อ่านได้เพราะเก็บในหน่วยความจำทีละบรรทัด <code>with</code> ข้างในปิดไฟล์เมื่ออ่านจบ</td></tr>
+<tr><td><code>yield from countdown(2)</code></td><td>ส่งต่อทุกค่าของ Generator อื่น เท่ากับเขียน <code>for x in countdown(2): yield x</code></td></tr>
+<tr><td><code>it = iter([...])</code>, <code>next(it)</code>, <code>StopIteration</code></td><td>ทำสิ่งที่ <code>for</code> ทำอยู่เบื้องหลังด้วยมือ ขอค่าทีละตัวจนหมดแล้วได้ <code>StopIteration</code></td></tr>
+<tr><td><code>list(gen)</code> ครั้งที่สองได้ <code>[]</code></td><td>Generator ใช้ได้รอบเดียว ค่าถูกส่งออกไปหมดแล้วในรอบแรก</td></tr>
+<tr><td><code>sys.getsizeof(...)</code></td><td>วัดขนาด Object: list ล้านตัวใช้ราว 8 MB ส่วน Generator ใช้ไม่กี่ร้อยไบต์ไม่ว่าจะมีกี่ตัว</td></tr>
+<tr><td><code>lines</code> → <code>rows</code> → <code>october</code> → <code>sum(...)</code></td><td>Pipeline ของ Generator ข้อมูลไหลผ่านทีละบรรทัดจากไฟล์ถึง <code>sum</code> ไม่มี list ระหว่างทาง ได้ 2003.5 ตรงกับแนวคิดที่ 7</td></tr>
+<tr><td><code>def timer(func)</code> → <code>def wrapper(*args, **kwargs)</code> → <code>return wrapper</code></td><td>โครงสร้างมาตรฐานของ Decorator <code>wrapper</code> รับ Argument อะไรก็ได้แล้วส่งต่อให้ <code>func</code></td></tr>
+<tr><td><code>@functools.wraps(func)</code></td><td>คัดลอก <code>__name__</code> และ <code>__doc__</code> ของ Function เดิมไปที่ <code>wrapper</code> ชื่อจึงยังเป็น <code>sum_october</code></td></tr>
+<tr><td><code>time.perf_counter()</code></td><td>นาฬิกาความละเอียดสูงสำหรับวัดช่วงเวลา (ไม่ใช่เวลาปัจจุบัน)</td></tr>
+<tr><td><code>return result</code> ใน wrapper</td><td>ส่งผลลัพธ์ของ Function เดิมกลับไป ถ้าลืม ทุก Function ที่ถูกห่อจะคืน <code>None</code></td></tr>
+<tr><td><code>def retry(times=3)</code> → <code>decorator</code> → <code>wrapper</code></td><td>Decorator ที่รับ Argument ต้องซ้อน 3 ชั้น <code>@retry(times=3)</code> เรียก <code>retry(3)</code> ก่อนได้ Decorator จริง แล้วจึงห่อ Function</td></tr>
+<tr><td><code>flaky_fetch</code></td><td>จำลอง API ที่ล้มเหลว 2 ครั้งแรก <code>retry</code> จับ <code>ConnectionError</code> แล้วลองใหม่จนสำเร็จในครั้งที่ 3</td></tr>
+<tr><td><code>@log_call</code> บน <code>add_vat</code></td><td>พิมพ์ Argument และผลลัพธ์ทุกครั้ง <code>{result!r}</code> แสดงแบบ <code>repr</code></td></tr>
+<tr><td><code>@functools.cache</code> บน <code>fib</code></td><td>จำผลของทุก <code>n</code> ที่เคยคำนวณ <code>fib(80)</code> จึงคำนวณเพียง 81 ครั้งแทนที่จะเป็นหลายล้านล้านครั้ง</td></tr>
+<tr><td><code>class Section</code>: <code>__enter__</code> / <code>__exit__</code></td><td><code>__exit__</code> ได้รับข้อมูล Error (ถ้ามี) คืน <code>False</code> เพื่อไม่กลืน Error</td></tr>
+<tr><td><code>@contextmanager def section(name)</code> + <code>try: yield finally:</code></td><td>โค้ดก่อน <code>yield</code> คือตอนเข้า โค้ดใน <code>finally</code> คือตอนออก ทำงานแม้ในบล็อก <code>with</code> จะ <code>raise ValueError</code></td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>sum(g)</code> ครั้งที่สองได้ 0 (ไม่มี Error)</td><td>ใช้ Generator ซ้ำหลังจากถูกใช้หมดแล้ว เช่น <code>print(sum(g), sum(g))</code> ได้ <code>6 0</code></td><td>สร้าง Generator ใหม่ทุกครั้งที่ต้องวน หรือแปลงเป็น list ถ้าต้องใช้หลายรอบและข้อมูลไม่ใหญ่</td></tr>
+<tr><td><code>TypeError: 'generator' object is not subscriptable</code></td><td>ใช้ <code>g[0]</code> กับ Generator ซึ่งไม่มี Index</td><td>ใช้ <code>next(g)</code> สำหรับตัวแรก <code>itertools.islice(g, 5)</code> สำหรับช่วง หรือ <code>list(g)</code> ถ้าต้องการ Index จริง</td></tr>
+<tr><td>ชื่อ Function กลายเป็น <code>wrapper</code> และ Docstring เป็น <code>None</code></td><td>Decorator ไม่ได้ใช้ <code>@functools.wraps(func)</code> ทำให้ <code>help()</code>, Log และเครื่องมือทดสอบเห็นชื่อผิด</td><td>ใส่ <code>@functools.wraps(func)</code> บน <code>wrapper</code> ทุกครั้ง</td></tr>
+<tr><td>Function ที่ใส่ Decorator คืน <code>None</code> ตลอด เช่น <code>add(1, 2)</code> ได้ <code>None</code></td><td>ใน <code>wrapper</code> เรียก <code>func(*args, **kwargs)</code> แต่ไม่ได้ <code>return</code> ผลลัพธ์</td><td>เขียน <code>result = func(*args, **kwargs)</code> แล้ว <code>return result</code></td></tr>
+<tr><td><code>RecursionError: maximum recursion depth exceeded</code></td><td>Recursive Function ไม่มี Base Case (<code>if n &lt; 2: return n</code>) จึงเรียกตัวเองไม่สิ้นสุด จนเกินขีดจำกัดราว 1000 ชั้น</td><td>เขียน Base Case ก่อนเสมอ ใช้ <code>@functools.cache</code> ลดการคำนวณซ้ำ หรือเปลี่ยนเป็น Loop สำหรับ n ใหญ่มาก</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ใช้ Generator กับข้อมูลที่ใหญ่หรือไม่รู้ขนาด เช่น อ่าน Log หรือ CSV ขนาดใหญ่ และส่งต่อเป็น Pipeline แทนการสร้าง list ทุกขั้น</li>
+<li>Decorator ทุกตัวต้องมี <code>@functools.wraps</code>, รับ <code>*args, **kwargs</code> และคืนผลลัพธ์ ใช้กับเรื่องที่ตัดขวางหลาย Function (Log, Retry, Cache, Auth) เท่านั้น</li>
+<li>ทรัพยากรที่ต้องปิดหรือคืน (ไฟล์ Connection Lock) ให้ใช้ <code>with</code> เสมอ และเขียน Context Manager ด้วย <code>@contextmanager</code> + <code>try/finally</code> ซึ่งสั้นกว่าแบบ Class</li>
+<li>ใช้ <code>functools.cache</code> เฉพาะกับ Function ที่ผลลัพธ์ขึ้นกับ Argument อย่างเดียว (Pure Function) ห้ามใช้กับ Function ที่อ่านไฟล์หรือเวลาปัจจุบัน</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ฝึกเขียนกลไกเหล่านี้เอง</p><ol>
+<li>เขียน Generator <code>evens(limit: int) -&gt; Iterator[int]</code> ที่ yield เลขคู่ตั้งแต่ 0 ถึงก่อน <code>limit</code> แล้วใช้ <code>itertools.islice(evens(1_000_000), 5)</code> ดึงมา 5 ตัว (ควรได้ 0, 2, 4, 6, 8)</li>
+<li>แก้ <code>sum_october</code> ให้รับเดือนเป็น Parameter แล้วเรียกกับ <code>"2026-09"</code> ควรได้ 97.0</li>
+<li>เปลี่ยน <code>flaky_fetch</code> ให้ล้มเหลว 5 ครั้ง (<code>calls["n"] &lt; 6</code>) แล้วดูว่า <code>retry(times=3)</code> โยน <code>ConnectionError</code> ข้อความ "ลองครบ 3 ครั้งแล้วยังไม่สำเร็จ"</li>
+<li>ลบ <code>@functools.cache</code> ออกจาก <code>fib</code> แล้วลองเรียก <code>fib(32)</code> สังเกตว่าช้าลงชัดเจน (อย่าลองกับ 80 เพราะจะไม่เสร็จ) จากนั้นใส่คืน</li>
+</ol></div>
+</article>
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 12</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h3 id="s9-2-c12">Testing ด้วย pytest, Code Quality ด้วย ruff และ Big-O ด้วย timeit</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>ตลอด 11 แนวคิดที่ผ่านมา เราตรวจว่าโปรแกรมถูกต้องด้วยการรันแล้วอ่านผลลัพธ์ด้วยตาเอง วิธีนี้ใช้ได้ตอนโปรแกรมยังเล็ก แต่เมื่อโปรแกรมมีหลายสิบ Function การแก้ Function หนึ่งอาจทำให้อีก Function พังโดยไม่รู้ตัว <strong>Automated Test</strong> คือโค้ดที่เขียนขึ้นมาเพื่อตรวจโค้ดของเราเองโดยอัตโนมัติ สั่งครั้งเดียวก็ตรวจทุกกรณีได้ในเวลาไม่ถึงวินาที แนวคิดสุดท้ายนี้รวมเครื่องมือสามอย่างที่นักพัฒนามืออาชีพใช้ทุกวัน</p>
+<ul>
+<li><strong>pytest</strong>: เครื่องมือรัน Test ที่นิยมที่สุดของ Python ใช้ <code>assert</code> ธรรมดาเป็นตัวตรวจ ถ้าเงื่อนไขหลัง <code>assert</code> เป็น <code>False</code> Test นั้นจะ FAILED และ pytest จะแสดงค่าจริงเทียบกับค่าที่คาดหวังให้เห็นชัด ๆ pytest หา Test เองตามกฎการตั้งชื่อ (Discovery): ไฟล์ต้องชื่อ <code>test_*.py</code> หรือ <code>*_test.py</code> และ Function ต้องขึ้นต้นด้วย <code>test_</code> เครื่องมือที่ใช้บ่อยคือ <code>pytest.raises</code> (ตรวจว่าเกิด Exception ตามที่ควร) <code>@pytest.mark.parametrize</code> (รัน Test เดียวกับข้อมูลหลายชุด) <code>pytest.approx</code> (เทียบเลขทศนิยมแบบยอมคลาดเคลื่อนเล็กน้อย) และ <strong>Fixture</strong> เช่น <code>tmp_path</code> ที่สร้างโฟลเดอร์ชั่วคราวให้แต่ละ Test</li>
+<li><strong>ruff</strong>: เครื่องมือตัวเดียวที่เป็นทั้ง <strong>Linter</strong> (ตรวจหาโค้ดที่น่าจะผิดหรือไม่เป็นมาตรฐาน เช่น import แล้วไม่ใช้ หรือใช้ list เป็นค่า Default) และ <strong>Formatter</strong> (จัดรูปแบบโค้ดให้เหมือนกันทั้งทีม เช่น เว้นวรรคหลังจุลภาค) คำสั่งหลักคือ <code>ruff check</code>, <code>ruff check --fix</code>, <code>ruff format</code> และ <code>ruff format --check</code> เราเลือกกลุ่มกฎได้ใน <code>pyproject.toml</code> เช่น E (รูปแบบโค้ดตาม PEP 8) F (Error ที่พบบ่อย) I (เรียง import) B (Bug ที่พบบ่อย) และ UP (ใช้ Syntax ของ Python รุ่นใหม่)</li>
+<li><strong>Big-O</strong>: วิธีบอกว่าเวลาทำงานของอัลกอริทึม "โตขึ้นแค่ไหน" เมื่อข้อมูลมากขึ้น ไม่ได้บอกเป็นวินาที แต่บอกแนวโน้ม <code>O(1)</code> คือเวลาคงที่ไม่ว่าข้อมูลมากแค่ไหน (ค้นหาใน dict หรือ set) <code>O(log n)</code> คือข้อมูลเพิ่มสองเท่าแต่ใช้เพิ่มแค่หนึ่งขั้น (Binary Search ในข้อมูลที่เรียงแล้ว) <code>O(n)</code> คือโตตามข้อมูล (ค้นหาใน list ทีละตัว) <code>O(n log n)</code> คือการเรียงข้อมูลด้วย <code>sorted()</code> และ <code>O(n²)</code> คือ Loop ซ้อน Loop ที่ข้อมูลเพิ่ม 10 เท่าแต่ช้าลง 100 เท่า เราวัดเวลาจริงด้วยโมดูล <code>timeit</code> ที่รันโค้ดซ้ำหลายรอบแล้วรวมเวลาให้</li>
+</ul>
+<p>ใช้เมื่อไร: เขียน Test ทุกครั้งที่เขียน Function ที่มีตรรกะ (Logic) โดยเฉพาะ Function ที่คำนวณเงิน ตรวจ Input หรืออ่านเขียนไฟล์ รัน <code>ruff check</code> และ <code>ruff format</code> ก่อน <code>git commit</code> ทุกครั้ง และคิดเรื่อง Big-O เมื่อข้อมูลเริ่มมีหลักพันแถวขึ้นไป หรือเมื่อเห็น Loop ซ้อน Loop ส่วน Mini Project ของหัวข้อนี้ต้องมี Test อย่างน้อย 12 ตัวและผ่าน ruff ด้วย ทุกอย่างในแนวคิดนี้จึงจะได้ใช้จริงทันที</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>pytest เหมือน <strong>ฝ่ายตรวจคุณภาพในโรงงานขนม</strong> ที่มีรายการตรวจชัดเจน เช่น "น้ำหนักต้อง 50 กรัม" "ซองต้องปิดสนิท" ทุกล็อตที่ผลิตออกมาต้องผ่านรายการนี้ ถ้าสูตรเปลี่ยนแล้วขนมเบาลง ฝ่ายตรวจจะจับได้ทันทีก่อนส่งถึงลูกค้า ruff เหมือน <strong>ครูตรวจการบ้านที่ขีดเส้นใต้คำผิดและจัดย่อหน้าให้</strong> ส่วน Big-O เหมือน <strong>การหาชื่อเพื่อนในสมุดรายชื่อ</strong>: ไล่อ่านทีละหน้าตั้งแต่หน้าแรก (O(n)) กับเปิดตรงกลางแล้วเลือกครึ่งที่ใช่ไปเรื่อย ๆ เพราะชื่อเรียงตามตัวอักษร (O(log n)) กับรู้เลขหน้าอยู่แล้วเปิดตรงไปเลย (O(1) แบบ dict)</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>เราใช้โฟลเดอร์ <code>~/projects/python-lab/testing-lab</code> เดียวกับ Step 14 ใน Part 1 และใช้ venv ของ <code>python-lab</code> ที่สร้างไว้ในหัวข้อเตรียมเครื่อง ติดตั้ง pytest และ ruff ใน venv ก่อน (ถ้าเคยติดตั้งแล้วใน Part 1 คำสั่งนี้จะแจ้งว่า Requirement already satisfied ซึ่งไม่เป็นไร)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เข้าโฟลเดอร์ฝึกและเปิดใช้ venv
+cd ~/projects/python-lab
+source .venv/bin/activate
+# ติดตั้งเครื่องมือทดสอบและตรวจโค้ดแบบระบุเวอร์ชัน
+python3 -m pip install "pytest==9.1.1" "ruff==0.17.1"
+# ตรวจเวอร์ชันที่ได้
+pytest --version
+ruff --version
+# สร้างโฟลเดอร์โปรเจกต์ทดสอบ
+mkdir -p testing-lab/tests
+cd testing-lab</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>pytest 9.1.1
+ruff 0.17.1</code></pre>
+<p>สร้างไฟล์ตั้งค่า <code>pyproject.toml</code> ที่ราก (Root) ของ <code>testing-lab</code> ไฟล์นี้เป็นที่รวมการตั้งค่าของเครื่องมือ Python หลายตัวไว้ในไฟล์เดียว</p>
+<pre class="code" data-env="file" data-label="TOML · pyproject.toml"><code class="language-ini">[tool.pytest.ini_options]
+# ให้ pytest หาโมดูลในโฟลเดอร์โปรเจกต์ได้ แม้ไฟล์ทดสอบอยู่ใน tests/
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/W = รูปแบบโค้ด, F = Error ที่พบบ่อย, I = เรียง import, B = Bug ที่พบบ่อย, UP = ใช้ Syntax สมัยใหม่
+select = ["E", "W", "F", "I", "B", "UP"]</code></pre>
+<p>ไฟล์โค้ดที่จะทดสอบ มี Function ค้นหาสองแบบและ Function หาค่าที่ซ้ำกันสองแบบ เพื่อเปรียบเทียบ Big-O</p>
+<pre class="code" data-env="file" data-label="Python · algorithms.py"><code class="language-python">"""อัลกอริทึมค้นหาพื้นฐาน สำหรับฝึกเขียน Test และเปรียบเทียบ Big-O"""
+
+
+def linear_search(items: list[int], target: int) -&gt; int:
+    """ไล่หาทีละตัวจากซ้ายไปขวา คืน index ที่เจอ หรือ -1 ถ้าไม่เจอ: O(n)"""
+    for index, value in enumerate(items):
+        if value == target:
+            return index
+    return -1
+
+
+def is_sorted(items: list[int]) -&gt; bool:
+    """ตรวจว่าข้อมูลเรียงจากน้อยไปมากหรือไม่"""
+    return all(items[i] &lt;= items[i + 1] for i in range(len(items) - 1))
+
+
+def binary_search(items: list[int], target: int) -&gt; int:
+    """ค้นหาแบบแบ่งครึ่งในข้อมูลที่เรียงแล้ว คืน index หรือ -1: O(log n)"""
+    if not is_sorted(items):
+        raise ValueError("binary_search ต้องใช้กับข้อมูลที่เรียงแล้วเท่านั้น")
+    low, high = 0, len(items) - 1
+    while low &lt;= high:
+        mid = (low + high) // 2  # ตำแหน่งตรงกลางของช่วงที่เหลือ
+        if items[mid] == target:
+            return mid
+        if items[mid] &lt; target:
+            low = mid + 1  # เป้าหมายอยู่ครึ่งขวา
+        else:
+            high = mid - 1  # เป้าหมายอยู่ครึ่งซ้าย
+    return -1
+
+
+def find_common_slow(a: list[int], b: list[int]) -&gt; list[int]:
+    """หาค่าที่อยู่ทั้งสอง list ด้วย Loop ซ้อน Loop: O(n * m)"""
+    result = []
+    for x in a:
+        for y in b:  # ทุกตัวของ a ต้องไล่ดู b ทั้งหมด
+            if x == y and x not in result:
+                result.append(x)
+    return sorted(result)
+
+
+def find_common_fast(a: list[int], b: list[int]) -&gt; list[int]:
+    """หาค่าที่อยู่ทั้งสอง list ด้วย set: O(n + m)"""
+    return sorted(set(a) &amp; set(b))</code></pre>
+<p>ไฟล์ Test อยู่ในโฟลเดอร์ <code>tests/</code> ชื่อไฟล์ขึ้นต้นด้วย <code>test_</code> เพื่อให้ pytest หาเจอ</p>
+<pre class="code" data-env="file" data-label="Python · tests/test_algorithms.py"><code class="language-python">import pytest
+
+from algorithms import (
+    binary_search,
+    find_common_fast,
+    find_common_slow,
+    linear_search,
+)
+
+NUMBERS = [3, 8, 15, 21, 42, 57, 99]
+
+
+def test_linear_search_found():
+    # Arrange-Act-Assert แบบสั้นที่สุด: ข้อมูล -&gt; เรียกใช้ -&gt; ตรวจผล
+    assert linear_search([7, 3, 9], 9) == 2
+
+
+def test_linear_search_not_found():
+    assert linear_search([7, 3, 9], 4) == -1
+
+
+def test_linear_search_empty_list():
+    assert linear_search([], 1) == -1
+
+
+@pytest.mark.parametrize(
+    ("target", "expected"),
+    [
+        (3, 0),  # ตัวแรก
+        (21, 3),  # ตรงกลาง
+        (99, 6),  # ตัวสุดท้าย
+        (50, -1),  # ไม่มีในรายการ
+    ],
+)
+def test_binary_search_positions(target, expected):
+    assert binary_search(NUMBERS, target) == expected
+
+
+def test_binary_search_empty_list():
+    assert binary_search([], 5) == -1
+
+
+def test_binary_search_rejects_unsorted():
+    with pytest.raises(ValueError, match="เรียงแล้ว"):
+        binary_search([5, 1, 3], 1)
+
+
+@pytest.mark.parametrize("func", [find_common_slow, find_common_fast])
+def test_find_common_both_versions_agree(func):
+    assert func([1, 2, 2, 3, 4], [2, 4, 6, 2]) == [2, 4]
+
+
+def test_find_common_no_overlap():
+    assert find_common_fast([1, 2], [3, 4]) == []
+
+
+def test_float_sum_with_approx():
+    # ทศนิยมแบบ float มีความคลาดเคลื่อนเล็กน้อย จึงต้องใช้ pytest.approx
+    assert 0.1 + 0.2 == pytest.approx(0.3)
+
+
+def test_save_report_with_tmp_path(tmp_path):
+    # tmp_path คือ Fixture ที่ pytest สร้างโฟลเดอร์ชั่วคราวให้ทุกครั้ง
+    report = tmp_path / "common.txt"
+    common = find_common_fast([5, 1, 9], [9, 5, 0])
+    report.write_text(",".join(map(str, common)), encoding="utf-8")
+    assert report.read_text(encoding="utf-8") == "5,9"</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># รัน Test ทั้งหมด -v คือแสดงผลทีละ Test
+pytest -v</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0 -- /home/somchai/projects/python-lab/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/somchai/projects/python-lab/testing-lab
+configfile: pyproject.toml
+testpaths: tests
+collecting ... collected 14 items
+
+tests/test_algorithms.py::test_linear_search_found PASSED                [  7%]
+tests/test_algorithms.py::test_linear_search_not_found PASSED            [ 14%]
+tests/test_algorithms.py::test_linear_search_empty_list PASSED           [ 21%]
+tests/test_algorithms.py::test_binary_search_positions[3-0] PASSED       [ 28%]
+tests/test_algorithms.py::test_binary_search_positions[21-3] PASSED      [ 35%]
+tests/test_algorithms.py::test_binary_search_positions[99-6] PASSED      [ 42%]
+tests/test_algorithms.py::test_binary_search_positions[50--1] PASSED     [ 50%]
+tests/test_algorithms.py::test_binary_search_empty_list PASSED           [ 57%]
+tests/test_algorithms.py::test_binary_search_rejects_unsorted PASSED     [ 64%]
+tests/test_algorithms.py::test_find_common_both_versions_agree[find_common_slow] PASSED [ 71%]
+tests/test_algorithms.py::test_find_common_both_versions_agree[find_common_fast] PASSED [ 78%]
+tests/test_algorithms.py::test_find_common_no_overlap PASSED             [ 85%]
+tests/test_algorithms.py::test_float_sum_with_approx PASSED              [ 92%]
+tests/test_algorithms.py::test_save_report_with_tmp_path PASSED          [100%]
+
+============================== 14 passed in 0.03s ==============================</code></pre>
+<p>Test 10 Function กลายเป็น 14 Test เพราะ <code>parametrize</code> แตก <code>test_binary_search_positions</code> ออกเป็น 4 Test และ <code>test_find_common_both_versions_agree</code> เป็น 2 Test บรรทัด <code>platform</code> ในเครื่องของคุณจะแสดง Python 3.12.3 เหมือนกัน แต่ชื่อผู้ใช้ในเส้นทาง <code>rootdir</code> และเวลา <code>in 0.03s</code> จะต่างไปตามเครื่อง</p>
+<h5>อ่านรายงานเมื่อ Test ล้ม</h5>
+<p>สร้าง Test ที่ตั้งใจเขียนค่าที่คาดหวังผิด เพื่อฝึกอ่านรายงาน (อ่านเสร็จแล้วลบไฟล์ทิ้ง)</p>
+<pre class="code" data-env="file" data-label="Python · tests/test_demo_fail.py"><code class="language-python">from algorithms import find_common_fast
+
+
+def test_common_keeps_original_order():
+    # ตั้งใจเขียนค่าที่คาดหวังผิด เพื่อฝึกอ่านรายงานของ Test ที่ล้ม
+    assert find_common_fast([9, 1, 5], [5, 9]) == [9, 5]</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># รันเฉพาะไฟล์เดียว
+pytest tests/test_demo_fail.py
+# อ่านรายงานเสร็จแล้วลบไฟล์ทิ้ง
+rm tests/test_demo_fail.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: /home/somchai/projects/python-lab/testing-lab
+configfile: pyproject.toml
+collected 1 item
+
+tests/test_demo_fail.py F                                                [100%]
+
+=================================== FAILURES ===================================
+_______________________ test_common_keeps_original_order _______________________
+
+    def test_common_keeps_original_order():
+        # ตั้งใจเขียนค่าที่คาดหวังผิด เพื่อฝึกอ่านรายงานของ Test ที่ล้ม
+&gt;       assert find_common_fast([9, 1, 5], [5, 9]) == [9, 5]
+E       assert [5, 9] == [9, 5]
+E         
+E         At index 0 diff: 5 != 9
+E         Use -v to get more diff
+
+tests/test_demo_fail.py:6: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_demo_fail.py::test_common_keeps_original_order - assert [5,...
+============================== 1 failed in 0.02s ===============================</code></pre>
+<h5>วัดเวลาด้วย timeit เพื่อเห็น Big-O</h5>
+<pre class="code" data-env="file" data-label="Python · bench.py"><code class="language-python">"""วัดเวลาเปรียบเทียบอัลกอริทึม O(n * m) กับ O(n + m) และ list กับ set"""
+
+import random
+import timeit
+
+from algorithms import find_common_fast, find_common_slow
+
+random.seed(42)  # ให้ได้ข้อมูลชุดเดิมทุกครั้งที่รัน
+a = random.sample(range(100_000), 5_000)  # สุ่มเลขไม่ซ้ำ 5,000 ตัว
+b = random.sample(range(100_000), 5_000)
+
+# ตรวจก่อนว่าสองเวอร์ชันให้คำตอบเหมือนกัน
+assert find_common_slow(a, b) == find_common_fast(a, b)
+print(f"จำนวนค่าที่ซ้ำกัน: {len(find_common_fast(a, b))} ตัว")
+
+slow = timeit.timeit(lambda: find_common_slow(a, b), number=1)
+fast = timeit.timeit(lambda: find_common_fast(a, b), number=1)
+print(f"find_common_slow (Loop ซ้อน): {slow * 1000:10.2f} ms")
+print(f"find_common_fast (set)      : {fast * 1000:10.2f} ms")
+print(f"เร็วกว่าประมาณ {slow / fast:,.0f} เท่า")
+
+data_list = list(range(1_000_000))
+data_set = set(data_list)
+target = 999_999  # ค่าท้ายสุด = กรณีแย่ที่สุดของ list
+t_list = timeit.timeit(lambda: target in data_list, number=100)
+t_set = timeit.timeit(lambda: target in data_set, number=100)
+print(f"'in list' 100 ครั้ง: {t_list * 1000:10.3f} ms")
+print(f"'in set'  100 ครั้ง: {t_set * 1000:10.3f} ms")</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 bench.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>จำนวนค่าที่ซ้ำกัน: 235 ตัว
+find_common_slow (Loop ซ้อน):     289.98 ms
+find_common_fast (set)      :       1.70 ms
+เร็วกว่าประมาณ 171 เท่า
+'in list' 100 ครั้ง:    734.508 ms
+'in set'  100 ครั้ง:      0.010 ms</code></pre>
+<p>บรรทัด "จำนวนค่าที่ซ้ำกัน: 235 ตัว" จะเหมือนกันทุกเครื่อง เพราะใช้ <code>random.seed(42)</code> แต่ตัวเลขเวลาเป็น <strong>ค่าที่ต่างกันตามเครื่อง</strong> และต่างกันแม้รันซ้ำในเครื่องเดียวกัน (ตอนทดสอบรันรอบที่สองได้ 294.57 ms และเร็วกว่า 217 เท่า) สิ่งที่ต้องดูคือ <strong>อัตราส่วน</strong>: แบบ set เร็วกว่าแบบ Loop ซ้อนหลักร้อยเท่า และ <code>in set</code> เร็วกว่า <code>in list</code> หลายหมื่นเท่า</p>
+<h5>ตรวจคุณภาพโค้ดด้วย ruff ก่อนและหลัง --fix</h5>
+<p>สร้างไฟล์ที่ตั้งใจเขียนผิดหลายแบบ แล้วให้ ruff ตรวจ</p>
+<pre class="code" data-env="file" data-label="Python · messy.py"><code class="language-python">from typing import List
+import sys
+import os
+
+
+def total(prices: List[float], seen=[]) -&gt; float:
+    seen.append(len(prices))
+    return sum(prices)
+
+
+print(total([10.5, 20.0]), file=sys.stderr)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">ruff check messy.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>UP035 `typing.List` is deprecated, use `list` instead
+ --&gt; messy.py:1:1
+  |
+1 | from typing import List
+  | ^^^^^^^^^^^^^^^^^^^^^^^
+2 | import sys
+3 | import os
+  |
+
+I001 [*] Import block is un-sorted or un-formatted
+ --&gt; messy.py:1:1
+  |
+1 | / from typing import List
+2 | | import sys
+3 | | import os
+  | |_________^
+help: Organize imports
+  |
+1 + import os
+2 + import sys
+3 | from typing import List
+  - import sys
+  - import os
+4 |
+  |
+
+F401 [*] `os` imported but unused
+ --&gt; messy.py:3:8
+  |
+1 | from typing import List
+2 | import sys
+3 | import os
+  |        ^^
+help: Remove unused import: `os`
+  |
+2 | import sys
+  - import os
+3 |
+  |
+
+UP006 [*] Use `list` instead of `List` for type annotation
+ --&gt; messy.py:6:19
+  |
+6 | def total(prices: List[float], seen=[]) -&gt; float:
+  |                   ^^^^
+7 |     seen.append(len(prices))
+8 |     return sum(prices)
+  |
+help: Replace with `list`
+  |
+5 |
+  - def total(prices: List[float], seen=[]) -&gt; float:
+6 + def total(prices: list[float], seen=[]) -&gt; float:
+7 |     seen.append(len(prices))
+  |
+
+B006 Do not use mutable data structures for argument defaults
+ --&gt; messy.py:6:37
+  |
+6 | def total(prices: List[float], seen=[]) -&gt; float:
+  |                                     ^^
+7 |     seen.append(len(prices))
+8 |     return sum(prices)
+  |
+help: Replace with `None`; initialize within function
+  |
+5 |
+  - def total(prices: List[float], seen=[]) -&gt; float:
+6 + def total(prices: List[float], seen=None) -&gt; float:
+7 +     if seen is None:
+8 +         seen = []
+9 |     seen.append(len(prices))
+  |
+note: This is an unsafe fix and may change runtime behavior
+
+Found 5 errors.
+[*] 3 fixable with `--fix` (1 unsafe fix available with `--fix --unsafe-fixes`).</code></pre>
+<p>ข้อที่มีเครื่องหมาย <code>[*]</code> แก้อัตโนมัติได้ สั่ง <code>--fix</code> ให้ ruff แก้ให้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">ruff check --fix messy.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>B006 Do not use mutable data structures for argument defaults
+ --&gt; messy.py:4:37
+  |
+4 | def total(prices: list[float], seen=[]) -&gt; float:
+  |                                     ^^
+5 |     seen.append(len(prices))
+6 |     return sum(prices)
+  |
+help: Replace with `None`; initialize within function
+  |
+3 |
+  - def total(prices: list[float], seen=[]) -&gt; float:
+4 + def total(prices: list[float], seen=None) -&gt; float:
+5 +     if seen is None:
+6 +         seen = []
+7 |     seen.append(len(prices))
+  |
+note: This is an unsafe fix and may change runtime behavior
+
+Found 5 errors (4 fixed, 1 remaining).
+1 unsafe fix available with `--fix --unsafe-fixes`.</code></pre>
+<p>ruff แก้ไป 4 ข้อ (นับ UP035 กับ UP006 ที่แก้พร้อมกันเมื่อเปลี่ยน <code>List</code> เป็น <code>list</code>) เหลือ B006 ที่ ruff ไม่แก้ให้เองเพราะอาจเปลี่ยนพฤติกรรมของโปรแกรม เราต้องแก้เองด้วยรูปแบบ <code>None</code> ที่เรียนในแนวคิดที่ 5 แก้ไฟล์เป็นแบบนี้ (ตั้งใจเว้นวรรคไม่สวยไว้สองจุดเพื่อดูการทำงานของ Formatter)</p>
+<pre class="code" data-env="file" data-label="Python · messy.py"><code class="language-python">import sys
+
+
+def total(prices: list[float], seen: list[int] | None = None) -&gt; float:
+    # ใช้ None เป็นค่าเริ่มต้น แล้วสร้าง list ใหม่ทุกครั้งที่เรียก
+    if seen is None:
+        seen = []
+    seen.append(len(prices))
+    return sum( prices )
+
+
+print(total([10.5,20.0]), file=sys.stderr)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ตรวจ Lint ทั้งโฟลเดอร์
+ruff check .
+# ตรวจรูปแบบโดยไม่แก้ไฟล์ (แบบที่ CI ใช้)
+ruff format --check .
+# จัดรูปแบบจริง
+ruff format .
+# ตรวจซ้ำอีกครั้ง
+ruff format --check .</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>$ ruff check .
+All checks passed!
+$ ruff format --check .
+unformatted: File would be reformatted
+  --&gt; messy.py:9:16
+   |
+8  |     seen.append(len(prices))
+   -     return sum( prices )
+9  +     return sum(prices)
+10 |
+11 |
+   - print(total([10.5,20.0]), file=sys.stderr)
+12 + print(total([10.5, 20.0]), file=sys.stderr)
+   |
+
+1 file would be reformatted, 3 files already formatted
+$ ruff format .
+1 file reformatted, 3 files left unchanged
+$ ruff format --check .
+4 files already formatted</code></pre>
+<p>ใน Output ด้านบน บรรทัดที่ขึ้นต้นด้วย <code>$</code> ใส่ไว้ให้รู้ว่าผลลัพธ์ส่วนนั้นมาจากคำสั่งไหน ไม่ต้องพิมพ์ <code>$</code> เอง ตัวเลข "3 files already formatted" นับ <code>algorithms.py</code>, <code>bench.py</code> และ <code>tests/test_algorithms.py</code></p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>pythonpath = ["."]</code></td><td>บอก pytest ให้เพิ่มโฟลเดอร์ราก (ที่มี <code>pyproject.toml</code>) เข้าไปในเส้นทางค้นหาโมดูล ไฟล์ใน <code>tests/</code> จึง <code>from algorithms import ...</code> ได้</td></tr>
+<tr><td><code>testpaths = ["tests"]</code></td><td>ให้ <code>pytest</code> ที่รันโดยไม่ระบุไฟล์ ไปหา Test เฉพาะในโฟลเดอร์ <code>tests/</code> ไม่ต้องไล่ค้นทั้งโปรเจกต์ (รวมถึง <code>.venv</code>)</td></tr>
+<tr><td><code>[tool.ruff]</code> และ <code>[tool.ruff.lint]</code></td><td>ตั้งความยาวบรรทัด 88 ตัวอักษร บอกว่าโค้ดต้องรันบน Python 3.12 ขึ้นไป (<code>py312</code>) และเลือกกลุ่มกฎ E, W, F, I, B, UP ตามที่ใช้ใน Part 1 (W คือคำเตือนเรื่องช่องว่าง เช่น ช่องว่างท้ายบรรทัด)</td></tr>
+<tr><td><code>linear_search()</code></td><td>ไล่ดูทีละตัวด้วย <code>enumerate</code> เจอแล้ว <code>return</code> index ทันที ไม่เจอเลยคืน <code>-1</code> แย่ที่สุดต้องดูครบ n ตัว จึงเป็น O(n)</td></tr>
+<tr><td><code>is_sorted()</code></td><td>ใช้ <code>all()</code> กับ Generator Expression ตรวจว่าทุกคู่ที่ติดกันเรียงจากน้อยไปมาก การตรวจนี้เป็น O(n) ใส่ไว้เพื่อการเรียนรู้ ในงานจริงที่ต้องการความเร็วมักให้ผู้เรียกรับผิดชอบเรียงข้อมูลเอง</td></tr>
+<tr><td><code>low, high</code> และ <code>mid = (low + high) // 2</code></td><td>ช่วงที่ยังต้องค้นหาคือ <code>low</code> ถึง <code>high</code> ดูตัวกลางทุกรอบ ถ้าน้อยกว่าเป้าหมายให้ทิ้งครึ่งซ้าย (<code>low = mid + 1</code>) ถ้ามากกว่าให้ทิ้งครึ่งขวา ช่วงลดลงครึ่งหนึ่งทุกรอบ ข้อมูลล้านตัวใช้ไม่เกิน 20 รอบ จึงเป็น O(log n)</td></tr>
+<tr><td><code>find_common_slow()</code></td><td>Loop ซ้อน Loop ทุกตัวของ <code>a</code> ต้องเทียบกับทุกตัวของ <code>b</code> และ <code>x not in result</code> ก็ไล่ list อีกรอบ ข้อมูล 5,000 กับ 5,000 ตัวคือการเทียบหลายล้านครั้ง</td></tr>
+<tr><td><code>sorted(set(a) &amp; set(b))</code></td><td>แปลงเป็น set (O(n)) แล้วหา Intersection ด้วย <code>&amp;</code> ซึ่งเช็กสมาชิกแบบ O(1) ต่อตัว แล้วเรียงผลลัพธ์ด้วย <code>sorted()</code> เพื่อให้ผลแน่นอนเสมอ เพราะ set ไม่รับประกันลำดับ</td></tr>
+<tr><td><code>from algorithms import (...)</code></td><td>Test import Function จริงมาทดสอบ เขียนในวงเล็บหลายบรรทัดและเรียงตามตัวอักษร ตามที่กฎ I ของ ruff ต้องการ</td></tr>
+<tr><td><code>NUMBERS = [...]</code></td><td>ข้อมูลตัวอย่างที่เรียงแล้วและใช้ร่วมกันหลาย Test ตั้งชื่อตัวพิมพ์ใหญ่เพราะเป็นค่าคงที่ (Constant)</td></tr>
+<tr><td><code>def test_linear_search_found():</code></td><td>Test หนึ่งตัวคือ Function ธรรมดาที่ชื่อขึ้นต้นด้วย <code>test_</code> ข้างในมี <code>assert</code> ถ้าเป็นจริงคือ PASSED ตั้งชื่อให้อ่านแล้วรู้ว่าตรวจอะไร</td></tr>
+<tr><td><code>test_..._empty_list</code></td><td>Test กรณีขอบ (Edge Case) คือ list ว่าง ซึ่งเป็นจุดที่โค้ดมักพัง เช่น <code>high = -1</code> ต้องไม่ทำให้ Loop ทำงานผิด</td></tr>
+<tr><td><code>@pytest.mark.parametrize(("target", "expected"), [...])</code></td><td>รัน Test เดียวกับข้อมูล 4 ชุด: ตัวแรก ตรงกลาง ตัวสุดท้าย และไม่มีในรายการ pytest ตั้งชื่อแต่ละชุดเป็น <code>[3-0]</code>, <code>[21-3]</code>, <code>[99-6]</code>, <code>[50--1]</code> (เครื่องหมาย <code>-</code> ตัวที่สองมาจากค่า <code>-1</code>)</td></tr>
+<tr><td><code>with pytest.raises(ValueError, match="เรียงแล้ว"):</code></td><td>Test ผ่านเมื่อโค้ดในบล็อก <strong>เกิด</strong> <code>ValueError</code> และข้อความตรงกับ <code>match</code> (เป็น Regular Expression ที่ค้นหาบางส่วนของข้อความ) ถ้าไม่เกิด Error Test จะล้มด้วย <code>Failed: DID NOT RAISE</code></td></tr>
+<tr><td><code>@pytest.mark.parametrize("func", [...])</code></td><td>ส่ง Function เป็น Parameter ได้ เพราะ Function เป็น Object (แนวคิดที่ 11) ใช้ตรวจว่าเวอร์ชันช้าและเร็วให้คำตอบเดียวกัน ก่อนจะเปลี่ยนไปใช้เวอร์ชันเร็ว</td></tr>
+<tr><td><code>pytest.approx(0.3)</code></td><td>เทียบเลขทศนิยมโดยยอมคลาดเคลื่อนเล็กน้อย (ค่าเริ่มต้นประมาณหนึ่งในล้านของค่าที่คาดหวัง) แก้ปัญหา <code>0.1 + 0.2</code> ได้ <code>0.30000000000000004</code> จากแนวคิดที่ 1</td></tr>
+<tr><td><code>def test_save_report_with_tmp_path(tmp_path):</code></td><td>ใส่ชื่อ Fixture เป็น Parameter แล้ว pytest จะส่งค่ามาให้เอง <code>tmp_path</code> คือ <code>pathlib.Path</code> ของโฟลเดอร์ใหม่ที่ว่างเปล่า Test ที่เขียนไฟล์จึงไม่ไปยุ่งกับไฟล์จริงใน <code>data/</code></td></tr>
+<tr><td><code>random.seed(42)</code> และ <code>random.sample(range(100_000), 5_000)</code></td><td>สุ่มเลขไม่ซ้ำ 5,000 ตัวจาก 0 ถึง 99,999 เมื่อตั้ง seed ไว้ ได้ข้อมูลชุดเดิมทุกครั้ง ผลการทดลองจึงเทียบกันได้</td></tr>
+<tr><td><code>assert find_common_slow(a, b) == find_common_fast(a, b)</code></td><td>ก่อนวัดความเร็ว ต้องแน่ใจว่าทั้งสองแบบให้คำตอบเหมือนกัน โค้ดที่เร็วแต่ผิดไม่มีประโยชน์</td></tr>
+<tr><td><code>timeit.timeit(lambda: ..., number=1)</code></td><td>รันโค้ดใน <code>lambda</code> ตามจำนวน <code>number</code> รอบ แล้วคืนเวลารวมเป็นวินาที (float) คูณ 1000 เพื่อแสดงเป็นมิลลิวินาที (ms)</td></tr>
+<tr><td><code>target in data_list</code> กับ <code>target in data_set</code></td><td>คำสั่งหน้าตาเหมือนกัน แต่ list ต้องไล่ดูทีละตัว (O(n)) ส่วน set คำนวณ Hash แล้วกระโดดไปที่ช่องเก็บได้ทันที (O(1)) เลือก <code>999_999</code> ซึ่งอยู่ท้ายสุด เป็นกรณีแย่ที่สุดของ list</td></tr>
+<tr><td>Output: <code>PASSED [ 7%]</code> และ <code>14 passed in 0.03s</code></td><td>แต่ละบรรทัดคือ Test หนึ่งตัวพร้อมความคืบหน้าเป็นเปอร์เซ็นต์ บรรทัดสุดท้ายสรุปจำนวนที่ผ่านและเวลาที่ใช้ ถ้ามีล้มจะเห็น <code>failed</code> สีแดง</td></tr>
+<tr><td>Output: บรรทัด <code>&gt;</code> และ <code>E</code> ในรายงานที่ล้ม</td><td><code>&gt;</code> ชี้บรรทัดที่ <code>assert</code> ไม่ผ่าน <code>E   assert [5, 9] == [9, 5]</code> คือค่าจริงทางซ้ายเทียบกับค่าที่คาดหวังทางขวา <code>At index 0 diff: 5 != 9</code> บอกตำแหน่งแรกที่ต่าง และ <code>tests/test_demo_fail.py:6</code> บอกไฟล์และบรรทัด ในกรณีนี้ Test เขียนผิดเอง เพราะ Function ตั้งใจคืนค่าแบบเรียงแล้ว</td></tr>
+<tr><td>Output ของ ruff: <code>F401 [*] ...</code> และ <code>--&gt; messy.py:3:8</code></td><td>รหัสกฎ (F401) ตามด้วย <code>[*]</code> ถ้าแก้อัตโนมัติได้ คำอธิบาย และตำแหน่ง <code>ไฟล์:บรรทัด:คอลัมน์</code> ส่วน <code>help:</code> แสดง Diff ว่าจะแก้อย่างไร บรรทัดที่ขึ้นต้นด้วย <code>-</code> จะถูกลบ <code>+</code> จะถูกเพิ่ม</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>ImportError while importing test module ...</code><br><code>E   ModuleNotFoundError: No module named 'algorithms'</code></td><td>ไม่มี <code>pythonpath = ["."]</code> ใน <code>pyproject.toml</code> หรือรัน <code>pytest</code> จากโฟลเดอร์อื่นที่ไม่ใช่รากของโปรเจกต์ Python จึงหา <code>algorithms.py</code> ไม่เจอ</td><td>ใส่ <code>[tool.pytest.ini_options]</code> พร้อม <code>pythonpath = ["."]</code> แล้ว <code>cd ~/projects/python-lab/testing-lab</code> ก่อนรัน <code>pytest</code> ตรวจว่าบรรทัด <code>configfile: pyproject.toml</code> ปรากฏในหัวรายงาน</td></tr>
+<tr><td><code>collected 0 items</code><br><code>no tests ran in 0.00s</code></td><td>ชื่อไฟล์หรือชื่อ Function ไม่ตรงกฎ Discovery เช่น ไฟล์ชื่อ <code>tests/algo_tests.py</code> หรือ Function ชื่อ <code>def check_one():</code></td><td>เปลี่ยนชื่อไฟล์เป็น <code>test_*.py</code> และชื่อ Function เป็น <code>test_*</code> ใช้ <code>pytest --collect-only</code> เพื่อดูว่า pytest เจอ Test อะไรบ้าง</td></tr>
+<tr><td><code>E       assert (0.1 + 0.2) == 0.3</code><br><code>FAILED tests/test_float.py::test_float</code></td><td>float เก็บเลขฐานสองแบบประมาณค่า <code>0.1 + 0.2</code> จริง ๆ คือ <code>0.30000000000000004</code> การเทียบด้วย <code>==</code> ตรง ๆ จึงไม่ผ่าน</td><td>ใช้ <code>assert 0.1 + 0.2 == pytest.approx(0.3)</code> หรือถ้าเป็นเงิน ให้ใช้ <code>decimal.Decimal</code> ตั้งแต่ในโค้ดจริง (แบบในแนวคิดที่ 10 และ Mini Project)</td></tr>
+<tr><td><code>F401 [*] `os` imported but unused</code></td><td>import โมดูลไว้แต่ไม่ได้ใช้ มักเหลือจากการแก้โค้ดหลายรอบ ทำให้อ่านยากและโหลดช้าโดยไม่จำเป็น</td><td>รัน <code>ruff check --fix .</code> ให้ลบอัตโนมัติ หรือลบบรรทัด import นั้นเอง</td></tr>
+<tr><td><code>I001 [*] Import block is un-sorted or un-formatted</code></td><td>ลำดับ import ไม่ตรงมาตรฐาน: ต้องเรียงเป็นกลุ่ม Standard Library ก่อน ตามด้วย Package ภายนอก (เช่น <code>pytest</code>) แล้วจึงเป็นโมดูลของโปรเจกต์ (เช่น <code>algorithms</code>) แต่ละกลุ่มเว้นหนึ่งบรรทัดและเรียงตามตัวอักษร</td><td>รัน <code>ruff check --fix .</code> ruff จะจัดเรียงให้ และตั้ง VS Code ให้ใช้ Ruff extension จัดเรียงตอนบันทึกไฟล์</td></tr>
+<tr><td><code>Command 'pytest' not found, but can be installed with:</code><br><code>sudo apt install python3-pytest</code></td><td>ยังไม่ได้เปิด venv หรือเปิด Terminal ใหม่แล้วลืม <code>source .venv/bin/activate</code> Bash จึงหา <code>pytest</code> ที่ติดตั้งใน venv ไม่เจอ</td><td>อย่าทำตามคำแนะนำ <code>apt</code> (จะได้ pytest คนละเวอร์ชันกับที่ Pin ไว้) ให้ <code>cd ~/projects/python-lab</code> แล้ว <code>source .venv/bin/activate</code> จนเห็น <code>(.venv)</code> ก่อน หรือเรียกผ่าน <code>python3 -m pytest</code></td></tr>
+<tr><td>โปรแกรมช้ามากเมื่อข้อมูลเยอะ แต่ไม่มี Error</td><td>ใช้ <code>if x in big_list:</code> ภายใน Loop ที่วนข้อมูลจำนวนมาก กลายเป็น O(n²) โดยไม่รู้ตัว</td><td>แปลง list ที่ใช้ค้นหาบ่อยเป็น set หรือ dict ก่อนเข้า Loop แล้ววัดผลด้วย <code>timeit</code> ก่อนและหลังแก้ทุกครั้ง</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ตั้งชื่อ Test ให้บอกพฤติกรรม เช่น <code>test_binary_search_rejects_unsorted</code> เมื่อ Test ล้ม ชื่ออย่างเดียวก็บอกได้ว่าอะไรพัง</li>
+<li>Test หนึ่งตัวตรวจพฤติกรรมเดียว และครอบคลุมสามแบบเสมอ: กรณีปกติ กรณีขอบ (list ว่าง ตัวแรก ตัวสุดท้าย) และกรณีผิดพลาด (<code>pytest.raises</code>)</li>
+<li>Test ต้องไม่พึ่งไฟล์จริงหรืออินเทอร์เน็ต ใช้ <code>tmp_path</code> สำหรับไฟล์ และ Server ในเครื่อง (<code>127.0.0.1</code>) หรือข้อมูลจำลองสำหรับ API</li>
+<li>เมื่อเจอ Bug ให้เขียน Test ที่ทำให้ Bug นั้นปรากฏก่อน (ต้องล้ม) แล้วจึงแก้โค้ดจนผ่าน Bug เดิมจะไม่กลับมาอีกโดยไม่มีใครรู้</li>
+<li>ก่อน <code>git commit</code> ให้รันสามคำสั่ง <code>ruff check .</code>, <code>ruff format --check .</code> และ <code>pytest</code> ทีมส่วนใหญ่ตั้ง GitHub Actions ให้รันสามคำสั่งนี้กับทุก Pull Request (<a data-t="17"></a>)</li>
+<li>Pin เวอร์ชันเครื่องมือใน <code>requirements.txt</code> (<code>pytest==9.1.1</code>, <code>ruff==0.17.1</code>) เพราะ ruff รุ่นใหม่อาจเพิ่มกฎ ทำให้ CI ล้มทั้งที่โค้ดไม่ได้เปลี่ยน</li>
+<li>อย่าเดาว่าโค้ดไหนช้า ให้วัดด้วย <code>timeit</code> ก่อน แล้วแก้เฉพาะจุดที่ช้าจริง และมี Test คุมไว้ก่อนเปลี่ยนอัลกอริทึมเสมอ เหมือนที่เราตรวจว่า <code>find_common_slow</code> กับ <code>find_common_fast</code> ให้คำตอบเดียวกัน</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ต่อยอด <code>testing-lab</code> ด้วยตัวเอง แล้วรัน <code>pytest -v</code> และ <code>ruff check .</code> ให้ผ่านทุกข้อ</p><ol>
+<li>เพิ่มกรณี <code>(42, 4)</code> และ <code>(0, -1)</code> ลงใน <code>parametrize</code> ของ <code>test_binary_search_positions</code> แล้วนับว่าจำนวน Test ใน Output เพิ่มเป็นเท่าไร</li>
+<li>ลบบรรทัด <code>if not is_sorted(items):</code> กับ <code>raise</code> ออกจาก <code>binary_search</code> ชั่วคราว แล้วรัน <code>pytest</code> ดูว่า Test ไหนล้มและล้มด้วยข้อความอะไร (ควรเห็น <code>DID NOT RAISE</code>) จากนั้นใส่คืน</li>
+<li>สร้าง <code>tests/test_parse_amount.py</code> คัดลอก <code>parse_amount()</code> จาก <code>safe_parse.py</code> ในแนวคิดที่ 8 มาไว้ในไฟล์ <code>money.py</code> แล้วเขียน Test อย่างน้อย 5 กรณี (เลขถูกต้อง ตัวอักษร ศูนย์ ค่าติดลบ ทศนิยม 3 ตำแหน่ง) โดยใช้ <code>pytest.raises</code></li>
+<li>ใน <code>bench.py</code> เปลี่ยนขนาดข้อมูลจาก <code>5_000</code> เป็น <code>2_500</code> แล้วจดเวลาของ <code>find_common_slow</code> เทียบกับเดิม ข้อมูลลดลงครึ่งหนึ่ง แต่เวลาลดลงประมาณกี่เท่า และตรงกับ O(n²) หรือไม่</li>
+<li>เพิ่ม <code>import json</code> ที่ไม่ได้ใช้ใน <code>algorithms.py</code> รัน <code>ruff check .</code> ให้เห็น F401 แล้วแก้ด้วย <code>ruff check --fix .</code></li>
+</ol></div>
+</article>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>จบ Part 2 แล้ว ก่อนไปทำแบบฝึกหัดใน Part 3 ตรวจว่าคุณทำสิ่งเหล่านี้ได้ด้วยตัวเอง: (1) สร้างและเปิดใช้ venv แล้วติดตั้ง Package แบบระบุเวอร์ชันได้ (2) เขียนสคริปต์ที่อ่าน <code>data/expenses.csv</code> แล้วสรุปยอดแยกหมวดได้ (3) จัดการ Error ด้วย <code>try/except</code> และสร้าง Custom Exception ได้ (4) เขียน Dataclass ที่ตรวจค่าใน <code>__post_init__</code> ได้ (5) เขียน Test ด้วย pytest อย่างน้อย 5 กรณีและผ่าน <code>ruff check .</code></p></div>
+</section>

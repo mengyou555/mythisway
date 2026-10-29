@@ -1,0 +1,1206 @@
+<section class="part" data-part="3">
+<h2 id="s19-3"><span class="sec-no">19.3</span>Practice Exercises &amp; Quizzes</h2>
+<p>ส่วนนี้คือสนามฝึกของหัวข้อ Linux คุณจะได้ทบทวนทุกแนวคิดจาก Part 2 ตั้งแต่การเดินทางในระบบไฟล์ ไปจนถึง Process, systemd, cron และ Bash Script ที่เชื่อถือได้ แบบฝึกหัดแบ่งเป็น 3 ชุด คือ Fill-in-the-blank, Multiple Choice และ Hands-on Challenge ทุกข้อมีระดับกำกับไว้ คือ ง่าย กลาง และ ยาก</p>
+<p>ทุกคำสั่งและผลลัพธ์ในส่วนนี้ผ่านการรันจริงบน Ubuntu 24.04 แล้ว ค่าบางอย่าง เช่น เวลา วันที่ และ PID บนเครื่องของคุณจะต่างออกไป ซึ่งเป็นเรื่องปกติ ส่วนเฉลยทั้งหมดอยู่ท้ายหน้า ขอให้ลองทำเองก่อนทุกครั้ง เพราะการคิดเองแล้วผิดช่วยให้จำได้นานกว่าการอ่านเฉลยทันที</p>
+
+<h3 id="s19-3-prep">เตรียมโฟลเดอร์และไฟล์สำหรับฝึก</h3>
+<p>แบบฝึกหัดเล็กทั้งหมดใช้โฟลเดอร์ <code>~/projects/linux-lab/practice</code> และใช้ไฟล์ตัวอย่างชุดเดียวกับ Part 2 คือ <code>access.log</code> (Log ของเว็บร้านค้า 10 บรรทัด) และ <code>members.csv</code> (รายชื่อสมาชิก 6 คน) เปิด Terminal ของ Ubuntu (WSL) แล้วคัดลอกคำสั่งด้านล่างไปวางทั้งก้อน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างโฟลเดอร์ฝึกและเข้าไปข้างใน
+mkdir -p ~/projects/linux-lab/practice
+cd ~/projects/linux-lab/practice
+
+# สร้าง access.log ตัวอย่าง (IP ทั้งหมดเป็นช่วงสำหรับเอกสาร ไม่ใช่เครื่องจริง)
+cat &gt; access.log &lt;&lt;'EOF'
+192.0.2.10 - - [19/Oct/2026:09:15:01 +0700] "GET / HTTP/1.1" 200 5120 "-" "Mozilla/5.0"
+198.51.100.23 - - [19/Oct/2026:09:15:07 +0700] "GET /products HTTP/1.1" 200 8432 "-" "Mozilla/5.0"
+203.0.113.5 - - [19/Oct/2026:09:16:12 +0700] "GET /admin HTTP/1.1" 404 512 "-" "curl/8.5.0"
+192.0.2.10 - - [19/Oct/2026:09:16:40 +0700] "POST /login HTTP/1.1" 302 0 "-" "Mozilla/5.0"
+203.0.113.5 - - [19/Oct/2026:09:17:02 +0700] "GET /wp-login.php HTTP/1.1" 404 512 "-" "curl/8.5.0"
+198.51.100.23 - - [19/Oct/2026:09:18:30 +0700] "GET /cart HTTP/1.1" 500 128 "-" "Mozilla/5.0"
+192.0.2.10 - - [19/Oct/2026:09:19:45 +0700] "GET /products HTTP/1.1" 200 8432 "-" "Mozilla/5.0"
+203.0.113.5 - - [19/Oct/2026:09:20:01 +0700] "GET /.env HTTP/1.1" 404 512 "-" "curl/8.5.0"
+192.0.2.44 - - [19/Oct/2026:09:21:10 +0700] "GET / HTTP/1.1" 200 5120 "-" "Mozilla/5.0"
+192.0.2.10 - - [19/Oct/2026:09:22:33 +0700] "GET /logout HTTP/1.1" 200 256 "-" "Mozilla/5.0"
+EOF
+
+# สร้าง members.csv ตัวอย่าง
+cat &gt; members.csv &lt;&lt;'EOF'
+id,name,city,score
+1,somchai,Bangkok,85
+2,somsri,Chiang Mai,92
+3,mana,Khon Kaen,78
+4,manee,Bangkok,88
+5,piti,Phuket,70
+6,chujai,Chiang Mai,95
+EOF
+
+# ตรวจว่าไฟล์ครบ
+wc -l access.log members.csv</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>  10 access.log
+   7 members.csv
+  17 total</code></pre>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ฝึกคำสั่งที่ลบหรือย้ายไฟล์เฉพาะใน <code>~/projects/linux-lab</code> เท่านั้น อย่าลองใน <code>/mnt/c</code> (ไดรฟ์ C: ของ Windows) หรือโฟลเดอร์ระบบ เพราะ Linux ไม่มีถังขยะ ไฟล์ที่ลบด้วย <code>rm</code> จะหายทันที</p></div>
+
+<h3 id="s19-3-fill">Fill-in-the-blank</h3>
+<p>เติมคำสั่ง Option หรือค่าที่หายไปในช่อง <code>_____</code> ให้ได้ผลลัพธ์ตามที่โจทย์บอก ทุกข้อลองรันจริงในโฟลเดอร์ <code>~/projects/linux-lab/practice</code> ได้</p>
+<ol class="qlist fill">
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>ในโฟลเดอร์ <code>dotdemo</code> มีไฟล์ <code>notes.txt</code> และ <code>.env</code> เมื่อพิมพ์ <code>ls</code> เฉย ๆ จะเห็นแค่ <code>notes.txt</code> เพราะไฟล์ที่ชื่อขึ้นต้นด้วยจุดเป็น Hidden file จงเติม Option ที่ทำให้เห็นไฟล์ทุกไฟล์ รวมถึง <code>.</code> และ <code>..</code> ด้วย</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เตรียมโฟลเดอร์ตัวอย่าง
+mkdir -p ~/projects/linux-lab/practice/dotdemo
+cd ~/projects/linux-lab/practice/dotdemo
+touch notes.txt .env
+
+# เติม Option ในช่องว่าง
+ls _____</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>.  ..  .env  notes.txt</code></pre>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>คุณต้องการสร้างโฟลเดอร์ซ้อนกัน 3 ชั้น <code>a/b/c</code> ในคำสั่งเดียว แต่โฟลเดอร์ <code>a</code> และ <code>b</code> ยังไม่มีอยู่ ถ้าไม่ใส่ Option จะได้ Error ด้านล่าง จงเติม Option ที่ทำให้ <code>mkdir</code> สร้างโฟลเดอร์แม่ให้อัตโนมัติ</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>mkdir: cannot create directory ‘/home/somchai/projects/linux-lab/practice/a/b/c’: No such file or directory</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างโฟลเดอร์ซ้อนกันหลายชั้นในคำสั่งเดียว
+mkdir _____ ~/projects/linux-lab/practice/a/b/c</code></pre>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>ร้านค้าออนไลน์ต้องการไฟล์ว่างสำหรับคำสั่งซื้อ 5 ไฟล์ ชื่อ <code>order-001.txt</code> ถึง <code>order-005.txt</code> (เลขสามหลักเสมอ) จงเติมส่วนที่หายไปให้ Bash ขยายชื่อไฟล์ให้ครบทั้ง 5 ชื่อในคำสั่งเดียว</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/linux-lab/practice
+mkdir -p orders
+
+# เติมส่วนที่หายไปหลังคำว่า order-
+touch orders/order-_____.txt
+ls orders</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>order-001.txt  order-002.txt  order-003.txt  order-004.txt  order-005.txt</code></pre>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ไฟล์ <code>secret.txt</code> เก็บ Token ทดสอบ คุณต้องตั้ง Permission ให้เจ้าของ (somchai) อ่านและเขียนได้เท่านั้น ส่วน Group และ Others ห้ามทำอะไรเลย จงเติมตัวเลข Permission แบบ Numeric</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/linux-lab/practice
+echo 'API_TOKEN=fake-123' &gt; secret.txt
+
+# เติมตัวเลข Permission
+chmod _____ secret.txt
+
+# ตรวจผล: สิทธิ์แบบตัวอักษร ตัวเลข เจ้าของ:กลุ่ม และชื่อไฟล์
+stat -c '%A %a %U:%G %n' secret.txt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>-rw------- 600 somchai:somchai secret.txt</code></pre>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>คุณต้องการเก็บทั้งผลลัพธ์ปกติ (stdout) และข้อความ Error (stderr) ของคำสั่ง <code>ls</code> ลงไฟล์ <code>all.txt</code> ไฟล์เดียว โดยไม่ให้มีอะไรขึ้นบนจอเลย จงเติมส่วนที่หายไปท้ายคำสั่ง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/linux-lab/practice
+
+# /nope ไม่มีอยู่จริง จึงเกิด Error หนึ่งบรรทัด
+ls /etc/hostname /nope &gt; all.txt _____
+
+# ดูว่าในไฟล์มีอะไร
+cat all.txt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ls: cannot access '/nope': No such file or directory
+/etc/hostname</code></pre>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>หัวหน้าถามว่า IP ใดเข้าเว็บบ่อยที่สุด 3 อันดับแรก คุณเขียน Pipeline ด้านล่าง แต่ขาดคำสั่งที่นับจำนวนบรรทัดที่ซ้ำกันติดกัน จงเติมคำสั่งพร้อม Option ที่ทำให้ได้ตัวเลขนำหน้าแต่ละ IP</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/linux-lab/practice
+awk '{print $1}' access.log | sort | _____ | sort -rn | head -n 3</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>      4 192.0.2.10
+      3 203.0.113.5
+      2 198.51.100.23</code></pre>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>คุณต้องการให้ Script หยุดทันทีในสามกรณี คือ (1) คำสั่งใดล้มเหลว (2) ใช้ตัวแปรที่ไม่เคยตั้งค่า และ (3) คำสั่งใดคำสั่งหนึ่งใน Pipe ล้มเหลว จงเติมบรรทัดที่ 2 ให้เป็น Strict mode ที่ครบทั้งสามข้อ ผลลัพธ์ด้านล่างเกิดจากการพิมพ์ชื่อตัวแปรผิด (บันทึกไฟล์ไว้ใน <code>~/projects/linux-lab/practice</code>)</p>
+<pre class="code" data-env="file" data-label="Bash · strict-demo.sh"><code class="language-bash">#!/usr/bin/env bash
+set _____
+# ตั้งใจพิมพ์ชื่อตัวแปรผิด เพื่อดูว่า Script หยุดหรือไม่
+echo "ชื่อผู้ใช้: $USERNAME_TYPO"
+echo "บรรทัดนี้จะไม่ถูกพิมพ์"</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/linux-lab/practice
+chmod +x strict-demo.sh
+./strict-demo.sh; echo "exit=$?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>./strict-demo.sh: line 4: USERNAME_TYPO: unbound variable
+exit=1</code></pre>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>คุณต้องการให้ cron รัน Script สำรองข้อมูลจาก Part 2 ทุกวัน เวลา 02:30 น. จงเติมช่วงเวลา 5 ช่อง (นาที ชั่วโมง วันที่ เดือน วันในสัปดาห์) ให้ถูกต้อง</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="crontab · crontab -e"><code class="language-plaintext">_____ /home/somchai/projects/linux-lab/c12/backup.sh /home/somchai/projects/linux-lab/c12/data 7 &gt;&gt; /home/somchai/projects/linux-lab/c12/backup-cron.log 2&gt;&amp;1</code></pre>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>คุณสั่ง <code>sleep 300</code> แบบ Foreground แล้วกด <kbd>Ctrl</kbd>+<kbd>Z</kbd> ทำให้งานหยุดชั่วคราว (Stopped) ตอนนี้คุณอยากให้งานเดิมทำงานต่อ แต่ทำงานเบื้องหลัง เพื่อให้ยังพิมพ์คำสั่งอื่นได้ จงเติมคำสั่ง Job Control ที่ใช้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">sleep 300
+# (กด Ctrl+Z ตรงนี้)
+_____ %1
+jobs</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>^Z
+[1]+  Stopped                 sleep 300
+[1]+ sleep 300 &amp;
+[1]+  Running                 sleep 300 &amp;</code></pre>
+<p><span class="muted small">เมื่อทำเสร็จแล้ว พิมพ์ <code>kill %1</code> เพื่อปิดงาน sleep ที่ค้างอยู่</span></p>
+</li>
+</ol>
+
+<h3 id="s19-3-mcq">Multiple Choice</h3>
+<p>เลือกคำตอบที่ถูกที่สุดเพียงข้อเดียว คำถามเรียงจากง่ายไปยาก และครอบคลุมแนวคิดทั้ง 12 ข้อของ Part 2</p>
+<ol class="qlist mcq">
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>คุณอยู่ที่ <code>/home/somchai/projects/linux-lab/c01/docs</code> แล้วพิมพ์ <code>cd ../..</code> ตามด้วย <code>pwd</code> ผลลัพธ์ที่เห็นคืออะไร</p>
+<ol class="choices">
+<li><code>/home/somchai/projects/linux-lab/c01</code></li>
+<li><code>/home/somchai/projects</code></li>
+<li><code>/home/somchai/projects/linux-lab</code></li>
+<li><code>/home/somchai</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>โฟลเดอร์ <code>old-reports</code> มีไฟล์ <code>r1.csv</code> อยู่ข้างใน คุณต้องการลบทั้งโฟลเดอร์และไฟล์ข้างใน คำสั่งใดทำได้สำเร็จ</p>
+<ol class="choices">
+<li><code>rmdir old-reports</code></li>
+<li><code>rm -r old-reports</code></li>
+<li><code>rm old-reports</code></li>
+<li><code>del old-reports</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>โฟลเดอร์ <code>orders</code> มีไฟล์ <code>order-001.txt</code> ถึง <code>order-005.txt</code> และ <code>order-010.txt</code> รูปแบบ Wildcard ใดเลือกได้เฉพาะ 3 ไฟล์ <code>order-001.txt</code>, <code>order-002.txt</code> และ <code>order-003.txt</code></p>
+<ol class="choices">
+<li><code>ls orders/order-00[1-3].txt</code></li>
+<li><code>ls orders/order-00?.txt</code></li>
+<li><code>ls orders/order-*.txt</code></li>
+<li><code>ls orders/order-{1..3}.txt</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>แอปของคุณเขียน Log ต่อท้ายไฟล์ <code>app.log</code> เรื่อย ๆ คุณต้องการเฝ้าดูบรรทัดใหม่ที่เพิ่มเข้ามาแบบ Live จนกว่าจะกด <kbd>Ctrl</kbd>+<kbd>C</kbd> ควรใช้คำสั่งใด</p>
+<ol class="choices">
+<li><code>cat app.log</code></li>
+<li><code>head -f app.log</code></li>
+<li><code>wc -l app.log</code></li>
+<li><code>tail -f app.log</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ผลของ <code>ls -l deploy.sh</code> เป็นดังนี้</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>-rwxr-x--- 1 somchai developers 80 Oct 19 14:57 deploy.sh</code></pre>
+<p>ผู้ใช้ <code>labuser</code> อยู่ใน Group <code>developers</code> แต่ไม่ใช่เจ้าของไฟล์ labuser ทำอะไรกับไฟล์นี้ได้บ้าง</p>
+<ol class="choices">
+<li>อ่าน แก้ไข และรันได้ทั้งหมด</li>
+<li>อ่านและรันได้ แต่แก้ไขไม่ได้</li>
+<li>อ่านได้อย่างเดียว รันไม่ได้</li>
+<li>ทำอะไรไม่ได้เลย เพราะไม่ใช่เจ้าของไฟล์</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>หลังจากสั่ง <code>chmod 754 deploy.sh</code> แล้ว Permission ของไฟล์ (9 ตัวอักษรหลังตัวบอกชนิดไฟล์) จะเป็นแบบใด</p>
+<ol class="choices">
+<li><code>rwxr-xr-x</code></li>
+<li><code>rwxrw-r--</code></li>
+<li><code>rw-r-xr--</code></li>
+<li><code>rwxr-xr--</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>คุณรันคำสั่งนี้ (สังเกตลำดับของ Redirection)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">ls /etc/hostname /nope 2&gt;&amp;1 &gt; out.txt</code></pre>
+<p>ข้อใดบรรยายผลลัพธ์ได้ถูกต้อง</p>
+<ol class="choices">
+<li>ทั้งสองบรรทัดอยู่ใน <code>out.txt</code> และไม่มีอะไรขึ้นบนจอ</li>
+<li>ทั้งสองบรรทัดขึ้นบนจอ และ <code>out.txt</code> ว่างเปล่า</li>
+<li>ข้อความ Error ขึ้นบนจอ ส่วน <code>out.txt</code> มีบรรทัด <code>/etc/hostname</code></li>
+<li>Bash แจ้ง Syntax error เพราะเขียน <code>2&gt;&amp;1</code> ก่อน <code>&gt;</code> ไม่ได้</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ไฟล์ <code>data.txt</code> มี 3 บรรทัดคือ c, a, b คุณต้องการเรียงข้อมูลแล้วเก็บไว้ในไฟล์เดิม จึงพิมพ์ <code>sort data.txt &gt; data.txt</code> ผลที่เกิดขึ้นจริงคืออะไร</p>
+<ol class="choices">
+<li><code>data.txt</code> กลายเป็นไฟล์ว่าง ขนาด 0 byte</li>
+<li><code>data.txt</code> ถูกเรียงเป็น a, b, c อย่างถูกต้อง</li>
+<li><code>sort</code> แจ้ง Error ว่า <code>input file is output file</code> แล้วไม่ทำอะไรกับไฟล์</li>
+<li><code>data.txt</code> ไม่เปลี่ยนแปลง ยังเป็น c, a, b เหมือนเดิม</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>คุณติดตั้งแพ็กเกจ <code>nginx</code> เพื่อทดลอง และตอนนี้ต้องการลบออกให้หมด รวมถึงไฟล์ Config ใน <code>/etc/nginx</code> ด้วย ควรใช้คำสั่งใด</p>
+<ol class="choices">
+<li><code>sudo apt remove nginx</code></li>
+<li><code>sudo apt autoremove</code></li>
+<li><code>sudo apt purge nginx nginx-common</code></li>
+<li><code>sudo apt update</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>คุณพิมพ์ 2 บรรทัดนี้ใน Terminal ใหม่ (ยังไม่เคยตั้งค่า CITY มาก่อน)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">CITY=Bangkok
+bash -c 'echo "child sees: ${CITY:-&lt;empty&gt;}"'</code></pre>
+<p>ผลลัพธ์คืออะไร</p>
+<ol class="choices">
+<li><code>child sees: Bangkok</code></li>
+<li><code>child sees: &lt;empty&gt;</code></li>
+<li><code>child sees: ${CITY:-&lt;empty&gt;}</code></li>
+<li><code>bash: CITY: unbound variable</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>Script ทำงานเบื้องหลังของคุณมี <code>trap</code> สำหรับเก็บกวาดไฟล์ชั่วคราวก่อนปิด Signal ใดที่ <code>trap</code> ดักไว้ไม่ได้เลย ทำให้ Script ไม่มีโอกาสเก็บกวาด</p>
+<ol class="choices">
+<li><code>SIGTERM</code> (15) ซึ่งเป็นค่าเริ่มต้นของคำสั่ง <code>kill</code></li>
+<li><code>SIGINT</code> (2) ที่เกิดจากการกด <kbd>Ctrl</kbd>+<kbd>C</kbd></li>
+<li><code>SIGHUP</code> (1) ที่เกิดเมื่อปิด Terminal</li>
+<li><code>SIGKILL</code> (9) ที่ส่งด้วย <code>kill -9</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>ไฟล์ <code>app.log</code> มี 2 บรรทัดคือ <code>INFO start</code> และ <code>INFO done</code> (ไม่มีคำว่า ERROR เลย) เมื่อรัน Script ด้านล่าง จะเกิดอะไรขึ้น</p>
+<pre class="code" data-env="file" data-label="Bash · count-errors.sh"><code class="language-bash">#!/usr/bin/env bash
+set -euo pipefail
+count=$(grep -c "ERROR" app.log)
+echo "พบ ERROR $count บรรทัด"</code></pre>
+<ol class="choices">
+<li>พิมพ์ <code>พบ ERROR 0 บรรทัด</code> และจบด้วย exit code 0</li>
+<li>ไม่พิมพ์อะไรเลย และจบด้วย exit code 1</li>
+<li>พิมพ์ <code>count: unbound variable</code> แล้วจบด้วย exit code 1</li>
+<li>พิมพ์ <code>พบ ERROR  บรรทัด</code> (ตัวเลขว่าง) และจบด้วย exit code 0</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>บรรทัด crontab ต่อไปนี้ทำให้ Script ทำงานเมื่อใด</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="crontab · crontab -e"><code class="language-plaintext">*/15 9-17 * * 1-5 /home/somchai/bin/check-stock.sh &gt;&gt; /home/somchai/logs/stock.log 2&gt;&amp;1</code></pre>
+<ol class="choices">
+<li>ทุก 15 นาที ตั้งแต่ 09:00 ถึง 17:45 เฉพาะวันจันทร์ถึงศุกร์</li>
+<li>ทุก 15 นาที ตั้งแต่ 09:00 ถึง 17:00 พอดี (ครั้งสุดท้ายคือ 17:00) เฉพาะวันจันทร์ถึงศุกร์</li>
+<li>เวลา 09:15 และ 17:15 ของวันที่ 1 ถึง 5 ทุกเดือน</li>
+<li>ทุก 15 นาที ตั้งแต่ 09:00 ถึง 17:45 ทุกวัน รวมเสาร์และอาทิตย์</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>ใน Ubuntu บน WSL คุณพิมพ์ <code>systemctl status cron</code> แล้วได้ข้อความ <code>System has not been booted with systemd as init system (PID 1). Can't operate.</code> วิธีแก้ที่ถูกต้องคือข้อใด</p>
+<ol class="choices">
+<li>รัน <code>sudo apt install systemd</code> แล้วลองใหม่</li>
+<li>รัน <code>sudo systemctl enable systemd</code></li>
+<li>เพิ่ม <code>[boot]</code> และ <code>systemd=true</code> ใน <code>/etc/wsl.conf</code> แล้วสั่ง <code>wsl --shutdown</code> ใน PowerShell และเปิด Ubuntu ใหม่</li>
+<li>รัน <code>sudo chmod +x /usr/bin/systemctl</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>คุณเปิดเว็บทดสอบแบบ Foreground ด้วย <code>python3 -m http.server 8091 --bind 127.0.0.1</code> แล้วกด <kbd>Ctrl</kbd>+<kbd>Z</kbd> จากนั้นทดสอบด้วยคำสั่งด้านล่าง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">curl -s -o /dev/null -w '%{http_code}\n' --max-time 3 http://127.0.0.1:8091/; echo "curl exit=$?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>000
+curl exit=28</code></pre>
+<p>สาเหตุที่ curl ได้ <code>000</code> และ exit code 28 (หมดเวลา) คืออะไร</p>
+<ol class="choices">
+<li><kbd>Ctrl</kbd>+<kbd>Z</kbd> ปิด Process ไปแล้ว Port 8091 จึงไม่มีใครเปิดอยู่</li>
+<li>Firewall ของ Windows บล็อก Port 8091 ไว้</li>
+<li><code>127.0.0.1</code> ใช้ใน WSL ไม่ได้ ต้องใช้ IP ของ <code>eth0</code> แทน</li>
+<li>Process ยังอยู่แต่ถูกหยุดชั่วคราว (สถานะ <code>T</code>) จึงไม่ตอบ Request ต้องสั่ง <code>bg %1</code> หรือ <code>fg</code> ก่อน</li>
+</ol>
+</li>
+</ol>
+
+<h3 id="s19-3-hands">Hands-on Challenge</h3>
+<p>โจทย์ 3 ข้อนี้จำลองงานจริงที่คนทำงานสาย IT เจอบ่อย ข้อแรกเน้นการจัดการไฟล์ ข้อสองเน้น Text Processing และการเขียน Script ข้อสามรวม Process, Signal, Networking และ cron เข้าด้วยกัน แต่ละข้อใช้โฟลเดอร์ของตัวเองใน <code>~/projects/linux-lab</code> ให้ทำทีละขั้นตามลำดับ และจดสิ่งที่ติดขัดไว้ แล้วค่อยเปิด Hint หรือเฉลยเมื่อพยายามเต็มที่แล้ว</p>
+
+<article class="challenge" data-lvl="b">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 1</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h4>จัดระเบียบโฟลเดอร์ของร้านกาแฟ "บ้านกาแฟ"</h4>
+<h5>สถานการณ์</h5>
+<p>เจ้าของร้านกาแฟ "บ้านกาแฟ" เก็บทุกไฟล์รวมกันไว้ในโฟลเดอร์ <code>inbox</code> โฟลเดอร์เดียว ทั้งใบเสร็จ PDF รูปเมนู ไฟล์ยอดขาย CSV ไฟล์ร่างที่ไม่ใช้แล้ว และไฟล์ซ่อนที่จดรหัส Wi-Fi สำหรับลูกค้า ทุกวันนี้หาไฟล์ไม่เจอ เขาจึงขอให้คุณจัดโฟลเดอร์ใหม่ให้เป็นระเบียบด้วย Terminal โดยห้ามทำไฟล์สำคัญหาย</p>
+<p>เริ่มจากรันคำสั่งเตรียมข้อมูลนี้ก่อน คำสั่งนี้สร้างโฟลเดอร์ <code>inbox</code> ที่มีไฟล์ปนกันอยู่</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างโฟลเดอร์โจทย์และไฟล์ตั้งต้นที่ปนกันอยู่ใน inbox
+mkdir -p ~/projects/linux-lab/challenge1/inbox
+cd ~/projects/linux-lab/challenge1/inbox
+touch receipt-2026-10-{15..19}.pdf
+touch photo-{1..4}.jpg photo-5.JPG
+touch sales-2026-10-{17..19}.csv
+touch draft-{1..3}.tmp
+echo "wifi: BaanKafae-Guest / pass: fake-coffee-2026" &gt; .wifi.txt
+cat &gt; menu.txt &lt;&lt;'EOF'
+Espresso 45
+Americano 50
+Latte 55
+Cappuccino 55
+Mocha 60
+Thai Tea 45
+Green Tea Latte 60
+Cocoa 50
+EOF
+ls -a</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>.            draft-3.tmp  photo-4.jpg             receipt-2026-10-18.pdf
+..           menu.txt     photo-5.JPG             receipt-2026-10-19.pdf
+.wifi.txt    photo-1.jpg  receipt-2026-10-15.pdf  sales-2026-10-17.csv
+draft-1.tmp  photo-2.jpg  receipt-2026-10-16.pdf  sales-2026-10-18.csv
+draft-2.tmp  photo-3.jpg  receipt-2026-10-17.pdf  sales-2026-10-19.csv</code></pre>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+<li>ไปที่ <code>~/projects/linux-lab/challenge1</code> แล้วสร้างโฟลเดอร์ <code>shop</code> ที่มีโฟลเดอร์ย่อย <code>receipts</code>, <code>photos</code>, <code>sales</code>, <code>docs</code> และ <code>archive</code> ด้วยคำสั่ง <code>mkdir</code> เพียงคำสั่งเดียว</li>
+<li>ย้ายไฟล์ตามชนิดด้วย Wildcard พร้อม Option <code>-v</code> เพื่อให้เห็นว่าย้ายอะไรไปบ้าง: ไฟล์ <code>.pdf</code> ไป <code>shop/receipts</code>, รูปภาพทั้งหมดไป <code>shop/photos</code> (ระวังไฟล์นามสกุลตัวพิมพ์ใหญ่) และไฟล์ <code>.csv</code> ไป <code>shop/sales</code></li>
+<li>ย้าย <code>menu.txt</code> ไปที่ <code>shop/docs</code> และเปลี่ยนชื่อเป็น <code>menu-2026-10.txt</code> ในคำสั่งเดียว</li>
+<li>สำรอง (คัดลอก ไม่ใช่ย้าย) ไฟล์ยอดขายของวันที่ 17 และ 18 ตุลาคม ไปไว้ที่ <code>shop/archive</code> โดยใช้ Wildcard แบบวงเล็บเหลี่ยม <code>[ ]</code> เพียงรูปแบบเดียว</li>
+<li>ลบไฟล์ร่าง <code>.tmp</code> ทั้งหมดอย่างปลอดภัย คือใช้ <code>ls</code> กับ Wildcard เดียวกันดูรายชื่อก่อน แล้วจึงลบด้วย <code>rm -v</code></li>
+<li>ลบโฟลเดอร์ <code>inbox</code> ด้วย <code>rmdir</code> ถ้าลบไม่ได้ ให้หาสาเหตุ แล้วย้ายไฟล์ที่เหลือไปไว้ใน <code>shop/docs</code> ก่อนลบอีกครั้ง</li>
+<li>ตรวจผลงานด้วย <code>tree -a shop</code> แล้วเข้าไปที่ <code>shop/docs</code> นับจำนวนบรรทัดของเมนู แสดง 3 บรรทัดแรกและ 2 บรรทัดสุดท้าย จากนั้นกลับไปโฟลเดอร์ก่อนหน้าด้วย <code>cd -</code></li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<p>โฟลเดอร์ <code>inbox</code> ต้องหายไป ไฟล์ <code>.tmp</code> ต้องถูกลบ และต้องมีไฟล์ครบ 17 ไฟล์ในโครงสร้างใหม่ คือไฟล์เดิม 15 ไฟล์ (รวมไฟล์ซ่อน <code>.wifi.txt</code>) และไฟล์สำรองอีก 2 ไฟล์ใน <code>archive</code> ผลของ <code>tree -a shop</code> ควรเป็นแบบนี้</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>shop
+├── archive
+│   ├── sales-2026-10-17.csv
+│   └── sales-2026-10-18.csv
+├── docs
+│   ├── .wifi.txt
+│   └── menu-2026-10.txt
+├── photos
+│   ├── photo-1.jpg
+│   ├── photo-2.jpg
+│   ├── photo-3.jpg
+│   ├── photo-4.jpg
+│   └── photo-5.JPG
+├── receipts
+│   ├── receipt-2026-10-15.pdf
+│   ├── receipt-2026-10-16.pdf
+│   ├── receipt-2026-10-17.pdf
+│   ├── receipt-2026-10-18.pdf
+│   └── receipt-2026-10-19.pdf
+└── sales
+    ├── sales-2026-10-17.csv
+    ├── sales-2026-10-18.csv
+    └── sales-2026-10-19.csv
+
+6 directories, 17 files</code></pre>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+<li>Brace expansion <code>shop/{receipts,photos,sales,docs,archive}</code> สร้างได้หลายโฟลเดอร์ในคำสั่งเดียว และใช้คู่กับ <code>mkdir -p</code> ได้</li>
+<li>Linux แยกตัวพิมพ์เล็กและใหญ่ <code>*.jpg</code> จึงไม่จับ <code>photo-5.JPG</code> ใส่ทั้ง <code>inbox/*.jpg inbox/*.JPG</code> ในคำสั่ง <code>mv</code> เดียวกันได้</li>
+<li><code>mv</code> ใช้ทั้งย้ายและเปลี่ยนชื่อ ถ้าปลายทางเป็นชื่อไฟล์ใหม่ ไฟล์จะถูกย้ายและเปลี่ยนชื่อพร้อมกัน</li>
+<li><code>[78]</code> หมายถึงตัวอักษร 1 ตัวที่เป็น 7 หรือ 8 เท่านั้น</li>
+<li>ถ้า <code>rmdir</code> บอกว่า <code>Directory not empty</code> ทั้งที่ <code>ls</code> ดูว่างเปล่า ให้ลอง <code>ls -a</code></li>
+</ul>
+</div></details>
+</article>
+
+<article class="challenge" data-lvl="i">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 2</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h4>Script สรุป Log ส่งหัวหน้าทุกเช้า</h4>
+<h5>สถานการณ์</h5>
+<p>คุณเป็น Junior Admin ของร้านค้าออนไลน์เล็ก ๆ ทุกเช้าหัวหน้าอยากรู้ว่าเมื่อวานมีคนเข้าเว็บกี่ครั้ง มี Error กี่ครั้ง IP ใดเข้าบ่อยที่สุด และมีใครพยายามเข้าหน้าที่ไม่มีอยู่ เช่น <code>/admin</code> หรือ <code>/.env</code> หรือไม่ ซึ่งมักเป็นสัญญาณของการสแกนหาช่องโหว่ เดิมคุณพิมพ์คำสั่งทีละบรรทัดทุกวัน ตอนนี้ถึงเวลาเปลี่ยนเป็น Script ที่เรียกใช้ได้จากทุกที่ด้วยคำสั่งเดียว</p>
+<p>เตรียมข้อมูลด้วยคำสั่งนี้ (ใช้ <code>access.log</code> ชุดเดียวกับ Part 2)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างโฟลเดอร์โจทย์ โฟลเดอร์เก็บรายงาน และโฟลเดอร์ ~/.local/bin
+mkdir -p ~/projects/linux-lab/challenge2/reports ~/.local/bin
+cd ~/projects/linux-lab/challenge2
+
+# สร้าง access.log ตัวอย่าง 10 บรรทัด
+cat &gt; access.log &lt;&lt;'EOF'
+192.0.2.10 - - [19/Oct/2026:09:15:01 +0700] "GET / HTTP/1.1" 200 5120 "-" "Mozilla/5.0"
+198.51.100.23 - - [19/Oct/2026:09:15:07 +0700] "GET /products HTTP/1.1" 200 8432 "-" "Mozilla/5.0"
+203.0.113.5 - - [19/Oct/2026:09:16:12 +0700] "GET /admin HTTP/1.1" 404 512 "-" "curl/8.5.0"
+192.0.2.10 - - [19/Oct/2026:09:16:40 +0700] "POST /login HTTP/1.1" 302 0 "-" "Mozilla/5.0"
+203.0.113.5 - - [19/Oct/2026:09:17:02 +0700] "GET /wp-login.php HTTP/1.1" 404 512 "-" "curl/8.5.0"
+198.51.100.23 - - [19/Oct/2026:09:18:30 +0700] "GET /cart HTTP/1.1" 500 128 "-" "Mozilla/5.0"
+192.0.2.10 - - [19/Oct/2026:09:19:45 +0700] "GET /products HTTP/1.1" 200 8432 "-" "Mozilla/5.0"
+203.0.113.5 - - [19/Oct/2026:09:20:01 +0700] "GET /.env HTTP/1.1" 404 512 "-" "curl/8.5.0"
+192.0.2.44 - - [19/Oct/2026:09:21:10 +0700] "GET / HTTP/1.1" 200 5120 "-" "Mozilla/5.0"
+192.0.2.10 - - [19/Oct/2026:09:22:33 +0700] "GET /logout HTTP/1.1" 200 256 "-" "Mozilla/5.0"
+EOF
+wc -l access.log</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>10 access.log</code></pre>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+<li>สร้างไฟล์ <code>log-report.sh</code> ที่ขึ้นต้นด้วย Shebang <code>#!/usr/bin/env bash</code> และเปิด Strict mode <code>set -euo pipefail</code></li>
+<li>ให้ Script รับ Argument แบบ <code>log-report.sh &lt;access_log&gt; [top_n]</code> โดย <code>top_n</code> มีค่าเริ่มต้นเป็น 3 ถ้าจำนวน Argument ผิด ให้พิมพ์วิธีใช้ทาง stderr แล้วจบด้วย exit code 2 ถ้าไม่พบไฟล์ หรือ <code>top_n</code> ไม่ใช่จำนวนเต็มบวก ให้พิมพ์ข้อความผิดพลาดทาง stderr แล้วจบด้วย exit code 1</li>
+<li>รายงานต้องมี 7 ส่วน คือ จำนวน Request ทั้งหมด, จำนวน Request ที่ Status ตั้งแต่ 400 ขึ้นไป, จำนวนของแต่ละ Status Code, IP ที่เข้าบ่อยที่สุด <code>top_n</code> อันดับ, Path ที่ได้ 404, IP น่าสงสัยที่ได้ 404 ตั้งแต่ 2 ครั้งขึ้นไป และจำนวน Byte ที่ส่งออกทั้งหมด (คอลัมน์ที่ 10)</li>
+<li>ตรวจ Script ด้วย <code>shellcheck</code> จนไม่มีคำเตือน แล้ว <code>chmod +x</code> และทดสอบทั้งกรณีปกติและกรณีผิดพลาด 3 แบบ (ไม่ใส่ Argument, ไฟล์ไม่มีอยู่, <code>top_n</code> เป็นตัวอักษร) พร้อมพิมพ์ <code>echo "exit=$?"</code> ทุกครั้ง</li>
+<li>คัดลอก Script ไปไว้ที่ <code>~/.local/bin/log-report</code> (ไม่มี <code>.sh</code>) แล้วยืนยันด้วย <code>which log-report</code> ว่าเรียกจากโฟลเดอร์ไหนก็ได้</li>
+<li>จากโฟลเดอร์ Home ให้รัน <code>log-report</code> แบบ Top 2 แล้วใช้ <code>tee</code> บันทึกรายงานลงไฟล์ <code>reports/report-YYYY-MM-DD.txt</code> (ใช้ <code>$(date +%F)</code>) พร้อมแสดงบนจอ</li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<p>เมื่อรัน <code>./log-report.sh access.log</code> ส่วนต้นของรายงานต้องได้ตัวเลขตรงกับด้านล่าง (บรรทัด "สร้างเมื่อ" จะเป็นวันเวลาบนเครื่องคุณ) ส่วนที่เหลือต้องบอกได้ว่า Path ที่ได้ 404 คือ <code>/admin</code>, <code>/wp-login.php</code> และ <code>/.env</code>, IP น่าสงสัยคือ <code>203.0.113.5</code> (3 ครั้ง) และส่งข้อมูลออกทั้งหมด 29024 bytes ส่วนกรณีผิดพลาดทั้งสามแบบต้องได้ exit code 2, 1 และ 1 ตามลำดับ</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>=== รายงาน Log: access.log ===
+สร้างเมื่อ: 2026-10-19 22:32:40
+จำนวน Request ทั้งหมด: 10
+จำนวน Request ที่ผิดพลาด (4xx/5xx): 4
+
+--- Status Code ---
+      5 200
+      3 404
+      1 500
+      1 302
+
+--- Top 3 IP ---
+      4 192.0.2.10
+      3 203.0.113.5
+      2 198.51.100.23</code></pre>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+<li>ใน <code>access.log</code> คอลัมน์ที่ awk เห็นคือ <code>$1</code> = IP, <code>$7</code> = Path, <code>$9</code> = Status และ <code>$10</code> = จำนวน Byte</li>
+<li>นับบรรทัดแบบไม่มีชื่อไฟล์ต่อท้ายด้วย <code>wc -l &lt; "$log_file"</code></li>
+<li>ตรวจว่าเป็นจำนวนเต็มบวกด้วย <code>[[ "$top_n" =~ ^[1-9][0-9]*$ ]]</code></li>
+<li>นับ 404 แยกตาม IP ด้วย Array ใน awk เช่น <code>c[$1]++</code> แล้ววนพิมพ์ใน <code>END { for (ip in c) ... }</code> ลำดับของ <code>for (ip in c)</code> ไม่แน่นอน จึงควรต่อด้วย <code>| sort</code></li>
+<li>ส่งข้อความผิดพลาดไป stderr ด้วย <code>echo "..." &gt;&amp;2</code></li>
+<li>บน Ubuntu ไฟล์ <code>~/.profile</code> เพิ่ม <code>~/.local/bin</code> เข้า PATH ให้เมื่อโฟลเดอร์มีอยู่ตอน Login ถ้า <code>which</code> ไม่เจอ ให้ปิดแล้วเปิด Terminal ใหม่ หรือสั่ง <code>source ~/.profile</code></li>
+</ul>
+</div></details>
+</article>
+
+<article class="challenge" data-lvl="a">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 3</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h4>Watchdog ปลุกเว็บภายในร้านที่ล่มบ่อย</h4>
+<h5>สถานการณ์</h5>
+<p>ร้าน "บ้านกาแฟ" มีหน้าเว็บเช็กสต็อกภายในร้าน รันด้วย <code>python3 -m http.server</code> บน WSL ของเครื่องหน้าร้าน ปัญหาคือบางครั้ง Process ตายไปเอง บางครั้งค้างจนไม่ตอบ พนักงานต้องโทรเรียกคุณทุกครั้ง คุณจึงต้องเขียน Script ชื่อ <code>webwatch.sh</code> ที่เปิด ปิด และตรวจสถานะเว็บได้ และให้ cron เรียกตรวจทุกนาที ถ้าเว็บไม่ตอบ Script ต้องปิดตัวเก่าอย่างปลอดภัยแล้วเปิดใหม่เองโดยอัตโนมัติ</p>
+<div class="callout sec"><span class="c-label sec">Security</span><p>ให้เว็บฟังเฉพาะ <code>127.0.0.1</code> (เครื่องตัวเอง) เท่านั้น และทดสอบด้วย <code>curl</code> กับเครื่องของคุณเองเท่านั้น การยิง Request ตรวจสอบหรือสแกนเครื่องของผู้อื่นโดยไม่ได้รับอนุญาตผิด พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์</p></div>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+<li>สร้างโฟลเดอร์ <code>~/projects/linux-lab/challenge3/site</code> และไฟล์ <code>site/index.html</code> ที่มีหัวข้อ <code>BaanKafae Stock</code></li>
+<li>เขียน <code>webwatch.sh</code> ที่รับคำสั่งย่อย 4 แบบ คือ <code>start</code>, <code>stop</code>, <code>status</code> และ <code>check</code> ด้วย <code>case</code> คำสั่งอื่นให้พิมพ์วิธีใช้ทาง stderr และจบด้วย exit code 3 ใช้ <code>set -euo pipefail</code>, ตัวแปร <code>readonly</code> และฟังก์ชันที่ใช้ <code>local</code></li>
+<li><code>start</code> ต้องเปิดเว็บที่ Port 8091 บน <code>127.0.0.1</code> ด้วย <code>nohup ... &amp;</code> เก็บ PID ไว้ใน <code>run/web.pid</code> และเขียน Log พร้อมเวลาแบบ <code>[YYYY-MM-DD HH:MM:SS] ข้อความ</code> ลง <code>logs/webwatch.log</code> และบนจอ ถ้าเว็บทำงานอยู่แล้วต้องไม่เปิดซ้ำ</li>
+<li><code>stop</code> ต้องส่ง SIGTERM ก่อน รอได้สูงสุด 5 วินาที ถ้ายังไม่ปิดจึงใช้ SIGKILL แล้วลบ PID file ส่วน <code>status</code> ต้องพิมพ์ <code>running pid=... http=...</code> หรือ <code>stopped http=...</code></li>
+<li><code>check</code> ต้องถามเว็บด้วย <code>curl --max-time 3</code> ถ้าได้ 200 ให้ Log คำว่า <code>OK</code> และจบด้วย 0 ถ้าไม่ได้ 200 ให้ Log คำว่า <code>DOWN</code> ปิดตัวเก่า เปิดใหม่ แล้วตรวจซ้ำ ถ้ากลับมาได้ให้ Log <code>RECOVERED</code> และจบด้วย 1 ถ้าไม่ได้ให้ Log <code>FAILED</code> และจบด้วย 2</li>
+<li>ทดสอบ 2 สถานการณ์จำลอง คือ Process ตายกะทันหัน (<code>kill -9</code>) และ Process ค้าง (<code>kill -STOP</code>) แล้วดูว่า <code>check</code> กู้เว็บคืนได้ทั้งสองแบบ</li>
+<li>ติดตั้ง cron ให้เรียก <code>webwatch.sh check</code> ทุกนาที โดยเก็บผลลง <code>logs/cron.log</code> รอดูว่า cron ทำงานจริง แล้วถอดบรรทัดนี้ออกจาก crontab และปิดเว็บเมื่อทดสอบเสร็จ</li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<p>Script ต้องผ่าน <code>shellcheck</code> และไฟล์ <code>logs/webwatch.log</code> ต้องเล่าเหตุการณ์ได้ครบแบบด้านล่าง (เวลาและ PID บนเครื่องคุณจะต่างออกไป) สังเกตกรณี Process ค้าง Script ต้องรอ 5 วินาทีก่อนใช้ SIGKILL</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[2026-10-19 22:34:50] เริ่มเว็บแล้ว PID 5467 ที่ http://127.0.0.1:8091/
+[2026-10-19 22:34:50] OK http=200
+[2026-10-19 22:34:51] DOWN http=000 กำลังเริ่มเว็บใหม่
+[2026-10-19 22:34:51] ไม่มีเว็บทำงานอยู่
+[2026-10-19 22:34:52] เริ่มเว็บแล้ว PID 5515 ที่ http://127.0.0.1:8091/
+[2026-10-19 22:34:52] RECOVERED http=200
+[2026-10-19 22:34:59] DOWN http=000 กำลังเริ่มเว็บใหม่
+[2026-10-19 22:35:04] PID 5515 ไม่ยอมปิดภายใน 5 วินาที จึงใช้ SIGKILL
+[2026-10-19 22:35:05] หยุดเว็บแล้ว (PID 5515)
+[2026-10-19 22:35:06] เริ่มเว็บแล้ว PID 6525 ที่ http://127.0.0.1:8091/
+[2026-10-19 22:35:06] RECOVERED http=200</code></pre>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+<li><code>$!</code> คือ PID ของงานล่าสุดที่ส่งไปทำงานเบื้องหลังด้วย <code>&amp;</code> ให้เขียนลง PID file ทันที</li>
+<li>ต้อง Redirect ทั้ง stdout และ stderr ของ <code>python3 -m http.server</code> ไปที่ไฟล์ ไม่อย่างนั้น cron จะรอ Process ลูกและไม่จบงาน</li>
+<li><code>curl -s -o /dev/null -w '%{http_code}' --max-time 3 URL</code> พิมพ์แค่ Status Code ถ้าติดต่อไม่ได้จะได้ <code>000</code> และ curl จะคืน exit code ที่ไม่ใช่ 0 จึงควรต่อท้ายด้วย <code>|| true</code> ภายใต้ <code>set -e</code></li>
+<li>ตรวจว่า Process ยังมีชีวิตด้วย <code>ps -o stat= -p PID</code> ถ้าไม่พบ PID คำสั่งจะคืนค่าไม่ใช่ 0 และถ้าสถานะขึ้นต้นด้วย <code>Z</code> แปลว่าเป็น Zombie ที่ตายแล้ว</li>
+<li>Process ที่ถูก <code>kill -STOP</code> จะยังไม่ตายเมื่อได้ SIGTERM เพราะ Signal ถูกพักไว้จนกว่าจะทำงานต่อ จึงต้องมีขั้น SIGKILL สำรอง</li>
+<li>ใน <code>main</code> ให้เรียก <code>check_web || rc=$?</code> เพื่อเก็บ exit code ไว้ โดยที่ <code>set -e</code> ไม่ตัดจบ Script ก่อน</li>
+<li>เพิ่มบรรทัด cron โดยไม่ลบของเดิมด้วย <code>(crontab -l 2&gt;/dev/null; echo "...") | crontab -</code></li>
+</ul>
+</div></details>
+</article>
+
+<h3 id="s19-3-answers">เฉลย</h3>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ลองทำทุกข้อด้วยตัวเองใน Terminal ก่อนเปิดเฉลย ถ้าติดอยู่นานเกิน 15 นาที ให้เปิด Hint ก่อน แล้วค่อยเปิดเฉลย การได้เห็น Error จริงบนเครื่องตัวเองแล้วแก้เองได้ คือทักษะที่นายจ้างมองหามากที่สุด</p></div>
+
+<h4>เฉลย Fill-in-the-blank</h4>
+<details class="ans"><summary>ข้อ 1</summary><div>
+<p><strong>คำตอบ: <code>-a</code></strong> (คำสั่งเต็มคือ <code>ls -a</code>)</p>
+<p>Option <code>-a</code> ย่อมาจาก all ทำให้ <code>ls</code> แสดงไฟล์ที่ชื่อขึ้นต้นด้วยจุดด้วย ซึ่งรวมถึง <code>.</code> (โฟลเดอร์ปัจจุบัน) และ <code>..</code> (โฟลเดอร์แม่) ถ้าใช้ <code>-A</code> ตัวพิมพ์ใหญ่ จะเห็น <code>.env</code> แต่ไม่เห็น <code>.</code> และ <code>..</code> จึงไม่ตรงกับผลลัพธ์ในโจทย์ ส่วน <code>ls -la</code> ก็เห็นไฟล์ซ่อนเช่นกัน แต่จะแสดงเป็นแบบยาวทีละบรรทัดพร้อม Permission ไม่ใช่แบบในโจทย์</p>
+<p>ไฟล์ตั้งค่าส่วนใหญ่ใน Linux เป็น Hidden file เช่น <code>~/.bashrc</code>, <code>~/.profile</code> และ <code>.env</code> ของโปรเจกต์ ถ้าหาไฟล์ไม่เจอ ให้นึกถึง <code>ls -a</code> ก่อนเสมอ</p>
+</div></details>
+<details class="ans"><summary>ข้อ 2</summary><div>
+<p><strong>คำตอบ: <code>-p</code></strong> (คำสั่งเต็มคือ <code>mkdir -p ~/projects/linux-lab/practice/a/b/c</code>)</p>
+<p><code>-p</code> ย่อมาจาก parents คือให้สร้างโฟลเดอร์แม่ที่ยังไม่มีให้ครบทุกชั้น และถ้าโฟลเดอร์มีอยู่แล้วก็จะไม่แจ้ง Error ทำให้ใช้ซ้ำใน Script ได้อย่างปลอดภัย ตรวจผลด้วย <code>tree</code> ได้ดังนี้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/linux-lab/practice
+mkdir -p a/b/c
+# ตรวจ exit code: 0 แปลว่าสำเร็จ
+echo "exit=$?"
+tree a</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>exit=0
+a
+└── b
+    └── c
+
+3 directories, 0 files</code></pre>
+</div></details>
+<details class="ans"><summary>ข้อ 3</summary><div>
+<p><strong>คำตอบ: <code>{001..005}</code></strong> (คำสั่งเต็มคือ <code>touch orders/order-{001..005}.txt</code>)</p>
+<p>นี่คือ Brace expansion ซึ่ง Bash จะขยายเป็น 5 ชื่อก่อนส่งให้ <code>touch</code> เมื่อเลขเริ่มต้นมีเลข 0 นำหน้า Bash จะเติม 0 ให้ทุกตัวจนยาวเท่ากัน จึงได้ <code>001</code> ถึง <code>005</code> ถ้าเขียน <code>{1..5}</code> จะได้ <code>order-1.txt</code> ถึง <code>order-5.txt</code> ซึ่งไม่ตรงโจทย์</p>
+<p>ข้อแตกต่างสำคัญ: Brace expansion <strong>สร้างชื่อใหม่</strong> ได้แม้ไฟล์ยังไม่มีอยู่ ส่วน Wildcard (Globbing) เช่น <code>*</code> หรือ <code>[1-3]</code> <strong>จับเฉพาะไฟล์ที่มีอยู่แล้ว</strong> จึงใช้ Wildcard สร้างไฟล์ใหม่แบบนี้ไม่ได้</p>
+</div></details>
+<details class="ans"><summary>ข้อ 4</summary><div>
+<p><strong>คำตอบ: <code>600</code></strong> (เขียนแบบตัวอักษรได้เป็น <code>chmod u=rw,go= secret.txt</code>)</p>
+<p>ตัวเลขแต่ละหลักคือผลรวมของ r=4, w=2, x=1 หลักแรกของเจ้าของคือ 4+2=6 (อ่านและเขียน) หลักของ Group และ Others เป็น 0 คือไม่มีสิทธิ์ใดเลย ผลจึงเป็น <code>-rw-------</code> ไฟล์ที่เก็บ Secret เช่น Token หรือ Private key ของ SSH ควรเป็น 600 เสมอ และห้ามใช้ <code>chmod 777</code> โดยเด็ดขาด เพราะทำให้ทุกคนในเครื่องอ่านและแก้ไฟล์ได้</p>
+</div></details>
+<details class="ans"><summary>ข้อ 5</summary><div>
+<p><strong>คำตอบ: <code>2&gt;&amp;1</code></strong> (คำสั่งเต็มคือ <code>ls /etc/hostname /nope &gt; all.txt 2&gt;&amp;1</code>)</p>
+<p>Bash อ่าน Redirection จากซ้ายไปขวา <code>&gt; all.txt</code> ส่ง stdout (หมายเลข 1) ไปที่ไฟล์ก่อน จากนั้น <code>2&gt;&amp;1</code> แปลว่า "ให้ stderr (หมายเลข 2) ไปที่เดียวกับ stdout ตอนนี้" ซึ่งก็คือ <code>all.txt</code> ทั้งสองบรรทัดจึงอยู่ในไฟล์เดียวกัน ใน Bash เขียนย่อเป็น <code>&amp;&gt; all.txt</code> ก็ได้ แต่ <code>&gt; file 2&gt;&amp;1</code> ใช้ได้กับ Shell มาตรฐาน POSIX ทุกตัว (เช่น <code>sh</code> และ <code>dash</code> ที่ cron ใช้) จึงพบบ่อยกว่าใน Script และในบรรทัด cron</p>
+<p>สังเกตว่าบรรทัด Error อยู่บนสุด เพราะ <code>ls</code> พิมพ์ Error ทันทีที่หาไฟล์ไม่เจอ ก่อนพิมพ์รายชื่อไฟล์ที่พบ</p>
+</div></details>
+<details class="ans"><summary>ข้อ 6</summary><div>
+<p><strong>คำตอบ: <code>uniq -c</code></strong></p>
+<p><code>uniq</code> รวมบรรทัดที่ซ้ำกัน<strong>ติดกัน</strong> และ <code>-c</code> (count) ใส่จำนวนครั้งไว้หน้าบรรทัด จึงต้อง <code>sort</code> ก่อนเพื่อให้ IP เดียวกันมาอยู่ติดกัน จากนั้น <code>sort -rn</code> เรียงตามตัวเลขจากมากไปน้อย และ <code>head -n 3</code> ตัดเอา 3 อันดับแรก Pipeline <code>sort | uniq -c | sort -rn</code> เป็นสูตรนับความถี่ที่ใช้บ่อยที่สุดสูตรหนึ่งในงาน Admin</p>
+</div></details>
+<details class="ans"><summary>ข้อ 7</summary><div>
+<p><strong>คำตอบ: <code>-euo pipefail</code></strong> (บรรทัดเต็มคือ <code>set -euo pipefail</code>)</p>
+<ul>
+<li><code>-e</code> ทำให้ Script หยุดทันทีเมื่อคำสั่งใดคืน exit code ที่ไม่ใช่ 0</li>
+<li><code>-u</code> ทำให้การใช้ตัวแปรที่ไม่เคยตั้งค่าเป็น Error ซึ่งเป็นตัวที่ทำให้เกิดข้อความ <code>USERNAME_TYPO: unbound variable</code> ในโจทย์ และบรรทัดที่ 5 ไม่ถูกพิมพ์</li>
+<li><code>-o pipefail</code> ทำให้ exit code ของ Pipe เป็นค่าที่ไม่ใช่ 0 ถ้าคำสั่งใดคำสั่งหนึ่งใน Pipe ล้มเหลว ไม่ใช่ดูแค่คำสั่งสุดท้าย</li>
+</ul>
+<p>ถ้าใส่แค่ <code>set -u</code> ก็จะเห็นผลลัพธ์เหมือนโจทย์ แต่ไม่ครบเงื่อนไขทั้งสามข้อที่โจทย์กำหนด</p>
+</div></details>
+<details class="ans"><summary>ข้อ 8</summary><div>
+<p><strong>คำตอบ: <code>30 2 * * *</code></strong></p>
+<p>crontab มี 5 ช่องเรียงเป็น นาที ชั่วโมง วันที่ เดือน วันในสัปดาห์ เวลา 02:30 คือ นาที 30 และชั่วโมง 2 ส่วนอีก 3 ช่องเป็น <code>*</code> แปลว่าทุกวันที่ ทุกเดือน และทุกวันในสัปดาห์ ข้อผิดพลาดที่พบบ่อยคือเขียนสลับเป็น <code>2 30 * * *</code> ซึ่ง cron จะไม่ยอมรับ เพราะชั่วโมงมีได้แค่ 0 ถึง 23</p>
+<p>จำไว้ด้วยว่า cron บน WSL ทำงานเฉพาะตอนที่ WSL เปิดอยู่และ Service cron ทำงานอยู่ ถ้าปิดเครื่องตอนตี 2 งานนั้นจะไม่ถูกรันย้อนหลัง</p>
+</div></details>
+<details class="ans"><summary>ข้อ 9</summary><div>
+<p><strong>คำตอบ: <code>bg</code></strong> (คำสั่งเต็มคือ <code>bg %1</code>)</p>
+<p><kbd>Ctrl</kbd>+<kbd>Z</kbd> ส่ง Signal SIGTSTP ทำให้งานหยุดชั่วคราว (สถานะ <code>T</code> ใน <code>ps</code>) แต่ยังไม่ตาย <code>bg %1</code> สั่งให้งานหมายเลข 1 ทำงานต่อเบื้องหลัง Bash จึงพิมพ์ <code>[1]+ sleep 300 &amp;</code> และ <code>jobs</code> แสดงสถานะ <code>Running</code> ถ้าใช้ <code>fg %1</code> งานจะทำงานต่อเหมือนกัน แต่กลับมาอยู่ Foreground ทำให้พิมพ์คำสั่งอื่นไม่ได้ จึงไม่ตรงโจทย์ เราดูสถานะจริงด้วย <code>ps</code> ได้ดังนี้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">sleep 300
+# (กด Ctrl+Z ตรงนี้)
+ps -o pid,stat,cmd -p $(jobs -p %1)
+bg %1
+ps -o pid,stat,cmd -p $(jobs -p %1)
+kill %1</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>^Z
+[1]+  Stopped                 sleep 300
+  PID STAT CMD
+ 3181 T    sleep 300
+[1]+ sleep 300 &amp;
+  PID STAT CMD
+ 3181 S    sleep 300</code></pre>
+<p><span class="muted small">PID บนเครื่องของคุณจะต่างออกไป สถานะ T คือ Stopped และ S คือ Sleeping (รออยู่เฉย ๆ แต่ยังทำงาน)</span></p>
+</div></details>
+
+<h4>เฉลย Multiple Choice</h4>
+<details class="ans"><summary>ข้อ 1</summary><div>
+<p><strong>คำตอบ: C</strong> <code>..</code> แต่ละตัวพาขึ้นไป 1 ชั้น <code>../..</code> จึงขึ้นไป 2 ชั้น จาก <code>c01/docs</code> ขึ้นไปที่ <code>c01</code> แล้วขึ้นอีกชั้นไปที่ <code>linux-lab</code> ผลจริงเมื่อรันคือ <code>/home/somchai/projects/linux-lab</code></p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ <code>/home/somchai/projects/linux-lab/c01</code> คือผลของ <code>cd ..</code> ครั้งเดียว (ขึ้นไป 1 ชั้น)</li>
+<li><strong>B</strong> ผิดเพราะ <code>/home/somchai/projects</code> ต้องขึ้นไป 3 ชั้น คือ <code>cd ../../..</code></li>
+<li><strong>D</strong> ผิดเพราะ <code>/home/somchai</code> ต้องขึ้นไป 4 ชั้น หรือพิมพ์ <code>cd ~</code> หรือ <code>cd</code> เฉย ๆ ซึ่งเป็นการกลับ Home ไม่ใช่การขึ้นไปทีละชั้น</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 2</summary><div>
+<p><strong>คำตอบ: B</strong> <code>rm -r</code> (recursive) ลบไฟล์ข้างในทั้งหมดก่อน แล้วลบโฟลเดอร์ เมื่อใส่ <code>-v</code> จะเห็นผลจริงเป็น <code>removed 'old-reports/r1.csv'</code> และ <code>removed directory 'old-reports'</code> ก่อนลบควรใช้ <code>ls old-reports</code> ดูก่อนทุกครั้ง เพราะ Linux ไม่มีถังขยะ</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ <code>rmdir</code> ลบได้เฉพาะโฟลเดอร์ว่าง ผลจริงคือ <code>rmdir: failed to remove 'old-reports': Directory not empty</code></li>
+<li><strong>C</strong> ผิดเพราะ <code>rm</code> ที่ไม่มี <code>-r</code> ไม่ยอมลบโฟลเดอร์ ผลจริงคือ <code>rm: cannot remove 'old-reports': Is a directory</code></li>
+<li><strong>D</strong> ผิดเพราะ <code>del</code> เป็นคำสั่งของ Windows Command Prompt ไม่มีใน Linux Bash จะแจ้งว่าไม่พบคำสั่ง เช่น <code>del: command not found</code> (Ubuntu อาจแนะนำชื่อคำสั่งที่สะกดใกล้เคียงเพิ่มมาด้วย)</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 3</summary><div>
+<p><strong>คำตอบ: A</strong> <code>[1-3]</code> จับตัวอักษร 1 ตัวที่เป็น 1, 2 หรือ 3 เท่านั้น จึงได้ 3 ไฟล์พอดี ผลจริงเมื่อใช้ <code>ls -1</code> (บรรทัดละไฟล์) เป็นดังนี้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/linux-lab/practice
+touch orders/order-010.txt
+ls -1 orders/order-00[1-3].txt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>orders/order-001.txt
+orders/order-002.txt
+orders/order-003.txt</code></pre>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะ <code>?</code> จับตัวอักษรอะไรก็ได้ 1 ตัว จึงได้ 5 ไฟล์ คือ <code>order-001.txt</code> ถึง <code>order-005.txt</code></li>
+<li><strong>C</strong> ผิดเพราะ <code>*</code> จับทุกอย่าง จึงได้ทั้ง 6 ไฟล์ รวม <code>order-010.txt</code> ด้วย</li>
+<li><strong>D</strong> ผิดเพราะ Brace expansion สร้างชื่อ <code>order-1.txt</code>, <code>order-2.txt</code>, <code>order-3.txt</code> ซึ่งไม่มีอยู่จริง ผลจริงคือ Error 3 บรรทัด เช่น <code>ls: cannot access 'orders/order-1.txt': No such file or directory</code></li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 4</summary><div>
+<p><strong>คำตอบ: D</strong> <code>tail -f</code> (follow) แสดงบรรทัดท้ายของไฟล์ แล้วรอแสดงบรรทัดใหม่ที่ถูกเขียนต่อท้ายไปเรื่อย ๆ จนกว่าจะกด <kbd>Ctrl</kbd>+<kbd>C</kbd> ใช้บ่อยมากเวลาดู Log ของแอปหรือ Server ขณะทดสอบ</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ <code>cat</code> พิมพ์เนื้อหาที่มีอยู่ ณ ตอนนั้นครั้งเดียวแล้วจบ ไม่รอบรรทัดใหม่</li>
+<li><strong>B</strong> ผิดเพราะ <code>head</code> ไม่มี Option <code>-f</code> ผลจริงคือ <code>head: invalid option -- 'f'</code></li>
+<li><strong>C</strong> ผิดเพราะ <code>wc -l</code> แค่นับจำนวนบรรทัดแล้วจบ ไม่แสดงเนื้อหาของ Log</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 5</summary><div>
+<p><strong>คำตอบ: B</strong> Permission <code>rwxr-x---</code> แบ่งเป็น 3 ชุด ชุดแรก <code>rwx</code> ของเจ้าของ (somchai) ชุดที่สอง <code>r-x</code> ของ Group <code>developers</code> และชุดสุดท้าย <code>---</code> ของคนอื่น labuser อยู่ใน Group จึงใช้ชุดที่สอง คือ อ่าน (r) และรัน (x) ได้ แต่ไม่มี w จึงแก้ไขไม่ได้</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะสิทธิ์ครบ <code>rwx</code> เป็นของเจ้าของไฟล์เท่านั้น Group ไม่มี w</li>
+<li><strong>C</strong> ผิดเพราะชุดของ Group มี <code>x</code> อยู่ด้วย จึงรันได้</li>
+<li><strong>D</strong> ผิดเพราะ Linux ตรวจสิทธิ์ทั้งเจ้าของ Group และ Others การไม่ใช่เจ้าของไม่ได้แปลว่าไม่มีสิทธิ์ ถ้าอยู่ใน Group ก็ได้สิทธิ์ของ Group</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 6</summary><div>
+<p><strong>คำตอบ: D</strong> 7 = 4+2+1 = <code>rwx</code> สำหรับเจ้าของ, 5 = 4+1 = <code>r-x</code> สำหรับ Group และ 4 = <code>r--</code> สำหรับ Others รวมเป็น <code>rwxr-xr--</code> ผลจริงจาก <code>stat -c '%A %a' deploy.sh</code> คือ <code>-rwxr-xr-- 754</code></p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ <code>rwxr-xr-x</code> คือ 755 Others ได้ x ด้วย แต่ 4 ไม่มี x</li>
+<li><strong>B</strong> ผิดเพราะ <code>rwxrw-r--</code> คือ 764 Group ได้ rw ซึ่งเท่ากับ 6 ไม่ใช่ 5</li>
+<li><strong>C</strong> ผิดเพราะ <code>rw-r-xr--</code> คือ 654 เจ้าของไม่มี x ซึ่งเท่ากับ 6 ไม่ใช่ 7</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 7</summary><div>
+<p><strong>คำตอบ: C</strong> Bash ทำ Redirection จากซ้ายไปขวา <code>2&gt;&amp;1</code> มาก่อน ตอนนั้น stdout ยังชี้ไปที่จอ stderr จึงถูกตั้งให้ไปที่จอ จากนั้น <code>&gt; out.txt</code> ย้ายเฉพาะ stdout ไปที่ไฟล์ ผลจริงคือ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">ls /etc/hostname /nope 2&gt;&amp;1 &gt; out.txt
+cat out.txt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ls: cannot access '/nope': No such file or directory
+/etc/hostname</code></pre>
+<p>บรรทัดแรกขึ้นบนจอตอนรัน <code>ls</code> ส่วนบรรทัดที่สองมาจาก <code>cat out.txt</code></p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะจะได้ผลแบบนั้นต้องเขียน <code>&gt; out.txt 2&gt;&amp;1</code> คือย้าย stdout ไปไฟล์ก่อน แล้วค่อยให้ stderr ตามไป</li>
+<li><strong>B</strong> ผิดเพราะ <code>&gt; out.txt</code> ยังส่ง stdout ไปที่ไฟล์ตามปกติ ไฟล์จึงไม่ว่าง</li>
+<li><strong>D</strong> ผิดเพราะการเขียน <code>2&gt;&amp;1</code> ก่อน <code>&gt;</code> ถูก Syntax ทุกประการ เพียงแต่ให้ความหมายต่างออกไป</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 8</summary><div>
+<p><strong>คำตอบ: A</strong> Shell จัดการ Redirection <code>&gt; data.txt</code> ก่อนเริ่มรัน <code>sort</code> ซึ่งทำให้ไฟล์ถูกล้างเป็นว่างทันที <code>sort</code> จึงอ่านได้ไฟล์ว่างและเขียนผลว่างกลับไป ผลจริงจาก <code>wc -c data.txt</code> คือ <code>0 data.txt</code> วิธีที่ถูกคือ <code>sort -o data.txt data.txt</code> (sort รองรับการเขียนทับไฟล์เดิมเอง) หรือเขียนลงไฟล์ใหม่แล้วใช้ <code>mv</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/linux-lab/practice
+printf 'c\na\nb\n' &gt; data.txt
+sort data.txt &gt; data.txt
+wc -c data.txt
+# วิธีที่ถูก: ให้ sort เขียนทับไฟล์เองด้วย -o
+printf 'c\na\nb\n' &gt; data.txt
+sort -o data.txt data.txt
+cat data.txt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>0 data.txt
+a
+b
+c</code></pre>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะไฟล์ถูกล้างก่อนที่ <code>sort</code> จะได้อ่านข้อมูล จึงไม่มีอะไรให้เรียง</li>
+<li><strong>C</strong> ผิดเพราะ <code>sort</code> ไม่ได้แจ้ง Error ในกรณีนี้ ข้อความ <code>input file is output file</code> เป็นของคำสั่ง <code>cat</code> เมื่อสั่ง <code>cat f &gt;&gt; f</code> (ผลจริงคือ <code>cat: f: input file is output file</code>)</li>
+<li><strong>D</strong> ผิดเพราะไฟล์ถูกเปลี่ยนแน่นอน คือถูกล้างจนว่าง ข้อมูลเดิมหายไป</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 9</summary><div>
+<p><strong>คำตอบ: C</strong> <code>apt purge</code> ลบทั้งตัวโปรแกรมและไฟล์ Config ของระบบที่แพ็กเกจติดตั้งไว้ จุดที่หลายคนพลาดคือบน Ubuntu 24.04 ไฟล์ Config ใน <code>/etc/nginx</code> เป็นของแพ็กเกจ <code>nginx-common</code> ไม่ใช่แพ็กเกจ <code>nginx</code> (ตรวจได้ด้วย <code>dpkg -S /etc/nginx/nginx.conf</code>) ถ้าสั่ง <code>sudo apt purge nginx</code> อย่างเดียว ไฟล์ใน <code>/etc/nginx</code> จะยังอยู่ จึงต้อง Purge ทั้งสองแพ็กเกจ หลังจากนั้นควรตามด้วย <code>sudo apt autoremove</code> เพื่อลบ Dependency ที่ไม่มีใครใช้แล้ว ส่วนไฟล์ที่คุณสร้างเองในโฟลเดอร์อื่น เช่นเว็บใน <code>/var/www</code> อาจยังอยู่ ต้องตรวจและลบเองถ้าไม่ต้องการ</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ <code>apt remove</code> ลบตัวโปรแกรม แต่เก็บไฟล์ Config ไว้ เผื่อติดตั้งใหม่ภายหลัง และยังลบแค่แพ็กเกจ <code>nginx</code> ไม่แตะ <code>nginx-common</code> ที่เป็นเจ้าของ <code>/etc/nginx</code> ไฟล์ Config จึงยังอยู่ครบ</li>
+<li><strong>B</strong> ผิดเพราะ <code>apt autoremove</code> ลบเฉพาะ Dependency ที่ไม่มีแพ็กเกจใดต้องการแล้ว ไม่ได้ลบ nginx ที่คุณติดตั้งเอง</li>
+<li><strong>D</strong> ผิดเพราะ <code>apt update</code> แค่ดาวน์โหลดรายการแพ็กเกจล่าสุดจาก Repository ไม่ได้ติดตั้งหรือลบอะไรเลย</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 10</summary><div>
+<p><strong>คำตอบ: B</strong> <code>CITY=Bangkok</code> สร้างแค่ Shell variable ซึ่งมองเห็นเฉพาะใน Shell ปัจจุบัน <code>bash -c</code> เป็น Process ลูก มองไม่เห็นตัวแปรนี้ <code>${CITY:-&lt;empty&gt;}</code> จึงใช้ค่าสำรอง ผลจริงคือ <code>child sees: &lt;empty&gt;</code> ถ้าสั่ง <code>export CITY</code> ก่อน ผลจะเปลี่ยนเป็น <code>child sees: Bangkok</code></p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะจะได้ <code>Bangkok</code> ก็ต่อเมื่อ <code>export</code> ตัวแปรให้เป็น Environment variable ก่อน</li>
+<li><strong>C</strong> ผิดเพราะ Single quote ป้องกันไม่ให้ Shell <strong>แม่</strong> ขยายตัวแปร แต่ <code>bash -c</code> ซึ่งเป็น Shell ลูกยังขยาย <code>${CITY:-...}</code> ตามปกติ</li>
+<li><strong>D</strong> ผิดเพราะ Error <code>unbound variable</code> เกิดเฉพาะเมื่อเปิด <code>set -u</code> ไว้ และ <code>${VAR:-default}</code> ก็ปลอดภัยแม้เปิด <code>set -u</code> เพราะมีค่าสำรองให้</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 11</summary><div>
+<p><strong>คำตอบ: D</strong> <code>SIGKILL</code> (9) ถูกจัดการโดย Kernel โดยตรง Process ไม่มีโอกาสรับรู้ <code>trap</code> จึงดักไม่ได้ และไม่มีการเก็บกวาดใด ๆ เกิดขึ้น ไฟล์ชั่วคราวหรือ PID file จะค้างอยู่ จึงควรใช้ <code>kill</code> ธรรมดา (SIGTERM) ก่อนเสมอ และใช้ <code>kill -9</code> เป็นทางเลือกสุดท้าย เช่นในโจทย์ Hands-on ข้อ 3</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ SIGTERM ดักได้ด้วย <code>trap '...' TERM</code> และเป็น Signal ที่ควรใช้ขอให้ Process ปิดตัวอย่างสุภาพ</li>
+<li><strong>B</strong> ผิดเพราะ SIGINT ดักได้ด้วย <code>trap '...' INT</code> Script หลายตัวใช้มันเพื่อเก็บกวาดเมื่อผู้ใช้กด <kbd>Ctrl</kbd>+<kbd>C</kbd></li>
+<li><strong>C</strong> ผิดเพราะ SIGHUP ดักได้ด้วย <code>trap '...' HUP</code> และ Service หลายตัวใช้ SIGHUP เป็นสัญญาณให้โหลด Config ใหม่</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 12</summary><div>
+<p><strong>คำตอบ: B</strong> เมื่อไม่พบคำที่ค้นหา <code>grep -c</code> จะพิมพ์ <code>0</code> แต่คืน exit code 1 การกำหนดค่า <code>count=$(...)</code> ส่งต่อ exit code นั้น และ <code>set -e</code> หยุด Script ทันที บรรทัด <code>echo</code> จึงไม่ถูกรัน ผลจริงคือ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/linux-lab/practice
+printf 'INFO start\nINFO done\n' &gt; app.log
+chmod +x count-errors.sh
+./count-errors.sh; echo "exit=$?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>exit=1</code></pre>
+<p>วิธีแก้คือ <code>count=$(grep -c "ERROR" app.log || true)</code> เพื่อบอกว่า "ไม่เจอ" ไม่ใช่ความล้มเหลว</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะจะได้ผลแบบนี้ก็ต่อเมื่อไม่มี <code>set -e</code> หรือมี <code>|| true</code> ต่อท้าย grep</li>
+<li><strong>C</strong> ผิดเพราะ Script หยุดตั้งแต่บรรทัดกำหนดค่า ยังไม่ได้ใช้ <code>$count</code> เลย จึงไม่เกิด Error เรื่อง unbound variable</li>
+<li><strong>D</strong> ผิดเพราะ <code>grep -c</code> พิมพ์ <code>0</code> ไม่ใช่ค่าว่าง และ Script ไม่ได้ไปถึงบรรทัด <code>echo</code></li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 13</summary><div>
+<p><strong>คำตอบ: A</strong> ช่องนาที <code>*/15</code> คือนาทีที่ 0, 15, 30 และ 45 ช่องชั่วโมง <code>9-17</code> คือชั่วโมง 9 ถึง 17 ทุกชั่วโมงในช่วงนี้ได้ครบ 4 ครั้ง ครั้งสุดท้ายจึงเป็น 17:45 ช่องวันในสัปดาห์ <code>1-5</code> คือวันจันทร์ (1) ถึงวันศุกร์ (5)</p>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะชั่วโมง 17 ถูกนับทั้งชั่วโมง cron จึงรันที่ 17:15, 17:30 และ 17:45 ด้วย ไม่ได้หยุดที่ 17:00</li>
+<li><strong>C</strong> ผิดเพราะอ่านช่องผิดตำแหน่ง <code>1-5</code> อยู่ช่องที่ 5 (วันในสัปดาห์) ไม่ใช่ช่องที่ 3 (วันที่ของเดือน) และ <code>*/15</code> คือทุก 15 นาที ไม่ใช่นาทีที่ 15</li>
+<li><strong>D</strong> ผิดเพราะช่องวันในสัปดาห์เป็น <code>1-5</code> ไม่ใช่ <code>*</code> วันเสาร์ (6) และอาทิตย์ (0 หรือ 7) จึงไม่รัน</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 14</summary><div>
+<p><strong>คำตอบ: C</strong> ข้อความนี้แปลว่า Process หมายเลข 1 ของ WSL ไม่ใช่ systemd วิธีเปิดคือแก้ <code>/etc/wsl.conf</code> ให้มีส่วน <code>[boot]</code> และบรรทัด <code>systemd=true</code> แล้วสั่ง <code>wsl --shutdown</code> ใน PowerShell ฝั่ง Windows จากนั้นเปิด Ubuntu ใหม่ ตรวจผลด้วย <code>ps -p 1 -o comm=</code> ซึ่งควรได้ <code>systemd</code> ถ้ายังไม่อยากเปิด systemd ให้ใช้ <code>sudo service cron start</code> แทนชั่วคราว</p>
+<pre class="code" data-env="file" data-label="INI · /etc/wsl.conf"><code class="language-ini">[boot]
+systemd=true</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ Ubuntu 24.04 มี systemd ติดตั้งอยู่แล้ว ปัญหาคือไม่ได้ถูกเริ่มเป็น PID 1 ไม่ใช่ไม่มีแพ็กเกจ</li>
+<li><strong>B</strong> ผิดเพราะ <code>systemctl</code> ต้องคุยกับ systemd ที่ทำงานอยู่ ซึ่งยังไม่มี คำสั่งนี้จึงได้ Error เดิม และ systemd ไม่ใช่ Unit ที่เปิดด้วย enable</li>
+<li><strong>D</strong> ผิดเพราะ <code>systemctl</code> รันได้อยู่แล้ว (มันพิมพ์ข้อความ Error ออกมาได้) ปัญหาไม่ใช่เรื่อง Permission ของไฟล์</li>
+</ul>
+</div></details>
+<details class="ans"><summary>ข้อ 15</summary><div>
+<p><strong>คำตอบ: D</strong> <kbd>Ctrl</kbd>+<kbd>Z</kbd> ส่ง SIGTSTP ทำให้ Process หยุดชั่วคราว (สถานะ <code>T</code>) แต่ Socket ยังเปิดฟัง Port อยู่ Kernel จึงรับการเชื่อมต่อไว้ แต่โปรแกรมไม่ได้ทำงานเพื่อตอบ curl จึงรอจนครบ 3 วินาทีแล้วจบด้วย exit code 28 (Operation timed out) เมื่อสั่ง <code>bg %1</code> ผลจริงเปลี่ยนเป็น <code>200</code> และ <code>curl exit=0</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">ps -o pid,stat,cmd -p $(jobs -p %1)
+bg %1
+curl -s -o /dev/null -w '%{http_code}\n' --max-time 3 http://127.0.0.1:8091/; echo "curl exit=$?"
+kill %1</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>  PID STAT CMD
+ 3208 T    python3 -m http.server 8091 --bind 127.0.0.1
+[1]+ python3 -m http.server 8091 --bind 127.0.0.1 &amp;
+127.0.0.1 - - [19/Oct/2026 22:30:19] "GET / HTTP/1.1" 200 -
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 39394)
+Traceback (most recent call last):
+...
+BrokenPipeError: [Errno 32] Broken pipe
+----------------------------------------
+127.0.0.1 - - [19/Oct/2026 22:30:20] "GET / HTTP/1.1" 200 -
+200
+curl exit=0</code></pre>
+<p><span class="muted small">PID เวลา และเลข Port ฝั่ง Client บนเครื่องของคุณจะต่างออกไป บรรทัด <code>...</code> คือส่วนของ Traceback ที่ตัดออกเพราะยาว บรรทัดที่ขึ้นต้นด้วย 127.0.0.1 เป็น Log ของ http.server ที่ทำงานเบื้องหลังและพิมพ์ลงจอเดียวกัน</span></p>
+<p>ผลนี้ยืนยันคำอธิบายได้ดี: Request แรกที่ curl ส่งตอน Process ถูกหยุดยังค้างอยู่ในคิวของ Kernel เมื่อ Process ทำงานต่อจึงหยิบมาตอบ (เวลา 22:30:19) แต่ curl ตัวแรกเลิกรอไปแล้ว Python จึงเขียนคำตอบไม่ได้และแจ้ง <code>BrokenPipeError</code> ส่วน Request ใหม่ (22:30:20) ได้ 200 ตามปกติ</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ Process ยังไม่ตาย ถ้า Port ปิดจริง curl จะได้ <code>000</code> ทันทีพร้อม exit code 7 (Failed to connect) ไม่ใช่ 28 ที่ต้องรอจนหมดเวลา</li>
+<li><strong>B</strong> ผิดเพราะ curl รันอยู่ใน WSL และเชื่อมต่อไปที่ 127.0.0.1 ภายใน WSL เอง ไม่ผ่าน Firewall ของ Windows และหลัง <code>bg %1</code> คำสั่งเดิมก็ได้ 200 ทันที</li>
+<li><strong>C</strong> ผิดเพราะ <code>127.0.0.1</code> ใช้ได้ปกติภายใน WSL ซึ่งเห็นได้จากผล 200 หลังสั่ง <code>bg %1</code></li>
+</ul>
+</div></details>
+
+<h4>เฉลย Hands-on Challenge</h4>
+<details class="ans"><summary>โจทย์ที่ 1: จัดระเบียบโฟลเดอร์ของร้านกาแฟ "บ้านกาแฟ"</summary><div>
+<p>เฉลยนี้รันต่อจากคำสั่งเตรียมข้อมูลในโจทย์ ให้รันทีละก้อนแล้วเทียบผลกับ Output ใต้แต่ละก้อน</p>
+<p><strong>ขั้นที่ 1 ถึง 4: สร้างโครงสร้าง ย้าย เปลี่ยนชื่อ และสำรองไฟล์</strong></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># 1) ไปที่โฟลเดอร์โจทย์ แล้วสร้างโครงสร้างใหม่ในคำสั่งเดียว
+cd ~/projects/linux-lab/challenge1
+mkdir -p shop/{receipts,photos,sales,docs,archive}
+
+# 2) ย้ายไฟล์ตามชนิดด้วย Wildcard (ระวัง .JPG ตัวพิมพ์ใหญ่)
+mv -v inbox/*.pdf shop/receipts/
+mv -v inbox/*.jpg inbox/*.JPG shop/photos/
+mv -v inbox/*.csv shop/sales/
+
+# 3) ย้ายและเปลี่ยนชื่อ menu ในคำสั่งเดียว
+mv -v inbox/menu.txt shop/docs/menu-2026-10.txt
+
+# 4) สำรองยอดขายวันที่ 17 และ 18 ด้วย Wildcard แบบ [ ]
+cp -v shop/sales/sales-2026-10-1[78].csv shop/archive/</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>renamed 'inbox/receipt-2026-10-15.pdf' -&gt; 'shop/receipts/receipt-2026-10-15.pdf'
+renamed 'inbox/receipt-2026-10-16.pdf' -&gt; 'shop/receipts/receipt-2026-10-16.pdf'
+renamed 'inbox/receipt-2026-10-17.pdf' -&gt; 'shop/receipts/receipt-2026-10-17.pdf'
+renamed 'inbox/receipt-2026-10-18.pdf' -&gt; 'shop/receipts/receipt-2026-10-18.pdf'
+renamed 'inbox/receipt-2026-10-19.pdf' -&gt; 'shop/receipts/receipt-2026-10-19.pdf'
+renamed 'inbox/photo-1.jpg' -&gt; 'shop/photos/photo-1.jpg'
+renamed 'inbox/photo-2.jpg' -&gt; 'shop/photos/photo-2.jpg'
+renamed 'inbox/photo-3.jpg' -&gt; 'shop/photos/photo-3.jpg'
+renamed 'inbox/photo-4.jpg' -&gt; 'shop/photos/photo-4.jpg'
+renamed 'inbox/photo-5.JPG' -&gt; 'shop/photos/photo-5.JPG'
+renamed 'inbox/sales-2026-10-17.csv' -&gt; 'shop/sales/sales-2026-10-17.csv'
+renamed 'inbox/sales-2026-10-18.csv' -&gt; 'shop/sales/sales-2026-10-18.csv'
+renamed 'inbox/sales-2026-10-19.csv' -&gt; 'shop/sales/sales-2026-10-19.csv'
+renamed 'inbox/menu.txt' -&gt; 'shop/docs/menu-2026-10.txt'
+'shop/sales/sales-2026-10-17.csv' -&gt; 'shop/archive/sales-2026-10-17.csv'
+'shop/sales/sales-2026-10-18.csv' -&gt; 'shop/archive/sales-2026-10-18.csv'</code></pre>
+<p><strong>ขั้นที่ 5: ลบไฟล์ .tmp อย่างปลอดภัย</strong></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ดูรายชื่อด้วย Wildcard เดียวกันก่อนเสมอ แล้วค่อยลบ
+ls inbox/*.tmp
+rm -v inbox/*.tmp</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>inbox/draft-1.tmp  inbox/draft-2.tmp  inbox/draft-3.tmp
+removed 'inbox/draft-1.tmp'
+removed 'inbox/draft-2.tmp'
+removed 'inbox/draft-3.tmp'</code></pre>
+<p><strong>ขั้นที่ 6: ลบ inbox และจัดการไฟล์ซ่อนที่ค้างอยู่</strong></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ลองลบครั้งแรก จะไม่สำเร็จ
+rmdir inbox
+# หาสาเหตุ: ดูไฟล์ซ่อนด้วย -a
+ls -a inbox
+# ย้ายไฟล์ซ่อนไปเก็บ แล้วลบ inbox อีกครั้ง
+mv -v inbox/.wifi.txt shop/docs/
+rmdir -v inbox</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>rmdir: failed to remove 'inbox': Directory not empty
+.  ..  .wifi.txt
+renamed 'inbox/.wifi.txt' -&gt; 'shop/docs/.wifi.txt'
+rmdir: removing directory, 'inbox'</code></pre>
+<p><strong>ขั้นที่ 7: ตรวจผลงาน</strong></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ดูโครงสร้างทั้งหมด รวมไฟล์ซ่อน
+tree -a shop
+# เข้าไปดูเมนู
+cd shop/docs &amp;&amp; pwd
+wc -l menu-2026-10.txt
+head -n 3 menu-2026-10.txt
+tail -n 2 menu-2026-10.txt
+# กลับไปโฟลเดอร์ก่อนหน้า
+cd -</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>shop
+├── archive
+│   ├── sales-2026-10-17.csv
+│   └── sales-2026-10-18.csv
+├── docs
+│   ├── .wifi.txt
+│   └── menu-2026-10.txt
+├── photos
+│   ├── photo-1.jpg
+│   ├── photo-2.jpg
+│   ├── photo-3.jpg
+│   ├── photo-4.jpg
+│   └── photo-5.JPG
+├── receipts
+│   ├── receipt-2026-10-15.pdf
+│   ├── receipt-2026-10-16.pdf
+│   ├── receipt-2026-10-17.pdf
+│   ├── receipt-2026-10-18.pdf
+│   └── receipt-2026-10-19.pdf
+└── sales
+    ├── sales-2026-10-17.csv
+    ├── sales-2026-10-18.csv
+    └── sales-2026-10-19.csv
+
+6 directories, 17 files
+/home/somchai/projects/linux-lab/challenge1/shop/docs
+8 menu-2026-10.txt
+Espresso 45
+Americano 50
+Latte 55
+Green Tea Latte 60
+Cocoa 50
+/home/somchai/projects/linux-lab/challenge1</code></pre>
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>สร้างโครงก่อนย้าย</strong> Brace expansion สร้าง 5 โฟลเดอร์ในคำสั่งเดียว และ <code>-p</code> ทำให้รันซ้ำได้โดยไม่ Error</li>
+<li><strong>ย้ายตามรูปแบบชื่อ</strong> Wildcard ทำให้ย้ายไฟล์ทีละกลุ่มได้ จุดที่ต้องระวังคือ Linux แยกตัวพิมพ์เล็กและใหญ่ จึงต้องใส่ทั้ง <code>*.jpg</code> และ <code>*.JPG</code></li>
+<li><strong>เห็นทุกการเปลี่ยนแปลง</strong> Option <code>-v</code> ของ <code>mv</code>, <code>cp</code>, <code>rm</code> และ <code>rmdir</code> พิมพ์ทุกการกระทำออกมา ทำให้ตรวจย้อนหลังได้ว่าเกิดอะไรขึ้น</li>
+<li><strong>ลบอย่างปลอดภัย</strong> ใช้ <code>ls</code> กับ Wildcard เดียวกันดูก่อนลบ และใช้ <code>rmdir</code> แทน <code>rm -r</code> กับโฟลเดอร์ที่คาดว่าว่าง เพราะ <code>rmdir</code> จะปฏิเสธถ้ายังมีไฟล์ค้างอยู่ ซึ่งช่วยให้เราเจอไฟล์ซ่อน <code>.wifi.txt</code> ก่อนที่มันจะถูกลบทิ้งไปโดยไม่รู้ตัว</li>
+<li><strong>ตรวจด้วยตัวเลข</strong> ไฟล์ตั้งต้นมี 18 ไฟล์ (PDF 5, รูป 5, CSV 3, .tmp 3, <code>menu.txt</code> และ <code>.wifi.txt</code>) ลบ .tmp ไป 3 ไฟล์ เหลือ 15 ไฟล์ที่ถูกย้าย บวกไฟล์สำรองอีก 2 ไฟล์ จึงต้องได้ 17 ไฟล์ตรงกับบรรทัดสรุปของ <code>tree</code> การนับแบบนี้ช่วยยืนยันว่าไม่มีไฟล์ใดหายระหว่างทาง</li>
+</ul>
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+<li>ตั้ง Permission ของ <code>shop/docs/.wifi.txt</code> เป็น 600 ด้วย <code>chmod 600</code> เพราะเป็นข้อมูลลับ แล้วตรวจด้วย <code>stat -c '%A %n'</code></li>
+<li>เขียนเป็น Script <code>organize.sh</code> ที่รับชื่อโฟลเดอร์ inbox เป็น Argument และใช้ <code>find inbox -maxdepth 1 -iname '*.jpg'</code> เพื่อจับนามสกุลแบบไม่สนตัวพิมพ์เล็กใหญ่</li>
+<li>บีบอัดโฟลเดอร์ <code>shop/archive</code> เป็น <code>archive-2026-10.tar.gz</code> ด้วย <code>tar -czf</code> และตรวจรายชื่อไฟล์ข้างในด้วย <code>tar -tzf</code></li>
+<li>เปลี่ยนชื่อรูปทั้งหมดให้เป็นตัวพิมพ์เล็กและมีวันที่นำหน้า เช่น <code>2026-10-19-photo-5.jpg</code> ด้วย Loop <code>for f in shop/photos/*; do ... done</code></li>
+</ol>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 2: Script สรุป Log ส่งหัวหน้าทุกเช้า</summary><div>
+<p>สร้างไฟล์ด้วย <code>nano ~/projects/linux-lab/challenge2/log-report.sh</code> แล้ววางเนื้อหาด้านล่าง กด <kbd>Ctrl</kbd>+<kbd>O</kbd> แล้ว <kbd>Enter</kbd> เพื่อบันทึก และ <kbd>Ctrl</kbd>+<kbd>X</kbd> เพื่อออก</p>
+<pre class="code" data-env="file" data-label="Bash · log-report.sh"><code class="language-bash">#!/usr/bin/env bash
+# log-report.sh : สรุป access.log ของร้านค้าออนไลน์ให้หัวหน้าอ่านง่าย
+# ใช้: log-report.sh &lt;access_log&gt; [top_n]
+set -euo pipefail
+
+# แสดงวิธีใช้ทาง stderr แล้วจบด้วย exit code 2
+usage() {
+  echo "ใช้: $(basename "$0") &lt;access_log&gt; [top_n]" &gt;&amp;2
+  exit 2
+}
+
+# ต้องมี argument 1 หรือ 2 ตัวเท่านั้น
+[[ $# -ge 1 &amp;&amp; $# -le 2 ]] || usage
+
+log_file="$1"
+top_n="${2:-3}"   # ถ้าไม่ระบุ ใช้ค่าเริ่มต้น 3
+
+# ตรวจว่าไฟล์มีอยู่จริง
+if [[ ! -f "$log_file" ]]; then
+  echo "ผิดพลาด: ไม่พบไฟล์ $log_file" &gt;&amp;2
+  exit 1
+fi
+
+# ตรวจว่า top_n เป็นตัวเลขบวก
+if [[ ! "$top_n" =~ ^[1-9][0-9]*$ ]]; then
+  echo "ผิดพลาด: top_n ต้องเป็นจำนวนเต็มบวก (ได้รับ '$top_n')" &gt;&amp;2
+  exit 1
+fi
+
+# นับจำนวนบรรทัดทั้งหมด และจำนวน Request ที่ Status ตั้งแต่ 400 ขึ้นไป
+total=$(wc -l &lt; "$log_file")
+errors=$(awk '$9 &gt;= 400' "$log_file" | wc -l)
+
+echo "=== รายงาน Log: $(basename "$log_file") ==="
+echo "สร้างเมื่อ: $(date '+%F %T')"
+echo "จำนวน Request ทั้งหมด: $total"
+echo "จำนวน Request ที่ผิดพลาด (4xx/5xx): $errors"
+echo
+
+echo "--- Status Code ---"
+awk '{print $9}' "$log_file" | sort | uniq -c | sort -rn
+echo
+
+echo "--- Top $top_n IP ---"
+awk '{print $1}' "$log_file" | sort | uniq -c | sort -rn | head -n "$top_n"
+echo
+
+echo "--- Path ที่ได้ 404 ---"
+awk '$9 == 404 {print $7}' "$log_file" | sort | uniq -c | sort -rn
+echo
+
+echo "--- IP น่าสงสัย (404 ตั้งแต่ 2 ครั้ง) ---"
+awk '$9 == 404 {c[$1]++} END {for (ip in c) if (c[ip] &gt;= 2) print ip, c[ip], "ครั้ง"}' "$log_file" | sort
+echo
+
+echo "--- ข้อมูลที่ส่งออกทั้งหมด ---"
+awk '{s += $10} END {print s, "bytes"}' "$log_file"</code></pre>
+<p><strong>ทดสอบกรณีปกติ</strong></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/linux-lab/challenge2
+chmod +x log-report.sh
+shellcheck log-report.sh &amp;&amp; echo "shellcheck ผ่าน"
+./log-report.sh access.log</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>shellcheck ผ่าน
+=== รายงาน Log: access.log ===
+สร้างเมื่อ: 2026-10-19 22:32:40
+จำนวน Request ทั้งหมด: 10
+จำนวน Request ที่ผิดพลาด (4xx/5xx): 4
+
+--- Status Code ---
+      5 200
+      3 404
+      1 500
+      1 302
+
+--- Top 3 IP ---
+      4 192.0.2.10
+      3 203.0.113.5
+      2 198.51.100.23
+
+--- Path ที่ได้ 404 ---
+      1 /wp-login.php
+      1 /admin
+      1 /.env
+
+--- IP น่าสงสัย (404 ตั้งแต่ 2 ครั้ง) ---
+203.0.113.5 3 ครั้ง
+
+--- ข้อมูลที่ส่งออกทั้งหมด ---
+29024 bytes</code></pre>
+<p><span class="muted small">บรรทัด "สร้างเมื่อ" จะเป็นวันเวลาบนเครื่องของคุณ ตัวเลขอื่นต้องตรงกันทุกตัว ถ้าลำดับบรรทัดที่มีจำนวนเท่ากัน (เช่น 500 กับ 302) ต่างจากนี้ ให้ตรวจว่าใช้ <code>sort -rn</code> และ Locale เดียวกัน</span></p>
+<p><strong>ทดสอบกรณีผิดพลาด 3 แบบ</strong></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">./log-report.sh; echo "exit=$?"
+./log-report.sh nope.log; echo "exit=$?"
+./log-report.sh access.log abc; echo "exit=$?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ใช้: log-report.sh &lt;access_log&gt; [top_n]
+exit=2
+ผิดพลาด: ไม่พบไฟล์ nope.log
+exit=1
+ผิดพลาด: top_n ต้องเป็นจำนวนเต็มบวก (ได้รับ 'abc')
+exit=1</code></pre>
+<p><strong>ติดตั้งให้เรียกได้จากทุกที่ และบันทึกรายงานด้วย tee</strong></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># คัดลอกไปไว้ใน ~/.local/bin โดยตัด .sh ออกให้พิมพ์ง่าย
+cp -v log-report.sh ~/.local/bin/log-report
+cd ~
+which log-report
+
+# รันแบบ Top 2 แสดงบนจอ (6 บรรทัดสุดท้าย) และบันทึกรายงานเต็มลงไฟล์พร้อมกัน
+log-report ~/projects/linux-lab/challenge2/access.log 2 | tee ~/projects/linux-lab/challenge2/reports/report-$(date +%F).txt | tail -n 6
+ls ~/projects/linux-lab/challenge2/reports</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>'log-report.sh' -&gt; '/home/somchai/.local/bin/log-report'
+/home/somchai/.local/bin/log-report
+
+--- IP น่าสงสัย (404 ตั้งแต่ 2 ครั้ง) ---
+203.0.113.5 3 ครั้ง
+
+--- ข้อมูลที่ส่งออกทั้งหมด ---
+29024 bytes
+report-2026-10-19.txt</code></pre>
+<p><span class="muted small">ชื่อไฟล์รายงานใช้วันที่ของวันที่คุณรัน ถ้า <code>which log-report</code> ไม่แสดงอะไร แปลว่า <code>~/.local/bin</code> ยังไม่อยู่ใน PATH ให้เปิด Terminal ใหม่หรือสั่ง <code>source ~/.profile</code></span></p>
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>ตรวจ Input ก่อนทำงาน</strong> Script ที่ดีต้องล้มเหลวอย่างชัดเจน การแยก exit code 2 (ใช้งานผิดรูปแบบ) กับ 1 (ข้อมูลผิด) ทำให้ Script อื่นหรือ cron ที่เรียกใช้รู้ได้ว่าผิดเพราะอะไร และข้อความผิดพลาดไปทาง stderr จึงไม่ปนกับรายงานเมื่อใช้ <code>&gt;</code> หรือ <code>tee</code></li>
+<li><strong>ให้ awk ทำงานกับคอลัมน์</strong> Log ของ Web server แยกด้วยช่องว่าง awk จึงดึง IP, Path, Status และ Byte ได้ตรง ๆ การกรองแบบ <code>$9 &gt;= 400</code> แม่นยำกว่า <code>grep 404</code> ซึ่งอาจไปเจอเลข 404 ในตำแหน่งอื่น เช่นในขนาดไฟล์</li>
+<li><strong>สูตรนับความถี่</strong> <code>sort | uniq -c | sort -rn</code> ใช้ซ้ำได้กับทุกคอลัมน์ ส่วน Array ของ awk (<code>c[$1]++</code>) เหมาะกับการนับแบบมีเงื่อนไข เช่นนับเฉพาะ 404</li>
+<li><strong>ทำให้เป็นเครื่องมือ</strong> การวางไฟล์ใน <code>~/.local/bin</code> ซึ่งอยู่ใน PATH ทำให้เรียกได้เหมือนคำสั่งของระบบ และ <code>tee</code> ทำให้ได้ทั้งดูบนจอและเก็บไฟล์ไว้ส่งหัวหน้าในคำสั่งเดียว</li>
+<li><strong>อ่านผลเชิงความปลอดภัย</strong> IP <code>203.0.113.5</code> ขอ <code>/admin</code>, <code>/wp-login.php</code> และ <code>/.env</code> ด้วย <code>curl</code> ซึ่งเป็นรูปแบบของการสแกนหาช่องโหว่อัตโนมัติ ข้อมูลนี้ส่งต่อให้ทีม Security ได้ทันที (ดูเพิ่มเติมใน <a data-t="5"></a>)</li>
+</ul>
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+<li>เพิ่ม Option <code>-d 19/Oct/2026</code> ด้วย <code>getopts</code> เพื่อกรองเฉพาะ Log ของวันที่ต้องการ โดยใช้ <code>grep -F "[19/Oct/2026:"</code> ก่อนส่งต่อให้ awk</li>
+<li>ให้ Script จบด้วย exit code 1 เมื่อพบ IP น่าสงสัย แล้วตั้ง cron ตอน 08:00 ทุกวันที่ส่งผลไปเก็บใน <code>reports/</code> และเก็บไว้แค่ 30 ไฟล์ล่าสุด</li>
+<li>เพิ่มโหมด <code>--json</code> ที่พิมพ์ผลเป็น JSON แล้วตรวจความถูกต้องด้วย <code>jq .</code> เพื่อส่งต่อให้ Dashboard หรือ Backend (<a data-t="12"></a>)</li>
+<li>รองรับไฟล์ Log ที่ถูกบีบอัดจากการ Rotate เช่น <code>access.log.1.gz</code> ด้วย <code>zcat -f</code> ซึ่งอ่านได้ทั้งไฟล์ธรรมดาและไฟล์ .gz</li>
+</ol>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 3: Watchdog ปลุกเว็บภายในร้านที่ล่มบ่อย</summary><div>
+<p>สร้างไฟล์ด้วย <code>nano ~/projects/linux-lab/challenge3/webwatch.sh</code> แล้ววางเนื้อหาด้านล่าง (ต้องสร้างโฟลเดอร์ <code>challenge3</code> ก่อน ตามคำสั่งในก้อนถัดไป)</p>
+<pre class="code" data-env="file" data-label="Bash · webwatch.sh"><code class="language-bash">#!/usr/bin/env bash
+# webwatch.sh : เปิด ปิด ตรวจสถานะ และเฝ้าดูเว็บภายในร้าน (python3 -m http.server)
+# ใช้: webwatch.sh {start|stop|status|check}
+# exit code ของ check: 0 = ปกติ, 1 = เว็บล่มแต่กู้คืนสำเร็จ, 2 = กู้คืนไม่สำเร็จ, 3 = ใช้คำสั่งผิด
+set -euo pipefail
+
+readonly BASE_DIR="$HOME/projects/linux-lab/challenge3"
+readonly SITE_DIR="$BASE_DIR/site"
+readonly RUN_DIR="$BASE_DIR/run"
+readonly LOG_DIR="$BASE_DIR/logs"
+readonly PID_FILE="$RUN_DIR/web.pid"
+readonly LOG_FILE="$LOG_DIR/webwatch.log"
+readonly PORT="${WEB_PORT:-8091}"
+readonly URL="http://127.0.0.1:$PORT/"
+
+# เขียนข้อความพร้อมเวลา ทั้งบนจอและลงไฟล์ Log
+log() {
+  local msg
+  msg="[$(date '+%F %T')] $*"
+  echo "$msg" | tee -a "$LOG_FILE"
+}
+
+# คืนค่า 0 ถ้า PID นี้ยังมีชีวิตอยู่ (มีอยู่จริงและไม่ใช่ Zombie ที่สถานะขึ้นต้นด้วย Z)
+alive() {
+  local state
+  state="$(ps -o stat= -p "$1" 2&gt;/dev/null)" || return 1
+  [[ "$state" != Z* ]]
+}
+
+# คืนค่า 0 ถ้ามี PID file และ Process ใน PID file ยังทำงานอยู่
+is_running() {
+  [[ -f "$PID_FILE" ]] &amp;&amp; alive "$(cat "$PID_FILE")"
+}
+
+# ถามเว็บด้วย curl แล้วพิมพ์ HTTP status code (000 = ติดต่อไม่ได้หรือหมดเวลา)
+http_code() {
+  curl -s -o /dev/null -w '%{http_code}' --max-time 3 "$URL" || true
+}
+
+start_web() {
+  if is_running; then
+    log "เว็บทำงานอยู่แล้ว (PID $(cat "$PID_FILE"))"
+    return 0
+  fi
+  # nohup ทำให้ Process ไม่ตายตอนปิด Terminal ส่วน &amp; ส่งไปทำงานเบื้องหลัง
+  nohup python3 -m http.server "$PORT" --bind 127.0.0.1 --directory "$SITE_DIR" \
+    &gt;&gt; "$LOG_DIR/web.out" 2&gt;&amp;1 &amp;
+  echo "$!" &gt; "$PID_FILE"
+  sleep 1
+  log "เริ่มเว็บแล้ว PID $(cat "$PID_FILE") ที่ $URL"
+}
+
+stop_web() {
+  if ! is_running; then
+    log "ไม่มีเว็บทำงานอยู่"
+    rm -f "$PID_FILE"
+    return 0
+  fi
+  local pid
+  pid="$(cat "$PID_FILE")"
+  kill "$pid"   # ส่ง SIGTERM ก่อนเสมอ เพื่อให้ปิดอย่างปลอดภัย
+  for _ in 1 2 3 4 5; do
+    alive "$pid" || break
+    sleep 1
+  done
+  if alive "$pid"; then
+    log "PID $pid ไม่ยอมปิดภายใน 5 วินาที จึงใช้ SIGKILL"
+    kill -9 "$pid"
+    sleep 1
+  fi
+  rm -f "$PID_FILE"
+  log "หยุดเว็บแล้ว (PID $pid)"
+}
+
+status_web() {
+  local code
+  code="$(http_code)"
+  if is_running; then
+    echo "running pid=$(cat "$PID_FILE") http=$code"
+  else
+    echo "stopped http=$code"
+  fi
+}
+
+check_web() {
+  local code
+  code="$(http_code)"
+  if [[ "$code" == "200" ]]; then
+    log "OK http=$code"
+    return 0
+  fi
+  log "DOWN http=$code กำลังเริ่มเว็บใหม่"
+  stop_web
+  start_web
+  code="$(http_code)"
+  if [[ "$code" == "200" ]]; then
+    log "RECOVERED http=$code"
+    return 1
+  fi
+  log "FAILED http=$code กู้คืนไม่สำเร็จ"
+  return 2
+}
+
+main() {
+  mkdir -p "$RUN_DIR" "$LOG_DIR"
+  local rc=0
+  case "${1:-}" in
+    start)  start_web ;;
+    stop)   stop_web ;;
+    status) status_web ;;
+    check)  check_web || rc=$? ;;
+    *)
+      echo "ใช้: $(basename "$0") {start|stop|status|check}" &gt;&amp;2
+      rc=3
+      ;;
+  esac
+  return "$rc"
+}
+
+main "$@"</code></pre>
+<p><strong>เตรียมเว็บ ตรวจ Script และทดสอบกรณีปกติ</strong></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างโฟลเดอร์และหน้าเว็บตัวอย่าง
+mkdir -p ~/projects/linux-lab/challenge3/site
+cd ~/projects/linux-lab/challenge3
+cat &gt; site/index.html &lt;&lt;'EOF'
+&lt;h1&gt;BaanKafae Stock&lt;/h1&gt;
+&lt;p&gt;ระบบเช็กสต็อกภายในร้าน&lt;/p&gt;
+EOF
+
+# ให้สิทธิ์รัน แล้วตรวจด้วย ShellCheck
+chmod +x webwatch.sh
+shellcheck webwatch.sh &amp;&amp; echo "shellcheck ผ่าน"
+
+# เปิดเว็บ ดูสถานะ ดูหน้าเว็บ และตรวจสุขภาพ
+./webwatch.sh start
+./webwatch.sh status
+curl -s http://127.0.0.1:8091/
+./webwatch.sh check; echo "exit=$?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>shellcheck ผ่าน
+[2026-10-19 22:34:50] เริ่มเว็บแล้ว PID 5467 ที่ http://127.0.0.1:8091/
+running pid=5467 http=200
+&lt;h1&gt;BaanKafae Stock&lt;/h1&gt;
+&lt;p&gt;ระบบเช็กสต็อกภายในร้าน&lt;/p&gt;
+[2026-10-19 22:34:50] OK http=200
+exit=0</code></pre>
+<p><strong>สถานการณ์จำลองที่ 1: Process ตายกะทันหัน</strong></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ฆ่า Process แบบไม่ให้เก็บกวาด เหมือนโปรแกรม Crash
+kill -9 "$(cat run/web.pid)"
+sleep 1
+./webwatch.sh status
+./webwatch.sh check; echo "exit=$?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>stopped http=000
+[2026-10-19 22:34:51] DOWN http=000 กำลังเริ่มเว็บใหม่
+[2026-10-19 22:34:51] ไม่มีเว็บทำงานอยู่
+[2026-10-19 22:34:52] เริ่มเว็บแล้ว PID 5515 ที่ http://127.0.0.1:8091/
+[2026-10-19 22:34:52] RECOVERED http=200
+exit=1</code></pre>
+<p><strong>สถานการณ์จำลองที่ 2: Process ค้างไม่ตอบ</strong></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># หยุด Process ไว้เฉย ๆ (ยังไม่ตาย) เหมือนโปรแกรมค้าง
+kill -STOP "$(cat run/web.pid)"
+./webwatch.sh status
+./webwatch.sh check; echo "exit=$?"
+./webwatch.sh status</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>running pid=5515 http=000
+[2026-10-19 22:34:59] DOWN http=000 กำลังเริ่มเว็บใหม่
+[2026-10-19 22:35:04] PID 5515 ไม่ยอมปิดภายใน 5 วินาที จึงใช้ SIGKILL
+[2026-10-19 22:35:05] หยุดเว็บแล้ว (PID 5515)
+[2026-10-19 22:35:06] เริ่มเว็บแล้ว PID 6525 ที่ http://127.0.0.1:8091/
+[2026-10-19 22:35:06] RECOVERED http=200
+exit=1
+running pid=6525 http=200</code></pre>
+<p><span class="muted small">สังเกตว่า <code>status</code> ยังบอกว่า running เพราะ Process ยังอยู่ แต่ http=000 เพราะไม่ตอบ นี่คือเหตุผลที่ Watchdog ต้องตรวจด้วย HTTP จริง ไม่ใช่ดูแค่ว่ามี PID อยู่หรือไม่ ช่วง 22:34:59 ถึง 22:35:04 คือ 5 วินาทีที่รอ SIGTERM</span></p>
+<p><strong>คำสั่งผิด และการปิดเว็บ</strong></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">./webwatch.sh restart; echo "exit=$?"
+./webwatch.sh stop
+./webwatch.sh status
+./webwatch.sh stop</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ใช้: webwatch.sh {start|stop|status|check}
+exit=3
+[2026-10-19 22:35:06] หยุดเว็บแล้ว (PID 6525)
+stopped http=000
+[2026-10-19 22:35:06] ไม่มีเว็บทำงานอยู่</code></pre>
+<p><strong>ตั้ง cron ให้ตรวจทุกนาที</strong></p>
+<p>ถ้าเปิด systemd ใน WSL ไว้แล้ว cron จะทำงานอยู่แล้ว ตรวจได้ด้วย <code>systemctl is-active cron</code> ซึ่งควรได้ <code>active</code> ถ้ายังไม่ได้เปิด systemd ให้เริ่ม cron ด้วย <code>sudo service cron start</code> ตามด้านล่าง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เริ่ม cron (กรณีไม่ได้เปิด systemd)
+sudo service cron start
+
+# เพิ่มบรรทัดใหม่ต่อท้าย crontab เดิม โดยไม่ลบของเดิม
+(crontab -l 2&gt;/dev/null; echo "* * * * * /home/somchai/projects/linux-lab/challenge3/webwatch.sh check &gt;&gt; /home/somchai/projects/linux-lab/challenge3/logs/cron.log 2&gt;&amp;1") | crontab -
+crontab -l</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> * Starting periodic command scheduler cron
+   ...done.
+* * * * * /home/somchai/projects/linux-lab/challenge3/webwatch.sh check &gt;&gt; /home/somchai/projects/linux-lab/challenge3/logs/cron.log 2&gt;&amp;1</code></pre>
+<p><span class="muted small">ถ้าคุณมีบรรทัด cron อื่นอยู่ก่อนแล้ว <code>crontab -l</code> จะแสดงบรรทัดเหล่านั้นด้วย</span></p>
+<p>รอประมาณ 2 นาที แล้วดู Log ที่ cron เขียนไว้ ตอนนี้เว็บถูกปิดอยู่ (จากขั้นก่อนหน้า) cron รอบแรกจึงเจอว่าเว็บล่มและเปิดให้เอง ส่วนรอบที่สองพบว่าปกติ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cat ~/projects/linux-lab/challenge3/logs/cron.log</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[2026-10-19 22:36:01] DOWN http=000 กำลังเริ่มเว็บใหม่
+[2026-10-19 22:36:01] ไม่มีเว็บทำงานอยู่
+[2026-10-19 22:36:02] เริ่มเว็บแล้ว PID 6682 ที่ http://127.0.0.1:8091/
+[2026-10-19 22:36:02] RECOVERED http=200
+[2026-10-19 22:37:01] OK http=200</code></pre>
+<p>เมื่อทดสอบเสร็จ ให้ถอดบรรทัดนี้ออกจาก crontab และปิดเว็บ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># กรองบรรทัดที่มีคำว่า webwatch.sh ออก แล้วติดตั้ง crontab ใหม่
+crontab -l | grep -v 'webwatch.sh' | crontab -
+crontab -l
+~/projects/linux-lab/challenge3/webwatch.sh stop</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[2026-10-19 22:37:04] หยุดเว็บแล้ว (PID 6682)</code></pre>
+<p><span class="muted small">ถ้าไม่มีบรรทัด cron อื่นเหลืออยู่ <code>crontab -l</code> จะไม่แสดงอะไร เวลาและ PID ทั้งหมดในส่วนนี้จะต่างจากเครื่องของคุณ และ cron ทำงานเฉพาะตอนที่ WSL เปิดอยู่</span></p>
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>PID file คือความจำของ Script</strong> <code>start</code> เขียน <code>$!</code> ลง <code>run/web.pid</code> ทำให้คำสั่งย่อยอื่นที่รันทีหลัง (รวมถึงตอน cron เรียก) รู้ว่าต้องดูแล Process ใด และ <code>stop</code> ลบไฟล์นี้ทุกครั้ง เพื่อไม่ให้มี PID ค้างที่อาจบังเอิญชี้ไปที่ Process อื่นในอนาคต</li>
+<li><strong>"มี Process" ไม่ได้แปลว่า "ใช้งานได้"</strong> ฟังก์ชัน <code>alive</code> ใช้ <code>ps -o stat=</code> ตรวจว่ายังมี Process อยู่และไม่ใช่ Zombie แต่การตัดสินว่าเว็บล่มใช้ <code>curl</code> ที่ได้ 200 เท่านั้น สถานการณ์ที่ 2 แสดงให้เห็นว่า Process ที่ค้างยังมี PID อยู่ แต่ไม่ตอบ</li>
+<li><strong>ปิดอย่างสุภาพก่อน แล้วค่อยบังคับ</strong> <code>stop_web</code> ส่ง SIGTERM ก่อน ให้โปรแกรมมีโอกาสปิดไฟล์และเก็บกวาด รอสูงสุด 5 วินาที แล้วจึงใช้ SIGKILL ซึ่งเป็นรูปแบบเดียวกับที่ systemd ใช้หยุด Service</li>
+<li><strong>ตัดขาดจาก Terminal</strong> <code>nohup</code> กับการ Redirect stdout และ stderr ไปที่ <code>logs/web.out</code> ทำให้เว็บไม่ตายเมื่อปิด Terminal และทำให้งาน cron จบได้ทันที ไม่ต้องรอ Process ลูก</li>
+<li><strong>exit code ที่มีความหมาย</strong> 0 = ปกติ, 1 = ล่มแต่กู้ได้, 2 = กู้ไม่ได้, 3 = ใช้ผิด ทำให้ระบบอื่นนำไปใช้ต่อได้ เช่นส่งแจ้งเตือนเฉพาะเมื่อได้ 2 การเขียน <code>check_web || rc=$?</code> ทำให้เก็บค่าได้โดย <code>set -e</code> ไม่ตัดจบ Script กลางทาง</li>
+<li><strong>Log ที่อ่านแล้วเล่าเรื่องได้</strong> ทุกเหตุการณ์มีเวลากำกับ และถูกเขียนทั้งบนจอและในไฟล์ด้วย <code>tee -a</code> เมื่อมีปัญหาตอนตีสาม คุณจะย้อนดูได้ว่าเกิดอะไรขึ้นและกู้คืนเมื่อใด</li>
+</ul>
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+<li>ใช้ <code>flock -n</code> ครอบคำสั่ง <code>check</code> เพื่อกันไม่ให้ cron สองรอบทำงานซ้อนกันในกรณีที่การกู้คืนใช้เวลานานเกิน 1 นาที (เทคนิคเดียวกับ Mini Project ใน Part 4)</li>
+<li>เปลี่ยนไปใช้ systemd แทน Watchdog ที่เขียนเอง โดยสร้าง Unit file ที่มี <code>Restart=on-failure</code> แบบในแนวคิดที่ 10 แล้วเปรียบเทียบข้อดีข้อเสียของทั้งสองแบบ</li>
+<li>ส่งแจ้งเตือนเข้า Discord หรือ LINE เมื่อได้ exit code 2 โดยอ่าน Webhook URL จาก Environment variable ถ้าไม่มีตัวแปรนี้ให้เข้าโหมด Mock ที่แค่พิมพ์ข้อความลง Log</li>
+<li>ตรวจเนื้อหาหน้าเว็บด้วย <code>curl -s URL | grep -q 'BaanKafae Stock'</code> นอกจาก Status 200 เพื่อจับกรณีที่เว็บตอบแต่แสดงหน้าผิด</li>
+<li>เขียน Script สรุปจาก <code>webwatch.log</code> ว่าเดือนนี้เว็บล่มกี่ครั้ง และกู้คืนสำเร็จกี่ครั้ง ด้วย <code>grep -c</code> และ awk</li>
+</ol>
+</div></details>
+</section>

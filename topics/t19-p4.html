@@ -1,0 +1,1243 @@
+<section class="part" data-part="4">
+  <h2 id="s19-4"><span class="sec-no">19.4</span>ส่วนเสริม: Mini Project, Cheat Sheet, Interview</h2>
+  <p>ส่วนนี้รวมทุกอย่างที่เรียนมาในหัวข้อ Linux เข้าเป็นงานชิ้นเดียวที่ใช้ได้จริงและใส่ใน Portfolio ได้ คือเครื่องมือเฝ้าดูสุขภาพเครื่องที่เขียนด้วย Bash ล้วน ทำงานเองทุก 5 นาทีด้วย <code>cron</code> และดูแล Log ของตัวเองด้วย <code>logrotate</code> ต่อด้วย Cheat Sheet ที่จัดกลุ่มตามงาน คำถามสัมภาษณ์งาน 5 ข้อพร้อมคำตอบตัวอย่าง และแหล่งเรียนต่อ</p>
+
+  <h3 id="s19-4-project">Mini Project: Server Health Monitor</h3>
+
+  <h4>เป้าหมาย</h4>
+  <p>สร้างเครื่องมือชื่อ <strong>Server Health Monitor</strong> สำหรับ Ubuntu 24.04 บน WSL2 ที่วัดค่า CPU, RAM, Disk และ Load average ของเครื่อง เทียบกับเกณฑ์ในไฟล์ Config แล้วเขียนผลลงไฟล์ Log วันละหลายร้อยบรรทัดโดยไม่ต้องมีคนกดรัน เมื่อค่าไหนเกินเกณฑ์ สคริปต์จะคืน Exit code ที่บอกระดับความรุนแรง เหมือนที่ระบบ Monitoring จริงอย่าง Nagios ใช้</p>
+  <p>งานนี้คืองานประจำวันของ System Administrator, DevOps Engineer และ Site Reliability Engineer (SRE) ในย่อส่วน เมื่อทำเสร็จ คุณจะมี Repository บน GitHub ที่แสดงว่าคุณเขียน Bash ที่เชื่อถือได้ (Strict mode, getopts, Function, Lock), ตั้ง Cron job ได้, จัดการ Log ด้วย logrotate ได้, อ่านข้อมูลระบบจาก <code>/proc</code> ได้ และเขียนชุดทดสอบอัตโนมัติที่ผ่าน ShellCheck ทุกไฟล์</p>
+
+  <h4>ฟีเจอร์ทั้งหมด</h4>
+  <ul>
+    <li><strong>วัด 4 ค่า:</strong> CPU % (อ่าน <code>/proc/stat</code> สองครั้งห่างกัน 1 วินาที), RAM % (จาก <code>/proc/meminfo</code>), Disk % (จาก <code>df -P</code>) และ Load average 1 นาที (จาก <code>/proc/loadavg</code>)</li>
+    <li><strong>เกณฑ์อยู่ในไฟล์ Config</strong> <code>config/health.conf</code> แยกจากโค้ด แก้เกณฑ์ได้โดยไม่ต้องแตะสคริปต์ และสคริปต์ตรวจว่าทุกค่าเป็นจำนวนเต็มก่อนใช้</li>
+    <li><strong>สถานะ 3 ระดับ</strong> OK / WARN / CRIT ต่อค่า และสถานะรวมที่ใช้ค่าที่แย่ที่สุด</li>
+    <li><strong>Log หนึ่งบรรทัดต่อการรันหนึ่งครั้ง</strong> ในรูปแบบ <code>key=value</code> ที่ใช้ <code>grep</code> และ <code>awk</code> ค้นต่อได้ทันที</li>
+    <li><strong>Exit code แบบ Nagios:</strong> 0 = OK, 1 = WARN, 2 = CRIT, 3 = UNKNOWN</li>
+    <li><strong>ตัวเลือกด้วย getopts:</strong> <code>-c FILE</code> เลือก Config, <code>-q</code> โหมดเงียบสำหรับ cron, <code>-h</code> แสดงวิธีใช้</li>
+    <li><strong>กันการรันซ้อนด้วย <code>flock</code>:</strong> ถ้ารอบก่อนยังไม่จบ รอบใหม่จะจบทันทีด้วย Exit code 3</li>
+    <li><strong>สคริปต์สรุปรายงาน</strong> <code>bin/health-report.sh</code> นับจำนวนครั้งที่ตรวจ นับตามสถานะ และหาค่าเฉลี่ยกับค่าสูงสุด</li>
+    <li><strong>รันเองทุก 5 นาที</strong> ด้วย <code>cron</code> และ <strong>หมุนไฟล์ Log ทุกวัน</strong> ด้วย <code>logrotate</code> แบบระดับผู้ใช้ (ไม่ต้องใช้ root)</li>
+    <li><strong>ชุดทดสอบอัตโนมัติ</strong> <code>tests/run-tests.sh</code> 9 ข้อ รวมการตรวจด้วย ShellCheck</li>
+  </ul>
+
+  <h4>เครื่องมือและเวอร์ชันที่ใช้</h4>
+  <div class="tbl mid"><table class="tools"><thead><tr><th>ชื่อ</th><th>ใช้ทำอะไรในโปรเจกต์นี้</th><th>เวอร์ชัน (Ubuntu 24.04)</th></tr></thead><tbody>
+    <tr><td>Bash</td><td>ภาษาของทุกสคริปต์</td><td class="nw">5.2.21</td></tr>
+    <tr><td>GNU coreutils</td><td><code>df</code>, <code>date</code>, <code>mktemp</code>, <code>dirname</code></td><td class="nw">9.4</td></tr>
+    <tr><td>mawk</td><td><code>awk</code> ตัวเริ่มต้นของ Ubuntu ใช้คำนวณ RAM และสรุปรายงาน (เขียนแบบ POSIX awk จึงใช้กับ gawk ได้ด้วย)</td><td class="nw">1.3.4 20240123</td></tr>
+    <tr><td>util-linux</td><td><code>flock</code> สำหรับ Lock</td><td class="nw">2.39.3</td></tr>
+    <tr><td>cron</td><td>ตั้งเวลารันทุก 5 นาที</td><td class="nw">3.0pl1-184ubuntu2</td></tr>
+    <tr><td>logrotate</td><td>หมุนและบีบอัดไฟล์ Log ทุกวัน</td><td class="nw">3.21.0</td></tr>
+    <tr><td>ShellCheck</td><td>ตรวจหาจุดผิดในสคริปต์</td><td class="nw">0.9.0</td></tr>
+    <tr><td>Git</td><td>เก็บประวัติและ Push ขึ้น GitHub</td><td class="nw">2.43.0</td></tr>
+    <tr><td>systemd (ไม่บังคับ)</td><td><code>journalctl -u cron</code> เพื่อยืนยันว่า cron ทำงาน</td><td class="nw">255</td></tr>
+  </tbody></table></div>
+  <p class="muted small">ตัวเลขท้ายเวอร์ชันแบบ Ubuntu (เช่น <code>-184ubuntu2</code>) อาจขยับเมื่อมี Security update ตรวจของเครื่องคุณด้วย <code>apt policy ชื่อแพ็กเกจ</code></p>
+
+  <h4>โครงสร้างโฟลเดอร์สุดท้าย</h4>
+  <p>โปรเจกต์อยู่ที่ <code>/home/somchai/projects/server-health-monitor</code> เป็น Git repository บน Branch <code>main</code> ไฟล์ใน <code>logs/</code> (ยกเว้น <code>.gitkeep</code>) เกิดตอนรันและไม่ถูกเก็บใน Git</p>
+  <pre class="code" data-kind="tpl" data-env="tpl" data-label="Plaintext · โครงสร้างโปรเจกต์"><code class="language-plaintext">server-health-monitor/
+├── bin/
+│   ├── health-check.sh        # สคริปต์หลัก วัดค่าและเขียน Log
+│   └── health-report.sh       # สรุปไฟล์ Log ด้วย awk
+├── config/
+│   └── health.conf            # เกณฑ์ WARN/CRIT และตำแหน่ง Log
+├── cron/
+│   └── crontab.txt            # บรรทัด cron 2 บรรทัดที่ต้องติดตั้ง
+├── logrotate/
+│   └── health-monitor.conf    # Config ของ logrotate ระดับผู้ใช้
+├── logs/
+│   ├── .gitkeep               # ทำให้ Git เก็บโฟลเดอร์ว่างนี้ไว้
+│   ├── health.log             # (เกิดตอนรัน) Log หลัก
+│   ├── cron.log               # (เกิดตอนรัน) ข้อความ Error จาก cron
+│   ├── logrotate.state        # (เกิดตอนรัน) จำว่าหมุน Log ล่าสุดเมื่อไร
+│   └── .lock                  # (เกิดตอนรัน) ไฟล์ Lock ของ flock
+├── tests/
+│   └── run-tests.sh           # ชุดทดสอบอัตโนมัติ
+├── .gitignore
+└── README.md</code></pre>
+
+  <h4>หลักการวัดแต่ละค่า</h4>
+  <p>ก่อนเขียนโค้ด ทำความเข้าใจก่อนว่าแต่ละตัวเลขมาจากไหน เพราะคำถามสัมภาษณ์มักถามเรื่องนี้</p>
+  <div class="tbl wide"><table class="explain"><thead><tr><th>ค่า</th><th>อ่านจาก</th><th>สูตร</th><th>ทำไมใช้วิธีนี้</th></tr></thead><tbody>
+    <tr><td>CPU %</td><td>บรรทัดแรกของ <code>/proc/stat</code></td><td>อ่าน 2 ครั้งห่างกัน 1 วินาที<br>total = user+nice+system+idle+iowait+irq+softirq+steal<br>idle_all = idle+iowait<br>CPU = 100 × (ΔTotal − ΔIdle) ÷ ΔTotal</td><td>ตัวเลขใน <code>/proc/stat</code> เป็นตัวนับสะสมตั้งแต่เปิดเครื่อง ต้องดูส่วนต่างในช่วงเวลาสั้น ๆ จึงได้การใช้งาน ณ ตอนนี้</td></tr>
+    <tr><td>RAM %</td><td><code>/proc/meminfo</code></td><td>100 × (MemTotal − MemAvailable) ÷ MemTotal</td><td><code>MemAvailable</code> คือหน่วยความจำที่โปรแกรมใหม่ใช้ได้จริง (นับ Cache ที่คืนได้แล้ว) จึงแม่นกว่าใช้ <code>MemFree</code></td></tr>
+    <tr><td>Disk %</td><td><code>df -P "$DISK_PATH"</code></td><td>คอลัมน์ที่ 5 ของบรรทัดที่ 2 ตัด <code>%</code> ออก</td><td><code>-P</code> (POSIX format) บังคับให้ข้อมูลอยู่บรรทัดเดียวเสมอ แม้ชื่อ Device จะยาว จึงตัดด้วย awk ได้แน่นอน</td></tr>
+    <tr><td>Load1</td><td><code>/proc/loadavg</code></td><td>ช่องแรก</td><td>ค่าเฉลี่ยจำนวนงานที่รอหรือกำลังใช้ CPU ใน 1 นาที เทียบกับ <code>nproc</code> ได้ เราเก็บไว้ดูแนวโน้มแต่ไม่ใช้ตัดสินสถานะ</td></tr>
+  </tbody></table></div>
+
+  <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Server Health Monitor คือพยาบาลที่เดินมาวัดสัญญาณชีพผู้ป่วยทุก 5 นาที วัดชีพจร (CPU) ความดัน (RAM) อุณหภูมิ (Disk) แล้วจดลงแฟ้มประจำเตียง (Log) ถ้าค่าไหนเกินเกณฑ์ที่หมอเขียนไว้ (Config) ก็ติดป้ายเหลืองหรือแดง (WARN/CRIT) และทุกเที่ยงคืนจะย้ายแฟ้มเก่าไปเก็บในตู้ (logrotate) เพื่อไม่ให้แฟ้มหนาเกินไป</p></div>
+
+  <div class="callout warn"><span class="c-label warn">ระวัง</span><p>cron บน WSL ทำงานเฉพาะตอนที่ WSL เปิดอยู่เท่านั้น ถ้าปิดหน้าต่าง Terminal ทั้งหมดแล้ว WSL หยุดเอง (ประมาณ 8 วินาทีหลังไม่มีโปรเซสค้าง) Cron job ก็จะไม่รัน ผลคือใน Log จะมีช่วงเวลาที่ขาดหายไป ซึ่งเป็นเรื่องปกติของ WSL ไม่ใช่ความผิดของสคริปต์ บน Server จริงที่เปิด 24 ชั่วโมงจะไม่เจอปัญหานี้</p></div>
+
+  <div class="callout note"><span class="c-label note">หมายเหตุ</span><p>โปรเจกต์นี้ใช้ความรู้จากส่วนที่ 2 แทบทุกแนวคิด โดยเฉพาะแนวคิดที่ 4 (Permissions), 6 (Redirection), 7 (awk), 9 (Signals), 10 (systemd) และ 12 (Bash Scripting กับ cron) ถ้าตรงไหนไม่แน่ใจ ให้ย้อนกลับไปอ่านแนวคิดนั้นก่อน ส่วนการ Push ขึ้น GitHub ใช้ความรู้จากหัวข้อ <a data-t="17"></a></p></div>
+
+  <h4>ขั้นตอนการสร้าง</h4>
+  <p>ทำตามทีละขั้น ทุกคำสั่งพิมพ์ใน Terminal ของ Ubuntu (WSL) และทุกผลลัพธ์ในหน้านี้มาจากการรันจริง ค่าที่ขึ้นกับเครื่อง เช่น เวลา ชื่อเครื่อง เปอร์เซ็นต์ CPU/RAM/Disk และ Load average บนเครื่องคุณจะต่างออกไป ซึ่งเป็นเรื่องปกติ</p>
+
+  <ol class="proj-steps">
+    <li>
+      <h4>Step 1: ติดตั้งเครื่องมือและสร้างโครงโปรเจกต์</h4>
+      <p>เริ่มจากติดตั้งแพ็กเกจที่ต้องใช้ ถ้าทำส่วนที่ 2 มาแล้วจะมีครบอยู่แล้ว คำสั่งนี้รันซ้ำได้โดยไม่เสียหาย จากนั้นสร้างโฟลเดอร์ทั้งหมดในคำสั่งเดียวด้วย Brace expansion แล้วเริ่ม Git repository บน Branch <code>main</code></p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ติดตั้งเครื่องมือ (ต้องใส่รหัสผ่านของ sudo)
+sudo apt update &amp;&amp; sudo apt install -y cron logrotate shellcheck tree
+
+# ตรวจเวอร์ชัน
+flock --version
+logrotate --version | head -n 1
+shellcheck --version | head -n 2</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>flock from util-linux 2.39.3
+logrotate 3.21.0
+ShellCheck - shell script analysis tool
+version: 0.9.0</code></pre>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างโครงโฟลเดอร์ทั้งหมดในครั้งเดียว
+mkdir -p ~/projects/server-health-monitor/{bin,config,logrotate,cron,logs,tests}
+cd ~/projects/server-health-monitor
+
+# เริ่ม Git repository บน Branch main
+git init -b main
+
+# Git ไม่เก็บโฟลเดอร์ว่าง จึงใส่ไฟล์ว่างชื่อ .gitkeep ไว้
+touch logs/.gitkeep
+
+# ดูโครงสร้าง (-a แสดงไฟล์ที่ขึ้นต้นด้วยจุด, -I .git ซ่อนโฟลเดอร์ .git)
+tree -a -I .git .</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Initialized empty Git repository in /home/somchai/projects/server-health-monitor/.git/
+.
+|-- bin
+|-- config
+|-- cron
+|-- logrotate
+|-- logs
+|   `-- .gitkeep
+`-- tests
+
+7 directories, 1 file</code></pre>
+      <p>ต่อมาสร้าง <code>.gitignore</code> ทันที เพื่อกันไม่ให้ไฟล์ Log ที่เกิดตอนรันหลุดเข้า Git ตั้งแต่ Commit แรก</p>
+      <pre class="code" data-env="file" data-label="Text · .gitignore"><code class="language-plaintext"># ไฟล์ที่เกิดตอนรัน ไม่ต้องเก็บใน Git
+logs/*.log
+logs/*.log-*
+logs/*.gz
+logs/logrotate.state
+logs/.lock</code></pre>
+      <div class="callout"><span class="c-label tip">Tip</span><p>ถ้า <code>tree</code> ของคุณแสดงเส้นเป็น <code>├──</code> แทน <code>|--</code> ไม่ต้องตกใจ <code>tree</code> เลือกรูปแบบเส้นตามการตั้งค่า Locale ของ Terminal ทั้งสองแบบหมายถึงโครงสร้างเดียวกัน</p></div>
+    </li>
+
+    <li>
+      <h4>Step 2: เขียนไฟล์ Config เก็บเกณฑ์แจ้งเตือน</h4>
+      <p>แยกตัวเลขเกณฑ์ออกจากโค้ดเสมอ เพราะแต่ละเครื่องต้องการเกณฑ์ต่างกัน เช่น Database server ใช้ RAM สูงเป็นปกติ ไฟล์นี้เป็นไวยากรณ์ Bash ธรรมดา (<code>ชื่อ=ค่า</code> ห้ามมีช่องว่างรอบ <code>=</code>) เพราะสคริปต์หลักจะโหลดด้วยคำสั่ง <code>source</code></p>
+      <pre class="code" data-env="file" data-label="Bash · config/health.conf"><code class="language-bash"># health.conf : เกณฑ์แจ้งเตือนของ health-check.sh (หน่วยเป็นเปอร์เซ็นต์ จำนวนเต็ม)
+CPU_WARN=70
+CPU_CRIT=90
+MEM_WARN=75
+MEM_CRIT=90
+DISK_WARN=80
+DISK_CRIT=90
+# ตรวจพื้นที่ของ Filesystem ที่มีโฟลเดอร์นี้อยู่
+DISK_PATH=/
+# ไฟล์ Log (ใช้ $HOME จึงไม่ต้องแก้ชื่อผู้ใช้)
+LOG_FILE="$HOME/projects/server-health-monitor/logs/health.log"</code></pre>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ให้เจ้าของแก้ได้ คนอื่นอ่านได้อย่างเดียว
+chmod 644 config/health.conf
+stat -c '%A %a %n' config/health.conf</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>-rw-r--r-- 644 config/health.conf</code></pre>
+      <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+        <tr><td><code>CPU_WARN=70</code> / <code>CPU_CRIT=90</code></td><td>CPU ตั้งแต่ 70% ขึ้นไปเป็น WARN ตั้งแต่ 90% ขึ้นไปเป็น CRIT ค่า WARN ต้องน้อยกว่า CRIT</td></tr>
+        <tr><td><code>MEM_*</code> และ <code>DISK_*</code></td><td>เกณฑ์ของ RAM และ Disk ในแบบเดียวกับ CPU ทุกค่าเป็นจำนวนเต็ม เพราะ Bash คำนวณได้เฉพาะจำนวนเต็ม</td></tr>
+        <tr><td><code>DISK_PATH=/</code></td><td>วัดพื้นที่ของ Filesystem ที่มีโฟลเดอร์นี้อยู่ ถ้าอยากวัดดิสก์อื่นให้เปลี่ยนเป็น Path ของดิสก์นั้น</td></tr>
+        <tr><td><code>LOG_FILE="$HOME/..."</code></td><td>ใช้ <code>$HOME</code> แทนการเขียน <code>/home/somchai</code> ตรง ๆ คนอื่นที่ Clone ไปจึงใช้ได้ทันที และ cron ก็ตั้งค่า <code>HOME</code> ให้อัตโนมัติ</td></tr>
+      </tbody></table></div>
+      <div class="callout sec"><span class="c-label sec">Security</span><p>เพราะไฟล์นี้ถูก <code>source</code> ทุกบรรทัดในไฟล์จึงถูกรันเป็นคำสั่ง Bash ห้ามให้คนอื่นเขียนไฟล์นี้ได้เด็ดขาด (ห้าม <code>chmod 666</code> หรือ <code>777</code>) ไม่อย่างนั้นใครก็ฝังคำสั่งให้ cron รันแทนคุณได้</p></div>
+    </li>
+
+    <li>
+      <h4>Step 3: เขียนสคริปต์หลัก bin/health-check.sh</h4>
+      <p>นี่คือหัวใจของโปรเจกต์ สคริปต์แบ่งเป็น Function ย่อยที่ทำหน้าที่เดียว (อ่านค่า, จัดระดับ, เขียน Log) และมี <code>main</code> เป็นตัวคุมลำดับ วิธีนี้ทำให้อ่านง่าย ทดสอบง่าย และแก้ทีละส่วนได้ สร้างไฟล์ด้วย <code>nano bin/health-check.sh</code> แล้ววางโค้ดทั้งหมดนี้</p>
+      <pre class="code" data-env="file" data-label="Bash · bin/health-check.sh"><code class="language-bash">#!/usr/bin/env bash
+# health-check.sh : ตรวจสุขภาพเครื่อง (CPU, RAM, Disk, Load average)
+# เทียบกับเกณฑ์ใน config แล้วเขียน Log หนึ่งบรรทัดต่อการรันหนึ่งครั้ง
+# Exit code: 0=OK 1=WARN 2=CRIT 3=UNKNOWN
+set -euo pipefail
+
+readonly EXIT_UNKNOWN=3
+
+# หาโฟลเดอร์โปรเจกต์จากตำแหน่งของสคริปต์เอง (bin/..) จึงรันจากที่ไหนก็ได้
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." &amp;&amp; pwd)"
+readonly PROJECT_DIR
+
+CONFIG_FILE="$PROJECT_DIR/config/health.conf"
+QUIET=0
+
+usage() {
+  cat &lt;&lt;'USAGE'
+Usage: health-check.sh [-c CONFIG] [-q] [-h]
+  -c CONFIG  path to config file (default: &lt;project&gt;/config/health.conf)
+  -q         quiet mode: write the log line only, print nothing on stdout
+  -h         show this help
+Exit codes: 0=OK  1=WARN  2=CRIT  3=UNKNOWN
+USAGE
+}
+
+# พิมพ์ข้อความผิดพลาดไปที่ stderr แล้วจบด้วย exit 3 (UNKNOWN)
+die() {
+  echo "health-check: $*" &gt;&amp;2
+  exit "$EXIT_UNKNOWN"
+}
+
+# โหลด config และตรวจว่าเกณฑ์ทุกตัวเป็นจำนวนเต็ม
+load_config() {
+  [[ -f "$CONFIG_FILE" ]] || die "ไม่พบไฟล์ config: $CONFIG_FILE"
+  # shellcheck source=/dev/null
+  source "$CONFIG_FILE"
+
+  local name value
+  for name in CPU_WARN CPU_CRIT MEM_WARN MEM_CRIT DISK_WARN DISK_CRIT; do
+    value="${!name:-}"
+    [[ "$value" =~ ^[0-9]+$ ]] || die "ค่า $name ต้องเป็นจำนวนเต็ม (ตอนนี้คือ '$value')"
+  done
+
+  # ค่าเริ่มต้นเมื่อ config ไม่ได้กำหนดไว้
+  DISK_PATH="${DISK_PATH:-/}"
+  LOG_FILE="${LOG_FILE:-$PROJECT_DIR/logs/health.log}"
+  [[ -e "$DISK_PATH" ]] || die "ไม่พบ DISK_PATH: $DISK_PATH"
+}
+
+# กันไม่ให้รันซ้อนกัน (เช่น cron รอบใหม่มาถึงตอนรอบเก่ายังไม่จบ)
+acquire_lock() {
+  local log_dir
+  log_dir="$(dirname "$LOG_FILE")"
+  mkdir -p "$log_dir"
+  exec 9&gt;"$log_dir/.lock"
+  flock -n 9 || die "มีการตรวจอีกตัวกำลังทำงานอยู่ (lock: $log_dir/.lock)"
+}
+
+# CPU %: อ่านบรรทัดแรกของ /proc/stat สองครั้งห่างกัน 1 วินาที แล้วคำนวณส่วนต่าง
+read_cpu() {
+  local _ user nice system idle iowait irq softirq steal
+  local total1 idle1 total2 idle2 dtotal didle
+
+  read -r _ user nice system idle iowait irq softirq steal _ &lt; /proc/stat
+  total1=$((user + nice + system + idle + iowait + irq + softirq + steal))
+  idle1=$((idle + iowait))
+
+  sleep 1
+
+  read -r _ user nice system idle iowait irq softirq steal _ &lt; /proc/stat
+  total2=$((user + nice + system + idle + iowait + irq + softirq + steal))
+  idle2=$((idle + iowait))
+
+  dtotal=$((total2 - total1))
+  didle=$((idle2 - idle1))
+  if (( dtotal &lt;= 0 )); then
+    echo 0
+  else
+    echo $(( 100 * (dtotal - didle) / dtotal ))
+  fi
+}
+
+# RAM %: (MemTotal - MemAvailable) / MemTotal จาก /proc/meminfo
+read_mem() {
+  awk '/^MemTotal:/ {t = $2}
+       /^MemAvailable:/ {a = $2}
+       END { if (t &gt; 0) printf "%d\n", (t - a) * 100 / t; else print 0 }' /proc/meminfo
+}
+
+# Disk %: คอลัมน์ที่ 5 ของ df -P (ตัดเครื่องหมาย % ออก)
+read_disk() {
+  df -P "$DISK_PATH" | awk 'NR == 2 {gsub("%", "", $5); print $5}'
+}
+
+# Load average 1 นาที: ช่องแรกของ /proc/loadavg
+read_load() {
+  local load1 _
+  read -r load1 _ &lt; /proc/loadavg
+  echo "$load1"
+}
+
+# จัดระดับ: classify &lt;ค่า&gt; &lt;เกณฑ์ WARN&gt; &lt;เกณฑ์ CRIT&gt;
+classify() {
+  local value=$1 warn=$2 crit=$3
+  if (( value &gt;= crit )); then
+    echo CRIT
+  elif (( value &gt;= warn )); then
+    echo WARN
+  else
+    echo OK
+  fi
+}
+
+# แปลงสถานะเป็นตัวเลข เพื่อหาว่าตัวไหนแย่ที่สุด
+rank() {
+  case $1 in
+    OK) echo 0 ;;
+    WARN) echo 1 ;;
+    CRIT) echo 2 ;;
+    *) echo 3 ;;
+  esac
+}
+
+# ต่อท้าย Log หนึ่งบรรทัด
+write_log() {
+  echo "$1" &gt;&gt; "$LOG_FILE"
+}
+
+main() {
+  local opt
+  while getopts ":c:qh" opt; do
+    case $opt in
+      c) CONFIG_FILE=$OPTARG ;;
+      q) QUIET=1 ;;
+      h) usage; exit 0 ;;
+      :) usage &gt;&amp;2; die "ตัวเลือก -$OPTARG ต้องมีค่าตามหลัง" ;;
+      \?) usage &gt;&amp;2; die "ไม่รู้จักตัวเลือก -$OPTARG" ;;
+    esac
+  done
+
+  load_config
+  acquire_lock
+
+  local cpu mem disk load1 cpu_s mem_s disk_s overall s line
+  cpu="$(read_cpu)"
+  mem="$(read_mem)"
+  disk="$(read_disk)"
+  load1="$(read_load)"
+
+  cpu_s="$(classify "$cpu" "$CPU_WARN" "$CPU_CRIT")"
+  mem_s="$(classify "$mem" "$MEM_WARN" "$MEM_CRIT")"
+  disk_s="$(classify "$disk" "$DISK_WARN" "$DISK_CRIT")"
+
+  # สถานะรวม: ตัวที่แย่ที่สุดชนะ
+  overall=OK
+  for s in "$cpu_s" "$mem_s" "$disk_s"; do
+    if (( $(rank "$s") &gt; $(rank "$overall") )); then
+      overall=$s
+    fi
+  done
+
+  line="$(date '+%Y-%m-%dT%H:%M:%S%z') host=$(hostname) status=$overall cpu=$cpu mem=$mem disk=$disk load1=$load1"
+  write_log "$line"
+
+  if (( QUIET == 0 )); then
+    printf '%-6s %3s%%  %-4s (warn %s / crit %s)\n' \
+      CPU "$cpu" "$cpu_s" "$CPU_WARN" "$CPU_CRIT" \
+      RAM "$mem" "$mem_s" "$MEM_WARN" "$MEM_CRIT" \
+      DISK "$disk" "$disk_s" "$DISK_WARN" "$DISK_CRIT"
+    printf '%-6s %s\n' LOAD1 "$load1"
+    echo "STATUS: $overall"
+    echo "log -&gt; $LOG_FILE"
+  fi
+
+  return "$(rank "$overall")"
+}
+
+main "$@"</code></pre>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ให้สิทธิ์รัน แล้วตรวจด้วย ShellCheck
+chmod 755 bin/health-check.sh
+shellcheck bin/health-check.sh &amp;&amp; echo "shellcheck ผ่าน"</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>shellcheck ผ่าน</code></pre>
+      <h5>อธิบายโค้ดทีละส่วน</h5>
+      <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+        <tr><td><code>#!/usr/bin/env bash</code></td><td>Shebang บอกให้ใช้ <code>bash</code> ตัวแรกที่เจอใน <code>PATH</code> รันไฟล์นี้</td></tr>
+        <tr><td><code>set -euo pipefail</code></td><td>Strict mode: หยุดเมื่อคำสั่งล้มเหลว (<code>-e</code>), ใช้ตัวแปรที่ไม่ได้ตั้งค่าแล้ว Error (<code>-u</code>), และ Pipe ล้มเหลวถ้าคำสั่งใดในสายล้มเหลว (<code>pipefail</code>)</td></tr>
+        <tr><td><code>PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." &amp;&amp; pwd)"</code></td><td>หาโฟลเดอร์โปรเจกต์จากตำแหน่งของไฟล์สคริปต์เอง ไม่ว่าจะรันจาก Directory ไหน (cron รันจาก <code>$HOME</code>) ก็หา Config เจอ</td></tr>
+        <tr><td><code>readonly</code></td><td>ล็อกค่าคงที่ไม่ให้ถูกเปลี่ยนโดยไม่ตั้งใจ</td></tr>
+        <tr><td><code>usage()</code> กับ <code>&lt;&lt;'USAGE'</code></td><td>Here-document แบบมีเครื่องหมายคำพูด พิมพ์ข้อความตามตัวอักษร ไม่แปลค่า <code>$</code></td></tr>
+        <tr><td><code>die()</code></td><td>พิมพ์ Error ไปที่ stderr (<code>&gt;&amp;2</code>) แล้ว <code>exit 3</code> ทุกปัญหาที่ทำให้วัดค่าไม่ได้จึงจบด้วย UNKNOWN เหมือนกัน</td></tr>
+        <tr><td><code># shellcheck source=/dev/null</code> และ <code>source "$CONFIG_FILE"</code></td><td>โหลดตัวแปรจาก Config คอมเมนต์บอก ShellCheck ว่าไม่ต้องตามไปตรวจไฟล์นั้น (เพราะ Path เปลี่ยนได้ตอนรัน)</td></tr>
+        <tr><td><code>value="${!name:-}"</code></td><td>Indirect expansion: อ่านค่าของตัวแปรที่ชื่อเก็บอยู่ใน <code>name</code> และ <code>:-</code> ให้ค่าว่างแทน Error เมื่อไม่มีตัวแปรนั้น (สำคัญเพราะเปิด <code>-u</code> ไว้)</td></tr>
+        <tr><td><code>[[ "$value" =~ ^[0-9]+$ ]]</code></td><td>ตรวจด้วย Regex ว่าเป็นตัวเลขล้วน ถ้าไม่ใช่ก็ <code>die</code> ป้องกันการคำนวณผิดแบบเงียบ ๆ</td></tr>
+        <tr><td><code>DISK_PATH="${DISK_PATH:-/}"</code></td><td>ค่าเริ่มต้นเมื่อ Config ไม่ได้กำหนด</td></tr>
+        <tr><td><code>exec 9&gt;"$log_dir/.lock"</code> กับ <code>flock -n 9</code></td><td>เปิดไฟล์ Lock เป็น File descriptor หมายเลข 9 แล้วขอ Lock แบบไม่รอ (<code>-n</code>) ถ้าอีกโปรเซสถือ Lock อยู่ <code>flock</code> คืนค่าไม่ใช่ 0 แล้วเรา <code>die</code> Lock ถูกปล่อยเองเมื่อสคริปต์จบ</td></tr>
+        <tr><td><code>read -r _ user nice system idle ... &lt; /proc/stat</code></td><td>อ่านบรรทัดแรก (บรรทัด <code>cpu</code> รวมทุกคอร์) แยกเป็นตัวแปร ตัวแปร <code>_</code> ใช้รับค่าที่ไม่สนใจ (คำว่า <code>cpu</code> และคอลัมน์ guest ที่เหลือ)</td></tr>
+        <tr><td><code>$(( ... ))</code></td><td>Arithmetic expansion คำนวณจำนวนเต็มใน Bash ผลหารปัดเศษทิ้ง</td></tr>
+        <tr><td><code>if (( dtotal &lt;= 0 ))</code></td><td>กันการหารด้วยศูนย์ ในกรณีที่ตัวนับไม่ขยับเลยในหนึ่งวินาที</td></tr>
+        <tr><td><code>read_mem()</code></td><td>awk จำค่า <code>MemTotal</code> และ <code>MemAvailable</code> แล้วคำนวณใน <code>END</code> ใช้ <code>printf "%d"</code> ตัดทศนิยม</td></tr>
+        <tr><td><code>read_disk()</code></td><td><code>df -P</code> แล้ว awk เลือกบรรทัดที่ 2 คอลัมน์ที่ 5 และ <code>gsub</code> ลบ <code>%</code></td></tr>
+        <tr><td><code>classify()</code></td><td>เปรียบเทียบด้วย <code>&gt;=</code> จากระดับแรงไปเบา: ถึง CRIT ก่อน ถ้าไม่ถึงค่อยดู WARN</td></tr>
+        <tr><td><code>rank()</code> และลูป <code>for s in ...</code></td><td>แปลงสถานะเป็นตัวเลข 0/1/2 แล้วเก็บตัวที่มากที่สุดเป็นสถานะรวม</td></tr>
+        <tr><td><code>while getopts ":c:qh" opt</code></td><td>อ่านตัวเลือก <code>c:</code> ต้องมีค่าตามหลัง ตัว <code>:</code> หน้าสุดทำให้เราจัดการ Error เอง (<code>:</code> = ขาดค่า, <code>\?</code> = ตัวเลือกที่ไม่รู้จัก)</td></tr>
+        <tr><td><code>date '+%Y-%m-%dT%H:%M:%S%z'</code></td><td>เวลาแบบ ISO 8601 พร้อม Timezone (<code>+0700</code>) เรียงตามตัวอักษรแล้วได้ลำดับเวลาที่ถูกต้อง</td></tr>
+        <tr><td><code>printf '%-6s %3s%%  %-4s ...'</code></td><td>จัดคอลัมน์ให้ตรงกัน <code>%-6s</code> ชิดซ้ายกว้าง 6, <code>%3s</code> ชิดขวากว้าง 3, <code>%%</code> คือเครื่องหมาย <code>%</code> printf ใช้รูปแบบเดิมซ้ำกับอาร์กิวเมนต์ชุดถัดไปจนหมด จึงพิมพ์ 3 บรรทัดในคำสั่งเดียว</td></tr>
+        <tr><td><code>return "$(rank "$overall")"</code> และ <code>main "$@"</code></td><td><code>main</code> คืน 0/1/2 ตามสถานะ และเพราะเป็นคำสั่งสุดท้าย ค่านี้จึงกลายเป็น Exit code ของสคริปต์ <code>"$@"</code> ส่งอาร์กิวเมนต์ทุกตัวต่อไปแบบไม่แตกคำ</td></tr>
+      </tbody></table></div>
+      <div class="callout warn"><span class="c-label warn">ระวัง</span><p>ถ้าคัดลอกโค้ดจาก Windows แล้วรันเจอ <code>/usr/bin/env: 'bash\r': No such file or directory</code> แปลว่าไฟล์มีท้ายบรรทัดแบบ Windows (CRLF) แก้ด้วย <code>sed -i 's/\r$//' bin/health-check.sh</code> และสร้างไฟล์ด้วย <code>nano</code> หรือ VS Code ที่ตั้งเป็น LF</p></div>
+    </li>
+
+    <li>
+      <h4>Step 4: ลองรันด้วยมือ และตรวจ Exit code ทุกกรณี</h4>
+      <p>ก่อนให้ cron รันแทน ต้องแน่ใจว่าสคริปต์ตอบสนองถูกทุกกรณี ทั้งกรณีปกติ กรณีเกินเกณฑ์ และกรณีผิดพลาด หลังรันแต่ละครั้งให้พิมพ์ <code>echo "exit=$?"</code> เพื่อดู Exit code</p>
+      <h5>4.1 ดูวิธีใช้และรันแบบปกติ</h5>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/server-health-monitor
+./bin/health-check.sh -h; echo "exit=$?"
+./bin/health-check.sh; echo "exit=$?"</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Usage: health-check.sh [-c CONFIG] [-q] [-h]
+  -c CONFIG  path to config file (default: &lt;project&gt;/config/health.conf)
+  -q         quiet mode: write the log line only, print nothing on stdout
+  -h         show this help
+Exit codes: 0=OK  1=WARN  2=CRIT  3=UNKNOWN
+exit=0
+CPU      0%  OK   (warn 70 / crit 90)
+RAM      3%  OK   (warn 75 / crit 90)
+DISK    68%  OK   (warn 80 / crit 90)
+LOAD1  0.33
+STATUS: OK
+log -&gt; /home/somchai/projects/server-health-monitor/logs/health.log
+exit=0</code></pre>
+      <p class="muted small">ตัวเลข CPU, RAM, DISK และ LOAD1 มาจากเครื่องทดสอบ บนเครื่องคุณจะต่างไป เช่น RAM บน WSL มักอยู่ราว 20–50% และ Disk ของ WSL มักน้อยมากเพราะเป็นไฟล์ดิสก์เสมือนขนาดใหญ่</p>
+      <h5>4.2 โหมดเงียบ (-q) แล้วดู Log</h5>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">./bin/health-check.sh -q; echo "exit=$?"
+tail -n 2 logs/health.log</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>exit=0
+2026-10-20T10:50:59+0700 host=DESKTOP-K7Q2M4P status=OK cpu=0 mem=3 disk=68 load1=0.33
+2026-10-20T10:51:00+0700 host=DESKTOP-K7Q2M4P status=OK cpu=0 mem=3 disk=68 load1=0.33</code></pre>
+      <p>บรรทัดแรกมาจากการรันใน 4.1 บรรทัดที่สองมาจาก <code>-q</code> เห็นว่าโหมดเงียบไม่พิมพ์อะไรบนจอ แต่ยังเขียน Log ครบ</p>
+      <h5>4.3 จำลองกรณี WARN และ CRIT</h5>
+      <p>เราไม่ต้องทำให้เครื่องทำงานหนักจริง แค่สร้าง Config ชั่วคราวที่เกณฑ์ต่ำมาก แล้วส่งให้สคริปต์ด้วย <code>-c</code></p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เกณฑ์ WARN ของ RAM เหลือ 1% จึงต้องได้ WARN
+sed 's/^MEM_WARN=.*/MEM_WARN=1/' config/health.conf &gt; /tmp/warn.conf
+./bin/health-check.sh -c /tmp/warn.conf; echo "exit=$?"
+
+# เกณฑ์ CRIT ของ Disk เหลือ 60% (ต่ำกว่าค่าจริงของเครื่องทดสอบ) จึงต้องได้ CRIT
+sed 's/^DISK_CRIT=.*/DISK_CRIT=60/' config/health.conf &gt; /tmp/crit.conf
+./bin/health-check.sh -q -c /tmp/crit.conf; echo "exit=$?"
+tail -n 1 logs/health.log</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>CPU      4%  OK   (warn 70 / crit 90)
+RAM      3%  WARN (warn 1 / crit 90)
+DISK    68%  OK   (warn 80 / crit 90)
+LOAD1  0.33
+STATUS: WARN
+log -&gt; /home/somchai/projects/server-health-monitor/logs/health.log
+exit=1
+exit=2
+2026-10-20T10:51:20+0700 host=DESKTOP-K7Q2M4P status=CRIT cpu=0 mem=3 disk=68 load1=0.39</code></pre>
+      <p class="muted small">ถ้า Disk บนเครื่องคุณต่ำกว่า 60% ให้ลดค่า <code>DISK_CRIT</code> ลงอีก เช่น <code>DISK_CRIT=1</code> เพื่อให้เห็นผล CRIT</p>
+      <h5>4.4 กรณีผิดพลาด ต้องได้ UNKNOWN (3)</h5>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">./bin/health-check.sh -c /nope.conf; echo "exit=$?"
+./bin/health-check.sh -x; echo "exit=$?"</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>health-check: ไม่พบไฟล์ config: /nope.conf
+exit=3
+Usage: health-check.sh [-c CONFIG] [-q] [-h]
+  -c CONFIG  path to config file (default: &lt;project&gt;/config/health.conf)
+  -q         quiet mode: write the log line only, print nothing on stdout
+  -h         show this help
+Exit codes: 0=OK  1=WARN  2=CRIT  3=UNKNOWN
+health-check: ไม่รู้จักตัวเลือก -x
+exit=3</code></pre>
+      <div class="callout"><span class="c-label check">Checkpoint</span><p>ถึงตรงนี้คุณควรได้ Exit code ครบทั้ง 4 แบบ (0, 1, 2, 3) และ Log ทุกบรรทัดมีรูปแบบเดียวกัน ถ้ายังไม่ได้ ให้รัน <code>bash -x bin/health-check.sh</code> เพื่อดูทุกคำสั่งที่ถูกรันพร้อมค่าตัวแปร</p></div>
+    </li>
+
+    <li>
+      <h4>Step 5: เขียนสคริปต์สรุปรายงาน bin/health-report.sh</h4>
+      <p>Log ที่ดีต้องอ่านกลับได้ง่าย สคริปต์นี้ใช้ awk อ่านทุกบรรทัด แยกช่อง <code>key=value</code> ออกเป็นคู่ แล้วนับจำนวนตามสถานะ หาค่าเฉลี่ยและค่าสูงสุดของ CPU, RAM และ Disk รวมถึงเวลาแรกและเวลาสุดท้ายในไฟล์ รับชื่อไฟล์ Log เป็นอาร์กิวเมนต์ได้ (ไม่ใส่จะใช้ <code>logs/health.log</code>)</p>
+      <pre class="code" data-env="file" data-label="Bash · bin/health-report.sh"><code class="language-bash">#!/usr/bin/env bash
+# health-report.sh : สรุปไฟล์ health.log ด้วย awk
+# วิธีใช้: health-report.sh [logfile]
+set -euo pipefail
+
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." &amp;&amp; pwd)"
+readonly PROJECT_DIR
+LOG_FILE="${1:-$PROJECT_DIR/logs/health.log}"
+
+if [[ ! -s "$LOG_FILE" ]]; then
+  echo "health-report: ไม่พบไฟล์ Log หรือไฟล์ว่าง: $LOG_FILE" &gt;&amp;2
+  exit 1
+fi
+
+awk -v file="$LOG_FILE" '
+{
+  n++
+  if (n == 1) first = $1
+  last = $1
+  # แยกช่อง key=value ทุกช่อง (ยกเว้นช่องแรกซึ่งเป็นเวลา)
+  for (i = 2; i &lt;= NF; i++) {
+    split($i, kv, "=")
+    v[kv[1]] = kv[2]
+  }
+  st[v["status"]]++
+  cpu_sum += v["cpu"];  if (v["cpu"]  + 0 &gt; cpu_max)  cpu_max  = v["cpu"]  + 0
+  mem_sum += v["mem"];  if (v["mem"]  + 0 &gt; mem_max)  mem_max  = v["mem"]  + 0
+  disk_sum += v["disk"]; if (v["disk"] + 0 &gt; disk_max) disk_max = v["disk"] + 0
+}
+END {
+  printf "Health report : %s\n", file
+  printf "checks        : %d\n", n
+  printf "status        : OK=%d WARN=%d CRIT=%d\n", st["OK"] + 0, st["WARN"] + 0, st["CRIT"] + 0
+  printf "cpu  %%        : avg=%.1f max=%d\n", cpu_sum / n, cpu_max
+  printf "mem  %%        : avg=%.1f max=%d\n", mem_sum / n, mem_max
+  printf "disk %%        : avg=%.1f max=%d\n", disk_sum / n, disk_max
+  printf "first         : %s\n", first
+  printf "last          : %s\n", last
+}' "$LOG_FILE"</code></pre>
+      <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+        <tr><td><code>LOG_FILE="${1:-...}"</code></td><td>ใช้อาร์กิวเมนต์แรกถ้ามี ถ้าไม่มีใช้ Log หลักของโปรเจกต์</td></tr>
+        <tr><td><code>[[ ! -s "$LOG_FILE" ]]</code></td><td><code>-s</code> คือ "มีไฟล์และขนาดมากกว่า 0" ป้องกันการหารด้วยศูนย์ใน awk เมื่อไฟล์ว่าง</td></tr>
+        <tr><td><code>awk -v file="$LOG_FILE"</code></td><td>ส่งค่าจาก Bash เข้า awk เป็นตัวแปร <code>file</code> อย่างปลอดภัย</td></tr>
+        <tr><td><code>split($i, kv, "=")</code></td><td>แยกช่องอย่าง <code>cpu=12</code> เป็น <code>kv[1]="cpu"</code> และ <code>kv[2]="12"</code> แล้วเก็บใน Array <code>v</code> ทำให้ลำดับช่องใน Log เปลี่ยนได้โดยรายงานไม่พัง</td></tr>
+        <tr><td><code>st[v["status"]]++</code></td><td>Associative array นับจำนวนครั้งของแต่ละสถานะ</td></tr>
+        <tr><td><code>v["cpu"] + 0 &gt; cpu_max</code></td><td><code>+ 0</code> บังคับให้เปรียบเทียบแบบตัวเลข ไม่ใช่แบบข้อความ (ถ้าไม่บวก "9" จะมากกว่า "10")</td></tr>
+        <tr><td><code>END { printf ... }</code></td><td>พิมพ์สรุปหลังอ่านครบทุกบรรทัด <code>st["OK"] + 0</code> ให้ผลเป็น 0 แทนค่าว่างเมื่อไม่มีสถานะนั้น <code>%%</code> คือเครื่องหมาย <code>%</code></td></tr>
+      </tbody></table></div>
+      <p>สร้าง Log ตัวอย่าง 7 บรรทัด (OK 5 ครั้ง WARN 1 ครั้ง CRIT 1 ครั้ง) แล้วดูรายงาน</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">chmod 755 bin/health-report.sh
+shellcheck bin/health-report.sh &amp;&amp; echo "shellcheck ผ่าน"
+
+# ล้าง Log เพื่อเริ่มนับใหม่ (: คือคำสั่งที่ไม่ทำอะไร แต่ &gt; ทำให้ไฟล์ว่าง)
+: &gt; logs/health.log
+for i in 1 2 3 4 5; do ./bin/health-check.sh -q; done
+./bin/health-check.sh -q -c /tmp/warn.conf
+./bin/health-check.sh -q -c /tmp/crit.conf
+cat logs/health.log
+./bin/health-report.sh</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>shellcheck ผ่าน
+2026-10-20T10:51:14+0700 host=DESKTOP-K7Q2M4P status=OK cpu=28 mem=3 disk=68 load1=0.34
+2026-10-20T10:51:15+0700 host=DESKTOP-K7Q2M4P status=OK cpu=12 mem=3 disk=68 load1=0.34
+2026-10-20T10:51:16+0700 host=DESKTOP-K7Q2M4P status=OK cpu=26 mem=4 disk=68 load1=0.34
+2026-10-20T10:51:17+0700 host=DESKTOP-K7Q2M4P status=OK cpu=23 mem=4 disk=68 load1=0.34
+2026-10-20T10:51:18+0700 host=DESKTOP-K7Q2M4P status=OK cpu=28 mem=4 disk=68 load1=0.39
+2026-10-20T10:51:19+0700 host=DESKTOP-K7Q2M4P status=WARN cpu=15 mem=3 disk=68 load1=0.39
+2026-10-20T10:51:20+0700 host=DESKTOP-K7Q2M4P status=CRIT cpu=0 mem=3 disk=68 load1=0.39
+Health report : /home/somchai/projects/server-health-monitor/logs/health.log
+checks        : 7
+status        : OK=5 WARN=1 CRIT=1
+cpu  %        : avg=18.9 max=28
+mem  %        : avg=3.4 max=4
+disk %        : avg=68.0 max=68
+first         : 2026-10-20T10:51:14+0700
+last          : 2026-10-20T10:51:20+0700</code></pre>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ไฟล์ที่ไม่มีอยู่ ต้องได้ข้อความ Error และ Exit code 1
+./bin/health-report.sh /nope.log; echo "exit=$?"</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>health-report: ไม่พบไฟล์ Log หรือไฟล์ว่าง: /nope.log
+exit=1</code></pre>
+      <div class="callout"><span class="c-label tip">Tip</span><p>เพราะ Log เป็นรูปแบบ <code>key=value</code> คุณค้นแบบเฉพาะกิจได้ทันทีโดยไม่ต้องเขียนสคริปต์ใหม่ เช่น <code>grep -c 'status=CRIT' logs/health.log</code> นับจำนวน CRIT หรือ <code>grep 'status=WARN\|status=CRIT' logs/health.log | tail -n 5</code> ดูปัญหาล่าสุด 5 ครั้ง</p></div>
+    </li>
+
+    <li>
+      <h4>Step 6: เขียนชุดทดสอบอัตโนมัติ tests/run-tests.sh</h4>
+      <p>ชุดทดสอบทำให้คุณแก้โค้ดได้อย่างมั่นใจ ถ้าแก้แล้วพัง การทดสอบจะบอกทันที สคริปต์นี้ทดสอบ 9 เรื่อง ใช้ <code>mktemp -d</code> สร้างโฟลเดอร์ชั่วคราวสำหรับ Config และ Log ทดสอบ (จึงไม่ปน Log จริง) และใช้ <code>trap ... EXIT</code> ลบโฟลเดอร์นั้นเสมอไม่ว่าจะจบแบบไหน</p>
+      <pre class="code" data-env="file" data-label="Bash · tests/run-tests.sh"><code class="language-bash">#!/usr/bin/env bash
+# run-tests.sh : ทดสอบ health-check.sh และ health-report.sh แบบอัตโนมัติ
+# ไม่ใช้ set -e เพราะเราต้องเก็บ Exit code ที่ไม่ใช่ 0 มาตรวจเอง
+set -uo pipefail
+
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." &amp;&amp; pwd)"
+readonly PROJECT_DIR
+CHECK="$PROJECT_DIR/bin/health-check.sh"
+REPORT="$PROJECT_DIR/bin/health-report.sh"
+
+PASS=0
+FAIL=0
+TMP_DIR="$(mktemp -d)"
+# ลบโฟลเดอร์ชั่วคราวเสมอ ไม่ว่าสคริปต์จะจบแบบไหน
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+pass() { echo "PASS  $1"; PASS=$((PASS + 1)); }
+fail() { echo "FAIL  $1"; FAIL=$((FAIL + 1)); }
+
+# config ทดสอบ: ใช้เกณฑ์จริงจาก config/health.conf แต่เขียน Log ลงโฟลเดอร์ชั่วคราว
+NORMAL_CONF="$TMP_DIR/normal.conf"
+cp "$PROJECT_DIR/config/health.conf" "$NORMAL_CONF"
+echo "LOG_FILE=\"$TMP_DIR/health.log\"" &gt;&gt; "$NORMAL_CONF"
+
+# config ที่เกณฑ์ทุกตัวเป็น 0 จึงต้องได้ CRIT เสมอ
+CRIT_CONF="$TMP_DIR/crit.conf"
+cat &gt; "$CRIT_CONF" &lt;&lt;CONF
+CPU_WARN=0
+CPU_CRIT=0
+MEM_WARN=0
+MEM_CRIT=0
+DISK_WARN=0
+DISK_CRIT=0
+DISK_PATH=/
+LOG_FILE="$TMP_DIR/crit.log"
+CONF
+
+# config ที่ค่าไม่ใช่ตัวเลข ต้องได้ UNKNOWN
+BAD_CONF="$TMP_DIR/bad.conf"
+sed 's/^CPU_WARN=.*/CPU_WARN=abc/' "$NORMAL_CONF" &gt; "$BAD_CONF"
+
+# 1) ShellCheck ทุกสคริปต์
+if shellcheck "$PROJECT_DIR"/bin/*.sh "$PROJECT_DIR"/tests/*.sh; then
+  pass "shellcheck bin/*.sh tests/*.sh"
+else
+  fail "shellcheck bin/*.sh tests/*.sh"
+fi
+
+# 2) รันด้วยเกณฑ์ปกติ ต้องได้ Exit code 0, 1 หรือ 2
+"$CHECK" -q -c "$NORMAL_CONF"
+rc=$?
+if [[ $rc -le 2 ]]; then
+  pass "normal config exit code is $rc (0/1/2)"
+else
+  fail "normal config exit code is $rc (expected 0/1/2)"
+fi
+
+# 3) บรรทัดสุดท้ายของ Log ต้องตรงรูปแบบ
+regex='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:]{8}[+-][0-9]{4} host=[^ ]+ status=(OK|WARN|CRIT) cpu=[0-9]+ mem=[0-9]+ disk=[0-9]+ load1=[0-9.]+$'
+last_line="$(tail -n 1 "$TMP_DIR/health.log" 2&gt;/dev/null)"
+if [[ $last_line =~ $regex ]]; then
+  pass "log line format"
+else
+  fail "log line format: '$last_line'"
+fi
+
+# 4) -q ต้องไม่พิมพ์อะไรออก stdout
+out="$("$CHECK" -q -c "$NORMAL_CONF")"
+if [[ -z $out ]]; then
+  pass "quiet mode prints nothing"
+else
+  fail "quiet mode printed: $out"
+fi
+
+# 5) เกณฑ์เป็น 0 ทั้งหมด ต้องได้ CRIT (exit 2)
+"$CHECK" -q -c "$CRIT_CONF"
+rc=$?
+if [[ $rc -eq 2 ]]; then
+  pass "zero thresholds give CRIT (exit 2)"
+else
+  fail "zero thresholds gave exit $rc (expected 2)"
+fi
+
+# 6) ไม่มีไฟล์ config ต้องได้ UNKNOWN (exit 3)
+"$CHECK" -q -c "$TMP_DIR/missing.conf" 2&gt;/dev/null
+rc=$?
+if [[ $rc -eq 3 ]]; then
+  pass "missing config gives UNKNOWN (exit 3)"
+else
+  fail "missing config gave exit $rc (expected 3)"
+fi
+
+# 7) ค่าใน config ไม่ใช่ตัวเลข ต้องได้ UNKNOWN (exit 3)
+"$CHECK" -q -c "$BAD_CONF" 2&gt;/dev/null
+rc=$?
+if [[ $rc -eq 3 ]]; then
+  pass "invalid threshold gives UNKNOWN (exit 3)"
+else
+  fail "invalid threshold gave exit $rc (expected 3)"
+fi
+
+# 8) ถ้ามีอีกตัวถือ lock อยู่ ต้องได้ UNKNOWN (exit 3)
+flock "$TMP_DIR/.lock" sleep 3 &amp;
+holder=$!
+sleep 0.5
+"$CHECK" -q -c "$NORMAL_CONF" 2&gt;/dev/null
+rc=$?
+wait "$holder"
+if [[ $rc -eq 3 ]]; then
+  pass "second run while locked gives UNKNOWN (exit 3)"
+else
+  fail "second run while locked gave exit $rc (expected 3)"
+fi
+
+# 9) รายงานต้องมีบรรทัด checks
+if "$REPORT" "$TMP_DIR/health.log" | grep -q '^checks'; then
+  pass "health-report prints the checks line"
+else
+  fail "health-report did not print the checks line"
+fi
+
+echo "----"
+echo "Result: $PASS passed, $FAIL failed"
+if (( FAIL &gt; 0 )); then
+  exit 1
+fi</code></pre>
+      <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+        <tr><td><code>set -uo pipefail</code> (ไม่มี <code>-e</code>)</td><td>ชุดทดสอบตั้งใจรันคำสั่งที่คืนค่าไม่ใช่ 0 (เช่น คาดหวัง exit 3) ถ้าเปิด <code>-e</code> สคริปต์จะหยุดตั้งแต่ข้อแรกที่ได้ค่าไม่ใช่ 0</td></tr>
+        <tr><td><code>TMP_DIR="$(mktemp -d)"</code> กับ <code>trap 'rm -rf "$TMP_DIR"' EXIT</code></td><td>สร้างโฟลเดอร์ชื่อสุ่มใน <code>/tmp</code> และลบทิ้งตอนจบ แม้ถูก Error กลางทาง</td></tr>
+        <tr><td><code>pass()</code> / <code>fail()</code></td><td>พิมพ์ผลแต่ละข้อและนับจำนวน</td></tr>
+        <tr><td><code>cat &gt; "$CRIT_CONF" &lt;&lt;CONF</code></td><td>Here-document แบบไม่มีเครื่องหมายคำพูด จึงแทนค่า <code>$TMP_DIR</code> ลงในไฟล์ (ต่างจาก <code>&lt;&lt;'USAGE'</code> ใน Step 3)</td></tr>
+        <tr><td><code>"$CHECK" -q -c "$NORMAL_CONF"; rc=$?</code></td><td>รันแล้วเก็บ Exit code ทันที เพราะ <code>$?</code> ถูกเขียนทับเมื่อรันคำสั่งถัดไป</td></tr>
+        <tr><td><code>regex='^[0-9]{4}-...'</code> กับ <code>[[ $last_line =~ $regex ]]</code></td><td>เก็บ Regex ในตัวแปรก่อนแล้วค่อยใช้ (ห้ามใส่เครื่องหมายคำพูดรอบ <code>$regex</code> ไม่อย่างนั้นจะกลายเป็นการเทียบข้อความตรงตัว)</td></tr>
+        <tr><td><code>flock "$TMP_DIR/.lock" sleep 3 &amp;</code></td><td>จำลองอีกโปรเซสที่ถือ Lock อยู่ 3 วินาที แล้วรันสคริปต์ซ้อน ต้องได้ exit 3 จากนั้น <code>wait</code> รอให้ตัวถือ Lock จบ</td></tr>
+        <tr><td><code>grep -q '^checks'</code></td><td><code>-q</code> ไม่พิมพ์อะไร แค่คืน 0 เมื่อเจอ ใช้ใน <code>if</code> ได้ตรง ๆ</td></tr>
+        <tr><td><code>if (( FAIL &gt; 0 )); then exit 1; fi</code></td><td>Exit code ของชุดทดสอบบอกผลรวม ระบบ CI อย่าง GitHub Actions ใช้ค่านี้ตัดสินว่าผ่านหรือไม่</td></tr>
+      </tbody></table></div>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">chmod 755 tests/run-tests.sh
+./tests/run-tests.sh; echo "exit=$?"</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>PASS  shellcheck bin/*.sh tests/*.sh
+PASS  normal config exit code is 0 (0/1/2)
+PASS  log line format
+PASS  quiet mode prints nothing
+PASS  zero thresholds give CRIT (exit 2)
+PASS  missing config gives UNKNOWN (exit 3)
+PASS  invalid threshold gives UNKNOWN (exit 3)
+PASS  second run while locked gives UNKNOWN (exit 3)
+PASS  health-report prints the checks line
+----
+Result: 9 passed, 0 failed
+exit=0</code></pre>
+      <p>การทดสอบที่ดีต้องจับข้อผิดพลาดได้จริง ลองทำให้ Config พังโดยตั้งใจ (พิมพ์ตัว O แทนเลข 0 ใน <code>CPU_WARN</code>) แล้วรันชุดทดสอบอีกครั้ง</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">sed -i 's/^CPU_WARN=70/CPU_WARN=7O/' config/health.conf
+./tests/run-tests.sh; echo "exit=$?"
+# แก้กลับให้ถูก
+sed -i 's/^CPU_WARN=7O/CPU_WARN=70/' config/health.conf
+grep CPU_WARN config/health.conf</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>PASS  shellcheck bin/*.sh tests/*.sh
+health-check: ค่า CPU_WARN ต้องเป็นจำนวนเต็ม (ตอนนี้คือ '7O')
+FAIL  normal config exit code is 3 (expected 0/1/2)
+FAIL  log line format: ''
+health-check: ค่า CPU_WARN ต้องเป็นจำนวนเต็ม (ตอนนี้คือ '7O')
+PASS  quiet mode prints nothing
+PASS  zero thresholds give CRIT (exit 2)
+PASS  missing config gives UNKNOWN (exit 3)
+PASS  invalid threshold gives UNKNOWN (exit 3)
+PASS  second run while locked gives UNKNOWN (exit 3)
+health-report: ไม่พบไฟล์ Log หรือไฟล์ว่าง: /tmp/tmp.hMjf02DuuD/health.log
+FAIL  health-report did not print the checks line
+----
+Result: 6 passed, 3 failed
+exit=1
+CPU_WARN=70</code></pre>
+      <p class="muted small">ชื่อโฟลเดอร์ชั่วคราว <code>/tmp/tmp.XXXXXXXXXX</code> สุ่มใหม่ทุกครั้ง ของคุณจะต่างไป ชุดทดสอบใช้เวลาราว 6 วินาที เพราะการวัด CPU รอ 1 วินาทีต่อการรันหนึ่งครั้ง</p>
+    </li>
+
+    <li>
+      <h4>Step 7: ตั้งเวลาให้รันทุก 5 นาทีด้วย cron</h4>
+      <p>เก็บบรรทัด cron ไว้ในไฟล์ของโปรเจกต์ เพื่อให้ติดตั้งซ้ำบนเครื่องใหม่ได้และมีประวัติใน Git ทุก Path ใน cron ต้องเป็น Absolute path เพราะ cron รันด้วย <code>PATH</code> ที่สั้นมาก (<code>/usr/bin:/bin</code>) และไม่ได้อ่าน <code>~/.bashrc</code></p>
+      <pre class="code" data-env="file" data-label="Text · cron/crontab.txt"><code class="language-plaintext"># ตรวจสุขภาพเครื่องทุก 5 นาที
+*/5 * * * * /home/somchai/projects/server-health-monitor/bin/health-check.sh -q &gt;&gt; /home/somchai/projects/server-health-monitor/logs/cron.log 2&gt;&amp;1
+# หมุนไฟล์ Log ทุกวันเวลา 00:05
+5 0 * * * /usr/sbin/logrotate -s /home/somchai/projects/server-health-monitor/logs/logrotate.state /home/somchai/projects/server-health-monitor/logrotate/health-monitor.conf</code></pre>
+      <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+        <tr><td><code>*/5 * * * *</code></td><td>นาทีที่หารด้วย 5 ลงตัว (00, 05, 10, ... 55) ของทุกชั่วโมง ทุกวัน 5 ช่องคือ นาที ชั่วโมง วันที่ เดือน วันในสัปดาห์</td></tr>
+        <tr><td><code>health-check.sh -q</code></td><td>โหมดเงียบ เพราะ cron ไม่มีจอให้แสดงผล ผลอยู่ใน <code>health.log</code> แล้ว</td></tr>
+        <tr><td><code>&gt;&gt; .../logs/cron.log 2&gt;&amp;1</code></td><td>เก็บ stdout และ stderr ทั้งหมดต่อท้าย <code>cron.log</code> ถ้าสคริปต์มีปัญหา (เช่น Config พัง) ข้อความ Error จะมาอยู่ที่นี่ ถ้าไม่ Redirect cron จะพยายามส่งเมลซึ่ง WSL ไม่มี และข้อความจะหายไป</td></tr>
+        <tr><td><code>5 0 * * *</code></td><td>นาทีที่ 5 ของชั่วโมง 0 คือ 00:05 ทุกวัน เลี่ยงนาที 00 ที่รอบ <code>*/5</code> กำลังเขียน Log</td></tr>
+        <tr><td><code>/usr/sbin/logrotate -s ... .conf</code></td><td>รัน logrotate ในฐานะผู้ใช้ธรรมดา <code>-s</code> บอกตำแหน่ง State file ของเราเอง (ค่าเริ่มต้น <code>/var/lib/logrotate/status</code> เขียนได้เฉพาะ root)</td></tr>
+      </tbody></table></div>
+      <p>ก่อนติดตั้ง ให้ตรวจว่า cron ทำงานอยู่ ถ้าเปิด systemd ใน WSL แล้ว (ดูแนวคิดที่ 10 ส่วนที่ 2) ใช้ <code>systemctl</code> ถ้ายังไม่เปิด ใช้ <code>service</code></p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ดูว่า PID 1 คืออะไร: systemd หรือ init
+ps -p 1 -o comm=
+
+# กรณีมี systemd
+systemctl is-active cron
+systemctl is-enabled cron</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>systemd
+active
+enabled</code></pre>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># กรณีไม่มี systemd (PID 1 เป็น init) ให้สั่งเริ่ม cron เอง ทุกครั้งที่เปิด WSL ใหม่
+sudo service cron start
+sudo service cron status</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code> * Starting periodic command scheduler cron
+   ...done.
+ * cron is running</code></pre>
+      <p>จากนั้นสำรอง Crontab เดิมแล้วติดตั้งจากไฟล์</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/server-health-monitor
+# สำรองของเดิมก่อนเสมอ (ถ้ายังไม่เคยมี Crontab ไฟล์สำรองจะว่าง)
+crontab -l &gt; ~/crontab-backup.txt 2&gt;/dev/null
+# ติดตั้งจากไฟล์ (คำสั่งนี้แทนที่ Crontab เดิมทั้งหมด)
+crontab cron/crontab.txt
+crontab -l</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code># ตรวจสุขภาพเครื่องทุก 5 นาที
+*/5 * * * * /home/somchai/projects/server-health-monitor/bin/health-check.sh -q &gt;&gt; /home/somchai/projects/server-health-monitor/logs/cron.log 2&gt;&amp;1
+# หมุนไฟล์ Log ทุกวันเวลา 00:05
+5 0 * * * /usr/sbin/logrotate -s /home/somchai/projects/server-health-monitor/logs/logrotate.state /home/somchai/projects/server-health-monitor/logrotate/health-monitor.conf</code></pre>
+      <div class="callout warn"><span class="c-label warn">ระวัง</span><p><code>crontab ไฟล์</code> <strong>แทนที่</strong> Crontab เดิมทั้งหมด ถ้าคุณมี Cron job อื่นอยู่แล้ว (เช่น <code>backup.sh</code> จากแนวคิดที่ 12) มันจะหายไป ให้รวมบรรทัดเดิมจาก <code>~/crontab-backup.txt</code> เข้าไปใน <code>cron/crontab.txt</code> ก่อน หรือเพิ่มทีละบรรทัดด้วย <code>(crontab -l 2&gt;/dev/null; echo "บรรทัดใหม่") | crontab -</code></p></div>
+      <p>รอให้ถึงนาทีที่หารด้วย 5 ลงตัว แล้วตรวจว่ามีบรรทัดใหม่ใน Log ถ้าไม่อยากรอ ให้เปลี่ยน <code>*/5</code> เป็น <code>*</code> ชั่วคราว (รันทุกนาที) ทดสอบเสร็จแล้วค่อยเปลี่ยนกลับ ตัวอย่างนี้ทดสอบด้วยรอบทุกนาที</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">tail -n 3 logs/health.log
+# cron.log ต้องว่าง (ไม่มี Error)
+wc -c logs/cron.log</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>2026-10-20T10:51:44+0700 host=DESKTOP-K7Q2M4P status=OK cpu=0 mem=3 disk=68 load1=0.40
+2026-10-20T10:52:02+0700 host=DESKTOP-K7Q2M4P status=OK cpu=0 mem=3 disk=68 load1=0.39
+2026-10-20T10:53:02+0700 host=DESKTOP-K7Q2M4P status=OK cpu=8 mem=3 disk=68 load1=0.22
+0 logs/cron.log</code></pre>
+      <p>สังเกตเวลา <code>10:52:02</code> และ <code>10:53:02</code> cron เริ่มรันที่วินาทีที่ 0 ของนาที บวกเวลาวัด CPU 1 วินาทีและเวลาเริ่มโปรแกรม จึงได้วินาทีที่ 1–2 แบบนี้เป็นหลักฐานว่า cron เป็นคนรัน ไม่ใช่คุณรันเอง</p>
+      <p>ถ้าใช้ systemd ดูหลักฐานจากฝั่ง cron ได้ด้วย <code>journalctl</code></p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">journalctl -u cron -n 3 --no-pager</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Oct 20 10:55:01 DESKTOP-K7Q2M4P CRON[2481]: pam_unix(cron:session): session opened for user somchai(uid=1000) by somchai(uid=0)
+Oct 20 10:55:01 DESKTOP-K7Q2M4P CRON[2482]: (somchai) CMD (/home/somchai/projects/server-health-monitor/bin/health-check.sh -q &gt;&gt; /home/somchai/projects/server-health-monitor/logs/cron.log 2&gt;&amp;1)
+Oct 20 10:55:02 DESKTOP-K7Q2M4P CRON[2481]: pam_unix(cron:session): session closed for user somchai</code></pre>
+      <p class="muted small">ผลของ <code>journalctl</code> เป็นตัวอย่างที่สมจริง (เครื่องทดสอบไม่มี systemd เป็น PID 1) เวลา หมายเลข PID และรูปแบบบรรทัด <code>pam_unix</code> บนเครื่องคุณอาจต่างเล็กน้อย บรรทัดที่สำคัญคือ <code>(somchai) CMD (...)</code> ซึ่งยืนยันว่า cron สั่งรันคำสั่งของคุณ ส่วนผลของ <code>service cron</code>, <code>tail</code> และ <code>wc</code> ด้านบนมาจากการรันจริง</p>
+    </li>
+
+    <li>
+      <h4>Step 8: หมุนไฟล์ Log ทุกวันด้วย logrotate (ไม่ต้องใช้ root)</h4>
+      <p>ถ้ารันทุก 5 นาที Log จะเพิ่มวันละ 288 บรรทัด ปีละกว่าแสนบรรทัด logrotate แก้ปัญหานี้ด้วยการเปลี่ยนชื่อไฟล์เก่าตามวันที่ บีบอัด และลบไฟล์ที่เก่ากว่าที่กำหนด ปกติ logrotate ของระบบรันด้วย root จาก <code>/etc/logrotate.d/</code> แต่เราใช้ Config ของเราเองกับ State file ของเราเอง จึงไม่ต้องแตะไฟล์ระบบ</p>
+      <pre class="code" data-env="file" data-label="Config · logrotate/health-monitor.conf"><code class="language-plaintext"># logrotate config ระดับผู้ใช้ (ไม่ต้องใช้ root) ต้องรันพร้อม -s &lt;state file&gt;
+/home/somchai/projects/server-health-monitor/logs/health.log {
+    daily
+    rotate 7
+    compress
+    delaycompress
+    missingok
+    notifempty
+    dateext
+    create 0640
+}</code></pre>
+      <div class="tbl mid"><table class="explain"><thead><tr><th>คำสั่งใน Config</th><th>ความหมาย</th></tr></thead><tbody>
+        <tr><td><code>daily</code></td><td>หมุนวันละครั้ง (เมื่อรันแล้วพบว่าผ่านมาครบวัน)</td></tr>
+        <tr><td><code>rotate 7</code></td><td>เก็บไฟล์เก่าไว้ 7 ชุด ชุดที่ 8 จะถูกลบ</td></tr>
+        <tr><td><code>compress</code> + <code>delaycompress</code></td><td>บีบอัดด้วย gzip แต่เว้นไฟล์ล่าสุดไว้หนึ่งรอบ ไฟล์ของเมื่อวานจึงยังเปิดอ่านด้วย <code>less</code> ได้ตรง ๆ</td></tr>
+        <tr><td><code>missingok</code></td><td>ถ้ายังไม่มีไฟล์ Log ก็ไม่ต้องแจ้ง Error</td></tr>
+        <tr><td><code>notifempty</code></td><td>ไม่หมุนไฟล์ว่าง</td></tr>
+        <tr><td><code>dateext</code></td><td>ต่อท้ายชื่อด้วยวันที่ เช่น <code>health.log-20261020</code> แทนเลข <code>.1</code> <code>.2</code> ทำให้รู้ทันทีว่าเป็นของวันไหน</td></tr>
+        <tr><td><code>create 0640</code></td><td>สร้างไฟล์ใหม่ว่างหลังหมุน ให้เจ้าของอ่านเขียนได้ กลุ่มอ่านได้ คนอื่นไม่มีสิทธิ์</td></tr>
+      </tbody></table></div>
+      <p>ทดสอบแบบ Dry run ก่อนเสมอ (<code>-d</code> แสดงว่าจะทำอะไร แต่ไม่ทำจริง)</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">chmod 644 logrotate/health-monitor.conf
+logrotate -d -s logs/logrotate.state logrotate/health-monitor.conf</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>warning: logrotate in debug mode does nothing except printing debug messages!  Consider using verbose mode (-v) instead if this is not what you want.
+
+reading config file logrotate/health-monitor.conf
+Reading state from file: logs/logrotate.state
+state file logs/logrotate.state does not exist
+Allocating hash table for state file, size 64 entries
+
+Handling 1 logs
+
+rotating pattern: /home/somchai/projects/server-health-monitor/logs/health.log  after 1 days (7 rotations)
+empty log files are not rotated, old logs are removed
+considering log /home/somchai/projects/server-health-monitor/logs/health.log
+Creating new state
+  Now: 2026-10-20 10:51
+  Last rotated at 2026-10-20 10:00
+  log does not need rotating (log has already been rotated)</code></pre>
+      <p>บรรทัดสุดท้ายบอกว่า "ยังไม่ต้องหมุน" เพราะครั้งแรกที่ logrotate เห็นไฟล์ มันจะจดเวลาปัจจุบันลง State file และนับหนึ่งวันจากตรงนั้น ถ้าอยากเห็นการหมุนจริงทันที ให้ใช้ <code>-f</code> (force) คู่กับ <code>-v</code> (verbose)</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">logrotate -f -v -s logs/logrotate.state logrotate/health-monitor.conf
+ls -l logs</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>reading config file logrotate/health-monitor.conf
+Creating stub state file: logs/logrotate.state
+acquired lock on state file logs/logrotate.stateReading state from file: logs/logrotate.state
+Allocating hash table for state file, size 64 entries
+
+Handling 1 logs
+
+rotating pattern: /home/somchai/projects/server-health-monitor/logs/health.log  forced from command line (7 rotations)
+empty log files are not rotated, old logs are removed
+considering log /home/somchai/projects/server-health-monitor/logs/health.log
+Creating new state
+  Now: 2026-10-20 10:51
+  Last rotated at 2026-10-20 10:00
+  log needs rotating
+rotating log /home/somchai/projects/server-health-monitor/logs/health.log, log-&gt;rotateCount is 7
+dateext suffix '-20261020'
+glob pattern '-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'
+glob finding logs to compress failed
+glob finding old rotated logs failed
+renaming /home/somchai/projects/server-health-monitor/logs/health.log to /home/somchai/projects/server-health-monitor/logs/health.log-20261020
+creating new /home/somchai/projects/server-health-monitor/logs/health.log mode = 0640 uid = 1000 gid = 1000
+total 8
+-rw-r----- 1 somchai somchai   0 Oct 20 10:51 health.log
+-rw-r--r-- 1 somchai somchai 528 Oct 20 10:51 health.log-20261020
+-rw-r----- 1 somchai somchai 186 Oct 20 10:51 logrotate.state</code></pre>
+      <p class="muted small">วันที่ใน <code>dateext suffix</code> และชื่อไฟล์จะเป็นวันที่คุณรัน <code>uid</code>/<code>gid</code> คือหมายเลขผู้ใช้ของคุณ (ผู้ใช้คนแรกบน Ubuntu มักเป็น 1000) ข้อความ <code>glob finding ... failed</code> ไม่ใช่ Error แค่บอกว่ายังไม่มีไฟล์เก่าให้บีบอัดหรือลบ ส่วนบรรทัด <code>acquired lock on state file ...Reading state</code> ที่ติดกันเป็นแบบนี้จริงใน logrotate 3.21.0 ถ้าคุณติดตั้ง Cron job ใน Step 7 แล้ว จะเห็นไฟล์ <code>cron.log</code> ในรายการด้วย และถ้า <code>umask</code> ของคุณเป็น <code>0002</code> ไฟล์ <code>health.log-20261020</code> จะแสดงสิทธิ์เป็น <code>-rw-rw-r--</code> เพราะไฟล์นี้คือไฟล์ Log เดิมที่ถูกเปลี่ยนชื่อ จึงมีสิทธิ์ตามตอนที่ถูกสร้าง</p>
+      <p>หลังหมุนแล้ว สคริปต์หลักยังเขียน Log ต่อในไฟล์ใหม่ได้ทันที เพราะเราเปิดไฟล์แบบต่อท้าย (<code>&gt;&gt;</code>) ใหม่ทุกครั้งที่รัน ไม่ได้เปิดค้างไว้</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">./bin/health-check.sh -q
+wc -l logs/health.log</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>1 logs/health.log</code></pre>
+      <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+        <li>บน Server จริงที่คุณมีสิทธิ์ root มักวาง Config แบบนี้ไว้ที่ <code>/etc/logrotate.d/health-monitor</code> แล้วให้ logrotate ของระบบ (ซึ่ง systemd timer <code>logrotate.timer</code> รันวันละครั้ง) จัดการให้ ไม่ต้องมี Cron job เอง</li>
+        <li>ทุก Service ที่เขียน Log ลงไฟล์ต้องมีแผนหมุน Log เสมอ ดิสก์เต็มเพราะ Log เป็นสาเหตุ Server ล่มที่พบบ่อยมาก</li>
+        <li>ถ้าโปรแกรมเปิดไฟล์ Log ค้างไว้ตลอด (เช่น Web server) ต้องใช้ <code>postrotate</code> สั่งให้โปรแกรมเปิดไฟล์ใหม่ หรือใช้ <code>copytruncate</code></li>
+      </ul></div>
+    </li>
+
+    <li>
+      <h4>Step 9: ตรวจสอบทั้งระบบก่อนส่งงาน (Verification)</h4>
+      <p>ขั้นนี้คือการตรวจรับงานแบบที่หัวหน้าทีมจะทำก่อนยอมรับเครื่องมือเข้าใช้จริง ตรวจ 5 เรื่อง: ชุดทดสอบผ่านทั้งหมด, รายงานอ่านไฟล์ที่ถูกหมุนแล้วได้, Cron job ติดตั้งอยู่, ไฟล์ที่เกิดตอนรันไม่หลุดเข้า Git และโครงสร้างโฟลเดอร์ครบ</p>
+      <h5>9.1 ชุดทดสอบต้องผ่าน 9 ข้อ</h5>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/server-health-monitor
+./tests/run-tests.sh; echo "exit=$?"</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>PASS  shellcheck bin/*.sh tests/*.sh
+PASS  normal config exit code is 0 (0/1/2)
+PASS  log line format
+PASS  quiet mode prints nothing
+PASS  zero thresholds give CRIT (exit 2)
+PASS  missing config gives UNKNOWN (exit 3)
+PASS  invalid threshold gives UNKNOWN (exit 3)
+PASS  second run while locked gives UNKNOWN (exit 3)
+PASS  health-report prints the checks line
+----
+Result: 9 passed, 0 failed
+exit=0</code></pre>
+      <h5>9.2 รายงานจากไฟล์ Log ที่ถูกหมุนแล้ว</h5>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">./bin/health-report.sh logs/health.log-20261020</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Health report : logs/health.log-20261020
+checks        : 7
+status        : OK=5 WARN=1 CRIT=1
+cpu  %        : avg=18.9 max=28
+mem  %        : avg=3.4 max=4
+disk %        : avg=68.0 max=68
+first         : 2026-10-20T10:51:14+0700
+last          : 2026-10-20T10:51:20+0700</code></pre>
+      <p class="muted small">ชื่อไฟล์ใช้วันที่ที่คุณรัน logrotate ใน Step 8 ดูชื่อจริงด้วย <code>ls logs</code></p>
+      <h5>9.3 Cron job ติดตั้งอยู่และไม่มี Error</h5>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">crontab -l | grep -v '^#'
+wc -c logs/cron.log</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>*/5 * * * * /home/somchai/projects/server-health-monitor/bin/health-check.sh -q &gt;&gt; /home/somchai/projects/server-health-monitor/logs/cron.log 2&gt;&amp;1
+5 0 * * * /usr/sbin/logrotate -s /home/somchai/projects/server-health-monitor/logs/logrotate.state /home/somchai/projects/server-health-monitor/logrotate/health-monitor.conf
+0 logs/cron.log</code></pre>
+      <h5>9.4 ไฟล์ที่เกิดตอนรันต้องถูก Git ละเว้น</h5>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># -v บอกว่ากฎบรรทัดไหนใน .gitignore เป็นตัวละเว้นไฟล์นั้น
+git check-ignore -v logs/* logs/.lock</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>.gitignore:2:logs/*.log	logs/cron.log
+.gitignore:2:logs/*.log	logs/health.log
+.gitignore:3:logs/*.log-*	logs/health.log-20261020
+.gitignore:5:logs/logrotate.state	logs/logrotate.state
+.gitignore:6:logs/.lock	logs/.lock</code></pre>
+      <h5>9.5 โครงสร้างสุดท้าย</h5>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">tree -a -I .git .</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>.
+|-- .gitignore
+|-- README.md
+|-- bin
+|   |-- health-check.sh
+|   `-- health-report.sh
+|-- config
+|   `-- health.conf
+|-- cron
+|   `-- crontab.txt
+|-- logrotate
+|   `-- health-monitor.conf
+|-- logs
+|   |-- .gitkeep
+|   |-- .lock
+|   |-- cron.log
+|   |-- health.log
+|   |-- health.log-20261020
+|   `-- logrotate.state
+`-- tests
+    `-- run-tests.sh
+
+7 directories, 14 files</code></pre>
+      <p class="muted small">ผลนี้นับรวม <code>README.md</code> ที่จะสร้างใน Step 10 ถ้าคุณตรวจก่อนสร้าง README จะเห็น 13 ไฟล์</p>
+      <div class="callout"><span class="c-label check">Checkpoint</span><p>ส่งงานได้เมื่อ: (1) <code>run-tests.sh</code> จบด้วย <code>exit=0</code> (2) <code>health.log</code> มีบรรทัดใหม่ทุก 5 นาทีขณะเปิด WSL (3) <code>cron.log</code> มีขนาด 0 ไบต์ (4) มีไฟล์ <code>health.log-YYYYMMDD</code> อย่างน้อยหนึ่งไฟล์ (5) <code>git status</code> ไม่แสดงไฟล์ใน <code>logs/</code></p></div>
+    </li>
+
+    <li>
+      <h4>Step 10: เขียน README.md</h4>
+      <p>README คือหน้าแรกที่คนเปิด Repository เห็น ผู้สัมภาษณ์มักใช้เวลาอ่านไม่ถึงหนึ่งนาที จึงต้องตอบให้ได้ทันทีว่าเครื่องมือนี้ทำอะไร ติดตั้งอย่างไร ใช้อย่างไร และแสดงทักษะอะไร เขียนเป็นภาษาอังกฤษเพื่อให้บริษัทต่างชาติอ่านได้ด้วย ใช้ Template นี้แล้วเปลี่ยน <code>&lt;username&gt;</code> เป็นชื่อบัญชี GitHub ของคุณ</p>
+      <pre class="code" data-kind="tpl" data-env="tpl" data-label="Markdown · README.md"><code class="language-markdown"># Server Health Monitor
+
+Bash tool that checks CPU, RAM, Disk and load average on Ubuntu, logs one line per run, and alerts with Nagios-style exit codes. Runs every 5 minutes with cron and rotates its own logs with logrotate (no root needed).
+
+## Features
+
+- CPU % from `/proc/stat` (two samples, 1 second apart)
+- RAM % from `/proc/meminfo` (MemTotal - MemAvailable)
+- Disk % from `df -P`, load average from `/proc/loadavg`
+- Thresholds in `config/health.conf` (WARN / CRIT per metric)
+- One `key=value` log line per run, easy to parse with awk or grep
+- Exit codes: 0 OK, 1 WARN, 2 CRIT, 3 UNKNOWN
+- `flock` lock: overlapping runs exit 3 instead of running twice
+- `bin/health-report.sh`: summary of the log (counts, average, max)
+- Automated tests in `tests/run-tests.sh`; every script passes ShellCheck
+
+## Requirements
+
+- Ubuntu 24.04 LTS on WSL2 (or any Linux with systemd)
+- bash 5.2, coreutils, mawk or gawk, util-linux (`flock`)
+- cron, logrotate, shellcheck (for tests)
+
+```bash
+sudo apt update &amp;&amp; sudo apt install -y cron logrotate shellcheck
+```
+
+## Install
+
+```bash
+git clone git@github.com:&lt;username&gt;/server-health-monitor.git ~/projects/server-health-monitor
+cd ~/projects/server-health-monitor
+chmod +x bin/*.sh tests/*.sh
+```
+
+Edit `config/health.conf` to change thresholds.
+
+## Usage
+
+```bash
+bin/health-check.sh            # check and print a summary
+bin/health-check.sh -q         # log only (for cron)
+bin/health-check.sh -c my.conf # use another config file
+bin/health-report.sh           # summarise logs/health.log
+```
+
+| Exit code | Status  | Meaning                              |
+|-----------|---------|--------------------------------------|
+| 0         | OK      | all metrics below WARN               |
+| 1         | WARN    | at least one metric &gt;= WARN          |
+| 2         | CRIT    | at least one metric &gt;= CRIT          |
+| 3         | UNKNOWN | bad option, missing or invalid config, or another run holds the lock |
+
+Sample log line:
+
+```text
+2026-10-20T10:51:14+0700 host=DESKTOP-K7Q2M4P status=OK cpu=12 mem=41 disk=23 load1=0.15
+```
+
+## Cron setup
+
+```bash
+crontab -l &gt; ~/crontab-backup.txt 2&gt;/dev/null   # back up first
+crontab cron/crontab.txt                         # replaces your crontab
+crontab -l
+```
+
+## Log rotation
+
+```bash
+logrotate -d -s logs/logrotate.state logrotate/health-monitor.conf      # dry run
+logrotate -f -v -s logs/logrotate.state logrotate/health-monitor.conf   # force once
+```
+
+## Testing
+
+```bash
+tests/run-tests.sh
+```
+
+## WSL notes
+
+- cron only runs while your WSL distro is running.
+- Check that systemd is PID 1 with `ps -p 1 -o comm=`; without systemd start cron with `sudo service cron start`.
+- Keep the project in your Linux home (`~/projects`), not under `/mnt/c`.
+
+## Skills shown
+
+Bash scripting, Linux administration, automation with cron, log management with logrotate, testing with ShellCheck.
+
+## License
+
+MIT</code></pre>
+      <div class="callout"><span class="c-label tip">Tip</span><p>เพิ่มภาพหน้าจอผลของ <code>health-check.sh</code> และ <code>health-report.sh</code> ไว้ใต้หัวข้อ Usage จะทำให้ README น่าสนใจขึ้นมาก วางภาพในโฟลเดอร์ <code>docs/</code> แล้วอ้างถึงด้วย <code>![report](docs/report.png)</code></p></div>
+    </li>
+
+    <li>
+      <h4>Step 11: Commit และ Push ขึ้น GitHub</h4>
+      <p>ขั้นสุดท้ายคือเอางานขึ้น GitHub ให้คนอื่นเห็น ถ้ายังไม่เคยตั้งค่า Git หรือ SSH key ให้ทำตามหัวข้อ <a data-t="17"></a> ก่อน (ใช้ SSH key แบบเดียวกับแนวคิดที่ 11 ของหัวข้อนี้) จากนั้นสร้าง Repository เปล่าชื่อ <code>server-health-monitor</code> บนเว็บ github.com (กด New repository ไม่ต้องติ๊กสร้าง README เพราะเรามีแล้ว)</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/server-health-monitor
+
+# ดูว่าจะ Commit อะไรบ้าง ต้องไม่มีไฟล์ใน logs/ นอกจาก .gitkeep
+git add .
+git status --short</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>A  .gitignore
+A  README.md
+A  bin/health-check.sh
+A  bin/health-report.sh
+A  config/health.conf
+A  cron/crontab.txt
+A  logrotate/health-monitor.conf
+A  logs/.gitkeep
+A  tests/run-tests.sh</code></pre>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git commit -m "feat: server health monitor with cron, logrotate and tests"</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[main (root-commit) 568496a] feat: server health monitor with cron, logrotate and tests
+ 9 files changed, 467 insertions(+)
+ create mode 100644 .gitignore
+ create mode 100644 README.md
+ create mode 100755 bin/health-check.sh
+ create mode 100755 bin/health-report.sh
+ create mode 100644 config/health.conf
+ create mode 100644 cron/crontab.txt
+ create mode 100644 logrotate/health-monitor.conf
+ create mode 100644 logs/.gitkeep
+ create mode 100755 tests/run-tests.sh</code></pre>
+      <p>สังเกต <code>100755</code> ของไฟล์ <code>.sh</code> Git จำสิทธิ์รัน (Execute bit) ไว้ให้ คนที่ Clone ไปจึงรันได้ทันที ต่อไปเชื่อมกับ GitHub แล้ว Push (เปลี่ยน <code>somchai-dev</code> เป็นชื่อบัญชีของคุณ)</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git remote add origin git@github.com:somchai-dev/server-health-monitor.git
+git remote -v
+git push -u origin main</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>origin	git@github.com:somchai-dev/server-health-monitor.git (fetch)
+origin	git@github.com:somchai-dev/server-health-monitor.git (push)
+To github.com:somchai-dev/server-health-monitor.git
+ * [new branch]      main -&gt; main
+branch 'main' set up to track 'origin/main'.</code></pre>
+      <p class="muted small">Commit hash (<code>568496a</code>) ของคุณจะต่างไป เมื่อ Push ไป GitHub จริง จะเห็นบรรทัดความคืบหน้าเพิ่มก่อนบรรทัด <code>To ...</code> เช่น <code>Enumerating objects</code>, <code>Counting objects</code> และ <code>Writing objects</code> ซึ่งตัวเลขขึ้นกับขนาดไฟล์</p>
+      <div class="callout"><span class="c-label tip">Tip</span><p>ใส่ Topics ในหน้า Repository บน GitHub (ปุ่มรูปเฟืองข้าง About) เช่น <code>bash</code>, <code>linux</code>, <code>monitoring</code>, <code>cron</code>, <code>logrotate</code>, <code>shellcheck</code> คนที่ค้นหาและระบบคัดกรองผู้สมัครจะเจองานของคุณง่ายขึ้น แล้วปักหมุด (Pin) Repository นี้ไว้ที่หน้า Profile</p></div>
+    </li>
+  </ol>
+
+  <h4>ไอเดียต่อยอด</h4>
+  <p>เมื่อเวอร์ชันแรกเสร็จแล้ว ให้เพิ่มฟีเจอร์ทีละอย่างบน Branch แยก แล้วรวมด้วย Pull Request ตามที่เรียนในหัวข้อ <a data-t="17"></a> ทุกไอเดียต้องเพิ่มการทดสอบใน <code>tests/run-tests.sh</code> ด้วย</p>
+  <ol>
+    <li><strong>แจ้งเตือนผ่าน Webhook (Discord หรือ LINE):</strong> เมื่อสถานะเป็น WARN หรือ CRIT ให้ส่งข้อความด้วย <code>curl -fsS -X POST -H 'Content-Type: application/json' -d "$payload" "$ALERT_WEBHOOK_URL"</code> อ่าน URL จาก Environment variable <code>ALERT_WEBHOOK_URL</code> เท่านั้น (ห้ามเขียนลงไฟล์ที่ Commit) ถ้าไม่มีตัวแปรนี้ ให้ทำงานแบบ Mock คือพิมพ์ข้อความที่จะส่งลง <code>logs/alerts.log</code> แทน คุณจึงทดสอบได้โดยไม่ต้องมีบัญชีใด ๆ และควรส่งเฉพาะตอนสถานะเปลี่ยน เพื่อไม่ให้ส่งซ้ำทุก 5 นาที</li>
+    <li><strong>ตรวจเครือข่าย:</strong> เพิ่มฟังก์ชัน <code>read_net</code> ที่ใช้ <code>ping -c 1 -W 2</code> หรือ <code>curl -s -o /dev/null -w '%{http_code}'</code> ตรวจว่าเว็บหรือ Service ที่กำหนดใน Config ยังตอบอยู่ แล้วเพิ่มช่อง <code>net=up</code>/<code>net=down</code> ใน Log (ตรวจเฉพาะเครื่องของคุณเองหรือ <code>127.0.0.1</code>)</li>
+    <li><strong>ส่งออกเป็น CSV:</strong> เขียน <code>bin/health-export.sh</code> ที่แปลง Log เป็น <code>timestamp,status,cpu,mem,disk,load1</code> ด้วย awk แล้วเปิดใน Excel หรือโหลดเข้า Python/pandas ทำกราฟ (หัวข้อ <a data-t="9"></a>)</li>
+    <li><strong>ใช้ systemd timer แทน cron:</strong> สร้าง <code>~/.config/systemd/user/health-check.service</code> และ <code>health-check.timer</code> (<code>OnCalendar=*:0/5</code>) แล้ว <code>systemctl --user enable --now health-check.timer</code> ข้อดีคือดู Log ด้วย <code>journalctl --user -u health-check</code> ได้ และ systemd ไม่รันซ้อนให้อยู่แล้ว</li>
+    <li><strong>รายงาน HTML:</strong> ให้ <code>health-report.sh --html</code> สร้างไฟล์ <code>report.html</code> ที่มีตารางสรุปและแถวสีแดงสำหรับ CRIT แล้วเปิดจาก Windows ด้วย <code>explorer.exe report.html</code></li>
+    <li><strong>แสดงโปรเซสที่กิน CPU มากที่สุด:</strong> เมื่อสถานะเป็น WARN หรือ CRIT ให้ต่อท้าย Log ด้วย 3 โปรเซสแรกจาก <code>ps -eo pid,comm,%cpu --sort=-%cpu | head -n 4</code> จะช่วยให้รู้ทันทีว่าใครเป็นต้นเหตุ</li>
+    <li><strong>รันใน Docker container:</strong> เขียน <code>Dockerfile</code> จาก <code>ubuntu:24.04</code> ติดตั้ง <code>cron</code> และ <code>logrotate</code> แล้วรันเครื่องมือนี้ใน Container เพื่อฝึกเรื่อง Container ต่อในหัวข้อ <a data-t="12"></a> (สังเกตว่าค่าที่อ่านจาก <code>/proc</code> ใน Container บางค่าเป็นของเครื่องแม่)</li>
+    <li><strong>ตั้ง CI ด้วย GitHub Actions:</strong> สร้าง <code>.github/workflows/test.yml</code> ที่รัน <code>sudo apt-get install -y shellcheck</code> แล้ว <code>./tests/run-tests.sh</code> ทุกครั้งที่ Push จะได้ป้ายสีเขียวไว้แสดงบน README</li>
+  </ol>
+
+  <h3 id="s19-4-cheat">Cheat Sheet</h3>
+  <p>รวมคำสั่งที่ใช้บ่อยที่สุดในหัวข้อนี้ จัดกลุ่มตามงาน ทุกตัวอย่างพิมพ์ใน Terminal ของ Ubuntu (WSL) ได้ทันที คำสั่งที่ขึ้นต้นด้วย <code>sudo</code> ต้องใช้รหัสผ่านของคุณ เปิดหน้านี้ค้างไว้ระหว่างทำงานแล้วกด <kbd>Ctrl</kbd>+<kbd>F</kbd> ค้นได้เลย</p>
+
+  <h4>เดินทางในระบบไฟล์และจัดการไฟล์</h4>
+  <div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>pwd</code></td><td>แสดง Directory ปัจจุบัน</td><td><code>pwd</code></td></tr>
+    <tr><td><code>ls -lah</code></td><td>แสดงไฟล์ทั้งหมดรวมไฟล์ซ่อน พร้อมสิทธิ์และขนาดแบบอ่านง่าย</td><td><code>ls -lah ~/projects</code></td></tr>
+    <tr><td><code>cd path</code> / <code>cd -</code> / <code>cd ~</code></td><td>ย้าย Directory, กลับไปที่เดิม, กลับบ้าน</td><td><code>cd ~/projects/server-health-monitor</code></td></tr>
+    <tr><td><code>mkdir -p a/{b,c}</code></td><td>สร้างโฟลเดอร์ซ้อนหลายชั้นและหลายโฟลเดอร์ในครั้งเดียว</td><td><code>mkdir -p app/{bin,logs,tests}</code></td></tr>
+    <tr><td><code>cp -r src dst</code></td><td>คัดลอกไฟล์หรือทั้งโฟลเดอร์</td><td><code>cp -rv config config.bak</code></td></tr>
+    <tr><td><code>mv old new</code></td><td>ย้ายหรือเปลี่ยนชื่อ</td><td><code>mv -i report.txt reports/2026-10-20.txt</code></td></tr>
+    <tr><td><code>rm -i file</code> / <code>rm -r dir</code></td><td>ลบไฟล์ (ไม่มีถังขยะ) ใช้ <code>ls</code> ด้วย Pattern เดียวกันก่อนลบเสมอ</td><td><code>ls *.tmp &amp;&amp; rm -v *.tmp</code></td></tr>
+    <tr><td><code>ln -s target link</code></td><td>สร้าง Symbolic link</td><td><code>ln -s ~/projects/server-health-monitor ~/shm</code></td></tr>
+    <tr><td><code>tree -a -L 2</code></td><td>แสดงโครงสร้างโฟลเดอร์ 2 ชั้นรวมไฟล์ซ่อน</td><td><code>tree -a -L 2 -I .git</code></td></tr>
+  </tbody></table></div>
+
+  <h4>ดูและค้นหาข้อความ</h4>
+  <div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>less file</code></td><td>อ่านไฟล์ยาวทีละหน้า (<kbd>/</kbd> ค้นหา, <kbd>q</kbd> ออก)</td><td><code>less /var/log/apt/history.log</code></td></tr>
+    <tr><td><code>head -n N</code> / <code>tail -n N</code></td><td>ดู N บรรทัดแรกหรือสุดท้าย</td><td><code>tail -n 20 logs/health.log</code></td></tr>
+    <tr><td><code>tail -f file</code></td><td>ติดตาม Log แบบสด (<kbd>Ctrl</kbd>+<kbd>C</kbd> เพื่อหยุด)</td><td><code>tail -f logs/health.log</code></td></tr>
+    <tr><td><code>grep -rni 'text' dir</code></td><td>ค้นข้อความทุกไฟล์ในโฟลเดอร์ ไม่สนตัวพิมพ์เล็กใหญ่ พร้อมเลขบรรทัด</td><td><code>grep -rn 'CPU_WARN' ~/projects</code></td></tr>
+    <tr><td><code>grep -c pattern</code></td><td>นับจำนวนบรรทัดที่ตรง</td><td><code>grep -c 'status=CRIT' logs/health.log</code></td></tr>
+    <tr><td><code>find dir -name '*.log' -mtime +7</code></td><td>หาไฟล์ตามชื่อและอายุ (เกิน 7 วัน)</td><td><code>find ~/backups -name '*.tar.gz' -mtime +7</code></td></tr>
+    <tr><td><code>sort | uniq -c | sort -rn</code></td><td>นับจำนวนแต่ละค่าแล้วเรียงจากมากไปน้อย</td><td><code>awk '{print $1}' access.log | sort | uniq -c | sort -rn</code></td></tr>
+    <tr><td><code>cut -d, -f2</code></td><td>ตัดคอลัมน์ตามตัวคั่น</td><td><code>cut -d, -f2,4 members.csv</code></td></tr>
+    <tr><td><code>awk -F, '{...}'</code></td><td>ประมวลผลข้อมูลเป็นคอลัมน์ คำนวณผลรวมและค่าเฉลี่ย</td><td><code>awk -F, 'NR&gt;1 {s+=$4} END {print s}' members.csv</code></td></tr>
+    <tr><td><code>sed 's/old/new/g'</code></td><td>แทนที่ข้อความ (<code>-i</code> แก้ในไฟล์จริง)</td><td><code>sed -i.bak 's/CPU_WARN=70/CPU_WARN=80/' config/health.conf</code></td></tr>
+  </tbody></table></div>
+
+  <h4>Permissions และผู้ใช้</h4>
+  <div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>chmod 755</code> / <code>chmod u+x</code></td><td>ตั้งสิทธิ์แบบตัวเลขหรือแบบสัญลักษณ์</td><td><code>chmod 755 bin/*.sh</code></td></tr>
+    <tr><td><code>chmod 600</code></td><td>ให้เฉพาะเจ้าของอ่านเขียน ใช้กับไฟล์ลับและ Private key</td><td><code>chmod 600 ~/.ssh/id_ed25519</code></td></tr>
+    <tr><td><code>sudo chown user:group file</code></td><td>เปลี่ยนเจ้าของและกลุ่ม</td><td><code>sudo chown -R somchai:somchai ~/projects</code></td></tr>
+    <tr><td><code>stat -c '%A %a %U %n'</code></td><td>ดูสิทธิ์แบบตัวอักษรและตัวเลขพร้อมเจ้าของ</td><td><code>stat -c '%A %a %U %n' config/health.conf</code></td></tr>
+    <tr><td><code>id</code> / <code>groups</code></td><td>ดู UID, GID และกลุ่มของผู้ใช้</td><td><code>id somchai</code></td></tr>
+    <tr><td><code>sudo usermod -aG group user</code></td><td>เพิ่มผู้ใช้เข้ากลุ่ม (ต้องมี <code>-a</code> ไม่อย่างนั้นกลุ่มเดิมหาย)</td><td><code>sudo usermod -aG developers somchai</code></td></tr>
+    <tr><td><code>umask</code></td><td>ดูค่าที่ตัดสิทธิ์ของไฟล์ใหม่</td><td><code>umask</code></td></tr>
+  </tbody></table></div>
+
+  <h4>แพ็กเกจ</h4>
+  <div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>sudo apt update</code></td><td>ดึงรายชื่อแพ็กเกจล่าสุด (ทำก่อนติดตั้งทุกครั้ง)</td><td><code>sudo apt update</code></td></tr>
+    <tr><td><code>sudo apt install -y pkg</code></td><td>ติดตั้งแพ็กเกจ</td><td><code>sudo apt install -y shellcheck logrotate</code></td></tr>
+    <tr><td><code>sudo apt upgrade</code></td><td>อัปเกรดแพ็กเกจที่ติดตั้งแล้ว</td><td><code>sudo apt update &amp;&amp; sudo apt upgrade -y</code></td></tr>
+    <tr><td><code>apt search</code> / <code>apt show</code> / <code>apt policy</code></td><td>ค้นหา ดูรายละเอียด และดูเวอร์ชันที่ติดตั้งได้</td><td><code>apt policy logrotate</code></td></tr>
+    <tr><td><code>sudo apt purge pkg</code> + <code>autoremove</code></td><td>ลบแพ็กเกจพร้อม Config และ Dependency ที่ไม่ใช้แล้ว</td><td><code>sudo apt purge -y cowsay &amp;&amp; sudo apt autoremove -y</code></td></tr>
+    <tr><td><code>dpkg -L pkg</code> / <code>dpkg -S file</code></td><td>ดูว่าแพ็กเกจมีไฟล์อะไร หรือไฟล์นี้มาจากแพ็กเกจไหน</td><td><code>dpkg -S /usr/sbin/logrotate</code></td></tr>
+  </tbody></table></div>
+
+  <h4>Process และ Service</h4>
+  <div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>ps aux</code> / <code>ps -o pid,ppid,stat,cmd -p PID</code></td><td>ดูโปรเซสทั้งหมด หรือเฉพาะตัวที่ต้องการ</td><td><code>ps -eo pid,comm,%cpu --sort=-%cpu | head -n 5</code></td></tr>
+    <tr><td><code>pgrep -af name</code></td><td>หา PID จากชื่อหรือคำสั่ง</td><td><code>pgrep -af health-check</code></td></tr>
+    <tr><td><code>top</code> / <code>htop</code></td><td>ดูการใช้ CPU และ RAM แบบสด</td><td><code>htop</code></td></tr>
+    <tr><td><code>kill PID</code> / <code>kill -9 PID</code></td><td>ส่ง SIGTERM ให้ปิดอย่างสุภาพ ใช้ SIGKILL เป็นทางเลือกสุดท้าย</td><td><code>kill 2481</code></td></tr>
+    <tr><td><code>cmd &amp;</code>, <code>jobs</code>, <code>fg %1</code>, <code>bg %1</code></td><td>รันเบื้องหลังและสลับงาน (<kbd>Ctrl</kbd>+<kbd>Z</kbd> หยุดชั่วคราว)</td><td><code>sleep 300 &amp; jobs</code></td></tr>
+    <tr><td><code>nohup cmd &gt; out 2&gt;&amp;1 &amp;</code></td><td>รันต่อแม้ปิด Terminal</td><td><code>nohup ./worker.sh &gt; worker.out 2&gt;&amp;1 &amp;</code></td></tr>
+    <tr><td><code>systemctl status|start|stop|restart svc</code></td><td>จัดการ Service ของ systemd</td><td><code>sudo systemctl restart cron</code></td></tr>
+    <tr><td><code>sudo systemctl enable --now svc</code></td><td>เปิด Service ทันทีและให้เปิดเองตอนบูต</td><td><code>sudo systemctl enable --now cron</code></td></tr>
+    <tr><td><code>journalctl -u svc -n 20 --no-pager</code></td><td>ดู Log ของ Service (<code>-f</code> ดูสด, <code>--since "10 min ago"</code>)</td><td><code>journalctl -u cron --since "1 hour ago"</code></td></tr>
+    <tr><td><code>sudo service svc start</code></td><td>จัดการ Service เมื่อ WSL ไม่ได้เปิด systemd</td><td><code>sudo service cron start</code></td></tr>
+  </tbody></table></div>
+
+  <h4>ระบบ ดิสก์ และ Log</h4>
+  <div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>df -h</code> / <code>df -P path</code></td><td>ดูพื้นที่ดิสก์ (<code>-P</code> รูปแบบบรรทัดเดียวสำหรับสคริปต์)</td><td><code>df -P / | awk 'NR==2 {print $5}'</code></td></tr>
+    <tr><td><code>du -sh dir</code></td><td>ดูขนาดรวมของโฟลเดอร์</td><td><code>du -sh ~/projects/* | sort -h</code></td></tr>
+    <tr><td><code>free -h</code></td><td>ดูการใช้ RAM และ Swap</td><td><code>free -h</code></td></tr>
+    <tr><td><code>uptime</code> / <code>nproc</code></td><td>ดู Load average 1, 5, 15 นาที และจำนวน CPU</td><td><code>uptime; nproc</code></td></tr>
+    <tr><td><code>cat /proc/loadavg</code> / <code>/proc/meminfo</code> / <code>/proc/stat</code></td><td>อ่านข้อมูลระบบดิบจาก Kernel</td><td><code>grep -E 'MemTotal|MemAvailable' /proc/meminfo</code></td></tr>
+    <tr><td><code>tar -czf</code> / <code>tar -tzf</code> / <code>tar -xzf</code></td><td>สร้าง ดูรายการ และแตกไฟล์ <code>.tar.gz</code></td><td><code>tar -czf logs.tar.gz -C ~/projects/server-health-monitor logs</code></td></tr>
+    <tr><td><code>logrotate -d -s state conf</code></td><td>ทดสอบ Config ของ logrotate แบบไม่ทำจริง (<code>-f -v</code> บังคับหมุนจริง)</td><td><code>logrotate -d -s logs/logrotate.state logrotate/health-monitor.conf</code></td></tr>
+  </tbody></table></div>
+
+  <h4>Network และ SSH</h4>
+  <div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>ip -br a</code> / <code>ip route</code></td><td>ดู IP ของทุก Interface และเส้นทาง</td><td><code>ip -br a</code></td></tr>
+    <tr><td><code>ss -tulpn</code></td><td>ดู Port ที่เปิดรออยู่ พร้อมโปรเซส (ใช้ <code>sudo</code> เพื่อเห็นของผู้ใช้อื่น)</td><td><code>sudo ss -tlpn | grep 8080</code></td></tr>
+    <tr><td><code>curl -sI URL</code></td><td>ดู HTTP header (ตรวจว่าเว็บตอบไหม)</td><td><code>curl -sI http://localhost:8000/ | head -n 1</code></td></tr>
+    <tr><td><code>dig +short name</code></td><td>ดูว่าชื่อโดเมนแปลงเป็น IP อะไร</td><td><code>dig +short ubuntu.com</code></td></tr>
+    <tr><td><code>ssh-keygen -t ed25519 -C "comment"</code></td><td>สร้างคู่กุญแจ SSH</td><td><code>ssh-keygen -t ed25519 -C "somchai@wsl"</code></td></tr>
+    <tr><td><code>ssh alias</code> / <code>scp</code> / <code>rsync -avz</code></td><td>เข้าเครื่องปลายทาง และคัดลอกไฟล์ข้ามเครื่อง (เฉพาะเครื่องของคุณเอง)</td><td><code>rsync -avz logs/ lab:/home/somchai/health-logs/</code></td></tr>
+  </tbody></table></div>
+
+  <h4>Bash Scripting และ cron</h4>
+  <div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>#!/usr/bin/env bash</code> + <code>set -euo pipefail</code></td><td>หัวไฟล์มาตรฐานของสคริปต์ที่เชื่อถือได้</td><td>บรรทัดแรกและบรรทัดที่สองของทุกสคริปต์</td></tr>
+    <tr><td><code>"${VAR:-default}"</code> / <code>"${VAR:?msg}"</code></td><td>ค่าเริ่มต้น / หยุดพร้อมข้อความเมื่อไม่มีค่า</td><td><code>keep="${2:-5}"</code></td></tr>
+    <tr><td><code>[[ -f file ]]</code>, <code>[[ -d dir ]]</code>, <code>[[ $s =~ re ]]</code></td><td>ทดสอบไฟล์ โฟลเดอร์ และ Regex</td><td><code>[[ -d "$1" ]] || exit 1</code></td></tr>
+    <tr><td><code>$(( a * b / c ))</code></td><td>คำนวณจำนวนเต็ม</td><td><code>echo $(( 100 * 3 / 7 ))</code></td></tr>
+    <tr><td><code>while getopts ":c:qh" opt</code></td><td>อ่านตัวเลือกของสคริปต์</td><td>ดู Step 3 ของ Mini Project</td></tr>
+    <tr><td><code>trap 'cleanup' EXIT</code></td><td>รันคำสั่งเก็บกวาดเสมอเมื่อสคริปต์จบ</td><td><code>trap 'rm -rf "$TMP_DIR"' EXIT</code></td></tr>
+    <tr><td><code>exec 9&gt;file; flock -n 9</code></td><td>กันสคริปต์รันซ้อน</td><td><code>flock -n /tmp/job.lock ./job.sh</code></td></tr>
+    <tr><td><code>shellcheck file.sh</code> / <code>bash -x file.sh</code></td><td>ตรวจจุดผิด / ดูทุกคำสั่งที่รันจริงตอน Debug</td><td><code>shellcheck bin/*.sh</code></td></tr>
+    <tr><td><code>crontab -e</code> / <code>crontab -l</code> / <code>crontab file</code></td><td>แก้ ดู หรือติดตั้ง Cron job จากไฟล์ (แทนที่ของเดิม)</td><td><code>crontab cron/crontab.txt</code></td></tr>
+    <tr><td><code>m h dom mon dow command</code></td><td>รูปแบบเวลา 5 ช่องของ cron</td><td><code>*/5 * * * * /home/somchai/bin/job.sh &gt;&gt; /home/somchai/job.log 2&gt;&amp;1</code></td></tr>
+  </tbody></table></div>
+
+  <h3 id="s19-4-interview">Interview Questions</h3>
+  <p>คำถามด้านล่างพบบ่อยในการสัมภาษณ์ตำแหน่ง Junior System Administrator, DevOps Engineer และ Backend Developer ที่ต้องดูแล Server เอง ข้อ 1–2 เป็นระดับ Junior ข้อ 3–5 เป็นระดับ Mid-level ลองตอบด้วยตัวเองก่อนเปิดดูคำตอบตัวอย่าง และฝึกพูดออกเสียง เพราะผู้สัมภาษณ์ดูทั้งความรู้และวิธีคิดเป็นขั้นตอน</p>
+
+  <details class="iq"><summary>1. สิทธิ์ 755 กับ 644 ต่างกันอย่างไร และทำไม Private key ของ SSH ต้องเป็น 600 (Junior)</summary><div>
+    <p><strong>คำตอบที่ดี:</strong> ตัวเลขสามหลักคือสิทธิ์ของ เจ้าของ / กลุ่ม / คนอื่น ตามลำดับ แต่ละหลักเป็นผลบวกของ r=4, w=2, x=1</p>
+    <ul>
+      <li><code>755</code> = <code>rwxr-xr-x</code> เจ้าของอ่าน เขียน รันได้ คนอื่นอ่านและรันได้ ใช้กับสคริปต์และโฟลเดอร์</li>
+      <li><code>644</code> = <code>rw-r--r--</code> เจ้าของอ่านเขียนได้ คนอื่นอ่านอย่างเดียว ใช้กับไฟล์ข้อมูลและ Config ทั่วไป</li>
+      <li><code>600</code> = <code>rw-------</code> เฉพาะเจ้าของเท่านั้น</li>
+    </ul>
+    <p>จุดที่ควรพูดเพิ่มเพื่อแสดงความเข้าใจลึก: บนโฟลเดอร์ <code>x</code> หมายถึง "เข้าไปได้" (<code>cd</code> และเข้าถึงไฟล์ข้างใน) ส่วน <code>r</code> หมายถึง "ดูรายชื่อไฟล์" ได้ ดังนั้นโฟลเดอร์ที่มี <code>r</code> แต่ไม่มี <code>x</code> จะเห็นชื่อไฟล์แต่เปิดไฟล์ไม่ได้</p>
+    <p>Private key ต้องเป็น <code>600</code> เพราะใครอ่านไฟล์นี้ได้ก็สวมรอยเป็นเราได้ และ OpenSSH ตรวจเรื่องนี้เองด้วย ถ้าสิทธิ์กว้างเกินจะปฏิเสธไม่ใช้กุญแจพร้อมข้อความ <code>WARNING: UNPROTECTED PRIVATE KEY FILE!</code> และ <code>Permissions 0644 for '...' are too open.</code> ส่วนโฟลเดอร์ <code>~/.ssh</code> ควรเป็น <code>700</code></p>
+    <p>ปิดท้ายด้วยหลักการ: ให้สิทธิ์น้อยที่สุดที่งานต้องใช้ (Principle of Least Privilege) และไม่ใช้ <code>chmod 777</code> แก้ปัญหา Permission denied เพราะเท่ากับให้ทุกคนแก้ไขไฟล์ได้</p>
+  </div></details>
+
+  <details class="iq"><summary>2. โปรแกรมค้างไม่ตอบสนอง คุณจะหยุดมันอย่างไร และ SIGTERM ต่างจาก SIGKILL อย่างไร (Junior)</summary><div>
+    <p><strong>คำตอบที่ดี:</strong> ทำเป็นลำดับขั้น ไม่กระโดดไปใช้ <code>kill -9</code> ทันที</p>
+    <ol>
+      <li>หา PID ก่อน ด้วย <code>pgrep -af ชื่อโปรแกรม</code> หรือ <code>ps aux | grep ชื่อ</code> และยืนยันว่าเป็นตัวที่ถูกต้อง</li>
+      <li>ส่ง <code>kill PID</code> ซึ่งคือ SIGTERM (15) เป็นการขอให้ปิด โปรแกรมดักสัญญาณนี้ได้ จึงมีโอกาสบันทึกข้อมูล ปิดการเชื่อมต่อ และลบไฟล์ชั่วคราว (ใน Bash ใช้ <code>trap '...' TERM</code>)</li>
+      <li>รอสักครู่แล้วตรวจด้วย <code>ps -p PID</code> ถ้ายังอยู่จึงใช้ <code>kill -9 PID</code> ซึ่งคือ SIGKILL (9) Kernel หยุดโปรเซสทันที โปรแกรมดักหรือปฏิเสธไม่ได้ จึงไม่มีโอกาสเก็บกวาด อาจทิ้งไฟล์ Lock หรือข้อมูลที่เขียนไม่ครบไว้</li>
+    </ol>
+    <p>ถ้าเป็น Service ที่ systemd ดูแล ควรใช้ <code>sudo systemctl stop ชื่อ</code> หรือ <code>restart</code> แทน เพราะ systemd ส่ง SIGTERM ก่อนแล้วจึงส่ง SIGKILL ให้เองเมื่อหมดเวลารอ และไม่สับสนกับการ Restart อัตโนมัติ จุดเสริมที่ดี: <kbd>Ctrl</kbd>+<kbd>C</kbd> คือ SIGINT (2) และโปรเซสในสถานะ <code>D</code> (รอ I/O) อาจไม่ตายแม้ใช้ SIGKILL จนกว่า I/O จะจบ</p>
+  </div></details>
+
+  <details class="iq"><summary>3. ได้รับแจ้งว่าดิสก์ของ Server เต็ม 100% คุณจะไล่หาสาเหตุและแก้อย่างไร (Mid-level)</summary><div>
+    <p><strong>คำตอบที่ดี:</strong> อธิบายเป็นขั้นตอนจากภาพกว้างไปหาจุดเล็ก และแยกการแก้เฉพาะหน้ากับการป้องกันระยะยาว</p>
+    <ol>
+      <li><strong>ยืนยันปัญหา:</strong> <code>df -h</code> ดูว่า Filesystem ไหนเต็ม และ <code>df -i</code> ดูว่าเต็มเพราะ Inode หมด (ไฟล์เล็กจำนวนมาก) หรือเปล่า</li>
+      <li><strong>หาโฟลเดอร์ที่ใหญ่:</strong> <code>sudo du -xh --max-depth=1 / | sort -h</code> แล้วไล่ลงไปทีละชั้น (<code>-x</code> ไม่ข้ามไป Filesystem อื่น) จุดที่พบบ่อยคือ <code>/var/log</code>, <code>/var/lib/docker</code>, <code>/tmp</code> และโฟลเดอร์ Backup</li>
+      <li><strong>หาไฟล์ใหญ่:</strong> <code>sudo find /var -xdev -type f -size +500M -exec ls -lh {} \;</code></li>
+      <li><strong>กรณีลบแล้วพื้นที่ไม่คืน:</strong> ไฟล์ที่ถูกลบแต่โปรเซสยังเปิดค้างอยู่จะยังกินพื้นที่ ตรวจด้วย <code>sudo lsof +L1</code> แล้ว Restart Service นั้น</li>
+      <li><strong>แก้เฉพาะหน้าอย่างปลอดภัย:</strong> ลด Log ของ systemd ด้วย <code>sudo journalctl --vacuum-size=200M</code>, ล้าง Cache ของ apt ด้วย <code>sudo apt clean</code> และถ้าต้องล้างไฟล์ Log ที่ Service เปิดอยู่ ให้ใช้ <code>truncate -s 0 file</code> แทน <code>rm</code></li>
+      <li><strong>ป้องกันไม่ให้เกิดซ้ำ:</strong> ตั้ง logrotate ให้ทุก Log, ตั้งการแจ้งเตือนดิสก์ที่ 80% และ 90% ก่อนเต็ม และเก็บ Backup ไว้นอกเครื่อง</li>
+    </ol>
+    <p>ตัวอย่างที่ยกได้: "ใน Mini Project ผมเขียน Server Health Monitor ที่วัด Disk ด้วย <code>df -P</code> แล้วแจ้ง WARN ที่ 80% และ CRIT ที่ 90% พร้อมใช้ logrotate หมุน Log ของตัวเองทุกวัน เพราะ Log ที่ไม่ถูกหมุนเป็นสาเหตุดิสก์เต็มที่พบบ่อยที่สุด"</p>
+  </div></details>
+
+  <details class="iq"><summary>4. Load average คืออะไร ต่างจาก CPU % อย่างไร และถ้าเครื่อง 4 คอร์มี Load 6.0 แปลว่าอะไร (Mid-level)</summary><div>
+    <p><strong>คำตอบที่ดี:</strong> Load average คือค่าเฉลี่ยจำนวนงานที่กำลังใช้ CPU หรือรอคิว CPU อยู่ (บน Linux นับรวมงานที่รอ Disk I/O ในสถานะ <code>D</code> ด้วย) แสดง 3 ค่าคือเฉลี่ย 1, 5 และ 15 นาที ดูได้จาก <code>uptime</code> หรือ <code>/proc/loadavg</code></p>
+    <ul>
+      <li><strong>CPU %</strong> บอกว่า CPU ยุ่งกี่เปอร์เซ็นต์ของเวลา ณ ช่วงหนึ่ง เต็มที่ได้แค่ 100%</li>
+      <li><strong>Load</strong> บอกความยาวของคิว จึงเกินจำนวนคอร์ได้ และบอกได้ว่างานกำลัง "รอ" อยู่มากแค่ไหน</li>
+      <li>ต้องอ่าน Load เทียบกับจำนวนคอร์เสมอ (<code>nproc</code>) Load 6.0 บน 4 คอร์ หมายถึงโดยเฉลี่ยมีงาน 4 งานใช้ CPU และอีกราว 2 งานรอคิว เครื่องรับงานเกินกำลังประมาณ 50%</li>
+      <li>ดูแนวโน้มจาก 3 ค่า: ถ้า 1 นาทีสูงกว่า 15 นาทีมาก แปลว่าปัญหาเพิ่งเกิดและกำลังแย่ลง</li>
+      <li>ถ้า Load สูงแต่ CPU % ต่ำ ให้สงสัย I/O ช้า (ดิสก์หรือ Network storage) ดูช่อง <code>wa</code> ใน <code>top</code> หรือโปรเซสสถานะ <code>D</code> ใน <code>ps</code></li>
+    </ul>
+    <p>จุดเสริม: CPU % คำนวณจากส่วนต่างของตัวนับใน <code>/proc/stat</code> สองครั้ง ตามสูตร 100 × (ΔTotal − ΔIdle) ÷ ΔTotal โดยนับ iowait เป็นเวลาว่าง และ RAM ควรดูจาก <code>MemAvailable</code> ไม่ใช่ <code>MemFree</code> เพราะ Linux ใช้ RAM ว่างเป็น Cache ซึ่งคืนได้ทันทีเมื่อโปรแกรมต้องการ</p>
+  </div></details>
+
+  <details class="iq"><summary>5. สคริปต์รันด้วยมือได้ปกติ แต่พอใส่ใน cron กลับไม่ทำงาน คุณจะ Debug อย่างไร (Mid-level)</summary><div>
+    <p><strong>คำตอบที่ดี:</strong> สาเหตุเกือบทั้งหมดคือ "สภาพแวดล้อมของ cron ไม่เหมือน Terminal ของเรา" ไล่ตรวจตามลำดับนี้</p>
+    <ol>
+      <li><strong>cron ทำงานอยู่ไหม และรันคำสั่งไหม:</strong> <code>systemctl status cron</code> แล้วดู <code>journalctl -u cron</code> (หรือ <code>grep CRON /var/log/syslog</code> ถ้ามี rsyslog) ว่ามีบรรทัด <code>CMD (...)</code> ของเรา บน WSL ต้องเปิด WSL ค้างไว้และ cron ต้องถูกสั่ง Start แล้ว</li>
+      <li><strong>เก็บ Output:</strong> ต่อท้ายบรรทัดด้วย <code>&gt;&gt; /path/job.log 2&gt;&amp;1</code> ข้อความ Error ส่วนใหญ่จะบอกคำตอบเอง</li>
+      <li><strong>PATH สั้น:</strong> cron ใช้ <code>PATH=/usr/bin:/bin</code> คำสั่งใน <code>/usr/sbin</code> หรือ <code>~/.local/bin</code> จะหาไม่เจอ ใช้ Absolute path หรือกำหนด <code>PATH=</code> ไว้บนสุดของ Crontab</li>
+      <li><strong>ไม่มีตัวแปรจาก <code>~/.bashrc</code>:</strong> cron ไม่อ่านไฟล์นี้ ตัวแปรอย่าง API key หรือ alias จึงไม่มี ต้องกำหนดในสคริปต์หรือ <code>source</code> ไฟล์ที่ต้องการเอง</li>
+      <li><strong>Working directory:</strong> cron เริ่มที่ <code>$HOME</code> Path แบบ Relative ในสคริปต์จะชี้ผิดที่ แก้ด้วยการหาตำแหน่งจาก <code>${BASH_SOURCE[0]}</code> แบบใน Mini Project</li>
+      <li><strong>เครื่องหมาย <code>%</code>:</strong> ในบรรทัด Crontab <code>%</code> หมายถึงขึ้นบรรทัดใหม่ ต้องเขียน <code>\%</code> เช่น <code>date +\%F</code></li>
+      <li><strong>สิทธิ์และรูปแบบไฟล์:</strong> สคริปต์ต้องมี <code>x</code> มี Shebang ถูกต้อง และไม่มี CRLF จาก Windows</li>
+      <li><strong>จำลองสภาพแวดล้อม cron:</strong> <code>env -i HOME="$HOME" PATH=/usr/bin:/bin /path/script.sh</code> ถ้าพังแบบเดียวกัน ก็แก้ได้โดยไม่ต้องรอรอบถัดไป</li>
+    </ol>
+    <p>ปิดท้ายด้วยการป้องกัน: ใส่ <code>flock</code> กันรันซ้อนเมื่องานใช้เวลานานกว่ารอบเวลา และทดสอบด้วยรอบทุกนาทีก่อนเปลี่ยนเป็นรอบจริง</p>
+  </div></details>
+
+  <h3 id="s19-4-resources">แหล่งเรียนต่อ</h3>
+  <p>เรียงจากพื้นฐานไปขั้นสูง ทุกแหล่งเป็นภาษาอังกฤษ แนะนำให้อ่านคู่กับการลงมือทำใน WSL ทันที</p>
+  <ul class="res">
+    <li><a href="https://learn.microsoft.com/en-us/windows/wsl/" target="_blank" rel="noopener">Windows Subsystem for Linux Documentation</a> – เอกสารทางการของ WSL จาก Microsoft ครอบคลุมการติดตั้ง การตั้งค่า <code>wsl.conf</code> และ <code>.wslconfig</code>, systemd และ Networking ใช้เมื่อเจอปัญหาเฉพาะของ WSL <span class="pill">ฟรี</span></li>
+    <li><a href="https://ubuntu.com/server/docs" target="_blank" rel="noopener">Ubuntu Server Documentation</a> – คู่มือทางการของ Ubuntu Server มีทั้งบทเรียนและวิธีทำงานจริง เช่น จัดการแพ็กเกจ ผู้ใช้ SSH และ Service <span class="pill">ฟรี</span></li>
+    <li><a href="https://linuxcommand.org/tlcl.php" target="_blank" rel="noopener">The Linux Command Line (William Shotts)</a> – หนังสือ Command line ฉบับเต็มที่ดาวน์โหลดได้ฟรี อธิบายตั้งแต่ <code>ls</code> จนถึงการเขียน Shell script อย่างเป็นระบบ เหมาะอ่านทบทวนส่วนที่ 2 ทั้งหมด <span class="pill">ฟรี</span></li>
+    <li><a href="https://www.gnu.org/software/bash/manual/" target="_blank" rel="noopener">GNU Bash Reference Manual</a> – เอกสารอ้างอิงทางการของ Bash ใช้เปิดดูรายละเอียดของ Parameter expansion, <code>[[ ]]</code>, <code>getopts</code> และ <code>trap</code> <span class="pill">ฟรี</span></li>
+    <li><a href="https://man7.org/linux/man-pages/" target="_blank" rel="noopener">Linux man-pages (man7.org)</a> – man page ฉบับออนไลน์ที่ค้นได้สะดวก รวมถึง <code>proc(5)</code> ที่อธิบายทุกช่องใน <code>/proc/stat</code> และ <code>/proc/meminfo</code> ที่ใช้ใน Mini Project <span class="pill">ฟรี</span></li>
+    <li><a href="https://www.shellcheck.net/" target="_blank" rel="noopener">ShellCheck</a> – วางสคริปต์ในเว็บเพื่อตรวจได้ทันที และทุกรหัสคำเตือน (เช่น SC2086) มีหน้าอธิบายว่าผิดเพราะอะไรและแก้อย่างไร <span class="pill">ฟรี</span></li>
+    <li><a href="https://overthewire.org/wargames/bandit/" target="_blank" rel="noopener">OverTheWire: Bandit</a> – เกมฝึก Command line ผ่าน SSH ที่ผู้จัดเตรียมเครื่องไว้ให้ฝึกโดยเฉพาะ แต่ละด่านบังคับให้ใช้ <code>find</code>, <code>grep</code>, <code>sort</code>, Permission และ SSH เป็นการทบทวนที่สนุกและถูกกฎหมาย <span class="pill">ฟรี</span></li>
+    <li><a href="https://roadmap.sh/linux" target="_blank" rel="noopener">roadmap.sh: Linux</a> – แผนที่หัวข้อ Linux แบบภาพรวม ใช้เช็กว่ายังขาดเรื่องไหนหลังจบหัวข้อนี้ <span class="pill">ฟรี</span></li>
+    <li><a href="https://tldr.sh/" target="_blank" rel="noopener">tldr pages</a> – ตัวอย่างการใช้คำสั่งแบบสั้นที่สุด อ่านบนเว็บได้ หรือใช้คำสั่ง <code>tldr</code> ที่ติดตั้งในส่วนที่ 2 <span class="pill">ฟรี</span></li>
+    <li><a href="https://www.lpi.org/" target="_blank" rel="noopener">Linux Professional Institute (LPI)</a> – ผู้จัดสอบ Linux Essentials (010-200 ออกใหม่ 15 ต.ค. 2026 และ 010-160 สอบได้ถึงเมษายน 2027) และ LPIC-1 ตรวจรหัสข้อสอบและราคาล่าสุดในเว็บก่อนสมัคร <span class="pill">มีค่าใช้จ่าย</span></li>
+  </ul>
+
+  <div class="callout ok"><span class="c-label ok">Best Practice</span><p>เมื่อจบหัวข้อนี้ ให้ใช้ Linux ทุกวันแม้กับงานเล็ก ๆ เช่น จัดไฟล์ด้วย <code>find</code> สรุปข้อมูลด้วย <code>awk</code> และเขียนสคริปต์อัตโนมัติแทนงานที่ทำซ้ำ ทักษะ Command line เติบโตจากการใช้สม่ำเสมอ ขั้นต่อไปที่แนะนำคือหัวข้อ <a data-t="17"></a> เพื่อจัดการโค้ดของ Mini Project อย่างมืออาชีพ แล้วต่อด้วย <a data-t="12"></a> ซึ่งต้อง Deploy ขึ้น Server Linux จริง</p></div>
+</section>

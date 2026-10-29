@@ -1,0 +1,2641 @@
+<section class="part" data-part="4">
+<h2 id="s8-4"><span class="sec-no">8.4</span>ส่วนเสริม: Mini Project, Cheat Sheet, Interview</h2>
+
+<p>ส่วนนี้รวมทุกอย่างที่เรียนมาใน Part 1–3 ให้กลายเป็นผลงานชิ้นเดียวที่ใส่ Portfolio ได้ ตามด้วย Cheat Sheet สำหรับเปิดดูตอนทำงานจริง คำถามสัมภาษณ์งานพร้อมแนวคำตอบ และแหล่งเรียนต่อ</p>
+
+<h3 id="s8-4-project">Mini Project: Library API Spec</h3>
+
+<h4>เป้าหมาย</h4>
+<p>ออกแบบ REST API ของระบบห้องสมุด (หนังสือ สมาชิก การยืมคืน) แบบ <strong>Contract-first</strong> คือเขียน "สัญญา" ด้วย OpenAPI 3.1 ให้เสร็จก่อน แล้วค่อยใช้สัญญานั้นเป็นศูนย์กลางของทุกอย่าง ทั้งการตรวจคุณภาพ (Lint) การทำ Mock Server ให้ทีม Frontend ใช้ก่อน Backend เสร็จ และการเขียน Reference Implementation ที่มีเทสต์คอยยืนยันว่าโค้ดตรงกับสัญญา</p>
+<p>เมื่อทำเสร็จ คุณจะมี Repository ชื่อ <code>library-api-spec</code> บน GitHub ที่แสดงให้ผู้สัมภาษณ์เห็นว่าคุณออกแบบ API เป็นระบบ ไม่ใช่แค่เขียน Endpoint ได้</p>
+
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>เหมือนการสร้างบ้าน: <code>openapi.yaml</code> คือแบบแปลนที่สถาปนิกเซ็นรับรอง Spectral คือวิศวกรที่ตรวจว่าแบบถูกมาตรฐาน Prism คือบ้านตัวอย่างที่ลูกค้าเดินดูได้ก่อนสร้างจริง ส่วน FastAPI คือบ้านจริงที่ต้องสร้างให้ตรงแบบ และเทสต์คือผู้ตรวจรับงานที่เอาแบบมาเทียบกับบ้านทุกห้อง</p></div>
+
+<h4>ฟีเจอร์ที่จะได้</h4>
+<ul>
+<li><code>openapi.yaml</code> (OpenAPI 3.1.0) มี 10 Operation ใน 3 tag: <code>listBooks</code>, <code>createBook</code>, <code>getBook</code>, <code>updateBook</code>, <code>deleteBook</code>, <code>createMember</code>, <code>getMember</code>, <code>listMemberLoans</code>, <code>createLoan</code>, <code>returnLoan</code></li>
+<li>components ครบ: schemas 11 ตัว (Book, BookCreate, BookPatch, BookPage, Member, MemberCreate, Loan, LoanCreate, LoanPage, Problem, ValidationProblem), parameters 6 ตัว, responses 8 ตัว และ securitySchemes <code>bearerAuth</code> (JWT)</li>
+<li>Error ทุกตัวเป็น <code>application/problem+json</code> ตาม RFC 9457 มี <code>type</code> เป็น <code>https://example.com/problems/&lt;slug&gt;</code></li>
+<li>Cursor Pagination พร้อม Header <code>Link: rel="next"</code>, ETag กับ <code>If-None-Match</code> (304) และ <code>If-Match</code> (412), Idempotency-Key สำหรับการยืม, กฎ BOLA ว่าสมาชิกดูได้เฉพาะข้อมูลของตัวเอง</li>
+<li><code>.spectral.yaml</code> ใช้ชุดกฎ <code>spectral:oas</code> บวกกฎของทีม 4 ข้อ และ <code>npm run lint</code> ผ่านแบบไม่มี error</li>
+<li><code>npm run mock</code> เปิด Prism Mock Server ที่ <code>127.0.0.1:4010</code></li>
+<li>Reference Implementation ด้วย FastAPI ในโฟลเดอร์ <code>app/</code> ใช้ข้อมูลตัวอย่างมาตรฐานของหลักสูตร</li>
+<li>เทสต์ pytest 31 ข้อ รวมเทสต์สัญญาที่ตรวจว่าทุก <code>operationId</code> ในสเปกมี Route จริง</li>
+<li><code>scripts/smoke.sh</code> รันได้ทั้งกับ Mock และ Server จริง แสดง PASS/FAIL ทีละข้อ</li>
+<li>README พร้อมตาราง Endpoint, Error Catalog และเอกสาร Redoc แบบไฟล์เดียว</li>
+</ul>
+
+<h4>โครงสร้างโฟลเดอร์สุดท้าย</h4>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="โครงสร้างโปรเจกต์"><code class="language-plaintext">~/projects/library-api-spec/
+├── openapi.yaml          # สัญญา (Contract) ของ API: หัวใจของโปรเจกต์
+├── .spectral.yaml        # กฎ Lint ของทีม
+├── package.json          # Spectral 6.17.0, Prism 5.16.0 และ npm scripts
+├── package-lock.json     # npm สร้างให้เอง
+├── requirements.txt      # แพ็กเกจ Python ที่ pin เวอร์ชันแล้ว
+├── app/
+│   ├── __init__.py
+│   ├── main.py           # Route ทั้ง 10 Operation
+│   ├── models.py         # Pydantic models ตรงกับ components/schemas
+│   ├── problems.py       # Error แบบ RFC 9457
+│   ├── auth.py           # ตรวจ JWT, scope และ BOLA
+│   └── store.py          # ข้อมูลในหน่วยความจำ + ข้อมูลตัวอย่าง
+├── tests/
+│   ├── __init__.py
+│   ├── test_api.py       # เทสต์พฤติกรรม
+│   └── test_contract.py  # เทสต์ว่าโค้ดตรงกับสัญญา
+├── scripts/
+│   ├── smoke.sh          # Smoke test ด้วย curl
+│   └── make_token.py     # สร้าง JWT สำหรับทดลอง
+├── docs/
+│   └── index.html        # เอกสาร Redoc (สร้างด้วยคำสั่ง ไม่ต้องเขียนเอง)
+├── README.md
+└── .gitignore</code></pre>
+
+<h4>เครื่องมือและเวอร์ชันที่ใช้ทดสอบ</h4>
+<ul>
+<li>Ubuntu 24.04 LTS บน WSL2, Python 3.12.3 (ใน venv <code>.venv</code>), Git 2.43.0, curl 8.5.0, jq 1.7.1</li>
+<li>Python: fastapi 0.157.0, uvicorn 0.54.0, pytest 9.1.1, httpx 0.28.1, pyjwt 2.15.1, pyyaml 6.0.3 (pydantic 2.14.1 และ starlette ถูกติดตั้งมากับ fastapi)</li>
+<li>Node.js 24.22.0 LTS ผ่าน nvm v0.40.8, <code>@stoplight/spectral-cli</code> 6.17.0, <code>@stoplight/prism-cli</code> 5.16.0 (ต้องการ Node 24.18.0 ขึ้นไป), <code>@redocly/cli</code> 2.67.1 (ไม่บังคับ)</li>
+</ul>
+
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>โปรเจกต์นี้ต่อยอดจาก Lab ใน Part 2 โดยตรง: Problem Details มาจาก c06, เทสต์มาจาก c07, OpenAPI และ Spectral/Prism มาจาก c08–c09, JWT มาจาก c10, Idempotency-Key มาจาก c11 และ ETag มาจาก c12 ถ้าส่วนไหนไม่เข้าใจ ให้ย้อนกลับไปอ่านแนวคิดนั้นก่อน</p></div>
+
+<ol class="proj-steps">
+<li>
+<h4>Step 1: สร้างโฟลเดอร์ Git และ venv ของโปรเจกต์</h4>
+<p>โปรเจกต์นี้แยกจาก <code>~/projects/api-lab</code> เพราะจะขึ้น GitHub เป็น Repository ของตัวเอง จึงต้องมี venv และ <code>node_modules</code> ของตัวเองด้วย เริ่มจากติดตั้งเครื่องมือพื้นฐาน (ถ้าทำ Part 2 มาแล้วจะมีอยู่แล้ว) แล้วสร้างโครงโฟลเดอร์</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เครื่องมือพื้นฐาน (ข้ามได้ถ้าติดตั้งแล้ว)
+sudo apt install -y python3-venv python3-pip curl jq git
+
+# สร้างโฟลเดอร์ทั้งหมดในคำสั่งเดียว
+mkdir -p ~/projects/library-api-spec/{app,tests,scripts,docs}
+cd ~/projects/library-api-spec
+git init -b main
+
+# venv ของโปรเจกต์นี้โดยเฉพาะ
+python3 -m venv .venv
+source .venv/bin/activate</code></pre>
+<p>สร้างไฟล์ <code>requirements.txt</code> ที่ pin เวอร์ชันทุกตัว เพื่อให้ใครก็ตามที่ clone ไปได้ผลเหมือนเรา</p>
+<pre class="code" data-env="file" data-label="Text · requirements.txt"><code class="language-plaintext">fastapi==0.157.0
+uvicorn==0.54.0
+pytest==9.1.1
+httpx==0.28.1
+pyjwt==2.15.1
+pyyaml==6.0.3</code></pre>
+<p>และ <code>.gitignore</code> เพื่อไม่ให้ venv, <code>node_modules</code>, ไฟล์ cache และไฟล์ <code>.env</code> ที่อาจมี Secret หลุดขึ้น GitHub</p>
+<pre class="code" data-env="file" data-label="Text · .gitignore"><code class="language-plaintext">.venv/
+node_modules/
+.env
+__pycache__/
+.pytest_cache/</code></pre>
+<p>สร้างไฟล์ว่างสำหรับ Package ของ Python แล้วติดตั้งแพ็กเกจ</p>
+<pre class="code" data-env="file" data-label="Python · app/__init__.py"><code class="language-python">"""Library API: Reference implementation ที่ทำตาม openapi.yaml"""</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># tests/__init__.py เป็นไฟล์ว่าง ทำให้ pytest มองโฟลเดอร์ tests เป็น Package
+touch tests/__init__.py
+
+python3 -m pip install -r requirements.txt
+python3 --version
+python3 -m pip list | grep -iE 'fastapi|uvicorn|pydantic|starlette|pytest|httpx|pyjwt|pyyaml'
+node -v</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Python 3.12.3
+fastapi           0.157.0
+httpx             0.28.1
+pydantic          2.14.1
+pydantic_core     2.50.1
+PyJWT             2.15.1
+pytest            9.1.1
+PyYAML            6.0.3
+starlette         1.9.0
+uvicorn           0.54.0
+v24.22.0</code></pre>
+<p><span class="muted small">เวอร์ชันของ starlette และ pydantic_core ถูกเลือกโดย fastapi ตอนติดตั้ง ตัวเลขบนเครื่องคุณอาจต่างเล็กน้อย ส่วนแพ็กเกจที่ pin ไว้ใน requirements.txt จะตรงทุกตัว</span></p>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ถ้าเห็น <code>error: externally-managed-environment</code> แปลว่ายังไม่ได้ <code>source .venv/bin/activate</code> ให้สังเกตว่าหน้า Prompt ต้องมี <code>(.venv)</code> ก่อนติดตั้งทุกครั้ง</p></div>
+</li>
+<li>
+<h4>Step 2: เขียนสัญญา openapi.yaml</h4>
+<p>นี่คือขั้นที่สำคัญที่สุดของโปรเจกต์ ในงานจริงทีมจะ Review ไฟล์นี้ผ่าน Pull Request ก่อนใครจะเริ่มเขียนโค้ด ก่อนพิมพ์ ให้ตัดสินใจเรื่องเหล่านี้ให้ชัด แล้วเขียนลงสเปกให้ครบ:</p>
+<ul>
+<li><strong>Resource และ URL</strong>: ใช้คำนามพหูพจน์ (<code>/books</code>, <code>/members</code>, <code>/loans</code>) การยืมคือการสร้าง Resource ใหม่ <code>POST /loans</code> และการคืนคือ Action ที่ทำเป็น Sub-resource <code>POST /loans/{loan_id}/return</code></li>
+<li><strong>ใครเรียกอะไรได้</strong>: GET ของหนังสือเป็นสาธารณะ ส่วนการเขียนทุกอย่างใช้ <code>security: - bearerAuth: []</code> ราย Operation และบอก scope ที่ต้องใช้ไว้ใน <code>description</code></li>
+<li><strong>Response ทุกแบบ</strong>: ทุก Operation ต้องประกาศทั้งกรณีสำเร็จและกรณี Error ที่เป็นไปได้ โดยอ้างถึง <code>components/responses</code> เพื่อไม่ต้องเขียนซ้ำ</li>
+<li><strong>Example ที่สมจริง</strong>: ใช้ข้อมูลตัวอย่างมาตรฐาน (bk_0001–bk_0003, mb_0001–mb_0002, ln_0001) เพราะ Prism จะเอา Example เหล่านี้ไปตอบ Frontend</li>
+</ul>
+<p>สร้างไฟล์ <code>openapi.yaml</code> ที่ราก Repository ด้วยเนื้อหาด้านล่าง (ยาวประมาณ 860 บรรทัด ใช้ Space เท่านั้น ห้ามใช้ Tab)</p>
+<pre class="code" data-env="file" data-label="YAML · openapi.yaml"><code class="language-yaml">openapi: 3.1.0
+info:
+  title: Library API
+  version: 1.0.0
+  summary: API สำหรับระบบยืมคืนหนังสือของห้องสมุด
+  description: |
+    สัญญา (Contract) ของ Library API ออกแบบแบบ Contract-first
+    - ข้อมูล JSON ใช้ snake_case ทั้งหมด
+    - Error ทุกตัวเป็น application/problem+json ตาม RFC 9457
+    - รายการแบบหลายหน้าใช้ Cursor Pagination
+  contact:
+    name: Somchai Jaidee
+    email: somchai@example.com
+    url: https://example.com/library-api
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://127.0.0.1:8000
+    description: Reference implementation (FastAPI)
+  - url: http://127.0.0.1:4010
+    description: Mock server (Prism)
+tags:
+  - name: books
+    description: หนังสือในห้องสมุด
+  - name: members
+    description: สมาชิกห้องสมุด
+  - name: loans
+    description: การยืมและคืนหนังสือ
+paths:
+  /books:
+    get:
+      tags: [books]
+      operationId: listBooks
+      summary: ดูรายการหนังสือ
+      description: ค้นหา กรอง และเรียงหนังสือ พร้อมแบ่งหน้าแบบ Cursor (endpoint สาธารณะ ไม่ต้องใช้ token)
+      parameters:
+        - name: q
+          in: query
+          description: คำค้นในชื่อหนังสือหรือชื่อผู้แต่ง (ไม่สนตัวพิมพ์เล็กใหญ่)
+          schema:
+            type: string
+            maxLength: 100
+        - name: author
+          in: query
+          description: ชื่อผู้แต่งแบบตรงทุกตัวอักษร
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [available, on_loan, lost]
+        - name: sort
+          in: query
+          description: ฟิลด์ที่ใช้เรียง ใส่ - ข้างหน้าเพื่อเรียงจากมากไปน้อย
+          schema:
+            type: string
+            enum: [id, title, -title, published_year, -published_year]
+            default: id
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: หน้าหนึ่งของรายการหนังสือ
+          headers:
+            Link:
+              description: ลิงก์ไปหน้าถัดไปตาม RFC 8288 (มีเฉพาะเมื่อยังมีหน้าถัดไป)
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookPage'
+              examples:
+                first_page:
+                  summary: หน้าแรก มีหนังสือ 3 เล่ม
+                  value:
+                    data:
+                      - id: bk_0001
+                        title: Python 101
+                        author: Somchai Jaidee
+                        isbn: '9786160000011'
+                        published_year: 2024
+                        status: available
+                      - id: bk_0002
+                        title: API Design ฉบับเริ่มต้น
+                        author: Suda Meesuk
+                        isbn: '9786160000028'
+                        published_year: 2025
+                        status: available
+                      - id: bk_0003
+                        title: SQL for Everyone
+                        author: Anan Rakdee
+                        isbn: '9786160000035'
+                        published_year: 2023
+                        status: on_loan
+                    next_cursor: null
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    post:
+      tags: [books]
+      operationId: createBook
+      summary: เพิ่มหนังสือใหม่
+      description: ต้องใช้ Bearer token ที่มี scope books:write
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookCreate'
+            examples:
+              new_book:
+                value:
+                  title: Docker Basics
+                  author: Anan Rakdee
+                  isbn: '9786160000042'
+                  published_year: 2026
+      responses:
+        '201':
+          description: สร้างหนังสือแล้ว
+          headers:
+            Location:
+              description: URL ของหนังสือเล่มใหม่
+              schema:
+                type: string
+              example: /books/bk_0004
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+              examples:
+                created:
+                  value:
+                    id: bk_0004
+                    title: Docker Basics
+                    author: Anan Rakdee
+                    isbn: '9786160000042'
+                    published_year: 2026
+                    status: available
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /books/{book_id}:
+    parameters:
+      - $ref: '#/components/parameters/BookId'
+    get:
+      tags: [books]
+      operationId: getBook
+      summary: ดูหนังสือหนึ่งเล่ม
+      description: ส่ง ETag กลับมาด้วย ถ้า Client ส่ง If-None-Match ที่ตรงกัน จะได้ 304 โดยไม่มี Body
+      parameters:
+        - name: If-None-Match
+          in: header
+          description: ETag ที่ Client เก็บไว้จากครั้งก่อน
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ข้อมูลหนังสือ
+          headers:
+            ETag:
+              description: เวอร์ชันของข้อมูลหนังสือ
+              schema:
+                type: string
+              example: '"3f1c9a7b2d4e6f80"'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+              examples:
+                python_101:
+                  value:
+                    id: bk_0001
+                    title: Python 101
+                    author: Somchai Jaidee
+                    isbn: '9786160000011'
+                    published_year: 2024
+                    status: available
+        '304':
+          description: ข้อมูลไม่เปลี่ยนจากที่ Client มีอยู่
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [books]
+      operationId: updateBook
+      summary: แก้ไขหนังสือบางฟิลด์
+      description: ต้องใช้ scope books:write ถ้าส่ง If-Match ที่ไม่ตรงกับ ETag ปัจจุบันจะได้ 412
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: If-Match
+          in: header
+          description: ETag ที่ได้จาก getBook เพื่อกันการเขียนทับข้อมูลของคนอื่น
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookPatch'
+            examples:
+              mark_lost:
+                value:
+                  status: lost
+      responses:
+        '200':
+          description: ข้อมูลหนังสือหลังแก้ไข
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [books]
+      operationId: deleteBook
+      summary: ลบหนังสือ
+      description: ต้องใช้ scope books:write ลบหนังสือที่กำลังถูกยืมไม่ได้
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: ลบแล้ว ไม่มี Body
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /members:
+    post:
+      tags: [members]
+      operationId: createMember
+      summary: สมัครสมาชิกใหม่
+      description: ต้องใช้ scope members:write (สำหรับเจ้าหน้าที่ห้องสมุด)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberCreate'
+            examples:
+              new_member:
+                value:
+                  name: Anan Rakdee
+                  email: anan@example.com
+      responses:
+        '201':
+          description: สร้างสมาชิกแล้ว
+          headers:
+            Location:
+              description: URL ของสมาชิกใหม่
+              schema:
+                type: string
+              example: /members/mb_0003
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+              examples:
+                created:
+                  value:
+                    id: mb_0003
+                    name: Anan Rakdee
+                    email: anan@example.com
+                    max_active_loans: 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /members/{member_id}:
+    parameters:
+      - $ref: '#/components/parameters/MemberId'
+    get:
+      tags: [members]
+      operationId: getMember
+      summary: ดูข้อมูลสมาชิก
+      description: เจ้าของบัญชี (sub ใน token ตรงกับ member_id) หรือ scope admin เท่านั้น
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: ข้อมูลสมาชิก
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+              examples:
+                somchai:
+                  value:
+                    id: mb_0001
+                    name: Somchai Jaidee
+                    email: somchai@example.com
+                    max_active_loans: 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /members/{member_id}/loans:
+    parameters:
+      - $ref: '#/components/parameters/MemberId'
+    get:
+      tags: [members, loans]
+      operationId: listMemberLoans
+      summary: ดูรายการยืมของสมาชิก
+      description: |
+        กฎ BOLA (OWASP API1): สมาชิกดูได้เฉพาะรายการยืมของตัวเอง
+        ถ้า sub ใน token ไม่ตรงกับ member_id และไม่มี scope admin จะได้ 403
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: รายการยืมทั้งหมดของสมาชิก
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanPage'
+              examples:
+                suda_loans:
+                  value:
+                    data:
+                      - id: ln_0001
+                        book_id: bk_0003
+                        member_id: mb_0002
+                        borrowed_at: '2026-10-15T10:00:00+07:00'
+                        due_date: '2026-10-29'
+                        returned_at: null
+                        fine_satang: 0
+                    next_cursor: null
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /loans:
+    post:
+      tags: [loans]
+      operationId: createLoan
+      summary: ยืมหนังสือ
+      description: |
+        ต้องใช้ scope loans:write และต้องส่ง Idempotency-Key
+        ส่งซ้ำด้วย key เดิมและ Body เดิมจะได้ผลเดิม (Idempotent-Replayed: true)
+        สมาชิกยืมพร้อมกันได้ไม่เกิน max_active_loans เล่ม
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoanCreate'
+            examples:
+              borrow_python:
+                value:
+                  book_id: bk_0001
+                  member_id: mb_0001
+      responses:
+        '201':
+          description: ยืมสำเร็จ
+          headers:
+            Location:
+              description: URL ของรายการยืมใหม่
+              schema:
+                type: string
+              example: /loans/ln_0002
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+              examples:
+                created:
+                  value:
+                    id: ln_0002
+                    book_id: bk_0001
+                    member_id: mb_0001
+                    borrowed_at: '2026-10-21T09:30:00+07:00'
+                    due_date: '2026-11-04'
+                    returned_at: null
+                    fine_satang: 0
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /loans/{loan_id}/return:
+    parameters:
+      - $ref: '#/components/parameters/LoanId'
+    post:
+      tags: [loans]
+      operationId: returnLoan
+      summary: คืนหนังสือ
+      description: ต้องใช้ scope loans:write คืนซ้ำได้ผลเดิม (ไม่เปลี่ยน returned_at)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: คืนหนังสือแล้ว
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+              examples:
+                returned:
+                  value:
+                    id: ln_0001
+                    book_id: bk_0003
+                    member_id: mb_0002
+                    borrowed_at: '2026-10-15T10:00:00+07:00'
+                    due_date: '2026-10-29'
+                    returned_at: '2026-10-21T16:00:00+07:00'
+                    fine_satang: 0
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT แบบ HS256 จาก https://auth.example.com (aud = library-api) อายุ 15 นาที
+  parameters:
+    BookId:
+      name: book_id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^bk_[0-9]{4,}$'
+      example: bk_0001
+    MemberId:
+      name: member_id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^mb_[0-9]{4,}$'
+      example: mb_0001
+    LoanId:
+      name: loan_id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^ln_[0-9]{4,}$'
+      example: ln_0001
+    Limit:
+      name: limit
+      in: query
+      description: จำนวนรายการต่อหน้า
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Cursor:
+      name: cursor
+      in: query
+      description: ค่า next_cursor จากหน้าก่อน (Client ห้ามแกะหรือแก้ค่านี้)
+      schema:
+        type: string
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: ค่าสุ่มที่ Client สร้างเองต่อหนึ่งการกระทำ เช่น UUID
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 100
+      example: 7f9c2d1e-loan-0001
+  schemas:
+    Book:
+      type: object
+      required: [id, title, author, isbn, published_year, status]
+      properties:
+        id:
+          type: string
+          pattern: '^bk_[0-9]{4,}$'
+          readOnly: true
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        author:
+          type: string
+          minLength: 1
+          maxLength: 120
+        isbn:
+          type: string
+          pattern: '^97[89][0-9]{10}$'
+        published_year:
+          type: integer
+          minimum: 1450
+          maximum: 2100
+        status:
+          type: string
+          enum: [available, on_loan, lost]
+    BookCreate:
+      type: object
+      additionalProperties: false
+      required: [title, author, isbn, published_year]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        author:
+          type: string
+          minLength: 1
+          maxLength: 120
+        isbn:
+          type: string
+          pattern: '^97[89][0-9]{10}$'
+        published_year:
+          type: integer
+          minimum: 1450
+          maximum: 2100
+    BookPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      description: ส่งเฉพาะฟิลด์ที่ต้องการแก้ ห้ามส่ง null
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        author:
+          type: string
+          minLength: 1
+          maxLength: 120
+        isbn:
+          type: string
+          pattern: '^97[89][0-9]{10}$'
+        published_year:
+          type: integer
+          minimum: 1450
+          maximum: 2100
+        status:
+          type: string
+          enum: [available, on_loan, lost]
+    BookPage:
+      type: object
+      required: [data, next_cursor]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Book'
+        next_cursor:
+          type: [string, 'null']
+    Member:
+      type: object
+      required: [id, name, email, max_active_loans]
+      properties:
+        id:
+          type: string
+          pattern: '^mb_[0-9]{4,}$'
+          readOnly: true
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        max_active_loans:
+          type: integer
+          minimum: 1
+          readOnly: true
+    MemberCreate:
+      type: object
+      additionalProperties: false
+      required: [name, email]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        email:
+          type: string
+          format: email
+    Loan:
+      type: object
+      required: [id, book_id, member_id, borrowed_at, due_date, returned_at, fine_satang]
+      properties:
+        id:
+          type: string
+          pattern: '^ln_[0-9]{4,}$'
+          readOnly: true
+        book_id:
+          type: string
+        member_id:
+          type: string
+        borrowed_at:
+          type: string
+          format: date-time
+        due_date:
+          type: string
+          format: date
+        returned_at:
+          type: [string, 'null']
+          format: date-time
+        fine_satang:
+          type: integer
+          minimum: 0
+          description: ค่าปรับเป็นสตางค์ (500 = 5 บาท)
+    LoanCreate:
+      type: object
+      additionalProperties: false
+      required: [book_id, member_id]
+      properties:
+        book_id:
+          type: string
+          pattern: '^bk_[0-9]{4,}$'
+        member_id:
+          type: string
+          pattern: '^mb_[0-9]{4,}$'
+    LoanPage:
+      type: object
+      required: [data, next_cursor]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Loan'
+        next_cursor:
+          type: [string, 'null']
+    Problem:
+      type: object
+      description: รูปแบบ Error ตาม RFC 9457
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
+        instance:
+          type: string
+        trace_id:
+          type: string
+    ValidationProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required: [errors]
+          properties:
+            errors:
+              type: array
+              items:
+                type: object
+                required: [field, message]
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+  responses:
+    BadRequest:
+      description: Request ผิดรูปแบบ เช่น cursor เสีย หรือไม่ได้ส่ง Idempotency-Key
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            bad_request:
+              value:
+                type: https://example.com/problems/bad-request
+                title: Bad Request
+                status: 400
+                detail: ต้องส่ง Header Idempotency-Key
+                instance: /loans
+    Unauthorized:
+      description: ไม่มี token หรือ token ไม่ถูกต้อง หรือหมดอายุ
+      headers:
+        WWW-Authenticate:
+          description: บอก Client ว่าต้องยืนยันตัวตนแบบ Bearer
+          schema:
+            type: string
+          example: Bearer realm="library-api"
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            unauthorized:
+              value:
+                type: https://example.com/problems/unauthorized
+                title: Unauthorized
+                status: 401
+                detail: ต้องส่ง Authorization Bearer token
+                instance: /loans
+    Forbidden:
+      description: ยืนยันตัวตนแล้วแต่ไม่มีสิทธิ์
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            forbidden:
+              value:
+                type: https://example.com/problems/forbidden
+                title: Forbidden
+                status: 403
+                detail: ดูข้อมูลของสมาชิกคนอื่นไม่ได้
+                instance: /members/mb_0002/loans
+    NotFound:
+      description: ไม่พบ Resource
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            book_not_found:
+              value:
+                type: https://example.com/problems/book-not-found
+                title: Book Not Found
+                status: 404
+                detail: ไม่พบหนังสือรหัส bk_9999
+                instance: /books/bk_9999
+            member_not_found:
+              value:
+                type: https://example.com/problems/member-not-found
+                title: Member Not Found
+                status: 404
+                detail: ไม่พบสมาชิกรหัส mb_9999
+                instance: /members/mb_9999
+            loan_not_found:
+              value:
+                type: https://example.com/problems/loan-not-found
+                title: Loan Not Found
+                status: 404
+                detail: ไม่พบรายการยืมรหัส ln_9999
+                instance: /loans/ln_9999/return
+    Conflict:
+      description: ขัดกับกฎทางธุรกิจ
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            book_unavailable:
+              value:
+                type: https://example.com/problems/book-unavailable
+                title: Book Unavailable
+                status: 409
+                detail: หนังสือ bk_0003 ถูกยืมอยู่
+                instance: /loans
+            loan_limit_reached:
+              value:
+                type: https://example.com/problems/loan-limit-reached
+                title: Loan Limit Reached
+                status: 409
+                detail: สมาชิก mb_0001 ยืมครบ 3 เล่มแล้ว
+                instance: /loans
+    PreconditionFailed:
+      description: If-Match ไม่ตรงกับ ETag ปัจจุบัน (มีคนแก้ข้อมูลไปก่อนแล้ว)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            stale_etag:
+              value:
+                type: https://example.com/problems/precondition-failed
+                title: Precondition Failed
+                status: 412
+                detail: ข้อมูลถูกแก้ไขไปแล้ว ให้ GET ใหม่ก่อนแก้
+                instance: /books/bk_0001
+    ValidationError:
+      description: Body หรือ Query ไม่ผ่านการตรวจสอบ
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblem'
+          examples:
+            validation_error:
+              value:
+                type: https://example.com/problems/validation-error
+                title: Validation Error
+                status: 422
+                detail: ข้อมูลที่ส่งมาไม่ถูกต้อง 1 จุด
+                instance: /books
+                errors:
+                  - field: body.isbn
+                    message: String should match pattern '^97[89][0-9]{10}$'
+            idempotency_key_reused:
+              value:
+                type: https://example.com/problems/idempotency-key-reused
+                title: Idempotency Key Reused
+                status: 422
+                detail: Idempotency-Key นี้เคยใช้กับ Body อื่นแล้ว
+                instance: /loans
+                errors: []
+    TooManyRequests:
+      description: เรียกถี่เกินกำหนด
+      headers:
+        Retry-After:
+          description: จำนวนวินาทีที่ควรรอก่อนลองใหม่
+          schema:
+            type: integer
+          example: 10
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            rate_limited:
+              value:
+                type: https://example.com/problems/rate-limited
+                title: Too Many Requests
+                status: 429
+                detail: เรียกได้ไม่เกิน 5 ครั้งต่อ 10 วินาที
+                instance: /loans</code></pre>
+<h5>อธิบายจุดสำคัญในสเปก</h5>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td class="nw"><code>openapi: 3.1.0</code></td><td>ใช้ OpenAPI 3.1 ซึ่ง Schema คือ JSON Schema 2020-12 จึงเขียน <code>type: [string, 'null']</code> แทน <code>nullable: true</code> ของ 3.0 ได้</td></tr>
+<tr><td class="nw"><code>info.contact</code>, <code>license</code></td><td>บอกว่าใครดูแล API และใช้สัญญาอนุญาตอะไร กฎของทีมใน Step 3 บังคับให้ต้องมี contact</td></tr>
+<tr><td class="nw"><code>servers</code></td><td>มีสองเครื่อง: Reference (8000) และ Mock (4010) เครื่องมือเอกสารจะให้เลือก Server ได้</td></tr>
+<tr><td class="nw"><code>'200':</code> ที่มีเครื่องหมาย '</td><td>Key ที่เป็นตัวเลขต้องครอบด้วย Quote เพราะ YAML จะอ่าน 200 เป็นตัวเลข แต่ OpenAPI ต้องการ String</td></tr>
+<tr><td class="nw"><code>isbn: '9786160000011'</code></td><td>ISBN เป็นรหัส ไม่ใช่ตัวเลขที่เอาไปคำนวณ จึงเป็น String และต้องครอบ Quote ใน Example</td></tr>
+<tr><td class="nw"><code>parameters</code> ระดับ Path</td><td>เขียน <code>BookId</code> ครั้งเดียวใต้ <code>/books/{book_id}</code> แล้วใช้ร่วมกันทั้ง GET, PATCH, DELETE</td></tr>
+<tr><td class="nw"><code>headers: Link</code>, <code>ETag</code>, <code>Location</code></td><td>Header ใน Response ก็เป็นส่วนหนึ่งของสัญญา Client ต้องรู้ว่าจะได้ Header อะไรกลับไป</td></tr>
+<tr><td class="nw"><code>'304'</code> ไม่มี content</td><td>304 Not Modified ห้ามมี Body จึงมีแค่ description</td></tr>
+<tr><td class="nw"><code>security: - bearerAuth: []</code></td><td>ใส่ราย Operation เฉพาะที่ต้องยืนยันตัวตน Operation ที่ไม่มีบรรทัดนี้คือ Endpoint สาธารณะ</td></tr>
+<tr><td class="nw"><code>additionalProperties: false</code></td><td>ใน BookCreate, BookPatch, MemberCreate, LoanCreate: ห้ามส่งฟิลด์เกิน กัน Mass Assignment (OWASP API3) เช่นส่ง <code>status</code> หรือ <code>id</code> มาเอง</td></tr>
+<tr><td class="nw"><code>readOnly: true</code></td><td>ฟิลด์ที่ Server สร้างให้ เช่น <code>id</code> และ <code>max_active_loans</code></td></tr>
+<tr><td class="nw"><code>minProperties: 1</code></td><td>PATCH ต้องส่งอย่างน้อย 1 ฟิลด์ ส่ง <code>{}</code> มาจะได้ 422</td></tr>
+<tr><td class="nw"><code>ValidationProblem</code> ใช้ <code>allOf</code></td><td>ต่อยอดจาก Problem โดยเพิ่ม <code>errors[]</code> ที่บอกว่าฟิลด์ไหนผิดเพราะอะไร</td></tr>
+<tr><td class="nw"><code>examples</code> หลายตัวใน NotFound, Conflict</td><td>Prism เลือก Example ตัวแรกเป็นค่าเริ่มต้น และ Frontend ขอตัวอื่นได้ด้วย <code>Prefer: example=ชื่อ</code></td></tr>
+<tr><td class="nw"><code>IdempotencyKey</code> <code>required: true</code></td><td>บอก Client ชัดเจนว่าการยืมต้องส่ง key ที่สร้างเองทุกครั้ง เพื่อให้ Retry ได้อย่างปลอดภัย</td></tr>
+<tr><td class="nw"><code>TooManyRequests</code></td><td>สัญญาบอกล่วงหน้าว่าการยืมอาจโดน Rate Limit พร้อม <code>Retry-After</code> แม้ Reference Implementation รอบนี้ยังไม่ได้ทำ (เป็นไอเดียต่อยอด)</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ทุก Operation มี <code>operationId</code> แบบ camelCase ที่ไม่ซ้ำกัน เครื่องมือ Generate Client SDK จะใช้ชื่อนี้เป็นชื่อฟังก์ชัน</li>
+<li>ใส่ <code>description</code> ที่บอกกฎทางธุรกิจ (เช่น ยืมได้ไม่เกิน 3 เล่ม, กฎ BOLA) ไว้ในสเปก ไม่ใช่เก็บไว้ในหัวของ Backend Developer</li>
+<li>ใช้ <code>$ref</code> ไปที่ <code>components</code> เสมอเมื่อของชิ้นเดียวกันถูกใช้มากกว่าหนึ่งที่</li>
+</ul></div>
+</li>
+<li>
+<h4>Step 3: Lint สเปกด้วย Spectral และกฎของทีม</h4>
+<p>สเปกที่ YAML ถูกต้องยังไม่พอ ต้องถูกต้องตามมาตรฐาน OpenAPI และตามกติกาของทีมด้วย Spectral ตรวจทั้งสองอย่างได้ในคำสั่งเดียว เริ่มจากสร้าง <code>package.json</code> ที่ pin เวอร์ชันของเครื่องมือ Node และมี npm scripts ให้ทุกคนในทีมใช้คำสั่งเดียวกัน</p>
+<pre class="code" data-env="file" data-label="JSON · package.json"><code class="language-json">{
+  "name": "library-api-spec",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Contract-first OpenAPI 3.1 spec of a library REST API",
+  "scripts": {
+    "lint": "spectral lint openapi.yaml",
+    "mock": "prism mock openapi.yaml -h 127.0.0.1 -p 4010",
+    "docs": "npx -y @redocly/cli@2.67.1 build-docs openapi.yaml -o docs/index.html"
+  },
+  "devDependencies": {
+    "@stoplight/prism-cli": "5.16.0",
+    "@stoplight/spectral-cli": "6.17.0"
+  }
+}</code></pre>
+<p>จากนั้นสร้างไฟล์กฎ <code>.spectral.yaml</code> ที่ใช้ชุดกฎมาตรฐาน <code>spectral:oas</code> แล้วเพิ่มกฎของทีม</p>
+<pre class="code" data-env="file" data-label="YAML · .spectral.yaml"><code class="language-yaml"># กฎ Lint ของทีม: ใช้ชุดมาตรฐาน spectral:oas แล้วเพิ่มกฎของเราเอง
+extends: ["spectral:oas"]
+rules:
+  # ยกระดับ info-contact จาก warning เป็น error: สเปกต้องบอกว่าใครดูแล
+  info-contact: error
+  paths-kebab-case:
+    description: Path ต้องเป็นตัวพิมพ์เล็กคั่นด้วย - และ path parameter เป็น snake_case
+    severity: error
+    given: $.paths[*]~
+    then:
+      function: pattern
+      functionOptions:
+        match: "^(/[a-z0-9-]+|/\\{[a-z_]+\\})+$"
+  properties-snake-case:
+    description: ชื่อฟิลด์ใน Schema ต้องเป็น snake_case
+    severity: error
+    given: $..properties[*]~
+    then:
+      function: casing
+      functionOptions:
+        type: snake
+  operation-must-have-problem-4xx:
+    description: ทุก Operation ต้องประกาศ Response 4xx อย่างน้อยหนึ่งตัว
+    severity: error
+    given: $.paths[*][get,post,put,patch,delete].responses
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          # "ไม่ใช่ว่าทุก key ไม่ขึ้นต้นด้วย 4" = มี key ขึ้นต้นด้วย 4 อย่างน้อยหนึ่งตัว
+          not:
+            propertyNames:
+              not:
+                pattern: "^4"</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td class="nw"><code>extends: ["spectral:oas"]</code></td><td>เปิดกฎมาตรฐานของ OpenAPI เช่น ทุก Operation ต้องมี operationId, Example ต้องตรงกับ Schema, path parameter ต้องประกาศครบ</td></tr>
+<tr><td class="nw"><code>info-contact: error</code></td><td>กฎนี้มีอยู่แล้วใน spectral:oas ในระดับ warning เราปรับให้เป็น error ของทีม</td></tr>
+<tr><td class="nw"><code>given: $.paths[*]~</code></td><td>JSONPath ที่เลือก "ชื่อ Key" (เครื่องหมาย <code>~</code>) ของทุก Path แล้วเทียบกับ Regex</td></tr>
+<tr><td class="nw"><code>given: $..properties[*]~</code></td><td>เลือกชื่อฟิลด์ทุกตัวในทุก Schema ไม่ว่าจะซ้อนลึกแค่ไหน แล้วใช้ฟังก์ชัน <code>casing</code> แบบ <code>snake</code></td></tr>
+<tr><td class="nw"><code>[get,post,put,patch,delete]</code></td><td>เลือกเฉพาะ Operation ไม่รวม Key อื่นใต้ Path เช่น <code>parameters</code></td></tr>
+<tr><td class="nw"><code>not: propertyNames: not: pattern: "^4"</code></td><td>JSON Schema ที่แปลว่า "มีอย่างน้อยหนึ่ง Key ที่ขึ้นต้นด้วย 4" คือต้องมี Response 4xx อย่างน้อยหนึ่งตัว</td></tr>
+</tbody></table></div>
+<p>ติดตั้งแล้วรัน Lint</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">npm install
+npm run lint</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>&gt; library-api-spec@1.0.0 lint
+&gt; spectral lint openapi.yaml
+
+No results with a severity of 'error' found!</code></pre>
+<p><span class="muted small"><code>npm install</code> จะแสดงจำนวนแพ็กเกจที่ติดตั้งและอาจมีข้อความ <code>npm audit</code> ซึ่งต่างกันไปตามวันที่ติดตั้ง</span></p>
+<p>ต่อไปพิสูจน์ว่ากฎของเราทำงานจริง โดยสร้างสเปกที่พังโดยตั้งใจ: เปลี่ยน Path เป็นตัวพิมพ์ใหญ่และ camelCase, เปลี่ยนชื่อฟิลด์เป็น camelCase และลบ Response 4xx ทั้ง 8 บรรทัดของ <code>deleteBook</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">sed -e 's#/books/{book_id}:#/Books/{bookId}:#' \
+    -e 's/published_year:$/publishedYear:/' \
+    -e '/ลบแล้ว ไม่มี Body/{n;N;N;N;N;N;N;N;d}' openapi.yaml &gt; broken.yaml
+npx spectral lint broken.yaml
+echo "exit=$?"
+rm broken.yaml</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>/home/somchai/projects/library-api-spec/broken.yaml
+ 118:23  error  oas3-valid-media-example         Property "published_year" is not expected to be here                               paths./books.post.requestBody.content.application/json.examples.new_book.value
+ 151:19  error  paths-kebab-case                 Path ต้องเป็นตัวพิมพ์เล็กคั่นด้วย - และ path parameter เป็น snake_case             paths./Books/{bookId}
+  154:9  error  path-params                      Operation must define parameter "{bookId}" as expected by path "/Books/{bookId}".  paths./Books/{bookId}.get
+ 191:11  error  path-params                      Operation must define parameter "{bookId}" as expected by path "/Books/{bookId}".  paths./Books/{bookId}.patch
+ 231:12  error  path-params                      Operation must define parameter "{bookId}" as expected by path "/Books/{bookId}".  paths./Books/{bookId}.delete
+ 238:17  error  operation-must-have-problem-4xx  ทุก Operation ต้องประกาศ Response 4xx อย่างน้อยหนึ่งตัว                            paths./Books/{bookId}.delete.responses
+ 455:12  error  path-params                      Parameter "book_id" must be used in path "/Books/{bookId}".                        components.parameters.BookId
+ 524:23  error  properties-snake-case            ชื่อฟิลด์ใน Schema ต้องเป็น snake_case                                             components.schemas.Book.properties.publishedYear
+ 547:23  error  properties-snake-case            ชื่อฟิลด์ใน Schema ต้องเป็น snake_case                                             components.schemas.BookCreate.properties.publishedYear
+ 568:23  error  properties-snake-case            ชื่อฟิลด์ใน Schema ต้องเป็น snake_case                                             components.schemas.BookPatch.properties.publishedYear
+
+✖ 10 problems (10 errors, 0 warnings, 0 infos, 0 hints)
+exit=1</code></pre>
+<p>อ่านผลทีละคอลัมน์: <code>บรรทัด:คอลัมน์</code>, ระดับความรุนแรง, ชื่อกฎ, ข้อความ และตำแหน่งในเอกสาร สังเกตว่ากฎของทีมทั้ง 3 ข้อจับได้ครบ และกฎมาตรฐานยังจับผลกระทบต่อเนื่องได้อีก เช่น Example ที่ยังใช้ <code>published_year</code> ไม่ตรงกับ Schema ใหม่ และ <code>exit=1</code> ทำให้ CI รู้ว่าต้องหยุด</p>
+<div class="callout tip"><span class="c-label tip">Tip</span><p>ตอนแก้ Error จำนวนมาก ให้แก้ตัวที่บรรทัดน้อยที่สุดก่อน เพราะ Error ข้างล่างมักเป็นผลต่อเนื่องจากตัวบน เช่น path-params ทั้ง 4 ตัวด้านบนหายไปพร้อมกันเมื่อแก้ชื่อ Path กลับ</p></div>
+</li>
+<li>
+<h4>Step 4: เปิด Mock Server ด้วย Prism แล้วลองเรียกแบบทีม Frontend</h4>
+<p>ถึงตอนนี้ยังไม่มีโค้ด Backend สักบรรทัด แต่ทีม Frontend เริ่มทำงานได้แล้ว เพราะ Prism อ่าน <code>openapi.yaml</code> แล้วตอบด้วย Example ในสเปก พร้อมตรวจ Request ตามสัญญาให้ด้วย เปิด Terminal ที่ 1 แล้วรัน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 1"><code class="language-bash">cd ~/projects/library-api-spec
+npm run mock</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>&gt; library-api-spec@1.0.0 mock
+&gt; prism mock openapi.yaml -h 127.0.0.1 -p 4010
+
+[10:17:28 PM] › [CLI] …  awaiting  Starting Prism…
+[10:17:29 PM] › [CLI] ℹ  info      GET        http://127.0.0.1:4010/books?q=cresco&amp;author=subnecto&amp;status=on_loan&amp;sort=published_year&amp;limit=74&amp;cursor=una
+[10:17:29 PM] › [CLI] ℹ  info      POST       http://127.0.0.1:4010/books
+[10:17:29 PM] › [CLI] ℹ  info      GET        http://127.0.0.1:4010/books/bk_0001
+[10:17:29 PM] › [CLI] ℹ  info      PATCH      http://127.0.0.1:4010/books/bk_0001
+[10:17:29 PM] › [CLI] ℹ  info      DELETE     http://127.0.0.1:4010/books/bk_0001
+[10:17:29 PM] › [CLI] ℹ  info      POST       http://127.0.0.1:4010/members
+[10:17:29 PM] › [CLI] ℹ  info      GET        http://127.0.0.1:4010/members/mb_0001
+[10:17:29 PM] › [CLI] ℹ  info      GET        http://127.0.0.1:4010/members/mb_0001/loans
+[10:17:29 PM] › [CLI] ℹ  info      POST       http://127.0.0.1:4010/loans
+[10:17:29 PM] › [CLI] ℹ  info      POST       http://127.0.0.1:4010/loans/ln_0001/return
+[10:17:29 PM] › [CLI] ▶  start     Prism is listening on http://127.0.0.1:4010</code></pre>
+<p><span class="muted small">เวลาในวงเล็บและค่าสุ่มใน Query ของบรรทัดแรก (เช่น <code>q=cresco</code>) จะต่างกันทุกครั้งที่รัน</span></p>
+<p>เปิด Terminal ที่ 2 แล้วลองเรียกหนังสือหนึ่งเล่ม</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 2"><code class="language-bash">curl -i http://127.0.0.1:4010/books/bk_0001</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>HTTP/1.1 200 OK
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Headers: *
+Access-Control-Allow-Credentials: true
+Access-Control-Expose-Headers: *
+ETag: "3f1c9a7b2d4e6f80"
+Content-type: application/json
+Content-Length: 129
+Date: Wed, 21 Oct 2026 22:18:17 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"id":"bk_0001","title":"Python 101","author":"Somchai Jaidee","isbn":"9786160000011","published_year":2024,"status":"available"}</code></pre>
+<p>Body และ ETag มาจาก <code>examples</code> และ <code>example</code> ในสเปกตรงตัว ส่วน Header <code>Access-Control-*</code> เป็นของ Prism ที่เปิด CORS ให้ Frontend เรียกจาก Browser ได้ทันที ต่อไปขอดูกรณี Error ด้วย Header <code>Prefer</code> ซึ่ง Prism เข้าใจ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 2"><code class="language-bash"># ขอ Response 404 จากสัญญา
+curl -si -H 'Prefer: code=404' http://127.0.0.1:4010/books/bk_9999 | grep -iE '^(HTTP|content-type)|type'
+
+# ขอ 409 และเลือก Example ชื่อ loan_limit_reached
+curl -s -X POST http://127.0.0.1:4010/loans \
+  -H 'Prefer: code=409, example=loan_limit_reached' \
+  -H 'Authorization: Bearer x' -H 'Idempotency-Key: 12345678' \
+  -H 'Content-Type: application/json' \
+  -d '{"book_id":"bk_0001","member_id":"mb_0001"}' | jq</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>HTTP/1.1 404 Not Found
+Content-type: application/problem+json
+{"type":"https://example.com/problems/book-not-found","title":"Book Not Found","status":404,"detail":"ไม่พบหนังสือรหัส bk_9999","instance":"/books/bk_9999"}
+{
+  "type": "https://example.com/problems/loan-limit-reached",
+  "title": "Loan Limit Reached",
+  "status": 409,
+  "detail": "สมาชิก mb_0001 ยืมครบ 3 เล่มแล้ว",
+  "instance": "/loans"
+}</code></pre>
+<p>Prism ยังตรวจ Request ตามสัญญาด้วย ลองไม่ส่ง Token และไม่ส่ง Idempotency-Key</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 2"><code class="language-bash"># ไม่มี Authorization: Prism รู้จาก securitySchemes ว่าต้องตอบ 401
+curl -si -X POST http://127.0.0.1:4010/loans -H 'Idempotency-Key: 12345678' \
+  -H 'Content-Type: application/json' -d '{"book_id":"bk_0001","member_id":"mb_0001"}' \
+  | grep -iE '^(HTTP|sl-violations|www-authenticate)'
+
+# ไม่มี Idempotency-Key
+curl -si -X POST http://127.0.0.1:4010/loans -H 'Authorization: Bearer x' \
+  -H 'Content-Type: application/json' -d '{"book_id":"bk_0001","member_id":"mb_0001"}'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>HTTP/1.1 401 Unauthorized
+sl-violations: [{"location":["request"],"severity":"Error","code":401,"message":"Invalid security scheme used"}]
+WWW-Authenticate: Bearer realm="library-api"
+HTTP/1.1 422 Unprocessable Entity
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Headers: *
+Access-Control-Allow-Credentials: true
+Access-Control-Expose-Headers: *
+sl-violations: [{"location":["request","header"],"severity":"Error","code":"required","message":"Request header must have required property 'idempotency-key'"}]
+Content-type: application/problem+json
+Content-Length: 305
+Date: Wed, 21 Oct 2026 22:18:17 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"type":"https://example.com/problems/validation-error","title":"Validation Error","status":422,"detail":"ข้อมูลที่ส่งมาไม่ถูกต้อง 1 จุด","instance":"/books","errors":[{"field":"body.isbn","message":"String should match pattern '^97[89][0-9]{10}$'"}]}</code></pre>
+<p>Response สุดท้ายสอนเรื่องสำคัญสองข้อ ข้อแรก Prism ส่ง <strong>Example ตัวแรก</strong> ของ Response 422 กลับมา Body จึงพูดถึง <code>/books</code> และ <code>isbn</code> ทั้งที่เราเรียก <code>/loans</code> เหตุผลจริงอยู่ใน Header <code>sl-violations</code> ข้อสอง Prism เลือก 422 เมื่อ Request ผิดสัญญา แต่ Server จริงที่เราจะเขียนตอบ <strong>400</strong> สำหรับกรณีไม่มี Idempotency-Key (ตามที่สเปกเขียนไว้ใน BadRequest) Frontend จึงควรเขียนโค้ดรับมือทั้งสองแบบ หรือทีมตกลงกันให้เหลือแบบเดียว นี่คือตัวอย่างจริงว่าทำไม Mock ไม่ใช่ของจริง</p>
+<p>ดู Log ที่ Terminal 1 จะเห็นว่า Prism อธิบายการตัดสินใจทุกขั้น</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · Terminal 1"><code>[10:18:17 PM] › [HTTP SERVER] post /loans ℹ  info      Request received
+[10:18:17 PM] ›     [NEGOTIATOR] ℹ  info      Request contains an accept header: */*
+[10:18:17 PM] ›     [VALIDATOR] ⚠  warning   Request did not pass the validation rules
+[10:18:17 PM] ›     [VALIDATOR] ✖  error     Invalid security scheme used
+[10:18:17 PM] ›     [NEGOTIATOR] ✔  success   Found response 401. I'll try with it.
+[10:18:17 PM] ›     [NEGOTIATOR] ✔  success   The response 401 has an example. I'll keep going with this one
+[10:18:17 PM] ›     [NEGOTIATOR] ✔  success   Responding with the requested status code 401
+[10:18:17 PM] ›     [NEGOTIATOR] ℹ  info      &gt; Responding with "401"
+[10:18:17 PM] ›     [VALIDATOR] ✖  error     Violation: request Invalid security scheme used</code></pre>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><ul>
+<li>Prism 5.16.0 ระบุว่าต้องใช้ Node 24.18.0 ขึ้นไป ให้ใช้ Node 24 LTS ผ่าน nvm ตามที่ติดตั้งใน Part 2 (ถ้า Node เก่ากว่านี้ <code>npm install</code> จะขึ้นคำเตือน <code>EBADENGINE</code>)</li>
+<li>Prism ตรวจแค่ว่ามี Header <code>Authorization: Bearer ...</code> หรือไม่ ไม่ได้ตรวจลายเซ็น JWT และไม่รู้กฎ BOLA ห้ามใช้ Mock ทดสอบความปลอดภัย</li>
+<li>ถ้าเห็น <code>Error: listen EADDRINUSE: address already in use 127.0.0.1:4010</code> แปลว่ามี Prism ตัวเก่ายังรันอยู่ หาด้วย <code>ss -ltnp | grep 4010</code> แล้วปิดตัวเก่าก่อน</li>
+</ul></div>
+</li>
+<li>
+<h4>Step 5: Reference Implementation ส่วนฐาน: store, models, problems และ auth</h4>
+<p>เมื่อสัญญาผ่าน Review แล้ว จึงเริ่มเขียน Backend เราแยกโค้ดเป็นไฟล์ตามหน้าที่ เพื่อให้แต่ละไฟล์สั้นและเทสต์ง่าย ในขั้นนี้เขียน 4 ไฟล์ที่ <code>main.py</code> จะเรียกใช้</p>
+
+<h5>app/store.py: ข้อมูลในหน่วยความจำ</h5>
+<p>ใช้ dict ธรรมดาแทนฐานข้อมูล เพื่อโฟกัสที่การออกแบบ API ข้อมูลตั้งต้นคือข้อมูลตัวอย่างมาตรฐานชุดเดียวกับใน openapi.yaml และมีเมธอด <code>reset()</code> ให้เทสต์ล้างข้อมูลได้</p>
+<pre class="code" data-env="file" data-label="Python · app/store.py"><code class="language-python">"""ที่เก็บข้อมูลในหน่วยความจำ (in-memory) พร้อมข้อมูลตัวอย่างมาตรฐานของหลักสูตร"""
+import copy
+from datetime import timedelta, timezone
+
+# เขตเวลาไทย (+07:00) ใช้กับทุกฟิลด์ที่ลงท้ายด้วย _at
+BANGKOK = timezone(timedelta(hours=7))
+
+SEED_BOOKS = [
+    {"id": "bk_0001", "title": "Python 101", "author": "Somchai Jaidee",
+     "isbn": "9786160000011", "published_year": 2024, "status": "available"},
+    {"id": "bk_0002", "title": "API Design ฉบับเริ่มต้น", "author": "Suda Meesuk",
+     "isbn": "9786160000028", "published_year": 2025, "status": "available"},
+    {"id": "bk_0003", "title": "SQL for Everyone", "author": "Anan Rakdee",
+     "isbn": "9786160000035", "published_year": 2023, "status": "on_loan"},
+]
+SEED_MEMBERS = [
+    {"id": "mb_0001", "name": "Somchai Jaidee", "email": "somchai@example.com", "max_active_loans": 3},
+    {"id": "mb_0002", "name": "Suda Meesuk", "email": "suda@example.com", "max_active_loans": 3},
+]
+SEED_LOANS = [
+    {"id": "ln_0001", "book_id": "bk_0003", "member_id": "mb_0002",
+     "borrowed_at": "2026-10-15T10:00:00+07:00", "due_date": "2026-10-29",
+     "returned_at": None, "fine_satang": 0},
+]
+
+
+class Store:
+    """เก็บ books, members, loans และผลของ Idempotency-Key ไว้ใน dict"""
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        # deepcopy เพื่อไม่ให้การแก้ข้อมูลไปกระทบข้อมูลตั้งต้น (สำคัญมากตอนรันเทสต์)
+        self.books = {b["id"]: b for b in copy.deepcopy(SEED_BOOKS)}
+        self.members = {m["id"]: m for m in copy.deepcopy(SEED_MEMBERS)}
+        self.loans = {ln["id"]: ln for ln in copy.deepcopy(SEED_LOANS)}
+        # key คือ (sub ของผู้เรียก, Idempotency-Key) แยกตาม Client
+        self.idempotency = {}
+        self.counters = {"bk": len(SEED_BOOKS), "mb": len(SEED_MEMBERS), "ln": len(SEED_LOANS)}
+
+    def next_id(self, prefix):
+        # รหัสต่อจากลำดับเดิม เช่น bk_0004, ln_0002
+        self.counters[prefix] += 1
+        return f"{prefix}_{self.counters[prefix]:04d}"
+
+    def active_loans(self, member_id):
+        # รายการยืมที่ยังไม่คืนของสมาชิกคนนี้
+        return [ln for ln in self.loans.values()
+                if ln["member_id"] == member_id and ln["returned_at"] is None]
+
+
+store = Store()</code></pre>
+
+<h5>app/models.py: Pydantic models ที่ตรงกับ components/schemas</h5>
+<p>ทุก Schema ในสเปกมีคลาสคู่กันที่นี่ ข้อจำกัดเดียวกัน (ความยาว, pattern, ช่วงตัวเลข, enum) ต้องเขียนให้ตรงกับสเปกทุกตัว</p>
+<pre class="code" data-env="file" data-label="Python · app/models.py"><code class="language-python">"""Pydantic models ที่ตรงกับ components/schemas ใน openapi.yaml"""
+from datetime import date, datetime
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+BookStatus = Literal["available", "on_loan", "lost"]
+SortField = Literal["id", "title", "-title", "published_year", "-published_year"]
+
+ISBN_PATTERN = r"^97[89][0-9]{10}$"
+BOOK_ID = r"^bk_[0-9]{4,}$"
+MEMBER_ID = r"^mb_[0-9]{4,}$"
+LOAN_ID = r"^ln_[0-9]{4,}$"
+EMAIL_PATTERN = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
+
+
+class Book(BaseModel):
+    id: str
+    title: str
+    author: str
+    isbn: str
+    published_year: int
+    status: BookStatus
+
+
+class BookCreate(BaseModel):
+    # extra="forbid" กัน Mass Assignment: Client ส่ง id หรือ status มาเองไม่ได้
+    model_config = ConfigDict(extra="forbid")
+    title: str = Field(min_length=1, max_length=200)
+    author: str = Field(min_length=1, max_length=120)
+    isbn: str = Field(pattern=ISBN_PATTERN)
+    published_year: int = Field(ge=1450, le=2100)
+
+
+class BookPatch(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    author: str | None = Field(default=None, min_length=1, max_length=120)
+    isbn: str | None = Field(default=None, pattern=ISBN_PATTERN)
+    published_year: int | None = Field(default=None, ge=1450, le=2100)
+    status: BookStatus | None = None
+
+    @model_validator(mode="after")
+    def check_fields(self):
+        # ต้องส่งอย่างน้อย 1 ฟิลด์ (minProperties: 1 ในสเปก)
+        if not self.model_fields_set:
+            raise ValueError("ต้องส่งอย่างน้อย 1 ฟิลด์")
+        # ฟิลด์ที่ส่งมาห้ามเป็น null เพราะ Book ไม่มีฟิลด์ไหนเป็น null ได้
+        for name in self.model_fields_set:
+            if getattr(self, name) is None:
+                raise ValueError(f"{name} ห้ามเป็น null")
+        return self
+
+
+class BookPage(BaseModel):
+    data: list[Book]
+    next_cursor: str | None
+
+
+class Member(BaseModel):
+    id: str
+    name: str
+    email: str
+    max_active_loans: int
+
+
+class MemberCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str = Field(min_length=1, max_length=120)
+    email: str = Field(pattern=EMAIL_PATTERN)
+
+
+class Loan(BaseModel):
+    id: str
+    book_id: str
+    member_id: str
+    borrowed_at: datetime
+    due_date: date
+    returned_at: datetime | None
+    fine_satang: int
+
+
+class LoanCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    book_id: str = Field(pattern=BOOK_ID)
+    member_id: str = Field(pattern=MEMBER_ID)
+
+
+class LoanPage(BaseModel):
+    data: list[Loan]
+    next_cursor: str | None</code></pre>
+
+<h5>app/problems.py: Error แบบ RFC 9457</h5>
+<p>ไฟล์นี้มาจาก Lab c06 โดยตรง ทุก Error ไม่ว่าจะเกิดจากโค้ดเรา จาก Router ของ Framework หรือจาก Validation จะออกมาเป็น <code>application/problem+json</code> รูปแบบเดียวกัน</p>
+<pre class="code" data-env="file" data-label="Python · app/problems.py"><code class="language-python">"""Error แบบ RFC 9457 Problem Details (application/problem+json)"""
+import logging
+import uuid
+
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+PROBLEM_BASE = "https://example.com/problems/"
+PROBLEM_MEDIA_TYPE = "application/problem+json"
+log = logging.getLogger("library")
+
+# Error จากตัว Framework (เช่น path ที่ไม่มีอยู่) แปลงเป็น slug กลาง
+FRAMEWORK_PROBLEMS = {
+    404: ("not-found", "Not Found"),
+    405: ("method-not-allowed", "Method Not Allowed"),
+}
+
+
+class ProblemError(Exception):
+    """โยน Exception นี้จากโค้ดใดก็ได้ แล้ว handler จะแปลงเป็น problem+json"""
+
+    def __init__(self, status, slug, title, detail=None, headers=None):
+        super().__init__(detail or title)
+        self.status, self.slug, self.title = status, slug, title
+        self.detail, self.headers = detail, headers
+
+
+def problem_response(request, status, slug, title, detail=None, headers=None, **extra):
+    body = {"type": PROBLEM_BASE + slug, "title": title, "status": status}
+    if detail:
+        body["detail"] = detail
+    body["instance"] = request.url.path
+    body.update(extra)
+    return JSONResponse(body, status_code=status, headers=headers, media_type=PROBLEM_MEDIA_TYPE)
+
+
+def install_problem_handlers(app: FastAPI):
+    @app.exception_handler(ProblemError)
+    async def handle_problem(request: Request, exc: ProblemError):
+        return problem_response(request, exc.status, exc.slug, exc.title, exc.detail, exc.headers)
+
+    # ต้องลงทะเบียนกับ HTTPException ของ starlette จึงจะจับ 404/405 ของ Router ได้ด้วย
+    @app.exception_handler(StarletteHTTPException)
+    async def handle_http(request: Request, exc: StarletteHTTPException):
+        slug, title = FRAMEWORK_PROBLEMS.get(exc.status_code, ("http-error", "HTTP Error"))
+        return problem_response(request, exc.status_code, slug, title, headers=exc.headers)
+
+    @app.exception_handler(RequestValidationError)
+    async def handle_validation(request: Request, exc: RequestValidationError):
+        errors = [{"field": ".".join(str(p) for p in e["loc"]), "message": e["msg"]}
+                  for e in exc.errors()]
+        return problem_response(request, 422, "validation-error", "Validation Error",
+                                f"ข้อมูลที่ส่งมาไม่ถูกต้อง {len(errors)} จุด", errors=errors)
+
+    @app.exception_handler(Exception)
+    async def handle_unexpected(request: Request, exc: Exception):
+        # เก็บรายละเอียดไว้ใน log ฝั่ง Server เท่านั้น ห้ามส่ง stack trace ให้ Client
+        trace_id = uuid.uuid4().hex
+        log.exception("unhandled error trace_id=%s", trace_id)
+        return problem_response(request, 500, "internal-error", "Internal Server Error",
+                                "เกิดข้อผิดพลาดภายใน แจ้งผู้ดูแลพร้อม trace_id", trace_id=trace_id)</code></pre>
+
+<h5>app/auth.py: ตรวจ JWT, scope และ BOLA</h5>
+<p>มาจาก Lab c10 แต่ย่อให้เหลือเฉพาะที่โปรเจกต์ใช้ อ่าน <code>JWT_SECRET</code> จาก Environment Variable เท่านั้น</p>
+<pre class="code" data-env="file" data-label="Python · app/auth.py"><code class="language-python">"""ตรวจ JWT (HS256) และสิทธิ์ตาม scope / เจ้าของข้อมูล"""
+import os
+
+import jwt
+from fastapi import Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from app.problems import ProblemError
+
+ISSUER = "https://auth.example.com"
+AUDIENCE = "library-api"
+# auto_error=False: เราสร้าง 401 แบบ problem+json เอง
+bearer = HTTPBearer(auto_error=False)
+
+
+def _unauthorized(detail, error=None):
+    challenge = 'Bearer realm="library-api"'
+    if error:
+        challenge += f', error="{error}"'
+    return ProblemError(401, "unauthorized", "Unauthorized", detail,
+                        headers={"WWW-Authenticate": challenge})
+
+
+def get_current_user(creds: HTTPAuthorizationCredentials | None = Depends(bearer)) -&gt; dict:
+    if creds is None:
+        raise _unauthorized("ต้องส่ง Authorization Bearer token")
+    try:
+        claims = jwt.decode(
+            creds.credentials,
+            os.environ["JWT_SECRET"],          # ตรวจแล้วตอนเริ่ม Server ว่ามีค่า
+            algorithms=["HS256"],              # ล็อก algorithm กันการโจมตีแบบ alg none
+            audience=AUDIENCE,
+            issuer=ISSUER,
+            options={"require": ["exp", "iat", "sub"]},
+        )
+    except jwt.ExpiredSignatureError:
+        raise _unauthorized("token expired", "invalid_token")
+    except jwt.InvalidTokenError:
+        raise _unauthorized("token ไม่ถูกต้อง", "invalid_token")
+    claims["scopes"] = set(claims.get("scope", "").split())
+    return claims
+
+
+def require_scope(scope: str):
+    """สร้าง Dependency ที่บังคับว่า token ต้องมี scope นี้ (หรือ admin)"""
+
+    def checker(user: dict = Depends(get_current_user)) -&gt; dict:
+        if scope not in user["scopes"] and "admin" not in user["scopes"]:
+            raise ProblemError(403, "forbidden", "Forbidden", f"token นี้ไม่มี scope {scope}")
+        return user
+
+    return checker
+
+
+def ensure_owner(user: dict, member_id: str):
+    """กัน BOLA: ดูหรือแก้ข้อมูลได้เฉพาะของตัวเอง ยกเว้น admin"""
+    if user["sub"] != member_id and "admin" not in user["scopes"]:
+        raise ProblemError(403, "forbidden", "Forbidden", "เข้าถึงข้อมูลของสมาชิกคนอื่นไม่ได้")</code></pre>
+
+<h5>อธิบายโค้ดทีละส่วน</h5>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td class="nw"><code>copy.deepcopy(SEED_BOOKS)</code></td><td>คัดลอกข้อมูลตั้งต้นทั้งก้อน ถ้าไม่ deepcopy การแก้ dict ในเทสต์หนึ่งจะไปแก้ข้อมูลตั้งต้นและทำให้เทสต์ถัดไปพัง</td></tr>
+<tr><td class="nw"><code>self.idempotency = {}</code></td><td>เก็บผลของ Idempotency-Key โดยใช้ key เป็นคู่ <code>(sub, key)</code> เพื่อไม่ให้ Client สองคนที่บังเอิญใช้ key เดียวกันได้ผลของกันและกัน</td></tr>
+<tr><td class="nw"><code>f"{prefix}_{n:04d}"</code></td><td>สร้างรหัสแบบ Opaque String ต่อจากลำดับเดิม: bk_0004, mb_0003, ln_0002</td></tr>
+<tr><td class="nw"><code>Literal["available", ...]</code></td><td>enum เป็นตัวพิมพ์เล็กแบบ snake_case ตรงกับสเปก ค่าอื่นจะได้ 422</td></tr>
+<tr><td class="nw"><code>ConfigDict(extra="forbid")</code></td><td>ตรงกับ <code>additionalProperties: false</code> ในสเปก ส่งฟิลด์ <code>id</code> มากับ BookCreate จะได้ 422 แทนที่จะถูกเขียนทับ</td></tr>
+<tr><td class="nw"><code>model_validator(mode="after")</code></td><td>ใน BookPatch: บังคับ <code>minProperties: 1</code> และห้ามส่ง <code>null</code> ใช้ <code>model_fields_set</code> แยก "ไม่ได้ส่ง" ออกจาก "ส่งมาเป็น null"</td></tr>
+<tr><td class="nw"><code>datetime</code>, <code>date</code> ใน Loan</td><td>Pydantic แปลงสตริง RFC 3339 เป็น datetime ให้ และตอนส่งออกจะได้รูปแบบ <code>2026-10-15T10:00:00+07:00</code> เหมือนเดิม</td></tr>
+<tr><td class="nw"><code>class ProblemError(Exception)</code></td><td>โยนจากที่ไหนก็ได้ด้วย status, slug, title, detail และ Header เสริม เช่น WWW-Authenticate</td></tr>
+<tr><td class="nw"><code>media_type=PROBLEM_MEDIA_TYPE</code></td><td>ถ้าลืมบรรทัดนี้ Content-Type จะเป็น <code>application/json</code> ซึ่งผิดสัญญา</td></tr>
+<tr><td class="nw"><code>StarletteHTTPException</code></td><td>ต้องดักของ starlette ไม่ใช่ของ fastapi ไม่เช่นนั้น 404 ของ Path ที่ไม่มีอยู่จะยังเป็น <code>{"detail":"Not Found"}</code></td></tr>
+<tr><td class="nw"><code>".".join(str(p) for p in e["loc"])</code></td><td>แปลงตำแหน่ง Error เช่น <code>("body", "isbn")</code> เป็น <code>body.isbn</code> ให้อ่านง่าย</td></tr>
+<tr><td class="nw"><code>log.exception(...)</code> + <code>trace_id</code></td><td>500 เก็บ Stack Trace ไว้ใน Log ฝั่ง Server แล้วส่งแค่ trace_id ให้ Client ใช้อ้างอิงตอนแจ้งปัญหา</td></tr>
+<tr><td class="nw"><code>HTTPBearer(auto_error=False)</code></td><td>ให้เราสร้าง 401 เองในรูป problem+json พร้อม <code>WWW-Authenticate: Bearer</code></td></tr>
+<tr><td class="nw"><code>algorithms=["HS256"]</code></td><td>ล็อก Algorithm ไว้ตัวเดียว กัน Token ที่ปลอม Header เป็น <code>alg: none</code></td></tr>
+<tr><td class="nw"><code>audience=</code>, <code>issuer=</code>, <code>require</code></td><td>ตรวจว่า Token ออกโดยใคร ให้ใคร และต้องมี exp, iat, sub เสมอ</td></tr>
+<tr><td class="nw"><code>require_scope("books:write")</code></td><td>ฟังก์ชันที่คืน Dependency ใช้ซ้ำได้ทุก Route ถ้าไม่มี scope ที่ต้องใช้ (หรือ admin) จะได้ 403</td></tr>
+<tr><td class="nw"><code>ensure_owner(user, member_id)</code></td><td>ด่านกัน BOLA (OWASP API1): sub ใน Token ต้องตรงกับเจ้าของข้อมูล</td></tr>
+</tbody></table></div>
+<div class="callout sec"><span class="c-label sec">Security</span><p>401 แปลว่า "ไม่รู้ว่าคุณเป็นใคร" (ไม่มี Token หรือ Token ใช้ไม่ได้) ส่วน 403 แปลว่า "รู้ว่าเป็นใคร แต่ไม่มีสิทธิ์" ใน <code>get_member</code> เราตรวจสิทธิ์ <strong>ก่อน</strong> ค้นหาข้อมูล คนที่ไม่มีสิทธิ์จึงได้ 403 เสมอ และเดาไม่ได้ว่ามีสมาชิกรหัสนั้นอยู่จริงหรือไม่</p></div>
+</li>
+<li>
+<h4>Step 6: เขียน Route ทั้ง 10 Operation ใน main.py แล้วรัน Server จริง</h4>
+<p>ไฟล์นี้คือการทำตามสัญญาทีละ Operation จุดที่ต้องระวังที่สุดคือ <code>operation_id</code> ของแต่ละ Route ต้องสะกดตรงกับ <code>operationId</code> ใน openapi.yaml ทุกตัวอักษร เพราะเทสต์สัญญาใน Step 7 จะเอาไปเทียบกัน</p>
+<pre class="code" data-env="file" data-label="Python · app/main.py"><code class="language-python">"""Library API Reference Implementation (FastAPI) ที่ทำตาม openapi.yaml"""
+import base64
+import binascii
+import hashlib
+import json
+import os
+from contextlib import asynccontextmanager
+from datetime import date, datetime, timedelta
+
+from fastapi import Depends, FastAPI, Header, Path, Query, Request, Response
+
+from app.auth import ensure_owner, get_current_user, require_scope
+from app.models import (BOOK_ID, LOAN_ID, MEMBER_ID, Book, BookCreate, BookPage, BookPatch,
+                        BookStatus, Loan, LoanCreate, LoanPage, Member, MemberCreate, SortField)
+from app.problems import ProblemError, install_problem_handlers
+from app.store import BANGKOK, store
+
+LOAN_DAYS = 14             # ยืมได้ 14 วัน
+FINE_PER_DAY_SATANG = 500  # ค่าปรับวันละ 5 บาท เก็บเป็นสตางค์
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ตรวจตั้งแต่ตอนเริ่ม Server ว่ามี JWT_SECRET ถ้าไม่มีให้หยุดพร้อมบอกวิธีแก้
+    if not os.environ.get("JWT_SECRET"):
+        raise SystemExit(
+            "ไม่พบ JWT_SECRET ให้สร้างก่อนด้วยคำสั่ง:\n"
+            "  export JWT_SECRET=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+        )
+    yield
+
+
+app = FastAPI(title="Library API (reference)", version="1.0.0", lifespan=lifespan)
+install_problem_handlers(app)
+
+
+# ---------- ตัวช่วย ----------
+def find_or_404(table: dict, key: str, slug: str, title: str, label: str) -&gt; dict:
+    item = table.get(key)
+    if item is None:
+        raise ProblemError(404, slug, title, f"ไม่พบ{label}รหัส {key}")
+    return item
+
+
+def etag_of(book: dict) -&gt; str:
+    # ETag = hash ของ JSON ที่เรียง key แล้ว ข้อมูลเหมือนเดิมจะได้ค่าเดิมเสมอ (ต้องมีเครื่องหมาย " ครอบ)
+    raw = json.dumps(book, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    return '"' + hashlib.sha256(raw).hexdigest()[:16] + '"'
+
+
+def encode_cursor(sort: str, last_key: list) -&gt; str:
+    raw = json.dumps({"s": sort, "k": last_key}, separators=(",", ":")).encode()
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+
+def decode_cursor(cursor: str, sort: str) -&gt; list:
+    try:
+        padded = cursor + "=" * (-len(cursor) % 4)   # เติม = ที่ตัดทิ้งไปตอน encode
+        data = json.loads(base64.urlsafe_b64decode(padded))
+        if data["s"] != sort or len(data["k"]) != 2:
+            raise ValueError("sort ไม่ตรงกับ cursor")
+        return data["k"]
+    except (binascii.Error, ValueError, KeyError, TypeError):
+        raise ProblemError(400, "bad-request", "Bad Request",
+                           "cursor ไม่ถูกต้อง ให้ใช้ค่า next_cursor จาก Response เท่านั้น")
+
+
+def comes_after(book: dict, field: str, desc: bool, last_key: list) -&gt; bool:
+    # เรียงด้วย (field, id) โดยใช้ id เป็นตัวตัดสินเมื่อค่า field เท่ากัน
+    value, last_value, last_id = book[field], last_key[0], last_key[1]
+    if value == last_value:
+        return book["id"] &gt; last_id
+    return value &lt; last_value if desc else value &gt; last_value
+
+
+def body_hash(payload: dict) -&gt; str:
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+
+# ---------- books ----------
+@app.get("/books", operation_id="listBooks", response_model=BookPage, tags=["books"])
+def list_books(request: Request, response: Response,
+               q: str | None = Query(None, max_length=100),
+               author: str | None = None,
+               status: BookStatus | None = None,
+               sort: SortField = "id",
+               limit: int = Query(20, ge=1, le=100),
+               cursor: str | None = None):
+    items = list(store.books.values())
+    if q:
+        needle = q.casefold()
+        items = [b for b in items if needle in b["title"].casefold() or needle in b["author"].casefold()]
+    if author:
+        items = [b for b in items if b["author"] == author]
+    if status:
+        items = [b for b in items if b["status"] == status]
+    field, desc = sort.lstrip("-"), sort.startswith("-")
+    items.sort(key=lambda b: b["id"])                    # ตัวตัดสินรอง: id จากน้อยไปมาก
+    items.sort(key=lambda b: b[field], reverse=desc)     # sort ของ Python เสถียร ลำดับ id จึงยังอยู่
+    if cursor:
+        last_key = decode_cursor(cursor, sort)
+        items = [b for b in items if comes_after(b, field, desc, last_key)]
+    page = items[:limit]
+    next_cursor = None
+    if len(items) &gt; limit:
+        tail = page[-1]
+        next_cursor = encode_cursor(sort, [tail[field], tail["id"]])
+        next_url = request.url.include_query_params(cursor=next_cursor)
+        response.headers["Link"] = f'&lt;{next_url}&gt;; rel="next"'
+    return {"data": page, "next_cursor": next_cursor}
+
+
+@app.post("/books", operation_id="createBook", response_model=Book, status_code=201, tags=["books"])
+def create_book(payload: BookCreate, response: Response,
+                user: dict = Depends(require_scope("books:write"))):
+    book = {"id": store.next_id("bk"), **payload.model_dump(), "status": "available"}
+    store.books[book["id"]] = book
+    response.headers["Location"] = f"/books/{book['id']}"
+    return book
+
+
+@app.get("/books/{book_id}", operation_id="getBook", response_model=Book, tags=["books"])
+def get_book(request: Request, response: Response, book_id: str = Path(pattern=BOOK_ID)):
+    book = find_or_404(store.books, book_id, "book-not-found", "Book Not Found", "หนังสือ")
+    tag = etag_of(book)
+    client_tags = [t.strip() for t in request.headers.get("if-none-match", "").split(",")]
+    if tag in client_tags or "*" in client_tags:
+        # ข้อมูลไม่เปลี่ยน: ตอบ 304 ไม่มี Body ประหยัด Bandwidth
+        return Response(status_code=304, headers={"ETag": tag})
+    response.headers["ETag"] = tag
+    response.headers["Cache-Control"] = "no-cache"   # เก็บ cache ได้ แต่ต้องถามซ้ำทุกครั้ง
+    return book
+
+
+@app.patch("/books/{book_id}", operation_id="updateBook", response_model=Book, tags=["books"])
+def update_book(payload: BookPatch, request: Request, response: Response,
+                book_id: str = Path(pattern=BOOK_ID),
+                user: dict = Depends(require_scope("books:write"))):
+    book = find_or_404(store.books, book_id, "book-not-found", "Book Not Found", "หนังสือ")
+    if_match = request.headers.get("if-match")
+    if if_match and if_match != etag_of(book):
+        raise ProblemError(412, "precondition-failed", "Precondition Failed",
+                           "ข้อมูลถูกแก้ไขไปแล้ว ให้ GET ใหม่ก่อนแก้")
+    book.update(payload.model_dump(exclude_unset=True))   # แก้เฉพาะฟิลด์ที่ส่งมา
+    response.headers["ETag"] = etag_of(book)
+    return book
+
+
+@app.delete("/books/{book_id}", operation_id="deleteBook", status_code=204, tags=["books"])
+def delete_book(book_id: str = Path(pattern=BOOK_ID),
+                user: dict = Depends(require_scope("books:write"))):
+    book = find_or_404(store.books, book_id, "book-not-found", "Book Not Found", "หนังสือ")
+    if book["status"] == "on_loan":
+        raise ProblemError(409, "book-unavailable", "Book Unavailable",
+                           f"หนังสือ {book_id} ถูกยืมอยู่ ลบไม่ได้")
+    del store.books[book_id]
+    return Response(status_code=204)
+
+
+# ---------- members ----------
+@app.post("/members", operation_id="createMember", response_model=Member, status_code=201,
+          tags=["members"])
+def create_member(payload: MemberCreate, response: Response,
+                  user: dict = Depends(require_scope("members:write"))):
+    member = {"id": store.next_id("mb"), **payload.model_dump(), "max_active_loans": 3}
+    store.members[member["id"]] = member
+    response.headers["Location"] = f"/members/{member['id']}"
+    return member
+
+
+@app.get("/members/{member_id}", operation_id="getMember", response_model=Member, tags=["members"])
+def get_member(member_id: str = Path(pattern=MEMBER_ID),
+               user: dict = Depends(get_current_user)):
+    ensure_owner(user, member_id)   # ตรวจสิทธิ์ก่อน จะได้ไม่บอกใบ้ว่ามีสมาชิกคนนี้หรือไม่
+    return find_or_404(store.members, member_id, "member-not-found", "Member Not Found", "สมาชิก")
+
+
+@app.get("/members/{member_id}/loans", operation_id="listMemberLoans", response_model=LoanPage,
+         tags=["members", "loans"])
+def list_member_loans(member_id: str = Path(pattern=MEMBER_ID),
+                      user: dict = Depends(get_current_user)):
+    ensure_owner(user, member_id)
+    find_or_404(store.members, member_id, "member-not-found", "Member Not Found", "สมาชิก")
+    loans = sorted((ln for ln in store.loans.values() if ln["member_id"] == member_id),
+                   key=lambda ln: ln["id"])
+    return {"data": loans, "next_cursor": None}
+
+
+# ---------- loans ----------
+@app.post("/loans", operation_id="createLoan", response_model=Loan, status_code=201, tags=["loans"])
+def create_loan(payload: LoanCreate, response: Response,
+                idempotency_key: str | None = Header(None, alias="Idempotency-Key",
+                                                     min_length=8, max_length=100),
+                user: dict = Depends(require_scope("loans:write"))):
+    if idempotency_key is None:
+        raise ProblemError(400, "bad-request", "Bad Request", "ต้องส่ง Header Idempotency-Key")
+    ensure_owner(user, payload.member_id)
+    store_key = (user["sub"], idempotency_key)          # แยก key ตาม Client
+    request_hash = body_hash(payload.model_dump())
+    saved = store.idempotency.get(store_key)
+    if saved:
+        if saved["hash"] != request_hash:
+            raise ProblemError(422, "idempotency-key-reused", "Idempotency Key Reused",
+                               "Idempotency-Key นี้เคยใช้กับ Body อื่นแล้ว")
+        # key เดิม + Body เดิม: ส่งผลเดิมกลับไป ไม่สร้างรายการยืมซ้ำ
+        response.headers["Location"] = f"/loans/{saved['loan']['id']}"
+        response.headers["Idempotent-Replayed"] = "true"
+        return saved["loan"]
+
+    book = find_or_404(store.books, payload.book_id, "book-not-found", "Book Not Found", "หนังสือ")
+    member = find_or_404(store.members, payload.member_id, "member-not-found",
+                         "Member Not Found", "สมาชิก")
+    if book["status"] != "available":
+        raise ProblemError(409, "book-unavailable", "Book Unavailable",
+                           f"หนังสือ {book['id']} ถูกยืมอยู่")
+    if len(store.active_loans(member["id"])) &gt;= member["max_active_loans"]:
+        raise ProblemError(409, "loan-limit-reached", "Loan Limit Reached",
+                           f"สมาชิก {member['id']} ยืมครบ {member['max_active_loans']} เล่มแล้ว")
+
+    now = datetime.now(BANGKOK).replace(microsecond=0)
+    loan = {"id": store.next_id("ln"), "book_id": book["id"], "member_id": member["id"],
+            "borrowed_at": now.isoformat(), "due_date": (now + timedelta(days=LOAN_DAYS)).date().isoformat(),
+            "returned_at": None, "fine_satang": 0}
+    store.loans[loan["id"]] = loan
+    book["status"] = "on_loan"
+    store.idempotency[store_key] = {"hash": request_hash, "loan": loan}   # เก็บเฉพาะผลที่สำเร็จ
+    response.headers["Location"] = f"/loans/{loan['id']}"
+    return loan
+
+
+@app.post("/loans/{loan_id}/return", operation_id="returnLoan", response_model=Loan, tags=["loans"])
+def return_loan(loan_id: str = Path(pattern=LOAN_ID),
+                user: dict = Depends(require_scope("loans:write"))):
+    loan = find_or_404(store.loans, loan_id, "loan-not-found", "Loan Not Found", "รายการยืม")
+    ensure_owner(user, loan["member_id"])
+    if loan["returned_at"] is None:          # คืนซ้ำได้ผลเดิม (Idempotent)
+        now = datetime.now(BANGKOK).replace(microsecond=0)
+        days_late = (now.date() - date.fromisoformat(loan["due_date"])).days
+        loan["returned_at"] = now.isoformat()
+        loan["fine_satang"] = max(days_late, 0) * FINE_PER_DAY_SATANG
+        store.books[loan["book_id"]]["status"] = "available"
+    return loan</code></pre>
+<p>สร้างสคริปต์ออก Token สำหรับทดลอง (เลียนแบบ Authorization Server ที่ออก Token ให้จริงในระบบใหญ่)</p>
+<pre class="code" data-env="file" data-label="Python · scripts/make_token.py"><code class="language-python">"""สร้าง JWT สำหรับทดลองเรียก API (ใช้ในเครื่องตัวเองเท่านั้น)"""
+import argparse
+import os
+import sys
+from datetime import datetime, timedelta, timezone
+
+import jwt
+
+parser = argparse.ArgumentParser(description="สร้าง Bearer token ให้ Library API")
+parser.add_argument("--sub", default="mb_0001", help="รหัสสมาชิกเจ้าของ token")
+parser.add_argument("--scope", default="books:read loans:write", help="scope คั่นด้วยช่องว่าง")
+parser.add_argument("--minutes", type=int, default=15, help="อายุ token เป็นนาที")
+parser.add_argument("--expired", action="store_true", help="สร้าง token ที่หมดอายุแล้ว")
+args = parser.parse_args()
+
+secret = os.environ.get("JWT_SECRET")
+if not secret:
+    sys.exit("ไม่พบ JWT_SECRET ให้สร้างก่อนด้วยคำสั่ง:\n"
+             "  export JWT_SECRET=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')")
+
+now = datetime.now(timezone.utc)
+exp = now - timedelta(minutes=1) if args.expired else now + timedelta(minutes=args.minutes)
+claims = {"iss": "https://auth.example.com", "aud": "library-api", "sub": args.sub,
+          "scope": args.scope, "iat": now, "exp": exp}
+print(jwt.encode(claims, secret, algorithm="HS256"))</code></pre>
+
+<h5>อธิบายโค้ดทีละส่วน</h5>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td class="nw"><code>lifespan</code> + <code>SystemExit</code></td><td>ตรวจตอนเริ่ม Server ว่ามี <code>JWT_SECRET</code> ถ้าไม่มีให้หยุดทันทีพร้อมวิธีแก้ ดีกว่าไปพังตอนมีคนเรียก API</td></tr>
+<tr><td class="nw"><code>etag_of(book)</code></td><td>hash ของ JSON ที่เรียง key แล้ว ตัดเหลือ 16 ตัวอักษร และครอบด้วย <code>"</code> ตามรูปแบบ ETag</td></tr>
+<tr><td class="nw"><code>encode_cursor</code> / <code>decode_cursor</code></td><td>Cursor คือ JSON <code>{"s": sort, "k": [ค่า, id]}</code> ที่เข้ารหัส base64url และตัด <code>=</code> ทิ้ง ตอนถอดต้องเติม <code>=</code> คืน และตรวจว่า sort ตรงกับที่ใช้สร้าง</td></tr>
+<tr><td class="nw"><code>items.sort(...)</code> สองครั้ง</td><td>เรียงด้วย id ก่อน แล้วเรียงด้วยฟิลด์ที่ขอ Sort ของ Python เสถียร จึงได้ลำดับ (ฟิลด์, id) ที่ไม่ซ้ำและไม่กระโดด</td></tr>
+<tr><td class="nw"><code>comes_after(...)</code></td><td>หาหนังสือที่อยู่หลังตำแหน่งใน Cursor ใช้ id ตัดสินเมื่อค่าเท่ากัน รองรับทั้งเรียงขึ้นและเรียงลง</td></tr>
+<tr><td class="nw"><code>response.headers["Link"]</code></td><td>ส่ง URL หน้าถัดไปตาม RFC 8288 ด้วย ให้ Client ที่ไม่อยากต่อ URL เองกดตามได้เลย</td></tr>
+<tr><td class="nw"><code>status_code=201</code> + <code>Location</code></td><td>ทุกการสร้างตอบ 201 และบอก URL ของ Resource ใหม่</td></tr>
+<tr><td class="nw"><code>If-None-Match</code> → <code>Response(status_code=304)</code></td><td>ถ้า ETag ตรง ตอบ 304 ไม่มี Body รองรับรายการหลายค่าคั่นด้วย <code>,</code> และ <code>*</code></td></tr>
+<tr><td class="nw"><code>If-Match</code> → 412</td><td>Optimistic Locking: ถ้ามีคนแก้ไปก่อน ETag จะเปลี่ยน คำขอแก้ที่ใช้ ETag เก่าจะถูกปฏิเสธ</td></tr>
+<tr><td class="nw"><code>model_dump(exclude_unset=True)</code></td><td>PATCH แก้เฉพาะฟิลด์ที่ Client ส่งมาจริง</td></tr>
+<tr><td class="nw"><code>Header(None, alias="Idempotency-Key")</code></td><td>อ่าน Header เป็น Optional แล้วตอบ 400 เองตามสัญญา (ถ้าประกาศเป็น required FastAPI จะตอบ 422 แทน)</td></tr>
+<tr><td class="nw"><code>saved["hash"] != request_hash</code></td><td>key เดิมแต่ Body ต่างคือการใช้ key ผิด ตอบ 422 <code>idempotency-key-reused</code> ถ้า Body เดิมให้ส่งผลเดิมพร้อม <code>Idempotent-Replayed: true</code></td></tr>
+<tr><td class="nw">ลำดับการตรวจใน <code>create_loan</code></td><td>Header → สิทธิ์ (BOLA) → Idempotency → มีหนังสือ/สมาชิกไหม (404) → กฎธุรกิจ (409) ตรวจของถูกก่อนของแพง</td></tr>
+<tr><td class="nw"><code>FINE_PER_DAY_SATANG = 500</code></td><td>เงินเก็บเป็นจำนวนเต็มหน่วยสตางค์ ไม่ใช้ float</td></tr>
+<tr><td class="nw"><code>if loan["returned_at"] is None</code></td><td>การคืนซ้ำไม่เปลี่ยนอะไร ได้ผลเดิม จึงเป็น Idempotent แม้ใช้ POST</td></tr>
+<tr><td class="nw"><code>make_token.py --expired</code></td><td>สร้าง Token ที่ exp อยู่ในอดีต ไว้ทดสอบกรณี 401 token expired</td></tr>
+</tbody></table></div>
+
+<p>ลองรัน Server โดยยังไม่ตั้ง <code>JWT_SECRET</code> เพื่อดูว่าโปรแกรมบอกวิธีแก้ชัดเจนไหม</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 1"><code class="language-bash">cd ~/projects/library-api-spec
+source .venv/bin/activate
+uvicorn app.main:app --port 8000</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output (ท้าย Traceback)"><code>SystemExit: ไม่พบ JWT_SECRET ให้สร้างก่อนด้วยคำสั่ง:
+  export JWT_SECRET=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')
+
+ERROR:    Application startup failed. Exiting.</code></pre>
+<p>ตั้งค่าแล้วรันใหม่ (ค่า Secret สุ่มใหม่ทุกครั้ง และอยู่แค่ใน Terminal นี้)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 1"><code class="language-bash">export JWT_SECRET=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')
+uvicorn app.main:app --port 8000</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>INFO:     Started server process [7464]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)</code></pre>
+<p>เปิด Terminal ที่ 2 ซึ่งต้อง activate venv และใช้ <strong>JWT_SECRET ค่าเดียวกัน</strong> กับ Terminal 1 (คัดลอกค่าจาก <code>echo $JWT_SECRET</code> ใน Terminal 1 มา export) จากนั้นลองหน้าแรกแบบเรียงปีล่าสุดก่อน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 2"><code class="language-bash">cd ~/projects/library-api-spec
+source .venv/bin/activate
+export JWT_SECRET='ค่าเดียวกับใน Terminal 1'
+curl -i 'http://127.0.0.1:8000/books?limit=2&amp;sort=-published_year'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>HTTP/1.1 200 OK
+date: Wed, 21 Oct 2026 22:18:08 GMT
+server: uvicorn
+content-length: 380
+content-type: application/json
+link: &lt;http://127.0.0.1:8000/books?limit=2&amp;sort=-published_year&amp;cursor=eyJzIjoiLXB1Ymxpc2hlZF95ZWFyIiwiayI6WzIwMjQsImJrXzAwMDEiXX0&gt;; rel="next"
+
+{"data":[{"id":"bk_0002","title":"API Design ฉบับเริ่มต้น","author":"Suda Meesuk","isbn":"9786160000028","published_year":2025,"status":"available"},{"id":"bk_0001","title":"Python 101","author":"Somchai Jaidee","isbn":"9786160000011","published_year":2024,"status":"available"}],"next_cursor":"eyJzIjoiLXB1Ymxpc2hlZF95ZWFyIiwiayI6WzIwMjQsImJrXzAwMDEiXX0"}</code></pre>
+<p><span class="muted small">Header <code>date</code> และหมายเลข process จะต่างกันบนเครื่องคุณ</span></p>
+<p>ตาม Cursor ไปหน้าถัดไป และแอบดูว่าข้างใน Cursor มีอะไร (Client จริงห้ามพึ่งเนื้อในของ Cursor เพราะ Server เปลี่ยนรูปแบบได้ทุกเมื่อ)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 2"><code class="language-bash">B=http://127.0.0.1:8000
+NEXT=$(curl -s "$B/books?limit=2&amp;sort=-published_year" | jq -r '.next_cursor')
+echo "$NEXT" | tr '_-' '/+' | base64 -d 2&gt;/dev/null; echo
+curl -s "$B/books?limit=2&amp;sort=-published_year&amp;cursor=$NEXT" | jq -c '.data[] | {id, published_year}'
+curl -s "$B/books?limit=2&amp;sort=-published_year&amp;cursor=$NEXT" | jq '.next_cursor'
+# ใช้ Cursor กับ sort คนละแบบ: ต้องได้ 400
+curl -s "$B/books?limit=2&amp;sort=title&amp;cursor=$NEXT" | jq -c .</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"s":"-published_year","k":[2024,"bk_0001"]}
+{"id":"bk_0003","published_year":2023}
+null
+{"type":"https://example.com/problems/bad-request","title":"Bad Request","status":400,"detail":"cursor ไม่ถูกต้อง ให้ใช้ค่า next_cursor จาก Response เท่านั้น","instance":"/books"}</code></pre>
+<p>ทดสอบการยืมพร้อม Idempotency-Key: ไม่มี Token, ยืมครั้งแรก, ส่งซ้ำ key เดิม, ใช้ key เดิมกับ Body อื่น และยืมเล่มที่ถูกยืมอยู่</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 2"><code class="language-bash">curl -i -X POST $B/loans -H 'Content-Type: application/json' \
+  -d '{"book_id":"bk_0001","member_id":"mb_0001"}'
+echo
+TOKEN=$(python3 scripts/make_token.py --sub mb_0001 --scope 'books:write loans:write')
+curl -i -X POST $B/loans -H "Authorization: Bearer $TOKEN" \
+  -H 'Idempotency-Key: 5d0c9e2a-demo-0001' -H 'Content-Type: application/json' \
+  -d '{"book_id":"bk_0001","member_id":"mb_0001"}'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>HTTP/1.1 401 Unauthorized
+date: Wed, 21 Oct 2026 22:18:08 GMT
+server: uvicorn
+www-authenticate: Bearer realm="library-api"
+content-length: 168
+content-type: application/problem+json
+
+{"type":"https://example.com/problems/unauthorized","title":"Unauthorized","status":401,"detail":"ต้องส่ง Authorization Bearer token","instance":"/loans"}
+HTTP/1.1 201 Created
+date: Wed, 21 Oct 2026 22:18:08 GMT
+server: uvicorn
+content-length: 159
+content-type: application/json
+location: /loans/ln_0002
+
+{"id":"ln_0002","book_id":"bk_0001","member_id":"mb_0001","borrowed_at":"2026-10-22T05:18:09+07:00","due_date":"2026-11-05","returned_at":null,"fine_satang":0}</code></pre>
+<p><span class="muted small"><code>borrowed_at</code> และ <code>due_date</code> คำนวณจากเวลาที่คุณรัน จึงต่างจากตัวอย่าง (due_date คือวันยืม + 14 วัน)</span></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 2"><code class="language-bash"># ส่งซ้ำด้วย key เดิม Body เดิม (เช่น เน็ตหลุดแล้ว Retry)
+curl -si -X POST $B/loans -H "Authorization: Bearer $TOKEN" \
+  -H 'Idempotency-Key: 5d0c9e2a-demo-0001' -H 'Content-Type: application/json' \
+  -d '{"book_id":"bk_0001","member_id":"mb_0001"}' | grep -iE '^(HTTP|location|idempotent)|ln_'
+echo
+# key เดิมแต่ Body ต่าง
+curl -s -X POST $B/loans -H "Authorization: Bearer $TOKEN" \
+  -H 'Idempotency-Key: 5d0c9e2a-demo-0001' -H 'Content-Type: application/json' \
+  -d '{"book_id":"bk_0002","member_id":"mb_0001"}' | jq
+# key ใหม่ แต่ยืมเล่มที่ถูกยืมอยู่
+curl -s -X POST $B/loans -H "Authorization: Bearer $TOKEN" \
+  -H 'Idempotency-Key: 5d0c9e2a-demo-0002' -H 'Content-Type: application/json' \
+  -d '{"book_id":"bk_0003","member_id":"mb_0001"}' | jq</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>HTTP/1.1 201 Created
+location: /loans/ln_0002
+idempotent-replayed: true
+{"id":"ln_0002","book_id":"bk_0001","member_id":"mb_0001","borrowed_at":"2026-10-22T05:18:09+07:00","due_date":"2026-11-05","returned_at":null,"fine_satang":0}
+
+{
+  "type": "https://example.com/problems/idempotency-key-reused",
+  "title": "Idempotency Key Reused",
+  "status": 422,
+  "detail": "Idempotency-Key นี้เคยใช้กับ Body อื่นแล้ว",
+  "instance": "/loans"
+}
+{
+  "type": "https://example.com/problems/book-unavailable",
+  "title": "Book Unavailable",
+  "status": 409,
+  "detail": "หนังสือ bk_0003 ถูกยืมอยู่",
+  "instance": "/loans"
+}</code></pre>
+<p>ทดสอบ ETag กับ 304 และ 412 ต่อด้วย BOLA และ Token หมดอายุ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 2"><code class="language-bash">curl -si $B/books/bk_0002 | grep -iE '^(HTTP|etag|cache)'
+TAG=$(curl -si $B/books/bk_0002 | grep -i '^etag' | cut -d' ' -f2 | tr -d '\r')
+echo "TAG=$TAG"
+curl -si $B/books/bk_0002 -H "If-None-Match: $TAG"
+# แก้ด้วย ETag ล่าสุด: ผ่าน และได้ ETag ใหม่
+curl -si -X PATCH $B/books/bk_0002 -H "Authorization: Bearer $TOKEN" -H "If-Match: $TAG" \
+  -H 'Content-Type: application/json' -d '{"title":"API Design ฉบับปรับปรุง"}' | grep -iE '^(HTTP|etag)|title'
+echo
+# แก้อีกครั้งด้วย ETag เก่า: ต้องได้ 412
+curl -si -X PATCH $B/books/bk_0002 -H "Authorization: Bearer $TOKEN" -H "If-Match: $TAG" \
+  -H 'Content-Type: application/json' -d '{"title":"ชื่อใหม่อีกครั้ง"}'
+echo
+# mb_0001 พยายามดูรายการยืมของ mb_0002
+curl -s $B/members/mb_0002/loans -H "Authorization: Bearer $TOKEN" | jq
+EXP=$(python3 scripts/make_token.py --expired)
+curl -si $B/members/mb_0001 -H "Authorization: Bearer $EXP" | grep -iE '^(HTTP|www)|detail'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>HTTP/1.1 200 OK
+etag: "d7fdb2b050457153"
+cache-control: no-cache
+TAG="d7fdb2b050457153"
+HTTP/1.1 304 Not Modified
+date: Wed, 21 Oct 2026 22:18:08 GMT
+server: uvicorn
+etag: "d7fdb2b050457153"
+
+HTTP/1.1 200 OK
+etag: "5d68c9ab5d485e19"
+{"id":"bk_0002","title":"API Design ฉบับปรับปรุง","author":"Suda Meesuk","isbn":"9786160000028","published_year":2025,"status":"available"}
+
+HTTP/1.1 412 Precondition Failed
+date: Wed, 21 Oct 2026 22:18:08 GMT
+server: uvicorn
+content-length: 250
+content-type: application/problem+json
+
+{"type":"https://example.com/problems/precondition-failed","title":"Precondition Failed","status":412,"detail":"ข้อมูลถูกแก้ไขไปแล้ว ให้ GET ใหม่ก่อนแก้","instance":"/books/bk_0002"}
+{
+  "type": "https://example.com/problems/forbidden",
+  "title": "Forbidden",
+  "status": 403,
+  "detail": "เข้าถึงข้อมูลของสมาชิกคนอื่นไม่ได้",
+  "instance": "/members/mb_0002/loans"
+}
+HTTP/1.1 401 Unauthorized
+www-authenticate: Bearer realm="library-api", error="invalid_token"
+{"type":"https://example.com/problems/unauthorized","title":"Unauthorized","status":401,"detail":"token expired","instance":"/members/mb_0001"}</code></pre>
+<p>ETag ขึ้นกับข้อมูลเท่านั้น จึงควรได้ค่าเดียวกับตัวอย่างถ้าข้อมูลตรงกัน ส่วน Header <code>date</code> จะต่างไป และเปิด <a href="http://127.0.0.1:8000/docs" target="_blank" rel="noopener">http://127.0.0.1:8000/docs</a> ใน Browser ของ Windows เพื่อดู Swagger UI ที่ FastAPI สร้างจากโค้ดได้ด้วย</p>
+<div class="callout sec"><span class="c-label sec">Security</span><p>การลองปลอม Token หรือเจาะ BOLA แบบนี้ทำได้เฉพาะกับ Server ของตัวเองที่ <code>127.0.0.1</code> เท่านั้น การทดลองกับระบบของคนอื่นโดยไม่ได้รับอนุญาตผิด พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์</p></div>
+</li>
+<li>
+<h4>Step 7: เทสต์พฤติกรรมและเทสต์สัญญาด้วย pytest</h4>
+<p>เทสต์มีสองชุด ชุดแรก <code>test_api.py</code> ยืนยันพฤติกรรมที่เขียนไว้ในสัญญาทีละกรณี ทั้ง Status Code, Header (Location, ETag, WWW-Authenticate, Content-Type) และ <code>type</code> ของ Problem ชุดที่สอง <code>test_contract.py</code> เปิด <code>openapi.yaml</code> แล้วเทียบกับ <code>app.openapi()</code> ที่ FastAPI สร้างจากโค้ด ถ้าใครเพิ่ม Route ที่ไม่มีในสัญญา หรือลืมทำ Operation ที่สัญญาไว้ เทสต์จะล้มทันที</p>
+<pre class="code" data-env="file" data-label="Python · tests/test_api.py"><code class="language-python">"""เทสต์พฤติกรรมของ Reference Implementation ให้ตรงกับสัญญาใน openapi.yaml"""
+from datetime import datetime, timedelta, timezone
+
+import jwt
+import pytest
+from fastapi.testclient import TestClient
+
+from app.main import app
+from app.store import store
+
+SECRET = "test-secret-only-for-pytest-1234567890"
+PROBLEM = "application/problem+json"
+
+
+def token(sub="mb_0001", scope="books:read loans:write", minutes=15, alg="HS256"):
+    now = datetime.now(timezone.utc)
+    claims = {"iss": "https://auth.example.com", "aud": "library-api", "sub": sub,
+              "scope": scope, "iat": now, "exp": now + timedelta(minutes=minutes)}
+    return jwt.encode(claims, SECRET, algorithm=alg)
+
+
+def auth(**kwargs):
+    return {"Authorization": f"Bearer {token(**kwargs)}"}
+
+
+@pytest.fixture(autouse=True)
+def client(monkeypatch):
+    # ตั้ง JWT_SECRET และล้างข้อมูลทุกเทสต์ เทสต์จึงไม่ขึ้นต่อกัน
+    monkeypatch.setenv("JWT_SECRET", SECRET)
+    store.reset()
+    with TestClient(app) as c:
+        yield c
+
+
+def borrow(client, book_id="bk_0001", member_id="mb_0001", key="key-0000001", **kw):
+    headers = {**auth(**kw), "Idempotency-Key": key}
+    return client.post("/loans", json={"book_id": book_id, "member_id": member_id}, headers=headers)
+
+
+def test_list_books_envelope(client):
+    r = client.get("/books")
+    assert r.status_code == 200
+    body = r.json()
+    assert [b["id"] for b in body["data"]] == ["bk_0001", "bk_0002", "bk_0003"]
+    assert body["next_cursor"] is None
+
+
+def test_cursor_pagination_follows_link(client):
+    r1 = client.get("/books", params={"limit": 2})
+    assert len(r1.json()["data"]) == 2
+    assert 'rel="next"' in r1.headers["link"]
+    r2 = client.get("/books", params={"limit": 2, "cursor": r1.json()["next_cursor"]})
+    assert [b["id"] for b in r2.json()["data"]] == ["bk_0003"]
+    assert r2.json()["next_cursor"] is None
+
+
+def test_sort_desc_by_year(client):
+    r = client.get("/books", params={"sort": "-published_year"})
+    assert [b["published_year"] for b in r.json()["data"]] == [2025, 2024, 2023]
+
+
+def test_bad_cursor_is_400_problem(client):
+    r = client.get("/books", params={"cursor": "not-a-cursor"})
+    assert r.status_code == 400
+    assert r.headers["content-type"] == PROBLEM
+    assert r.json()["type"].endswith("/bad-request")
+
+
+def test_limit_over_100_is_422(client):
+    r = client.get("/books", params={"limit": 500})
+    assert r.status_code == 422
+    assert r.json()["errors"][0]["field"] == "query.limit"
+
+
+def test_get_book_404_problem(client):
+    r = client.get("/books/bk_9999")
+    assert r.status_code == 404
+    assert r.headers["content-type"] == PROBLEM
+    assert r.json()["type"] == "https://example.com/problems/book-not-found"
+
+
+def test_unknown_route_is_problem_too(client):
+    r = client.get("/no-such-path")
+    assert r.status_code == 404
+    assert r.headers["content-type"] == PROBLEM
+
+
+def test_etag_and_304(client):
+    r1 = client.get("/books/bk_0001")
+    tag = r1.headers["etag"]
+    assert tag.startswith('"') and tag.endswith('"')
+    r2 = client.get("/books/bk_0001", headers={"If-None-Match": tag})
+    assert r2.status_code == 304
+    assert r2.content == b""
+
+
+def test_patch_with_stale_if_match_is_412(client):
+    old = client.get("/books/bk_0001").headers["etag"]
+    h = auth(scope="books:write")
+    assert client.patch("/books/bk_0001", json={"title": "Python 102"},
+                        headers={**h, "If-Match": old}).status_code == 200
+    r = client.patch("/books/bk_0001", json={"title": "Python 103"}, headers={**h, "If-Match": old})
+    assert r.status_code == 412
+
+
+def test_create_book_requires_token(client):
+    r = client.post("/books", json={})
+    assert r.status_code == 401
+    assert r.headers["www-authenticate"].startswith("Bearer")
+
+
+def test_create_book_wrong_scope_is_403(client):
+    body = {"title": "Docker Basics", "author": "Anan Rakdee",
+            "isbn": "9786160000042", "published_year": 2026}
+    r = client.post("/books", json=body, headers=auth(scope="books:read"))
+    assert r.status_code == 403
+
+
+def test_create_book_201_location(client):
+    body = {"title": "Docker Basics", "author": "Anan Rakdee",
+            "isbn": "9786160000042", "published_year": 2026}
+    r = client.post("/books", json=body, headers=auth(scope="books:write"))
+    assert r.status_code == 201
+    assert r.headers["location"] == "/books/bk_0004"
+    assert r.json()["status"] == "available"
+
+
+@pytest.mark.parametrize("bad", [
+    {"title": "", "author": "A", "isbn": "9786160000042", "published_year": 2026},
+    {"title": "T", "author": "A", "isbn": "12345", "published_year": 2026},
+    {"title": "T", "author": "A", "isbn": "9786160000042", "published_year": 3000},
+    {"title": "T", "author": "A", "isbn": "9786160000042", "published_year": 2026, "id": "bk_0099"},
+])
+def test_create_book_validation_422(client, bad):
+    r = client.post("/books", json=bad, headers=auth(scope="books:write"))
+    assert r.status_code == 422
+    assert r.json()["errors"], "ต้องมีรายการ errors บอกฟิลด์ที่ผิด"
+
+
+def test_expired_token_is_401(client):
+    r = client.post("/books", json={}, headers=auth(minutes=-1, scope="books:write"))
+    assert r.status_code == 401
+    assert r.json()["detail"] == "token expired"
+
+
+def test_bola_other_member_loans_403(client):
+    r = client.get("/members/mb_0002/loans", headers=auth(sub="mb_0001"))
+    assert r.status_code == 403
+
+
+def test_owner_can_list_own_loans(client):
+    r = client.get("/members/mb_0002/loans", headers=auth(sub="mb_0002"))
+    assert r.status_code == 200
+    assert r.json()["data"][0]["id"] == "ln_0001"
+
+
+def test_borrow_201_and_book_on_loan(client):
+    r = borrow(client)
+    assert r.status_code == 201
+    assert r.headers["location"] == "/loans/ln_0002"
+    assert client.get("/books/bk_0001").json()["status"] == "on_loan"
+
+
+def test_borrow_missing_idempotency_key_400(client):
+    r = client.post("/loans", json={"book_id": "bk_0001", "member_id": "mb_0001"}, headers=auth())
+    assert r.status_code == 400
+
+
+def test_idempotent_replay_same_loan(client):
+    first = borrow(client, key="same-key-001")
+    again = borrow(client, key="same-key-001")
+    assert again.status_code == 201
+    assert again.json()["id"] == first.json()["id"]
+    assert again.headers["idempotent-replayed"] == "true"
+
+
+def test_idempotency_key_reused_with_other_body_422(client):
+    borrow(client, key="same-key-002")
+    r = borrow(client, book_id="bk_0002", key="same-key-002")
+    assert r.status_code == 422
+    assert r.json()["type"].endswith("/idempotency-key-reused")
+
+
+def test_borrow_unavailable_book_409(client):
+    r = borrow(client, book_id="bk_0003")
+    assert r.status_code == 409
+    assert r.json()["type"].endswith("/book-unavailable")
+
+
+def test_loan_limit_reached_409(client):
+    admin = auth(scope="books:write")
+    for n in range(4, 7):   # เพิ่มหนังสือ bk_0004..bk_0006
+        client.post("/books", json={"title": f"Book {n}", "author": "A",
+                                    "isbn": f"978616000{n:04d}", "published_year": 2026}, headers=admin)
+    for i, book_id in enumerate(["bk_0001", "bk_0002", "bk_0004"]):
+        assert borrow(client, book_id=book_id, key=f"limit-key-{i}").status_code == 201
+    r = borrow(client, book_id="bk_0005", key="limit-key-9")
+    assert r.status_code == 409
+    assert r.json()["type"].endswith("/loan-limit-reached")
+
+
+def test_return_loan_twice_is_idempotent(client):
+    loan_id = borrow(client).json()["id"]
+    r1 = client.post(f"/loans/{loan_id}/return", headers=auth())
+    r2 = client.post(f"/loans/{loan_id}/return", headers=auth())
+    assert r1.status_code == r2.status_code == 200
+    assert r1.json()["returned_at"] == r2.json()["returned_at"]
+    assert client.get("/books/bk_0001").json()["status"] == "available"
+
+
+def test_delete_book_204_then_404(client):
+    h = auth(scope="books:write")
+    assert client.delete("/books/bk_0002", headers=h).status_code == 204
+    assert client.delete("/books/bk_0002", headers=h).status_code == 404</code></pre>
+<pre class="code" data-env="file" data-label="Python · tests/test_contract.py"><code class="language-python">"""เทสต์สัญญา: ทุก operationId ใน openapi.yaml ต้องมี Route จริงใน FastAPI และกลับกัน"""
+from pathlib import Path
+
+import yaml
+
+from app.main import app
+
+SPEC_FILE = Path(__file__).resolve().parent.parent / "openapi.yaml"
+METHODS = {"get", "post", "put", "patch", "delete"}
+
+
+def load_spec():
+    return yaml.safe_load(SPEC_FILE.read_text(encoding="utf-8"))
+
+
+def operations(doc):
+    # คืนค่าเป็นเซตของ (METHOD, path, operationId)
+    return {(method.upper(), path, op["operationId"])
+            for path, item in doc["paths"].items()
+            for method, op in item.items() if method in METHODS}
+
+
+def test_spec_is_openapi_310():
+    assert load_spec()["openapi"] == "3.1.0"
+
+
+def test_every_spec_operation_is_implemented():
+    missing = operations(load_spec()) - operations(app.openapi())
+    assert not missing, f"มีใน openapi.yaml แต่ยังไม่มี Route: {sorted(missing)}"
+
+
+def test_no_undocumented_routes():
+    extra = operations(app.openapi()) - operations(load_spec())
+    assert not extra, f"มี Route ที่ไม่ได้เขียนไว้ในสัญญา: {sorted(extra)}"
+
+
+def test_every_operation_documents_a_4xx():
+    for path, item in load_spec()["paths"].items():
+        for method, op in item.items():
+            if method in METHODS:
+                assert any(code.startswith("4") for code in op["responses"]), f"{method} {path}"</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td class="nw"><code>@pytest.fixture(autouse=True)</code></td><td>รันก่อนทุกเทสต์อัตโนมัติ: ตั้ง <code>JWT_SECRET</code> ด้วย <code>monkeypatch.setenv</code>, ล้างข้อมูลด้วย <code>store.reset()</code> แล้วเปิด TestClient แบบ <code>with</code> เพื่อให้ lifespan ทำงาน</td></tr>
+<tr><td class="nw"><code>token(...)</code>, <code>auth(...)</code></td><td>สร้าง JWT ด้วย Secret ของเทสต์ ปรับ sub, scope และอายุได้ <code>minutes=-1</code> คือ Token หมดอายุ</td></tr>
+<tr><td class="nw"><code>borrow(...)</code></td><td>ตัวช่วยยืมหนังสือที่ทุกเทสต์เรื่อง loans ใช้ร่วมกัน ลดโค้ดซ้ำ</td></tr>
+<tr><td class="nw"><code>@pytest.mark.parametrize("bad", [...])</code></td><td>Body ผิด 4 แบบในเทสต์เดียว: title ว่าง, ISBN ผิด, ปีเกิน 2100 และแอบส่ง <code>id</code> (Mass Assignment)</td></tr>
+<tr><td class="nw"><code>test_loan_limit_reached_409</code></td><td>เพิ่มหนังสือ 3 เล่ม ยืมให้ครบ 3 แล้วยืมเล่มที่ 4 ต้องได้ <code>loan-limit-reached</code></td></tr>
+<tr><td class="nw"><code>operations(doc)</code></td><td>แปลงเอกสาร OpenAPI ใดก็ได้เป็นเซตของ <code>(METHOD, path, operationId)</code> ใช้ได้ทั้งกับไฟล์ YAML และกับ <code>app.openapi()</code></td></tr>
+<tr><td class="nw"><code>spec - app</code>, <code>app - spec</code></td><td>ผลต่างของเซตสองทิศ: สิ่งที่สัญญาไว้แต่ยังไม่ทำ และสิ่งที่ทำแต่ไม่ได้สัญญา</td></tr>
+</tbody></table></div>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/library-api-spec
+source .venv/bin/activate
+python3 -m pytest -q</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>...............................                                          [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/fastapi/testclient.py:1
+  /home/somchai/projects/library-api-spec/.venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+31 passed, 1 warning in 0.81s</code></pre>
+<p>ผ่านครบ 31 ข้อ (24 ฟังก์ชันใน test_api.py โดยหนึ่งฟังก์ชันรัน 4 รอบจาก parametrize รวมเป็น 27 กับอีก 4 ข้อใน test_contract.py) เวลาที่ใช้จะต่างไปตามเครื่อง ส่วน <code>StarletteDeprecationWarning</code> เป็นเพียงคำเตือนจาก starlette รุ่นใหม่ว่าในอนาคตจะเปลี่ยนไลบรารีที่ TestClient ใช้ ไม่ใช่ Error และไม่กระทบผลเทสต์ (ถ้า starlette บนเครื่องคุณเป็นรุ่นที่ยังไม่มีคำเตือนนี้ บรรทัด warnings จะไม่ขึ้น) ดูเฉพาะเทสต์ที่เกี่ยวกับ Idempotency และสัญญาแบบละเอียด</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 -m pytest -k "idempot or contract" -v -p no:warnings</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output (ตัดส่วนหัว)"><code>collecting ... collected 31 items / 23 deselected / 8 selected
+
+tests/test_api.py::test_borrow_missing_idempotency_key_400 PASSED        [ 12%]
+tests/test_api.py::test_idempotent_replay_same_loan PASSED               [ 25%]
+tests/test_api.py::test_idempotency_key_reused_with_other_body_422 PASSED [ 37%]
+tests/test_api.py::test_return_loan_twice_is_idempotent PASSED           [ 50%]
+tests/test_contract.py::test_spec_is_openapi_310 PASSED                  [ 62%]
+tests/test_contract.py::test_every_spec_operation_is_implemented PASSED  [ 75%]
+tests/test_contract.py::test_no_undocumented_routes PASSED               [ 87%]
+tests/test_contract.py::test_every_operation_documents_a_4xx PASSED      [100%]
+
+======================= 8 passed, 23 deselected in 0.59s =======================</code></pre>
+<p>พิสูจน์ว่าเทสต์สัญญาจับความผิดได้จริง: แก้ <code>operation_id</code> ของ returnLoan เป็น <code>returnBook</code> ชั่วคราว รันเทสต์ แล้วแก้คืน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">sed -i 's/operation_id="returnLoan"/operation_id="returnBook"/' app/main.py
+python3 -m pytest -q tests/test_contract.py -p no:warnings | grep -E "^E |passed|failed"
+sed -i 's/operation_id="returnBook"/operation_id="returnLoan"/' app/main.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>E       AssertionError: มีใน openapi.yaml แต่ยังไม่มี Route: [('POST', '/loans/{loan_id}/return', 'returnLoan')]
+E       assert not {('POST', '/loans/{loan_id}/return', 'returnLoan')}
+E       AssertionError: มี Route ที่ไม่ได้เขียนไว้ในสัญญา: [('POST', '/loans/{loan_id}/return', 'returnBook')]
+E       assert not {('POST', '/loans/{loan_id}/return', 'returnBook')}
+2 failed, 2 passed in 0.53s</code></pre>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><ul>
+<li>ถ้าเห็น <code>ModuleNotFoundError: No module named 'app'</code> แปลว่ารัน pytest จากโฟลเดอร์อื่น ให้ <code>cd ~/projects/library-api-spec</code> แล้วใช้ <code>python3 -m pytest</code> (แบบ <code>-m</code> จะเพิ่มโฟลเดอร์ปัจจุบันเข้า <code>sys.path</code>)</li>
+<li>ถ้าเทสต์ผ่านเมื่อรันทีละข้อแต่ล้มเมื่อรันทั้งหมด แปลว่าข้อมูลรั่วข้ามเทสต์ ตรวจว่า fixture เรียก <code>store.reset()</code> และเป็น <code>autouse=True</code></li>
+</ul></div>
+</li>
+<li>
+<h4>Step 8: ตรวจรับงานด้วย Smoke Test ทั้งกับ Mock และ Server จริง</h4>
+<p>นี่คือขั้นตรวจรับ (Verification) ของโปรเจกต์ สคริปต์เดียวใช้ได้กับทั้งสองเป้าหมาย ทีม Frontend รันกับ Mock เพื่อยืนยันว่าเข้าใจสัญญาตรงกัน และทีม Backend รันกับ Server จริงหลัง Deploy ทุกครั้ง เคล็ดลับคือส่ง Header <code>Prefer</code> ที่ Prism เข้าใจ ซึ่ง Server จริงจะไม่สนใจ</p>
+<pre class="code" data-env="file" data-label="Bash · scripts/smoke.sh"><code class="language-bash">#!/usr/bin/env bash
+# Smoke test ที่รันได้ทั้งกับ Mock (Prism :4010) และ Server จริง (FastAPI :8000)
+# วิธีใช้: BASE_URL=http://127.0.0.1:4010 ./scripts/smoke.sh
+set -euo pipefail
+
+BASE_URL="${BASE_URL:-http://127.0.0.1:8000}"
+# ถ้าไม่ได้ส่ง TOKEN มา จะสร้างให้ด้วย make_token.py (ต้องมี JWT_SECRET และเปิด venv แล้ว)
+TOKEN="${TOKEN:-$(python3 "$(dirname "$0")/make_token.py" --sub mb_0001 --scope 'books:write loans:write')}"
+FAILED=0
+
+# check &lt;ชื่อการทดสอบ&gt; &lt;status ที่คาดหวัง&gt; &lt;อาร์กิวเมนต์ที่เหลือส่งให้ curl&gt;
+check() {
+  local name="$1" expected="$2"
+  shift 2
+  local actual
+  actual=$(curl -s -o /dev/null -w '%{http_code}' "$@" || true)
+  if [[ "$actual" == "$expected" ]]; then
+    printf 'PASS  %-38s %s\n' "$name" "$actual"
+  else
+    printf 'FAIL  %-38s expected %s got %s\n' "$name" "$expected" "$actual"
+    FAILED=1
+  fi
+}
+
+echo "Smoke test -&gt; $BASE_URL"
+check "list books"                    200 "$BASE_URL/books?limit=2"
+check "get one book"                  200 "$BASE_URL/books/bk_0001"
+# Prefer: code=404 มีผลกับ Prism เท่านั้น Server จริงจะไม่สนใจ Header นี้
+check "unknown book is 404"           404 -H 'Prefer: code=404' "$BASE_URL/books/bk_9999"
+check "limit over 100 is 422"         422 "$BASE_URL/books?limit=500"
+check "create book without token"     401 -X POST -H 'Content-Type: application/json' \
+      -d '{"title":"X","author":"Y","isbn":"9786160000042","published_year":2026}' "$BASE_URL/books"
+check "create book invalid isbn"      422 -X POST -H "Authorization: Bearer $TOKEN" \
+      -H 'Content-Type: application/json' \
+      -d '{"title":"X","author":"Y","isbn":"123","published_year":2026}' "$BASE_URL/books"
+# ใช้ Idempotency-Key ตายตัว: รันซ้ำกี่รอบก็ได้ 201 รายการเดิม ไม่ยืมซ้ำ
+check "borrow with idempotency key"   201 -X POST -H "Authorization: Bearer $TOKEN" \
+      -H 'Idempotency-Key: smoke-test-0001' -H 'Content-Type: application/json' \
+      -d '{"book_id":"bk_0001","member_id":"mb_0001"}' "$BASE_URL/loans"
+check "own loans"                     200 -H "Authorization: Bearer $TOKEN" "$BASE_URL/members/mb_0001/loans"
+check "other member loans (BOLA)"     403 -H 'Prefer: code=403' -H "Authorization: Bearer $TOKEN" \
+      "$BASE_URL/members/mb_0002/loans"
+
+if [[ "$FAILED" -ne 0 ]]; then
+  echo "RESULT: FAIL"
+  exit 1
+fi
+echo "RESULT: ALL PASS"</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td class="nw"><code>set -euo pipefail</code></td><td>หยุดเมื่อคำสั่งล้ม, เมื่อใช้ตัวแปรที่ไม่ได้ตั้ง และเมื่อคำสั่งใน pipe ตัวใดล้ม</td></tr>
+<tr><td class="nw"><code>${BASE_URL:-http://127.0.0.1:8000}</code></td><td>ค่าเริ่มต้นคือ Server จริง เปลี่ยนเป็น Mock ได้ด้วยการตั้งตัวแปรตอนรัน</td></tr>
+<tr><td class="nw"><code>TOKEN="${TOKEN:-$(python3 ...)}"</code></td><td>ส่ง Token มาเองก็ได้ ถ้าไม่ส่งจะสร้างด้วย make_token.py</td></tr>
+<tr><td class="nw"><code>-w '%{http_code}'</code> + <code>-o /dev/null</code></td><td>ทิ้ง Body แล้วพิมพ์แค่ Status Code ถ้าต่อ Server ไม่ได้จะได้ <code>000</code></td></tr>
+<tr><td class="nw"><code>|| true</code></td><td>กันไม่ให้ <code>set -e</code> หยุดสคริปต์เมื่อ curl ล้ม เราอยากเห็น FAIL ครบทุกข้อ</td></tr>
+<tr><td class="nw"><code>Idempotency-Key: smoke-test-0001</code></td><td>ใช้ key ตายตัว รันซ้ำกี่รอบก็ได้ 201 รายการยืมเดิม ไม่ไปยืมหนังสือซ้ำจนเจอ 409</td></tr>
+<tr><td class="nw"><code>exit 1</code></td><td>คืนค่าไม่ใช่ศูนย์เมื่อมีข้อใด FAIL ให้ CI หรือสคริปต์ Deploy รู้ว่าต้องหยุด</td></tr>
+</tbody></table></div>
+<p>ให้สิทธิ์รันแล้วทดสอบ (เปิด Server จริงไว้ใน Terminal 1 และ <code>npm run mock</code> ไว้ใน Terminal 3 ส่วน Terminal 2 ต้อง export <code>JWT_SECRET</code> ค่าเดียวกับ Terminal 1)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 2"><code class="language-bash">chmod +x scripts/smoke.sh
+./scripts/smoke.sh; echo "exit=$?"
+BASE_URL=http://127.0.0.1:4010 ./scripts/smoke.sh; echo "exit=$?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Smoke test -&gt; http://127.0.0.1:8000
+PASS  list books                             200
+PASS  get one book                           200
+PASS  unknown book is 404                    404
+PASS  limit over 100 is 422                  422
+PASS  create book without token              401
+PASS  create book invalid isbn               422
+PASS  borrow with idempotency key            201
+PASS  own loans                              200
+PASS  other member loans (BOLA)              403
+RESULT: ALL PASS
+exit=0
+Smoke test -&gt; http://127.0.0.1:4010
+PASS  list books                             200
+PASS  get one book                           200
+PASS  unknown book is 404                    404
+PASS  limit over 100 is 422                  422
+PASS  create book without token              401
+PASS  create book invalid isbn               422
+PASS  borrow with idempotency key            201
+PASS  own loans                              200
+PASS  other member loans (BOLA)              403
+RESULT: ALL PASS
+exit=0</code></pre>
+<p>ผลทั้งสองฝั่งตรงกันทุกข้อ แปลว่า Mock ที่ Frontend ใช้กับ Server จริงพูดภาษาเดียวกันในกรณีหลัก (ข้อมูลของ Server จริงอยู่ในหน่วยความจำ และใน Step 6 เรายืม bk_0001 ไปแล้ว ถ้าไม่รีสตาร์ต ข้อ borrow จะได้ 409 แทน 201 ให้กด <kbd>Ctrl</kbd>+<kbd>C</kbd> ใน Terminal 1 แล้วรัน uvicorn ใหม่ก่อน smoke test ครั้งแรก หลังจากนั้นรันซ้ำกี่รอบก็ผ่านเพราะ key ตายตัว) ลองดูหน้าตาเมื่อพังด้วยการชี้ไปที่ Port ที่ไม่มี Server</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 2"><code class="language-bash">BASE_URL=http://127.0.0.1:9999 ./scripts/smoke.sh; echo "exit=$?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Smoke test -&gt; http://127.0.0.1:9999
+FAIL  list books                             expected 200 got 000
+FAIL  get one book                           expected 200 got 000
+FAIL  unknown book is 404                    expected 404 got 000
+FAIL  limit over 100 is 422                  expected 422 got 000
+FAIL  create book without token              expected 401 got 000
+FAIL  create book invalid isbn               expected 422 got 000
+FAIL  borrow with idempotency key            expected 201 got 000
+FAIL  own loans                              expected 200 got 000
+FAIL  other member loans (BOLA)              expected 403 got 000
+RESULT: FAIL
+exit=1</code></pre>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>ถึงตรงนี้โปรเจกต์ต้องผ่านครบ 4 ด่าน: <code>npm run lint</code> ไม่มี error, <code>python3 -m pytest -q</code> ผ่าน 31 ข้อ, <code>./scripts/smoke.sh</code> ได้ <code>RESULT: ALL PASS</code> กับ Server จริง และได้ผลเดียวกันกับ Mock ที่ Port 4010</p></div>
+</li>
+<li>
+<h4>Step 9: เขียน README และสร้างเอกสาร API ด้วย Redoc</h4>
+<p>README คือหน้าแรกที่ผู้สัมภาษณ์เห็นเมื่อเปิด Repository ต้องตอบให้ได้ภายใน 30 วินาทีว่าโปรเจกต์นี้คืออะไร รันอย่างไร และมี Endpoint อะไรบ้าง ใช้ Template ด้านล่างนี้ แล้วแก้ชื่อ อีเมล และรายละเอียดให้เป็นของคุณ</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Markdown · README.md"><code class="language-markdown"># Library API Spec
+
+สัญญา (Contract) ของ REST API ระบบห้องสมุด ออกแบบแบบ **Contract-first** ด้วย OpenAPI 3.1
+พร้อม Lint (Spectral), Mock Server (Prism) และ Reference Implementation (FastAPI)
+
+## ทำอะไรได้บ้าง
+
+- `openapi.yaml` สเปก OpenAPI 3.1.0 ของ books, members, loans
+- Error ทุกตัวเป็น `application/problem+json` (RFC 9457)
+- Cursor Pagination, ETag / If-None-Match / If-Match, Idempotency-Key, Bearer JWT
+- เทสต์ 31 ข้อด้วย pytest และ smoke test ที่รันได้ทั้งกับ Mock และ Server จริง
+
+## เริ่มใช้งาน
+
+```bash
+# Python 3.12+ และ Node.js 24 LTS
+python3 -m venv .venv &amp;&amp; source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+npm install
+
+npm run lint                      # ตรวจสเปก
+npm run mock                      # Mock Server ที่ http://127.0.0.1:4010
+
+export JWT_SECRET=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')
+uvicorn app.main:app --port 8000  # Server จริงที่ http://127.0.0.1:8000
+
+python3 -m pytest -q              # เทสต์ทั้งหมด
+BASE_URL=http://127.0.0.1:4010 ./scripts/smoke.sh
+```
+
+## Endpoints
+
+| Method | Path | operationId | Auth |
+|---|---|---|---|
+| GET | /books | listBooks | ไม่ต้อง |
+| POST | /books | createBook | books:write |
+| GET | /books/{book_id} | getBook | ไม่ต้อง |
+| PATCH | /books/{book_id} | updateBook | books:write |
+| DELETE | /books/{book_id} | deleteBook | books:write |
+| POST | /members | createMember | members:write |
+| GET | /members/{member_id} | getMember | เจ้าของหรือ admin |
+| GET | /members/{member_id}/loans | listMemberLoans | เจ้าของหรือ admin |
+| POST | /loans | createLoan | loans:write + Idempotency-Key |
+| POST | /loans/{loan_id}/return | returnLoan | loans:write |
+
+## Error Catalog
+
+ทุก `type` ขึ้นต้นด้วย `https://example.com/problems/`
+
+| slug | status | เมื่อไร |
+|---|---|---|
+| bad-request | 400 | cursor เสีย หรือไม่ส่ง Idempotency-Key |
+| unauthorized | 401 | ไม่มี token, token ผิด หรือหมดอายุ |
+| forbidden | 403 | scope ไม่พอ หรือเข้าถึงข้อมูลคนอื่น (BOLA) |
+| book-not-found / member-not-found / loan-not-found | 404 | ไม่พบ Resource |
+| not-found / method-not-allowed | 404 / 405 | Path หรือ Method ที่ไม่มีในสัญญา |
+| book-unavailable | 409 | หนังสือถูกยืมอยู่ |
+| loan-limit-reached | 409 | ยืมครบ 3 เล่มแล้ว |
+| precondition-failed | 412 | If-Match ไม่ตรงกับ ETag ปัจจุบัน |
+| validation-error | 422 | Body หรือ Query ไม่ผ่านการตรวจสอบ |
+| idempotency-key-reused | 422 | ใช้ key เดิมกับ Body อื่น |
+| rate-limited | 429 | เรียกถี่เกินกำหนด (มีในสเปก ยังไม่ทำใน Reference) |
+| internal-error | 500 | ข้อผิดพลาดภายใน (มี trace_id) |
+
+## เอกสาร API
+
+- Redoc แบบไฟล์เดียว: `npm run docs` แล้วเปิด `docs/index.html`
+- Swagger UI ของ Reference Implementation: http://127.0.0.1:8000/docs
+
+## License
+
+MIT</code></pre>
+<p>สร้างเอกสาร API แบบไฟล์ HTML เดียวด้วย Redoc ผ่าน npm script ที่เตรียมไว้ (ขั้นนี้ไม่บังคับ แต่ทำให้คนที่ไม่ได้รันโค้ดอ่านสัญญาได้สวยงาม)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">npm run docs
+ls -la docs</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output (ท้ายผลลัพธ์)"><code>Prerendering docs
+
+🎉 bundled successfully in: docs/index.html (197 KiB) [⏱ 8ms].
+total 208
+drwxr-xr-x 2 somchai somchai   4096 Oct 21 22:18 .
+drwxr-xr-x 8 somchai somchai   4096 Oct 21 22:17 ..
+-rw-r--r-- 1 somchai somchai 201497 Oct 21 22:18 index.html</code></pre>
+<p><span class="muted small">ครั้งแรก npx จะดาวน์โหลด <code>@redocly/cli</code> ก่อนและแสดงกรอบข้อความแนะนำของ Redocly ขนาดไฟล์ เวลา และวันที่จะต่างไปตามเครื่อง</span></p>
+<p>เปิดดูจาก Windows ได้ด้วยคำสั่ง <code>explorer.exe docs</code> แล้วดับเบิลคลิก <code>index.html</code> คุณจะเห็นเมนูแยกตาม tag books, members, loans พร้อม Schema และ Example ทุกตัวที่เขียนไว้</p>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ใส่ Error Catalog ไว้ใน README เสมอ ทีม Frontend และทีม Support จะใช้ตารางนี้บ่อยที่สุด</li>
+<li>บอกตรง ๆ ว่าส่วนไหนยังไม่ได้ทำ (เช่น rate-limited) ความซื่อตรงแบบนี้ทำให้ผู้สัมภาษณ์เชื่อถือส่วนที่เหลือ</li>
+<li>ทุกคำสั่งใน README ต้องคัดลอกไปรันได้จริงทันที ให้ลองทำตาม README ของตัวเองในโฟลเดอร์ใหม่หนึ่งรอบก่อนส่ง</li>
+</ul></div>
+</li>
+<li>
+<h4>Step 10: Commit และ Push ขึ้น GitHub</h4>
+<p>ใช้ความรู้จาก <a data-t="17"></a> ตรวจก่อนว่าไม่มีไฟล์ที่ไม่ควรขึ้น (venv, node_modules, .env) แล้วจึง Commit</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/library-api-spec
+git add .
+git status --short</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>A  .gitignore
+A  .spectral.yaml
+A  README.md
+A  app/__init__.py
+A  app/auth.py
+A  app/main.py
+A  app/models.py
+A  app/problems.py
+A  app/store.py
+A  docs/index.html
+A  openapi.yaml
+A  package-lock.json
+A  package.json
+A  requirements.txt
+A  scripts/make_token.py
+A  scripts/smoke.sh
+A  tests/__init__.py
+A  tests/test_api.py
+A  tests/test_contract.py</code></pre>
+<p>ต้องไม่เห็น <code>.venv/</code>, <code>node_modules/</code> หรือ <code>__pycache__/</code> ในรายการ ถ้าเห็นแปลว่า <code>.gitignore</code> ผิด ให้แก้แล้วใช้ <code>git rm -r --cached ชื่อโฟลเดอร์</code> ก่อน Commit</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git commit -m "Add Library API spec, mock and reference implementation"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output (3 บรรทัดแรก)"><code>[main (root-commit) a9bde0b] Add Library API spec, mock and reference implementation
+ 19 files changed, 7640 insertions(+)
+ create mode 100644 .gitignore</code></pre>
+<p><span class="muted small">Commit hash และจำนวนบรรทัดจะต่างไปถ้าคุณแก้ README หรือไฟล์อื่น</span></p>
+<p>สร้าง Repository ว่างชื่อ <code>library-api-spec</code> บน github.com (ไม่ต้องติ๊กสร้าง README เพราะเรามีแล้ว) แล้วเชื่อมกับเครื่องเรา ถ้าตั้งค่า SSH Key ไว้แล้วตาม Topic 17 ใช้คำสั่งนี้ (เปลี่ยน <code>somchai</code> เป็น Username ของคุณ)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git remote add origin git@github.com:somchai/library-api-spec.git
+git push -u origin main</code></pre>
+<p>หรือถ้าติดตั้ง GitHub CLI และ <code>gh auth login</code> ไว้แล้ว สร้างและ Push ได้ในคำสั่งเดียว</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">gh repo create library-api-spec --public --source=. --remote=origin --push</code></pre>
+<p>เปิดหน้า Repository บน GitHub แล้วตรวจว่า README แสดงตาราง Endpoint และ Error Catalog ถูกต้อง จากนั้นเพิ่ม Description และ Topics ของ Repository เช่น <code>openapi</code>, <code>rest-api</code>, <code>fastapi</code>, <code>api-design</code> เพื่อให้ค้นเจอง่าย</p>
+<div class="callout sec"><span class="c-label sec">Security</span><p>ก่อน Push ทุกครั้งให้ค้นหา Secret ที่อาจหลุดเข้ามาด้วย <code>git grep -n "JWT_SECRET="</code> ต้องไม่เจอค่าจริงในไฟล์ใด (เจอได้แค่ในข้อความวิธีสร้าง) ถ้าเผลอ Push Secret ขึ้นไปแล้ว ให้ถือว่า Secret นั้นรั่ว และสร้างค่าใหม่ทันที การลบ Commit ทีหลังไม่พอ</p></div>
+</li>
+</ol>
+
+<h4>ไอเดียต่อยอด</h4>
+<ol>
+<li><strong>Rate Limiting จริง</strong>: เพิ่ม Dependency แบบ Fixed Window หรือ Token Bucket ใน <code>create_loan</code> ให้ตอบ 429 <code>rate-limited</code> พร้อม <code>Retry-After</code> ตามที่สเปกสัญญาไว้แล้ว และเพิ่มเทสต์</li>
+<li><strong>CI ด้วย GitHub Actions</strong>: เขียน Workflow ที่รัน <code>npm ci</code>, <code>npm run lint</code>, <code>pip install -r requirements.txt</code> และ <code>pytest</code> ทุกครั้งที่ Push หรือเปิด Pull Request</li>
+<li><strong>ตรวจ Breaking Change อัตโนมัติ</strong>: เก็บ openapi.yaml เวอร์ชันก่อนหน้าไว้ แล้วใช้เครื่องมือ Diff ของ OpenAPI ใน CI เพื่อเตือนเมื่อมีการลบฟิลด์ เปลี่ยน type หรือเพิ่ม required</li>
+<li><strong>ฐานข้อมูลจริง</strong>: เปลี่ยน <code>store.py</code> เป็น SQLite หรือ PostgreSQL 16 (ความรู้จาก Topic 14) โดยไม่ต้องแก้ openapi.yaml แม้แต่บรรทัดเดียว นี่คือพลังของ Contract-first</li>
+<li><strong>Webhook <code>loan.overdue</code></strong>: เพิ่ม <code>webhooks</code> ใน OpenAPI 3.1 แล้วส่ง Event ที่เซ็น HMAC ตาม Lab c12 เมื่อเลยกำหนดคืน</li>
+<li><strong>Cursor Pagination ใน listMemberLoans</strong>: เพิ่ม Limit และ Cursor ให้ endpoint นี้ จะเห็นว่า Envelope ที่มี <code>next_cursor</code> ไว้ตั้งแต่แรกทำให้เพิ่มได้โดยไม่ Breaking</li>
+<li><strong>Contract Test แบบลึกขึ้น</strong>: ตรวจทุก Response จริงในเทสต์ว่าผ่าน JSON Schema ใน <code>components/schemas</code> ด้วย ไม่ใช่แค่เทียบ operationId</li>
+<li><strong>Deploy เป็นตัวอย่างสาธารณะ</strong>: สร้าง Docker image ของ Reference Implementation และเผยแพร่ <code>docs/index.html</code> ผ่าน GitHub Pages ใส่ลิงก์ไว้ใน README</li>
+</ol>
+<h3 id="s8-4-cheat">Cheat Sheet</h3>
+<p>สรุปสิ่งที่ใช้บ่อยที่สุดในการออกแบบและทดสอบ API แยกตามหมวด ทุกตัวอย่างอ้างอิง Library API ในหัวข้อนี้</p>
+
+<h4>HTTP Methods และ Status Codes</h4>
+<div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td class="nw"><code>GET</code></td><td>อ่านข้อมูล Safe และ Idempotent ห้ามเปลี่ยนสถานะ</td><td><code>GET /books/bk_0001</code></td></tr>
+<tr><td class="nw"><code>POST</code></td><td>สร้าง Resource หรือสั่ง Action ไม่ Idempotent (ใช้ Idempotency-Key ช่วย)</td><td><code>POST /loans</code></td></tr>
+<tr><td class="nw"><code>PUT</code></td><td>แทนที่ทั้งก้อน Idempotent</td><td><code>PUT /books/bk_0001</code></td></tr>
+<tr><td class="nw"><code>PATCH</code></td><td>แก้บางฟิลด์ ใช้คู่กับ If-Match กันเขียนทับ</td><td><code>PATCH /books/bk_0001</code> <code>{"status":"lost"}</code></td></tr>
+<tr><td class="nw"><code>DELETE</code></td><td>ลบ Idempotent (ผลต่อระบบเหมือนเดิม แม้ครั้งที่สองได้ 404)</td><td><code>DELETE /books/bk_0002</code> → 204</td></tr>
+<tr><td class="nw"><code>200</code> / <code>201</code> / <code>204</code></td><td>สำเร็จ / สร้างแล้ว (คู่กับ Location) / สำเร็จแต่ไม่มี Body</td><td><code>201</code> + <code>Location: /loans/ln_0002</code></td></tr>
+<tr><td class="nw"><code>304</code></td><td>ข้อมูลไม่เปลี่ยนจาก ETag ที่ Client มี</td><td><code>If-None-Match: "d7fdb2b050457153"</code></td></tr>
+<tr><td class="nw"><code>400</code> / <code>422</code></td><td>Request ผิดรูปแบบ / ข้อมูลไม่ผ่าน Validation</td><td>cursor เสีย → 400, ISBN ผิด → 422</td></tr>
+<tr><td class="nw"><code>401</code> / <code>403</code></td><td>ไม่รู้ว่าเป็นใคร (ต้องมี WWW-Authenticate) / รู้แต่ไม่มีสิทธิ์</td><td>ไม่มี Token → 401, ดูข้อมูลคนอื่น → 403</td></tr>
+<tr><td class="nw"><code>404</code> / <code>405</code></td><td>ไม่พบ Resource / Method นี้ใช้กับ Path นี้ไม่ได้ (ส่ง Allow กลับ)</td><td><code>GET /books/bk_9999</code> → 404</td></tr>
+<tr><td class="nw"><code>409</code> / <code>412</code></td><td>ขัดกฎธุรกิจ / If-Match ไม่ตรง ETag ปัจจุบัน</td><td>ยืมเล่มที่ถูกยืมอยู่ → 409</td></tr>
+<tr><td class="nw"><code>429</code> + <code>Retry-After</code></td><td>เรียกถี่เกินกำหนด บอกจำนวนวินาทีที่ควรรอ</td><td><code>Retry-After: 10</code></td></tr>
+</tbody></table></div>
+
+<h4>curl และ jq</h4>
+<div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td class="nw"><code>curl -i URL</code></td><td>แสดง Status Line และ Header พร้อม Body</td><td><code>curl -i http://127.0.0.1:8000/books</code></td></tr>
+<tr><td class="nw"><code>curl -v URL</code></td><td>ดู Request (<code>&gt;</code>) และ Response (<code>&lt;</code>) แบบละเอียด ใช้ Debug</td><td><code>curl -v http://127.0.0.1:8000/books/bk_0001</code></td></tr>
+<tr><td class="nw"><code>curl -sI URL</code></td><td>ส่ง HEAD ดูเฉพาะ Header แบบเงียบ</td><td><code>curl -sI http://127.0.0.1:4010/books</code></td></tr>
+<tr><td class="nw"><code>-X METHOD -H ... -d '...'</code></td><td>กำหนด Method, Header และ Body JSON</td><td><code>-X POST -H 'Content-Type: application/json' -d '{"book_id":"bk_0001","member_id":"mb_0001"}'</code></td></tr>
+<tr><td class="nw"><code>-H "Authorization: Bearer $TOKEN"</code></td><td>ส่ง JWT ไปกับ Request</td><td><code>TOKEN=$(python3 scripts/make_token.py)</code></td></tr>
+<tr><td class="nw"><code>-w '%{http_code}' -o /dev/null</code></td><td>พิมพ์แค่ Status Code ใช้ในสคริปต์</td><td><code>curl -s -o /dev/null -w '%{http_code}' URL</code></td></tr>
+<tr><td class="nw"><code>jq '.data[0].title'</code></td><td>ดึงค่าจาก JSON (ห้ามใช้กับผลของ <code>curl -i</code> เพราะมี Header ปน)</td><td><code>curl -s URL | jq '.data[0].title'</code></td></tr>
+<tr><td class="nw"><code>jq -r '.next_cursor'</code></td><td>ดึงค่าเป็นข้อความดิบไม่มี Quote เอาไปใส่ตัวแปรได้</td><td><code>NEXT=$(curl -s URL | jq -r '.next_cursor')</code></td></tr>
+<tr><td class="nw"><code>jq -c '.data[] | {id, status}'</code></td><td>เลือกบางฟิลด์ของทุกรายการ พิมพ์บรรทัดละรายการ</td><td><code>{"id":"bk_0001","status":"available"}</code></td></tr>
+</tbody></table></div>
+
+<h4>OpenAPI 3.1 (YAML)</h4>
+<div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td class="nw"><code>openapi: 3.1.0</code></td><td>บรรทัดแรกของสเปก ใช้ JSON Schema 2020-12</td><td><code>openapi: 3.1.0</code></td></tr>
+<tr><td class="nw"><code>paths./books.get.operationId</code></td><td>ชื่อเฉพาะของ Operation ใช้เป็นชื่อฟังก์ชันใน SDK</td><td><code>operationId: listBooks</code></td></tr>
+<tr><td class="nw"><code>parameters: in: path|query|header</code></td><td>ประกาศ Parameter และตำแหน่ง</td><td><code>- name: limit</code> / <code>in: query</code></td></tr>
+<tr><td class="nw"><code>requestBody.content</code></td><td>บอก Media Type และ Schema ของ Body</td><td><code>application/json: schema: $ref: ...</code></td></tr>
+<tr><td class="nw"><code>responses: '201':</code></td><td>Status Code ต้องครอบ Quote เพราะเป็น Key แบบ String</td><td><code>'404': $ref: '#/components/responses/NotFound'</code></td></tr>
+<tr><td class="nw"><code>$ref: '#/components/...'</code></td><td>อ้างถึงของที่นิยามไว้ครั้งเดียว</td><td><code>$ref: '#/components/schemas/Book'</code></td></tr>
+<tr><td class="nw"><code>type: [string, 'null']</code></td><td>ฟิลด์ที่เป็น null ได้ (แทน <code>nullable: true</code> ของ 3.0)</td><td><code>next_cursor</code>, <code>returned_at</code></td></tr>
+<tr><td class="nw"><code>additionalProperties: false</code></td><td>ห้ามส่งฟิลด์เกิน กัน Mass Assignment</td><td>ใน <code>BookCreate</code></td></tr>
+<tr><td class="nw"><code>readOnly: true</code></td><td>ฟิลด์ที่ Server สร้าง Client ไม่ต้องส่ง</td><td><code>id</code></td></tr>
+<tr><td class="nw"><code>examples: ชื่อ: value:</code></td><td>Example ที่มีชื่อ Prism เลือกได้ด้วย <code>Prefer: example=ชื่อ</code></td><td><code>book_not_found</code></td></tr>
+<tr><td class="nw"><code>securitySchemes</code> + <code>security</code></td><td>นิยามวิธียืนยันตัวตน แล้วผูกกับ Operation</td><td><code>type: http</code>, <code>scheme: bearer</code>, <code>bearerFormat: JWT</code></td></tr>
+</tbody></table></div>
+
+<h4>Spectral, Prism และ Redoc</h4>
+<div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td class="nw"><code>npx spectral lint FILE</code></td><td>ตรวจสเปกตามกฎใน <code>.spectral.yaml</code></td><td><code>npx spectral lint openapi.yaml</code></td></tr>
+<tr><td class="nw"><code>extends: ["spectral:oas"]</code></td><td>เปิดชุดกฎมาตรฐานของ OpenAPI</td><td>บรรทัดแรกของ <code>.spectral.yaml</code></td></tr>
+<tr><td class="nw"><code>given</code> / <code>then.function</code></td><td>เลือกส่วนของเอกสารด้วย JSONPath แล้วตรวจด้วยฟังก์ชัน</td><td><code>given: $..properties[*]~</code> + <code>casing: snake</code></td></tr>
+<tr><td class="nw"><code>--fail-severity=warn</code></td><td>ให้ Lint ล้มตั้งแต่ระดับ warning (เข้มกว่าค่าเริ่มต้น)</td><td><code>npx spectral lint openapi.yaml --fail-severity=warn</code></td></tr>
+<tr><td class="nw"><code>prism mock FILE -h HOST -p PORT</code></td><td>เปิด Mock Server จากสเปก</td><td><code>npx prism mock openapi.yaml -h 127.0.0.1 -p 4010</code></td></tr>
+<tr><td class="nw"><code>Prefer: code=404</code></td><td>ขอ Status Code ที่ต้องการจาก Prism</td><td><code>curl -H 'Prefer: code=404' URL</code></td></tr>
+<tr><td class="nw"><code>Prefer: example=ชื่อ</code></td><td>เลือก Example ที่มีชื่อ</td><td><code>Prefer: code=409, example=loan_limit_reached</code></td></tr>
+<tr><td class="nw"><code>prism mock -d</code></td><td>Dynamic Mocking สร้างข้อมูลสุ่มตาม Schema แทน Example</td><td><code>npx prism mock -d openapi.yaml</code></td></tr>
+<tr><td class="nw"><code>redocly build-docs</code></td><td>สร้างเอกสาร HTML ไฟล์เดียว</td><td><code>npx -y @redocly/cli@2.67.1 build-docs openapi.yaml -o docs/index.html</code></td></tr>
+</tbody></table></div>
+
+<h4>FastAPI, pytest และความปลอดภัย</h4>
+<div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td class="nw"><code>uvicorn app.main:app --port 8000</code></td><td>รัน FastAPI (เพิ่ม <code>--reload</code> ตอนพัฒนา)</td><td><code>uvicorn app.main:app --port 8000 --reload</code></td></tr>
+<tr><td class="nw"><code>@app.post(..., status_code=201, operation_id=...)</code></td><td>กำหนด Status ตั้งต้นและ operationId ให้ตรงสเปก</td><td><code>operation_id="createLoan"</code></td></tr>
+<tr><td class="nw"><code>Query(20, ge=1, le=100)</code></td><td>ค่าเริ่มต้นและขอบเขตของ Query Parameter (เกินได้ 422)</td><td><code>limit: int = Query(20, ge=1, le=100)</code></td></tr>
+<tr><td class="nw"><code>Header(None, alias="Idempotency-Key")</code></td><td>อ่าน Header ที่ชื่อมีขีด</td><td><code>idempotency_key: str | None = Header(...)</code></td></tr>
+<tr><td class="nw"><code>Depends(require_scope("loans:write"))</code></td><td>บังคับยืนยันตัวตนและสิทธิ์ก่อนเข้า Route</td><td><code>user: dict = Depends(...)</code></td></tr>
+<tr><td class="nw"><code>@app.exception_handler(StarletteHTTPException)</code></td><td>แปลง 404/405 ของ Router เป็น problem+json</td><td>ใน <code>problems.py</code></td></tr>
+<tr><td class="nw"><code>jwt.decode(t, key, algorithms=["HS256"], audience=..., issuer=...)</code></td><td>ตรวจ JWT แบบล็อก Algorithm และตรวจ aud, iss, exp</td><td>ใน <code>auth.py</code></td></tr>
+<tr><td class="nw"><code>python3 -m pytest -q</code> / <code>-k ชื่อ -v</code></td><td>รันเทสต์ทั้งหมดแบบย่อ / เลือกบางข้อแบบละเอียด</td><td><code>python3 -m pytest -k borrow -v</code></td></tr>
+<tr><td class="nw"><code>monkeypatch.setenv("JWT_SECRET", ...)</code></td><td>ตั้ง Environment Variable เฉพาะในเทสต์</td><td>ใน fixture <code>autouse=True</code></td></tr>
+<tr><td class="nw"><code>python3 -c 'import secrets; print(secrets.token_urlsafe(32))'</code></td><td>สร้าง Secret แบบสุ่มที่ปลอดภัย</td><td><code>export JWT_SECRET=$(...)</code></td></tr>
+<tr><td class="nw"><code>Content-Type: application/problem+json</code></td><td>Media Type ของ Error ตาม RFC 9457</td><td><code>{"type":..., "title":..., "status":404}</code></td></tr>
+</tbody></table></div>
+<h3 id="s8-4-interview">Interview Questions</h3>
+<p>คำถามที่พบบ่อยในการสัมภาษณ์ตำแหน่ง Backend, Full-stack และ AI Engineer ระดับ Junior ถึง Mid-level ลองตอบด้วยตัวเองก่อนเปิดดูแนวคำตอบ และพยายามยกตัวอย่างจาก Mini Project ของคุณเอง เพราะผู้สัมภาษณ์ชอบคำตอบที่มาจากประสบการณ์จริง</p>
+
+<details class="iq"><summary>1. (Junior–Mid) REST, GraphQL และ gRPC ต่างกันอย่างไร และจะเลือกใช้แบบไหนเมื่อไร</summary><div>
+<p><strong>แนวคำตอบ:</strong> ทั้งสามเป็นรูปแบบ (Style) ของ API ที่แก้ปัญหาต่างกัน</p>
+<ul>
+<li><strong>REST</strong>: มองทุกอย่างเป็น Resource ที่มี URL ของตัวเอง ใช้ HTTP Method และ Status Code ตามความหมายมาตรฐาน ได้ประโยชน์จาก HTTP Caching (ETag, Cache-Control) เครื่องมือเยอะ เรียกด้วย curl ได้ทันที และมี OpenAPI เป็นสัญญา เหมาะกับ Public API และระบบส่วนใหญ่</li>
+<li><strong>GraphQL</strong>: มี Endpoint เดียว Client เขียน Query ระบุฟิลด์ที่ต้องการเอง แก้ปัญหา Over-fetching และ Under-fetching เหมาะกับหน้าจอที่ต้องดึงข้อมูลหลายชนิดพร้อมกัน เช่น Mobile App แต่ต้องระวังเรื่อง Query ที่ซับซ้อนเกินไป (ต้องจำกัดความลึก) และ HTTP Caching ใช้ได้ยากกว่าเพราะส่วนใหญ่เป็น POST</li>
+<li><strong>gRPC</strong>: ใช้ Protocol Buffers บน HTTP/2 ข้อมูลเป็น Binary ขนาดเล็กและเร็ว มี Streaming สองทาง สร้างโค้ด Client/Server จากไฟล์ <code>.proto</code> เหมาะกับการคุยกันระหว่าง Microservice ภายในองค์กร ไม่เหมาะกับการเรียกตรงจาก Browser</li>
+</ul>
+<p><strong>จุดที่ทำให้คำตอบโดดเด่น:</strong> บอกว่าองค์กรใหญ่มักใช้ผสมกัน เช่น REST สำหรับ Public API, gRPC ระหว่าง Service ภายใน และ GraphQL เป็นชั้น Gateway ให้ Frontend และย้ำว่าไม่ว่าเลือกแบบไหน หลัก Contract-first ยังใช้ได้เหมือนกัน (OpenAPI, GraphQL Schema, ไฟล์ .proto)</p>
+</div></details>
+
+<details class="iq"><summary>2. (Mid) POST ไม่ Idempotent แล้วจะทำให้การยืมหนังสือหรือการจ่ายเงินปลอดภัยเมื่อ Client ต้อง Retry ได้อย่างไร</summary><div>
+<p><strong>แนวคำตอบ:</strong> ใช้ <strong>Idempotency-Key</strong>: Client สร้างค่าสุ่ม (เช่น UUID) หนึ่งค่าต่อหนึ่งการกระทำ แล้วส่งใน Header ทุกครั้งที่ Retry การกระทำนั้น Server เก็บ key คู่กับ hash ของ Body และผลลัพธ์ที่ส่งไป</p>
+<ol>
+<li>key ใหม่: ทำงานตามปกติ แล้วบันทึกผล</li>
+<li>key เดิม + Body เดิม: ไม่ทำซ้ำ ส่งผลเดิมกลับไป (ในโปรเจกต์ของผมใส่ Header <code>Idempotent-Replayed: true</code> ให้ด้วย)</li>
+<li>key เดิม + Body ต่าง: เป็นความผิดของ Client ตอบ 422 <code>idempotency-key-reused</code></li>
+</ol>
+<p><strong>รายละเอียดที่ควรพูดถึง:</strong> key ต้องแยกตาม Client (ผมใช้คู่ <code>(sub, key)</code>) ไม่งั้นคนสองคนที่บังเอิญได้ key ซ้ำจะเห็นผลของกันและกัน, key ต้องมีอายุ (เช่น 24 ชั่วโมง) ไม่เก็บถาวร, ในระบบที่มีหลาย Server ต้องเก็บไว้ในที่กลางอย่าง Redis หรือฐานข้อมูล และต้องกันกรณีสอง Request ที่ใช้ key เดียวกันมาถึงพร้อมกันด้วย Lock หรือ Unique Constraint ฝั่ง Client ควร Retry แบบ Exponential Backoff พร้อม Jitter และเคารพ <code>Retry-After</code></p>
+</div></details>
+
+<details class="iq"><summary>3. (Junior–Mid) Offset Pagination กับ Cursor Pagination ต่างกันอย่างไร ถ้าออกแบบ Feed ที่มีข้อมูลเพิ่มตลอดเวลาจะเลือกแบบไหน</summary><div>
+<p><strong>แนวคำตอบ:</strong></p>
+<ul>
+<li><strong>Offset</strong> (<code>?limit=20&amp;offset=40</code>): เข้าใจง่าย กระโดดไปหน้าที่ต้องการได้ และบอกจำนวนทั้งหมดได้ แต่ถ้ามีรายการใหม่แทรกเข้ามาระหว่างที่ผู้ใช้เลื่อน รายการจะซ้ำหรือหายข้ามหน้า และฐานข้อมูลต้องนับข้ามแถวทิ้งทุกครั้ง ยิ่ง offset มากยิ่งช้า</li>
+<li><strong>Cursor</strong> (<code>?limit=20&amp;cursor=...</code>): Server ส่ง <code>next_cursor</code> ที่จำตำแหน่งรายการสุดท้ายไว้ หน้าถัดไปคือ "รายการที่อยู่หลังตำแหน่งนี้" จึงไม่ซ้ำไม่หายเมื่อข้อมูลเปลี่ยน และ Query ใช้ Index ได้เร็วคงที่ แต่กระโดดไปหน้า 50 ตรง ๆ ไม่ได้</li>
+</ul>
+<p>สำหรับ Feed เลือก <strong>Cursor</strong> ส่วนหน้าจอ Admin ที่ต้องมีเลขหน้าและข้อมูลไม่ค่อยเปลี่ยนใช้ Offset ได้</p>
+<p><strong>จุดที่ทำให้คำตอบโดดเด่น:</strong> การเรียงต้องมีตัวตัดสินที่ไม่ซ้ำเสมอ (เช่น <code>(published_year, id)</code>) ไม่งั้นรายการที่ค่าเท่ากันจะกระโดด, Cursor ต้องเป็นค่าทึบ (Opaque) ที่ Client ห้ามแกะ, ต้องจำกัด <code>limit</code> สูงสุด (ผมใช้ 100 เกินได้ 422) เพื่อกัน OWASP API4 และควรส่ง Header <code>Link: rel="next"</code> ด้วย</p>
+</div></details>
+
+<details class="iq"><summary>4. (Mid) JWT เป็น Stateless แล้วถ้าต้องการยกเลิก (Revoke) Token ของผู้ใช้ที่โดนขโมยบัญชีจะทำอย่างไร</summary><div>
+<p><strong>แนวคำตอบ:</strong> Server ตรวจ JWT ด้วยลายเซ็นอย่างเดียว จึงยกเลิก Token ที่ออกไปแล้วไม่ได้โดยตรง ต้องออกแบบรองรับตั้งแต่แรก</p>
+<ul>
+<li><strong>Access Token อายุสั้น</strong> (5–15 นาที) คู่กับ <strong>Refresh Token</strong> ที่เก็บสถานะในฐานข้อมูล เมื่อต้องการยกเลิกก็ลบหรือปิด Refresh Token ความเสียหายจำกัดอยู่ที่อายุของ Access Token ที่เหลือ</li>
+<li><strong>Denylist ด้วย <code>jti</code></strong>: ใส่รหัสเฉพาะใน Token แล้วเก็บรายการที่ถูกยกเลิกไว้ใน Redis จนกว่าจะหมดอายุ แลกกับการต้องเช็กที่เก็บข้อมูลทุก Request</li>
+<li><strong>Token Version ต่อผู้ใช้</strong>: เก็บเลขเวอร์ชันในข้อมูลผู้ใช้และใส่ใน Token เมื่อเปลี่ยนรหัสผ่านก็เพิ่มเลข Token เก่าทั้งหมดใช้ไม่ได้ทันที</li>
+<li><strong>หมุน Signing Key</strong>: ใช้ในกรณีร้ายแรงที่ Key รั่ว ทำให้ Token ทุกใบใช้ไม่ได้</li>
+</ul>
+<p><strong>ข้อผิดพลาดที่ควรพูดถึงว่าหลีกเลี่ยง:</strong> ไม่ล็อก Algorithm (โดนโจมตีแบบ <code>alg: none</code>), ไม่ตรวจ <code>exp</code>, <code>aud</code>, <code>iss</code>, ใส่ข้อมูลลับใน Payload (JWT แค่เข้ารหัส base64url อ่านได้ทุกคน), ใช้ Secret อ่อน และเก็บ Token ไว้ใน <code>localStorage</code> ที่ถูกขโมยได้ถ้าเว็บมีช่องโหว่ XSS</p>
+</div></details>
+
+<details class="iq"><summary>5. (Mid) คุณจะจัดการ Versioning ของ API อย่างไร และอะไรนับเป็น Breaking Change</summary><div>
+<p><strong>แนวคำตอบ:</strong> เป้าหมายแรกคือ <strong>หลีกเลี่ยงการออกเวอร์ชันใหม่</strong> ด้วยการเปลี่ยนแบบไม่ Breaking เป็นหลัก เช่น เพิ่ม Endpoint ใหม่ เพิ่มฟิลด์ใหม่ใน Response เพิ่ม Query Parameter ที่ไม่บังคับ ส่วนการเปลี่ยนที่นับเป็น Breaking ได้แก่ ลบหรือเปลี่ยนชื่อฟิลด์, เปลี่ยน type, เพิ่มฟิลด์ <code>required</code> ใน Request, เปลี่ยนความหมายของ Status Code, เพิ่มค่า enum ใน Response ที่ Client เขียนโค้ดแบบไม่รองรับค่าใหม่ และเปลี่ยนวิธียืนยันตัวตน</p>
+<p>เมื่อจำเป็นต้อง Breaking มีสามแบบหลัก:</p>
+<ul>
+<li><strong>URL</strong> (<code>/v1/books</code>): เห็นชัด ทดสอบด้วย curl ง่าย และ Route แยกที่ Gateway ได้ เป็นแบบที่ใช้กันมากที่สุดใน Public API</li>
+<li><strong>Header</strong> (เช่น Header เวอร์ชันที่ทีมกำหนดเอง): URL สะอาด แต่มองไม่เห็นและ Cache ต้องตั้ง <code>Vary</code> ให้ถูก</li>
+<li><strong>Media Type</strong> (<code>Accept: application/vnd.example.v2+json</code>): ถูกหลัก HTTP ที่สุด แต่ใช้ยากที่สุดสำหรับผู้ใช้ API</li>
+</ul>
+<p><strong>จุดที่ทำให้คำตอบโดดเด่น:</strong> พูดถึงกระบวนการ ไม่ใช่แค่รูปแบบ URL ได้แก่ ตรวจ Breaking Change อัตโนมัติด้วยการ Diff ไฟล์ OpenAPI ใน CI, ประกาศเลิกใช้ล่วงหน้าด้วย Header <code>Sunset</code> (RFC 8594) และ Link ไปหน้าอธิบาย, ดู Log ว่าใครยังเรียกเวอร์ชันเก่าอยู่ก่อนปิด และเก็บรายการเวอร์ชันทั้งหมดให้ครบ (OWASP API9 Improper Inventory Management)</p>
+</div></details>
+
+<h3 id="s8-4-resources">แหล่งเรียนต่อ</h3>
+<ul class="res">
+<li><a href="https://spec.openapis.org/oas/v3.1.0" target="_blank" rel="noopener">OpenAPI Specification v3.1.0</a> – เอกสารมาตรฐานฉบับเต็มของ OpenAPI 3.1 ใช้เปิดเช็กความหมายของทุก Key ในไฟล์ openapi.yaml <span class="pill">ฟรี</span></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9457" target="_blank" rel="noopener">RFC 9457: Problem Details for HTTP APIs</a> – มาตรฐาน Error Format ที่ใช้ทั้งหัวข้อ อ่านส่วน Members และ Extension Members ก่อน <span class="pill">ฟรี</span></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP" target="_blank" rel="noopener">MDN Web Docs: HTTP</a> – อธิบาย Method, Status Code, Header, Caching และ CORS ทีละตัวพร้อมตัวอย่าง อ่านง่ายที่สุดสำหรับมือใหม่ <span class="pill">ฟรี</span></li>
+<li><a href="https://fastapi.tiangolo.com/" target="_blank" rel="noopener">FastAPI Documentation</a> – Tutorial ทีละขั้นของ FastAPI ตั้งแต่ Path Parameter จนถึง Security, Dependencies และ Testing <span class="pill">ฟรี</span></li>
+<li><a href="https://docs.stoplight.io/docs/spectral" target="_blank" rel="noopener">Spectral Documentation</a> – วิธีเขียน Ruleset, ฟังก์ชันที่มีให้ใช้ และรายการกฎใน <code>spectral:oas</code> <span class="pill">ฟรี</span></li>
+<li><a href="https://docs.stoplight.io/docs/prism" target="_blank" rel="noopener">Prism Documentation</a> – การทำ Mock, การเลือก Response ด้วย Prefer, Dynamic Mocking และโหมด Validation Proxy <span class="pill">ฟรี</span></li>
+<li><a href="https://owasp.org/API-Security/editions/2023/en/0x11-t10/" target="_blank" rel="noopener">OWASP API Security Top 10 (2023)</a> – ความเสี่ยงด้านความปลอดภัย 10 อันดับของ API พร้อมตัวอย่างการโจมตีและวิธีป้องกัน <span class="pill">ฟรี</span></li>
+<li><a href="https://oauth.net/2/" target="_blank" rel="noopener">OAuth 2.0 (oauth.net)</a> – ศูนย์รวมเอกสาร OAuth 2.0 ทั้ง Flow, PKCE และลิงก์ไปยัง RFC ที่เกี่ยวข้อง <span class="pill">ฟรี</span></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9110" target="_blank" rel="noopener">RFC 9110: HTTP Semantics</a> – นิยามอย่างเป็นทางการของ Method, Status Code และ Conditional Request (ETag, If-Match) ใช้อ้างอิงเวลาถกเถียงในทีม <span class="pill">ฟรี</span></li>
+</ul>
+<div class="callout"><span class="c-label tip">Tip</span><p>เมื่อจบหัวข้อนี้แล้ว ลองอ่าน OpenAPI ของบริการจริงที่เปิดเผยสเปกต่อสาธารณะ แล้วรัน Spectral กับไฟล์นั้น จะเห็นว่าทีมใหญ่ตัดสินใจเรื่องการตั้งชื่อ Error และ Pagination อย่างไร และเปรียบเทียบกับสเปกของคุณเอง</p></div>
+</section>

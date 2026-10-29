@@ -1,0 +1,1277 @@
+<section class="part" data-part="3">
+<h2 id="s14-3"><span class="sec-no">14.3</span>Practice Exercises &amp; Quizzes</h2>
+<p>ส่วนนี้คือสนามฝึกของหัวข้อ SQL คุณจะได้ทบทวนทุกแนวคิดจาก Part 2 ตั้งแต่ <code>SELECT</code> แรกใน SQLite ไปจนถึง Window Function, Index, Transaction และการเรียก SQL จาก Python อย่างปลอดภัย แบบฝึกหัดแบ่งเป็น 3 ชุด คือ Fill-in-the-blank, Multiple Choice และ Hands-on Challenge ทุกข้อมีระดับกำกับไว้ คือ ง่าย กลาง และ ยาก</p>
+<p>ทุก Query และทุกผลลัพธ์ในหน้านี้รันจริงแล้วบน Ubuntu 24.04 กับ SQLite 3.45.1 และ PostgreSQL 16 โดยใช้ฐานข้อมูลร้านค้าตัวอย่าง (shop) ชุดเดียวกับ Part 2 ทุกตัวเลข ทุกชื่อลูกค้า และทุกแถวที่เห็นจึงตรงกับเครื่องของคุณ ถ้าคุณเริ่มจากข้อมูลตั้งต้นที่ยังไม่ถูกแก้ไข เฉลยทั้งหมดอยู่ท้ายหน้า ขอให้ลองทำเองก่อนทุกครั้ง เพราะการคิดเองแล้วผิดช่วยให้จำได้นานกว่าการอ่านเฉลยทันที</p>
+
+<h3 id="s14-3-prep">เตรียมฐานข้อมูลก่อนเริ่มฝึก</h3>
+<p>แบบฝึกหัดทั้งหมดใช้โฟลเดอร์ <code>~/projects/sql-lab</code> ที่คุณสร้างไว้ใน Part 1 และ Part 2 ซึ่งมีไฟล์ <code>shop_schema_sqlite.sql</code>, <code>shop_schema_pg.sql</code> และ <code>shop_seed.sql</code> อยู่แล้ว ถ้ายังไม่มี ให้กลับไปทำส่วน "เตรียมเครื่องสำหรับหัวข้อนี้" ใน Part 2 ก่อน</p>
+<p>Part 2 หลายแนวคิดแก้ไขข้อมูลในฐานข้อมูล (เช่น เพิ่มลูกค้า Kanya หรือลดสต็อก) ถ้าข้อมูลของคุณไม่ใช่ข้อมูลตั้งต้น ผลลัพธ์จะไม่ตรงกับเฉลย ดังนั้นให้รีเซ็ตทั้ง SQLite และ PostgreSQL ก่อนเริ่ม ด้วยคำสั่งชุดนี้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เข้าโฟลเดอร์ฝึก และสร้างโฟลเดอร์ notes ถ้ายังไม่มี
+cd ~/projects/sql-lab
+mkdir -p notes
+
+# รีเซ็ต SQLite: ลบไฟล์เก่า แล้วสร้างตารางและใส่ข้อมูลตั้งต้นใหม่
+rm -f shop.db &amp;&amp; sqlite3 shop.db &lt; shop_schema_sqlite.sql &amp;&amp; sqlite3 shop.db &lt; shop_seed.sql
+
+# เปิด PostgreSQL (ถ้ายังไม่เปิด) แล้วรีเซ็ตฐานข้อมูล shop
+sudo service postgresql start
+dropdb shop &amp;&amp; createdb shop &amp;&amp; psql -d shop -v ON_ERROR_STOP=1 -q -f shop_schema_pg.sql -f shop_seed.sql
+
+# ตรวจว่าข้อมูลครบ: ลูกค้า 8 คน คำสั่งซื้อ 14 รายการ
+sqlite3 shop.db "SELECT COUNT(*) FROM customers; SELECT COUNT(*) FROM orders;"
+psql -d shop -tAc "SELECT COUNT(*) FROM customers" -c "SELECT COUNT(*) FROM orders"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> * Starting PostgreSQL 16 database server
+   ...done.
+┌──────────┐
+│ COUNT(*) │
+├──────────┤
+│ 8        │
+└──────────┘
+┌──────────┐
+│ COUNT(*) │
+├──────────┤
+│ 14       │
+└──────────┘
+8
+14</code></pre>
+<p>ถ้า <code>dropdb shop</code> แจ้งว่า <code>database "shop" does not exist</code> แปลว่ายังไม่เคยสร้าง ให้รันเฉพาะส่วน <code>createdb shop &amp;&amp; psql ...</code> ต่อได้เลย ถ้า PostgreSQL เปิดอยู่แล้ว บรรทัด <code>Starting</code> อาจไม่ขึ้น ซึ่งเป็นเรื่องปกติ</p>
+
+<div class="tbl wide"><table class="explain"><thead><tr><th>เครื่องมือ</th><th>รันไฟล์อย่างไร</th><th>รูปแบบผลลัพธ์</th><th>ใช้กับข้อไหน</th></tr></thead><tbody>
+<tr><td class="nw">SQLite 3.45.1</td><td><code>sqlite3 shop.db &lt; notes/ไฟล์.sql</code></td><td>ตารางกรอบเส้น (box) เพราะ <code>~/.sqliterc</code> ตั้ง <code>.headers on</code>, <code>.mode box</code>, <code>.nullvalue NULL</code> และ <code>PRAGMA foreign_keys = ON</code></td><td>ข้อที่เกี่ยวกับ Beginner และ Hands-on ข้อ 1</td></tr>
+<tr><td class="nw">PostgreSQL 16</td><td><code>psql -d shop -f notes/ไฟล์.sql</code></td><td>ตารางแบบ aligned ของ psql และแสดง NULL เป็นคำว่า <code>NULL</code> เพราะ <code>~/.psqlrc</code> มี <code>\pset null NULL</code></td><td>ข้อระดับกลางและยาก และ Hands-on ข้อ 2–3</td></tr>
+<tr><td class="nw">Python 3.12 + psycopg 3.3.6</td><td><code>source .venv/bin/activate</code> แล้ว <code>python ไฟล์.py</code></td><td>ข้อความที่โปรแกรม print ออกมา</td><td>Fill-in ข้อ 6 และ Hands-on ข้อ 3</td></tr>
+</tbody></table></div>
+
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>ถ้า <code>~/.psqlrc</code> ของคุณมีบรรทัด <code>\pset null NULL</code> ทุกครั้งที่รัน <code>psql -f</code> บรรทัดแรกของผลลัพธ์จะเป็น <code>Null display is "NULL".</code> หน้านี้ตัดบรรทัดนั้นออกจากผลลัพธ์ทุกจุดเพื่อให้อ่านง่าย ถ้าไม่อยากเห็นบรรทัดนี้ ให้เขียน <code>~/.psqlrc</code> เป็น 3 บรรทัด คือ <code>\set QUIET 1</code>, <code>\pset null NULL</code> และ <code>\unset QUIET</code></p></div>
+
+<div class="callout"><span class="c-label tip">Tip</span><p>ตั้งชื่อไฟล์คำตอบตามข้อ เช่น <code>notes/ex_1.sql</code>, <code>notes/ex_2.sql</code> และ <code>notes/ex_3.sql</code> แล้ว <code>git add</code> กับ <code>git commit</code> ทุกครั้งที่ทำเสร็จหนึ่งข้อ (ทบทวนได้ที่ <a data-t="17"></a>) คุณจะมีประวัติการฝึกเก็บไว้ดูย้อนหลัง และนำไปโชว์ใน Portfolio ได้</p></div>
+
+<div class="callout sec"><span class="c-label sec">Security</span><p>แบบฝึกหัดเรื่อง SQL Injection ในหน้านี้ให้ทดลองกับ <code>shop.db</code> และ PostgreSQL บนเครื่องของคุณเองเท่านั้น การลองยิง Payload ใส่เว็บหรือระบบของคนอื่นโดยไม่ได้รับอนุญาตเป็นความผิดตาม พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์</p></div>
+
+<h3 id="s14-3-fill">Fill-in-the-blank</h3>
+<p>เติมคำในช่อง <code>_____</code> ให้ Query หรือโค้ดทำงานได้ และได้ผลลัพธ์ตามที่แสดงไว้ใต้โจทย์ บางข้อมีช่องว่างมากกว่าหนึ่งช่อง ให้เติมครบทุกช่อง วิธีฝึกที่ได้ผลที่สุดคือพิมพ์ Query ลงไฟล์ เติมคำตอบ แล้วรันจริงเพื่อเทียบกับผลลัพธ์ที่ควรได้</p>
+<ol class="qlist fill">
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>เจ้าของร้านอยากเห็นสินค้าที่ยังขายอยู่ 3 ชิ้นที่ราคาแพงที่สุด เรียงจากแพงไปถูก (SQLite) ให้เติมคำที่ทำให้เรียงจากมากไปน้อย</p>
+<pre class="code" data-env="file" data-label="SQL · notes/fill_1.sql"><code class="language-sql">SELECT name, price
+FROM products
+WHERE is_active = 1
+ORDER BY price _____
+LIMIT 3;</code></pre>
+<p>ผลลัพธ์ที่ต้องได้เมื่อรัน <code>sqlite3 shop.db &lt; notes/fill_1.sql</code></p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>┌─────────────────┬─────────┐
+│      name       │  price  │
+├─────────────────┼─────────┤
+│ Laptop Pro 14   │ 35900.0 │
+│ Smartphone X    │ 18990.0 │
+│ 27-inch Monitor │ 7990.0  │
+└─────────────────┴─────────┘</code></pre>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>ทีมขนส่งต้องการรายชื่อลูกค้าที่ยังไม่ได้กรอกเมือง (Column <code>city</code> เป็น NULL) เพื่อโทรไปขอที่อยู่ (SQLite) ให้เติมเงื่อนไขที่ถูกต้อง ช่องว่างนี้มี 2 คำ</p>
+<pre class="code" data-env="file" data-label="SQL · notes/fill_2.sql"><code class="language-sql">SELECT customer_id, name, email
+FROM customers
+WHERE city _____;</code></pre>
+<p>ผลลัพธ์ที่ต้องได้</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>┌─────────────┬──────────────────┬──────────────────────┐
+│ customer_id │       name       │        email         │
+├─────────────┼──────────────────┼──────────────────────┤
+│ 7           │ Duangjai Saendee │ duangjai@example.com │
+└─────────────┴──────────────────┴──────────────────────┘</code></pre>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ฝ่ายการตลาดอยากรู้ว่าลูกค้าคนไหนสั่งซื้อตั้งแต่ 2 ครั้งขึ้นไป (นับทุกสถานะ รวมคำสั่งซื้อที่ยกเลิกด้วย) เพื่อส่งคูปองขอบคุณ (SQLite) ให้เติม Keyword ที่ใช้กรองผลลัพธ์หลังจากจัดกลุ่มแล้ว</p>
+<pre class="code" data-env="file" data-label="SQL · notes/fill_3.sql"><code class="language-sql">SELECT c.name, COUNT(*) AS order_count
+FROM orders o
+JOIN customers c ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.name
+_____ COUNT(*) &gt;= 2
+ORDER BY order_count DESC, c.name;</code></pre>
+<p>ผลลัพธ์ที่ต้องได้</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>┌─────────────────┬─────────────┐
+│      name       │ order_count │
+├─────────────────┼─────────────┤
+│ Somchai Jaidee  │ 4           │
+│ Manee Meesuk    │ 2           │
+│ Piti Yindee     │ 2           │
+│ Somying Rakrian │ 2           │
+│ Wichai Mankhong │ 2           │
+└─────────────────┴─────────────┘</code></pre>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>หาลูกค้าที่สมัครสมาชิกแล้วแต่ยังไม่เคยสั่งซื้อเลย เพื่อส่งอีเมลชวนซื้อครั้งแรก (SQLite) ข้อนี้ใช้เทคนิค Anti Join มี 2 ช่องว่าง ช่องแรกเป็นชนิดของ JOIN และช่องที่สองเป็นเงื่อนไขที่ใช้คัดเฉพาะแถวที่หาคู่ไม่เจอ</p>
+<pre class="code" data-env="file" data-label="SQL · notes/fill_4.sql"><code class="language-sql">SELECT c.customer_id, c.name
+FROM customers c
+_____ JOIN orders o ON o.customer_id = c.customer_id
+WHERE o.order_id _____;</code></pre>
+<p>ผลลัพธ์ที่ต้องได้</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>┌─────────────┬────────────────┐
+│ customer_id │      name      │
+├─────────────┼────────────────┤
+│ 8           │ Anan Thongkham │
+└─────────────┴────────────────┘</code></pre>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>ผู้จัดการต้องการกราฟยอดขายสะสม (Running Total) รายเดือน ไม่นับคำสั่งซื้อที่ยกเลิก (PostgreSQL 16) ให้เติมส่วนที่ทำให้ <code>SUM() OVER</code> บวกสะสมทีละเดือน แทนที่จะได้ยอดรวมทั้งหมดซ้ำทุกแถว ช่องว่างนี้มี 2 คำ</p>
+<pre class="code" data-env="file" data-label="SQL · notes/fill_5.sql"><code class="language-sql">WITH monthly AS (
+    SELECT to_char(o.order_date, 'YYYY-MM')  AS month,
+           SUM(oi.quantity * oi.unit_price) AS revenue
+    FROM orders o
+    JOIN order_items oi ON oi.order_id = o.order_id
+    WHERE o.status &lt;&gt; 'cancelled'
+    GROUP BY month
+)
+SELECT month,
+       revenue,
+       SUM(revenue) OVER (_____ month) AS running_total
+FROM monthly
+ORDER BY month;</code></pre>
+<p>ผลลัพธ์ที่ต้องได้เมื่อรัน <code>psql -d shop -f notes/fill_5.sql</code></p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>  month  | revenue  | running_total 
+---------+----------+---------------
+ 2026-01 | 40570.00 |      40570.00
+ 2026-02 | 21120.00 |      61690.00
+ 2026-03 | 57380.00 |     119070.00
+ 2026-04 | 17120.00 |     136190.00
+ 2026-05 |  3950.00 |     140140.00
+ 2026-06 | 19870.00 |     160010.00
+(6 rows)</code></pre>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>คุณกำลังเขียนสคริปต์ Python ที่ค้นหาลูกค้าตามเมืองที่ผู้ใช้พิมพ์เข้ามา ต้องป้องกัน SQL Injection ด้วย Parameterized Query ของ psycopg 3 ให้เติม Placeholder ในช่องแรก และค่าพารามิเตอร์ในรูปแบบที่ถูกต้องในช่องที่สอง (ไฟล์อยู่ใน <code>~/projects/sql-lab</code> และรันใน venv ที่ติดตั้ง <code>psycopg[binary]==3.3.6</code> แล้ว)</p>
+<pre class="code" data-env="file" data-label="Python · find_city.py"><code class="language-python">"""find_city.py : ค้นหาลูกค้าตามเมืองแบบปลอดภัย"""
+import os
+
+import psycopg
+
+city = "Chiang Mai"   # สมมติว่าค่านี้มาจากผู้ใช้
+with psycopg.connect(os.environ.get("DATABASE_URL", "postgresql:///shop")) as conn:
+    rows = conn.execute(
+        "SELECT name FROM customers WHERE city = _____ ORDER BY name",
+        _____,
+    ).fetchall()
+
+for (name,) in rows:
+    print(name)</code></pre>
+<p>ผลลัพธ์ที่ต้องได้เมื่อรัน <code>python find_city.py</code></p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Chujai Faidee
+Somying Rakrian</code></pre>
+</li>
+</ol>
+
+<h3 id="s14-3-mcq">Multiple Choice</h3>
+<p>เลือกคำตอบที่ถูกที่สุดเพียงข้อเดียว ทุกข้ออ้างอิงฐานข้อมูลร้านค้าตัวอย่าง (shop) ที่มีข้อมูลตั้งต้นครบ คือลูกค้า 8 คน หมวดสินค้า 7 หมวด สินค้า 10 รายการ คำสั่งซื้อ 14 รายการ และรายการสินค้าในคำสั่งซื้อ 22 แถว ถ้าไม่แน่ใจ ให้ลองรัน Query บนเครื่องของคุณเองก่อนเปิดเฉลย</p>
+<ol class="qlist mcq">
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>ต้องการหาลูกค้าที่ไม่ได้ระบุเมือง (ค่า <code>city</code> เป็น NULL) Query ใดให้ผลลัพธ์ถูกต้อง</p>
+<ol class="choices">
+<li><code>SELECT name FROM customers WHERE city = NULL;</code></li>
+<li><code>SELECT name FROM customers WHERE city IS NULL;</code></li>
+<li><code>SELECT name FROM customers WHERE city = '';</code></li>
+<li><code>SELECT name FROM customers WHERE city &lt;&gt; NULL;</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>ข้อใดอธิบาย Primary Key ของตาราง <code>customers</code> (Column <code>customer_id</code>) ได้ถูกต้องที่สุด</p>
+<ol class="choices">
+<li>เป็น Column ที่ชี้ไปหา Primary Key ของตารางอื่น เพื่อเชื่อมความสัมพันธ์ระหว่างตาราง</li>
+<li>เป็น Column ที่เก็บค่าซ้ำกันได้ แต่ห้ามว่าง และช่วยให้ค้นหาเร็วขึ้นเท่านั้น</li>
+<li>เป็นค่าที่ไม่ซ้ำกันและไม่เป็น NULL ใช้ระบุลูกค้าแต่ละคนได้แบบไม่กำกวม</li>
+<li>เป็นลำดับของแถวในไฟล์ ถ้าลบลูกค้าคนหนึ่ง เลขของลูกค้าคนอื่นจะเลื่อนขึ้นมาแทนโดยอัตโนมัติ</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>ในข้อมูลตั้งต้น ลูกค้าอยู่ Bangkok 2 คน, Chiang Mai 2 คน, Khon Kaen 2 คน, Phuket 1 คน และไม่ระบุเมือง (NULL) 1 คน Query <code>SELECT DISTINCT city FROM customers;</code> จะคืนผลลัพธ์กี่แถว</p>
+<ol class="choices">
+<li>4 แถว</li>
+<li>8 แถว</li>
+<li>5 แถว</li>
+<li>7 แถว</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>Query ด้านล่างจะได้ค่า <code>all_rows</code>, <code>with_city</code> และ <code>cities</code> ตามลำดับเป็นเท่าไร</p>
+<pre class="code" data-env="file" data-label="SQL · notes/mcq_4.sql"><code class="language-sql">SELECT COUNT(*)             AS all_rows,
+       COUNT(city)          AS with_city,
+       COUNT(DISTINCT city) AS cities
+FROM customers;</code></pre>
+<ol class="choices">
+<li>8, 8, 5</li>
+<li>8, 7, 5</li>
+<li>7, 7, 4</li>
+<li>8, 7, 4</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>พนักงานใหม่ตั้งใจจะตั้งสต็อกของ USB-C Hub (product_id 5) ให้เป็น 0 แต่พิมพ์คำสั่งนี้แล้วกด Enter ทันทีใน SQLite จะเกิดอะไรขึ้น</p>
+<pre class="code" data-env="app" data-label="SQL · sqlite3 shell"><code class="language-sql">UPDATE products SET stock = 0;</code></pre>
+<ol class="choices">
+<li>สินค้าทั้ง 10 รายการในตารางจะถูกตั้งสต็อกเป็น 0 เพราะไม่มี <code>WHERE</code> จำกัดแถว</li>
+<li>SQLite จะแจ้ง Error ว่าต้องมี <code>WHERE</code> ทุกครั้งที่ใช้ <code>UPDATE</code></li>
+<li>เฉพาะแถวแรกของตาราง (Laptop Pro 14) เท่านั้นที่ถูกแก้</li>
+<li>ไม่มีแถวไหนถูกแก้ เพราะยังไม่ได้พิมพ์ <code>COMMIT</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ต้องการแสดงสถานะคำสั่งซื้อที่มีมากกว่า 2 รายการ แล้วเขียน Query นี้ใน PostgreSQL 16 จะเกิดอะไรขึ้น และควรแก้อย่างไร</p>
+<pre class="code" data-env="file" data-label="SQL · notes/mcq_6.sql"><code class="language-sql">SELECT status, COUNT(*)
+FROM orders
+WHERE COUNT(*) &gt; 2
+GROUP BY status;</code></pre>
+<ol class="choices">
+<li>รันได้ และได้สถานะ pending, paid, shipped ไม่ต้องแก้อะไร</li>
+<li>เกิด <code>ERROR:  aggregate functions are not allowed in WHERE</code> ต้องย้ายเงื่อนไขไปไว้ใน <code>HAVING COUNT(*) &gt; 2</code> หลัง <code>GROUP BY</code></li>
+<li>เกิด Error เพราะต้องเขียน <code>COUNT(status)</code> แทน <code>COUNT(*)</code> เสมอเมื่อมี <code>GROUP BY</code></li>
+<li>รันได้ แต่ได้ 0 แถว เพราะ <code>WHERE</code> ทำงานก่อนจึงยังนับไม่ได้ ต้องเพิ่ม <code>ORDER BY</code> ให้ถูก</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ตาราง <code>customers</code> มี 8 แถว ตาราง <code>orders</code> มี 14 แถว ลูกค้าทุกคนยกเว้น Anan Thongkham มีคำสั่งซื้ออย่างน้อย 1 รายการ Query <code>SELECT COUNT(*) FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id;</code> จะได้ค่าเท่าไร</p>
+<ol class="choices">
+<li>8</li>
+<li>14</li>
+<li>15</li>
+<li>112</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>Subquery ในคำสั่งนี้คืนค่า <code>'Bangkok'</code> (ของลูกค้าเลขที่ 1) และ <code>NULL</code> (ของลูกค้าเลขที่ 7) Query ทั้งก้อนจะได้ผลลัพธ์อย่างไรใน PostgreSQL 16</p>
+<pre class="code" data-env="file" data-label="SQL · notes/mcq_8.sql"><code class="language-sql">SELECT name
+FROM customers
+WHERE city NOT IN (SELECT city FROM customers WHERE customer_id IN (1, 7));</code></pre>
+<ol class="choices">
+<li>ได้ 0 แถว เพราะการเทียบ <code>city &lt;&gt; NULL</code> ให้ผลเป็น UNKNOWN ทำให้ <code>NOT IN</code> ไม่เคยเป็น TRUE</li>
+<li>ได้ 5 แถว คือลูกค้าทุกคนที่ไม่ได้อยู่ Bangkok ยกเว้น Duangjai Saendee</li>
+<li>ได้ 8 แถว เพราะ NULL ในรายการถูกข้ามไปเฉย ๆ</li>
+<li>เกิด Error <code>more than one row returned by a subquery used as an expression</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ตาราง <code>orders_flat</code> เก็บข้อมูลแบบนี้ (Primary Key คือ <code>order_id</code>): <code>order_id, order_date, customer_email, customer_name, customer_city, total</code> โดยชื่อและเมืองของลูกค้าขึ้นกับ <code>customer_email</code> ไม่ได้ขึ้นกับ <code>order_id</code> โดยตรง ตารางนี้ผิดกฎ Normal Form ข้อใด และควรแก้อย่างไร</p>
+<ol class="choices">
+<li>ผิด 1NF เพราะมี Column มากกว่า 5 Column ต้องแบ่งครึ่งตาราง</li>
+<li>ผิด 2NF เพราะ Primary Key เป็น Composite Key ต้องเพิ่ม Column ใหม่เป็น Key</li>
+<li>ไม่ผิดกฎใดเลย เพราะทุกช่องเก็บค่าเดียว (Atomic) แล้ว</li>
+<li>ผิด 3NF เพราะมี Transitive Dependency (<code>order_id</code> → <code>customer_email</code> → <code>customer_city</code>) ต้องแยกข้อมูลลูกค้าไปตาราง <code>customers</code> แล้วเก็บแค่ Foreign Key ใน <code>orders</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>ยอดขายรวม (นับทุกสถานะ) ของแต่ละสินค้าเป็นดังนี้: Phone Case 6, Wireless Mouse 5, SQL for Beginners 4, 27-inch Monitor 3, Mechanical Keyboard 3, Smartphone X 3, Laptop Pro 14 2, Python Crash Course 2 ถ้าจัดอันดับด้วย <code>RANK() OVER (ORDER BY qty DESC)</code> และ <code>DENSE_RANK() OVER (ORDER BY qty DESC)</code> Laptop Pro 14 จะได้อันดับเท่าไรตามลำดับ</p>
+<ol class="choices">
+<li>RANK = 5, DENSE_RANK = 7</li>
+<li>RANK = 7, DENSE_RANK = 5</li>
+<li>RANK = 7, DENSE_RANK = 7</li>
+<li>RANK = 8, DENSE_RANK = 6</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>ตาราง <code>big_orders</code> (200,000 แถว จากแนวคิดเรื่อง Index ใน Part 2) มี Index เพียงตัวเดียวคือ <code>CREATE INDEX idx_big_cust_date ON big_orders (customer_id, order_date);</code> และรัน <code>ANALYZE</code> แล้ว Query ใดที่ PostgreSQL 16 เลือกใช้ Index นี้ในแผนการทำงาน (ผลของ <code>EXPLAIN</code> มี <code>idx_big_cust_date</code>)</p>
+<ol class="choices">
+<li><code>SELECT * FROM big_orders WHERE order_date = DATE '2026-01-01';</code></li>
+<li><code>SELECT * FROM big_orders WHERE customer_id + 0 = 42;</code></li>
+<li><code>SELECT * FROM big_orders WHERE customer_id = 42 AND order_date &gt;= DATE '2026-01-01';</code></li>
+<li><code>SELECT * FROM big_orders WHERE status LIKE '%ing';</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>ใน PostgreSQL 16 Session A เริ่ม <code>BEGIN ISOLATION LEVEL REPEATABLE READ;</code> แล้วอ่านสต็อกของ Wireless Mouse ได้ 60 จากนั้น Session B (Autocommit) รัน <code>UPDATE products SET stock = 59 WHERE product_id = 4;</code> สำเร็จ ถ้า Session A อ่านสต็อกเดิมซ้ำอีกครั้งใน Transaction เดิม จะเห็นค่าอะไร</p>
+<ol class="choices">
+<li>60 เพราะ REPEATABLE READ ใช้ Snapshot เดียวตลอด Transaction</li>
+<li>59 เพราะ Session B Commit ไปแล้ว ทุก Isolation Level จึงเห็นค่าใหม่</li>
+<li>Session A จะค้างรอจนกว่า Session B จะปลด Lock</li>
+<li>เกิด <code>ERROR:  could not serialize access due to concurrent update</code> ทันทีที่ SELECT</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>ตัวแปร <code>email</code> รับค่ามาจากฟอร์มบนเว็บ โค้ด psycopg 3 บรรทัดใดปลอดภัยจาก SQL Injection</p>
+<ol class="choices">
+<li><code>cur.execute(f"SELECT * FROM customers WHERE email = '{email}'")</code></li>
+<li><code>cur.execute("SELECT * FROM customers WHERE email = '%s'" % email)</code></li>
+<li><code>cur.execute("SELECT * FROM customers WHERE email = '{}'".format(email))</code></li>
+<li><code>cur.execute("SELECT * FROM customers WHERE email = %s", (email,))</code></li>
+</ol>
+</li>
+</ol>
+
+<h3 id="s14-3-hands">Hands-on Challenge</h3>
+<p>โจทย์ 3 ข้อนี้จำลองงานที่คนทำงานด้านข้อมูลและ Backend เจอจริง แต่ละข้อใหญ่กว่าแบบฝึกหัดข้างบน และต้องใช้หลายแนวคิดร่วมกัน ให้เขียนคำตอบเป็นไฟล์ในโฟลเดอร์ <code>~/projects/sql-lab</code> รันจริง แล้วเทียบกับผลลัพธ์ที่คาดหวัง เริ่มทุกข้อจากข้อมูลตั้งต้นที่รีเซ็ตแล้วตามส่วน "เตรียมฐานข้อมูลก่อนเริ่มฝึก"</p>
+
+<article class="challenge" data-lvl="b">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 1</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h4>รายงานสต็อกต่ำและระบบใบขอเติมสินค้า (SQLite)</h4>
+<h5>สถานการณ์</h5>
+<p>คุณเป็นพนักงานคนแรกที่ดูแลระบบหลังร้านของร้านขายอุปกรณ์ไอทีออนไลน์ ทุกเช้าวันจันทร์ เจ้าของร้านต้องการรู้ว่าสินค้าตัวไหนที่ยังขายอยู่แต่สต็อกต่ำกว่า 10 ชิ้น และมูลค่าสต็อกที่เหลือเป็นเท่าไร จากนั้นต้องการเปิด "ใบขอเติมสินค้า" (Restock Request) ส่งให้ฝ่ายจัดซื้อ ตอนนี้ร้านจดใบขอใน LINE กลุ่ม ทำให้ข้อมูลตกหล่นและซ้ำบ่อย คุณจึงต้องสร้างตารางใหม่ในฐานข้อมูล <code>shop.db</code> ที่มี Constraint ป้องกันข้อมูลผิดตั้งแต่ต้นทาง</p>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+<li>สร้างไฟล์ <code>notes/ex_1.sql</code> แล้วเขียน Query แรก แสดงสินค้าที่ <code>is_active = 1</code> และ <code>stock &lt; 10</code> โดยมี Column <code>product_id</code>, <code>name</code>, <code>stock</code>, <code>stock_value</code> (ราคา × สต็อก) และ <code>stock_label</code> ที่ใช้ <code>CASE</code> แปลงเป็นข้อความ คือ สต็อก 0 เป็น <code>หมด</code>, สต็อก 1 ถึง 5 เป็น <code>ใกล้หมด</code> และนอกนั้นเป็น <code>เหลือน้อย</code> เรียงตามสต็อกจากน้อยไปมาก ถ้าสต็อกเท่ากันให้เรียงตามชื่อ</li>
+<li>สร้างตาราง <code>restock_requests</code> แบบ <code>STRICT</code> (ลบตารางเดิมก่อนด้วย <code>DROP TABLE IF EXISTS</code>) มี Column <code>request_id</code> (Primary Key), <code>product_id</code> (ห้ามว่าง และเป็น Foreign Key ไปที่ <code>products</code>), <code>qty</code> (ห้ามว่าง ต้องมากกว่า 0), <code>status</code> (ห้ามว่าง ค่าเริ่มต้น <code>'open'</code> และรับได้แค่ <code>'open'</code> หรือ <code>'done'</code>), <code>requested_on</code> (ข้อความวันที่ ห้ามว่าง) และห้ามขอสินค้าตัวเดิมซ้ำในวันเดียวกัน (UNIQUE คู่ <code>product_id, requested_on</code>)</li>
+<li>เพิ่มใบขอ 3 ใบด้วยคำสั่ง <code>INSERT</code> เดียว โดยไม่ระบุ <code>status</code> คือ USB-C Hub 20 ชิ้น, Laptop Pro 14 5 ชิ้น และ 27-inch Monitor 5 ชิ้น ทั้งหมดลงวันที่ <code>'2026-10-20'</code></li>
+<li>ทดสอบว่า Constraint ทำงานจริง โดยเขียน <code>INSERT</code> ที่ผิดกฎอีก 2 คำสั่ง คือ ขอ Wireless Mouse จำนวน 0 ชิ้น และขอสินค้ารหัส 99 ที่ไม่มีอยู่จริง ทั้งสองคำสั่งต้องถูกปฏิเสธ</li>
+<li>สมมติว่า Laptop Pro 14 มาส่งแล้ว ให้เขียน Transaction (<code>BEGIN</code> ... <code>COMMIT</code>) ที่เปลี่ยนใบขอเลขที่ 2 เป็น <code>'done'</code> และเพิ่มสต็อก Laptop Pro 14 อีก 5 ชิ้นพร้อมกัน</li>
+<li>ปิดท้ายด้วย Query ตรวจผล 3 ตัว คือ ใบขอทั้งหมด, สต็อกล่าสุดของ Laptop Pro 14 และสรุปจำนวนใบขอกับจำนวนชิ้นรวมแยกตามสถานะ แล้วรันทั้งไฟล์ด้วย <code>sqlite3 shop.db &lt; notes/ex_1.sql</code></li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<p>ส่วนแรกของผลลัพธ์ต้องมีสินค้า 3 รายการ (Old MP3 Player มีสต็อก 3 แต่ไม่ขึ้น เพราะเลิกขายแล้ว) ตามด้วย Error 2 บรรทัดจากใบขอที่ผิดกฎ (เลขบรรทัดในไฟล์ของคุณอาจต่างไป ขึ้นกับว่าเขียนไฟล์ยาวแค่ไหน)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>┌────────────┬─────────────────┬───────┬─────────────┬─────────────┐
+│ product_id │      name       │ stock │ stock_value │ stock_label │
+├────────────┼─────────────────┼───────┼─────────────┼─────────────┤
+│ 5          │ USB-C Hub       │ 0     │ 0.0         │ หมด         │
+│ 1          │ Laptop Pro 14   │ 5     │ 179500.0    │ ใกล้หมด     │
+│ 2          │ 27-inch Monitor │ 7     │ 55930.0     │ เหลือน้อย   │
+└────────────┴─────────────────┴───────┴─────────────┴─────────────┘
+Runtime error near line 37: CHECK constraint failed: qty &gt; 0 (19)
+Runtime error near line 38: FOREIGN KEY constraint failed (19)</code></pre>
+<p>ตารางสุดท้ายของผลลัพธ์ต้องเป็นแบบนี้ และสต็อกของ Laptop Pro 14 ต้องกลายเป็น 10</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>┌────────┬──────────┬───────────┐
+│ status │ requests │ total_qty │
+├────────┼──────────┼───────────┤
+│ done   │ 1        │ 5         │
+│ open   │ 2        │ 25        │
+└────────┴──────────┴───────────┘</code></pre>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+<li><code>CASE</code> ตรวจเงื่อนไขจากบนลงล่าง และหยุดที่ข้อแรกที่เป็นจริง จึงควรเขียน <code>WHEN stock = 0</code> ก่อน <code>WHEN stock &lt;= 5</code></li>
+<li>ตาราง <code>STRICT</code> ให้เขียนคำว่า <code>STRICT</code> ต่อท้ายวงเล็บปิดของ <code>CREATE TABLE</code> และใช้ได้เฉพาะชนิด <code>INT</code>, <code>INTEGER</code>, <code>REAL</code>, <code>TEXT</code>, <code>BLOB</code> และ <code>ANY</code></li>
+<li>UNIQUE หลาย Column เขียนเป็นบรรทัดแยกในตาราง เช่น <code>UNIQUE (product_id, requested_on)</code></li>
+<li>Foreign Key ใน SQLite ทำงานเมื่อเปิด <code>PRAGMA foreign_keys = ON</code> ซึ่งอยู่ใน <code>~/.sqliterc</code> แล้ว</li>
+<li>เมื่อรันไฟล์ผ่าน <code>&lt;</code> SQLite จะพิมพ์ Error แล้วทำคำสั่งถัดไปต่อ คุณจึงเห็นทั้ง Error และผลลัพธ์ของคำสั่งหลังจากนั้นในการรันครั้งเดียว</li>
+</ul>
+</div></details>
+</article>
+
+<article class="challenge" data-lvl="i">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 2</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h4>รายงานลูกค้าแบ่งกลุ่ม (Segment) และยอดขายตามหมวดสินค้า (PostgreSQL)</h4>
+<h5>สถานการณ์</h5>
+<p>ทีมการตลาดกำลังวางแผนแคมเปญปลายปี และต้องการรายงาน 2 ชิ้นสำหรับการประชุมวันศุกร์ ชิ้นแรกคือรายชื่อลูกค้าทุกคน (รวมคนที่ยังไม่เคยซื้อ) พร้อมจำนวนคำสั่งซื้อ ยอดซื้อรวม วันที่ซื้อล่าสุด และกลุ่มลูกค้า เพื่อเลือกว่าใครควรได้สิทธิพิเศษ VIP ชิ้นที่สองคือยอดขายแยกตามหมวดสินค้า เพื่อเลือกหมวดที่จะลงโฆษณา ทีมการตลาดอยากเปิดรายงานชิ้นแรกซ้ำได้เองทุกสัปดาห์ โดยไม่ต้องคัดลอก Query ยาว ๆ คุณจึงต้องเก็บไว้เป็น View</p>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+<li>สร้างไฟล์ <code>notes/ex_2.sql</code> แล้วเขียน CTE ชื่อ <code>order_totals</code> ที่คำนวณยอดของแต่ละคำสั่งซื้อ (ผลรวมของ <code>quantity * unit_price</code>) โดยไม่นับคำสั่งซื้อสถานะ <code>cancelled</code></li>
+<li>สร้าง View ชื่อ <code>v_customer_summary</code> ด้วย <code>CREATE OR REPLACE VIEW</code> ที่ <code>LEFT JOIN</code> ลูกค้าทุกคนกับ <code>order_totals</code> และมี Column <code>customer_id</code>, <code>name</code>, <code>city</code> (ถ้าเป็น NULL ให้แสดง <code>ไม่ระบุ</code>), <code>orders</code>, <code>total_spent</code> (ถ้าไม่เคยซื้อให้เป็น 0), <code>last_order</code> และ <code>segment</code> ที่ใช้กฎ: ยอดรวมตั้งแต่ 30,000 บาทเป็น <code>VIP</code>, ไม่เคยซื้อเป็น <code>ยังไม่เคยซื้อ</code> และนอกนั้นเป็น <code>ลูกค้าทั่วไป</code></li>
+<li>แสดงข้อมูลทั้งหมดจาก View เรียงตามยอดซื้อจากมากไปน้อย ถ้ายอดเท่ากันให้เรียงตาม <code>customer_id</code></li>
+<li>เขียน Query ยอดขายแยกตามหมวดสินค้า (ไม่นับคำสั่งซื้อที่ยกเลิก) แสดงชื่อหมวด จำนวนคำสั่งซื้อที่ไม่ซ้ำ จำนวนชิ้น และยอดขาย เฉพาะหมวดที่ยอดขายเกิน 5,000 บาท เรียงจากยอดขายมากไปน้อย</li>
+<li>ใช้ View ตอบคำถาม 2 ข้อ คือ ลูกค้า VIP มีใครบ้าง (ชื่อ เมือง ยอดซื้อ) และแต่ละ Segment มีลูกค้ากี่คน รวมยอดซื้อเท่าไร</li>
+<li>รันทั้งไฟล์ด้วย <code>psql -d shop -f notes/ex_2.sql</code> และตรวจว่ายอดรวมของทุก Segment บวกกันได้ 160,010 บาท ซึ่งเป็นยอดขายรวมที่ไม่นับคำสั่งซื้อที่ยกเลิก</li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<p>View ต้องมี 8 แถว (ลูกค้าครบทุกคน) โดย Anan Thongkham อยู่ล่างสุด มี <code>orders</code> เป็น 0 และ <code>last_order</code> เป็น NULL Query ยอดขายตามหมวดต้องได้ 3 หมวด คือ Computers, Mobile Phones และ Computer Accessories ส่วนท้ายของผลลัพธ์ต้องเป็นแบบนี้ (คำภาษาไทยในตารางของ psql อาจดูเหลื่อมกันเล็กน้อย เพราะ psql นับความกว้างของสระและวรรณยุกต์ไทยไม่ตรงกับที่ Terminal แสดง ไม่ใช่ข้อผิดพลาด)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>      name       |    city    | total_spent 
+-----------------+------------+-------------
+ Somchai Jaidee  | Bangkok    |    55550.00
+ Somying Rakrian | Chiang Mai |    39980.00
+(2 rows)
+
+  segment  | customers | revenue  
+-----------+-----------+----------
+ VIP       |         2 | 95530.00
+ ลูกค้าทั่วไป  |         5 | 64480.00
+ ยังไม่เคยซื้อ |         1 |        0
+(3 rows)</code></pre>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+<li>View เก็บ <code>WITH ... SELECT ...</code> ทั้งก้อนได้ ให้เขียน <code>CREATE OR REPLACE VIEW v_customer_summary AS</code> แล้วตามด้วย CTE ทันที</li>
+<li>ถ้าใช้ <code>COUNT(*)</code> ลูกค้าที่ไม่เคยซื้อจะได้ 1 แทนที่จะเป็น 0 เพราะ LEFT JOIN สร้างแถวที่ฝั่งขวาเป็น NULL ไว้ 1 แถว ให้ใช้ <code>COUNT(t.order_id)</code> ซึ่งไม่นับ NULL</li>
+<li><code>SUM</code> ของแถวที่เป็น NULL ทั้งหมดได้ NULL ใช้ <code>COALESCE(SUM(...), 0)</code> เพื่อเปลี่ยนเป็น 0</li>
+<li>ใน <code>CASE</code> ให้ตรวจเงื่อนไข VIP ก่อน แล้วค่อยตรวจว่าไม่เคยซื้อ</li>
+<li>การกรองด้วยผลรวมของกลุ่มต้องใช้ <code>HAVING</code> ไม่ใช่ <code>WHERE</code></li>
+</ul>
+</div></details>
+</article>
+
+<article class="challenge" data-lvl="a">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 3</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h4>รายงานยอดขายตามหมวดหลักแบบรันซ้ำได้ ด้วย Recursive CTE, Window Function และ Python</h4>
+<h5>สถานการณ์</h5>
+<p>ผู้จัดการร้านขอรายงานยอดขายทุกต้นเดือน โดยอยากเห็นสินค้าขายดีอันดับต้นของแต่ละ "หมวดหลัก" (หมวดบนสุดของต้นไม้หมวดสินค้า เช่น Laptop Pro 14 อยู่ในหมวด Computers ซึ่งอยู่ใต้ Electronics จึงนับเป็นหมวดหลัก Electronics) พร้อมแนวโน้มยอดขายรายเดือน ยอดสะสม และอัตราการเติบโตเทียบเดือนก่อน เขาอยากเลือกช่วงวันที่ จำนวนอันดับ และเมืองของลูกค้าได้เอง ทีม Backend กำหนดว่าสคริปต์ต้องใช้ Parameterized Query เท่านั้น ห้ามต่อสตริง SQL และต้องอ่าน Connection String จาก Environment Variable</p>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+<li>สร้างไฟล์ <code>notes/ex_3.sql</code> ส่วนที่ 1: เขียน <code>WITH RECURSIVE</code> ชื่อ <code>cat_root</code> ที่จับคู่ทุกหมวดสินค้ากับหมวดหลักของมัน (มีตัวกันวนไม่รู้จบ เช่น <code>depth &lt; 10</code>) แล้วคำนวณยอดขายต่อสินค้า (ไม่นับคำสั่งซื้อที่ยกเลิก) จัดอันดับภายในหมวดหลักด้วย <code>ROW_NUMBER()</code> เรียงตามยอดขายจากมากไปน้อย (ถ้ายอดเท่ากันให้เรียงตามชื่อ) เก็บเฉพาะ 2 อันดับแรก และเพิ่ม Column <code>pct_of_root</code> ที่บอกว่าสินค้านั้นคิดเป็นกี่เปอร์เซ็นต์ของยอดขายทั้งหมวดหลัก (ทศนิยม 1 ตำแหน่ง)</li>
+<li>ส่วนที่ 2 ของไฟล์เดียวกัน: ยอดขายรายเดือน พร้อม <code>running_total</code>, <code>prev_month</code> (ใช้ <code>LAG</code>) และ <code>growth_pct</code> (ทศนิยม 1 ตำแหน่ง และต้องไม่ Error ถ้าเดือนก่อนเป็น 0) แล้วรันด้วย <code>psql -d shop -f notes/ex_3.sql</code></li>
+<li>สร้างสคริปต์ <code>sales_report.py</code> (ใช้ venv ที่มี <code>psycopg[binary]==3.3.6</code>) รับตัวเลือก <code>--start</code> และ <code>--end</code> (วันที่แบบ <code>YYYY-MM-DD</code> รวมทั้งสองวัน), <code>--top</code> (1 ถึง 10 ค่าเริ่มต้น 2) และ <code>--city</code> (ไม่ใส่ = ทุกเมือง) อ่าน <code>DATABASE_URL</code> จาก Environment Variable (ค่าเริ่มต้น <code>postgresql:///shop</code>) ส่งทุกค่าผ่าน Named Placeholder <code>%(ชื่อ)s</code> และใช้ <code>dict_row</code></li>
+<li>สคริปต์ต้องพิมพ์จำนวนคำสั่งซื้อ ยอดขายรวม ยอดเฉลี่ยต่อบิล (AOV) และสินค้า Top-N ต่อหมวดหลักในช่วงที่เลือก ถ้าไม่มียอดขายให้พิมพ์ว่า <code>ไม่มียอดขายในช่วงนี้</code> และถ้าเชื่อมต่อฐานข้อมูลไม่ได้ให้พิมพ์ข้อความภาษาไทยแล้วจบด้วย Exit Code 1</li>
+<li>ทดสอบ 3 กรณีปกติ: ครึ่งปีแรก 2026 (<code>--start 2026-01-01 --end 2026-06-30</code>), เดือนมีนาคมถึงเมษายนแบบ <code>--top 1</code> และครึ่งปีแรกเฉพาะลูกค้าใน Bangkok</li>
+<li>ทดสอบ 2 กรณีโจมตีบนเครื่องตัวเอง: <code>--city "Bangkok' OR '1'='1"</code> ต้องได้ 0 คำสั่งซื้อ (Payload ถูกมองเป็นชื่อเมืองธรรมดา) และ <code>--start "2026-01-01' OR '1'='1"</code> ต้องถูกปฏิเสธตั้งแต่ตอนตรวจ Argument โดยไม่ไปถึงฐานข้อมูล</li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<p>ส่วนที่ 2 ของ <code>notes/ex_3.sql</code> ต้องได้ตารางนี้</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>  month  | revenue  | running_total | prev_month | growth_pct 
+---------+----------+---------------+------------+------------
+ 2026-01 | 40570.00 |      40570.00 |       NULL |       NULL
+ 2026-02 | 21120.00 |      61690.00 |   40570.00 |      -47.9
+ 2026-03 | 57380.00 |     119070.00 |   21120.00 |      171.7
+ 2026-04 | 17120.00 |     136190.00 |   57380.00 |      -70.2
+ 2026-05 |  3950.00 |     140140.00 |   17120.00 |      -76.9
+ 2026-06 | 19870.00 |     160010.00 |    3950.00 |      403.0
+(6 rows)</code></pre>
+<p>และ <code>python sales_report.py --start 2026-01-01 --end 2026-06-30</code> ต้องได้ผลลัพธ์นี้ (ยอดขายรวมต้องเท่ากับยอดสะสมเดือน 2026-06 ข้างบนพอดี)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>รายงานยอดขาย 2026-01-01 ถึง 2026-06-30 (ทุกเมือง)
+----------------------------------------------------
+จำนวนคำสั่งซื้อ :           13
+ยอดขายรวม      :   160,010.00 บาท
+ยอดเฉลี่ยต่อบิล  :    12,308.46 บาท
+----------------------------------------------------
+Top 2 สินค้าต่อหมวดหลัก
+  Books        #1  SQL for Beginners      4 ชิ้น     1,800.00
+  Books        #2  Python Crash Course    2 ชิ้น     1,380.00
+  Electronics  #1  Laptop Pro 14          2 ชิ้น    71,800.00
+  Electronics  #2  Smartphone X           3 ชิ้น    56,970.00</code></pre>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+<li>Recursive CTE มี 2 ส่วนต่อกันด้วย <code>UNION ALL</code>: Anchor คือหมวดที่ <code>parent_id IS NULL</code> (หมวดหลักเป็น root ของตัวเอง) และ Recursive Member คือหมวดลูกที่ JOIN กับแถวที่หาได้แล้ว โดยรับ root ต่อจากหมวดแม่</li>
+<li><code>ROW_NUMBER()</code> ใช้ใน <code>WHERE</code> ตรง ๆ ไม่ได้ ให้คำนวณใน CTE ก่อน แล้วกรอง <code>rn &lt;= 2</code> ที่ชั้นนอก</li>
+<li>เปอร์เซ็นต์ต่อหมวดหลักใช้ <code>SUM(revenue) OVER (PARTITION BY root_name)</code> เป็นตัวหาร และคูณด้วย <code>100.0</code> เพื่อเลี่ยงการหารแบบจำนวนเต็ม</li>
+<li><code>NULLIF(x, 0)</code> คืน NULL เมื่อ x เป็น 0 ทำให้การหารได้ NULL แทน Error <code>division by zero</code></li>
+<li>ตัวกรองเมืองแบบไม่บังคับเขียนได้ด้วย <code>(%(city)s::text IS NULL OR c.city = %(city)s)</code> ต้องใส่ <code>::text</code> เพื่อบอกชนิดข้อมูลให้ PostgreSQL เมื่อค่าเป็น <code>None</code></li>
+<li>ใน argparse ใช้ <code>type=date.fromisoformat</code> เพื่อตรวจรูปแบบวันที่ตั้งแต่ต้นทาง และ <code>choices=range(1, 11)</code> เพื่อจำกัดค่า <code>--top</code></li>
+</ul>
+</div></details>
+</article>
+
+<h3 id="s14-3-answers">เฉลย</h3>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ลองทำทุกข้อด้วยตัวเองก่อนเปิดเฉลย อย่างน้อยให้เขียน Query แล้วรันจริงหนึ่งรอบ ถึงจะได้ Error ก็ไม่เป็นไร เพราะการอ่านข้อความ Error แล้วแก้เองคือทักษะที่ใช้ทุกวันในการทำงานจริง ถ้าติดเกิน 15 นาที ให้เปิด Hint หรือย้อนไปอ่านแนวคิดที่เกี่ยวข้องใน Part 2 ก่อน แล้วค่อยเปิดเฉลย</p></div>
+
+<h4>เฉลย Fill-in-the-blank</h4>
+
+<details class="ans"><summary>ข้อ 1</summary><div>
+<p><strong>คำตอบ: <code>DESC</code></strong></p>
+<pre class="code" data-env="file" data-label="SQL · notes/fill_1.sql"><code class="language-sql">SELECT name, price
+FROM products
+WHERE is_active = 1
+ORDER BY price DESC
+LIMIT 3;</code></pre>
+<p><code>ORDER BY</code> เรียงจากน้อยไปมาก (<code>ASC</code>) เป็นค่าเริ่มต้น ถ้าไม่ใส่อะไรเลย ผลลัพธ์จะได้สินค้าถูกที่สุด 3 ชิ้น คือ Phone Case, SQL for Beginners และ Wireless Mouse ซึ่งตรงข้ามกับที่ต้องการ การใส่ <code>DESC</code> (Descending) ทำให้เรียงจากมากไปน้อย แล้ว <code>LIMIT 3</code> จึงตัดเอาเฉพาะ 3 แถวบนสุด ลำดับการทำงานเชิงตรรกะคือ <code>FROM</code> → <code>WHERE</code> → <code>SELECT</code> → <code>ORDER BY</code> → <code>LIMIT</code> ดังนั้นการเรียงต้องเกิดก่อนการตัดแถวเสมอ</p>
+<p>สังเกตว่า SQLite แสดงราคาเป็น <code>35900.0</code> เพราะ Schema ของ SQLite เก็บราคาเป็น <code>REAL</code> ส่วน PostgreSQL จะแสดง <code>35900.00</code> เพราะใช้ <code>NUMERIC(10,2)</code></p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 2</summary><div>
+<p><strong>คำตอบ: <code>IS NULL</code></strong></p>
+<pre class="code" data-env="file" data-label="SQL · notes/fill_2.sql"><code class="language-sql">SELECT customer_id, name, email
+FROM customers
+WHERE city IS NULL;</code></pre>
+<p>NULL ไม่ใช่ค่า แต่หมายถึง "ไม่ทราบค่า" การเทียบอะไรก็ตามกับ NULL ด้วย <code>=</code> จึงได้ UNKNOWN ไม่ใช่ TRUE แม้แต่ <code>NULL = NULL</code> ก็ได้ UNKNOWN และ <code>WHERE</code> เก็บเฉพาะแถวที่เงื่อนไขเป็น TRUE เท่านั้น ถ้าเขียน <code>WHERE city = NULL</code> จะได้ 0 แถวโดยไม่มี Error เตือน ซึ่งอันตรายกว่า Error เสียอีก วิธีที่ถูกคือใช้ตัวดำเนินการเฉพาะ <code>IS NULL</code> หรือ <code>IS NOT NULL</code></p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 3</summary><div>
+<p><strong>คำตอบ: <code>HAVING</code></strong></p>
+<pre class="code" data-env="file" data-label="SQL · notes/fill_3.sql"><code class="language-sql">SELECT c.name, COUNT(*) AS order_count
+FROM orders o
+JOIN customers c ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.name
+HAVING COUNT(*) &gt;= 2
+ORDER BY order_count DESC, c.name;</code></pre>
+<p><code>WHERE</code> กรองทีละแถว "ก่อน" จัดกลุ่ม ตอนนั้นยังไม่มีค่า <code>COUNT(*)</code> ให้ใช้ ส่วน <code>HAVING</code> กรอง "หลัง" <code>GROUP BY</code> จึงใช้ Aggregate อย่าง <code>COUNT(*)</code> หรือ <code>SUM()</code> เป็นเงื่อนไขได้ ผลลัพธ์มี 5 คน เพราะ Somchai สั่ง 4 ครั้ง ส่วน Somying, Wichai, Manee และ Piti สั่งคนละ 2 ครั้ง (Manee มีคำสั่งซื้อที่ยกเลิก 1 รายการ แต่โจทย์ให้นับทุกสถานะ) ส่วน Chujai และ Duangjai สั่งคนละครั้งเดียวจึงถูกกรองออก</p>
+<p>การใส่ทั้ง <code>c.customer_id</code> และ <code>c.name</code> ใน <code>GROUP BY</code> ป้องกันปัญหาลูกค้า 2 คนชื่อซ้ำกันถูกรวมเป็นกลุ่มเดียว และทำให้ Query นี้รันได้ทั้งใน SQLite และ PostgreSQL</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 4</summary><div>
+<p><strong>คำตอบ: ช่องแรก <code>LEFT</code> ช่องที่สอง <code>IS NULL</code></strong></p>
+<pre class="code" data-env="file" data-label="SQL · notes/fill_4.sql"><code class="language-sql">SELECT c.customer_id, c.name
+FROM customers c
+LEFT JOIN orders o ON o.customer_id = c.customer_id
+WHERE o.order_id IS NULL;</code></pre>
+<p><code>LEFT JOIN</code> เก็บลูกค้าทุกคนจากตารางซ้ายไว้ ถึงจะหาคำสั่งซื้อที่คู่กันไม่เจอก็ตาม ในกรณีนั้น ทุก Column ของตาราง <code>orders</code> ในแถวนั้นจะเป็น NULL การกรอง <code>WHERE o.order_id IS NULL</code> จึงเหลือเฉพาะลูกค้าที่ไม่มีคู่ ซึ่งก็คือคนที่ไม่เคยสั่งซื้อ เทคนิคนี้เรียกว่า Anti Join</p>
+<p>ควรตรวจ NULL ที่ Column ซึ่งเป็น Primary Key หรือ <code>NOT NULL</code> ของตารางขวา (เช่น <code>o.order_id</code>) เพราะ Column นี้จะเป็น NULL ได้กรณีเดียวคือหาคู่ไม่เจอ ถ้าเลือก Column ที่ปกติเป็น NULL ได้อยู่แล้ว ผลลัพธ์อาจผิด ถ้าใช้ <code>INNER JOIN</code> แทน ลูกค้าที่ไม่มีคำสั่งซื้อจะหายไปตั้งแต่ขั้น JOIN และได้ 0 แถว</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 5</summary><div>
+<p><strong>คำตอบ: <code>ORDER BY</code></strong></p>
+<pre class="code" data-env="file" data-label="SQL · notes/fill_5.sql"><code class="language-sql">WITH monthly AS (
+    SELECT to_char(o.order_date, 'YYYY-MM')  AS month,
+           SUM(oi.quantity * oi.unit_price) AS revenue
+    FROM orders o
+    JOIN order_items oi ON oi.order_id = o.order_id
+    WHERE o.status &lt;&gt; 'cancelled'
+    GROUP BY month
+)
+SELECT month,
+       revenue,
+       SUM(revenue) OVER (ORDER BY month) AS running_total
+FROM monthly
+ORDER BY month;</code></pre>
+<p>เมื่อมี <code>ORDER BY</code> ใน <code>OVER</code> Frame เริ่มต้นจะเป็น "ตั้งแต่แถวแรกจนถึงแถวปัจจุบัน" (<code>RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW</code>) <code>SUM()</code> จึงบวกสะสมทีละเดือน แต่ถ้าเขียนแค่ <code>OVER ()</code> Window จะครอบทุกแถว ทุกเดือนจะได้ 160010.00 เท่ากันหมด นี่คือผลลัพธ์จริงเมื่อลืมใส่ <code>ORDER BY</code></p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>  month  | revenue  | running_total 
+---------+----------+---------------
+ 2026-01 | 40570.00 |     160010.00
+ 2026-02 | 21120.00 |     160010.00
+ 2026-03 | 57380.00 |     160010.00
+ 2026-04 | 17120.00 |     160010.00
+ 2026-05 |  3950.00 |     160010.00
+ 2026-06 | 19870.00 |     160010.00
+(6 rows)</code></pre>
+<p>ส่วน <code>ORDER BY month</code> ท้าย Query เป็นคนละตัวกับใน <code>OVER</code> ตัวท้ายกำหนดลำดับการแสดงผลเท่านั้น ส่วนตัวใน <code>OVER</code> กำหนดลำดับการคำนวณยอดสะสม ควรใส่ทั้งสองที่</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 6</summary><div>
+<p><strong>คำตอบ: ช่องแรก <code>%s</code> ช่องที่สอง <code>(city,)</code></strong></p>
+<pre class="code" data-env="file" data-label="Python · find_city.py"><code class="language-python">"""find_city.py : ค้นหาลูกค้าตามเมืองแบบปลอดภัย"""
+import os
+
+import psycopg
+
+city = "Chiang Mai"   # สมมติว่าค่านี้มาจากผู้ใช้
+with psycopg.connect(os.environ.get("DATABASE_URL", "postgresql:///shop")) as conn:
+    rows = conn.execute(
+        "SELECT name FROM customers WHERE city = %s ORDER BY name",
+        (city,),
+    ).fetchall()
+
+for (name,) in rows:
+    print(name)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/sql-lab
+source .venv/bin/activate
+python find_city.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Chujai Faidee
+Somying Rakrian</code></pre>
+<p>psycopg 3 ใช้ <code>%s</code> เป็น Placeholder ไม่ว่าข้อมูลจะเป็นชนิดใด (ตัวเลข วันที่ หรือข้อความ) และห้ามใส่เครื่องหมาย <code>'</code> ครอบ <code>%s</code> เอง เพราะ psycopg ส่งค่าแยกจากคำสั่ง SQL ไปให้ PostgreSQL ค่าที่ผู้ใช้พิมพ์จึงไม่มีทางกลายเป็นส่วนหนึ่งของคำสั่ง SQL ได้ (ส่วน SQLite ในโมดูล <code>sqlite3</code> ของ Python ใช้ <code>?</code> แทน)</p>
+<p>ค่าพารามิเตอร์ต้องเป็น Sequence (เช่น Tuple) หรือ Mapping (Dict) ถ้ามีค่าเดียวต้องเขียน <code>(city,)</code> ที่มีจุลภาค เพราะ <code>(city)</code> ไม่ใช่ Tuple แต่เป็นแค่ตัวแปร <code>city</code> ในวงเล็บ ถ้าเขียนผิดแบบนั้น จะได้ Error นี้จริง</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>TypeError: query parameters should be a sequence or a mapping, got str</code></pre>
+</div></details>
+
+<h4>เฉลย Multiple Choice</h4>
+
+<details class="ans"><summary>ข้อ 1</summary><div>
+<p><strong>คำตอบ: B</strong> <code>IS NULL</code> เป็นตัวดำเนินการเดียวที่ตรวจว่า Column ไม่มีค่าได้ถูกต้อง เพราะ SQL ใช้ตรรกะ 3 ค่า (TRUE, FALSE, UNKNOWN) และการเทียบใด ๆ กับ NULL ด้วยตัวดำเนินการทั่วไปจะได้ UNKNOWN เสมอ Query นี้จึงคืน Duangjai Saendee หนึ่งแถวตามที่ต้องการ</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ <code>city = NULL</code> ได้ UNKNOWN ทุกแถว รวมถึงแถวของ Duangjai ด้วย <code>WHERE</code> เก็บเฉพาะแถวที่เป็น TRUE ผลลัพธ์จึงเป็น 0 แถวโดยไม่มี Error เตือน</li>
+<li><strong>C</strong> ผิดเพราะสตริงว่าง <code>''</code> เป็นค่าจริงค่าหนึ่ง (ข้อความความยาว 0) ไม่ใช่ NULL ในข้อมูลตั้งต้นไม่มีลูกค้าคนไหนที่ <code>city</code> เป็นสตริงว่าง จึงได้ 0 แถว</li>
+<li><strong>D</strong> ผิดเพราะ <code>city &lt;&gt; NULL</code> ก็ได้ UNKNOWN ทุกแถวเช่นเดียวกับ <code>= NULL</code> ผลลัพธ์จึงเป็น 0 แถว ถ้าต้องการลูกค้าที่มีเมือง ต้องเขียน <code>IS NOT NULL</code></li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 2</summary><div>
+<p><strong>คำตอบ: C</strong> Primary Key คือ Column (หรือกลุ่ม Column) ที่ระบุแต่ละแถวได้แบบไม่ซ้ำ ฐานข้อมูลบังคับให้ค่าไม่ซ้ำ (UNIQUE) และไม่เป็น NULL โดยอัตโนมัติ ตารางอื่นจึงอ้างถึงลูกค้าคนหนึ่งได้อย่างแน่นอนผ่านค่า <code>customer_id</code> เช่น <code>orders.customer_id</code></p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะนี่คือคำอธิบายของ Foreign Key เช่น <code>orders.customer_id</code> ที่ชี้ไปหา <code>customers.customer_id</code> ไม่ใช่ Primary Key</li>
+<li><strong>B</strong> ผิดเพราะ Primary Key ห้ามซ้ำโดยเด็ดขาด ถ้าซ้ำได้ก็จะแยกลูกค้าสองคนที่มีเลขเดียวกันไม่ออก ส่วนการค้นหาที่เร็วขึ้นเป็นผลพลอยได้จาก Index ที่ฐานข้อมูลสร้างให้ ไม่ใช่นิยามหลัก</li>
+<li><strong>D</strong> ผิดเพราะ Primary Key ไม่ใช่เลขลำดับแถว เมื่อลบลูกค้าเลขที่ 3 ลูกค้าเลขที่ 4 ยังคงเป็นเลขที่ 4 เหมือนเดิม ถ้าเลขเลื่อนได้ คำสั่งซื้อที่อ้างถึงลูกค้าเหล่านั้นจะชี้ผิดคนทั้งหมด</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 3</summary><div>
+<p><strong>คำตอบ: C</strong> <code>DISTINCT</code> ตัดแถวที่ซ้ำกันออก และสำหรับ <code>DISTINCT</code> ค่า NULL ทุกตัวถือว่า "เหมือนกัน" จึงรวมเหลือแถวเดียว ผลลัพธ์คือ 4 เมืองที่มีชื่อ บวก NULL อีก 1 แถว รวม 5 แถว ผลลัพธ์จริงจาก SQLite</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>┌────────────┐
+│    city    │
+├────────────┤
+│ Bangkok    │
+│ Chiang Mai │
+│ Khon Kaen  │
+│ Phuket     │
+│ NULL       │
+└────────────┘</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะลืมนับ NULL <code>DISTINCT</code> ไม่ได้ตัด NULL ทิ้ง (คนละอย่างกับ <code>COUNT(DISTINCT city)</code> ที่ไม่นับ NULL)</li>
+<li><strong>B</strong> ผิดเพราะ 8 คือจำนวนลูกค้าทั้งหมด ซึ่งจะได้ถ้าไม่มี <code>DISTINCT</code></li>
+<li><strong>D</strong> ผิดเพราะ 7 คือจำนวนลูกค้าที่มีเมือง (ไม่ใช่ NULL) ซึ่งเป็นค่าของ <code>COUNT(city)</code> ไม่ใช่จำนวนเมืองที่ไม่ซ้ำ</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 4</summary><div>
+<p><strong>คำตอบ: D</strong> <code>COUNT(*)</code> นับทุกแถว ได้ 8 ส่วน <code>COUNT(city)</code> นับเฉพาะแถวที่ <code>city</code> ไม่เป็น NULL จึงได้ 7 (ไม่นับ Duangjai) และ <code>COUNT(DISTINCT city)</code> นับค่าที่ไม่ซ้ำและไม่เป็น NULL ได้ 4 คือ Bangkok, Chiang Mai, Khon Kaen และ Phuket ผลลัพธ์จริงจาก PostgreSQL 16</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> all_rows | with_city | cities 
+----------+-----------+--------
+        8 |         7 |      4
+(1 row)</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ <code>COUNT(city)</code> ไม่นับ NULL จึงไม่ใช่ 8 และ <code>COUNT(DISTINCT city)</code> ก็ไม่นับ NULL เป็นค่าหนึ่ง จึงไม่ใช่ 5</li>
+<li><strong>B</strong> ผิดเพราะสับสนกับ <code>SELECT DISTINCT</code> ที่นับ NULL เป็นหนึ่งแถว แต่ Aggregate ทุกตัวยกเว้น <code>COUNT(*)</code> ข้าม NULL ทั้งหมด จึงได้ 4 ไม่ใช่ 5</li>
+<li><strong>C</strong> ผิดเพราะ <code>COUNT(*)</code> นับทุกแถวรวมแถวที่มี NULL ด้วย จึงได้ 8 ไม่ใช่ 7</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 5</summary><div>
+<p><strong>คำตอบ: A</strong> <code>UPDATE</code> ที่ไม่มี <code>WHERE</code> จะแก้ทุกแถวในตาราง และ sqlite3 shell ทำงานแบบ Autocommit คือทุกคำสั่งที่ไม่ได้อยู่ใน <code>BEGIN</code> จะถูกบันทึกถาวรทันที ถ้ารันคำสั่งนี้ตามด้วย <code>SELECT changes();</code> ในสำเนาของ <code>shop.db</code> จะได้ <code>10</code> คือสินค้าทั้ง 10 รายการ วิธีป้องกันคือรัน <code>SELECT</code> ด้วย <code>WHERE</code> เดียวกันก่อนทุกครั้ง หรือเปิด <code>BEGIN;</code> ไว้ก่อน แล้วตรวจผลก่อน <code>COMMIT;</code> ถ้าพลาดไปแล้ว ให้รีเซ็ตฐานข้อมูลฝึกด้วยคำสั่งในส่วนเตรียมฐานข้อมูล</p>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะ SQL มาตรฐาน SQLite และ PostgreSQL ไม่บังคับให้ <code>UPDATE</code> ต้องมี <code>WHERE</code> คำสั่งนี้ถูกไวยากรณ์ทุกอย่าง จึงไม่มี Error ใด ๆ เตือน</li>
+<li><strong>C</strong> ผิดเพราะ SQL ทำงานกับเซตของแถวทั้งหมดที่ตรงเงื่อนไข ไม่ได้ทำงานกับ "แถวแรก" เมื่อไม่มีเงื่อนไข ทุกแถวจึงตรง</li>
+<li><strong>D</strong> ผิดเพราะในโหมด Autocommit ไม่ต้องสั่ง <code>COMMIT</code> เอง การแก้ไขถูกบันทึกทันที <code>COMMIT</code> จำเป็นเฉพาะเมื่อเริ่ม Transaction ด้วย <code>BEGIN</code> เท่านั้น</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 6</summary><div>
+<p><strong>คำตอบ: B</strong> ลำดับการทำงานเชิงตรรกะคือ <code>FROM</code> → <code>WHERE</code> → <code>GROUP BY</code> → <code>HAVING</code> → <code>SELECT</code> ตอนที่ <code>WHERE</code> ทำงาน ยังไม่มีการจัดกลุ่ม จึงยังไม่มี <code>COUNT(*)</code> ให้ใช้ PostgreSQL จึงปฏิเสธทันที ทางแก้คือย้ายเงื่อนไขไปไว้ใน <code>HAVING</code> ซึ่งทำงานหลังจัดกลุ่ม ผลลัพธ์จริงของทั้งแบบผิดและแบบถูก</p>
+<pre class="code" data-env="file" data-label="SQL · notes/mcq_6.sql"><code class="language-sql">-- แบบผิด: ใช้ Aggregate ใน WHERE
+SELECT status, COUNT(*) FROM orders WHERE COUNT(*) &gt; 2 GROUP BY status;
+-- แบบถูก: กรองหลังจัดกลุ่มด้วย HAVING
+SELECT status, COUNT(*) FROM orders GROUP BY status HAVING COUNT(*) &gt; 2;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>psql:notes/mcq_6.sql:2: ERROR:  aggregate functions are not allowed in WHERE
+LINE 1: SELECT status, COUNT(*) FROM orders WHERE COUNT(*) &gt; 2 GROUP...
+                                                  ^
+ status  | count 
+---------+-------
+ pending |     3
+ paid    |     4
+ shipped |     6
+(3 rows)</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ Query นี้รันไม่ได้ PostgreSQL ไม่อนุญาตให้ใช้ Aggregate ใน <code>WHERE</code> ผลลัพธ์ pending, paid, shipped ได้จากแบบที่แก้เป็น <code>HAVING</code> แล้วเท่านั้น</li>
+<li><strong>C</strong> ผิดเพราะ <code>COUNT(*)</code> ใช้กับ <code>GROUP BY</code> ได้ตามปกติ ปัญหาอยู่ที่ตำแหน่งของเงื่อนไข ไม่ได้อยู่ที่รูปแบบของ <code>COUNT</code> และ <code>COUNT(status)</code> ใน <code>WHERE</code> ก็ Error แบบเดียวกัน</li>
+<li><strong>D</strong> ผิดเพราะ Query ไม่ได้รันจนได้ 0 แถว แต่ถูกปฏิเสธตั้งแต่ขั้นตรวจคำสั่ง และ <code>ORDER BY</code> แค่กำหนดลำดับการแสดงผล ไม่ได้ช่วยเรื่องการกรองกลุ่มเลย</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 7</summary><div>
+<p><strong>คำตอบ: C</strong> <code>LEFT JOIN</code> ให้แถวเท่ากับจำนวนคู่ที่จับได้ บวกกับแถวของตารางซ้ายที่หาคู่ไม่เจอ คำสั่งซื้อทั้ง 14 รายการมีเจ้าของในตาราง <code>customers</code> จึงได้ 14 คู่ และ Anan ที่ไม่มีคำสั่งซื้อได้อีก 1 แถว (ฝั่ง <code>orders</code> เป็น NULL) รวม 15 แถว ผลลัพธ์จริง</p>
+<pre class="code" data-env="file" data-label="SQL · notes/mcq_7.sql"><code class="language-sql">SELECT COUNT(*) AS joined_rows
+FROM customers c
+LEFT JOIN orders o ON o.customer_id = c.customer_id;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> joined_rows 
+-------------
+          15
+(1 row)</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ JOIN ไม่ได้ให้หนึ่งแถวต่อลูกค้า ลูกค้าที่มีหลายคำสั่งซื้อ (เช่น Somchai มี 4) จะปรากฏหลายแถว ถ้าต้องการหนึ่งแถวต่อคน ต้องใช้ <code>GROUP BY</code> เพิ่ม</li>
+<li><strong>B</strong> ผิดเพราะ 14 คือผลของ <code>INNER JOIN</code> ซึ่งตัด Anan ทิ้ง <code>LEFT JOIN</code> เก็บ Anan ไว้อีก 1 แถว</li>
+<li><strong>D</strong> ผิดเพราะ 112 (8 × 14) คือผลของ <code>CROSS JOIN</code> หรือ JOIN ที่ลืมเงื่อนไข <code>ON</code> ซึ่งจับทุกลูกค้าคู่กับทุกคำสั่งซื้อ</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 8</summary><div>
+<p><strong>คำตอบ: A</strong> <code>city NOT IN ('Bangkok', NULL)</code> มีความหมายเท่ากับ <code>city &lt;&gt; 'Bangkok' AND city &lt;&gt; NULL</code> ส่วนหลังเป็น UNKNOWN ทุกแถว ทั้งก้อนจึงเป็น FALSE หรือ UNKNOWN ไม่เคยเป็น TRUE ผลลัพธ์จึงว่างเปล่าโดยไม่มี Error นี่คือกับดัก <code>NOT IN</code> กับ NULL ที่พบบ่อยในงานจริง ทางแก้คือใช้ <code>NOT EXISTS</code> ซึ่งไม่มีปัญหานี้</p>
+<pre class="code" data-env="file" data-label="SQL · notes/mcq_8.sql"><code class="language-sql">-- Subquery คืนค่า 'Bangkok' และ NULL (ของลูกค้าเลขที่ 7)
+SELECT name
+FROM customers
+WHERE city NOT IN (SELECT city FROM customers WHERE customer_id IN (1, 7));
+-- วิธีแก้: ใช้ NOT EXISTS
+SELECT name
+FROM customers c
+WHERE NOT EXISTS (
+    SELECT 1 FROM customers x
+    WHERE x.customer_id IN (1, 7) AND x.city = c.city
+)
+ORDER BY name;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> name 
+------
+(0 rows)
+
+       name       
+------------------
+ Anan Thongkham
+ Chujai Faidee
+ Duangjai Saendee
+ Piti Yindee
+ Somying Rakrian
+ Wichai Mankhong
+(6 rows)</code></pre>
+<p>สังเกตว่าแบบ <code>NOT EXISTS</code> ได้ 6 คน รวม Duangjai ด้วย เพราะ <code>x.city = c.city</code> ของ Duangjai เป็น UNKNOWN จึงหาแถวที่ตรงไม่เจอ และ <code>NOT EXISTS</code> เป็น TRUE</p>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะนี่คือผลลัพธ์ที่หลายคน "คาดหวัง" แต่ไม่ใช่สิ่งที่ฐานข้อมูลทำจริง เมื่อในรายการมี NULL <code>NOT IN</code> ไม่เคยเป็น TRUE กับแถวใดเลย</li>
+<li><strong>C</strong> ผิดเพราะ SQL ไม่ได้ข้าม NULL ในรายการของ <code>IN</code> หรือ <code>NOT IN</code> และต่อให้ข้ามจริง ลูกค้าที่อยู่ Bangkok 2 คนก็ต้องถูกตัดออก จึงไม่มีทางได้ 8 แถว</li>
+<li><strong>D</strong> ผิดเพราะ Error นี้เกิดกับ Scalar Subquery ที่ใช้กับ <code>=</code> หรือ <code>&lt;</code> แต่ <code>IN</code> และ <code>NOT IN</code> รับ Subquery ที่คืนหลายแถวได้ตามปกติ</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 9</summary><div>
+<p><strong>คำตอบ: D</strong> 3NF กำหนดว่า Column ที่ไม่ใช่ Key ต้องขึ้นกับ Primary Key โดยตรงเท่านั้น ในตารางนี้ <code>customer_name</code> และ <code>customer_city</code> ขึ้นกับ <code>customer_email</code> ซึ่งขึ้นกับ <code>order_id</code> อีกต่อหนึ่ง (Transitive Dependency) ผลคือถ้าลูกค้าย้ายเมือง ต้องแก้หลายแถว และถ้าแก้ไม่ครบจะเกิด Update Anomaly ทางแก้คือแยกตาราง <code>customers</code> ออกมา แล้วให้ <code>orders</code> เก็บแค่ <code>customer_id</code> เป็น Foreign Key แบบเดียวกับ Schema ของร้าน shop</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ 1NF ไม่ได้จำกัดจำนวน Column แต่กำหนดให้ทุกช่องเก็บค่าเดียว (Atomic) และไม่มีกลุ่มข้อมูลซ้ำ ซึ่งตารางนี้ผ่านแล้ว การแบ่งครึ่งตารางแบบไม่มีหลักการก็ไม่ได้แก้ปัญหาใด</li>
+<li><strong>B</strong> ผิดเพราะ Primary Key ของตารางนี้คือ <code>order_id</code> Column เดียว ไม่ใช่ Composite Key จึงไม่มี Partial Dependency ตารางที่มี Key Column เดียวผ่าน 2NF โดยอัตโนมัติเมื่อผ่าน 1NF</li>
+<li><strong>C</strong> ผิดเพราะการที่ทุกช่องเป็น Atomic แค่ทำให้ผ่าน 1NF แต่ยังมี Transitive Dependency ที่ผิด 3NF และทำให้เกิด Anomaly ได้</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 10</summary><div>
+<p><strong>คำตอบ: B</strong> <code>RANK()</code> ให้แถวที่ค่าเท่ากันได้อันดับเดียวกัน แล้ว "ข้าม" อันดับถัดไปตามจำนวนแถวที่เสมอ ส่วน <code>DENSE_RANK()</code> ไม่ข้าม สินค้าที่ขายได้ 3 ชิ้นมี 3 ตัว (อันดับ 4 ทั้งหมด) อันดับถัดไปของ <code>RANK</code> จึงเป็น 4 + 3 = 7 ส่วน <code>DENSE_RANK</code> เป็น 5 ผลลัพธ์จริงจาก PostgreSQL 16</p>
+<pre class="code" data-env="file" data-label="SQL · notes/mcq_10.sql"><code class="language-sql">WITH sold AS (
+    SELECT p.name, SUM(oi.quantity) AS qty
+    FROM order_items oi
+    JOIN products p ON p.product_id = oi.product_id
+    GROUP BY p.name
+)
+SELECT name, qty,
+       ROW_NUMBER() OVER (ORDER BY qty DESC, name) AS row_num,
+       RANK()       OVER (ORDER BY qty DESC)       AS rnk,
+       DENSE_RANK() OVER (ORDER BY qty DESC)       AS dense_rnk
+FROM sold
+ORDER BY qty DESC, name;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>        name         | qty | row_num | rnk | dense_rnk 
+---------------------+-----+---------+-----+-----------
+ Phone Case          |   6 |       1 |   1 |         1
+ Wireless Mouse      |   5 |       2 |   2 |         2
+ SQL for Beginners   |   4 |       3 |   3 |         3
+ 27-inch Monitor     |   3 |       4 |   4 |         4
+ Mechanical Keyboard |   3 |       5 |   4 |         4
+ Smartphone X        |   3 |       6 |   4 |         4
+ Laptop Pro 14       |   2 |       7 |   7 |         5
+ Python Crash Course |   2 |       8 |   7 |         5
+(8 rows)</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะสลับค่ากัน <code>RANK</code> เป็นตัวที่ข้ามอันดับ จึงได้ค่ามากกว่าหรือเท่ากับ <code>DENSE_RANK</code> เสมอ ไม่มีทางที่ <code>DENSE_RANK</code> จะมากกว่า</li>
+<li><strong>C</strong> ผิดเพราะ 7 เท่ากันทั้งคู่จะเกิดได้เฉพาะเมื่อไม่มีค่าเสมอเลยก่อนหน้า แต่ที่นี่มีสินค้าเสมอกัน 3 ตัว <code>DENSE_RANK</code> จึงได้ 5</li>
+<li><strong>D</strong> ผิดเพราะ 8 เป็นค่าของ <code>ROW_NUMBER()</code> ของ Python Crash Course (แถวสุดท้าย) ไม่ใช่ <code>RANK</code> ของ Laptop Pro 14 และ <code>DENSE_RANK</code> ก็ไม่ได้เป็น 6</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 11</summary><div>
+<p><strong>คำตอบ: C</strong> B-tree Index แบบหลาย Column เรียงข้อมูลตาม <code>customer_id</code> ก่อน แล้วค่อยเรียงตาม <code>order_date</code> ภายในลูกค้าคนเดียวกัน (เหมือนสมุดโทรศัพท์ที่เรียงตามนามสกุลก่อนชื่อ) Query ที่ระบุ Column ซ้ายสุดด้วย <code>=</code> และต่อด้วยช่วงของ Column ถัดไป จึงใช้ Index ได้เต็มที่ (กฎ Leftmost Prefix) ด้านล่างคือผล <code>EXPLAIN</code> จริงบน PostgreSQL 16 กับตาราง <code>big_orders</code> ที่มีเพียง Index <code>idx_big_cust_date</code> ตัวเดียว คำสั่งในไฟล์เรียงตามตัวเลือก C, A, B และ D และแผนในผลลัพธ์ก็ออกมาตามลำดับเดียวกัน (<code>COSTS OFF</code> ซ่อนตัวเลข Cost ไว้ให้อ่านง่าย)</p>
+<pre class="code" data-env="file" data-label="SQL · notes/mcq_11.sql"><code class="language-sql">EXPLAIN (COSTS OFF) SELECT * FROM big_orders WHERE customer_id = 42 AND order_date &gt;= DATE '2026-01-01';
+EXPLAIN (COSTS OFF) SELECT * FROM big_orders WHERE order_date = DATE '2026-01-01';
+EXPLAIN (COSTS OFF) SELECT * FROM big_orders WHERE customer_id + 0 = 42;
+EXPLAIN (COSTS OFF) SELECT * FROM big_orders WHERE status LIKE '%ing';</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Bitmap Heap Scan on big_orders
+   Recheck Cond: ((customer_id = 42) AND (order_date &gt;= '2026-01-01'::date))
+   -&gt;  Bitmap Index Scan on idx_big_cust_date
+         Index Cond: ((customer_id = 42) AND (order_date &gt;= '2026-01-01'::date))
+(4 rows)
+
+                 QUERY PLAN                  
+---------------------------------------------
+ Seq Scan on big_orders
+   Filter: (order_date = '2026-01-01'::date)
+(2 rows)
+
+                QUERY PLAN                
+------------------------------------------
+ Gather
+   Workers Planned: 1
+   -&gt;  Parallel Seq Scan on big_orders
+         Filter: ((customer_id + 0) = 42)
+(4 rows)
+
+             QUERY PLAN             
+------------------------------------
+ Seq Scan on big_orders
+   Filter: (status ~~ '%ing'::text)
+(2 rows)</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ <code>order_date</code> เป็น Column ที่สองของ Index การค้นหาด้วย Column ที่สองอย่างเดียวเหมือนหาคนในสมุดโทรศัพท์ด้วยชื่อต้นโดยไม่รู้นามสกุล ต้องไล่ทั้งเล่ม PostgreSQL 16 จึงเลือก <code>Seq Scan</code> (PostgreSQL 18 เพิ่มความสามารถ Skip Scan ที่อาจใช้ Index ได้ในบางกรณี ตรวจสอบรายละเอียดในเอกสารของเวอร์ชันนั้นก่อนใช้)</li>
+<li><strong>B</strong> ผิดเพราะ <code>customer_id + 0</code> เป็น Expression ไม่ใช่ Column ตรง ๆ Index เก็บค่าของ <code>customer_id</code> ไม่ได้เก็บค่าของ <code>customer_id + 0</code> แผนจึงเป็น <code>Parallel Seq Scan</code> ปัญหาเดียวกันเกิดกับ <code>lower(email)</code> หรือ <code>date(order_date)</code> ถ้าจำเป็นต้องค้นแบบนั้น ให้สร้าง Expression Index</li>
+<li><strong>D</strong> ผิดเพราะ <code>status</code> ไม่อยู่ใน Index นี้เลย และต่อให้มี Index ที่ <code>status</code> การค้นด้วย <code>LIKE</code> ที่ขึ้นต้นด้วย <code>%</code> ก็ใช้ B-tree ไม่ได้ เพราะไม่รู้ตัวอักษรต้นคำที่จะเริ่มค้น</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 12</summary><div>
+<p><strong>คำตอบ: A</strong> ใน REPEATABLE READ PostgreSQL ถ่าย Snapshot ของข้อมูลตอนคำสั่งแรกของ Transaction และใช้ Snapshot นั้นตลอดจนกว่าจะ <code>COMMIT</code> หรือ <code>ROLLBACK</code> Session A จึงเห็น 60 ทั้งสองครั้ง แม้ Session B จะ Commit ค่า 59 ไปแล้ว ผู้เขียนทดสอบด้วย Connection ของ psycopg 3 สองตัว (ตัวหนึ่ง REPEATABLE READ อีกตัวเป็น Autocommit) บน PostgreSQL 16 ได้ค่า <code>(60,)</code> ทั้งก่อนและหลังการ UPDATE ของอีก Session ถ้าเป็น READ COMMITTED (ค่าเริ่มต้น) การอ่านครั้งที่สองจะเห็น 59</p>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะการเห็นค่าที่อีก Session Commit แล้วระหว่าง Transaction เป็นพฤติกรรมของ READ COMMITTED เท่านั้น (Non-repeatable Read) REPEATABLE READ ถูกออกแบบมาเพื่อป้องกันสิ่งนี้</li>
+<li><strong>C</strong> ผิดเพราะ PostgreSQL ใช้ MVCC ทำให้การอ่านด้วย <code>SELECT</code> ธรรมดาไม่ต้องรอ Lock ของผู้เขียน และ Session B ก็ Commit ไปแล้ว ไม่มี Lock ค้างอยู่ การรอจะเกิดเมื่อใช้ <code>SELECT ... FOR UPDATE</code> หรือ <code>UPDATE</code> แถวที่อีก Session ยังไม่ Commit</li>
+<li><strong>D</strong> ผิดเพราะ Error <code>could not serialize access due to concurrent update</code> เกิดเมื่อ Session A พยายาม <code>UPDATE</code> หรือ <code>DELETE</code> แถวที่ถูกแก้ไปแล้วหลัง Snapshot ไม่ใช่ตอน <code>SELECT</code> ธรรมดา</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 13</summary><div>
+<p><strong>คำตอบ: D</strong> บรรทัดนี้ใช้ Parameterized Query คือส่งคำสั่ง SQL ที่มี Placeholder <code>%s</code> แยกจากค่าข้อมูล <code>(email,)</code> psycopg และ PostgreSQL จัดการค่าเป็นข้อมูลเสมอ ต่อให้ผู้ใช้พิมพ์ <code>x' OR '1'='1</code> ก็จะถูกมองเป็นอีเมลที่ไม่มีอยู่จริง และได้ 0 แถว</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ f-string นำข้อความของผู้ใช้ไปต่อเป็นส่วนหนึ่งของคำสั่ง SQL ก่อนส่ง ถ้าผู้ใช้พิมพ์ <code>x' OR '1'='1</code> คำสั่งจะกลายเป็น <code>WHERE email = 'x' OR '1'='1'</code> และคืนลูกค้าทุกคน</li>
+<li><strong>B</strong> ผิดเพราะ <code>%</code> ตรงนี้เป็นตัวดำเนินการจัดรูปแบบสตริงของ Python ไม่ใช่ Placeholder ของ psycopg ค่าจึงถูกต่อเข้าไปในสตริงก่อนเหมือนข้อ A อันตรายเท่ากัน แม้จะดูคล้ายข้อ D</li>
+<li><strong>C</strong> ผิดเพราะ <code>.format()</code> ก็เป็นการต่อสตริงเหมือน f-string การใส่ <code>'</code> ครอบไว้ไม่ช่วยอะไร เพราะผู้โจมตีพิมพ์ <code>'</code> ปิดเองได้</li>
+</ul>
+</div></details>
+
+<h4>เฉลย Hands-on Challenge</h4>
+
+<details class="ans"><summary>โจทย์ที่ 1: รายงานสต็อกต่ำและระบบใบขอเติมสินค้า</summary><div>
+<p>สร้างไฟล์ด้วย <code>nano notes/ex_1.sql</code> (หรือเปิดใน VS Code ด้วย <code>code notes/ex_1.sql</code>) แล้ววางเนื้อหานี้ทั้งหมด</p>
+<pre class="code" data-env="file" data-label="SQL · notes/ex_1.sql"><code class="language-sql">-- ex_1.sql : รายงานสต็อกและใบขอเติมสินค้า (SQLite)
+
+-- ส่วนที่ 1: สินค้าที่ยังขายอยู่และสต็อกน้อยกว่า 10 ชิ้น พร้อมป้ายสถานะ
+SELECT product_id,
+       name,
+       stock,
+       price * stock AS stock_value,
+       CASE
+           WHEN stock = 0 THEN 'หมด'
+           WHEN stock &lt;= 5 THEN 'ใกล้หมด'
+           ELSE 'เหลือน้อย'
+       END AS stock_label
+FROM products
+WHERE is_active = 1
+  AND stock &lt; 10
+ORDER BY stock ASC, name ASC;
+
+-- ส่วนที่ 2: ตารางใบขอเติมสินค้า พร้อม Constraint ครบ
+DROP TABLE IF EXISTS restock_requests;
+CREATE TABLE restock_requests (
+    request_id   INTEGER PRIMARY KEY,
+    product_id   INTEGER NOT NULL REFERENCES products(product_id),
+    qty          INTEGER NOT NULL CHECK (qty &gt; 0),
+    status       TEXT    NOT NULL DEFAULT 'open'
+                 CHECK (status IN ('open', 'done')),
+    requested_on TEXT    NOT NULL,
+    UNIQUE (product_id, requested_on)
+) STRICT;
+
+-- ส่วนที่ 3: เพิ่มใบขอ 3 ใบ (ไม่ระบุ status ให้ใช้ค่า DEFAULT)
+INSERT INTO restock_requests (product_id, qty, requested_on) VALUES
+  (5, 20, '2026-10-20'),   -- USB-C Hub
+  (1,  5, '2026-10-20'),   -- Laptop Pro 14
+  (2,  5, '2026-10-20');   -- 27-inch Monitor
+
+-- ใบขอที่ผิดกฎ 2 ใบ: จำนวนเป็น 0 และสินค้าที่ไม่มีอยู่จริง
+INSERT INTO restock_requests (product_id, qty, requested_on) VALUES (4, 0, '2026-10-20');
+INSERT INTO restock_requests (product_id, qty, requested_on) VALUES (99, 10, '2026-10-20');
+
+-- ส่วนที่ 4: ของมาถึงแล้ว 1 รายการ ปรับใบขอและสต็อกใน Transaction เดียว
+BEGIN;
+UPDATE restock_requests SET status = 'done' WHERE request_id = 2;
+UPDATE products SET stock = stock + 5 WHERE product_id = 1;
+COMMIT;
+
+-- ตรวจผล: ใบขอทั้งหมด
+SELECT request_id, product_id, qty, status, requested_on
+FROM restock_requests
+ORDER BY request_id;
+
+-- ตรวจผล: สต็อกของ Laptop Pro 14 หลังรับของ
+SELECT product_id, name, stock FROM products WHERE product_id = 1;
+
+-- สรุป: จำนวนใบขอและจำนวนชิ้นรวม แยกตามสถานะ
+SELECT status, COUNT(*) AS requests, SUM(qty) AS total_qty
+FROM restock_requests
+GROUP BY status
+ORDER BY status;</code></pre>
+<p>รันทั้งไฟล์จากฐานข้อมูลที่เพิ่งรีเซ็ต</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/sql-lab
+sqlite3 shop.db &lt; notes/ex_1.sql</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>┌────────────┬─────────────────┬───────┬─────────────┬─────────────┐
+│ product_id │      name       │ stock │ stock_value │ stock_label │
+├────────────┼─────────────────┼───────┼─────────────┼─────────────┤
+│ 5          │ USB-C Hub       │ 0     │ 0.0         │ หมด         │
+│ 1          │ Laptop Pro 14   │ 5     │ 179500.0    │ ใกล้หมด     │
+│ 2          │ 27-inch Monitor │ 7     │ 55930.0     │ เหลือน้อย   │
+└────────────┴─────────────────┴───────┴─────────────┴─────────────┘
+Runtime error near line 37: CHECK constraint failed: qty &gt; 0 (19)
+Runtime error near line 38: FOREIGN KEY constraint failed (19)
+┌────────────┬────────────┬─────┬────────┬──────────────┐
+│ request_id │ product_id │ qty │ status │ requested_on │
+├────────────┼────────────┼─────┼────────┼──────────────┤
+│ 1          │ 5          │ 20  │ open   │ 2026-10-20   │
+│ 2          │ 1          │ 5   │ done   │ 2026-10-20   │
+│ 3          │ 2          │ 5   │ open   │ 2026-10-20   │
+└────────────┴────────────┴─────┴────────┴──────────────┘
+┌────────────┬───────────────┬───────┐
+│ product_id │     name      │ stock │
+├────────────┼───────────────┼───────┤
+│ 1          │ Laptop Pro 14 │ 10    │
+└────────────┴───────────────┴───────┘
+┌────────┬──────────┬───────────┐
+│ status │ requests │ total_qty │
+├────────┼──────────┼───────────┤
+│ done   │ 1        │ 5         │
+│ open   │ 2        │ 25        │
+└────────┴──────────┴───────────┘</code></pre>
+<p>ตาราง box ที่มีคำภาษาไทยอาจดูเหลื่อมเล็กน้อยใน Terminal บางตัว เพราะสระบนล่างและวรรณยุกต์ไทยไม่กินความกว้าง ข้อมูลข้างในถูกต้องครบ</p>
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>รายงานสต็อก:</strong> กรองสองเงื่อนไขด้วย <code>AND</code> (<code>is_active = 1</code> และ <code>stock &lt; 10</code>) Old MP3 Player จึงหายไปแม้สต็อกเหลือ 3 เพราะเลิกขายแล้ว <code>stock_value</code> เป็น Computed Expression ที่ตั้งชื่อด้วย <code>AS</code> และ <code>CASE</code> เรียงเงื่อนไขจากแคบไปกว้าง (<code>= 0</code> ก่อน <code>&lt;= 5</code>) เพราะ CASE หยุดที่ข้อแรกที่เป็นจริง</li>
+<li><strong>ออกแบบตารางให้ฐานข้อมูลช่วยตรวจ:</strong> แทนที่จะหวังว่าคนกรอกจะกรอกถูก เราใส่กฎไว้ในตารางเลย <code>NOT NULL</code> กันช่องว่าง, <code>CHECK (qty &gt; 0)</code> กันจำนวนติดลบหรือศูนย์, <code>CHECK (status IN (...))</code> กันสถานะสะกดผิด, <code>REFERENCES</code> กันสินค้าที่ไม่มีอยู่จริง, <code>UNIQUE (product_id, requested_on)</code> กันขอซ้ำในวันเดียว และ <code>STRICT</code> กันการใส่ข้อความลงในช่องตัวเลข</li>
+<li><strong>ทดสอบ Constraint ด้วยข้อมูลผิดโดยตั้งใจ:</strong> Error 2 บรรทัดในผลลัพธ์คือหลักฐานว่ากฎทำงาน เลข <code>(19)</code> ท้ายข้อความคือรหัส <code>SQLITE_CONSTRAINT</code> และเลขบรรทัด 37 และ 38 คือตำแหน่งคำสั่งในไฟล์ ใบขอที่ผิดจึงไม่ถูกบันทึก ตารางยังมีแค่ 3 แถว</li>
+<li><strong>Transaction:</strong> การรับของต้องแก้ 2 ตารางพร้อมกัน (สถานะใบขอและสต็อก) ถ้าทำแค่ครึ่งเดียวแล้วไฟดับ ข้อมูลจะไม่ตรงกัน การครอบด้วย <code>BEGIN</code> ... <code>COMMIT</code> ทำให้ทั้งสองคำสั่งสำเร็จพร้อมกัน หรือไม่มีอะไรเกิดขึ้นเลย</li>
+<li><strong>ปิดท้ายด้วย Query ตรวจผล:</strong> นิสัยที่ดีคือทุกครั้งที่แก้ข้อมูล ให้ <code>SELECT</code> ดูผลทันที และใช้ <code>GROUP BY status</code> กับ <code>COUNT</code> และ <code>SUM</code> สรุปภาพรวม ผลสรุปบอกว่าเหลือใบขอเปิดอยู่ 2 ใบ รวม 25 ชิ้น</li>
+</ul>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ไฟล์นี้แก้ข้อมูลใน <code>shop.db</code> (เพิ่มตาราง <code>restock_requests</code> และเพิ่มสต็อก Laptop Pro 14 เป็น 10) ถ้ารันซ้ำ สต็อกจะเพิ่มเป็น 15 และผลไม่ตรงเฉลย ก่อนรันใหม่หรือก่อนทำข้ออื่น ให้รีเซ็ตด้วย <code>rm -f shop.db &amp;&amp; sqlite3 shop.db &lt; shop_schema_sqlite.sql &amp;&amp; sqlite3 shop.db &lt; shop_seed.sql</code></p></div>
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+<li>เพิ่ม Column <code>supplier</code> และ <code>expected_on</code> ในตาราง แล้วเขียน Query หาใบขอที่เลยกำหนดส่งแล้ว (<code>expected_on &lt; '2026-10-20'</code> และยัง <code>open</code>)</li>
+<li>ใช้ <code>INSERT INTO restock_requests (product_id, qty, requested_on) SELECT product_id, 20 - stock, '2026-10-27' FROM products WHERE is_active = 1 AND stock &lt; 10;</code> สร้างใบขอให้สินค้าสต็อกต่ำทุกตัวโดยอัตโนมัติในคำสั่งเดียว</li>
+<li>สร้าง Trigger ใน SQLite (<code>CREATE TRIGGER ... AFTER UPDATE OF status ON restock_requests</code>) ที่เพิ่มสต็อกให้อัตโนมัติเมื่อใบขอเปลี่ยนเป็น <code>done</code> แทนการเขียน 2 คำสั่งเอง</li>
+<li>เขียนสคริปต์ Python ด้วยโมดูล <code>sqlite3</code> ที่รันรายงานส่วนแรกทุกเช้า แล้วบันทึกเป็นไฟล์ CSV และตั้งเวลาด้วย cron (ทบทวนได้ที่ <a data-t="19"></a>)</li>
+</ol>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 2: รายงานลูกค้าแบ่งกลุ่มและยอดขายตามหมวดสินค้า</summary><div>
+<p>สร้างไฟล์ <code>notes/ex_2.sql</code> แล้ววางเนื้อหานี้ทั้งหมด</p>
+<pre class="code" data-env="file" data-label="SQL · notes/ex_2.sql"><code class="language-sql">-- ex_2.sql : สรุปลูกค้าและยอดขายตามหมวดสินค้า สำหรับทีมการตลาด (PostgreSQL 16)
+
+-- ส่วนที่ 1: รายงานลูกค้า เก็บเป็น View ให้ทีมเรียกใช้ซ้ำ
+-- CTE order_totals คำนวณยอดของแต่ละคำสั่งซื้อที่ไม่ถูกยกเลิก แล้ว LEFT JOIN กับลูกค้าทุกคน
+CREATE OR REPLACE VIEW v_customer_summary AS
+WITH order_totals AS (
+    SELECT o.order_id,
+           o.customer_id,
+           o.order_date,
+           SUM(oi.quantity * oi.unit_price) AS order_total
+    FROM orders o
+    JOIN order_items oi ON oi.order_id = o.order_id
+    WHERE o.status &lt;&gt; 'cancelled'
+    GROUP BY o.order_id, o.customer_id, o.order_date
+)
+SELECT c.customer_id,
+       c.name,
+       COALESCE(c.city, 'ไม่ระบุ')          AS city,
+       COUNT(t.order_id)                    AS orders,
+       COALESCE(SUM(t.order_total), 0)      AS total_spent,
+       MAX(t.order_date)                    AS last_order,
+       CASE
+           WHEN COALESCE(SUM(t.order_total), 0) &gt;= 30000 THEN 'VIP'
+           WHEN COUNT(t.order_id) = 0 THEN 'ยังไม่เคยซื้อ'
+           ELSE 'ลูกค้าทั่วไป'
+       END                                  AS segment
+FROM customers c
+LEFT JOIN order_totals t ON t.customer_id = c.customer_id
+GROUP BY c.customer_id, c.name, c.city;
+
+-- ดูรายงานลูกค้าทั้งหมด เรียงจากยอดซื้อมากไปน้อย
+SELECT *
+FROM v_customer_summary
+ORDER BY total_spent DESC, customer_id;
+
+-- ส่วนที่ 2: ยอดขายตามหมวดสินค้า (ไม่นับคำสั่งซื้อที่ยกเลิก) เฉพาะหมวดที่ขายได้เกิน 5,000 บาท
+SELECT cat.name                          AS category,
+       COUNT(DISTINCT o.order_id)        AS orders,
+       SUM(oi.quantity)                  AS units,
+       SUM(oi.quantity * oi.unit_price)  AS revenue
+FROM order_items oi
+JOIN orders o      ON o.order_id = oi.order_id
+JOIN products p    ON p.product_id = oi.product_id
+JOIN categories cat ON cat.category_id = p.category_id
+WHERE o.status &lt;&gt; 'cancelled'
+GROUP BY cat.name
+HAVING SUM(oi.quantity * oi.unit_price) &gt; 5000
+ORDER BY revenue DESC;
+
+-- ส่วนที่ 3: ใช้ View ตอบคำถามสั้น ๆ 2 ข้อ
+SELECT name, city, total_spent
+FROM v_customer_summary
+WHERE segment = 'VIP'
+ORDER BY total_spent DESC;
+
+SELECT segment, COUNT(*) AS customers, SUM(total_spent) AS revenue
+FROM v_customer_summary
+GROUP BY segment
+ORDER BY revenue DESC;</code></pre>
+<p>รันด้วย psql บนฐานข้อมูล <code>shop</code> ที่รีเซ็ตแล้ว</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/sql-lab
+psql -d shop -f notes/ex_2.sql</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>CREATE VIEW
+ customer_id |       name       |    city    | orders | total_spent | last_order |  segment  
+-------------+------------------+------------+--------+-------------+------------+-----------
+           1 | Somchai Jaidee   | Bangkok    |      4 |    55550.00 | 2026-06-20 | VIP
+           2 | Somying Rakrian  | Chiang Mai |      2 |    39980.00 | 2026-03-03 | VIP
+           3 | Wichai Mankhong  | Khon Kaen  |      2 |    22650.00 | 2026-05-09 | ลูกค้าทั่วไป
+           5 | Piti Yindee      | Phuket     |      2 |    20830.00 | 2026-06-06 | ลูกค้าทั่วไป
+           6 | Chujai Faidee    | Chiang Mai |      1 |    18990.00 | 2026-03-15 | ลูกค้าทั่วไป
+           7 | Duangjai Saendee | ไม่ระบุ      |      1 |     1140.00 | 2026-04-18 | ลูกค้าทั่วไป
+           4 | Manee Meesuk     | Bangkok    |      1 |      870.00 | 2026-05-30 | ลูกค้าทั่วไป
+           8 | Anan Thongkham   | Khon Kaen  |      0 |           0 | NULL       | ยังไม่เคยซื้อ
+(8 rows)
+
+       category       | orders | units | revenue  
+----------------------+--------+-------+----------
+ Computers            |      3 |     4 | 87780.00
+ Mobile Phones        |      4 |     9 | 58710.00
+ Computer Accessories |      6 |     8 | 10340.00
+(3 rows)
+
+      name       |    city    | total_spent 
+-----------------+------------+-------------
+ Somchai Jaidee  | Bangkok    |    55550.00
+ Somying Rakrian | Chiang Mai |    39980.00
+(2 rows)
+
+  segment  | customers | revenue  
+-----------+-----------+----------
+ VIP       |         2 | 95530.00
+ ลูกค้าทั่วไป  |         5 | 64480.00
+ ยังไม่เคยซื้อ |         1 |        0
+(3 rows)</code></pre>
+<p>ตรวจยอดรวม: 95,530.00 + 64,480.00 + 0 = 160,010.00 บาท ตรงกับยอดขายรวมที่ไม่นับคำสั่งซื้อที่ยกเลิก แปลว่าไม่มีคำสั่งซื้อถูกนับซ้ำหรือตกหล่น</p>
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>รวมยอดเป็นสองชั้น:</strong> ถ้า JOIN <code>customers</code>, <code>orders</code> และ <code>order_items</code> แล้ว <code>COUNT</code> ในชั้นเดียว จำนวนคำสั่งซื้อจะเกินจริง เพราะคำสั่งซื้อที่มี 2 รายการสินค้าจะกลายเป็น 2 แถว CTE <code>order_totals</code> จึงรวมยอดให้เหลือหนึ่งแถวต่อคำสั่งซื้อก่อน แล้วชั้นนอกค่อยรวมต่อลูกค้า <code>COUNT(t.order_id)</code> จึงได้จำนวนคำสั่งซื้อที่ถูกต้อง</li>
+<li><strong>LEFT JOIN + COALESCE:</strong> ต้องเห็นลูกค้าครบ 8 คน จึงใช้ <code>LEFT JOIN</code> แล้วเปลี่ยน NULL เป็นค่าที่อ่านง่ายด้วย <code>COALESCE</code> (เมือง NULL เป็น <code>ไม่ระบุ</code> และยอดซื้อ NULL เป็น 0) ส่วน <code>last_order</code> ปล่อยเป็น NULL ไว้ เพราะ "ไม่มีวันที่" คือความหมายที่ถูกต้อง</li>
+<li><strong>กรองคำสั่งซื้อที่ยกเลิกใน CTE:</strong> ถ้ากรอง <code>status &lt;&gt; 'cancelled'</code> ที่ชั้นนอกหลัง LEFT JOIN แถวของ Anan ที่ status เป็น NULL จะหายไปด้วย เพราะ <code>NULL &lt;&gt; 'cancelled'</code> เป็น UNKNOWN นี่คือกับดัก "WHERE บนตารางขวาทำให้ LEFT JOIN กลายเป็น INNER JOIN" การกรองใน CTE จึงปลอดภัยกว่า</li>
+<li><strong>View:</strong> <code>CREATE OR REPLACE VIEW</code> เก็บ Query ไว้ในฐานข้อมูลด้วยชื่อ ทีมการตลาดเรียกใช้ด้วย <code>SELECT ... FROM v_customer_summary</code> เหมือนตารางทั่วไป และทุกครั้งที่เรียก ข้อมูลจะคำนวณใหม่จากตารางจริง จึงไม่ค้างเก่าเหมือน Materialized View</li>
+<li><strong>HAVING สำหรับกรองกลุ่ม:</strong> Query ยอดขายตามหมวดกรองหลังจัดกลุ่มด้วย <code>HAVING SUM(...) &gt; 5000</code> หมวด Programming Books (ยอด 3,180 บาท) จึงไม่ขึ้น <code>COUNT(DISTINCT o.order_id)</code> ใช้ <code>DISTINCT</code> เพราะคำสั่งซื้อเดียวอาจมีสินค้าหลายตัวในหมวดเดียวกัน (เช่น คำสั่งซื้อเลขที่ 4 มีทั้ง Smartphone X และ Phone Case)</li>
+</ul>
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>ไฟล์นี้สร้าง View <code>v_customer_summary</code> ค้างไว้ในฐานข้อมูล <code>shop</code> ซึ่งไม่กระทบข้อมูลในตาราง แต่ถ้าต้องการกลับไปสู่สภาพตั้งต้น ให้รัน <code>psql -d shop -c 'DROP VIEW IF EXISTS v_customer_summary'</code> หรือรีเซ็ตทั้งฐานข้อมูลด้วย <code>dropdb shop &amp;&amp; createdb shop &amp;&amp; psql -d shop -v ON_ERROR_STOP=1 -q -f shop_schema_pg.sql -f shop_seed.sql</code></p></div>
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+<li>เพิ่ม Column <code>days_since_last_order</code> ใน View โดยคำนวณ <code>DATE '2026-10-20' - MAX(t.order_date)</code> แล้วสร้าง Segment ใหม่ <code>เสี่ยงหาย</code> สำหรับลูกค้าที่ไม่ได้ซื้อเกิน 150 วัน</li>
+<li>เปลี่ยน Query ยอดขายตามหมวดให้รวมขึ้นไปถึงหมวดหลัก (Electronics และ Books) ด้วย <code>WITH RECURSIVE</code> เหมือนโจทย์ที่ 3</li>
+<li>สร้าง Role <code>marketing_reader</code> ที่มีแค่สิทธิ์ <code>SELECT</code> บน <code>v_customer_summary</code> (ไม่มีสิทธิ์บนตาราง <code>customers</code> โดยตรง) เพื่อให้ทีมการตลาดเห็นเฉพาะข้อมูลสรุป ไม่เห็นอีเมลของลูกค้า</li>
+<li>ทำ Materialized View แบบเดียวกัน แล้วเปรียบเทียบเวลาที่ใช้ด้วย <code>\timing</code> และทดลองว่าต้อง <code>REFRESH MATERIALIZED VIEW</code> เมื่อไรบ้าง</li>
+</ol>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 3: รายงานยอดขายตามหมวดหลักแบบรันซ้ำได้</summary><div>
+<p><strong>ขั้นที่ 1: ไฟล์ SQL</strong> สร้างไฟล์ <code>notes/ex_3.sql</code> แล้ววางเนื้อหานี้</p>
+<pre class="code" data-env="file" data-label="SQL · notes/ex_3.sql"><code class="language-sql">-- ex_3.sql : Top-2 สินค้าต่อหมวดหลัก และแนวโน้มรายเดือน (PostgreSQL 16)
+
+-- ส่วนที่ 1: หาหมวดหลัก (root) ของทุกหมวดด้วย Recursive CTE
+WITH RECURSIVE cat_root AS (
+    -- Anchor: หมวดบนสุด (ไม่มี parent) เป็น root ของตัวเอง
+    SELECT category_id, category_id AS root_id, name AS root_name, 1 AS depth
+    FROM categories
+    WHERE parent_id IS NULL
+    UNION ALL
+    -- Recursive: หมวดลูกได้ root เดียวกับหมวดแม่
+    SELECT c.category_id, r.root_id, r.root_name, r.depth + 1
+    FROM categories c
+    JOIN cat_root r ON c.parent_id = r.category_id
+    WHERE r.depth &lt; 10                      -- กันวนไม่รู้จบ
+),
+product_sales AS (
+    -- ยอดขายต่อสินค้า ไม่นับคำสั่งซื้อที่ยกเลิก
+    SELECT p.product_id, p.name, p.category_id,
+           SUM(oi.quantity)                 AS units,
+           SUM(oi.quantity * oi.unit_price) AS revenue
+    FROM order_items oi
+    JOIN orders o   ON o.order_id = oi.order_id
+    JOIN products p ON p.product_id = oi.product_id
+    WHERE o.status &lt;&gt; 'cancelled'
+    GROUP BY p.product_id, p.name, p.category_id
+),
+ranked AS (
+    SELECT r.root_name,
+           s.name,
+           s.units,
+           s.revenue,
+           ROW_NUMBER() OVER w                                      AS rn,
+           ROUND(100.0 * s.revenue / SUM(s.revenue) OVER (PARTITION BY r.root_name), 1) AS pct_of_root
+    FROM product_sales s
+    JOIN cat_root r ON r.category_id = s.category_id
+    WINDOW w AS (PARTITION BY r.root_name ORDER BY s.revenue DESC, s.name)
+)
+SELECT root_name, rn, name, units, revenue, pct_of_root
+FROM ranked
+WHERE rn &lt;= 2                               -- Window Function ใช้ใน WHERE ตรง ๆ ไม่ได้ จึงกรองชั้นนอก
+ORDER BY root_name, rn;
+
+-- ส่วนที่ 2: ยอดขายรายเดือน ยอดสะสม และการเติบโตเทียบเดือนก่อน
+WITH monthly AS (
+    SELECT date_trunc('month', o.order_date)::date AS month,
+           SUM(oi.quantity * oi.unit_price)       AS revenue
+    FROM orders o
+    JOIN order_items oi ON oi.order_id = o.order_id
+    WHERE o.status &lt;&gt; 'cancelled'
+    GROUP BY 1
+)
+SELECT to_char(month, 'YYYY-MM')                         AS month,
+       revenue,
+       SUM(revenue) OVER (ORDER BY month)                AS running_total,
+       LAG(revenue) OVER (ORDER BY month)                AS prev_month,
+       ROUND(100.0 * (revenue - LAG(revenue) OVER (ORDER BY month))
+             / NULLIF(LAG(revenue) OVER (ORDER BY month), 0), 1) AS growth_pct
+FROM monthly
+ORDER BY month;</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/sql-lab
+psql -d shop -f notes/ex_3.sql</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>  root_name  | rn |        name         | units | revenue  | pct_of_root 
+-------------+----+---------------------+-------+----------+-------------
+ Books       |  1 | SQL for Beginners   |     4 |  1800.00 |        56.6
+ Books       |  2 | Python Crash Course |     2 |  1380.00 |        43.4
+ Electronics |  1 | Laptop Pro 14       |     2 | 71800.00 |        45.8
+ Electronics |  2 | Smartphone X        |     3 | 56970.00 |        36.3
+(4 rows)
+
+  month  | revenue  | running_total | prev_month | growth_pct 
+---------+----------+---------------+------------+------------
+ 2026-01 | 40570.00 |      40570.00 |       NULL |       NULL
+ 2026-02 | 21120.00 |      61690.00 |   40570.00 |      -47.9
+ 2026-03 | 57380.00 |     119070.00 |   21120.00 |      171.7
+ 2026-04 | 17120.00 |     136190.00 |   57380.00 |      -70.2
+ 2026-05 |  3950.00 |     140140.00 |   17120.00 |      -76.9
+ 2026-06 | 19870.00 |     160010.00 |    3950.00 |      403.0
+(6 rows)</code></pre>
+<p>ตรวจด้วยมือได้ว่า Books ขายได้รวม 1,800 + 1,380 = 3,180 บาท SQL for Beginners จึงคิดเป็น 1,800 / 3,180 = 56.6% ส่วน Electronics ขายได้รวม 160,010 − 3,180 = 156,830 บาท Laptop Pro 14 จึงคิดเป็น 71,800 / 156,830 = 45.8% ตรงกับผลลัพธ์</p>
+
+<p><strong>ขั้นที่ 2: เตรียม venv</strong> ถ้าทำแนวคิดเรื่อง Python ใน Part 2 แล้ว venv นี้จะมีอยู่แล้ว ให้ข้ามคำสั่ง <code>python3 -m venv</code> และ <code>pip install</code> ไปได้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/sql-lab
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install "psycopg[binary]==3.3.6"
+python -c "import psycopg; print(psycopg.__version__)"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>3.3.6</code></pre>
+<p>(บรรทัดผลลัพธ์ของ <code>pip install</code> ไม่ได้แสดงไว้ เพราะยาวและขึ้นกับเครื่อง บรรทัดที่สำคัญคือเลขเวอร์ชันท้ายสุด)</p>
+
+<p><strong>ขั้นที่ 3: สคริปต์ Python</strong> สร้างไฟล์ <code>sales_report.py</code> ในโฟลเดอร์ <code>~/projects/sql-lab</code></p>
+<pre class="code" data-env="file" data-label="Python · sales_report.py"><code class="language-python">"""sales_report.py : รายงานยอดขายตามช่วงวันที่ ใช้ psycopg 3 และ Parameterized Query เท่านั้น"""
+import argparse
+import os
+import sys
+from datetime import date
+
+import psycopg
+from psycopg.rows import dict_row
+
+# อ่าน Connection String จาก Environment Variable ไม่เขียนรหัสผ่านลงในโค้ด
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql:///shop")
+
+# ยอดรวมของช่วงเวลา: ทุกค่าที่มาจากผู้ใช้ส่งผ่าน %(ชื่อ)s เท่านั้น
+SUMMARY_SQL = """
+SELECT COUNT(DISTINCT o.order_id)                          AS orders,
+       COALESCE(SUM(oi.quantity * oi.unit_price), 0)       AS revenue
+FROM orders o
+JOIN customers c    ON c.customer_id = o.customer_id
+JOIN order_items oi ON oi.order_id = o.order_id
+WHERE o.status &lt;&gt; 'cancelled'
+  AND o.order_date BETWEEN %(start)s AND %(end)s
+  AND (%(city)s::text IS NULL OR c.city = %(city)s)
+"""
+
+# Top-N สินค้าต่อหมวดหลัก: Recursive CTE + ROW_NUMBER()
+TOP_SQL = """
+WITH RECURSIVE cat_root AS (
+    SELECT category_id, name AS root_name, 1 AS depth
+    FROM categories
+    WHERE parent_id IS NULL
+    UNION ALL
+    SELECT c.category_id, r.root_name, r.depth + 1
+    FROM categories c
+    JOIN cat_root r ON c.parent_id = r.category_id
+    WHERE r.depth &lt; 10
+),
+product_sales AS (
+    SELECT p.name, p.category_id,
+           SUM(oi.quantity)                 AS units,
+           SUM(oi.quantity * oi.unit_price) AS revenue
+    FROM order_items oi
+    JOIN orders o    ON o.order_id = oi.order_id
+    JOIN customers c ON c.customer_id = o.customer_id
+    JOIN products p  ON p.product_id = oi.product_id
+    WHERE o.status &lt;&gt; 'cancelled'
+      AND o.order_date BETWEEN %(start)s AND %(end)s
+      AND (%(city)s::text IS NULL OR c.city = %(city)s)
+    GROUP BY p.name, p.category_id
+),
+ranked AS (
+    SELECT r.root_name, s.name, s.units, s.revenue,
+           ROW_NUMBER() OVER (PARTITION BY r.root_name
+                              ORDER BY s.revenue DESC, s.name) AS rn
+    FROM product_sales s
+    JOIN cat_root r ON r.category_id = s.category_id
+)
+SELECT root_name, rn, name, units, revenue
+FROM ranked
+WHERE rn &lt;= %(top)s
+ORDER BY root_name, rn
+"""
+
+
+def parse_args():
+    """อ่านตัวเลือกจาก Command Line และตรวจชนิดข้อมูลตั้งแต่ต้นทาง"""
+    parser = argparse.ArgumentParser(description="รายงานยอดขายตามช่วงวันที่")
+    parser.add_argument("--start", type=date.fromisoformat, required=True,
+                        help="วันเริ่มต้น รูปแบบ YYYY-MM-DD")
+    parser.add_argument("--end", type=date.fromisoformat, required=True,
+                        help="วันสิ้นสุด (รวมวันนี้ด้วย) รูปแบบ YYYY-MM-DD")
+    parser.add_argument("--top", type=int, default=2, choices=range(1, 11),
+                        metavar="N", help="จำนวนสินค้าอันดับต้นต่อหมวดหลัก (1-10)")
+    parser.add_argument("--city", default=None, help="กรองตามเมืองของลูกค้า (ไม่ใส่ = ทุกเมือง)")
+    args = parser.parse_args()
+    if args.start &gt; args.end:
+        parser.error("--start ต้องไม่อยู่หลัง --end")
+    return args
+
+
+def main():
+    args = parse_args()
+    params = {"start": args.start, "end": args.end, "city": args.city, "top": args.top}
+
+    try:
+        # with ... as conn: สำเร็จแล้ว commit, เกิด Exception แล้ว rollback และปิด Connection ให้เอง
+        with psycopg.connect(DATABASE_URL, row_factory=dict_row) as conn:
+            summary = conn.execute(SUMMARY_SQL, params).fetchone()
+            top_rows = conn.execute(TOP_SQL, params).fetchall()
+    except psycopg.OperationalError as exc:
+        print(f"เชื่อมต่อฐานข้อมูลไม่ได้: {exc}", file=sys.stderr)
+        return 1
+
+    city_label = args.city if args.city else "ทุกเมือง"
+    print(f"รายงานยอดขาย {args.start} ถึง {args.end} ({city_label})")
+    print("-" * 52)
+    orders = summary["orders"]
+    revenue = summary["revenue"]
+    aov = revenue / orders if orders else 0
+    print(f"จำนวนคำสั่งซื้อ : {orders:&gt;12,}")
+    print(f"ยอดขายรวม      : {revenue:&gt;12,.2f} บาท")
+    print(f"ยอดเฉลี่ยต่อบิล  : {aov:&gt;12,.2f} บาท")
+    print("-" * 52)
+    if not top_rows:
+        print("ไม่มียอดขายในช่วงนี้")
+        return 0
+    print(f"Top {args.top} สินค้าต่อหมวดหลัก")
+    for row in top_rows:
+        print(f"  {row['root_name']:&lt;12} #{row['rn']}  {row['name']:&lt;20}"
+              f" {row['units']:&gt;3} ชิ้น {row['revenue']:&gt;12,.2f}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())</code></pre>
+
+<p><strong>ขั้นที่ 4: ทดสอบกรณีปกติ 3 กรณี</strong></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># กรณีที่ 1: ครึ่งปีแรก 2026 ทุกเมือง Top 2
+python sales_report.py --start 2026-01-01 --end 2026-06-30</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>รายงานยอดขาย 2026-01-01 ถึง 2026-06-30 (ทุกเมือง)
+----------------------------------------------------
+จำนวนคำสั่งซื้อ :           13
+ยอดขายรวม      :   160,010.00 บาท
+ยอดเฉลี่ยต่อบิล  :    12,308.46 บาท
+----------------------------------------------------
+Top 2 สินค้าต่อหมวดหลัก
+  Books        #1  SQL for Beginners      4 ชิ้น     1,800.00
+  Books        #2  Python Crash Course    2 ชิ้น     1,380.00
+  Electronics  #1  Laptop Pro 14          2 ชิ้น    71,800.00
+  Electronics  #2  Smartphone X           3 ชิ้น    56,970.00</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># กรณีที่ 2: มีนาคมถึงเมษายน เอาแค่อันดับ 1 ของแต่ละหมวดหลัก
+python sales_report.py --start 2026-03-01 --end 2026-04-30 --top 1</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>รายงานยอดขาย 2026-03-01 ถึง 2026-04-30 (ทุกเมือง)
+----------------------------------------------------
+จำนวนคำสั่งซื้อ :            4
+ยอดขายรวม      :    74,500.00 บาท
+ยอดเฉลี่ยต่อบิล  :    18,625.00 บาท
+----------------------------------------------------
+Top 1 สินค้าต่อหมวดหลัก
+  Books        #1  Python Crash Course    1 ชิ้น       690.00
+  Electronics  #1  Laptop Pro 14          1 ชิ้น    35,900.00</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># กรณีที่ 3: ครึ่งปีแรก เฉพาะลูกค้าที่อยู่ Bangkok
+python sales_report.py --start 2026-01-01 --end 2026-06-30 --city Bangkok</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>รายงานยอดขาย 2026-01-01 ถึง 2026-06-30 (Bangkok)
+----------------------------------------------------
+จำนวนคำสั่งซื้อ :            5
+ยอดขายรวม      :    56,420.00 บาท
+ยอดเฉลี่ยต่อบิล  :    11,284.00 บาท
+----------------------------------------------------
+Top 2 สินค้าต่อหมวดหลัก
+  Electronics  #1  Laptop Pro 14          1 ชิ้น    35,900.00
+  Electronics  #2  27-inch Monitor        2 ชิ้น    15,980.00</code></pre>
+<p>ตรวจกรณีที่ 3 ด้วยมือ: ลูกค้าใน Bangkok คือ Somchai (คำสั่งซื้อ 1, 3, 9, 14) และ Manee (คำสั่งซื้อ 12 ส่วนคำสั่งซื้อ 5 ถูกยกเลิก) ยอดคือ 36,490 + 2,490 + 15,980 + 590 + 870 = 56,420 บาท จาก 5 คำสั่งซื้อ ตรงกับผลลัพธ์ หมวด Books ไม่ขึ้นเลย เพราะลูกค้า Bangkok ไม่ได้ซื้อหนังสือ</p>
+
+<p><strong>ขั้นที่ 5: ทดสอบกรณีโจมตีและกรณีผิดพลาด</strong> (ทำบนเครื่องของคุณเองเท่านั้น)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Payload ในชื่อเมือง: ต้องถูกมองเป็นข้อความธรรมดา
+python sales_report.py --start 2026-01-01 --end 2026-06-30 --city "Bangkok' OR '1'='1"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>รายงานยอดขาย 2026-01-01 ถึง 2026-06-30 (Bangkok' OR '1'='1)
+----------------------------------------------------
+จำนวนคำสั่งซื้อ :            0
+ยอดขายรวม      :         0.00 บาท
+ยอดเฉลี่ยต่อบิล  :         0.00 บาท
+----------------------------------------------------
+ไม่มียอดขายในช่วงนี้</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Payload ในวันที่ และช่วงวันที่กลับหัว: ต้องถูกปฏิเสธก่อนถึงฐานข้อมูล
+python sales_report.py --start "2026-01-01' OR '1'='1" --end 2026-06-30
+python sales_report.py --start 2026-06-30 --end 2026-01-01
+echo "exit code = $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>usage: sales_report.py [-h] --start START --end END [--top N] [--city CITY]
+sales_report.py: error: argument --start: invalid fromisoformat value: "2026-01-01' OR '1'='1"
+usage: sales_report.py [-h] --start START --end END [--top N] [--city CITY]
+sales_report.py: error: --start ต้องไม่อยู่หลัง --end
+exit code = 2</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ฐานข้อมูลที่ไม่มีอยู่จริง: ต้องได้ข้อความภาษาไทยและ Exit Code 1
+DATABASE_URL=postgresql:///nope python sales_report.py --start 2026-01-01 --end 2026-01-31
+echo "exit code = $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>เชื่อมต่อฐานข้อมูลไม่ได้: connection failed: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  database "nope" does not exist
+exit code = 1</code></pre>
+
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>Recursive CTE หาหมวดหลัก:</strong> Anchor เลือกหมวดที่ไม่มีแม่ (Electronics, Books, Home Appliances) และให้แต่ละหมวดเป็น root ของตัวเอง Recursive Member เดินลงไปหาหมวดลูกทีละชั้น และส่ง <code>root_name</code> ต่อลงมา Computer Accessories อยู่ลึก 3 ชั้น (Electronics → Computers → Computer Accessories) ก็ยังได้ root เป็น Electronics เงื่อนไข <code>depth &lt; 10</code> คือตัวกันวนไม่รู้จบ ในกรณีที่ข้อมูลผิดจนหมวดชี้วนกันเอง</li>
+<li><strong>รวมยอดก่อน จัดอันดับทีหลัง:</strong> <code>product_sales</code> รวมยอดต่อสินค้าด้วย <code>GROUP BY</code> แล้ว <code>ranked</code> ใช้ Window Function ซึ่งไม่ยุบแถว จึงได้ทั้งอันดับ (<code>ROW_NUMBER</code>) และสัดส่วนต่อหมวด (<code>SUM() OVER (PARTITION BY ...)</code>) ในแถวเดียวกัน การกรอง <code>rn &lt;= 2</code> ต้องทำที่ชั้นนอก เพราะ Window Function คำนวณหลัง <code>WHERE</code> การใส่ชื่อสินค้าเป็นตัวเรียงลำดับที่สองทำให้ผลลัพธ์คงที่ทุกครั้งเมื่อยอดเท่ากัน</li>
+<li><strong>แนวโน้มรายเดือน:</strong> <code>date_trunc('month', ...)::date</code> ปัดวันที่เป็นวันแรกของเดือน ซึ่งเรียงลำดับได้ถูกต้องตามเวลา <code>LAG</code> ดึงยอดเดือนก่อนมาไว้ในแถวเดียวกัน และ <code>NULLIF(..., 0)</code> กันการหารด้วยศูนย์ เดือนแรกไม่มีเดือนก่อน จึงได้ NULL ซึ่งตรงความหมายกว่าการใส่ 0</li>
+<li><strong>Parameterized Query ทุกจุด:</strong> สคริปต์ไม่ต่อสตริง SQL เลย ทุกค่าที่มาจากผู้ใช้ (วันที่ เมือง และจำนวนอันดับ) ส่งผ่าน <code>%(ชื่อ)s</code> และ Dict <code>params</code> ตัวเดียวใช้ได้กับทั้งสอง Query Payload <code>Bangkok' OR '1'='1</code> จึงเป็นแค่ชื่อเมืองแปลก ๆ ที่ไม่มีลูกค้าคนไหนอยู่ และได้ 0 คำสั่งซื้อ</li>
+<li><strong>ป้องกันหลายชั้น (Defense in Depth):</strong> argparse ตรวจชนิดข้อมูลตั้งแต่ต้นทาง (<code>date.fromisoformat</code>, <code>int</code> กับ <code>choices</code>) และตรวจตรรกะ (<code>start</code> ต้องไม่อยู่หลัง <code>end</code>) ข้อมูลผิดรูปแบบจึงไม่ไปถึงฐานข้อมูลเลย และ argparse จบโปรแกรมด้วย Exit Code 2 ให้เอง</li>
+<li><strong>จัดการ Connection อย่างปลอดภัย:</strong> <code>with psycopg.connect(...) as conn</code> ปิด Connection ให้เสมอ ส่วน <code>DATABASE_URL</code> มาจาก Environment Variable ค่าเริ่มต้น <code>postgresql:///shop</code> ใช้ Unix Socket กับ Peer Authentication จึงไม่ต้องมีรหัสผ่านในโค้ดหรือใน Git เลย</li>
+</ul>
+<div class="callout"><span class="c-label tip">Tip</span><p>ถ้าเขียน <code>%(city)s IS NULL</code> โดยไม่มี <code>::text</code> แล้วไม่ส่ง <code>--city</code> (ค่าเป็น <code>None</code>) psycopg 3 จะได้ Error <code>psycopg.errors.AmbiguousParameter: could not determine data type of parameter $1</code> เพราะ PostgreSQL เดาชนิดของค่า NULL ที่ส่งมาไม่ได้ การ Cast เป็น <code>::text</code> บอกชนิดให้ชัดเจน (เลข <code>$1</code> ในข้อความขึ้นกับตำแหน่งของพารามิเตอร์ใน Query)</p></div>
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+<li>เพิ่มตัวเลือก <code>--csv รายงาน.csv</code> ที่เขียนผล Top-N ลงไฟล์ด้วยโมดูล <code>csv</code> ของ Python เพื่อเปิดต่อใน Excel หรือ Google Sheets</li>
+<li>เพิ่มตัวเลือก <code>--sort revenue|units</code> แล้วสร้างส่วน <code>ORDER BY</code> แบบ Dynamic ด้วย <code>psycopg.sql.SQL</code> และ <code>sql.Identifier</code> พร้อม Allowlist ของชื่อ Column ที่อนุญาต เพราะชื่อ Column ส่งผ่าน <code>%s</code> ไม่ได้</li>
+<li>สร้าง Role <code>report_reader</code> ที่มีแค่สิทธิ์ <code>SELECT</code> แล้วให้สคริปต์เชื่อมต่อด้วย Role นี้ผ่าน <code>DATABASE_URL</code> ถึงจะมีช่องโหว่ใดหลุดรอดไป ผู้โจมตีก็แก้หรือลบข้อมูลไม่ได้</li>
+<li>เขียน Test ด้วย <code>pytest</code> ที่เรียกฟังก์ชันรายงานกับช่วงวันที่ตายตัว แล้วตรวจว่ายอดขายรวมได้ 160010 และ Top 1 ของ Electronics คือ Laptop Pro 14 เพื่อจับ Bug เมื่อมีคนแก้ Query ในอนาคต</li>
+<li>เพิ่มส่วนแสดงแนวโน้มรายเดือนในสคริปต์ (นำ Query ส่วนที่ 2 ของ <code>ex_3.sql</code> มาใส่ พร้อมเงื่อนไขช่วงวันที่) และวาดกราฟแท่งด้วยตัวอักษร <code>#</code> ใน Terminal ตามสัดส่วนยอดขาย</li>
+</ol>
+</div></details>
+</section>

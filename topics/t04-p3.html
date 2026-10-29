@@ -1,0 +1,1211 @@
+<section class="part" data-part="3">
+<h2 id="s4-3"><span class="sec-no">4.3</span>Practice Exercises &amp; Quizzes</h2>
+
+<p>ส่วนนี้ใช้ทบทวนแนวคิดทั้ง 12 ข้อใน Part 2 ด้วยตัวเอง เริ่มจากเติมคำในช่องว่าง 6 ข้อ ต่อด้วยข้อสอบปรนัย 14 ข้อ แล้วปิดท้ายด้วยโจทย์ลงมือทำ 3 ข้อที่จำลองงานจริงของนักพัฒนา JavaScript ตั้งแต่การพิมพ์ใบเสร็จร้านอาหารด้วย Node.js การทำตารางสินค้าที่ค้นหาและเรียงได้ในเบราว์เซอร์ ไปจนถึงการเขียนฟังก์ชันดึงข้อมูลที่รับมือกับ Server ล่มได้ พร้อม Unit Test</p>
+<p>เฉลยทั้งหมดอยู่ท้ายหน้า ขอให้ลองคิดและลองรันเองก่อนเปิดเฉลยทุกครั้ง การได้เห็น Error จริงบนเครื่องตัวเองแล้วแก้ให้ผ่าน จะช่วยให้จำได้นานกว่าการอ่านเฉลยหลายเท่า</p>
+
+<h3 id="s4-3-howto">วิธีใช้หน้านี้ให้ได้ผล</h3>
+<ul>
+  <li>ทำทุกข้อใน Ubuntu 24.04 (WSL) ที่ติดตั้ง Node.js 24.22.0 LTS ผ่าน nvm v0.40.8 ไว้แล้วตาม Part 2 หัวข้อ "เตรียมเครื่องสำหรับหัวข้อนี้"</li>
+  <li>ใช้โฟลเดอร์ <code>~/projects/js-lab/challenges/</code> สำหรับโจทย์ลงมือทำ แยกเป็น <code>ch1-receipt</code>, <code>ch2-filter-list</code> และ <code>ch3-retry-fetch</code> เพื่อไม่ให้ปนกับไฟล์ของแนวคิดที่ 1 ถึง 12</li>
+  <li>ไฟล์ <code>~/projects/js-lab/package.json</code> ที่สร้างไว้ใน Part 2 มี <code>"type": "module"</code> อยู่แล้ว ไฟล์ <code>.js</code> ทุกไฟล์ในโฟลเดอร์ย่อยจึงเป็น ES Module และใช้ <code>import</code>/<code>export</code> ได้ทันที</li>
+  <li>โจทย์ที่ทำงานในเบราว์เซอร์ต้องเปิดผ่าน <code>python3 -m http.server 8000 --bind 127.0.0.1</code> แล้วเข้า <code>http://127.0.0.1:8000/</code> เสมอ ห้ามดับเบิลคลิกเปิดไฟล์ HTML ตรง ๆ เพราะ <code>&lt;script type="module"&gt;</code> ใช้กับ <code>file://</code> ไม่ได้</li>
+  <li>คำตอบทุกข้อมาจาก Part 2 ถ้าตอบไม่ได้ ให้กลับไปอ่านแนวคิดที่เกี่ยวข้อง (มีบอกไว้ในเฉลยทุกข้อ) แล้วรันตัวอย่างโค้ดอีกครั้ง</li>
+  <li>ผลลัพธ์ทุกบล็อกในหน้านี้ได้จากการรันจริง ค่าที่ขึ้นกับเครื่อง เช่น เวลา <code>duration_ms</code> ของ Test และบรรทัด Log ของ <code>http.server</code> จะไม่ตรงกับในหน้านี้ ซึ่งเป็นเรื่องปกติ</li>
+</ul>
+
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ตรวจว่า Node.js พร้อมใช้งาน
+node -v
+# สร้างโฟลเดอร์สำหรับโจทย์ลงมือทำทั้ง 3 ข้อ
+mkdir -p ~/projects/js-lab/challenges/{ch1-receipt,ch2-filter-list,ch3-retry-fetch}
+cd ~/projects/js-lab/challenges
+ls</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>v24.22.0
+ch1-receipt  ch2-filter-list  ch3-retry-fetch</code></pre>
+
+<div class="callout"><span class="c-label tip">Tip</span><p>สำหรับข้อสอบที่มีโค้ดสั้น ๆ ให้เปิด Node REPL ด้วยคำสั่ง <code>node</code> แล้ววางโค้ดลงไปทดลอง หรือเปิด DevTools ด้วย <kbd>F12</kbd> แล้วพิมพ์ในแท็บ Console ก็ได้ แต่ขอให้เดาคำตอบในใจก่อนกด <kbd>Enter</kbd> ทุกครั้ง เพราะการเดาผิดแล้วได้เห็นเหตุผลคือส่วนที่ทำให้เข้าใจจริง</p></div>
+
+<h3 id="s4-3-fill">Fill-in-the-blank</h3>
+<p>เติมคำหรือสัญลักษณ์ลงในช่อง <code>_____</code> ให้โค้ดทำงานและได้ผลลัพธ์ตามที่บอกไว้ในคอมเมนต์ ทุกข้อรันได้จริงด้วย <code>node ชื่อไฟล์.js</code> ภายในโฟลเดอร์ <code>~/projects/js-lab</code> เมื่อเติมเสร็จแล้วให้ลองรันเพื่อตรวจคำตอบของตัวเองก่อนเปิดเฉลย</p>
+
+<ol class="qlist fill">
+  <li>
+    <span class="lvl" data-lvl="b">ง่าย</span>
+    <p>สมชายต้องการเทียบค่าแบบเข้มงวด คือต้องตรงทั้งค่าและชนิดข้อมูล (บรรทัดแรก) และอยากดูว่าการเทียบแบบหลวมที่แปลงชนิดให้อัตโนมัติจะได้ผลอย่างไร (บรรทัดที่สอง) ช่องแรกและช่องที่สองต้องเติมตัวดำเนินการ (Operator) อะไร</p>
+<pre class="code" data-env="file" data-label="JavaScript · fill1.js"><code class="language-javascript">// เทียบ String '5' กับ Number 5
+console.log('5' _____ 5); // ต้องได้ false เพราะชนิดข้อมูลต่างกัน
+console.log('5' _____ 5); // ต้องได้ true เพราะแปลง '5' เป็นตัวเลขก่อนเทียบ</code></pre>
+  </li>
+  <li>
+    <span class="lvl" data-lvl="b">ง่าย</span>
+    <p>ร้านต้องการคำนวณยอดรวมของตะกร้าด้วย <code>reduce</code> และต้องไม่พังเมื่อลูกค้ายังไม่ได้หยิบสินค้าเลย (ตะกร้าว่าง) ช่องว่างทั้งสองช่องต้องเติมค่าเดียวกัน คือค่าอะไร</p>
+<pre class="code" data-env="file" data-label="JavaScript · fill2.js"><code class="language-javascript">// ข้อมูลตะกร้าชุดเดียวกับแนวคิดที่ 4
+const cart = [
+  { name: 'ชาไทยเย็น', price: 45, qty: 2 },
+  { name: 'ข้าวมันไก่', price: 50, qty: 1 },
+  { name: 'ขนมปังสังขยา', price: 35, qty: 3 },
+  { name: 'น้ำเปล่า', price: 10, qty: 4 },
+  { name: 'ผัดกะเพราไก่', price: 60, qty: 2 },
+];
+const emptyCart = [];
+
+// sum คือยอดสะสม item คือสินค้าแต่ละชิ้น
+console.log(cart.reduce((sum, item) =&gt; sum + item.price * item.qty, _____));      // ต้องได้ 405
+console.log(emptyCart.reduce((sum, item) =&gt; sum + item.price * item.qty, _____)); // ต้องได้ 0 และไม่มี Error</code></pre>
+  </li>
+  <li>
+    <span class="lvl" data-lvl="i">กลาง</span>
+    <p>ผู้ใช้ตั้งค่า <code>fontSize</code> เป็น <code>0</code> เพื่อใช้ขนาดตัวอักษรอัตโนมัติของระบบ โปรแกรมต้องเคารพค่า <code>0</code> นี้ และใช้ค่าเริ่มต้น <code>16</code> เฉพาะเมื่อไม่มีค่า (<code>null</code> หรือ <code>undefined</code>) เท่านั้น ช่องว่างต้องเติมตัวดำเนินการอะไร</p>
+<pre class="code" data-env="file" data-label="JavaScript · fill3.js"><code class="language-javascript">// ค่าที่ผู้ใช้บันทึกไว้ (0 คือค่าที่ตั้งใจเลือก ไม่ใช่ค่าว่าง)
+const settings = { theme: 'dark', fontSize: 0 };
+
+const size = settings.fontSize _____ 16;
+console.log(size); // ต้องได้ 0 ไม่ใช่ 16</code></pre>
+  </li>
+  <li>
+    <span class="lvl" data-lvl="i">กลาง</span>
+    <p>หน้าเว็บมีปุ่มเรียงสินค้าหลายปุ่มอยู่ใน <code>&lt;div id="toolbar"&gt;</code> สมชายใช้ Event Delegation คือผูก Listener ตัวเดียวไว้ที่ <code>#toolbar</code> แต่ภายในปุ่มมี <code>&lt;span&gt;</code> ไอคอนอยู่ ทำให้ <code>event.target</code> บางครั้งเป็น <code>&lt;span&gt;</code> แทนที่จะเป็นปุ่ม ช่องว่างต้องเติมเมธอดอะไร เพื่อเดินขึ้นไปหา Element <code>&lt;button&gt;</code> ที่ใกล้ที่สุด (รวมตัวมันเองด้วย)</p>
+<pre class="code" data-env="file" data-label="JavaScript · app.js"><code class="language-javascript">const toolbar = document.querySelector('#toolbar');
+
+toolbar.addEventListener('click', (event) =&gt; {
+  // หาปุ่มที่ใกล้ที่สุด ไม่ว่าผู้ใช้จะคลิกโดนตัวอักษรหรือไอคอนในปุ่ม
+  const btn = event.target._____('button[data-sort]');
+  if (!btn) return; // คลิกโดนพื้นที่ว่างใน toolbar
+  console.log(`เรียงแบบ ${btn.dataset.sort}`);
+});</code></pre>
+  </li>
+  <li>
+    <span class="lvl" data-lvl="a">ยาก</span>
+    <p>ฟังก์ชันนี้ดึงไฟล์คำถาม <code>data/questions.json</code> จาก Server ต้องรอผลของ <code>fetch</code> ก่อนใช้งาน และต้องโยน Error เองเมื่อ Server ตอบ 404 หรือ 500 เพราะ <code>fetch</code> ไม่ reject ในกรณีนั้น ช่องที่ 1 และช่องที่ 2 ต้องเติมอะไร</p>
+<pre class="code" data-env="file" data-label="JavaScript · load-questions.js"><code class="language-javascript">export async function loadQuestions(url) {
+  // ช่องที่ 1: รอให้ได้ Response ก่อน
+  const response = _____ fetch(url);
+
+  // ช่องที่ 2: Property ที่เป็น true เมื่อ status อยู่ในช่วง 200-299
+  if (!response._____) {
+    throw new Error(`โหลดคำถามไม่สำเร็จ: HTTP ${response.status}`);
+  }
+  return response.json();
+}</code></pre>
+  </li>
+  <li>
+    <span class="lvl" data-lvl="a">ยาก</span>
+    <p>สมชายต้องการทดสอบฟังก์ชันนับถอยหลัง <code>startCountdown</code> จากแนวคิดที่ 12 โดยไม่ต้องรอ 3 วินาทีจริง จึงใช้นาฬิกาปลอมของ <code>node:test</code> ช่องที่ 1 ต้องเติมเมธอดที่เปิดใช้นาฬิกาปลอม และช่องที่ 2 กับช่องที่ 3 ต้องเติมเมธอดที่เลื่อนเวลาไปข้างหน้า (ทั้งสองช่องเป็นเมธอดเดียวกัน)</p>
+<pre class="code" data-env="file" data-label="JavaScript · test/countdown.test.js"><code class="language-javascript">import { test, mock } from 'node:test';
+import assert from 'node:assert/strict';
+import { startCountdown } from '../src/countdown.js';
+
+test('นับถอยหลัง 3 วินาทีโดยไม่ต้องรอจริง', () =&gt; {
+  // ช่องที่ 1: เปิดนาฬิกาปลอมสำหรับ setInterval
+  mock.timers._____({ apis: ['setInterval'] });
+  const onTick = mock.fn();
+  const onDone = mock.fn();
+  startCountdown(3, onTick, onDone);
+
+  mock.timers._____(1000); // ช่องที่ 2: เลื่อนเวลาไป 1 วินาที
+  assert.equal(onTick.mock.callCount(), 1);
+
+  mock.timers._____(2000); // ช่องที่ 3: เลื่อนเวลาไปอีก 2 วินาที
+  assert.deepEqual(onTick.mock.calls.map((c) =&gt; c.arguments[0]), [2, 1, 0]);
+  assert.equal(onDone.mock.callCount(), 1);
+  mock.timers.reset(); // คืนค่านาฬิกาจริง
+});</code></pre>
+    <p><span class="muted small">ไฟล์ <code>src/countdown.js</code> ใช้แบบเดียวกับแนวคิดที่ 12: ฟังก์ชัน <code>startCountdown(seconds, onTick, onDone)</code> เรียก <code>onTick(วินาทีที่เหลือ)</code> ทุก 1 วินาที และเรียก <code>onDone()</code> เมื่อเหลือ 0</span></p>
+  </li>
+</ol>
+
+<h3 id="s4-3-mcq">Multiple Choice</h3>
+<p>เลือกคำตอบที่ถูกที่สุดเพียงข้อเดียว โค้ดทุกข้อรันในไฟล์ ES Module (มี <code>"type": "module"</code>) ด้วย Node.js 24 หรือใน Console ของ Chrome/Edge รุ่นล่าสุด ข้อ 1 ถึง 4 เป็นระดับง่าย ข้อ 5 ถึง 9 เป็นระดับกลาง และข้อ 10 ถึง 14 เป็นระดับยาก</p>
+
+<ol class="qlist mcq">
+  <li>
+    <span class="lvl" data-lvl="b">ง่าย</span>
+    <p>คำสั่ง <code>console.log(typeof null);</code> แสดงผลอะไร</p>
+    <ol class="choices">
+      <li><code>"null"</code></li>
+      <li><code>"undefined"</code></li>
+      <li><code>"object"</code></li>
+      <li><code>"number"</code></li>
+    </ol>
+  </li>
+  <li>
+    <span class="lvl" data-lvl="b">ง่าย</span>
+    <p>โค้ดนี้แสดงผลอะไร</p>
+<pre class="code" data-env="file" data-label="JavaScript · mcq2.js"><code class="language-javascript">const numbers = [10, 9, 1, 100];
+console.log(numbers.sort());</code></pre>
+    <ol class="choices">
+      <li><code>[ 1, 9, 10, 100 ]</code></li>
+      <li><code>[ 100, 10, 9, 1 ]</code></li>
+      <li><code>[ 1, 10, 100, 9 ]</code></li>
+      <li><code>TypeError: numbers.sort is not a function</code></li>
+    </ol>
+  </li>
+  <li>
+    <span class="lvl" data-lvl="b">ง่าย</span>
+    <p>สมชายเขียน Arrow Function เพื่อคืน Object ที่มี <code>total</code> เท่ากับ 1 โค้ดนี้แสดงผลอะไร</p>
+<pre class="code" data-env="file" data-label="JavaScript · mcq3.js"><code class="language-javascript">const makeSummary = () =&gt; { total: 1 };
+console.log(makeSummary());</code></pre>
+    <ol class="choices">
+      <li><code>{ total: 1 }</code></li>
+      <li><code>undefined</code></li>
+      <li><code>1</code></li>
+      <li><code>SyntaxError: Unexpected token ':'</code></li>
+    </ol>
+  </li>
+  <li>
+    <span class="lvl" data-lvl="b">ง่าย</span>
+    <p>การ์ดใบหนึ่งใช้ CSS ด้านล่าง และไม่มีกฎ <code>box-sizing</code> อื่นในหน้าเลย (จึงใช้ค่าเริ่มต้น <code>content-box</code>) ความกว้างที่การ์ดกินพื้นที่บนหน้าจอจริง (นับถึงขอบนอกของ Border ไม่รวม Margin) คือเท่าไร</p>
+<pre class="code" data-env="file" data-label="CSS · style.css"><code class="language-css">.card {
+  width: 200px;
+  padding: 16px;
+  border: 2px solid #2563eb;
+  margin: 8px;
+}</code></pre>
+    <ol class="choices">
+      <li>200px</li>
+      <li>216px</li>
+      <li>232px</li>
+      <li>236px</li>
+    </ol>
+  </li>
+  <li>
+    <span class="lvl" data-lvl="i">กลาง</span>
+    <p>โค้ดนี้แสดงผลอะไร</p>
+<pre class="code" data-env="file" data-label="JavaScript · mcq5.js"><code class="language-javascript">const user = { username: 'somchai', address: { province: 'ขอนแก่น' } };
+const copy = { ...user };
+
+copy.address.province = 'เชียงใหม่';
+copy.username = 'somsri';
+
+console.log(user.address.province, user.username);</code></pre>
+    <ol class="choices">
+      <li><code>ขอนแก่น somchai</code></li>
+      <li><code>เชียงใหม่ somchai</code></li>
+      <li><code>เชียงใหม่ somsri</code></li>
+      <li><code>ขอนแก่น somsri</code></li>
+    </ol>
+  </li>
+  <li>
+    <span class="lvl" data-lvl="i">กลาง</span>
+    <p>โปรเจกต์มี <code>"type": "module"</code> ใน <code>package.json</code> แล้ว และมีไฟล์ <code>src/price.js</code> อยู่จริง แต่เมื่อรัน <code>node index.js</code> กลับได้ Error ด้านล่าง สาเหตุที่ถูกต้องคือข้อใด</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/home/somchai/projects/js-lab/c06-modules/src/price' imported from /home/somchai/projects/js-lab/c06-modules/index.js</code></pre>
+    <ol class="choices">
+      <li>ลืมใส่ <code>"type": "module"</code> ใน <code>package.json</code></li>
+      <li>บรรทัด import เขียน <code>'./src/price'</code> โดยไม่มีนามสกุล <code>.js</code></li>
+      <li>ใช้ <code>import formatBaht from</code> แต่ไฟล์ปลายทาง export แบบ Named Export</li>
+      <li>ยังไม่ได้รัน <code>npm install</code> เพื่อติดตั้ง <code>src/price.js</code></li>
+    </ol>
+  </li>
+  <li>
+    <span class="lvl" data-lvl="i">กลาง</span>
+    <p>หน้าเว็บมี <code>&lt;li&gt;</code> สามรายการคือ HTML, CSS และ DOM เมื่อพิมพ์โค้ดนี้ใน Browser Console จะเกิดอะไรขึ้น</p>
+<pre class="code" data-env="app" data-label="JavaScript · Browser Console"><code class="language-javascript">document.querySelectorAll('li').map((li) =&gt; li.textContent);</code></pre>
+    <ol class="choices">
+      <li>ได้ <code>TypeError: document.querySelectorAll(...).map is not a function</code></li>
+      <li>ได้ Array <code>['HTML', 'CSS', 'DOM']</code></li>
+      <li>ได้ Array ว่าง <code>[]</code> เพราะ NodeList ไม่มีข้อมูลข้อความ</li>
+      <li>ได้ <code>SyntaxError</code> เพราะใช้ Arrow Function ใน Console ไม่ได้</li>
+    </ol>
+  </li>
+  <li>
+    <span class="lvl" data-lvl="i">กลาง</span>
+    <p>ในไฟล์ <code>app.js</code> มีโค้ดด้านล่าง เมื่อโหลดหน้าเว็บแล้วคลิกปุ่ม <code>#go</code> สามครั้ง จะเห็นข้อความ <code>handle ทำงาน</code> ใน Console กี่ครั้ง และเห็นเมื่อไร</p>
+<pre class="code" data-env="file" data-label="JavaScript · app.js"><code class="language-javascript">function handle() {
+  console.log('handle ทำงาน');
+}
+document.querySelector('#go').addEventListener('click', handle());</code></pre>
+    <ol class="choices">
+      <li>3 ครั้ง ครั้งละหนึ่งบรรทัดทุกครั้งที่คลิก</li>
+      <li>6 ครั้ง เพราะ handle ถูกเรียกทั้งตอนกดเมาส์ลงและตอนปล่อยเมาส์</li>
+      <li>ไม่เห็นเลย เพราะเกิด <code>SyntaxError</code> ตั้งแต่โหลดไฟล์</li>
+      <li>1 ครั้ง ตอนโหลดหน้า และการคลิกไม่ทำให้เกิดอะไรขึ้นเลย</li>
+    </ol>
+  </li>
+  <li>
+    <span class="lvl" data-lvl="i">กลาง</span>
+    <p>โค้ดนี้รันใน Browser Console บรรทัดสุดท้ายแสดงผลอะไร</p>
+<pre class="code" data-env="app" data-label="JavaScript · Browser Console"><code class="language-javascript">localStorage.setItem('js-lab:settings', { theme: 'dark' });
+console.log(localStorage.getItem('js-lab:settings'));</code></pre>
+    <ol class="choices">
+      <li>Object <code>{ theme: 'dark' }</code></li>
+      <li>String <code>'{"theme":"dark"}'</code></li>
+      <li>String <code>'[object Object]'</code></li>
+      <li><code>TypeError</code> เพราะ <code>setItem</code> รับ Object ไม่ได้</li>
+    </ol>
+  </li>
+  <li>
+    <span class="lvl" data-lvl="a">ยาก</span>
+    <p>โค้ดนี้แสดงผลอะไร</p>
+<pre class="code" data-env="file" data-label="JavaScript · mcq10.js"><code class="language-javascript">try {
+  console.log(x);
+  let x = 5;
+} catch (error) {
+  console.log(String(error));
+}</code></pre>
+    <ol class="choices">
+      <li><code>undefined</code></li>
+      <li><code>5</code></li>
+      <li><code>ReferenceError: Cannot access 'x' before initialization</code></li>
+      <li><code>ReferenceError: x is not defined</code></li>
+    </ol>
+  </li>
+  <li>
+    <span class="lvl" data-lvl="a">ยาก</span>
+    <p>ไฟล์นี้เป็น ES Module บรรทัด <code>fn();</code> ให้ผลอย่างไร</p>
+<pre class="code" data-env="file" data-label="JavaScript · mcq11.js"><code class="language-javascript">class Counter {
+  count = 0;
+  increment() {
+    this.count += 1;
+    return this.count;
+  }
+}
+
+const counter = new Counter();
+const fn = counter.increment; // ดึงเมธอดออกมาเก็บในตัวแปร
+fn();</code></pre>
+    <ol class="choices">
+      <li>คืนค่า <code>1</code> ตามปกติ</li>
+      <li>คืนค่า <code>NaN</code> เพราะ <code>this.count</code> เป็น <code>undefined</code></li>
+      <li>เกิด <code>TypeError: Cannot read properties of undefined (reading 'count')</code></li>
+      <li>สร้างตัวแปร Global ชื่อ <code>count</code> แล้วคืนค่า <code>1</code></li>
+    </ol>
+  </li>
+  <li>
+    <span class="lvl" data-lvl="a">ยาก</span>
+    <p>โค้ดนี้พิมพ์ตัวอักษรออกมาตามลำดับใด</p>
+<pre class="code" data-env="file" data-label="JavaScript · mcq12.js"><code class="language-javascript">console.log('A');
+setTimeout(() =&gt; console.log('B'), 0);
+Promise.resolve().then(() =&gt; console.log('C'));
+console.log('D');</code></pre>
+    <ol class="choices">
+      <li>A D C B</li>
+      <li>A B C D</li>
+      <li>A D B C</li>
+      <li>A C D B</li>
+    </ol>
+  </li>
+  <li>
+    <span class="lvl" data-lvl="a">ยาก</span>
+    <p>ไฟล์ <code>data/missing.json</code> ไม่มีอยู่บน Server (Server ตอบ 404) และ Server เปิดอยู่ตามปกติ โค้ดใน <code>&lt;script type="module"&gt;</code> นี้แสดงอะไรใน Console</p>
+<pre class="code" data-env="file" data-label="JavaScript · app.js"><code class="language-javascript">try {
+  const res = await fetch('data/missing.json');
+  console.log('ผล:', res.ok, res.status);
+} catch (error) {
+  console.log('เข้า catch:', error.message);
+}</code></pre>
+    <ol class="choices">
+      <li><code>ผล: false 404</code></li>
+      <li><code>เข้า catch: Not Found</code></li>
+      <li><code>ผล: true 404</code></li>
+      <li><code>เข้า catch: fetch failed</code></li>
+    </ol>
+  </li>
+  <li>
+    <span class="lvl" data-lvl="a">ยาก</span>
+    <p>ใน Unit Test ด้วย <code>node:test</code> บรรทัดด้านล่างให้ผลอย่างไร</p>
+<pre class="code" data-env="file" data-label="JavaScript · test/settings.test.js"><code class="language-javascript">import { test } from 'node:test';
+import assert from 'node:assert/strict';
+
+test('ค่าเริ่มต้นของ settings', () =&gt; {
+  const result = { theme: 'light' };
+  assert.equal(result, { theme: 'light' });
+});</code></pre>
+    <ol class="choices">
+      <li>Test ผ่าน เพราะ Object สองตัวมีค่าข้างในเหมือนกัน</li>
+      <li>Test ถูกข้าม (skipped) เพราะ <code>node --test</code> หาไฟล์นี้ไม่เจอ</li>
+      <li>เกิด <code>SyntaxError</code> เพราะ <code>assert.equal</code> รับ Object ไม่ได้</li>
+      <li>Test ไม่ผ่าน ได้ <code>AssertionError</code> ว่าโครงสร้างเหมือนกันแต่ไม่ใช่ Object ตัวเดียวกัน</li>
+    </ol>
+  </li>
+</ol>
+
+<h3 id="s4-3-hands">Hands-on Challenge</h3>
+<p>โจทย์ 3 ข้อนี้จำลองงานที่นักพัฒนา JavaScript ได้รับจริง แต่ละข้อใช้หลายแนวคิดรวมกัน ให้ลงมือเขียนเองทั้งหมดก่อน ถ้าติดนานเกิน 20 นาทีให้เปิด Hint และถ้ายังไม่ผ่านจึงค่อยเปิดเฉลยท้ายหน้า</p>
+
+<article class="challenge" data-lvl="b">
+  <div class="concept-meta"><span class="c-no">โจทย์ที่ 1</span><span class="lvl" data-lvl="b">Beginner</span></div>
+  <h4>พิมพ์ใบเสร็จร้าน "ครัวสมชาย" ด้วย Node.js</h4>
+  <h5>สถานการณ์</h5>
+  <p>ร้านอาหารตามสั่งเล็ก ๆ ของสมชายรับออเดอร์ผ่าน LINE แล้วเก็บรายการไว้เป็น Array ของ Object เจ้าของร้านอยากได้สคริปต์ที่รันใน Terminal แล้วพิมพ์ใบเสร็จออกมาสวย ๆ เพื่อคัดลอกส่งให้ลูกค้า ใบเสร็จต้องบอกรายการทีละบรรทัด ยอดรวม ส่วนลด และยอดสุทธิ โดยตัวเลขเงินต้องมีทศนิยม 2 ตำแหน่งเสมอ ร้านมีโปรโมชันว่าถ้ายอดรวมถึง 300 บาท จะลด 10%</p>
+  <p>ใช้ข้อมูลตะกร้าชุดเดียวกับแนวคิดที่ 4:</p>
+<pre class="code" data-env="file" data-label="JavaScript · ข้อมูลตะกร้า"><code class="language-javascript">const cart = [
+  { name: 'ชาไทยเย็น', price: 45, qty: 2 },
+  { name: 'ข้าวมันไก่', price: 50, qty: 1 },
+  { name: 'ขนมปังสังขยา', price: 35, qty: 3 },
+  { name: 'น้ำเปล่า', price: 10, qty: 4 },
+  { name: 'ผัดกะเพราไก่', price: 60, qty: 2 },
+];</code></pre>
+  <h5>สิ่งที่ต้องทำ</h5>
+  <ol>
+    <li>สร้างไฟล์ <code>~/projects/js-lab/challenges/ch1-receipt/receipt.js</code> แล้ววางข้อมูล <code>cart</code> ด้านบนลงไป</li>
+    <li>เขียนฟังก์ชัน <code>formatMoney(n)</code> ที่คืนข้อความตัวเลขทศนิยม 2 ตำแหน่งพร้อมจุลภาคคั่นหลักพัน โดยใช้ <code>toLocaleString('th-TH', ...)</code></li>
+    <li>ใช้ <code>map</code> สร้างข้อความ 1 บรรทัดต่อสินค้า 1 รายการ ในรูปแบบ <code>ลำดับ. จำนวน x ราคา = รวม  ชื่อสินค้า</code> และจัดตัวเลขให้ชิดขวาด้วย <code>padStart</code></li>
+    <li>ใช้ <code>reduce</code> (พร้อมค่าเริ่มต้น <code>0</code>) คำนวณยอดรวม และจำนวนชิ้นรวมของทุกรายการ</li>
+    <li>คำนวณส่วนลด 10% เฉพาะเมื่อยอดรวมตั้งแต่ 300 บาทขึ้นไป แล้วคำนวณยอดสุทธิ</li>
+    <li>หาสินค้าที่ทำยอด (ราคา x จำนวน) สูงสุดในบิล แล้วพิมพ์ไว้ท้ายใบเสร็จ</li>
+    <li>ใช้วันที่คงที่ <code>2026-10-19</code> บนหัวใบเสร็จ (ห้ามใช้ <code>new Date()</code> เพื่อให้ผลลัพธ์เหมือนเดิมทุกครั้งที่รัน) และรันด้วย <code>node receipt.js</code></li>
+  </ol>
+  <h5>ผลลัพธ์ที่คาดหวัง</h5>
+  <p>รันแล้วได้ใบเสร็จหน้าตาประมาณนี้ ยอดรวมต้องเป็น 405.00 บาท ส่วนลด 40.50 บาท และยอดสุทธิ 364.50 บาท จำนวนช่องว่างระหว่างคอลัมน์ไม่จำเป็นต้องตรงทุกตัว แต่ตัวเลขทุกค่าต้องตรง</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ใบเสร็จร้านครัวสมชาย  วันที่ 2026-10-19
+----------------------------------------
+ 1.  2 x  45.00 =    90.00  ชาไทยเย็น
+ 2.  1 x  50.00 =    50.00  ข้าวมันไก่
+ 3.  3 x  35.00 =   105.00  ขนมปังสังขยา
+ 4.  4 x  10.00 =    40.00  น้ำเปล่า
+ 5.  2 x  60.00 =   120.00  ผัดกะเพราไก่
+----------------------------------------
+จำนวนสินค้าทั้งหมด 12 ชิ้น
+ยอดรวม            405.00 บาท
+ส่วนลด 10%        -40.50 บาท
+ยอดสุทธิ          364.50 บาท
+----------------------------------------
+ขายดีที่สุดในบิลนี้: ผัดกะเพราไก่ (120.00 บาท)</code></pre>
+  <details class="hint"><summary>Hint</summary><div>
+    <ul>
+      <li>รูปแบบเงิน: <code>n.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })</code> ให้ผล <code>'1,070.00'</code> สำหรับ 1070</li>
+      <li><code>map</code> ส่ง index มาเป็นพารามิเตอร์ตัวที่สองให้ด้วย จึงเขียน <code>cart.map((item, index) =&gt; ...)</code> แล้วใช้ <code>index + 1</code> เป็นเลขลำดับได้</li>
+      <li><code>String(90).padStart(8, ' ')</code> เติมช่องว่างด้านซ้ายจนยาว 8 ตัวอักษร ทำให้ตัวเลขชิดขวาตรงกัน</li>
+      <li>วางชื่อสินค้าไว้ท้ายบรรทัด เพราะสระบนล่างและวรรณยุกต์ภาษาไทยนับเป็นตัวอักษรใน <code>length</code> แต่ไม่กินความกว้างบนจอ ถ้าใช้ <code>padEnd</code> กับชื่อไทย คอลัมน์ถัดไปจะเบี้ยว</li>
+      <li>การหาค่าสูงสุดด้วย <code>reduce</code>: เริ่มจาก <code>items[0]</code> แล้วเทียบทีละตัว ถ้าตัวใหม่ยอดสูงกว่าก็คืนตัวใหม่ ถ้าไม่ก็คืนตัวเดิม</li>
+    </ul>
+  </div></details>
+</article>
+
+<article class="challenge" data-lvl="i">
+  <div class="concept-meta"><span class="c-no">โจทย์ที่ 2</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+  <h4>ตารางสินค้าที่ค้นหาและเรียงราคาได้ในเบราว์เซอร์</h4>
+  <h5>สถานการณ์</h5>
+  <p>ร้านของสมชายอยากให้พนักงานหน้าร้านเปิดหน้าเว็บดูตะกร้าของลูกค้าบนแท็บเล็ต พนักงานต้องพิมพ์ค้นหาชื่อสินค้าได้ทันทีที่พิมพ์ (เช่นพิมพ์ "ไก่" แล้วเหลือแค่เมนูไก่) และกดปุ่มเรียงราคาจากน้อยไปมาก มากไปน้อย หรือกลับไปลำดับเดิมได้ ใต้ตารางต้องบอกว่าแสดงกี่รายการและยอดรวมของรายการที่แสดงอยู่ เพราะคำค้นมาจากผู้ใช้ หัวหน้าทีมจึงสั่งชัดเจนว่าห้ามใช้ <code>innerHTML</code> กับข้อความที่ผู้ใช้พิมพ์เด็ดขาด เพื่อป้องกัน XSS</p>
+  <h5>สิ่งที่ต้องทำ</h5>
+  <ol>
+    <li>สร้างโฟลเดอร์ <code>~/projects/js-lab/challenges/ch2-filter-list</code> ที่มี 4 ไฟล์: <code>index.html</code>, <code>style.css</code>, <code>list.js</code> และ <code>app.js</code></li>
+    <li>ใน <code>index.html</code> สร้างช่องค้นหา (<code>&lt;input type="search"&gt;</code> ที่มี <code>&lt;label&gt;</code> ผูกด้วย <code>for</code>/<code>id</code>) ปุ่มเรียง 3 ปุ่มที่มี <code>data-sort="asc"</code>, <code>"desc"</code> และ <code>"none"</code> อยู่ใน <code>&lt;div id="toolbar"&gt;</code> ตาราง 4 คอลัมน์ (สินค้า ราคา จำนวน รวม) และ <code>&lt;p id="summary" aria-live="polite"&gt;</code></li>
+    <li>ใน <code>list.js</code> เขียน Pure Function <code>filterAndSort(items, query, sortDir)</code> ที่คืน Array ใหม่เสมอ ห้ามแก้ Array ต้นฉบับ (ใช้ <code>filter</code> และ <code>toSorted</code>) และ <code>formatBaht(n)</code> สำหรับแสดงเงิน</li>
+    <li>ใน <code>app.js</code> เก็บ State ไว้ใน Object <code>{ query, sortDir }</code> และเขียนฟังก์ชัน <code>render()</code> ที่สร้างแถวตารางใหม่ทั้งหมดจาก State ด้วย <code>createElement</code>, <code>textContent</code> และ <code>replaceChildren</code></li>
+    <li>ผูก Event <code>input</code> ที่ช่องค้นหา และใช้ Event Delegation ผูก Listener เพียงตัวเดียวที่ <code>#toolbar</code> โดยใช้ <code>event.target.closest('button[data-sort]')</code> หาปุ่มที่ถูกคลิก</li>
+    <li>เมื่อไม่พบสินค้า ให้แสดงแถวเดียวว่า <code>ไม่พบสินค้าที่ตรงกับ "คำค้น"</code> โดยคำค้นต้องแสดงเป็นข้อความธรรมดา และตั้งค่า <code>aria-pressed</code> ให้ปุ่มที่ถูกเลือกอยู่ เพื่อไม่ให้สื่อสถานะด้วยสีอย่างเดียว</li>
+    <li>เปิดหน้าเว็บผ่าน <code>python3 -m http.server 8000 --bind 127.0.0.1</code> แล้วทดลองค้นหา เรียง และพิมพ์ <code>&lt;img src=x onerror=alert(1)&gt;</code> ลงในช่องค้นหา ต้องไม่มีหน้าต่าง alert เด้งขึ้นมา</li>
+  </ol>
+  <h5>ผลลัพธ์ที่คาดหวัง</h5>
+  <p>เปิดหน้าครั้งแรกจะเห็นสินค้า 5 รายการตามลำดับเดิม ใต้ตารางเขียนว่า <code>แสดง 5 จาก 5 รายการ · รวม 405.00 บาท</code> เมื่อพิมพ์ "ไก่" แล้วกดปุ่ม "ราคา น้อย → มาก" ตารางและข้อความสรุปต้องเป็นดังนี้ (แต่ละแถวคั่นคอลัมน์ด้วย <code>|</code> เพื่อให้อ่านง่าย)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ข้าวมันไก่ | 50.00 บาท | 1 | 50.00 บาท
+ผัดกะเพราไก่ | 60.00 บาท | 2 | 120.00 บาท
+แสดง 2 จาก 5 รายการ · รวม 170.00 บาท</code></pre>
+  <p>และเมื่อพิมพ์ข้อความทดสอบ XSS ลงในช่องค้นหา ตารางต้องแสดงข้อความนี้ตรงตัวอักษร โดยไม่มีรูปภาพหรือ alert เกิดขึ้น</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ไม่พบสินค้าที่ตรงกับ "&lt;img src=x onerror=alert(1)&gt;"
+แสดง 0 จาก 5 รายการ · รวม 0.00 บาท</code></pre>
+  <details class="hint"><summary>Hint</summary><div>
+    <ul>
+      <li>ใส่ <code>&lt;script type="module" src="app.js"&gt;&lt;/script&gt;</code> ไว้ใน <code>&lt;head&gt;</code> ได้เลย เพราะ Module Script ถูก defer อัตโนมัติ จะรันหลังจาก HTML โหลดครบแล้ว</li>
+      <li>ใน <code>app.js</code> ใช้ <code>import { filterAndSort, formatBaht } from './list.js';</code> อย่าลืม <code>./</code> และนามสกุล <code>.js</code></li>
+      <li>ค้นหาแบบไม่สนตัวพิมพ์เล็กใหญ่: แปลงทั้งชื่อสินค้าและคำค้นด้วย <code>toLowerCase()</code> และตัดช่องว่างหัวท้ายของคำค้นด้วย <code>trim()</code> แล้วใช้ <code>includes</code></li>
+      <li><code>tbody.replaceChildren(...rows)</code> ลบแถวเก่าทั้งหมดแล้วใส่แถวใหม่ในคำสั่งเดียว ไม่ต้องใช้ <code>innerHTML = ''</code></li>
+      <li>ช่องที่ต้องกินเต็มความกว้างตาราง ใช้ <code>td.colSpan = 4</code></li>
+      <li>ถ้าคลิกโดนพื้นที่ว่างใน toolbar <code>closest</code> จะคืน <code>null</code> ต้องตรวจ <code>if (!btn) return;</code> ก่อนใช้งาน</li>
+    </ul>
+  </div></details>
+</article>
+
+<article class="challenge" data-lvl="a">
+  <div class="concept-meta"><span class="c-no">โจทย์ที่ 3</span><span class="lvl" data-lvl="a">Advanced</span></div>
+  <h4>fetchJson ที่ทนทาน: Timeout, Retry และ Unit Test ด้วย node:test</h4>
+  <h5>สถานการณ์</h5>
+  <p>แอปแบบทดสอบของบริษัทต้องโหลดไฟล์คำถามจาก Server ภายในองค์กร Server ตัวนี้บางครั้งช้าจนค้าง บางครั้งตอบ <code>503 Service Unavailable</code> ช่วงสั้น ๆ ตอน Deploy และบางครั้งก็ปิดไปเลย ผู้ใช้บ่นว่าหน้าเว็บค้างโดยไม่มีข้อความอะไร หัวหน้าทีมจึงมอบหมายให้สมชายเขียนฟังก์ชันกลาง <code>fetchJson</code> ที่ทุกส่วนของแอปจะเรียกใช้ โดยมีกติกาดังนี้</p>
+  <ul>
+    <li>รอแต่ละครั้งได้ไม่เกิน <code>timeoutMs</code> มิลลิวินาที (ค่าเริ่มต้น 2000) แล้วต้องยกเลิกคำขอ</li>
+    <li>ถ้าเกิด Network Error (ต่อ Server ไม่ได้), หมดเวลา หรือได้ Status 5xx ให้ลองใหม่ได้อีก <code>retries</code> ครั้ง (ค่าเริ่มต้น 2 รวมเป็นสูงสุด 3 ครั้ง) และรอนานขึ้นทีละขั้นระหว่างแต่ละครั้ง</li>
+    <li>ถ้าได้ Status 4xx เช่น 404 ห้ามลองใหม่ เพราะลองกี่ครั้งไฟล์ก็ยังไม่มี และถ้า JSON เสียก็ห้ามลองใหม่เช่นกัน</li>
+    <li>เมื่อลองครบแล้วยังไม่สำเร็จ ต้องโยน Error ที่อ่านเข้าใจได้ และเก็บ Error ต้นเหตุไว้ใน <code>cause</code></li>
+    <li>ต้องมี Unit Test ที่รันได้โดยไม่ต้องเปิด Server จริง และไม่ต้องรอเวลานาน</li>
+  </ul>
+  <h5>สิ่งที่ต้องทำ</h5>
+  <ol>
+    <li>สร้างโปรเจกต์ <code>~/projects/js-lab/challenges/ch3-retry-fetch</code> ที่มี <code>package.json</code> ของตัวเอง (<code>"type": "module"</code> และ <code>"scripts": { "test": "node --test", "demo": "node demo.js" }</code>) และโฟลเดอร์ <code>src</code>, <code>test</code>, <code>data</code></li>
+    <li>คัดลอกคำถาม 3 ข้อแรกจาก Part 1 ไปไว้ที่ <code>data/questions.json</code> (ใช้ Schema <code>{ id, question, choices, answer }</code>)</li>
+    <li>ใน <code>src/fetch-json.js</code> สร้าง <code>class HttpError extends Error</code> ที่เก็บ <code>status</code> ไว้ และฟังก์ชัน <code>isRetryable(error)</code> ที่ตัดสินว่า Error แบบไหนควรลองใหม่</li>
+    <li>เขียน <code>export async function fetchJson(url, { retries = 2, timeoutMs = 2000, retryDelayMs = 300, fetchImpl = globalThis.fetch, onRetry = () =&gt; {} } = {})</code> โดยส่ง <code>signal: AbortSignal.timeout(timeoutMs)</code> ให้ทุกคำขอ ตรวจ <code>response.ok</code> และห่อ Error สุดท้ายด้วย <code>new Error(ข้อความ, { cause })</code></li>
+    <li>เขียน <code>test/fetch-json.test.js</code> อย่างน้อย 6 Test โดยส่ง fetch ปลอมที่สร้างด้วย <code>mock.fn()</code> เข้าไปทาง <code>fetchImpl</code> ครอบคลุมกรณี: สำเร็จครั้งแรก, 503 แล้วสำเร็จ, 404 ไม่ลองใหม่, Network Error ทุกครั้ง, หมดเวลา และ JSON เสีย พร้อมตรวจจำนวนครั้งที่ fetch ถูกเรียก</li>
+    <li>เขียน <code>demo.js</code> ที่เรียก <code>fetchJson</code> กับ Server จริง 3 กรณี: ไฟล์มีอยู่, ไฟล์ไม่มี (404) และพอร์ตที่ไม่มี Server เปิด (<code>127.0.0.1:8001</code>)</li>
+    <li>รัน <code>npm test</code> ให้ผ่านทั้งหมด แล้วเปิด <code>python3 -m http.server 8000 --bind 127.0.0.1</code> ใน Terminal อีกหน้าต่าง และรัน <code>npm run demo</code></li>
+  </ol>
+  <h5>ผลลัพธ์ที่คาดหวัง</h5>
+  <p><code>npm test</code> ต้องผ่านทุก Test โดยไม่มี fail และใช้เวลารวมไม่ถึง 1 วินาที (เพราะใช้ fetch ปลอมและตั้ง <code>retryDelayMs: 0</code>) ส่วน <code>npm run demo</code> ต้องแสดงผลแบบนี้ สังเกตว่ากรณี 404 ไม่มีการลองใหม่เลย แต่กรณี Server ปิดลองใหม่ 2 ครั้งก่อนยอมแพ้</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[ไฟล์มีอยู่] http://127.0.0.1:8000/data/questions.json
+  สำเร็จ: ได้คำถาม 3 ข้อ ข้อแรกคือ "คำสั่งใดประกาศตัวแปรที่เปลี่ยนค่าไม่ได้"
+[ไม่มีไฟล์] http://127.0.0.1:8000/data/missing.json
+  ล้มเหลว: HttpError: HTTP 404 จาก http://127.0.0.1:8000/data/missing.json
+[Server ปิด] http://127.0.0.1:8001/data/questions.json
+  ลองครั้งที่ 1 ไม่สำเร็จ (TypeError) กำลังลองใหม่...
+  ลองครั้งที่ 2 ไม่สำเร็จ (TypeError) กำลังลองใหม่...
+  ล้มเหลว: Error: ดึง http://127.0.0.1:8001/data/questions.json ไม่สำเร็จหลังลอง 3 ครั้ง
+  สาเหตุ: TypeError: fetch failed (ECONNREFUSED)</code></pre>
+  <details class="hint"><summary>Hint</summary><div>
+    <ul>
+      <li>ใช้ลูป <code>for (let attempt = 1; attempt &lt;= retries + 1; attempt += 1)</code> แล้วครอบเนื้อในด้วย <code>try</code>/<code>catch</code> ใน <code>catch</code> ให้ตัดสิน 3 ทาง: ไม่ควรลองใหม่ให้ <code>throw error</code> ทันที, ลองครบแล้วให้โยน Error ใหม่ที่มี <code>cause</code>, ยังไม่ครบให้รอแล้ววนรอบต่อไป</li>
+      <li>เมื่อต่อ Server ไม่ได้ <code>fetch</code> ของ Node จะ reject ด้วย <code>TypeError: fetch failed</code> และรหัสจริงอยู่ใน <code>error.cause.code</code> เช่น <code>ECONNREFUSED</code></li>
+      <li>เมื่อ <code>AbortSignal.timeout</code> หมดเวลา คำขอจะ reject ด้วย Error ชื่อ <code>TimeoutError</code> ดังนั้นตรวจ <code>error.name === 'TimeoutError'</code></li>
+      <li>เขียน <code>return await response.json();</code> ภายใน <code>try</code> เพื่อให้ Error จากการแปลง JSON วิ่งเข้า <code>catch</code> ของรอบนั้นด้วย</li>
+      <li>สร้าง Response ปลอมใน Test ได้ด้วย <code>new Response(JSON.stringify(data), { status: 200 })</code> เพราะ <code>Response</code> เป็น Global ใน Node 18 ขึ้นไป</li>
+      <li>fetch ปลอมสำหรับกรณีหมดเวลา ต้องฟัง <code>signal.addEventListener('abort', ...)</code> แล้ว reject ด้วย <code>signal.reason</code> และควรมี <code>setTimeout</code> จำลอง Server ที่ตอบช้า (เช่น 1000ms) ไว้ด้วย เพราะ Timer ภายในของ <code>AbortSignal.timeout</code> ไม่ได้ช่วยให้โปรแกรมรอ ถ้าไม่มี Timer อื่นค้างอยู่ <code>node --test</code> จะจบ Test ก่อนที่ Timeout จะเกิด</li>
+    </ul>
+  </div></details>
+</article>
+
+<h3 id="s4-3-answers">เฉลย</h3>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ลองทำทุกข้อด้วยตัวเองให้เสร็จก่อนเปิดเฉลย โดยเฉพาะโจทย์ลงมือทำ ให้รันโค้ดของคุณจนได้ผลลัพธ์หรือได้ Error ที่อธิบายได้ก่อน การเปิดเฉลยเร็วเกินไปจะทำให้รู้สึกว่าเข้าใจ แต่พอเจอปัญหาจริงในงานกลับเขียนเองไม่ได้</p></div>
+
+<h4>เฉลย Fill-in-the-blank</h4>
+
+<details class="ans"><summary>ข้อ 1</summary><div>
+  <p><strong>คำตอบ:</strong> ช่องแรกคือ <code>===</code> ช่องที่สองคือ <code>==</code></p>
+  <p><code>===</code> (Strict Equality) เทียบทั้งชนิดข้อมูลและค่า <code>'5'</code> เป็น String แต่ <code>5</code> เป็น Number ชนิดต่างกันจึงได้ <code>false</code> ทันที ส่วน <code>==</code> (Loose Equality) จะแปลงชนิดให้ก่อน (Type Coercion) โดยแปลง <code>'5'</code> เป็นตัวเลข 5 แล้วจึงเทียบ จึงได้ <code>true</code> ในงานจริงให้ใช้ <code>===</code> เสมอตามกติกาในแนวคิดที่ 1 เพราะ <code>==</code> ให้ผลที่เดายาก เช่น <code>0 == ''</code> ก็เป็น <code>true</code></p>
+<pre class="code" data-env="file" data-label="JavaScript · fill1.js"><code class="language-javascript">// เทียบ String '5' กับ Number 5
+console.log('5' === 5); // ต้องได้ false เพราะชนิดข้อมูลต่างกัน
+console.log('5' == 5); // ต้องได้ true เพราะแปลง '5' เป็นตัวเลขก่อนเทียบ</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">node fill1.js</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>false
+true</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 2</summary><div>
+  <p><strong>คำตอบ:</strong> <code>0</code> (ทั้งสองช่อง)</p>
+  <p>อาร์กิวเมนต์ตัวที่สองของ <code>reduce</code> คือค่าเริ่มต้นของตัวสะสม <code>sum</code> ถ้าใส่ <code>0</code> รอบแรก <code>sum</code> จะเป็น 0 และ <code>item</code> เป็นสินค้าชิ้นแรก ผลรวมคือ 90 + 50 + 105 + 40 + 120 = 405 สำหรับตะกร้าว่าง <code>reduce</code> ไม่ต้องวนเลยและคืนค่าเริ่มต้น <code>0</code> ทันที</p>
+  <p>ถ้าลืมใส่ค่าเริ่มต้น จะเกิดปัญหา 2 อย่าง อย่างแรก รอบแรก <code>sum</code> จะเป็น Object สินค้าชิ้นแรกแทนตัวเลข ผลรวมจึงผิด อย่างที่สอง ตะกร้าว่างจะทำให้โปรแกรมพังด้วย Error นี้ (ได้จากการรันจริง):</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>TypeError: Reduce of empty array with no initial value</code></pre>
+  <p>ผลลัพธ์เมื่อเติมถูกต้อง:</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">node fill2.js</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>405
+0</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 3</summary><div>
+  <p><strong>คำตอบ:</strong> <code>??</code> (Nullish Coalescing)</p>
+  <p><code>a ?? b</code> คืน <code>b</code> เฉพาะเมื่อ <code>a</code> เป็น <code>null</code> หรือ <code>undefined</code> เท่านั้น ค่า <code>0</code> ไม่ใช่ทั้งสองอย่าง จึงได้ <code>0</code> ตามที่ผู้ใช้ตั้งไว้ ถ้าใช้ <code>||</code> จะได้ <code>16</code> ซึ่งผิด เพราะ <code>||</code> ดูแค่ว่าค่าทางซ้ายเป็น Falsy หรือไม่ และ <code>0</code>, <code>''</code> กับ <code>false</code> ล้วนเป็น Falsy (ทบทวนแนวคิดที่ 5)</p>
+<pre class="code" data-env="file" data-label="JavaScript · fill3.js"><code class="language-javascript">const settings = { theme: 'dark', fontSize: 0 };
+
+const size = settings.fontSize ?? 16;
+console.log(size); // ต้องได้ 0 ไม่ใช่ 16
+
+// เทียบให้เห็นกับ || ที่ทิ้งค่า 0
+console.log(settings.fontSize || 16);</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">node fill3.js</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>0
+16</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 4</summary><div>
+  <p><strong>คำตอบ:</strong> <code>closest</code> (เขียนเต็มว่า <code>event.target.closest('button[data-sort]')</code>)</p>
+  <p><code>element.closest(selector)</code> เริ่มตรวจจากตัว Element เองก่อน ถ้าไม่ตรง Selector จะไล่ขึ้นไปหา Parent Element ทีละชั้นจนถึง Element บนสุดของหน้า (<code>&lt;html&gt;</code>) แล้วคืน Element แรกที่ตรง หรือคืน <code>null</code> ถ้าไม่เจอเลย ดังนั้นไม่ว่าผู้ใช้จะคลิกโดน <code>&lt;span&gt;</code> ไอคอนหรือขอบของปุ่ม เราก็ได้ <code>&lt;button&gt;</code> ตัวเดิมเสมอ นี่คือหัวใจของ Event Delegation ในแนวคิดที่ 8: Event ของปุ่ม Bubble ขึ้นมาถึง <code>#toolbar</code> แล้วเราค่อยหาว่ามาจากปุ่มไหน</p>
+  <p>ทำไมต้องมี <code>if (!btn) return;</code> ต่อ: ถ้าผู้ใช้คลิกโดนพื้นที่ว่างใน toolbar หรือโดน <code>&lt;label&gt;</code> <code>closest</code> จะคืน <code>null</code> และ <code>btn.dataset</code> จะทำให้เกิด <code>TypeError: Cannot read properties of null (reading 'dataset')</code> โค้ดเต็มที่ใช้เทคนิคนี้อยู่ในเฉลยโจทย์ที่ 2</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 5</summary><div>
+  <p><strong>คำตอบ:</strong> ช่องที่ 1 คือ <code>await</code> ช่องที่ 2 คือ <code>ok</code></p>
+  <p><code>fetch</code> คืน Promise ถ้าไม่ใส่ <code>await</code> ตัวแปร <code>response</code> จะเป็น <code>Promise { &lt;pending&gt; }</code> และ <code>response.ok</code> จะเป็น <code>undefined</code> ทำให้เงื่อนไข <code>!response.ok</code> เป็นจริงเสมอ ฟังก์ชันจึงโยน Error ทุกครั้งแม้ไฟล์จะมีอยู่</p>
+  <p><code>response.ok</code> เป็น <code>true</code> เมื่อ Status อยู่ในช่วง 200 ถึง 299 จุดที่มือใหม่พลาดบ่อยคือคิดว่า <code>fetch</code> จะ reject เมื่อได้ 404 หรือ 500 แต่ความจริง <code>fetch</code> reject เฉพาะเมื่อส่งคำขอไม่สำเร็จ เช่น ต่อ Server ไม่ได้หรือถูกยกเลิก ถ้า Server ตอบกลับมา (ไม่ว่า Status อะไร) Promise จะ fulfilled เสมอ เราจึงต้องตรวจ <code>ok</code> เอง (แนวคิดที่ 11) ผลการทดลองจริงในเบราว์เซอร์กับไฟล์ที่ไม่มีอยู่และไฟล์ที่มีอยู่:</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>false 404
+true 200</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 6</summary><div>
+  <p><strong>คำตอบ:</strong> ช่องที่ 1 คือ <code>enable</code> ช่องที่ 2 และช่องที่ 3 คือ <code>tick</code></p>
+  <p><code>mock.timers.enable({ apis: ['setInterval'] })</code> แทนที่ <code>setInterval</code> และ <code>clearInterval</code> ด้วยนาฬิกาปลอม หลังจากนั้นเวลาจะไม่เดินเอง จนกว่าเราจะสั่ง <code>mock.timers.tick(ms)</code> ซึ่งเลื่อนเวลาไปข้างหน้าทันทีและเรียก Callback ที่ถึงกำหนดทั้งหมด การ <code>tick(2000)</code> จึงทำให้ <code>onTick</code> ถูกเรียกอีก 2 ครั้ง (ด้วยค่า 1 และ 0) ทำให้ Test ที่ปกติต้องรอ 3 วินาทีจบในเวลาไม่กี่มิลลิวินาที สุดท้าย <code>mock.timers.reset()</code> คืนนาฬิกาจริง เพื่อไม่ให้กระทบ Test อื่น</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">node --test</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>✔ นับถอยหลัง 3 วินาทีโดยไม่ต้องรอจริง (2.775624ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 96.417888</code></pre>
+  <p>ตัวเลข <code>duration_ms</code> บนเครื่องของคุณจะต่างจากนี้ Node บางเวอร์ชันอาจพิมพ์บรรทัด <code>ExperimentalWarning: The MockTimers API is an experimental feature</code> ไว้ก่อนผล Test ด้วย บรรทัดนี้เป็นแค่คำเตือน ไม่ใช่ Error และไม่ทำให้ Test ล้มเหลว</p>
+</div></details>
+
+<h4>เฉลย Multiple Choice</h4>
+
+<details class="ans"><summary>ข้อ 1</summary><div>
+  <p><strong>คำตอบ: C</strong> <code>typeof null</code> ได้ <code>"object"</code> นี่เป็นความผิดพลาดตั้งแต่ JavaScript รุ่นแรกที่แก้ไม่ได้แล้ว เพราะเว็บไซต์เก่าจำนวนมากพึ่งพาพฤติกรรมนี้อยู่ ถ้าต้องการตรวจว่าเป็น <code>null</code> จริง ให้เขียน <code>value === null</code> แทน (แนวคิดที่ 1)</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะ <code>typeof</code> ไม่มีผลลัพธ์ชื่อ <code>"null"</code> เลย แม้ <code>null</code> จะเป็น Primitive ชนิดหนึ่ง แต่ <code>typeof</code> รายงานเป็น <code>"object"</code></li>
+    <li><strong>B</strong> ผิดเพราะ <code>"undefined"</code> คือผลของ <code>typeof undefined</code> หรือตัวแปรที่ยังไม่ได้กำหนดค่า <code>null</code> กับ <code>undefined</code> เป็นคนละค่ากัน แม้ <code>null == undefined</code> จะเป็น <code>true</code></li>
+    <li><strong>D</strong> ผิดเพราะ <code>null</code> ไม่ใช่ตัวเลข การที่ <code>null + 1</code> ได้ <code>1</code> เป็นผลจากการแปลงชนิดตอนคำนวณ ไม่ได้แปลว่าชนิดของ <code>null</code> คือ <code>"number"</code></li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 2</summary><div>
+  <p><strong>คำตอบ: C</strong> <code>sort()</code> ที่ไม่มี Compare Function จะแปลงทุกค่าเป็น String แล้วเรียงตามลำดับตัวอักษร <code>'1'</code> &lt; <code>'10'</code> &lt; <code>'100'</code> &lt; <code>'9'</code> เพราะเทียบทีละตัวอักษรจากซ้าย และ <code>'1'</code> มาก่อน <code>'9'</code> ผลจากการรันจริงคือ <code>[ 1, 10, 100, 9 ]</code> วิธีที่ถูกคือ <code>numbers.toSorted((a, b) =&gt; a - b)</code> ซึ่งได้ <code>[ 1, 9, 10, 100 ]</code> และไม่แก้ Array เดิมด้วย (แนวคิดที่ 4)</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะนี่คือผลของการเรียงแบบตัวเลข ซึ่งต้องส่ง Compare Function <code>(a, b) =&gt; a - b</code> เข้าไปเอง <code>sort()</code> เปล่า ๆ ไม่ได้เรียงแบบตัวเลข</li>
+    <li><strong>B</strong> ผิดเพราะ <code>sort()</code> เรียงจากน้อยไปมากเสมอ (ตามลำดับ String) การเรียงจากมากไปน้อยต้องเขียน <code>(a, b) =&gt; b - a</code></li>
+    <li><strong>D</strong> ผิดเพราะ <code>sort</code> เป็นเมธอดของ Array ทุกตัว เรียกได้ปกติ ไม่มี Error เกิดขึ้น ปัญหาของข้อนี้คือได้ผลผิดแบบเงียบ ๆ ซึ่งอันตรายกว่า Error</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 3</summary><div>
+  <p><strong>คำตอบ: B</strong> เมื่อ Arrow Function มีวงเล็บปีกกา <code>{ }</code> ต่อจาก <code>=&gt;</code> JavaScript ตีความว่าเป็น "บล็อกคำสั่ง" ไม่ใช่ Object ข้างในจึงกลายเป็น Label ชื่อ <code>total</code> ตามด้วยนิพจน์ <code>1</code> และเพราะในบล็อกไม่มี <code>return</code> ฟังก์ชันจึงคืน <code>undefined</code> (ผลจากการรันจริง) วิธีแก้คือครอบ Object ด้วยวงเล็บ <code>() =&gt; ({ total: 1 })</code> (แนวคิดที่ 2)</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะจะได้ <code>{ total: 1 }</code> ก็ต่อเมื่อครอบด้วยวงเล็บ <code>({ total: 1 })</code> หรือเขียน <code>return { total: 1 };</code> ในบล็อก</li>
+    <li><strong>C</strong> ผิดเพราะ <code>1</code> ในบล็อกเป็นแค่นิพจน์ที่ถูกคำนวณแล้วทิ้งไป ไม่ได้ถูก return การ return อัตโนมัติ (Implicit Return) เกิดเฉพาะ Arrow Function ที่ไม่มีวงเล็บปีกกา</li>
+    <li><strong>D</strong> ผิดเพราะ <code>total: 1</code> เป็น Syntax ที่ถูกต้อง (Labeled Statement) จึงไม่มี SyntaxError ทำให้บั๊กนี้หายากเพราะโปรแกรมไม่ฟ้องอะไรเลย</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 4</summary><div>
+  <p><strong>คำตอบ: D</strong> กับ <code>box-sizing: content-box</code> (ค่าเริ่มต้น) <code>width</code> คือความกว้างของส่วน Content เท่านั้น Padding และ Border ถูกบวกเพิ่มออกไปด้านนอกทั้งซ้ายและขวา จึงได้ 200 + (16 x 2) + (2 x 2) = 236px Margin อยู่นอก Border จึงไม่นับ ถ้าตั้ง <code>box-sizing: border-box</code> การ์ดจะกว้าง 200px พอดี เพราะ Padding และ Border ถูกนับรวมอยู่ใน <code>width</code> ตรวจค่าจริงได้ใน DevTools แท็บ Elements แล้วดูแผนภาพ Box Model ในแผง Computed (แนวคิดที่ 3)</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะ 200px คือผลเมื่อใช้ <code>box-sizing: border-box</code> แต่โจทย์บอกว่าใช้ค่าเริ่มต้น <code>content-box</code></li>
+    <li><strong>B</strong> ผิดเพราะ 216px บวก Padding เพียงด้านเดียว (200 + 16) และลืม Border แต่ Padding กับ Border มีทั้งซ้ายและขวา</li>
+    <li><strong>C</strong> ผิดเพราะ 232px บวกแค่ Padding ทั้งสองด้าน (200 + 32) แต่ลืม Border ด้านละ 2px ซึ่งก็กินพื้นที่เช่นกัน</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 5</summary><div>
+  <p><strong>คำตอบ: B</strong> Spread <code>{ ...user }</code> ทำสำเนาแบบตื้น (Shallow Copy) คือคัดลอกเฉพาะชั้นแรก <code>username</code> เป็น String จึงถูกคัดลอกเป็นค่าใหม่ การเปลี่ยน <code>copy.username</code> ไม่กระทบ <code>user</code> แต่ <code>address</code> เป็น Object ที่สำเนาได้แค่ "การอ้างอิง" (Reference) ตัวเดียวกัน การแก้ <code>copy.address.province</code> จึงแก้ Object ที่ <code>user.address</code> ชี้อยู่ด้วย ผลจากการรันจริงคือ <code>เชียงใหม่ somchai</code> ถ้าต้องการสำเนาที่แยกขาดทุกชั้น ให้ใช้ <code>structuredClone(user)</code> (แนวคิดที่ 5)</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะคิดว่า Spread คัดลอกทุกชั้น (Deep Copy) ซึ่งไม่จริง Object ที่ซ้อนอยู่ข้างในยังถูกใช้ร่วมกัน</li>
+    <li><strong>C</strong> ผิดเพราะ <code>username</code> เป็นค่า Primitive ที่ถูกคัดลอกแยกแล้ว การแก้ <code>copy.username</code> จึงไม่ย้อนกลับมาที่ <code>user.username</code></li>
+    <li><strong>D</strong> ผิดทั้งสองส่วน <code>province</code> เปลี่ยนเพราะใช้ Object ร่วมกัน และ <code>username</code> ไม่เปลี่ยนเพราะเป็นสำเนาแยก</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 6</summary><div>
+  <p><strong>คำตอบ: B</strong> Node.js โหมด ES Module ไม่เดานามสกุลไฟล์ให้ (ต่างจาก CommonJS และ Bundler บางตัว) ต้องเขียน Path แบบเต็มว่า <code>import formatBaht from './src/price.js';</code> ข้อความ Error บอกใบ้ชัดเจน เพราะ Path ที่หาไม่เจอลงท้ายด้วย <code>/src/price</code> โดยไม่มี <code>.js</code> และเมื่อรันจริง Node 22 ขึ้นไปยังพิมพ์บรรทัดถัดมาบอกตรง ๆ ว่า <code>Did you mean to import "./src/price.js"?</code> (โจทย์ตัดบรรทัดนี้ออกเพื่อไม่ให้เฉลยตัวเอง) (แนวคิดที่ 6)</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะโจทย์บอกว่ามี <code>"type": "module"</code> แล้ว และถ้าปัญหาคือ <code>package.json</code> ระบุ <code>"type": "commonjs"</code> (ค่าที่ <code>npm init -y</code> ของ npm 11 ใส่ให้) Error จะเป็น <code>SyntaxError: Cannot use import statement outside a module</code> ซึ่งเป็นคนละข้อความ</li>
+    <li><strong>C</strong> ผิดเพราะถ้าไฟล์ปลายทางมีแต่ Named Export แล้วเรา import แบบ Default Error ที่ได้จริงคือ <code>SyntaxError: The requested module './src/price.js' does not provide an export named 'default'</code> ซึ่งแปลว่า Node หาไฟล์เจอแล้ว ไม่ใช่ <code>ERR_MODULE_NOT_FOUND</code></li>
+    <li><strong>D</strong> ผิดเพราะ <code>npm install</code> ใช้ติดตั้งแพ็กเกจจาก npm Registry ลงใน <code>node_modules</code> ไม่เกี่ยวกับไฟล์ที่เราเขียนเองในโปรเจกต์ ไฟล์ของเราใช้ได้ทันทีด้วย Relative Path</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 7</summary><div>
+  <p><strong>คำตอบ: A</strong> <code>querySelectorAll</code> คืน <code>NodeList</code> ซึ่งเป็นรายการที่หน้าตาคล้าย Array มี <code>length</code> และ <code>forEach</code> แต่ไม่มี <code>map</code>, <code>filter</code> หรือ <code>reduce</code> ผลจากการรันจริงใน Chromium คือ <code>TypeError: document.querySelectorAll(...).map is not a function</code> วิธีแก้คือแปลงเป็น Array ก่อนด้วย <code>Array.from(document.querySelectorAll('li')).map((li) =&gt; li.textContent)</code> หรือ <code>[...document.querySelectorAll('li')]</code> ซึ่งได้ <code>['HTML', 'CSS', 'DOM']</code> (แนวคิดที่ 7)</p>
+  <ul class="why-wrong">
+    <li><strong>B</strong> ผิดเพราะผลนี้จะได้ก็ต่อเมื่อแปลง NodeList เป็น Array ก่อนเรียก <code>map</code></li>
+    <li><strong>C</strong> ผิดเพราะ NodeList มี Element ครบทั้ง 3 ตัว แต่ละตัวมี <code>textContent</code> ปัญหาไม่ได้อยู่ที่ข้อมูล แต่อยู่ที่ NodeList ไม่มีเมธอด <code>map</code> จึงเกิด TypeError ก่อนจะได้ผลลัพธ์ใด ๆ</li>
+    <li><strong>D</strong> ผิดเพราะ Console ของเบราว์เซอร์รองรับ Arrow Function ตามปกติ และ Error ที่เกิดเป็น TypeError ตอนรัน (Runtime) ไม่ใช่ SyntaxError ตอนอ่านโค้ด</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 8</summary><div>
+  <p><strong>คำตอบ: D</strong> <code>handle()</code> ที่มีวงเล็บคือ "เรียกฟังก์ชันทันที" แล้วส่ง "ค่าที่ฟังก์ชันคืนกลับมา" ซึ่งคือ <code>undefined</code> ให้ <code>addEventListener</code> ข้อความจึงขึ้น 1 ครั้งตอนโหลดหน้า และเบราว์เซอร์ถือว่า Listener เป็นค่าว่างจึงไม่ทำอะไรเมื่อคลิก (ไม่มี Error ด้วย) ผลการทดลองจริง: ข้อความ <code>handle ทำงาน</code> ขึ้นก่อนบรรทัดถัดไปของสคริปต์ และหลังคลิกไม่มีข้อความเพิ่มเลย วิธีแก้คือส่งตัวฟังก์ชันโดยไม่ใส่วงเล็บ <code>addEventListener('click', handle)</code> (แนวคิดที่ 8)</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะจะเป็นแบบนี้ก็ต่อเมื่อเขียน <code>handle</code> ไม่มีวงเล็บ ซึ่งเป็นการส่งฟังก์ชันให้เบราว์เซอร์เรียกเองตอนคลิก</li>
+    <li><strong>B</strong> ผิดเพราะ Event <code>click</code> เกิดครั้งเดียวต่อการคลิกหนึ่งครั้ง ส่วนการกดและปล่อยเมาส์เป็น Event คนละชื่อคือ <code>mousedown</code> และ <code>mouseup</code> และในโค้ดนี้ Listener ไม่ได้ถูกผูกจริงอยู่แล้ว</li>
+    <li><strong>C</strong> ผิดเพราะ <code>handle()</code> เป็น Syntax ที่ถูกต้อง เป็นแค่การเรียกฟังก์ชันผิดจังหวะ โค้ดจึงรันได้และไม่มี SyntaxError</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 9</summary><div>
+  <p><strong>คำตอบ: C</strong> <code>localStorage</code> เก็บได้เฉพาะ String เมื่อส่ง Object เข้าไป เบราว์เซอร์จะแปลงด้วย <code>String(obj)</code> ซึ่งได้ <code>'[object Object]'</code> ข้อมูลจริงหายไปทั้งหมด ผลการทดลองจริงใน Chromium คือ <code>[object Object]</code> และถ้านำไป <code>JSON.parse</code> ต่อจะได้ <code>SyntaxError: "[object Object]" is not valid JSON</code> วิธีที่ถูกคือ <code>localStorage.setItem('js-lab:settings', JSON.stringify({ theme: 'dark' }))</code> และอ่านกลับด้วย <code>JSON.parse</code> ภายใน <code>try</code>/<code>catch</code> (แนวคิดที่ 10)</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะ <code>getItem</code> คืน String หรือ <code>null</code> เท่านั้น ไม่เคยคืน Object</li>
+    <li><strong>B</strong> ผิดเพราะเบราว์เซอร์ไม่เรียก <code>JSON.stringify</code> ให้อัตโนมัติ ต้องเรียกเองก่อน <code>setItem</code> จึงจะได้ String รูปแบบ JSON</li>
+    <li><strong>D</strong> ผิดเพราะ <code>setItem</code> ไม่โยน Error เมื่อได้ Object แต่แปลงเป็น String แบบเงียบ ๆ จึงเป็นบั๊กที่หายาก</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 10</summary><div>
+  <p><strong>คำตอบ: C</strong> ตัวแปร <code>let</code> และ <code>const</code> ถูก Hoist ขึ้นไปต้น Block เหมือนกัน แต่อยู่ในช่วง Temporal Dead Zone (TDZ) ตั้งแต่ต้น Block จนถึงบรรทัดที่ประกาศ การอ่านค่าในช่วงนั้นจึงได้ <code>ReferenceError: Cannot access 'x' before initialization</code> (ข้อความจริงจาก Node) Error นี้ช่วยให้เราเจอบั๊กเร็ว ต่างจาก <code>var</code> ที่คืน <code>undefined</code> แบบเงียบ ๆ (แนวคิดที่ 9)</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะ <code>undefined</code> คือผลของ <code>var x = 5;</code> ซึ่งถูก Hoist และตั้งค่าเริ่มต้นเป็น <code>undefined</code> แต่โจทย์ใช้ <code>let</code></li>
+    <li><strong>B</strong> ผิดเพราะบรรทัด <code>let x = 5;</code> อยู่หลัง <code>console.log</code> โค้ดรันจากบนลงล่าง ตอนอ่านค่ายังไม่ถึงบรรทัดที่กำหนดค่า</li>
+    <li><strong>D</strong> ผิดเพราะ <code>x is not defined</code> เกิดเมื่อไม่มีการประกาศ <code>x</code> ที่ไหนเลยใน Scope แต่ข้อนี้มีการประกาศใน Block เดียวกัน JavaScript จึงรู้จักชื่อนี้แล้ว แค่ยังเข้าถึงไม่ได้</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 11</summary><div>
+  <p><strong>คำตอบ: C</strong> ค่า <code>this</code> ถูกกำหนดตอนเรียกฟังก์ชัน ไม่ใช่ตอนสร้าง เมื่อเรียก <code>counter.increment()</code> ค่า <code>this</code> คือ <code>counter</code> แต่เมื่อดึงเมธอดออกมาเก็บใน <code>fn</code> แล้วเรียก <code>fn()</code> เฉย ๆ จะไม่มี Object หน้าจุด และเพราะ ES Module กับ Class ทำงานใน Strict Mode ค่า <code>this</code> จึงเป็น <code>undefined</code> ผลจากการรันจริงคือ <code>TypeError: Cannot read properties of undefined (reading 'count')</code> วิธีแก้คือ <code>const fn = counter.increment.bind(counter);</code> หรือห่อด้วย Arrow Function <code>() =&gt; counter.increment()</code> (แนวคิดที่ 9)</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะ <code>fn</code> ไม่ได้ผูกกับ <code>counter</code> แล้ว การเรียก <code>fn()</code> จึงไม่รู้ว่าต้องเพิ่มค่า <code>count</code> ของ Object ไหน</li>
+    <li><strong>B</strong> ผิดเพราะโค้ดไปไม่ถึงขั้นคำนวณ <code>undefined + 1</code> เนื่องจาก <code>this</code> เองเป็น <code>undefined</code> การอ่าน <code>this.count</code> จึงพังด้วย TypeError ตั้งแต่แรก</li>
+    <li><strong>D</strong> ผิดเพราะพฤติกรรมที่ <code>this</code> ชี้ไปที่ Global Object เกิดเฉพาะโค้ดแบบ Sloppy Mode เก่า ใน Module และ Class ซึ่งเป็น Strict Mode เสมอ <code>this</code> จะเป็น <code>undefined</code></li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 12</summary><div>
+  <p><strong>คำตอบ: A</strong> Event Loop ทำงานตามลำดับนี้: รันโค้ด Synchronous ใน Call Stack ให้หมดก่อน (<code>A</code> และ <code>D</code>) จากนั้นเคลียร์ Microtask Queue ทั้งหมด (Callback ของ <code>Promise.then</code> คือ <code>C</code>) แล้วจึงหยิบ Macrotask ตัวถัดไป (Callback ของ <code>setTimeout</code> คือ <code>B</code>) ผลจากการรันจริงคือ <code>A D C B</code> แม้ <code>setTimeout</code> จะตั้งเวลา 0 และถูกเรียกก่อน <code>Promise.resolve()</code> ก็ตาม (แนวคิดที่ 11)</p>
+  <ul class="why-wrong">
+    <li><strong>B</strong> ผิดเพราะคิดว่าโค้ดทำงานตามลำดับบรรทัดทั้งหมด แต่ <code>setTimeout</code> และ <code>.then</code> แค่ "ลงทะเบียน" Callback ไว้ในคิว ไม่ได้รันทันที</li>
+    <li><strong>C</strong> ผิดเพราะสลับลำดับ Microtask กับ Macrotask Microtask (Promise) ต้องถูกเคลียร์ให้หมดก่อนที่ Event Loop จะไปหยิบ Macrotask (setTimeout) เสมอ</li>
+    <li><strong>D</strong> ผิดเพราะ Callback ของ Promise ไม่สามารถแทรกระหว่างโค้ด Synchronous ได้ ต้องรอให้ Call Stack ว่างก่อน ดังนั้น <code>D</code> ต้องมาก่อน <code>C</code></li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 13</summary><div>
+  <p><strong>คำตอบ: A</strong> <code>fetch</code> reject เฉพาะเมื่อส่งคำขอไม่สำเร็จ (Network Error หรือถูก Abort) เมื่อ Server ตอบกลับมาแล้ว แม้จะเป็น 404 Promise ก็ fulfilled ตามปกติ โค้ดจึงไม่เข้า <code>catch</code> และพิมพ์ <code>ผล: false 404</code> ผลการทดลองจริงใน Chromium คือ <code>false 404</code> นอกจากนี้ DevTools จะแสดงบรรทัดสีแดง <code>Failed to load resource: the server responded with a status of 404 (File not found)</code> ซึ่งเป็นข้อความที่เบราว์เซอร์เขียนเอง ไม่ใช่ Error ที่โค้ดเรา catch ได้ (แนวคิดที่ 11)</p>
+  <ul class="why-wrong">
+    <li><strong>B</strong> ผิดเพราะ 404 ไม่ทำให้ <code>fetch</code> reject โค้ดจึงไม่เข้า <code>catch</code> ถ้าต้องการให้เข้า catch ต้องเขียน <code>if (!res.ok) throw new Error(...)</code> เอง</li>
+    <li><strong>C</strong> ผิดเพราะ <code>res.ok</code> เป็น <code>true</code> เฉพาะ Status 200 ถึง 299 เท่านั้น 404 จึงได้ <code>false</code></li>
+    <li><strong>D</strong> ผิดเพราะ <code>fetch failed</code> คือข้อความของ Node.js เมื่อต่อ Server ไม่ได้ (ในเบราว์เซอร์จะเป็น <code>Failed to fetch</code>) แต่โจทย์บอกว่า Server เปิดอยู่และตอบกลับมาแล้ว</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 14</summary><div>
+  <p><strong>คำตอบ: D</strong> <code>assert.equal</code> ใน <code>node:assert/strict</code> เทียบด้วยกฎเดียวกับ <code>Object.is</code> สำหรับ Object หมายถึงต้องเป็น Object ตัวเดียวกันในหน่วยความจำ Object สองตัวที่เขียนแยกกันจึงไม่เท่ากันแม้ข้างในเหมือนกัน ข้อความจริงที่ได้คือ <code>Values have same structure but are not reference-equal</code> วิธีแก้คือใช้ <code>assert.deepEqual(result, { theme: 'light' })</code> ซึ่งเทียบค่าข้างในทีละ Property (แนวคิดที่ 12)</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะการเทียบ "ค่าข้างใน" เป็นหน้าที่ของ <code>deepEqual</code> ไม่ใช่ <code>equal</code></li>
+    <li><strong>B</strong> ผิดเพราะไฟล์อยู่ในโฟลเดอร์ <code>test/</code> และชื่อลงท้ายด้วย <code>.test.js</code> ซึ่งตรงกับรูปแบบที่ <code>node --test</code> ค้นหาอัตโนมัติ และ Test ที่หาไม่เจอจะไม่ถูกนับเลย ไม่ใช่ถูกนับเป็น skipped</li>
+    <li><strong>C</strong> ผิดเพราะ <code>assert.equal</code> รับค่าชนิดใดก็ได้ รวมถึง Object โค้ดไม่มีปัญหาด้าน Syntax ปัญหาอยู่ที่วิธีเทียบ</li>
+  </ul>
+</div></details>
+
+<h4>เฉลย Hands-on Challenge</h4>
+
+<details class="ans"><summary>เฉลยโจทย์ที่ 1: ใบเสร็จร้านครัวสมชาย</summary><div>
+  <p>สร้างไฟล์นี้ที่ <code>~/projects/js-lab/challenges/ch1-receipt/receipt.js</code> (โฟลเดอร์แม่ <code>~/projects/js-lab</code> มี <code>package.json</code> ที่ตั้ง <code>"type": "module"</code> ไว้แล้วจาก Part 2)</p>
+<pre class="code" data-env="file" data-label="JavaScript · receipt.js"><code class="language-javascript">// โจทย์ที่ 1: พิมพ์ใบเสร็จร้าน "ครัวสมชาย" จากข้อมูลตะกร้า
+const cart = [
+  { name: 'ชาไทยเย็น', price: 45, qty: 2 },
+  { name: 'ข้าวมันไก่', price: 50, qty: 1 },
+  { name: 'ขนมปังสังขยา', price: 35, qty: 3 },
+  { name: 'น้ำเปล่า', price: 10, qty: 4 },
+  { name: 'ผัดกะเพราไก่', price: 60, qty: 2 },
+];
+
+// ค่าคงที่ของร้าน
+const SHOP_NAME = 'ครัวสมชาย';
+const RECEIPT_DATE = '2026-10-19'; // ใช้วันที่คงที่ เพื่อให้ผลลัพธ์เหมือนเดิมทุกครั้ง
+const DISCOUNT_MIN = 300; // ยอดขั้นต่ำที่ได้ส่วนลด
+const DISCOUNT_RATE = 0.1; // ส่วนลด 10%
+const LINE = '-'.repeat(40);
+
+// แปลงตัวเลขเป็นเงินบาท ทศนิยม 2 ตำแหน่ง มีจุลภาคคั่นหลักพัน
+function formatMoney(n) {
+  return n.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// สร้างข้อความ 1 บรรทัดต่อสินค้า 1 รายการ
+// วางชื่อไว้ท้ายบรรทัด เพราะสระและวรรณยุกต์ไทยทำให้ padEnd นับความกว้างผิด
+function formatLine(item, index) {
+  const lineTotal = item.price * item.qty;
+  const no = String(index + 1).padStart(2, ' ');
+  const qty = String(item.qty).padStart(2, ' ');
+  const price = formatMoney(item.price).padStart(6, ' ');
+  const total = formatMoney(lineTotal).padStart(8, ' ');
+  return `${no}. ${qty} x ${price} = ${total}  ${item.name}`;
+}
+
+// คำนวณตัวเลขทั้งหมดของใบเสร็จ แยกจากส่วนที่พิมพ์ เพื่อให้ทดสอบง่าย
+function summarize(items) {
+  const subtotal = items.reduce((sum, item) =&gt; sum + item.price * item.qty, 0);
+  const itemCount = items.reduce((sum, item) =&gt; sum + item.qty, 0);
+  const discount = subtotal &gt;= DISCOUNT_MIN ? subtotal * DISCOUNT_RATE : 0;
+  const total = subtotal - discount;
+  // หาสินค้าที่ทำยอดสูงสุด โดยเริ่มจากรายการแรก
+  const topItem = items.reduce((best, item) =&gt;
+    item.price * item.qty &gt; best.price * best.qty ? item : best, items[0]);
+  return { subtotal, itemCount, discount, total, topItem };
+}
+
+const lines = cart.map(formatLine);
+const { subtotal, itemCount, discount, total, topItem } = summarize(cart);
+
+console.log(`ใบเสร็จร้าน${SHOP_NAME}  วันที่ ${RECEIPT_DATE}`);
+console.log(LINE);
+console.log(lines.join('\n'));
+console.log(LINE);
+console.log(`จำนวนสินค้าทั้งหมด ${itemCount} ชิ้น`);
+console.log(`ยอดรวม        ${formatMoney(subtotal).padStart(10, ' ')} บาท`);
+console.log(`ส่วนลด 10%    ${('-' + formatMoney(discount)).padStart(10, ' ')} บาท`);
+console.log(`ยอดสุทธิ      ${formatMoney(total).padStart(10, ' ')} บาท`);
+console.log(LINE);
+console.log(`ขายดีที่สุดในบิลนี้: ${topItem.name} (${formatMoney(topItem.price * topItem.qty)} บาท)`);</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/js-lab/challenges/ch1-receipt
+node receipt.js</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ใบเสร็จร้านครัวสมชาย  วันที่ 2026-10-19
+----------------------------------------
+ 1.  2 x  45.00 =    90.00  ชาไทยเย็น
+ 2.  1 x  50.00 =    50.00  ข้าวมันไก่
+ 3.  3 x  35.00 =   105.00  ขนมปังสังขยา
+ 4.  4 x  10.00 =    40.00  น้ำเปล่า
+ 5.  2 x  60.00 =   120.00  ผัดกะเพราไก่
+----------------------------------------
+จำนวนสินค้าทั้งหมด 12 ชิ้น
+ยอดรวม            405.00 บาท
+ส่วนลด 10%        -40.50 บาท
+ยอดสุทธิ          364.50 บาท
+----------------------------------------
+ขายดีที่สุดในบิลนี้: ผัดกะเพราไก่ (120.00 บาท)</code></pre>
+  <p><span class="muted small">หมายเหตุ: บน Terminal บางตัว คอลัมน์ของบรรทัดที่ขึ้นต้นด้วยคำภาษาไทย (เช่น ยอดสุทธิ) อาจดูเหลื่อมกันเล็กน้อย เพราะสระและวรรณยุกต์ถูกนับเป็นตัวอักษรแต่ไม่กินความกว้าง ตัวเลขทุกค่ายังถูกต้อง</span></p>
+  <h5>แนวคิด</h5>
+  <ul>
+    <li><strong>แยก "คำนวณ" ออกจาก "แสดงผล":</strong> ฟังก์ชัน <code>summarize</code> คืน Object ของตัวเลขทั้งหมดโดยไม่พิมพ์อะไรเลย ส่วนการพิมพ์อยู่ท้ายไฟล์ แบบนี้ทำให้นำ <code>summarize</code> ไปเขียน Unit Test หรือใช้ในหน้าเว็บได้ทันที ซึ่งเป็นหลัก Pure Function จากแนวคิดที่ 2</li>
+    <li><strong><code>map</code> สร้างบรรทัด และ <code>reduce</code> สรุปค่า:</strong> <code>cart.map(formatLine)</code> ส่งทั้ง <code>item</code> และ <code>index</code> ให้ <code>formatLine</code> อัตโนมัติ ส่วน <code>reduce</code> ใช้ 3 ครั้งสำหรับยอดเงิน จำนวนชิ้น และสินค้าที่ทำยอดสูงสุด ทุกครั้งมีค่าเริ่มต้นเสมอ (<code>0</code> หรือ <code>items[0]</code>)</li>
+    <li><strong>Destructuring:</strong> <code>const { subtotal, itemCount, discount, total, topItem } = summarize(cart);</code> ดึงค่าออกจาก Object ในบรรทัดเดียว อ่านง่ายกว่าการเขียน <code>result.subtotal</code> ซ้ำหลายครั้ง (แนวคิดที่ 5)</li>
+    <li><strong>ค่าคงที่มีชื่อ:</strong> <code>DISCOUNT_MIN</code> และ <code>DISCOUNT_RATE</code> ทำให้เปลี่ยนโปรโมชันได้ในจุดเดียว และคนอ่านเข้าใจทันทีว่า 300 กับ 0.1 หมายถึงอะไร ดีกว่าเขียนตัวเลขลอย ๆ (Magic Number) ในเงื่อนไข</li>
+    <li><strong>จัดคอลัมน์ด้วย <code>padStart</code>:</strong> ตัวเลขจัดชิดขวาได้ตรงเพราะเป็นตัวอักษร ASCII ทั้งหมด ส่วนชื่อภาษาไทยวางไว้ท้ายบรรทัดเพื่อหลีกเลี่ยงปัญหาความกว้างของสระและวรรณยุกต์</li>
+    <li><strong>ตรวจคำตอบด้วยมือ:</strong> 90 + 50 + 105 + 40 + 120 = 405 ซึ่งถึง 300 จึงได้ส่วนลด 40.5 ยอดสุทธิ 405 - 40.5 = 364.5 และจำนวนชิ้น 2 + 1 + 3 + 4 + 2 = 12 ตรงกับผลที่รันได้</li>
+  </ul>
+  <h5>ไอเดียต่อยอด</h5>
+  <ul>
+    <li>รองรับตะกร้าว่าง: ตอนนี้ <code>summarize([])</code> จะได้ <code>topItem</code> เป็น <code>undefined</code> และบรรทัดสุดท้ายจะพังด้วย TypeError ให้เพิ่มเงื่อนไขพิมพ์ <code>ยังไม่มีสินค้าในตะกร้า</code> แทน</li>
+    <li>แยก <code>summarize</code> และ <code>formatMoney</code> ไปไว้ในไฟล์ <code>receipt-lib.js</code> แล้วเขียน Unit Test ด้วย <code>node:test</code> อย่างน้อย 4 Test (ยอดต่ำกว่า 300 ไม่มีส่วนลด, ยอดเท่ากับ 300 พอดีได้ส่วนลด, ตะกร้าว่าง, หลักพันมีจุลภาค)</li>
+    <li>เพิ่ม VAT 7% แยกบรรทัด และรับข้อมูลตะกร้าจากไฟล์ <code>cart.json</code> ด้วย <code>readFile</code> จาก <code>node:fs/promises</code> แทนการเขียนข้อมูลไว้ในโค้ด</li>
+    <li>รับรหัสคูปองจาก Command Line เช่น <code>node receipt.js SAVE20</code> โดยอ่านจาก <code>process.argv[2]</code> แล้วใช้ <code>switch</code> เลือกอัตราส่วนลด และแจ้งเตือนเมื่อคูปองไม่ถูกต้อง</li>
+    <li>เขียนใบเสร็จเป็นไฟล์ <code>receipt-2026-10-19.txt</code> ด้วย <code>writeFile</code> เพื่อแนบส่งลูกค้าทางอีเมลหรือ LINE</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>เฉลยโจทย์ที่ 2: ตารางสินค้าที่ค้นหาและเรียงได้</summary><div>
+  <p>โครงสร้างโฟลเดอร์ <code>~/projects/js-lab/challenges/ch2-filter-list</code> มี 4 ไฟล์ เริ่มจากหน้า HTML ที่ใช้ Semantic Tag และผูก Label กับ Input ด้วย <code>for</code>/<code>id</code></p>
+<pre class="code" data-env="file" data-label="HTML · index.html"><code class="language-xml">&lt;!DOCTYPE html&gt;
+&lt;html lang="th"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+  &lt;title&gt;รายการสินค้าในตะกร้า&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+  &lt;script type="module" src="app.js"&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;main class="wrap"&gt;
+    &lt;h1&gt;ตะกร้าของสมชาย&lt;/h1&gt;
+    &lt;div class="toolbar" id="toolbar"&gt;
+      &lt;label for="search"&gt;ค้นหาสินค้า&lt;/label&gt;
+      &lt;input id="search" type="search" placeholder="เช่น ไก่" autocomplete="off"&gt;
+      &lt;button type="button" data-sort="asc"&gt;ราคา น้อย → มาก&lt;/button&gt;
+      &lt;button type="button" data-sort="desc"&gt;ราคา มาก → น้อย&lt;/button&gt;
+      &lt;button type="button" data-sort="none"&gt;ลำดับเดิม&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;table&gt;
+      &lt;thead&gt;
+        &lt;tr&gt;&lt;th scope="col"&gt;สินค้า&lt;/th&gt;&lt;th scope="col"&gt;ราคา&lt;/th&gt;&lt;th scope="col"&gt;จำนวน&lt;/th&gt;&lt;th scope="col"&gt;รวม&lt;/th&gt;&lt;/tr&gt;
+      &lt;/thead&gt;
+      &lt;tbody id="cart-body"&gt;&lt;/tbody&gt;
+    &lt;/table&gt;
+    &lt;p id="summary" aria-live="polite"&gt;&lt;/p&gt;
+  &lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<pre class="code" data-env="file" data-label="CSS · style.css"><code class="language-css">/* ตั้งค่าพื้นฐานของหน้า */
+:root {
+  --brand: #2563eb;
+  --line: #d1d5db;
+}
+* { box-sizing: border-box; }
+body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; }
+.wrap { max-width: 720px; margin: 0 auto; }
+/* แถบเครื่องมือ: ใช้ Flexbox และขึ้นบรรทัดใหม่ได้บนจอเล็ก */
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.toolbar input { flex: 1; min-width: 160px; padding: 6px 8px; }
+.toolbar button { padding: 6px 10px; border: 1px solid var(--brand); background: #fff; cursor: pointer; }
+.toolbar button[aria-pressed="true"] { background: var(--brand); color: #fff; }
+.toolbar button:focus-visible, .toolbar input:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+td.num, th:nth-child(n+2) { text-align: right; }</code></pre>
+  <p>ไฟล์ <code>list.js</code> เก็บ Logic ล้วน ไม่แตะ DOM จึงทดสอบด้วย Node ได้โดยไม่ต้องเปิดเบราว์เซอร์</p>
+<pre class="code" data-env="file" data-label="JavaScript · list.js"><code class="language-javascript">// ฟังก์ชันล้วน (Pure Function) ไม่แตะ DOM จึงทดสอบด้วย node ได้
+
+// คืน Array ใหม่ที่ผ่านการค้นหาและเรียงแล้ว โดยไม่แก้ Array ต้นฉบับ
+export function filterAndSort(items, query = '', sortDir = 'none') {
+  const keyword = query.trim().toLowerCase();
+  const filtered = items.filter((item) =&gt; item.name.toLowerCase().includes(keyword));
+  if (sortDir === 'asc') return filtered.toSorted((a, b) =&gt; a.price - b.price);
+  if (sortDir === 'desc') return filtered.toSorted((a, b) =&gt; b.price - a.price);
+  return filtered;
+}
+
+// แปลงตัวเลขเป็นข้อความเงินบาท
+export function formatBaht(n) {
+  return n.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' บาท';
+}</code></pre>
+  <p>ไฟล์ <code>app.js</code> ดูแล DOM และ Event ทั้งหมด</p>
+<pre class="code" data-env="file" data-label="JavaScript · app.js"><code class="language-javascript">import { filterAndSort, formatBaht } from './list.js';
+
+// ข้อมูลตะกร้า (ข้อมูลชุดเดียวกับแนวคิดที่ 4)
+const cart = [
+  { name: 'ชาไทยเย็น', price: 45, qty: 2 },
+  { name: 'ข้าวมันไก่', price: 50, qty: 1 },
+  { name: 'ขนมปังสังขยา', price: 35, qty: 3 },
+  { name: 'น้ำเปล่า', price: 10, qty: 4 },
+  { name: 'ผัดกะเพราไก่', price: 60, qty: 2 },
+];
+
+// State ของหน้า: เปลี่ยน State แล้วเรียก render() ทุกครั้ง
+const state = { query: '', sortDir: 'none' };
+
+const tbody = document.querySelector('#cart-body');
+const summary = document.querySelector('#summary');
+const search = document.querySelector('#search');
+const toolbar = document.querySelector('#toolbar');
+
+// สร้าง &lt;td&gt; หนึ่งช่อง ด้วย textContent เท่านั้น (ปลอดภัยจาก XSS)
+function cell(text, isNumber = false) {
+  const td = document.createElement('td');
+  td.textContent = text;
+  if (isNumber) td.classList.add('num');
+  return td;
+}
+
+function render() {
+  const rows = filterAndSort(cart, state.query, state.sortDir);
+
+  if (rows.length === 0) {
+    // ไม่พบสินค้า: แสดงคำค้นของผู้ใช้เป็นข้อความธรรมดา
+    const tr = document.createElement('tr');
+    const td = cell(`ไม่พบสินค้าที่ตรงกับ "${state.query}"`);
+    td.colSpan = 4;
+    tr.append(td);
+    tbody.replaceChildren(tr);
+  } else {
+    const trs = rows.map((item) =&gt; {
+      const tr = document.createElement('tr');
+      tr.append(
+        cell(item.name),
+        cell(formatBaht(item.price), true),
+        cell(String(item.qty), true),
+        cell(formatBaht(item.price * item.qty), true),
+      );
+      return tr;
+    });
+    tbody.replaceChildren(...trs);
+  }
+
+  const total = rows.reduce((sum, item) =&gt; sum + item.price * item.qty, 0);
+  summary.textContent = `แสดง ${rows.length} จาก ${cart.length} รายการ · รวม ${formatBaht(total)}`;
+
+  // บอกสถานะปุ่มที่ถูกเลือกด้วย aria-pressed (ไม่ใช้สีอย่างเดียว)
+  for (const btn of toolbar.querySelectorAll('button[data-sort]')) {
+    btn.setAttribute('aria-pressed', String(btn.dataset.sort === state.sortDir));
+  }
+  console.log(`render: query="${state.query}" sort=${state.sortDir} แสดง ${rows.length} แถว`);
+}
+
+// พิมพ์ในช่องค้นหา: อัปเดต State แล้ว render ใหม่
+search.addEventListener('input', (event) =&gt; {
+  state.query = event.target.value;
+  render();
+});
+
+// Event Delegation: Listener เดียวบน toolbar รับคลิกของทุกปุ่มเรียง
+toolbar.addEventListener('click', (event) =&gt; {
+  const btn = event.target.closest('button[data-sort]');
+  if (!btn) return; // คลิกโดนพื้นที่อื่นใน toolbar
+  state.sortDir = btn.dataset.sort;
+  render();
+});
+
+render();</code></pre>
+  <p>ก่อนเปิดเบราว์เซอร์ ให้ตรวจ Logic ด้วย Node ก่อน โดยสร้างไฟล์ทดสอบสั้น ๆ นี้ไว้ในโฟลเดอร์เดียวกัน</p>
+<pre class="code" data-env="file" data-label="JavaScript · check-list.js"><code class="language-javascript">import { filterAndSort } from './list.js';
+const cart = [
+  { name: 'ชาไทยเย็น', price: 45, qty: 2 },
+  { name: 'ข้าวมันไก่', price: 50, qty: 1 },
+  { name: 'ขนมปังสังขยา', price: 35, qty: 3 },
+  { name: 'น้ำเปล่า', price: 10, qty: 4 },
+  { name: 'ผัดกะเพราไก่', price: 60, qty: 2 },
+];
+const sorted = filterAndSort(cart, '', 'desc');
+console.log(sorted.map((item) =&gt; item.name).join(', '));
+console.log(filterAndSort(cart, 'ไก่', 'asc').map((item) =&gt; `${item.name} ${item.price}`).join(', '));
+console.log('ต้นฉบับยังเหมือนเดิม:', cart[0].name, cart[4].name);</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/js-lab/challenges/ch2-filter-list
+node check-list.js</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ผัดกะเพราไก่, ข้าวมันไก่, ชาไทยเย็น, ขนมปังสังขยา, น้ำเปล่า
+ข้าวมันไก่ 50, ผัดกะเพราไก่ 60
+ต้นฉบับยังเหมือนเดิม: ชาไทยเย็น ผัดกะเพราไก่</code></pre>
+  <p>บรรทัดสุดท้ายยืนยันว่า <code>toSorted</code> ไม่แก้ Array ต้นฉบับ รายการแรกยังเป็นชาไทยเย็นและรายการสุดท้ายยังเป็นผัดกะเพราไก่ ต่อไปเปิด Server แล้วทดลองในเบราว์เซอร์</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/js-lab/challenges/ch2-filter-list
+python3 -m http.server 8000 --bind 127.0.0.1
+# เปิด Chrome หรือ Edge บน Windows ไปที่ http://127.0.0.1:8000/ แล้วกด F12 เปิด Console
+# กด Ctrl+C ใน Terminal เมื่อต้องการปิด Server</code></pre>
+  <p>ผลด้านล่างได้จากการเปิดหน้านี้จริงใน Chromium แล้วทำตามขั้นตอนทีละขั้น บรรทัดที่ขึ้นต้นด้วย <code>render:</code> คือสิ่งที่ DevTools Console แสดง บรรทัดที่ขึ้นต้นด้วย <code>---</code> คือชื่อขั้นตอนที่ทดลอง และบรรทัดที่เหลือคือข้อความในตาราง (คั่นคอลัมน์ด้วย <code>|</code>) กับข้อความสรุปใต้ตาราง ณ ขั้นนั้น</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>render: query="" sort=none แสดง 5 แถว
+--- เปิดหน้า
+ชาไทยเย็น | 45.00 บาท | 2 | 90.00 บาท
+ข้าวมันไก่ | 50.00 บาท | 1 | 50.00 บาท
+ขนมปังสังขยา | 35.00 บาท | 3 | 105.00 บาท
+น้ำเปล่า | 10.00 บาท | 4 | 40.00 บาท
+ผัดกะเพราไก่ | 60.00 บาท | 2 | 120.00 บาท
+แสดง 5 จาก 5 รายการ · รวม 405.00 บาท
+render: query="" sort=desc แสดง 5 แถว
+--- กด มาก → น้อย
+ผัดกะเพราไก่ | 60.00 บาท | 2 | 120.00 บาท
+ข้าวมันไก่ | 50.00 บาท | 1 | 50.00 บาท
+ชาไทยเย็น | 45.00 บาท | 2 | 90.00 บาท
+ขนมปังสังขยา | 35.00 บาท | 3 | 105.00 บาท
+น้ำเปล่า | 10.00 บาท | 4 | 40.00 บาท
+แสดง 5 จาก 5 รายการ · รวม 405.00 บาท
+render: query="ไก่" sort=desc แสดง 2 แถว
+--- ค้นหา ไก่
+ผัดกะเพราไก่ | 60.00 บาท | 2 | 120.00 บาท
+ข้าวมันไก่ | 50.00 บาท | 1 | 50.00 บาท
+แสดง 2 จาก 5 รายการ · รวม 170.00 บาท
+render: query="ไก่" sort=asc แสดง 2 แถว
+--- กด น้อย → มาก
+ข้าวมันไก่ | 50.00 บาท | 1 | 50.00 บาท
+ผัดกะเพราไก่ | 60.00 บาท | 2 | 120.00 บาท
+แสดง 2 จาก 5 รายการ · รวม 170.00 บาท
+render: query="&lt;img src=x onerror=alert(1)&gt;" sort=asc แสดง 0 แถว
+--- ทดสอบ XSS
+ไม่พบสินค้าที่ตรงกับ "&lt;img src=x onerror=alert(1)&gt;"
+แสดง 0 จาก 5 รายการ · รวม 0.00 บาท
+จำนวน img ในตาราง: 0
+render: query="" sort=asc แสดง 5 แถว
+render: query="" sort=none แสดง 5 แถว
+--- ล้างคำค้น + ลำดับเดิม
+ชาไทยเย็น | 45.00 บาท | 2 | 90.00 บาท
+ข้าวมันไก่ | 50.00 บาท | 1 | 50.00 บาท
+ขนมปังสังขยา | 35.00 บาท | 3 | 105.00 บาท
+น้ำเปล่า | 10.00 บาท | 4 | 40.00 บาท
+ผัดกะเพราไก่ | 60.00 บาท | 2 | 120.00 บาท
+แสดง 5 จาก 5 รายการ · รวม 405.00 บาท
+aria-pressed: asc=false desc=false none=true</code></pre>
+  <p>สังเกตขั้น "ทดสอบ XSS": ข้อความ <code>&lt;img src=x onerror=alert(1)&gt;</code> ปรากฏเป็นตัวอักษรตรงตัว และจำนวน <code>img</code> ในตารางเป็น 0 แปลว่าเบราว์เซอร์ไม่ได้สร้าง Element รูปภาพจากข้อความของผู้ใช้ และไม่มี alert เด้งขึ้นมา ส่วนบรรทัด <code>aria-pressed</code> ยืนยันว่าหลังกด "ลำดับเดิม" มีเพียงปุ่ม <code>none</code> ที่อยู่ในสถานะถูกกด</p>
+  <h5>แนวคิด</h5>
+  <ul>
+    <li><strong>State แล้ว Render:</strong> ทุก Event ทำแค่ 2 อย่าง คือแก้ค่าใน <code>state</code> แล้วเรียก <code>render()</code> ฟังก์ชัน <code>render</code> สร้างตารางใหม่ทั้งหมดจาก State ทุกครั้ง จึงไม่มีทางที่หน้าจอกับข้อมูลจะไม่ตรงกัน นี่คือรูปแบบเดียวกับที่ React และ Framework อื่นใช้ (แนวคิดที่ 7)</li>
+    <li><strong>แยก Pure Logic ออกจาก DOM:</strong> <code>filterAndSort</code> รับข้อมูลเข้าแล้วคืนข้อมูลออก ไม่รู้จัก <code>document</code> เลย จึงตรวจด้วย <code>node check-list.js</code> ได้ และเขียน Unit Test ได้ง่าย (แนวคิดที่ 12)</li>
+    <li><strong>ไม่แก้ข้อมูลต้นฉบับ:</strong> <code>filter</code> คืน Array ใหม่อยู่แล้ว และ <code>toSorted</code> คืน Array ใหม่ที่เรียงแล้ว ปุ่ม "ลำดับเดิม" จึงทำงานได้โดยไม่ต้องเก็บสำเนาไว้ ถ้าใช้ <code>sort</code> ตรง ๆ ลำดับเดิมของ <code>cart</code> จะหายไปทันทีที่กดเรียงครั้งแรก (แนวคิดที่ 4)</li>
+    <li><strong>Event Delegation:</strong> Listener ตัวเดียวที่ <code>#toolbar</code> รับคลิกของทุกปุ่ม <code>closest('button[data-sort]')</code> หาปุ่มที่ถูกคลิก และอ่านทิศทางจาก <code>btn.dataset.sort</code> ถ้าวันหน้าเพิ่มปุ่มเรียงแบบใหม่ใน HTML ก็ไม่ต้องผูก Listener เพิ่ม (แนวคิดที่ 8)</li>
+    <li><strong>ปลอดภัยจาก XSS:</strong> ทุกข้อความลง DOM ผ่าน <code>textContent</code> ในฟังก์ชัน <code>cell</code> ซึ่งเบราว์เซอร์ถือเป็นข้อความธรรมดาเสมอ ไม่ตีความเป็น HTML และการล้างตารางใช้ <code>replaceChildren</code> แทน <code>innerHTML = ''</code></li>
+    <li><strong>Accessibility:</strong> <code>&lt;label for="search"&gt;</code> ทำให้ Screen Reader อ่านชื่อช่องค้นหาได้ <code>aria-live="polite"</code> บน <code>#summary</code> ทำให้ผู้ใช้ Screen Reader ได้ยินจำนวนผลลัพธ์ใหม่ทุกครั้งที่พิมพ์ <code>aria-pressed</code> บอกสถานะปุ่มโดยไม่พึ่งสีอย่างเดียว และ <code>:focus-visible</code> ทำให้เห็นกรอบชัดเจนเมื่อใช้คีย์บอร์ด</li>
+  </ul>
+  <h5>ไอเดียต่อยอด</h5>
+  <ul>
+    <li>จำคำค้นและทิศทางการเรียงไว้ใน <code>localStorage</code> ใต้คีย์ <code>js-lab:ch2-state</code> แล้วโหลดกลับมาเมื่อรีเฟรชหน้า โดยอ่านผ่าน <code>try</code>/<code>catch</code> และมีค่าเริ่มต้นเมื่อข้อมูลเสีย (แนวคิดที่ 10)</li>
+    <li>เพิ่มปุ่มลบสินค้าในแต่ละแถว (<code>&lt;button data-action="remove" data-index="..."&gt;</code>) แล้วใช้ Event Delegation อีกตัวที่ <code>#cart-body</code> จัดการทุกปุ่มลบ โดยต้องเปลี่ยน <code>cart</code> ให้เป็นส่วนหนึ่งของ State</li>
+    <li>ย้ายข้อมูลตะกร้าไปไว้ใน <code>data/cart.json</code> แล้วโหลดด้วย <code>fetch</code> พร้อมแสดงสถานะ "กำลังโหลด" และข้อความ Error พร้อมปุ่มลองใหม่เมื่อโหลดไม่สำเร็จ (แนวคิดที่ 11)</li>
+    <li>เขียน Unit Test ให้ <code>filterAndSort</code> ด้วย <code>node:test</code> ครอบคลุมคำค้นที่มีช่องว่างหัวท้าย คำค้นว่าง ทิศทางที่ไม่รู้จัก และการยืนยันว่า Array ต้นฉบับไม่ถูกแก้</li>
+    <li>ทำให้คลิกหัวคอลัมน์ "ราคา" และ "รวม" เพื่อเรียงได้ (สลับน้อยไปมากและมากไปน้อยเมื่อคลิกซ้ำ) และตั้ง <code>aria-sort</code> บน <code>&lt;th&gt;</code> ให้ Screen Reader รู้ทิศทางการเรียง</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>เฉลยโจทย์ที่ 3: fetchJson พร้อม Timeout และ Retry</summary><div>
+  <p>โครงสร้างโปรเจกต์ที่เสร็จแล้ว</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="โครงสร้างโฟลเดอร์"><code class="language-plaintext">ch3-retry-fetch/
+├── package.json
+├── demo.js
+├── data/
+│   └── questions.json
+├── src/
+│   └── fetch-json.js
+└── test/
+    └── fetch-json.test.js</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/js-lab/challenges/ch3-retry-fetch
+mkdir -p src test data</code></pre>
+<pre class="code" data-env="file" data-label="JSON · package.json"><code class="language-json">{
+  "name": "ch3-retry-fetch",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "demo": "node demo.js"
+  }
+}</code></pre>
+<pre class="code" data-env="file" data-label="JSON · data/questions.json"><code class="language-json">[
+  { "id": 1, "question": "คำสั่งใดประกาศตัวแปรที่เปลี่ยนค่าไม่ได้", "choices": ["var", "let", "const", "static"], "answer": 2 },
+  { "id": 2, "question": "'5' === 5 ได้ผลลัพธ์อะไร", "choices": ["true", "false", "undefined", "Error"], "answer": 1 },
+  { "id": 3, "question": "เมธอดใดใช้แปลง JSON String เป็น Object", "choices": ["JSON.stringify", "JSON.parse", "JSON.toObject", "Object.fromJSON"], "answer": 1 }
+]</code></pre>
+  <p>หัวใจของโจทย์อยู่ในไฟล์นี้ ไม่มีแพ็กเกจภายนอกเลย ใช้แค่ <code>fetch</code>, <code>AbortSignal.timeout</code> และ <code>Error</code> ที่มีใน Node 24 อยู่แล้ว</p>
+<pre class="code" data-env="file" data-label="JavaScript · src/fetch-json.js"><code class="language-javascript">// Error สำหรับ HTTP Status ที่ไม่ใช่ 2xx เก็บ status ไว้ให้โค้ดที่เรียกใช้ตัดสินใจต่อ
+export class HttpError extends Error {
+  constructor(status, url) {
+    super(`HTTP ${status} จาก ${url}`);
+    this.name = 'HttpError';
+    this.status = status;
+  }
+}
+
+// รอเป็นเวลา ms มิลลิวินาที (ห่อ setTimeout ด้วย Promise)
+const sleep = (ms) =&gt; new Promise((resolve) =&gt; setTimeout(resolve, ms));
+
+// ตัดสินว่า Error นี้ควรลองใหม่หรือไม่
+export function isRetryable(error) {
+  if (error instanceof HttpError) return error.status &gt;= 500; // 5xx ลองใหม่, 4xx ไม่ลอง
+  if (error.name === 'TimeoutError') return true; // AbortSignal.timeout หมดเวลา
+  if (error.name === 'TypeError') return true; // fetch failed: ต่อ Server ไม่ได้
+  return false; // เช่น SyntaxError จาก JSON เสีย ลองใหม่ก็เสียเหมือนเดิม
+}
+
+// ดึง JSON พร้อม Timeout และ Retry
+// fetchImpl ส่งเข้ามาได้ เพื่อให้ Unit Test ใช้ fetch ปลอมแทนเครือข่ายจริง
+export async function fetchJson(url, {
+  retries = 2,
+  timeoutMs = 2000,
+  retryDelayMs = 300,
+  fetchImpl = globalThis.fetch,
+  onRetry = () =&gt; {},
+} = {}) {
+  const maxAttempts = retries + 1;
+  for (let attempt = 1; attempt &lt;= maxAttempts; attempt += 1) {
+    try {
+      const response = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs) });
+      if (!response.ok) throw new HttpError(response.status, url); // fetch ไม่ reject เมื่อได้ 404/500
+      return await response.json();
+    } catch (error) {
+      if (!isRetryable(error)) throw error; // ส่ง Error เดิมต่อทันที ไม่ลองใหม่
+      if (attempt === maxAttempts) {
+        throw new Error(`ดึง ${url} ไม่สำเร็จหลังลอง ${attempt} ครั้ง`, { cause: error });
+      }
+      onRetry({ attempt, error });
+      await sleep(retryDelayMs * attempt); // รอนานขึ้นทีละขั้น
+    }
+  }
+}</code></pre>
+  <p>Unit Test ทั้ง 7 ข้อส่ง fetch ปลอมเข้าไปทาง <code>fetchImpl</code> จึงไม่ต้องเปิด Server และตั้ง <code>retryDelayMs: 0</code> เพื่อไม่ต้องรอระหว่างการลองใหม่</p>
+<pre class="code" data-env="file" data-label="JavaScript · test/fetch-json.test.js"><code class="language-javascript">import { test, mock } from 'node:test';
+import assert from 'node:assert/strict';
+import { fetchJson, HttpError } from '../src/fetch-json.js';
+
+const URL = 'http://127.0.0.1:8000/data/questions.json';
+const sample = [{ id: 1, question: 'ทดสอบ', choices: ['a', 'b', 'c', 'd'], answer: 0 }];
+
+// สร้าง Response จริงของ Node (Response เป็น Global ใน Node 18 ขึ้นไป)
+const ok = (data) =&gt; new Response(JSON.stringify(data), { status: 200 });
+const status = (code) =&gt; new Response('error', { status: code });
+
+test('สำเร็จตั้งแต่ครั้งแรก เรียก fetch แค่ 1 ครั้ง', async () =&gt; {
+  const fakeFetch = mock.fn(async () =&gt; ok(sample));
+  const data = await fetchJson(URL, { fetchImpl: fakeFetch, retryDelayMs: 0 });
+  assert.deepEqual(data, sample);
+  assert.equal(fakeFetch.mock.callCount(), 1);
+});
+
+test('ได้ 503 แล้วลองใหม่จนสำเร็จ', async () =&gt; {
+  const responses = [status(503), ok(sample)];
+  const fakeFetch = mock.fn(async () =&gt; responses.shift());
+  const data = await fetchJson(URL, { fetchImpl: fakeFetch, retryDelayMs: 0 });
+  assert.deepEqual(data, sample);
+  assert.equal(fakeFetch.mock.callCount(), 2);
+});
+
+test('ได้ 404 ต้องไม่ลองใหม่ และ reject ด้วย HttpError', async () =&gt; {
+  const fakeFetch = mock.fn(async () =&gt; status(404));
+  await assert.rejects(
+    fetchJson(URL, { fetchImpl: fakeFetch, retryDelayMs: 0 }),
+    (error) =&gt; error instanceof HttpError &amp;&amp; error.status === 404,
+  );
+  assert.equal(fakeFetch.mock.callCount(), 1);
+});
+
+test('Network Error ทุกครั้ง: ลองครบ 3 ครั้งแล้วโยน Error ที่มี cause', async () =&gt; {
+  const fakeFetch = mock.fn(async () =&gt; { throw new TypeError('fetch failed'); });
+  await assert.rejects(
+    fetchJson(URL, { retries: 2, fetchImpl: fakeFetch, retryDelayMs: 0 }),
+    (error) =&gt; error.message.includes('หลังลอง 3 ครั้ง') &amp;&amp; error.cause.name === 'TypeError',
+  );
+  assert.equal(fakeFetch.mock.callCount(), 3);
+});
+
+test('Server ตอบช้าเกิน timeoutMs ถือเป็น TimeoutError และลองใหม่', async () =&gt; {
+  // fetch ปลอมที่จำลอง Server ตอบช้า 1 วินาที แต่ยอมยกเลิกเมื่อ signal สั่ง
+  const fakeFetch = mock.fn((url, { signal }) =&gt; new Promise((resolve, reject) =&gt; {
+    const slowTimer = setTimeout(() =&gt; resolve(ok(sample)), 1000);
+    signal.addEventListener('abort', () =&gt; {
+      clearTimeout(slowTimer);
+      reject(signal.reason); // signal.reason คือ DOMException ชื่อ TimeoutError
+    });
+  }));
+  await assert.rejects(
+    fetchJson(URL, { retries: 1, timeoutMs: 50, fetchImpl: fakeFetch, retryDelayMs: 0 }),
+    (error) =&gt; error.cause.name === 'TimeoutError',
+  );
+  assert.equal(fakeFetch.mock.callCount(), 2);
+});
+
+test('JSON เสียต้องไม่ลองใหม่ และได้ SyntaxError', async () =&gt; {
+  const fakeFetch = mock.fn(async () =&gt; new Response('{"id": 1,}', { status: 200 }));
+  await assert.rejects(fetchJson(URL, { fetchImpl: fakeFetch, retryDelayMs: 0 }), SyntaxError);
+  assert.equal(fakeFetch.mock.callCount(), 1);
+});
+
+test('เรียก onRetry พร้อมเลขครั้งที่ลอง', async () =&gt; {
+  const responses = [status(500), status(502), ok(sample)];
+  const fakeFetch = mock.fn(async () =&gt; responses.shift());
+  const onRetry = mock.fn();
+  await fetchJson(URL, { fetchImpl: fakeFetch, retryDelayMs: 0, onRetry });
+  assert.deepEqual(onRetry.mock.calls.map((call) =&gt; call.arguments[0].attempt), [1, 2]);
+});</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">npm test</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>&gt; ch3-retry-fetch@1.0.0 test
+&gt; node --test
+
+✔ สำเร็จตั้งแต่ครั้งแรก เรียก fetch แค่ 1 ครั้ง (54.026478ms)
+✔ ได้ 503 แล้วลองใหม่จนสำเร็จ (3.653775ms)
+✔ ได้ 404 ต้องไม่ลองใหม่ และ reject ด้วย HttpError (0.738153ms)
+✔ Network Error ทุกครั้ง: ลองครบ 3 ครั้งแล้วโยน Error ที่มี cause (3.128898ms)
+✔ Server ตอบช้าเกิน timeoutMs ถือเป็น TimeoutError และลองใหม่ (101.338644ms)
+✔ JSON เสียต้องไม่ลองใหม่ และได้ SyntaxError (0.980728ms)
+✔ เรียก onRetry พร้อมเลขครั้งที่ลอง (3.305232ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 269.886201</code></pre>
+  <p>เวลาในวงเล็บและ <code>duration_ms</code> จะต่างไปตามเครื่อง Test ข้อ "Server ตอบช้า" ใช้เวลาประมาณ 100 มิลลิวินาที เพราะรอ Timeout 50 มิลลิวินาทีสองรอบ ซึ่งยังเร็วกว่าการรอ Server จริงหลายเท่า</p>
+  <p>ต่อไปทดลองกับ Server จริง สร้าง <code>demo.js</code> แล้วเปิด Terminal 2 หน้าต่าง</p>
+<pre class="code" data-env="file" data-label="JavaScript · demo.js"><code class="language-javascript">import { fetchJson } from './src/fetch-json.js';
+
+const BASE = 'http://127.0.0.1:8000';
+const DEAD = 'http://127.0.0.1:8001'; // พอร์ตที่ไม่มี Server ฟังอยู่
+
+// แสดงข้อความทุกครั้งที่ต้องลองใหม่
+const onRetry = ({ attempt, error }) =&gt; {
+  console.log(`  ลองครั้งที่ ${attempt} ไม่สำเร็จ (${error.name}) กำลังลองใหม่...`);
+};
+
+async function run(label, url) {
+  console.log(`[${label}] ${url}`);
+  try {
+    const data = await fetchJson(url, { retries: 2, timeoutMs: 2000, retryDelayMs: 200, onRetry });
+    console.log(`  สำเร็จ: ได้คำถาม ${data.length} ข้อ ข้อแรกคือ "${data[0].question}"`);
+  } catch (error) {
+    console.log(`  ล้มเหลว: ${error.name}: ${error.message}`);
+    if (error.cause) console.log(`  สาเหตุ: ${error.cause.name}: ${error.cause.message} (${error.cause.cause?.code})`);
+  }
+}
+
+await run('ไฟล์มีอยู่', `${BASE}/data/questions.json`);
+await run('ไม่มีไฟล์', `${BASE}/data/missing.json`);
+await run('Server ปิด', `${DEAD}/data/questions.json`);</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) Terminal 1"><code class="language-bash"># Terminal 1: เปิด Server ให้บริการไฟล์ในโฟลเดอร์โปรเจกต์ (ปล่อยทิ้งไว้)
+cd ~/projects/js-lab/challenges/ch3-retry-fetch
+python3 -m http.server 8000 --bind 127.0.0.1</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) Terminal 2"><code class="language-bash"># Terminal 2: รันตัวอย่าง (พอร์ต 8001 ไม่มี Server จึงจำลองกรณี Server ปิด)
+cd ~/projects/js-lab/challenges/ch3-retry-fetch
+npm run demo</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>&gt; ch3-retry-fetch@1.0.0 demo
+&gt; node demo.js
+
+[ไฟล์มีอยู่] http://127.0.0.1:8000/data/questions.json
+  สำเร็จ: ได้คำถาม 3 ข้อ ข้อแรกคือ "คำสั่งใดประกาศตัวแปรที่เปลี่ยนค่าไม่ได้"
+[ไม่มีไฟล์] http://127.0.0.1:8000/data/missing.json
+  ล้มเหลว: HttpError: HTTP 404 จาก http://127.0.0.1:8000/data/missing.json
+[Server ปิด] http://127.0.0.1:8001/data/questions.json
+  ลองครั้งที่ 1 ไม่สำเร็จ (TypeError) กำลังลองใหม่...
+  ลองครั้งที่ 2 ไม่สำเร็จ (TypeError) กำลังลองใหม่...
+  ล้มเหลว: Error: ดึง http://127.0.0.1:8001/data/questions.json ไม่สำเร็จหลังลอง 3 ครั้ง
+  สาเหตุ: TypeError: fetch failed (ECONNREFUSED)</code></pre>
+  <p>ใน Terminal 1 จะเห็น Log ของ <code>http.server</code> เช่น <code>"GET /data/questions.json HTTP/1.1" 200 -</code> และ <code>"GET /data/missing.json HTTP/1.1" 404 -</code> พร้อมวันเวลาที่ต่างไปตามเครื่อง สังเกตว่ามีคำขอ <code>missing.json</code> เพียงบรรทัดเดียว ยืนยันว่า 404 ไม่ถูกลองใหม่ ส่วนกรณี Server ปิดใช้เวลาประมาณ 0.6 วินาที เพราะรอ 200 และ 400 มิลลิวินาทีระหว่างการลองใหม่</p>
+  <h5>แนวคิด</h5>
+  <ul>
+    <li><strong>ตรวจ <code>response.ok</code> เอง:</strong> <code>fetch</code> ไม่ reject เมื่อได้ 404 หรือ 500 เราจึงแปลง Status ที่ไม่ใช่ 2xx เป็น <code>HttpError</code> ที่เก็บ <code>status</code> ไว้ ทำให้ทุก Error ไหลเข้า <code>catch</code> จุดเดียวและตัดสินใจได้ในที่เดียว (แนวคิดที่ 10 และ 11)</li>
+    <li><strong>แยกนโยบายการลองใหม่ไว้ใน <code>isRetryable</code>:</strong> 5xx, <code>TimeoutError</code> และ <code>TypeError</code> (Network Error) เป็นปัญหาชั่วคราวที่ลองใหม่แล้วอาจหาย ส่วน 4xx และ <code>SyntaxError</code> จาก JSON เสียเป็นปัญหาถาวร ลองใหม่ก็ได้ผลเดิมและเปลืองเวลาผู้ใช้ จึงโยน Error เดิมต่อทันที</li>
+    <li><strong>Timeout ด้วย <code>AbortSignal.timeout</code>:</strong> สร้าง Signal ใหม่ทุกรอบ เพราะ Signal ที่หมดเวลาไปแล้วจะอยู่ในสถานะ aborted ตลอด ถ้าใช้ตัวเดิมซ้ำ รอบถัดไปจะถูกยกเลิกทันที</li>
+    <li><strong><code>return await</code> ภายใน <code>try</code>:</strong> ทำให้ Error จาก <code>response.json()</code> ถูกจับโดย <code>catch</code> ของรอบนั้นและผ่าน <code>isRetryable</code> เหมือน Error อื่น</li>
+    <li><strong>Error ที่มี <code>cause</code>:</strong> เมื่อลองครบแล้ว ข้อความหลักบอกผู้ใช้ว่าเกิดอะไรขึ้น (ดึง URL ไหน ลองกี่ครั้ง) ส่วน <code>error.cause</code> เก็บ Error ต้นเหตุไว้ให้นักพัฒนา Debug ต่อได้ ใน <code>demo.js</code> ไล่ลงไปได้ถึง <code>error.cause.cause.code</code> ซึ่งคือ <code>ECONNREFUSED</code></li>
+    <li><strong>Dependency Injection เพื่อทดสอบ:</strong> การรับ <code>fetchImpl</code> เป็นพารามิเตอร์ (ค่าเริ่มต้นคือ <code>globalThis.fetch</code>) ทำให้ Test ส่ง <code>mock.fn()</code> เข้าไปแทนได้ ควบคุมได้ว่าแต่ละรอบจะได้อะไร และนับจำนวนครั้งที่ถูกเรียกด้วย <code>mock.callCount()</code> นี่คือหลัก "ออกแบบโค้ดให้ทดสอบได้" จากแนวคิดที่ 12</li>
+    <li><strong>รอนานขึ้นทีละขั้น:</strong> <code>retryDelayMs * attempt</code> ทำให้รอบที่ 2 รอนานกว่ารอบแรก ให้เวลา Server ฟื้นตัว และไม่ยิงคำขอซ้ำถี่ ๆ ใส่ Server ที่กำลังมีปัญหา</li>
+  </ul>
+  <h5>ไอเดียต่อยอด</h5>
+  <ul>
+    <li>เปลี่ยนการรอเป็น Exponential Backoff พร้อม Jitter เช่น <code>retryDelayMs * 2 ** (attempt - 1) + Math.random() * 100</code> แล้วรับฟังก์ชัน <code>random</code> เป็นพารามิเตอร์ เพื่อให้ Test ยังได้ผลคงที่</li>
+    <li>รองรับ Header <code>Retry-After</code> ที่ Server ส่งมากับ 503 หรือ 429 โดยอ่านจาก <code>response.headers.get('Retry-After')</code> แล้วรอตามที่ Server บอก และเพิ่ม 429 (Too Many Requests) เป็นกรณีที่ลองใหม่ได้</li>
+    <li>รับ <code>signal</code> จากผู้เรียกเพิ่ม เพื่อให้ผู้ใช้กดปุ่ม "ยกเลิก" ได้ แล้วรวมกับ Timeout ด้วย <code>AbortSignal.any([userSignal, AbortSignal.timeout(timeoutMs)])</code> และห้ามลองใหม่เมื่อผู้ใช้ยกเลิกเอง (Error ชื่อ <code>AbortError</code>)</li>
+    <li>นำ <code>fetchJson</code> ไปใช้ใน Mini Project Interactive Quiz App ของ Part 4 ตอนโหลด <code>data/questions.json</code> และแสดงข้อความ "กำลังลองใหม่ครั้งที่ 1" ผ่าน <code>onRetry</code> ในพื้นที่ <code>aria-live</code></li>
+    <li>เพิ่ม Test ที่ใช้ <code>mock.timers</code> ตรวจว่าการรอระหว่างรอบเป็น 300 และ 600 มิลลิวินาทีจริง โดยไม่ต้องรอเวลาจริง</li>
+  </ul>
+</div></details>
+
+<div class="callout ok"><span class="c-label ok">Best Practice</span><p>เมื่อทำครบทั้ง 3 โจทย์แล้ว ให้ Commit แต่ละโจทย์แยกกันลง Git พร้อมข้อความที่บอกว่าทำอะไร เช่น <code>feat(ch3): add fetchJson with timeout and retry</code> แล้ว Push ขึ้น GitHub (ทบทวนได้ที่ <a data-t="17"></a>) ผู้สัมภาษณ์งานสาย Frontend และ Full-stack มักขอดูโค้ดจริงที่มี Test มากกว่าใบรับรอง โจทย์ที่ 3 ที่มี Unit Test ครบทุกกรณีจึงเป็นตัวอย่างที่ดีสำหรับ Portfolio</p></div>
+</section>

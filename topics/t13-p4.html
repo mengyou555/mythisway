@@ -1,0 +1,1740 @@
+<section class="part" data-part="4">
+<h2 id="s13-4"><span class="sec-no">13.4</span>ส่วนเสริม: Mini Project, Cheat Sheet, Interview</h2>
+<p>ส่วนนี้รวมทุกอย่างที่เรียนใน Part 1–3 เข้าเป็นงานชิ้นเดียวที่ใส่ใน Portfolio ได้จริง คุณจะสร้าง <strong>URL Shortener Service</strong> ซึ่งเป็น REST API สำหรับย่อลิงก์ยาว ๆ ให้สั้นลง แบบเดียวกับบริการย่อลิงก์ที่ใช้กันทั่วไป แต่เขียนเองทุกบรรทัดด้วย Node.js และ Express 5</p>
+<p>โปรเจกต์นี้ยังเป็นที่ที่เราเรียนเรื่อง Production ใน Part 1 Step 13 แบบเต็ม ได้แก่ Graceful Shutdown, pm2, systemd และ Docker ท้ายส่วนมี Cheat Sheet สำหรับเปิดดูระหว่างทำงาน คำถามสัมภาษณ์งาน 5 ข้อพร้อมแนวคำตอบ และแหล่งเรียนต่อ</p>
+
+<h3 id="s13-4-project">Mini Project: URL Shortener Service</h3>
+<h4>เป้าหมายของโปรเจกต์</h4>
+<p>สร้าง Service ที่โฟลเดอร์ <code>~/projects/url-shortener</code> ซึ่งรับ URL ยาว แล้วคืนรหัสสั้น (code) เช่น <code>B45RTwb</code> เมื่อมีคนเปิด <code>http://localhost:3000/B45RTwb</code> Server จะพาไปยัง URL ต้นฉบับ (Redirect) และนับจำนวนคลิกเก็บไว้ในฐานข้อมูล SQLite</p>
+<p>หัวใจของโปรเจกต์มี 4 ข้อ</p>
+<ol>
+  <li><strong>ไม่เชื่อข้อมูลจากภายนอก:</strong> ทุก Body, Query และค่าใน <code>.env</code> ผ่าน zod ก่อนใช้ ถ้าผิดจะตอบ 400 หรือหยุดโปรแกรมทันที (Fail Fast)</li>
+  <li><strong>แยก app ออกจาก server:</strong> <code>src/app.js</code> สร้าง Express app โดยไม่ <code>listen</code> ส่วน <code>src/server.js</code> เป็นคนเปิดพอร์ตและปิดอย่างสุภาพ ทำให้ Test เรียก app ตรง ๆ ด้วยฐานข้อมูล <code>':memory:'</code> ได้</li>
+  <li><strong>ปลอดภัยตั้งแต่ต้น:</strong> Prepared Statement ทุกคำสั่ง SQL, helmet, Rate Limit, จำกัดขนาด Body และไม่ส่ง Stack Trace ให้ Client ตอน Production</li>
+  <li><strong>พร้อม Deploy:</strong> มี Test 24 กรณี, Log แบบ JSON, Graceful Shutdown, Dockerfile ที่รันด้วยผู้ใช้ <code>node</code> และไฟล์ตั้งค่า pm2</li>
+</ol>
+
+<h4>ฟีเจอร์ทั้งหมด</h4>
+<ul>
+  <li>สร้างลิงก์สั้นแบบสุ่ม 7 ตัวอักษรจาก A-Z a-z 0-9 ด้วย <code>crypto.randomInt</code> และลองใหม่สูงสุด 5 ครั้งถ้า code ชนกัน</li>
+  <li>ตั้งชื่อย่อเองได้ (Custom Alias) ตามรูปแบบ <code>^[A-Za-z0-9_-]{3,32}$</code> และห้ามใช้คำสงวน <code>api</code> กับ <code>health</code></li>
+  <li>Redirect ด้วย 302 เป็นค่าเริ่มต้น หรือ 301 เมื่อสร้างลิงก์แบบ <code>permanent: true</code></li>
+  <li>นับคลิกและบันทึกเวลาคลิกล่าสุดใน <code>UPDATE</code> คำสั่งเดียว</li>
+  <li>ดูรายการลิงก์แบบแบ่งหน้า (<code>limit</code> 1–100, <code>offset</code>) ดูสถิติของลิงก์เดียว และลบลิงก์</li>
+  <li>Error ทุกแบบตอบเป็น JSON รูปแบบเดียวกัน <code>{"error": "...", "message": "...", "details"?: {...}}</code></li>
+  <li>อ่านค่าตั้งด้วย <code>node --env-file=.env</code> และตรวจด้วย zod ถ้าผิดจะพิมพ์ Error แล้วออกด้วย Exit Code 1</li>
+  <li>Log ทุก Request เป็น JSON ด้วย pino และ pino-http โดยซ่อน Header <code>authorization</code> และ <code>cookie</code></li>
+  <li>Graceful Shutdown เมื่อได้รับ SIGINT หรือ SIGTERM และบังคับออกถ้าเกิน 10 วินาที</li>
+  <li><code>GET /health</code> สำหรับ Docker, Load Balancer และระบบ Monitor</li>
+</ul>
+
+<h4>เครื่องมือและเวอร์ชันที่ใช้</h4>
+<div class="tbl mid"><table class="tools">
+<thead><tr><th>ชื่อ</th><th>ใช้ทำอะไร</th><th>เวอร์ชัน</th></tr></thead>
+<tbody>
+<tr><td>Node.js</td><td>Runtime (ทดสอบบน 22 และเขียนให้รันบน 24 LTS และ 26)</td><td class="nw">24.22.0 LTS</td></tr>
+<tr><td>express</td><td>Web Framework, Routing, Middleware</td><td class="nw">5.3.0</td></tr>
+<tr><td>zod</td><td>ตรวจ Body, Query และค่าตั้งใน <code>.env</code></td><td class="nw">4.6.7</td></tr>
+<tr><td>better-sqlite3</td><td>เก็บข้อมูลลิงก์ใน SQLite (มี SQLite 3.53.x อยู่ในตัว)</td><td class="nw">13.0.3</td></tr>
+<tr><td>helmet</td><td>ใส่ Security Header มาตรฐาน</td><td class="nw">8.3.0</td></tr>
+<tr><td>express-rate-limit</td><td>จำกัดจำนวนการสร้างลิงก์ต่อ IP</td><td class="nw">8.7.1</td></tr>
+<tr><td>pino / pino-http</td><td>Log แบบ JSON ทุก Request</td><td class="nw">10.4.0 / 11.0.0</td></tr>
+<tr><td>pino-pretty (dev)</td><td>แปลง Log JSON ให้อ่านง่ายตอนพัฒนา</td><td class="nw">13.2.0</td></tr>
+<tr><td>supertest (dev)</td><td>ยิง HTTP Request ใส่ app ใน Test</td><td class="nw">7.3.1</td></tr>
+<tr><td>node:test + node:assert/strict</td><td>Test Runner ที่มากับ Node.js ไม่ต้องติดตั้ง</td><td class="nw">มากับ Node</td></tr>
+<tr><td>pm2 (ไม่บังคับ)</td><td>Process Manager สำหรับเครื่อง Server</td><td class="nw">7.0.4</td></tr>
+<tr><td>Docker Desktop</td><td>Build และรัน Container ด้วย Image <code>node:24-slim</code></td><td class="nw">4.95.0 (WSL 2)</td></tr>
+</tbody>
+</table></div>
+
+<h4>API ที่จะสร้าง</h4>
+<div class="tbl wide"><table class="tools">
+<thead><tr><th>Method</th><th>Path</th><th>หน้าที่</th><th>Status Code ที่เป็นไปได้</th></tr></thead>
+<tbody>
+<tr><td class="nw">POST</td><td class="nw"><code>/api/links</code></td><td>สร้างลิงก์สั้น Body: <code>{url, code?, permanent?}</code></td><td>201, 400, 409, 413, 429</td></tr>
+<tr><td class="nw">GET</td><td class="nw"><code>/api/links?limit=20&amp;offset=0</code></td><td>รายการลิงก์ ใหม่สุดก่อน</td><td>200, 400</td></tr>
+<tr><td class="nw">GET</td><td class="nw"><code>/api/links/:code</code></td><td>สถิติของลิงก์เดียว (จำนวนคลิก เวลาคลิกล่าสุด)</td><td>200, 404</td></tr>
+<tr><td class="nw">DELETE</td><td class="nw"><code>/api/links/:code</code></td><td>ลบลิงก์</td><td>204, 404</td></tr>
+<tr><td class="nw">GET</td><td class="nw"><code>/:code</code></td><td>Redirect ไปยัง URL ต้นฉบับ และนับคลิก</td><td>301, 302, 404</td></tr>
+<tr><td class="nw">GET</td><td class="nw"><code>/health</code></td><td>ตรวจว่า Server ยังทำงาน</td><td>200</td></tr>
+</tbody>
+</table></div>
+
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>URL Shortener เหมือนตู้รับฝากของที่มีเลขตู้สั้น ๆ คุณเอาของชิ้นใหญ่ (URL ยาว) ไปฝาก แล้วได้เลขตู้ (code) กลับมา ใครถือเลขตู้มาก็จะถูกพาไปหาของชิ้นนั้น และพนักงานจดไว้ทุกครั้งว่ามีคนมาเปิดตู้กี่ครั้ง (clicks)</p></div>
+
+<h4>โครงสร้างโฟลเดอร์สุดท้าย</h4>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="โครงสร้างโปรเจกต์"><code class="language-plaintext">url-shortener/
+├── package.json              # ข้อมูลโปรเจกต์ scripts และ dependencies แบบ pin เวอร์ชัน
+├── package-lock.json         # ล็อกเวอร์ชันทุก Package (commit ขึ้น Git)
+├── .nvmrc                    # เวอร์ชัน Node ที่ใช้ (24)
+├── .env.example              # ตัวอย่างค่าตั้ง (commit ได้)
+├── .env                      # ค่าตั้งจริงของเครื่องนี้ (ห้าม commit)
+├── .gitignore
+├── .dockerignore
+├── Dockerfile
+├── ecosystem.config.cjs      # ไฟล์ตั้งค่า pm2 (CommonJS)
+├── README.md
+├── data/                     # สร้างตอนรัน เก็บ links.db (ห้าม commit)
+├── src/
+│   ├── config.js             # อ่านและตรวจค่าตั้งด้วย zod
+│   ├── db.js                 # เปิด SQLite สร้างตาราง และรวม Prepared Statement
+│   ├── app.js                # createApp(): ประกอบ Middleware และ Route
+│   ├── server.js             # listen และ Graceful Shutdown
+│   ├── schemas.js            # zod Schema ของ Body และ Query
+│   ├── lib/
+│   │   └── code.js           # สุ่ม code และตรวจชื่อย่อ
+│   ├── routes/
+│   │   ├── links.js          # /api/links (สร้าง ดู ลบ)
+│   │   └── redirect.js       # /:code (Redirect + นับคลิก)
+│   └── middleware/
+│       └── error-handler.js  # HttpError, 404 และ Error-handling Middleware
+└── test/
+    ├── code.test.js          # Unit Test ของ lib/code.js
+    └── links.api.test.js     # API Test ด้วย supertest</code></pre>
+
+<h4>เชื่อมกับสิ่งที่เรียนมา</h4>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>ไฟล์ในโปรเจกต์</th><th>ใช้ความรู้จากแนวคิดไหน</th></tr></thead>
+<tbody>
+<tr><td><code>package.json</code>, <code>.nvmrc</code></td><td>แนวคิดที่ 1 (nvm) และแนวคิดที่ 3 (npm, semver, scripts, package-lock.json)</td></tr>
+<tr><td><code>src/config.js</code></td><td>แนวคิดที่ 5 (process.env, <code>--env-file</code>, Exit Code) และแนวคิดที่ 9 (zod)</td></tr>
+<tr><td><code>src/db.js</code></td><td>แนวคิดที่ 9 (better-sqlite3, Prepared Statement) และหัวข้อ <a data-t="14"></a></td></tr>
+<tr><td><code>src/lib/code.js</code></td><td>แนวคิดที่ 4 (<code>node:crypto</code> และ <code>randomInt</code>)</td></tr>
+<tr><td><code>src/app.js</code>, <code>src/routes/*.js</code></td><td>แนวคิดที่ 8 (Express 5, Router, Middleware, Error Handler)</td></tr>
+<tr><td><code>src/server.js</code></td><td>แนวคิดที่ 6 (Event Loop, Timer) และแนวคิดที่ 7 (HTTP Server, Event)</td></tr>
+<tr><td><code>test/*.test.js</code></td><td>แนวคิดที่ 10 (node:test และ supertest)</td></tr>
+<tr><td>helmet, Rate Limit, pino</td><td>แนวคิดที่ 11 (Security และ Logging)</td></tr>
+<tr><td>Dockerfile, pm2, systemd</td><td>Part 1 Step 13 (Production) และหัวข้อ <a data-t="19"></a></td></tr>
+</tbody>
+</table></div>
+
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>โค้ดทั้งหมดในโปรเจกต์นี้ทดสอบจริงบน Node.js 22 ใน Sandbox และไม่ใช้ฟีเจอร์ที่ใหม่กว่า Node 22 จึงรันบน Node 24 LTS และ 26 ได้ ใช้ ES Modules (<code>"type": "module"</code>) ทุกไฟล์ ยกเว้น <code>ecosystem.config.cjs</code> ของ pm2 ที่เป็น CommonJS เพราะ pm2 อ่านไฟล์นี้ด้วย <code>require</code></p></div>
+
+<h4>ขั้นตอนการสร้าง</h4>
+<p>ทำตามทีละ Step ทุก Step มีโค้ดครบทั้งไฟล์ ให้พิมพ์หรือคัดลอกลงไฟล์ตาม path ที่ระบุ แล้วรันคำสั่งตามลำดับ</p>
+<ol class="proj-steps">
+
+<li>
+<h4>Step 1: สร้างโปรเจกต์ ติดตั้ง Package และไฟล์พื้นฐาน</h4>
+<p>เริ่มจากตรวจว่าใช้ Node.js LTS อยู่ (ติดตั้งด้วย nvm ตามที่ทำใน Part 2) แล้วสร้างโฟลเดอร์ ตั้ง <code>"type": "module"</code> และติดตั้ง Package แบบระบุเวอร์ชันตรงตัว ใช้ <code>--save-exact</code> เพื่อให้ <code>package.json</code> เก็บเวอร์ชันแบบไม่มี <code>^</code> ทุกคนในทีมจะได้เวอร์ชันเดียวกันแน่นอน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ตรวจเวอร์ชัน Node และ npm
+node -v
+npm -v
+
+# สร้างโฟลเดอร์โปรเจกต์
+mkdir -p ~/projects/url-shortener &amp;&amp; cd ~/projects/url-shortener
+npm init -y
+npm pkg set type=module
+
+# Dependency ที่ใช้ตอนรันจริง
+npm install --save-exact express@5.3.0 zod@4.6.7 better-sqlite3@13.0.3 helmet@8.3.0 express-rate-limit@8.7.1 pino@10.4.0 pino-http@11.0.0
+
+# Dependency ที่ใช้ตอนพัฒนาและ Test เท่านั้น
+npm install --save-exact -D supertest@7.3.1 pino-pretty@13.2.0
+
+# บันทึกเวอร์ชัน Node ของโปรเจกต์ และสร้างโฟลเดอร์ย่อย
+echo 24 &gt; .nvmrc
+mkdir -p src/lib src/routes src/middleware test
+
+# ตรวจรายการ Package ที่ติดตั้ง
+npm ls --depth=0</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>v24.22.0
+11.6.2
+url-shortener@1.0.0 /home/somchai/projects/url-shortener
++-- better-sqlite3@13.0.3
++-- express-rate-limit@8.7.1
++-- express@5.3.0
++-- helmet@8.3.0
++-- pino-http@11.0.0
++-- pino-pretty@13.2.0
++-- pino@10.4.0
++-- supertest@7.3.1
+`-- zod@4.6.7</code></pre>
+<p class="muted small">เวอร์ชันของ npm บนเครื่องคุณอาจต่างจากนี้เล็กน้อย และบาง Terminal จะวาดเส้นเป็น <code>├──</code> แทน <code>+--</code> ซึ่งมีความหมายเดียวกัน</p>
+<p>จากนั้นแก้ <code>package.json</code> ให้มี <code>scripts</code> และ <code>engines</code> ครบตามนี้ (ส่วน <code>dependencies</code> npm เขียนให้แล้ว)</p>
+<pre class="code" data-env="file" data-label="JSON · package.json"><code class="language-json">{
+  "name": "url-shortener",
+  "version": "1.0.0",
+  "description": "บริการย่อลิงก์ด้วย Express 5, zod, SQLite (better-sqlite3) และ pino",
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": "&gt;=22"
+  },
+  "scripts": {
+    "start": "node --env-file=.env src/server.js",
+    "dev": "node --watch --env-file=.env src/server.js | pino-pretty",
+    "test": "node --test --test-reporter=spec 'test/*.test.js'"
+  },
+  "keywords": [
+    "url-shortener",
+    "express",
+    "sqlite",
+    "nodejs"
+  ],
+  "author": "somchai",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "13.0.3",
+    "express": "5.3.0",
+    "express-rate-limit": "8.7.1",
+    "helmet": "8.3.0",
+    "pino": "10.4.0",
+    "pino-http": "11.0.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "pino-pretty": "13.2.0",
+    "supertest": "7.3.1"
+  }
+}</code></pre>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>Script</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>start</code></td><td>รันแบบ Production อ่านค่าตั้งจาก <code>.env</code> ด้วย <code>--env-file</code> ไม่ต้องใช้ Package dotenv</td></tr>
+<tr><td><code>dev</code></td><td><code>--watch</code> รีสตาร์ตเองเมื่อแก้ไฟล์ แล้วส่ง Log ผ่าน Pipe ไปให้ pino-pretty แปลงเป็นข้อความอ่านง่าย</td></tr>
+<tr><td><code>test</code></td><td>รัน Test ทุกไฟล์ใน <code>test/</code> ใส่ <code>--test-reporter=spec</code> เสมอ เพราะ Node 22 จะพิมพ์แบบ TAP เมื่อ Output ไม่ใช่ Terminal และใส่ Quote รอบ Glob เพื่อให้ Node ขยาย Glob เอง</td></tr>
+</tbody>
+</table></div>
+<p>สร้างไฟล์พื้นฐานอีก 3 ไฟล์ ไฟล์ <code>.env.example</code> เป็นตัวอย่างที่ Commit ได้ ส่วน <code>.env</code> คือค่าจริงของเครื่องคุณ</p>
+<pre class="code" data-env="file" data-label="INI · .env.example"><code class="language-ini"># คัดลอกไฟล์นี้เป็น .env แล้วแก้ค่าตามเครื่องของคุณ
+NODE_ENV=development
+PORT=3000
+BASE_URL=http://localhost:3000
+DB_FILE=data/links.db
+LOG_LEVEL=info
+RATE_LIMIT_MAX=10</code></pre>
+<pre class="code" data-env="file" data-label="Plaintext · .gitignore"><code class="language-plaintext"># ไลบรารีที่ติดตั้งจาก npm (สร้างใหม่ได้ด้วย npm ci)
+node_modules/
+# ค่าลับและค่าตั้งของเครื่องนี้ ห้ามขึ้น GitHub
+.env
+# ไฟล์ฐานข้อมูลที่สร้างตอนรัน
+data/
+# รายงาน coverage
+coverage/</code></pre>
+<pre class="code" data-env="file" data-label="Plaintext · .dockerignore"><code class="language-plaintext">node_modules
+.env
+data
+coverage
+.git
+test</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้าง .env จากตัวอย่าง (ไฟล์นี้อยู่ใน .gitignore แล้ว)
+cp .env.example .env</code></pre>
+<div class="callout sec"><span class="c-label sec">Security</span><p>อย่า Commit ไฟล์ <code>.env</code> เด็ดขาด ในงานจริงไฟล์นี้มักมี Password ของฐานข้อมูลหรือ API Key ถ้าเผลอ Push ขึ้น GitHub ไปแล้ว การลบไฟล์ทีหลังไม่พอ ต้องเปลี่ยนค่าลับนั้นใหม่ทันที เพราะยังอยู่ในประวัติของ Git</p></div>
+</li>
+
+<li>
+<h4>Step 2: ค่าตั้งจาก .env ตรวจด้วย zod (src/config.js)</h4>
+<p>ค่าใน <code>process.env</code> เป็น String เสมอ เช่น <code>PORT</code> ได้ <code>'3000'</code> ไม่ใช่ตัวเลข ไฟล์นี้ใช้ <code>z.coerce.number()</code> แปลงเป็นตัวเลข ใส่ค่าเริ่มต้นด้วย <code>.default()</code> และถ้าค่าผิดจะ <code>throw</code> พร้อมข้อความที่ <code>z.prettifyError()</code> จัดให้อ่านง่าย ฟังก์ชันรับ <code>env</code> เป็นพารามิเตอร์ จึงเขียน Test ส่งค่าปลอมเข้าไปได้โดยไม่ต้องแก้ <code>process.env</code> จริง</p>
+<pre class="code" data-env="file" data-label="JavaScript · src/config.js"><code class="language-javascript">import { z } from 'zod';
+
+// Schema ของค่าตั้งทั้งหมด ค่าจาก process.env เป็น string เสมอ จึงใช้ z.coerce แปลงเป็นตัวเลข
+const ConfigSchema = z.object({
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+  BASE_URL: z.url({ protocol: /^https?$/ }).default('http://localhost:3000'),
+  DB_FILE: z.string().min(1).default('data/links.db'),
+  LOG_LEVEL: z
+    .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+    .default('info'),
+  RATE_LIMIT_MAX: z.coerce.number().int().min(1).max(10000).default(10),
+});
+
+// อ่านค่าตั้งจาก env แล้วคืนเป็น object ที่ใช้ง่าย ถ้าค่าผิดจะ throw Error ทันที (Fail Fast)
+export function loadConfig(env = process.env) {
+  const result = ConfigSchema.safeParse(env);
+  if (!result.success) {
+    throw new Error(`ค่าตั้งใน .env ไม่ถูกต้อง:\n${z.prettifyError(result.error)}`);
+  }
+  const c = result.data;
+  return {
+    nodeEnv: c.NODE_ENV,
+    port: c.PORT,
+    baseUrl: c.BASE_URL.replace(/\/+$/, ''), // ตัด / ท้าย URL ออก
+    dbFile: c.DB_FILE,
+    logLevel: c.LOG_LEVEL,
+    rateLimitMax: c.RATE_LIMIT_MAX,
+  };
+}</code></pre>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>z.enum([...]).default('development')</code></td><td>รับได้เฉพาะค่าในรายการ ถ้าไม่ได้ตั้งไว้ใช้ <code>development</code></td></tr>
+<tr><td><code>z.coerce.number().int().min(1).max(65535)</code></td><td>แปลง String เป็นตัวเลข แล้วตรวจว่าเป็นจำนวนเต็มในช่วงพอร์ตที่ใช้ได้</td></tr>
+<tr><td><code>z.url({ protocol: /^https?$/ })</code></td><td>รูปแบบ zod 4 สำหรับตรวจ URL และจำกัดให้เป็น http หรือ https เท่านั้น</td></tr>
+<tr><td><code>safeParse(env)</code></td><td>ตรวจโดยไม่ throw คืน <code>{ success, data }</code> หรือ <code>{ success, error }</code></td></tr>
+<tr><td><code>z.prettifyError(result.error)</code></td><td>แปลง Error ของ zod เป็นข้อความหลายบรรทัดที่บอกว่าฟิลด์ไหนผิด</td></tr>
+<tr><td><code>replace(/\/+$/, '')</code></td><td>ตัด <code>/</code> ท้าย BASE_URL ออก กัน shortUrl กลายเป็น <code>//code</code></td></tr>
+</tbody>
+</table></div>
+<p>ลองส่งค่าผิดเพื่อดูว่า Fail Fast ทำงาน (ค่าที่ตั้งใน Shell มีผลเหนือค่าใน <code>.env</code> เพราะ <code>--env-file</code> ไม่เขียนทับตัวแปรที่มีอยู่แล้ว) ขั้นนี้ต้องมีไฟล์ <code>src/server.js</code> จาก Step 7 ก่อน ให้กลับมาลองหลังทำ Step 7 เสร็จ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">PORT=abc RATE_LIMIT_MAX=0 node --env-file=.env src/server.js
+echo "exit=$?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ค่าตั้งใน .env ไม่ถูกต้อง:
+✖ Invalid input: expected number, received NaN
+  → at PORT
+✖ Too small: expected number to be &gt;=1
+  → at RATE_LIMIT_MAX
+exit=1</code></pre>
+</li>
+
+<li>
+<h4>Step 3: ฐานข้อมูล SQLite และ Repository (src/db.js)</h4>
+<p>ไฟล์นี้มี 2 ฟังก์ชัน <code>openDb(file)</code> เปิดไฟล์ฐานข้อมูล เปิดโหมด WAL และสร้างตาราง <code>links</code> ถ้ายังไม่มี ส่วน <code>createLinkRepo(db)</code> เตรียม Prepared Statement ทุกคำสั่งไว้ครั้งเดียว แล้วคืน Object ที่มีเมธอดให้ Route เรียกใช้ Route จึงไม่ต้องเขียน SQL เอง แนวทางนี้เรียกว่า Repository Pattern</p>
+<pre class="code" data-env="file" data-label="JavaScript · src/db.js"><code class="language-javascript">import Database from 'better-sqlite3';
+import { mkdirSync } from 'node:fs';
+import path from 'node:path';
+
+// เปิดฐานข้อมูล SQLite และสร้างตารางถ้ายังไม่มี (ใช้ ':memory:' สำหรับเทสต์)
+export function openDb(file = ':memory:') {
+  if (file !== ':memory:') {
+    // สร้างโฟลเดอร์ data/ ให้ก่อน ไม่อย่างนั้น better-sqlite3 เปิดไฟล์ไม่ได้
+    mkdirSync(path.dirname(file), { recursive: true });
+  }
+  const db = new Database(file);
+  db.pragma('journal_mode = WAL'); // อ่านและเขียนพร้อมกันได้ดีขึ้น
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS links (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      code            TEXT    NOT NULL UNIQUE,
+      url             TEXT    NOT NULL,
+      permanent       INTEGER NOT NULL DEFAULT 0 CHECK (permanent IN (0, 1)),
+      clicks          INTEGER NOT NULL DEFAULT 0,
+      created_at      TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      last_clicked_at TEXT
+    )
+  `);
+  return db;
+}
+
+// รวมคำสั่ง SQL ทั้งหมดไว้ที่เดียว ทุกคำสั่งเป็น Prepared Statement กัน SQL Injection
+export function createLinkRepo(db) {
+  const insert = db.prepare(
+    'INSERT INTO links (code, url, permanent) VALUES (@code, @url, @permanent)',
+  );
+  const byCode = db.prepare('SELECT * FROM links WHERE code = ?');
+  const list = db.prepare('SELECT * FROM links ORDER BY id DESC LIMIT ? OFFSET ?');
+  const remove = db.prepare('DELETE FROM links WHERE code = ?');
+  // เพิ่มจำนวนคลิกและเวลาคลิกล่าสุดใน UPDATE คำสั่งเดียว แล้วคืน url กลับมาเลย
+  const click = db.prepare(`
+    UPDATE links
+       SET clicks = clicks + 1,
+           last_clicked_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+     WHERE code = ?
+ RETURNING url, permanent
+  `);
+
+  return {
+    create({ code, url, permanent }) {
+      insert.run({ code, url, permanent: permanent ? 1 : 0 });
+      return byCode.get(code);
+    },
+    findByCode: (code) =&gt; byCode.get(code),
+    list: (limit, offset) =&gt; list.all(limit, offset),
+    remove: (code) =&gt; remove.run(code).changes, // คืนจำนวนแถวที่ถูกลบ (0 หรือ 1)
+    click: (code) =&gt; click.get(code), // คืน undefined ถ้าไม่พบ code
+  };
+}</code></pre>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>mkdirSync(path.dirname(file), { recursive: true })</code></td><td>สร้างโฟลเดอร์ <code>data/</code> ก่อน ถ้าไม่มี better-sqlite3 จะ Error ว่า <code>Cannot open database because the directory does not exist</code> ใช้แบบ Sync ได้เพราะรันครั้งเดียวตอนเริ่มโปรแกรม</td></tr>
+<tr><td><code>code TEXT NOT NULL UNIQUE</code></td><td>ฐานข้อมูลกัน code ซ้ำให้เอง ถ้าซ้ำจะได้ Error ที่มี <code>err.code === 'SQLITE_CONSTRAINT_UNIQUE'</code></td></tr>
+<tr><td><code>CHECK (permanent IN (0, 1))</code></td><td>SQLite ไม่มีชนิด Boolean จึงเก็บ 0 หรือ 1 และให้ฐานข้อมูลตรวจเอง</td></tr>
+<tr><td><code>strftime('%Y-%m-%dT%H:%M:%fZ', 'now')</code></td><td>เก็บเวลาแบบ ISO 8601 (UTC) ที่มีมิลลิวินาที ส่งเป็น JSON ได้ตรง ๆ</td></tr>
+<tr><td><code>@code, @url, @permanent</code></td><td>Named Placeholder ค่าจาก Object ถูกส่งแยกจากคำสั่ง SQL จึงกัน SQL Injection</td></tr>
+<tr><td><code>UPDATE ... RETURNING url, permanent</code></td><td>เพิ่มคลิกและอ่าน URL กลับมาในคำสั่งเดียว ไม่ต้อง SELECT ก่อนแล้ว UPDATE ทีหลัง (SQLite รองรับ RETURNING ตั้งแต่ 3.35)</td></tr>
+<tr><td><code>remove.run(code).changes</code></td><td>จำนวนแถวที่ถูกลบ ถ้าเป็น 0 แปลว่าไม่พบ code นั้น</td></tr>
+</tbody>
+</table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>เตรียม Statement ด้วย <code>db.prepare()</code> ครั้งเดียวตอนสร้าง Repository แล้วใช้ซ้ำ เร็วกว่าการ prepare ใหม่ทุก Request</li>
+<li>ห้ามต่อ String เป็น SQL เช่น <code>`SELECT * FROM links WHERE code = '${code}'`</code> เพราะเปิดช่อง SQL Injection ตามที่เรียนในหัวข้อ <a data-t="14"></a></li>
+<li>better-sqlite3 เป็น Native Module ถ้าเปลี่ยนเวอร์ชัน Node ด้วย nvm แล้วเจอ <code>NODE_MODULE_VERSION</code> ไม่ตรงกัน ให้รัน <code>npm rebuild better-sqlite3</code></li>
+</ul></div>
+</li>
+
+<li>
+<h4>Step 4: สุ่ม code และ zod Schema (src/lib/code.js, src/schemas.js)</h4>
+<p><code>generateCode()</code> ใช้ <code>crypto.randomInt</code> ซึ่งสุ่มแบบปลอดภัยทางการเข้ารหัส (เดาค่าถัดไปยาก) ไม่ใช้ <code>Math.random()</code> ตัวอักษร 62 ตัว ยาว 7 ตัว ได้ 62 ยกกำลัง 7 หรือประมาณ 3.5 ล้านล้านแบบ โอกาสชนกันจึงต่ำมาก แต่เราก็ยังเขียนโค้ดรองรับไว้ใน Step 5</p>
+<pre class="code" data-env="file" data-label="JavaScript · src/lib/code.js"><code class="language-javascript">import { randomInt } from 'node:crypto';
+
+// ตัวอักษร 62 ตัว: A-Z a-z 0-9
+export const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+// code ที่ห้ามใช้ เพราะชนกับ path ของระบบเอง
+export const RESERVED_CODES = new Set(['api', 'health']);
+export const CUSTOM_CODE_PATTERN = /^[A-Za-z0-9_-]{3,32}$/;
+
+// สุ่ม code ด้วย crypto.randomInt ซึ่งปลอดภัยกว่า Math.random
+export function generateCode(length = 7) {
+  let code = '';
+  for (let i = 0; i &lt; length; i++) {
+    code += ALPHABET[randomInt(ALPHABET.length)];
+  }
+  return code;
+}
+
+export function isReservedCode(code) {
+  return RESERVED_CODES.has(String(code).toLowerCase());
+}
+
+// ตรวจชื่อย่อที่ผู้ใช้ตั้งเอง: รูปแบบถูกต้องและไม่ใช่คำสงวน
+export function isValidCustomCode(code) {
+  return typeof code === 'string' &amp;&amp; CUSTOM_CODE_PATTERN.test(code) &amp;&amp; !isReservedCode(code);
+}</code></pre>
+<p>Schema แยกไว้ในไฟล์ของตัวเอง Route จะ import ไปใช้ และถ้าวันหนึ่งย้ายไปใช้ TypeScript ก็สร้าง Type ได้ทันทีด้วย <code>z.infer&lt;typeof createLinkSchema&gt;</code> ตามที่เรียนในหัวข้อ <a data-t="15"></a></p>
+<pre class="code" data-env="file" data-label="JavaScript · src/schemas.js"><code class="language-javascript">import { z } from 'zod';
+import { CUSTOM_CODE_PATTERN, isReservedCode } from './lib/code.js';
+
+// Body ของ POST /api/links
+export const createLinkSchema = z.object({
+  url: z
+    .url({ protocol: /^https?$/, error: 'ต้องเป็น URL ที่ขึ้นต้นด้วย http:// หรือ https://' })
+    .max(2048, 'URL ยาวเกิน 2048 ตัวอักษร'),
+  code: z
+    .string()
+    .regex(CUSTOM_CODE_PATTERN, 'code ต้องเป็น A-Z a-z 0-9 _ - ยาว 3-32 ตัว')
+    .refine((c) =&gt; !isReservedCode(c), 'code นี้สงวนไว้ใช้โดยระบบ')
+    .optional(),
+  permanent: z.boolean().default(false),
+});
+
+// Query ของ GET /api/links ค่าจาก URL เป็น string จึงใช้ z.coerce
+export const listQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+});</code></pre>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>ALPHABET[randomInt(ALPHABET.length)]</code></td><td>สุ่มเลข 0–61 แล้วหยิบตัวอักษรตำแหน่งนั้น ทำซ้ำตามความยาว</td></tr>
+<tr><td><code>RESERVED_CODES</code></td><td>ห้ามตั้งชื่อย่อว่า <code>api</code> หรือ <code>health</code> เพราะจะชนกับ Path ของระบบ ตรวจแบบไม่สนตัวพิมพ์เล็กใหญ่</td></tr>
+<tr><td><code>z.url({ protocol: /^https?$/, error: '...' })</code></td><td>รับเฉพาะ http และ https กันคนส่ง <code>javascript:</code> หรือ <code>ftp:</code> มา Redirect และกำหนดข้อความ Error ภาษาไทย</td></tr>
+<tr><td><code>.max(2048, ...)</code></td><td>จำกัดความยาว URL กันข้อมูลใหญ่ผิดปกติ</td></tr>
+<tr><td><code>.refine((c) =&gt; !isReservedCode(c), ...)</code></td><td>กฎเพิ่มเติมที่ Regex ทำไม่ได้ คืน <code>false</code> เมื่อไม่ผ่าน</td></tr>
+<tr><td><code>permanent: z.boolean().default(false)</code></td><td>ไม่ส่งมาถือว่าเป็นลิงก์ชั่วคราว (302)</td></tr>
+<tr><td><code>z.coerce.number()</code> ใน <code>listQuerySchema</code></td><td>ค่าใน Query String เป็น String เสมอ ต้องแปลงก่อนตรวจช่วง</td></tr>
+</tbody>
+</table></div>
+<div class="callout sec"><span class="c-label sec">Security</span><p>บริการย่อลิงก์ถูกใช้ซ่อนลิงก์อันตราย (Phishing) ได้ง่าย การจำกัด Protocol เป็นแค่ด่านแรก ระบบจริงควรตรวจ URL กับรายการเว็บอันตราย จำกัดจำนวนลิงก์ต่อผู้ใช้ และมีช่องทางให้แจ้งลิงก์ผิดกฎหมาย</p></div>
+</li>
+
+<li>
+<h4>Step 5: Error Handler และ Route (src/middleware, src/routes)</h4>
+<p>เริ่มจาก Error Handler เพราะทุก Route จะ <code>throw</code> Error ที่ไฟล์นี้กำหนด คลาส <code>HttpError</code> เก็บ Status Code ชื่อ Error และข้อความไว้ด้วยกัน ส่วน <code>errorHandler()</code> เป็นที่เดียวที่แปลง Error ทุกแบบเป็น JSON รูปแบบเดียวกัน</p>
+<pre class="code" data-env="file" data-label="JavaScript · src/middleware/error-handler.js"><code class="language-javascript">import { z } from 'zod';
+
+// Error ที่รู้ Status Code และชื่อ error สำหรับตอบ Client
+export class HttpError extends Error {
+  constructor(status, error, message, details) {
+    super(message);
+    this.name = 'HttpError';
+    this.status = status;
+    this.error = error;
+    this.details = details;
+  }
+}
+
+// วางหลังทุก Route: ไม่มี Route ไหนตอบ แปลว่าไม่พบ
+export function notFound(req, res, next) {
+  next(new HttpError(404, 'NotFound', `ไม่พบเส้นทาง ${req.method} ${req.path}`));
+}
+
+// Error-handling Middleware ต้องมี 4 พารามิเตอร์ Express จึงจะรู้ว่าเป็นตัวจัดการ Error
+export function errorHandler({ isProduction = false } = {}) {
+  return (err, req, res, next) =&gt; {
+    if (res.headersSent) return next(err); // ส่ง Response ไปแล้ว ให้ Express จัดการต่อ
+
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'ข้อมูลไม่ถูกต้อง',
+        details: z.flattenError(err).fieldErrors,
+      });
+    }
+    if (err.type === 'entity.too.large') {
+      return res.status(413).json({ error: 'PayloadTooLarge', message: 'Body ใหญ่เกิน 10kb' });
+    }
+    if (err.type === 'entity.parse.failed') {
+      return res.status(400).json({ error: 'ValidationError', message: 'JSON ไม่ถูกต้อง' });
+    }
+    if (err instanceof HttpError) {
+      const body = { error: err.error, message: err.message };
+      if (err.details) body.details = err.details;
+      return res.status(err.status).json(body);
+    }
+
+    // Error ที่ไม่ได้คาดไว้: บันทึก Log เต็ม ๆ แต่ไม่ส่ง stack ให้ Client ตอน production
+    req.log.error({ err }, 'unhandled error');
+    const body = {
+      error: 'InternalServerError',
+      message: isProduction ? 'เกิดข้อผิดพลาดภายในระบบ' : err.message,
+    };
+    if (!isProduction) body.stack = err.stack;
+    return res.status(500).json(body);
+  };
+}</code></pre>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>class HttpError extends Error</code></td><td>Error ที่เราตั้งใจ throw เช่น 404 หรือ 409 พร้อมข้อมูลที่จะตอบ Client</td></tr>
+<tr><td><code>notFound(req, res, next)</code></td><td>Middleware ตัวสุดท้ายก่อน Error Handler ถ้ามาถึงตรงนี้ได้ แปลว่าไม่มี Route ไหนตอบ</td></tr>
+<tr><td><code>(err, req, res, next) =&gt; {...}</code></td><td>ต้องมี 4 พารามิเตอร์ครบ Express จึงรู้ว่าเป็น Error-handling Middleware ถ้ามีแค่ 3 จะไม่ถูกเรียกเลย</td></tr>
+<tr><td><code>if (res.headersSent) return next(err)</code></td><td>ถ้าส่ง Header ไปแล้ว ส่ง JSON ซ้ำไม่ได้ (จะเกิด <code>ERR_HTTP_HEADERS_SENT</code>) ให้ Express ตัด Connection แทน</td></tr>
+<tr><td><code>err instanceof z.ZodError</code></td><td>Error จาก <code>schema.parse()</code> แปลงเป็น 400 พร้อม <code>z.flattenError(err).fieldErrors</code> ที่บอกว่าฟิลด์ไหนผิด</td></tr>
+<tr><td><code>err.type === 'entity.too.large'</code></td><td>Error จาก <code>express.json({ limit })</code> เมื่อ Body ใหญ่เกิน ตอบ 413</td></tr>
+<tr><td><code>err.type === 'entity.parse.failed'</code></td><td>Client ส่ง JSON ที่เสีย ตอบ 400 แทนที่จะกลายเป็น 500</td></tr>
+<tr><td><code>req.log.error({ err }, ...)</code></td><td>Error ที่ไม่ได้คาดไว้ บันทึก Log ครบทั้ง Stack Trace ฝั่ง Server เพื่อใช้ไล่ปัญหา</td></tr>
+<tr><td><code>if (!isProduction) body.stack = err.stack</code></td><td>ส่ง Stack Trace ให้ Client เฉพาะตอนพัฒนา ตอน Production ซ่อนไว้เพราะเปิดเผยโครงสร้างภายในของระบบ</td></tr>
+</tbody>
+</table></div>
+<p>ต่อมาคือ Router ของ <code>/api/links</code> ฟังก์ชัน <code>linksRouter()</code> รับ <code>repo</code>, <code>baseUrl</code> และ <code>createLimiter</code> จากภายนอก (Dependency Injection) Test จึงส่งของปลอมหรือค่าต่างกันเข้ามาได้ ใน Express 5 ถ้า Handler <code>throw</code> หรือ Promise ถูก reject จะถูกส่งต่อให้ Error Handler อัตโนมัติ เราจึงไม่ต้องเขียน <code>try/catch</code> ครอบทุก Route</p>
+<pre class="code" data-env="file" data-label="JavaScript · src/routes/links.js"><code class="language-javascript">import express from 'express';
+import { createLinkSchema, listQuerySchema } from '../schemas.js';
+import { generateCode } from '../lib/code.js';
+import { HttpError } from '../middleware/error-handler.js';
+
+const MAX_RETRIES = 5;
+
+// แปลงแถวจากฐานข้อมูล (snake_case) เป็น JSON ที่ส่งให้ Client (camelCase)
+export function toLinkJson(row, baseUrl) {
+  return {
+    code: row.code,
+    url: row.url,
+    shortUrl: `${baseUrl}/${row.code}`,
+    permanent: row.permanent === 1,
+    clicks: row.clicks,
+    createdAt: row.created_at,
+    lastClickedAt: row.last_clicked_at,
+  };
+}
+
+const isUniqueError = (err) =&gt; err?.code === 'SQLITE_CONSTRAINT_UNIQUE';
+
+export function linksRouter({ repo, baseUrl, createLimiter }) {
+  const router = express.Router();
+
+  // POST /api/links สร้างลิงก์สั้น (มี Rate Limit เฉพาะ Route นี้)
+  router.post('/', createLimiter, (req, res) =&gt; {
+    // parse() จะ throw ZodError ถ้าข้อมูลผิด แล้ว Express 5 ส่งต่อให้ errorHandler เอง
+    const input = createLinkSchema.parse(req.body ?? {});
+    let row;
+
+    if (input.code) {
+      try {
+        row = repo.create(input);
+      } catch (err) {
+        if (isUniqueError(err)) {
+          throw new HttpError(409, 'Conflict', `code "${input.code}" ถูกใช้แล้ว`);
+        }
+        throw err;
+      }
+    } else {
+      // code สุ่มอาจชนกันได้ (โอกาสน้อยมาก) จึงลองใหม่ไม่เกิน 5 ครั้ง
+      for (let attempt = 1; !row; attempt++) {
+        try {
+          row = repo.create({ ...input, code: generateCode() });
+        } catch (err) {
+          if (!isUniqueError(err) || attempt &gt;= MAX_RETRIES) throw err;
+        }
+      }
+    }
+
+    res.status(201).location(`/api/links/${row.code}`).json(toLinkJson(row, baseUrl));
+  });
+
+  // GET /api/links?limit=20&amp;offset=0 รายการลิงก์แบบแบ่งหน้า
+  router.get('/', (req, res) =&gt; {
+    const { limit, offset } = listQuerySchema.parse(req.query);
+    const items = repo.list(limit, offset).map((row) =&gt; toLinkJson(row, baseUrl));
+    res.json({ items, limit, offset });
+  });
+
+  // GET /api/links/:code สถิติของลิงก์เดียว
+  router.get('/:code', (req, res) =&gt; {
+    const row = repo.findByCode(req.params.code);
+    if (!row) throw new HttpError(404, 'NotFound', `ไม่พบลิงก์ code ${req.params.code}`);
+    res.json(toLinkJson(row, baseUrl));
+  });
+
+  // DELETE /api/links/:code ลบลิงก์ ตอบ 204 ไม่มี Body
+  router.delete('/:code', (req, res) =&gt; {
+    if (repo.remove(req.params.code) === 0) {
+      throw new HttpError(404, 'NotFound', `ไม่พบลิงก์ code ${req.params.code}`);
+    }
+    res.status(204).end();
+  });
+
+  return router;
+}</code></pre>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>toLinkJson(row, baseUrl)</code></td><td>แปลงชื่อคอลัมน์ <code>created_at</code> เป็น <code>createdAt</code> และ 0/1 เป็น <code>false</code>/<code>true</code> ให้ Client ได้ JSON ที่สะอาด</td></tr>
+<tr><td><code>router.post('/', createLimiter, (req, res) =&gt; ...)</code></td><td>ใส่ Rate Limit เฉพาะ Route สร้างลิงก์ Redirect จึงไม่ถูกจำกัด</td></tr>
+<tr><td><code>createLinkSchema.parse(req.body ?? {})</code></td><td>Express 5 ให้ <code>req.body</code> เป็น <code>undefined</code> ถ้าไม่มี Body จึงใช้ <code>?? {}</code> ให้ zod รายงานว่าขาด url แทนที่จะ Error แปลก ๆ</td></tr>
+<tr><td><code>if (isUniqueError(err)) throw new HttpError(409, ...)</code></td><td>ชื่อย่อที่ผู้ใช้ตั้งชนกับของเดิม ตอบ 409 Conflict</td></tr>
+<tr><td><code>for (let attempt = 1; !row; attempt++)</code></td><td>code สุ่มชนกัน ให้สุ่มใหม่ ครบ 5 ครั้งแล้วยังชนให้ throw ต่อ (กลายเป็น 500)</td></tr>
+<tr><td><code>res.status(201).location(...).json(...)</code></td><td>ตอบ 201 Created พร้อม Header <code>Location</code> ที่ชี้ไปยังทรัพยากรใหม่ตามหลัก REST</td></tr>
+<tr><td><code>res.status(204).end()</code></td><td>ลบสำเร็จ ตอบ 204 No Content ซึ่งต้องไม่มี Body</td></tr>
+</tbody>
+</table></div>
+<p>Router สุดท้ายคือ Redirect ตรวจรูปแบบ code ก่อนแตะฐานข้อมูล ถ้ารูปแบบผิดให้ <code>next()</code> ไปหา 404 Handler เลย</p>
+<pre class="code" data-env="file" data-label="JavaScript · src/routes/redirect.js"><code class="language-javascript">import express from 'express';
+import { HttpError } from '../middleware/error-handler.js';
+
+const CODE_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
+
+export function redirectRouter({ repo }) {
+  const router = express.Router();
+
+  // GET /:code พาไปยัง URL ต้นฉบับ: 301 ถ้าเป็นลิงก์ถาวร ไม่อย่างนั้น 302
+  router.get('/:code', (req, res, next) =&gt; {
+    const { code } = req.params;
+    if (!CODE_PATTERN.test(code)) return next(); // รูปแบบผิด ปล่อยให้ 404 handler ตอบ
+
+    const hit = repo.click(code); // นับคลิกและอ่าน url ในคำสั่งเดียว
+    if (!hit) throw new HttpError(404, 'NotFound', `ไม่พบลิงก์ code ${code}`);
+
+    res.redirect(hit.permanent === 1 ? 301 : 302, hit.url);
+  });
+
+  return router;
+}</code></pre>
+<div class="callout"><span class="c-label tip">Tip</span><p>301 (Moved Permanently) บอกเบราว์เซอร์ว่าย้ายถาวร เบราว์เซอร์จะจำไว้และครั้งหน้าจะไปที่ปลายทางเองโดยไม่ถาม Server อีก ผลคือ Server นับคลิกได้ไม่ครบ ส่วน 302 (Found) เป็นการย้ายชั่วคราว เบราว์เซอร์จะถาม Server ทุกครั้ง เราจึงให้ 302 เป็นค่าเริ่มต้น และใช้ 301 เฉพาะลิงก์ที่ผู้สร้างตั้งใจให้ถาวร</p></div>
+</li>
+
+<li>
+<h4>Step 6: ประกอบ app (src/app.js)</h4>
+<p><code>createApp()</code> รับฐานข้อมูลและค่าตั้งเป็นพารามิเตอร์ แล้วคืน Express app ที่ยังไม่ได้เปิดพอร์ต ลำดับของ <code>app.use()</code> สำคัญมาก เพราะ Request วิ่งผ่าน Middleware จากบนลงล่าง: Log ก่อน แล้ว Security Header แล้วอ่าน Body แล้วจึงถึง Route และปิดท้ายด้วย 404 กับ Error Handler</p>
+<pre class="code" data-env="file" data-label="JavaScript · src/app.js"><code class="language-javascript">import express from 'express';
+import helmet from 'helmet';
+import { rateLimit } from 'express-rate-limit';
+import pino from 'pino';
+import { pinoHttp } from 'pino-http';
+import { createLinkRepo } from './db.js';
+import { linksRouter } from './routes/links.js';
+import { redirectRouter } from './routes/redirect.js';
+import { notFound, errorHandler } from './middleware/error-handler.js';
+
+// สร้าง app โดยยังไม่ listen เพื่อให้เทสต์ส่ง db ':memory:' และค่าอื่นเข้ามาได้
+export function createApp({
+  db,
+  baseUrl = 'http://localhost:3000',
+  rateLimitMax = 10,
+  logger = pino({ level: 'silent' }),
+  nodeEnv = 'development',
+} = {}) {
+  if (!db) throw new Error('createApp ต้องการ db');
+  const repo = createLinkRepo(db);
+  const app = express();
+
+  app.disable('x-powered-by'); // helmet ลบให้อยู่แล้ว แต่ปิดไว้อีกชั้นก็ไม่เสียหาย
+
+  // Log ทุก Request เป็น JSON และซ่อน Header ที่เป็นความลับ
+  app.use(
+    pinoHttp({
+      logger,
+      redact: ['req.headers.authorization', 'req.headers.cookie'],
+      // เก็บเฉพาะข้อมูลที่ต้องใช้ Log จะได้สั้นและอ่านง่าย
+      serializers: {
+        req: (req) =&gt; ({ id: req.id, method: req.method, url: req.url, headers: req.headers }),
+        res: (res) =&gt; ({ statusCode: res.statusCode }),
+      },
+      customLogLevel: (req, res, err) =&gt; {
+        if (err || res.statusCode &gt;= 500) return 'error';
+        if (res.statusCode &gt;= 400) return 'warn';
+        return 'info';
+      },
+    }),
+  );
+  app.use(helmet()); // ใส่ Security Header มาตรฐาน
+  app.use(express.json({ limit: '10kb' })); // Body ใหญ่เกิน 10kb ได้ 413
+
+  app.get('/health', (req, res) =&gt; {
+    res.json({ status: 'ok', uptime: Math.round(process.uptime()) });
+  });
+
+  // จำกัดการสร้างลิงก์: rateLimitMax ครั้งต่อ 60 วินาทีต่อ IP
+  const createLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: rateLimitMax,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { error: 'TooManyRequests', message: 'สร้างลิงก์ถี่เกินไป กรุณารอ 1 นาที' },
+  });
+
+  app.use('/api/links', linksRouter({ repo, baseUrl, createLimiter }));
+  app.use(redirectRouter({ repo })); // ต้องอยู่หลัง /api และ /health
+
+  app.use(notFound);
+  app.use(errorHandler({ isProduction: nodeEnv === 'production' }));
+  return app;
+}</code></pre>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>logger = pino({ level: 'silent' })</code></td><td>ค่าเริ่มต้นไม่พิมพ์ Log เลย Test จึงไม่รก ตอนรันจริง <code>server.js</code> จะส่ง Logger ตัวจริงเข้ามา</td></tr>
+<tr><td><code>redact: ['req.headers.authorization', 'req.headers.cookie']</code></td><td>แทนค่า Header ที่เป็นความลับด้วย <code>[Redacted]</code> ก่อนเขียนลง Log</td></tr>
+<tr><td><code>serializers</code></td><td>เลือกเก็บเฉพาะข้อมูลที่ใช้จริง ถ้าไม่ตั้ง pino-http จะเก็บ Response Header ทั้งหมดซึ่งยาวมาก</td></tr>
+<tr><td><code>customLogLevel</code></td><td>Status 5xx เป็น <code>error</code>, 4xx เป็น <code>warn</code>, ที่เหลือเป็น <code>info</code> ใช้กรอง Log ได้ง่าย</td></tr>
+<tr><td><code>express.json({ limit: '10kb' })</code></td><td>อ่าน JSON Body และปฏิเสธ Body ที่ใหญ่เกิน 10 KB</td></tr>
+<tr><td><code>rateLimit({ windowMs: 60_000, limit: rateLimitMax, ... })</code></td><td>นับ Request ต่อ IP ใน 60 วินาที เกินแล้วตอบ 429 พร้อมข้อความ JSON และ Header <code>RateLimit</code> ตามมาตรฐาน draft-8</td></tr>
+<tr><td><code>app.use(redirectRouter({ repo }))</code></td><td>วางหลัง <code>/health</code> และ <code>/api/links</code> เสมอ ไม่อย่างนั้น <code>/:code</code> จะจับ Path <code>/health</code> ไปก่อน</td></tr>
+</tbody>
+</table></div>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ถ้าวาง Service นี้ไว้หลัง Reverse Proxy เช่น nginx ต้องตั้ง <code>app.set('trust proxy', 1)</code> ไม่อย่างนั้น Rate Limit จะเห็นทุก Request มาจาก IP ของ Proxy และ express-rate-limit จะเตือนด้วย <code>ERR_ERL_UNEXPECTED_X_FORWARDED_FOR</code> แต่ห้ามตั้งค่านี้ตอนไม่มี Proxy เพราะ Client จะปลอม Header <code>X-Forwarded-For</code> เพื่อหลบ Rate Limit ได้</p></div>
+</li>
+
+<li>
+<h4>Step 7: เปิด Server และ Graceful Shutdown (src/server.js)</h4>
+<p>ไฟล์นี้เป็นจุดเริ่มโปรแกรม ทำงาน 4 อย่างตามลำดับ: อ่านค่าตั้ง เปิดฐานข้อมูล เปิดพอร์ต และเตรียมปิดตัวอย่างสุภาพ Graceful Shutdown คือเมื่อได้รับสัญญาณให้หยุด (<kbd>Ctrl</kbd>+<kbd>C</kbd> ส่ง SIGINT, ส่วน <code>docker stop</code>, pm2 และ systemd ส่ง SIGTERM) Server จะหยุดรับ Request ใหม่ รอ Request ที่ค้างอยู่ให้เสร็จ ปิดฐานข้อมูลให้เรียบร้อย แล้วจึงออก ข้อมูลจึงไม่เสียหายและผู้ใช้ไม่โดนตัดกลางทาง</p>
+<pre class="code" data-env="file" data-label="JavaScript · src/server.js"><code class="language-javascript">import path from 'node:path';
+import pino from 'pino';
+import { loadConfig } from './config.js';
+import { openDb } from './db.js';
+import { createApp } from './app.js';
+
+// 1) อ่านค่าตั้ง ถ้าผิดให้หยุดทันทีด้วย exit code 1
+let config;
+try {
+  config = loadConfig();
+} catch (err) {
+  console.error(err.message);
+  process.exit(1);
+}
+
+const logger = pino({ level: config.logLevel });
+
+// 2) path ของ DB อิงจากโฟลเดอร์โปรเจกต์ ไม่ขึ้นกับว่ารันคำสั่งจากโฟลเดอร์ไหน
+const projectRoot = path.resolve(import.meta.dirname, '..');
+const dbFile = path.isAbsolute(config.dbFile) ? config.dbFile : path.join(projectRoot, config.dbFile);
+const db = openDb(dbFile);
+
+const app = createApp({
+  db,
+  baseUrl: config.baseUrl,
+  rateLimitMax: config.rateLimitMax,
+  logger,
+  nodeEnv: config.nodeEnv,
+});
+
+// 3) เริ่ม Server (Express 5 ส่ง error เข้ามาใน callback เช่น พอร์ตถูกใช้อยู่)
+const server = app.listen(config.port, (err) =&gt; {
+  if (err) {
+    logger.fatal({ err }, 'cannot start server');
+    db.close();
+    process.exit(1);
+  }
+  logger.info({ port: config.port, dbFile, nodeEnv: config.nodeEnv }, 'server started');
+});
+
+// 4) Graceful Shutdown: หยุดรับงานใหม่ ปิด DB แล้วค่อยออก
+let shuttingDown = false;
+function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  logger.info({ signal }, 'shutting down');
+
+  // ถ้าปิดไม่เสร็จใน 10 วินาที ให้บังคับออกด้วย code 1
+  const timer = setTimeout(() =&gt; {
+    logger.error('shutdown timeout, forcing exit');
+    process.exit(1);
+  }, 10_000);
+  timer.unref(); // ไม่ให้ timer นี้รั้ง process ไว้
+
+  server.close((err) =&gt; {
+    db.close();
+    logger.info('server closed');
+    process.exit(err ? 1 : 0);
+  });
+  server.closeIdleConnections(); // ปิด keep-alive connection ที่ว่างอยู่ทันที
+}
+
+process.on('SIGINT', () =&gt; shutdown('SIGINT'));
+process.on('SIGTERM', () =&gt; shutdown('SIGTERM'));</code></pre>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>console.error(err.message); process.exit(1)</code></td><td>ค่าตั้งผิดตั้งแต่ต้น ไม่มีประโยชน์ที่จะรันต่อ พิมพ์ลง stderr แล้วออกด้วย Code 1 ให้ pm2, systemd หรือ Docker รู้ว่าล้มเหลว</td></tr>
+<tr><td><code>path.resolve(import.meta.dirname, '..')</code></td><td>หาโฟลเดอร์โปรเจกต์จากตำแหน่งไฟล์นี้ ไม่ใช่จาก <code>process.cwd()</code> จะรันจากโฟลเดอร์ไหนก็ได้ไฟล์ฐานข้อมูลเดียวกัน</td></tr>
+<tr><td><code>app.listen(port, (err) =&gt; ...)</code></td><td>Express 5 ส่ง Error เข้ามาใน Callback เช่น <code>EADDRINUSE</code> เมื่อพอร์ตถูกใช้อยู่ เราจึงปิด DB และออกด้วย Code 1</td></tr>
+<tr><td><code>if (shuttingDown) return</code></td><td>กันการปิดซ้ำเมื่อกด <kbd>Ctrl</kbd>+<kbd>C</kbd> หลายครั้ง</td></tr>
+<tr><td><code>setTimeout(..., 10_000)</code> และ <code>timer.unref()</code></td><td>ถ้ามี Connection ค้างจนปิดไม่เสร็จใน 10 วินาที ให้บังคับออกด้วย Code 1 ส่วน <code>unref()</code> ทำให้ Timer นี้ไม่รั้ง Process ไว้เมื่อทุกอย่างปิดเสร็จก่อน</td></tr>
+<tr><td><code>server.close(callback)</code></td><td>หยุดรับ Connection ใหม่ แล้วเรียก Callback เมื่อ Connection เดิมปิดครบ จากนั้นปิด DB และออกด้วย Code 0</td></tr>
+<tr><td><code>server.closeIdleConnections()</code></td><td>ปิด Keep-Alive Connection ที่ไม่มี Request ค้างทันที ไม่ต้องรอ Timeout ของ Keep-Alive</td></tr>
+<tr><td><code>process.on('SIGINT' | 'SIGTERM', ...)</code></td><td>ดักสัญญาณหยุดทั้งสองแบบ ถ้าไม่ดัก Node จะตายทันทีโดยไม่ปิดอะไรเลย</td></tr>
+</tbody>
+</table></div>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Graceful Shutdown เหมือนร้านอาหารตอนใกล้ปิด พนักงานแขวนป้าย "ปิดแล้ว" ไม่รับลูกค้าใหม่ (server.close) แต่ลูกค้าที่นั่งอยู่ยังกินจนอิ่ม แล้วจึงปิดครัวและล็อกประตู (db.close แล้ว exit) ถ้าลูกค้าบางโต๊ะนั่งนานเกินเวลา ผู้จัดการก็ต้องเชิญออก (Timeout 10 วินาที)</p></div>
+</li>
+
+<li>
+<h4>Step 8: เขียน Test ด้วย node:test + supertest</h4>
+<p>Test แบ่งเป็น 2 ไฟล์ <code>code.test.js</code> เป็น Unit Test ของฟังก์ชันบริสุทธิ์ (ไม่แตะ Network หรือฐานข้อมูล) ส่วน <code>links.api.test.js</code> เป็น API Test ที่ส่ง HTTP Request จริงเข้าไปใน app ผ่าน supertest โดยไม่ต้องเปิดพอร์ต ทุกเทสต์ได้ฐานข้อมูล <code>':memory:'</code> ใหม่ใน <code>beforeEach</code> จึงไม่มีข้อมูลค้างข้ามเทสต์</p>
+<pre class="code" data-env="file" data-label="JavaScript · test/code.test.js"><code class="language-javascript">import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { generateCode, isValidCustomCode, ALPHABET } from '../src/lib/code.js';
+
+describe('generateCode()', () =&gt; {
+  it('ยาว 7 ตัวเป็นค่าเริ่มต้น', () =&gt; {
+    assert.equal(generateCode().length, 7);
+  });
+
+  it('กำหนดความยาวเองได้', () =&gt; {
+    assert.equal(generateCode(12).length, 12);
+  });
+
+  it('ใช้เฉพาะตัวอักษร A-Z a-z 0-9', () =&gt; {
+    assert.equal(ALPHABET.length, 62);
+    for (let i = 0; i &lt; 200; i++) {
+      assert.match(generateCode(), /^[A-Za-z0-9]{7}$/);
+    }
+  });
+
+  it('สุ่ม 1,000 ครั้งแล้วไม่ซ้ำกัน', () =&gt; {
+    const codes = new Set(Array.from({ length: 1000 }, () =&gt; generateCode()));
+    assert.equal(codes.size, 1000);
+  });
+});
+
+describe('isValidCustomCode()', () =&gt; {
+  it('รับชื่อที่ถูกรูปแบบ', () =&gt; {
+    for (const code of ['abc', 'my-shop', 'Promo_2026', 'a'.repeat(32)]) {
+      assert.equal(isValidCustomCode(code), true, code);
+    }
+  });
+
+  it('ปฏิเสธชื่อสั้น ยาว หรือมีอักขระต้องห้าม', () =&gt; {
+    for (const code of ['ab', 'a'.repeat(33), 'มีภาษาไทย', 'has space', 'a/b', '']) {
+      assert.equal(isValidCustomCode(code), false, code);
+    }
+  });
+
+  it('ปฏิเสธคำสงวน api และ health ทุกรูปแบบตัวพิมพ์', () =&gt; {
+    for (const code of ['api', 'API', 'health', 'Health']) {
+      assert.equal(isValidCustomCode(code), false, code);
+    }
+  });
+
+  it('ปฏิเสธค่าที่ไม่ใช่ string', () =&gt; {
+    assert.equal(isValidCustomCode(12345), false);
+    assert.equal(isValidCustomCode(undefined), false);
+  });
+});</code></pre>
+<pre class="code" data-env="file" data-label="JavaScript · test/links.api.test.js"><code class="language-javascript">import { describe, it, beforeEach, afterEach } from 'node:test';
+import assert from 'node:assert/strict';
+import request from 'supertest';
+import { createApp } from '../src/app.js';
+import { openDb } from '../src/db.js';
+
+const BASE_URL = 'http://sho.rt';
+let db;
+let app;
+
+// ทุกเทสต์ได้ฐานข้อมูลใหม่ในหน่วยความจำ จึงไม่ปนกัน
+beforeEach(() =&gt; {
+  db = openDb(':memory:');
+  app = createApp({ db, baseUrl: BASE_URL, rateLimitMax: 100 });
+});
+
+afterEach(() =&gt; {
+  db.close();
+});
+
+// ตัวช่วยสร้างลิงก์ผ่าน API
+function createLink(body) {
+  return request(app).post('/api/links').send(body);
+}
+
+describe('POST /api/links', () =&gt; {
+  it('สร้างลิงก์ได้ 201 พร้อม Location และ code ยาว 7 ตัว', async () =&gt; {
+    const res = await createLink({ url: 'https://nodejs.org/en/learn' });
+    assert.equal(res.status, 201);
+    assert.match(res.body.code, /^[A-Za-z0-9]{7}$/);
+    assert.equal(res.headers.location, `/api/links/${res.body.code}`);
+    assert.equal(res.body.shortUrl, `${BASE_URL}/${res.body.code}`);
+    assert.equal(res.body.permanent, false);
+    assert.equal(res.body.clicks, 0);
+  });
+
+  it('URL ไม่ถูกต้องได้ 400 พร้อม details', async () =&gt; {
+    const res = await createLink({ url: 'not-a-url' });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.error, 'ValidationError');
+    assert.ok(res.body.details.url);
+  });
+
+  it('URL แบบ ftp ได้ 400', async () =&gt; {
+    const res = await createLink({ url: 'ftp://files.example.com/a.zip' });
+    assert.equal(res.status, 400);
+    assert.deepEqual(res.body.details.url, [
+      'ต้องเป็น URL ที่ขึ้นต้นด้วย http:// หรือ https://',
+    ]);
+  });
+
+  it('ตั้งชื่อย่อเองได้ 201', async () =&gt; {
+    const res = await createLink({ url: 'https://expressjs.com', code: 'express5' });
+    assert.equal(res.status, 201);
+    assert.equal(res.body.code, 'express5');
+  });
+
+  it('ชื่อย่อซ้ำได้ 409 Conflict', async () =&gt; {
+    await createLink({ url: 'https://expressjs.com', code: 'dup-code' });
+    const res = await createLink({ url: 'https://zod.dev', code: 'dup-code' });
+    assert.equal(res.status, 409);
+    assert.equal(res.body.error, 'Conflict');
+  });
+
+  it('ชื่อย่อที่เป็นคำสงวนได้ 400', async () =&gt; {
+    const res = await createLink({ url: 'https://zod.dev', code: 'api' });
+    assert.equal(res.status, 400);
+    assert.deepEqual(res.body.details.code, ['code นี้สงวนไว้ใช้โดยระบบ']);
+  });
+
+  it('JSON เสียได้ 400 ไม่ใช่ 500', async () =&gt; {
+    const res = await request(app)
+      .post('/api/links')
+      .set('Content-Type', 'application/json')
+      .send('{"url": ');
+    assert.equal(res.status, 400);
+    assert.equal(res.body.message, 'JSON ไม่ถูกต้อง');
+  });
+
+  it('Body ใหญ่เกิน 10kb ได้ 413', async () =&gt; {
+    const res = await createLink({ url: `https://example.com/?q=${'a'.repeat(11_000)}` });
+    assert.equal(res.status, 413);
+  });
+});
+
+describe('Redirect และสถิติ', () =&gt; {
+  it('ลิงก์ปกติ redirect 302 และนับคลิก', async () =&gt; {
+    await createLink({ url: 'https://nodejs.org', code: 'node' });
+    const r1 = await request(app).get('/node');
+    assert.equal(r1.status, 302);
+    assert.equal(r1.headers.location, 'https://nodejs.org');
+    await request(app).get('/node');
+
+    const stats = await request(app).get('/api/links/node');
+    assert.equal(stats.status, 200);
+    assert.equal(stats.body.clicks, 2);
+    assert.ok(stats.body.lastClickedAt);
+  });
+
+  it('ลิงก์ถาวร redirect 301', async () =&gt; {
+    await createLink({ url: 'https://www.sqlite.org', code: 'sqlite', permanent: true });
+    const res = await request(app).get('/sqlite');
+    assert.equal(res.status, 301);
+    assert.equal(res.headers.location, 'https://www.sqlite.org');
+  });
+
+  it('code ที่ไม่มีอยู่ได้ 404 ทั้ง redirect และ stats', async () =&gt; {
+    const r1 = await request(app).get('/nothere');
+    assert.equal(r1.status, 404);
+    assert.equal(r1.body.error, 'NotFound');
+    const r2 = await request(app).get('/api/links/nothere');
+    assert.equal(r2.status, 404);
+  });
+
+  it('รายการแบบแบ่งหน้า และ limit เกิน 100 ได้ 400', async () =&gt; {
+    for (const code of ['aaa', 'bbb', 'ccc']) {
+      await createLink({ url: `https://example.com/${code}`, code });
+    }
+    const res = await request(app).get('/api/links?limit=2&amp;offset=0');
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.body.items.map((i) =&gt; i.code), ['ccc', 'bbb']);
+    const bad = await request(app).get('/api/links?limit=500');
+    assert.equal(bad.status, 400);
+  });
+
+  it('ลบได้ 204 แล้วเรียกซ้ำได้ 404', async () =&gt; {
+    await createLink({ url: 'https://pino.js.org', code: 'pino' });
+    const del = await request(app).delete('/api/links/pino');
+    assert.equal(del.status, 204);
+    const again = await request(app).get('/pino');
+    assert.equal(again.status, 404);
+  });
+
+  it('GET /health ได้ status ok', async () =&gt; {
+    const res = await request(app).get('/health');
+    assert.equal(res.status, 200);
+    assert.equal(res.body.status, 'ok');
+    assert.equal(typeof res.body.uptime, 'number');
+  });
+});
+
+describe('Security', () =&gt; {
+  it('มี Security Header จาก helmet และไม่มี X-Powered-By', async () =&gt; {
+    const res = await request(app).get('/health');
+    assert.equal(res.headers['x-content-type-options'], 'nosniff');
+    assert.ok(res.headers['content-security-policy']);
+    assert.equal(res.headers['x-powered-by'], undefined);
+  });
+
+  it('สร้างเกิน RATE_LIMIT_MAX ได้ 429', async () =&gt; {
+    const limited = createApp({ db, baseUrl: BASE_URL, rateLimitMax: 3 });
+    const statuses = [];
+    for (let i = 0; i &lt; 4; i++) {
+      const res = await request(limited).post('/api/links').send({ url: 'https://example.com' });
+      statuses.push(res.status);
+    }
+    assert.deepEqual(statuses, [201, 201, 201, 429]);
+    const last = await request(limited).post('/api/links').send({ url: 'https://example.com' });
+    assert.equal(last.body.error, 'TooManyRequests');
+    assert.ok(last.headers.ratelimit);
+  });
+});</code></pre>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>beforeEach</code> / <code>afterEach</code></td><td>เปิดฐานข้อมูลในหน่วยความจำใหม่ก่อนทุกเทสต์ และปิดหลังจบ เทสต์จึงรันลำดับไหนก็ได้ผลเหมือนเดิม</td></tr>
+<tr><td><code>request(app).post('/api/links').send(body)</code></td><td>supertest เปิดพอร์ตชั่วคราวให้เอง ไม่ต้องเรียก <code>app.listen()</code> จึงไม่เจอ <code>EADDRINUSE</code></td></tr>
+<tr><td><code>await</code> หน้า <code>request(...)</code></td><td>ต้องมีเสมอ ถ้าลืม เทสต์จะจบก่อนได้ Response และผ่านทั้งที่ยังไม่ได้ตรวจอะไรเลย</td></tr>
+<tr><td><code>assert.match(res.body.code, /^[A-Za-z0-9]{7}$/)</code></td><td>code สุ่มไม่รู้ค่าล่วงหน้า จึงตรวจรูปแบบแทนค่าตรงตัว</td></tr>
+<tr><td><code>.set('Content-Type', 'application/json').send('{"url": ')</code></td><td>จำลอง Client ที่ส่ง JSON เสีย เพื่อยืนยันว่าได้ 400 ไม่ใช่ 500</td></tr>
+<tr><td><code>createApp({ db, baseUrl, rateLimitMax: 3 })</code></td><td>สร้าง app อีกตัวที่ตั้ง Rate Limit ต่ำ ทดสอบ 429 ได้ภายในไม่กี่ Request</td></tr>
+<tr><td><code>assert.ok(last.headers.ratelimit)</code></td><td>ตรวจว่ามี Header <code>RateLimit</code> แบบมาตรฐาน draft-8 (supertest แปลงชื่อ Header เป็นตัวเล็กทั้งหมด)</td></tr>
+</tbody>
+</table></div>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/url-shortener
+npm test</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>
+&gt; url-shortener@1.0.0 test
+&gt; node --test --test-reporter=spec 'test/*.test.js'
+
+▶ generateCode()
+  ✔ ยาว 7 ตัวเป็นค่าเริ่มต้น (0.807276ms)
+  ✔ กำหนดความยาวเองได้ (0.23568ms)
+  ✔ ใช้เฉพาะตัวอักษร A-Z a-z 0-9 (5.13475ms)
+  ✔ สุ่ม 1,000 ครั้งแล้วไม่ซ้ำกัน (5.389103ms)
+✔ generateCode() (12.622782ms)
+▶ isValidCustomCode()
+  ✔ รับชื่อที่ถูกรูปแบบ (0.362455ms)
+  ✔ ปฏิเสธชื่อสั้น ยาว หรือมีอักขระต้องห้าม (0.136936ms)
+  ✔ ปฏิเสธคำสงวน api และ health ทุกรูปแบบตัวพิมพ์ (0.263733ms)
+  ✔ ปฏิเสธค่าที่ไม่ใช่ string (0.213947ms)
+✔ isValidCustomCode() (1.269446ms)
+▶ POST /api/links
+  ✔ สร้างลิงก์ได้ 201 พร้อม Location และ code ยาว 7 ตัว (51.836026ms)
+  ✔ URL ไม่ถูกต้องได้ 400 พร้อม details (13.047272ms)
+  ✔ URL แบบ ftp ได้ 400 (7.800166ms)
+  ✔ ตั้งชื่อย่อเองได้ 201 (6.54439ms)
+  ✔ ชื่อย่อซ้ำได้ 409 Conflict (8.914284ms)
+  ✔ ชื่อย่อที่เป็นคำสงวนได้ 400 (4.978513ms)
+  ✔ JSON เสียได้ 400 ไม่ใช่ 500 (5.007116ms)
+  ✔ Body ใหญ่เกิน 10kb ได้ 413 (8.486597ms)
+✔ POST /api/links (108.26603ms)
+▶ Redirect และสถิติ
+  ✔ ลิงก์ปกติ redirect 302 และนับคลิก (16.869186ms)
+  ✔ ลิงก์ถาวร redirect 301 (8.494831ms)
+  ✔ code ที่ไม่มีอยู่ได้ 404 ทั้ง redirect และ stats (6.845556ms)
+  ✔ รายการแบบแบ่งหน้า และ limit เกิน 100 ได้ 400 (14.174088ms)
+  ✔ ลบได้ 204 แล้วเรียกซ้ำได้ 404 (10.093888ms)
+  ✔ GET /health ได้ status ok (4.370563ms)
+✔ Redirect และสถิติ (61.354195ms)
+▶ Security
+  ✔ มี Security Header จาก helmet และไม่มี X-Powered-By (3.814598ms)
+  ✔ สร้างเกิน RATE_LIMIT_MAX ได้ 429 (12.974598ms)
+✔ Security (16.99871ms)
+ℹ tests 24
+ℹ suites 5
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 455.394246</code></pre>
+<p class="muted small">ตัวเลขเวลา (ms) จะต่างกันทุกครั้งที่รันและต่างกันในแต่ละเครื่อง สิ่งที่ต้องตรงคือ <code>tests 24</code>, <code>pass 24</code> และ <code>fail 0</code></p>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไป Step ถัดไป <code>npm test</code> ต้องผ่านครบ 24 ข้อ ลองแก้ <code>generateCode(length = 7)</code> เป็น <code>6</code> ชั่วคราว แล้วรันใหม่ คุณควรเห็นเทสต์ล้มพร้อมข้อความ <code>AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:</code> และบอกว่าได้ 6 แต่คาดว่า 7 จากนั้นแก้กลับ</p></div>
+</li>
+
+<li>
+<h4>Step 9: รันจริงและตรวจทุก Endpoint ด้วย curl</h4>
+<p>เปิด Terminal 2 หน้าต่าง หน้าต่างแรกรัน Server หน้าต่างที่สองใช้ <code>curl</code> ยิง Request ถ้าพิมพ์ JSON ยาว ๆ ใน Shell ให้ใช้ Single Quote ครอบ Body เพื่อไม่ให้ Bash ตีความเครื่องหมาย <code>"</code> และ <code>$</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · หน้าต่างที่ 1"><code class="language-bash">cd ~/projects/url-shortener
+npm start</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>
+&gt; url-shortener@1.0.0 start
+&gt; node --env-file=.env src/server.js
+
+{"level":30,"time":1792619962936,"pid":2436,"hostname":"DESKTOP-SOMCHAI","port":3000,"dbFile":"/home/somchai/projects/url-shortener/data/links.db","nodeEnv":"development","msg":"server started"}
+{"level":30,"time":1792619964136,"pid":2436,"hostname":"DESKTOP-SOMCHAI","req":{"id":1,"method":"POST","url":"/api/links","headers":{"host":"localhost:3000","user-agent":"curl/8.5.0","accept":"*/*","content-type":"application/json","content-length":"37"}},"res":{"statusCode":201},"responseTime":18,"msg":"request completed"}
+{"level":30,"time":1792619964183,"pid":2436,"hostname":"DESKTOP-SOMCHAI","req":{"id":7,"method":"GET","url":"/node-docs","headers":{"host":"localhost:3000","user-agent":"curl/8.5.0","accept":"*/*"}},"res":{"statusCode":302},"responseTime":1,"msg":"request completed"}
+{"level":40,"time":1792619964273,"pid":2436,"hostname":"DESKTOP-SOMCHAI","req":{"id":20,"method":"POST","url":"/api/links","headers":{"host":"localhost:3000","user-agent":"curl/8.5.0","accept":"*/*","content-type":"application/json","content-length":"29"}},"res":{"statusCode":429},"responseTime":1,"msg":"request completed"}</code></pre>
+<p class="muted small">บรรทัดแรกพิมพ์ตอนเริ่ม ส่วนบรรทัดที่เหลือจะโผล่ขึ้นมาเมื่อหน้าต่างที่ 2 ยิง Request เข้ามา ค่า <code>time</code>, <code>pid</code>, <code>hostname</code> และ <code>responseTime</code> บนเครื่องคุณจะต่างจากนี้ <code>level</code> 30 คือ info และ 40 คือ warn</p>
+
+<h5>9.1 สร้างลิงก์แบบสุ่ม (201)</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · หน้าต่างที่ 2"><code class="language-bash">curl -i -X POST http://localhost:3000/api/links \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://nodejs.org/en/learn"}'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output (ตัด Security Header บางส่วนออกเพื่อให้สั้น)"><code>HTTP/1.1 201 Created
+X-Content-Type-Options: nosniff
+RateLimit: "10-in-1min"; r=9; t=60
+RateLimit-Policy: "10-in-1min"; q=10; w=60; pk=:MTJjYTE3YjQ5YWYy:
+Location: /api/links/B45RTwb
+Content-Type: application/json; charset=utf-8
+Content-Length: 186
+Date: Wed, 21 Oct 2026 21:59:24 GMT
+
+{"code":"B45RTwb","url":"https://nodejs.org/en/learn","shortUrl":"http://localhost:3000/B45RTwb","permanent":false,"clicks":0,"createdAt":"2026-10-21T21:59:24.132Z","lastClickedAt":null}</code></pre>
+<p class="muted small">code ที่สุ่มได้ (<code>B45RTwb</code>), <code>createdAt</code> และ <code>Date</code> จะต่างกันทุกครั้ง Header <code>RateLimit</code> บอกว่าเหลือสิทธิ์อีก 9 ครั้ง (<code>r=9</code>) ภายใน 60 วินาที (<code>t=60</code>)</p>
+
+<h5>9.2 ตั้งชื่อย่อเอง แบบถาวรและแบบชั่วคราว (201)</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · หน้าต่างที่ 2"><code class="language-bash">curl -s -X POST http://localhost:3000/api/links \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://expressjs.com/en/guide/routing.html","code":"express-guide","permanent":true}'
+echo
+curl -s -X POST http://localhost:3000/api/links \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://nodejs.org/api/","code":"node-docs"}'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"code":"express-guide","url":"https://expressjs.com/en/guide/routing.html","shortUrl":"http://localhost:3000/express-guide","permanent":true,"clicks":0,"createdAt":"2026-10-21T21:59:24.144Z","lastClickedAt":null}
+{"code":"node-docs","url":"https://nodejs.org/api/","shortUrl":"http://localhost:3000/node-docs","permanent":false,"clicks":0,"createdAt":"2026-10-21T21:59:24.152Z","lastClickedAt":null}</code></pre>
+
+<h5>9.3 ข้อมูลผิด (400), ชื่อซ้ำ (409) และคำสงวน (400)</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · หน้าต่างที่ 2"><code class="language-bash">curl -s -X POST http://localhost:3000/api/links \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"ftp://files.example.com/a.zip","code":"ab"}'
+echo
+curl -s -X POST http://localhost:3000/api/links \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://zod.dev","code":"express-guide"}'
+echo
+curl -s -X POST http://localhost:3000/api/links \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://zod.dev","code":"health"}'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"error":"ValidationError","message":"ข้อมูลไม่ถูกต้อง","details":{"url":["ต้องเป็น URL ที่ขึ้นต้นด้วย http:// หรือ https://"],"code":["code ต้องเป็น A-Z a-z 0-9 _ - ยาว 3-32 ตัว"]}}
+{"error":"Conflict","message":"code \"express-guide\" ถูกใช้แล้ว"}
+{"error":"ValidationError","message":"ข้อมูลไม่ถูกต้อง","details":{"code":["code นี้สงวนไว้ใช้โดยระบบ"]}}</code></pre>
+
+<h5>9.4 Redirect: 302 สำหรับลิงก์ชั่วคราว และ 301 สำหรับลิงก์ถาวร</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · หน้าต่างที่ 2"><code class="language-bash"># grep เลือกเฉพาะบรรทัดสถานะและ Location
+curl -s -i http://localhost:3000/node-docs | grep -E '^(HTTP|Location)'
+curl -s -i http://localhost:3000/express-guide | grep -E '^(HTTP|Location)'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>HTTP/1.1 302 Found
+Location: https://nodejs.org/api/
+HTTP/1.1 301 Moved Permanently
+Location: https://expressjs.com/en/guide/routing.html</code></pre>
+
+<h5>9.5 สถิติ รายการ 404 และ Health Check</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · หน้าต่างที่ 2"><code class="language-bash"># คลิก node-docs อีกครั้ง แล้วดูสถิติ (รวมเป็น 2 คลิก)
+curl -s -o /dev/null http://localhost:3000/node-docs
+curl -s http://localhost:3000/api/links/node-docs; echo
+curl -s 'http://localhost:3000/api/links?limit=2&amp;offset=0'; echo
+curl -s http://localhost:3000/nothere; echo
+curl -s http://localhost:3000/health; echo</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"code":"node-docs","url":"https://nodejs.org/api/","shortUrl":"http://localhost:3000/node-docs","permanent":false,"clicks":2,"createdAt":"2026-10-21T21:59:24.152Z","lastClickedAt":"2026-10-21T21:59:24.197Z"}
+{"items":[{"code":"node-docs","url":"https://nodejs.org/api/","shortUrl":"http://localhost:3000/node-docs","permanent":false,"clicks":2,"createdAt":"2026-10-21T21:59:24.152Z","lastClickedAt":"2026-10-21T21:59:24.197Z"},{"code":"express-guide","url":"https://expressjs.com/en/guide/routing.html","shortUrl":"http://localhost:3000/express-guide","permanent":true,"clicks":1,"createdAt":"2026-10-21T21:59:24.144Z","lastClickedAt":"2026-10-21T21:59:24.190Z"}],"limit":2,"offset":0}
+{"error":"NotFound","message":"ไม่พบลิงก์ code nothere"}
+{"status":"ok","uptime":1}</code></pre>
+
+<h5>9.6 ลบ (204) แล้วเปิดซ้ำ (404)</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · หน้าต่างที่ 2"><code class="language-bash"># -w '%{http_code}\n' พิมพ์เฉพาะ Status Code
+curl -s -X DELETE -o /dev/null -w '%{http_code}\n' http://localhost:3000/api/links/node-docs
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/node-docs</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>204
+404</code></pre>
+
+<h5>9.7 Rate Limit (429), Body ใหญ่เกิน (413) และ JSON เสีย (400)</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · หน้าต่างที่ 2"><code class="language-bash"># ยิงสร้างลิงก์ 12 ครั้งติดกัน
+for i in $(seq 1 12); do
+  curl -s -o /dev/null -w '%{http_code} ' -X POST http://localhost:3000/api/links \
+    -H 'Content-Type: application/json' -d '{"url":"https://example.com"}'
+done; echo
+
+# ดู Header ของคำตอบ 429
+curl -s -i -X POST http://localhost:3000/api/links \
+  -H 'Content-Type: application/json' -d '{"url":"https://example.com"}' \
+  | grep -E '^(HTTP|RateLimit|Retry-After|\{)'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>201 201 201 201 429 429 429 429 429 429 429 429 
+HTTP/1.1 429 Too Many Requests
+RateLimit: "10-in-1min"; r=0; t=60
+RateLimit-Policy: "10-in-1min"; q=10; w=60; pk=:MTJjYTE3YjQ5YWYy:
+Retry-After: 60
+{"error":"TooManyRequests","message":"สร้างลิงก์ถี่เกินไป กรุณารอ 1 นาที"}</code></pre>
+<p>ทำไมผ่านแค่ 4 ครั้งแรก? เพราะก่อนหน้านี้เราส่ง POST ไปแล้ว 6 ครั้ง (ข้อ 9.1–9.3) express-rate-limit นับทุก Request รวมถึงครั้งที่ตอบ 400 และ 409 ด้วย รวมเป็น 10 ครั้งพอดีกับ <code>RATE_LIMIT_MAX=10</code> ถ้าคุณลองช้ากว่า 60 วินาทีหลังข้อ 9.1 ตัวเลขจะต่างจากนี้ เพราะหน้าต่างเวลาเริ่มนับใหม่</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · หน้าต่างที่ 2"><code class="language-bash"># สร้าง Body ขนาดประมาณ 11 KB ด้วย Python แล้วส่ง
+# express.json() อยู่ก่อน Rate Limit จึงได้ 413 แม้โควตาจะหมดแล้ว
+python3 -c "print('{\"url\":\"https://example.com/?q=' + 'a'*11000 + '\"}')" &gt; big.json
+curl -s -X POST http://localhost:3000/api/links -H 'Content-Type: application/json' \
+  --data @big.json -w '\n%{http_code}\n'
+rm big.json
+
+# JSON ที่ไม่สมบูรณ์
+curl -s -X POST http://localhost:3000/api/links -H 'Content-Type: application/json' -d '{"url": '</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"error":"PayloadTooLarge","message":"Body ใหญ่เกิน 10kb"}
+413
+{"error":"ValidationError","message":"JSON ไม่ถูกต้อง"}</code></pre>
+
+<h5>9.8 Graceful Shutdown และข้อมูลยังอยู่หลังรีสตาร์ต</h5>
+<p>กลับไปหน้าต่างที่ 1 แล้วกด <kbd>Ctrl</kbd>+<kbd>C</kbd> (ถ้าหยุดด้วย <code>kill</code> หรือ <code>docker stop</code> ระบบจะส่ง SIGTERM และ Log จะแสดง <code>"signal":"SIGTERM"</code> แทน) บรรทัดท้ายของ Log ควรเป็นแบบนี้</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"level":30,"time":1792619964367,"pid":2436,"hostname":"DESKTOP-SOMCHAI","signal":"SIGINT","msg":"shutting down"}
+{"level":30,"time":1792619964370,"pid":2436,"hostname":"DESKTOP-SOMCHAI","msg":"server closed"}</code></pre>
+<p>จากนั้นรัน <code>npm start</code> ใหม่ แล้วดูสถิติของ <code>express-guide</code> จากหน้าต่างที่ 2 ข้อมูลยังอยู่ครบเพราะเก็บในไฟล์ <code>data/links.db</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · หน้าต่างที่ 2"><code class="language-bash">curl -s http://localhost:3000/api/links/express-guide; echo</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"code":"express-guide","url":"https://expressjs.com/en/guide/routing.html","shortUrl":"http://localhost:3000/express-guide","permanent":true,"clicks":1,"createdAt":"2026-10-21T21:59:24.144Z","lastClickedAt":"2026-10-21T21:59:24.190Z"}</code></pre>
+
+<h5>9.9 โหมดพัฒนาด้วย pino-pretty</h5>
+<p>ตอนเขียนโค้ด ให้ใช้ <code>npm run dev</code> แทน Server จะรีสตาร์ตเองเมื่อบันทึกไฟล์ และ Log จะอ่านง่ายขึ้น ลองยิง Request ที่มี Header <code>Authorization</code> เพื่อดูว่าค่าถูกซ่อนจริง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># หน้าต่างที่ 1
+npm run dev
+
+# หน้าต่างที่ 2
+curl -s -o /dev/null -H 'Authorization: Bearer secret-token-123' http://localhost:3000/nothere</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output (หน้าต่างที่ 1)"><code>&gt; url-shortener@1.0.0 dev
+&gt; node --watch --env-file=.env src/server.js | pino-pretty
+
+[21:57:33.416] INFO (1484): server started
+    port: 3000
+    dbFile: "/home/somchai/projects/url-shortener/data/links.db"
+    nodeEnv: "development"
+[21:57:34.939] WARN (1484): request completed
+    req: {
+      "id": 2,
+      "method": "GET",
+      "url": "/nothere",
+      "headers": {
+        "host": "localhost:3000",
+        "user-agent": "curl/8.5.0",
+        "accept": "*/*",
+        "authorization": "[Redacted]"
+      }
+    }
+    res: {
+      "statusCode": 404
+    }
+    responseTime: 2</code></pre>
+<p class="muted small">เวลา, PID และ <code>id</code> ของ Request บนเครื่องคุณจะต่างจากนี้ ถ้าคุณยิง Request อื่นก่อนหน้า <code>id</code> จะไม่ใช่ 2</p>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ใช้ pino-pretty เฉพาะตอนพัฒนาเท่านั้น ตอน Production ให้ Log เป็น JSON ตามเดิม เพราะระบบเก็บ Log (เช่น Loki, Elasticsearch, CloudWatch) อ่าน JSON ได้ทันที และการแปลงสีและจัดรูปแบบทำให้เปลือง CPU</p></div>
+</li>
+
+<li>
+<h4>Step 10: เตรียม Production ด้วย Docker, pm2 หรือ systemd</h4>
+<p>โค้ดพร้อมแล้ว ขั้นนี้คือการทำให้ Service รันได้ต่อเนื่องบนเครื่อง Server เลือกใช้ทางใดทางหนึ่งจาก 3 ทางนี้ ทั้ง 3 ทางส่ง SIGTERM ตอนสั่งหยุด Graceful Shutdown ที่เขียนใน Step 7 จึงทำงานได้กับทุกทาง</p>
+<div class="tbl wide"><table class="tools">
+<thead><tr><th>ทางเลือก</th><th>เหมาะกับ</th><th>รีสตาร์ตเมื่อล่ม</th><th>ข้อควรรู้</th></tr></thead>
+<tbody>
+<tr><td>Docker</td><td>Deploy ขึ้น Cloud หรือเครื่องที่มี Docker ทุกเครื่องได้ผลเหมือนกัน</td><td><code>--restart unless-stopped</code></td><td>ต้องใช้ Volume เก็บ <code>data/</code> ไม่อย่างนั้นข้อมูลหายเมื่อลบ Container</td></tr>
+<tr><td>pm2</td><td>VPS เครื่องเดียวที่ติดตั้ง Node ไว้แล้ว ต้องการคำสั่งดูสถานะและ Log ที่ใช้ง่าย</td><td>อัตโนมัติ</td><td>ต้องรัน <code>pm2 startup</code> และ <code>pm2 save</code> เพื่อให้เปิดเองหลังรีบูต</td></tr>
+<tr><td>systemd</td><td>Linux Server ที่อยากใช้เครื่องมือมาตรฐานของระบบโดยไม่ติดตั้งอะไรเพิ่ม</td><td><code>Restart=on-failure</code></td><td>ต้องระบุ Path เต็มของ <code>node</code> เพราะ systemd ไม่โหลด nvm</td></tr>
+</tbody>
+</table></div>
+
+<h5>10.1 Docker</h5>
+<p>Dockerfile นี้ใช้ Image <code>node:24-slim</code> ติดตั้งเฉพาะ Dependency ที่ใช้ตอนรันด้วย <code>npm ci --omit=dev</code> (supertest และ pino-pretty จะไม่อยู่ใน Image) และรันด้วยผู้ใช้ <code>node</code> ที่ Image เตรียมไว้ให้ ไม่ใช้ root</p>
+<pre class="code" data-env="file" data-label="Dockerfile · Dockerfile"><code class="language-dockerfile"># ใช้ Node.js 24 LTS แบบ slim (Debian ขนาดเล็ก) better-sqlite3 มีไฟล์ Prebuilt ให้ระบบนี้
+FROM node:24-slim
+
+# โหมด production: Express ทำงานเร็วขึ้น และแอปซ่อน stack trace
+ENV NODE_ENV=production
+WORKDIR /app
+
+# คัดลอกเฉพาะไฟล์รายชื่อ Package ก่อน เพื่อใช้ Layer Cache เมื่อโค้ดเปลี่ยนแต่ Package ไม่เปลี่ยน
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev &amp;&amp; npm cache clean --force
+
+# คัดลอกโค้ด แล้วสร้างโฟลเดอร์ data ให้ผู้ใช้ node เป็นเจ้าของ
+COPY src ./src
+RUN mkdir -p data &amp;&amp; chown node:node data
+
+# ไม่รันด้วย root
+USER node
+EXPOSE 3000
+
+# Exec Form: node เป็น PID 1 จึงได้รับ SIGTERM จาก docker stop โดยตรง
+CMD ["node", "src/server.js"]</code></pre>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>COPY package.json package-lock.json ./</code> ก่อน <code>COPY src</code></td><td>Docker เก็บผลของแต่ละบรรทัดเป็น Layer ถ้าแก้แค่โค้ด Layer ของ <code>npm ci</code> จะถูกใช้ซ้ำ Build ครั้งต่อไปเร็วขึ้นมาก</td></tr>
+<tr><td><code>npm ci --omit=dev</code></td><td>ติดตั้งตาม <code>package-lock.json</code> ตรงทุกเวอร์ชัน และข้าม devDependencies</td></tr>
+<tr><td><code>chown node:node data</code> และ <code>USER node</code></td><td>ผู้ใช้ <code>node</code> ต้องเขียนโฟลเดอร์ <code>data/</code> ได้ ถ้าลืม จะได้ Error <code>SqliteError: unable to open database file</code></td></tr>
+<tr><td><code>CMD ["node", "src/server.js"]</code></td><td>Exec Form ทำให้ <code>node</code> เป็น PID 1 ได้รับ SIGTERM โดยตรง ถ้าใช้ <code>CMD npm start</code> สัญญาณจะไปที่ npm และอาจไม่ถึง Node</td></tr>
+</tbody>
+</table></div>
+<p>เปิด Docker Desktop 4.95.0 (WSL 2 Backend) ให้ทำงานก่อน แล้ว Build และรันจาก Terminal ของ Ubuntu</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/url-shortener
+docker build -t url-shortener:1.0.0 .
+
+# รันแบบง่าย: ข้อมูลอยู่ใน Container และหายเมื่อ Container ถูกลบ (--rm)
+# -e NODE_ENV=production เขียนทับค่า development ที่อยู่ใน .env
+docker run --rm -p 3000:3000 --env-file .env -e NODE_ENV=production --name url-shortener url-shortener:1.0.0</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"level":30,"time":1792620501234,"pid":1,"hostname":"3f9c2a7b1d4e","port":3000,"dbFile":"/app/data/links.db","nodeEnv":"production","msg":"server started"}</code></pre>
+<p class="muted small"><code>pid</code> เป็น 1 เพราะ <code>node</code> เป็น Process แรกของ Container ส่วน <code>hostname</code> คือ ID ของ Container ซึ่งต่างกันทุกครั้ง และ <code>time</code> จะเป็นเวลาที่คุณรัน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · หน้าต่างที่ 2"><code class="language-bash">curl -s http://localhost:3000/health; echo
+# หยุด Container: Docker ส่ง SIGTERM แล้ว Log จะแสดง shutting down และ server closed
+docker stop url-shortener
+
+# รันจริงจัง: เก็บข้อมูลใน Named Volume และให้เริ่มใหม่เองเมื่อล่มหรือรีบูต
+docker run -d -p 3000:3000 --env-file .env -e NODE_ENV=production \
+  -v url-shortener-data:/app/data --restart unless-stopped \
+  --name url-shortener url-shortener:1.0.0
+docker logs -f url-shortener</code></pre>
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>คำสั่ง Docker ในข้อนี้เขียนตามเอกสารทางการของ Docker และ Image <code>node:24-slim</code> แต่ไม่ได้รันในเครื่องทดสอบของบทเรียน เพราะเครื่องทดสอบไม่มี Docker Daemon ส่วนโค้ดในทุก Step รันผ่านแล้วบน Node.js ตามที่แสดง ถ้า Build ไม่ผ่าน ให้อ่านข้อความ Error บรรทัดสุดท้ายก่อนเสมอ ส่วนใหญ่เป็นเพราะ Docker Desktop ยังไม่เปิด หรือยังไม่ได้เปิด WSL Integration ให้ Ubuntu-24.04 ใน Settings › Resources › WSL Integration</p></div>
+
+<h5>10.2 pm2</h5>
+<p>pm2 เป็น Process Manager ที่ดูแล Node.js ให้รันตลอด รีสตาร์ตเมื่อล่ม และรวม Log ไว้ให้ ไฟล์ตั้งค่าของ pm2 ต้องเป็น CommonJS จึงใช้นามสกุล <code>.cjs</code> ซึ่งเป็นไฟล์ CommonJS เพียงไฟล์เดียวของโปรเจกต์</p>
+<pre class="code" data-env="file" data-label="JavaScript (CommonJS) · ecosystem.config.cjs"><code class="language-javascript">// ไฟล์ตั้งค่า pm2 (ไฟล์นี้เป็น CommonJS เพราะ pm2 อ่านด้วย require จึงใช้นามสกุล .cjs)
+module.exports = {
+  apps: [
+    {
+      name: 'url-shortener',
+      script: 'src/server.js',
+      node_args: '--env-file=.env', // ให้ Node อ่านไฟล์ .env เอง เหมือน npm start
+      exec_mode: 'fork', // รันแบบ process เดียว
+      instances: 1, // SQLite เขียนได้ทีละ process จึงรัน 1 instance
+      autorestart: true,
+      max_memory_restart: '200M', // ใช้ RAM เกิน 200 MB ให้ restart
+      kill_timeout: 11000, // รอ Graceful Shutdown (10 วินาที) ก่อนบังคับปิด
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
+  ],
+};</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ติดตั้ง pm2 แบบ Global (Node จาก nvm อยู่ในโฟลเดอร์ของผู้ใช้ จึงไม่ต้องใช้ sudo)
+npm install -g pm2@7.0.4
+
+cd ~/projects/url-shortener
+pm2 start ecosystem.config.cjs</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[PM2] Spawning PM2 daemon with pm2_home=/home/somchai/.pm2
+[PM2] PM2 Successfully daemonized
+[PM2][WARN] Applications url-shortener not running, starting...
+[PM2] App [url-shortener] launched (1 instances)
+┌────┬──────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name             │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼──────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ url-shortener    │ default     │ 1.0.0   │ fork    │ 1963     │ 1s     │ 0    │ online    │ 0%       │ 83.4mb   │ somchai  │ disabled │
+└────┴──────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘</code></pre>
+<p class="muted small"><code>pid</code>, <code>uptime</code> และ <code>mem</code> บนเครื่องคุณจะต่างจากนี้ ตารางจริงมีสี ส่วน <code>NODE_ENV</code> จะเป็น <code>production</code> เพราะค่าใน <code>env</code> ของ pm2 ถูกตั้งก่อน และ <code>--env-file</code> ไม่เขียนทับตัวแปรที่มีอยู่แล้ว</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">pm2 status                          # แสดงตารางสถานะแบบเดียวกับด้านบน
+pm2 logs url-shortener --lines 20   # ดู Log ล่าสุด (กด Ctrl+C เพื่อออก)
+pm2 restart url-shortener           # รีสตาร์ตหลังอัปเดตโค้ด
+pm2 stop url-shortener              # หยุดชั่วคราว
+pm2 delete url-shortener            # เอาออกจากรายการของ pm2
+pm2 startup                         # พิมพ์คำสั่ง sudo ให้คัดลอกไปรัน เพื่อให้ pm2 เปิดเองหลังรีบูต
+pm2 save                            # จำรายการแอปที่รันอยู่ตอนนี้</code></pre>
+
+<h5>10.3 systemd</h5>
+<p>บน Ubuntu 24.04 ใน WSL systemd เปิดไว้เป็นค่าเริ่มต้น (ตรวจได้ที่ไฟล์ <code>/etc/wsl.conf</code> ต้องมี <code>systemd=true</code> ใต้ <code>[boot]</code>) systemd ไม่รู้จัก nvm จึงต้องหา Path เต็มของ <code>node</code> ก่อน และใช้ <code>EnvironmentFile=</code> อ่านไฟล์ <code>.env</code> แทน <code>--env-file</code> ก่อนเริ่มให้แก้ <code>NODE_ENV=development</code> ใน <code>.env</code> เป็น <code>NODE_ENV=production</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">which node</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>/home/somchai/.nvm/versions/node/v24.22.0/bin/node</code></pre>
+<pre class="code" data-env="file" data-label="INI · /etc/systemd/system/url-shortener.service"><code class="language-ini">[Unit]
+Description=URL Shortener Service (Node.js)
+After=network.target
+
+[Service]
+Type=simple
+User=somchai
+WorkingDirectory=/home/somchai/projects/url-shortener
+# อ่านค่าตั้งจาก .env (บน Server ให้แก้ NODE_ENV=production ในไฟล์นี้
+# เพราะค่าจาก EnvironmentFile จะทับค่าที่ตั้งด้วย Environment=)
+EnvironmentFile=/home/somchai/projects/url-shortener/.env
+ExecStart=/home/somchai/.nvm/versions/node/v24.22.0/bin/node src/server.js
+# ล่มเมื่อไรให้เริ่มใหม่ใน 5 วินาที
+Restart=on-failure
+RestartSec=5
+# รอ Graceful Shutdown (แอปตั้ง Timeout ไว้ 10 วินาที)
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างไฟล์ Unit ด้วย nano แล้ววางเนื้อหาด้านบน
+sudo nano /etc/systemd/system/url-shortener.service
+
+sudo systemctl daemon-reload                    # ให้ systemd อ่านไฟล์ Unit ใหม่
+sudo systemctl enable --now url-shortener       # เปิดใช้งานและเริ่มทันที
+systemctl status url-shortener --no-pager       # ดูสถานะ ต้องเห็น active (running)
+journalctl -u url-shortener -f                  # ดู Log สด
+sudo systemctl stop url-shortener               # หยุด (ส่ง SIGTERM)</code></pre>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ถ้าเปลี่ยนเวอร์ชัน Node ด้วย <code>nvm install</code> Path ใน <code>ExecStart</code> จะเปลี่ยนตาม ต้องแก้ไฟล์ Unit แล้วรัน <code>sudo systemctl daemon-reload</code> ใหม่ และต้อง <code>npm rebuild better-sqlite3</code> ด้วย เพราะเป็น Native Module ที่ผูกกับเวอร์ชันของ Node</p></div>
+</li>
+
+<li>
+<h4>Step 11: เขียน README และ Push ขึ้น GitHub</h4>
+<p>README คือหน้าแรกที่ผู้สัมภาษณ์งานเห็นเมื่อเปิด Repository ต้องบอกให้ได้ภายในไม่กี่วินาทีว่าโปรเจกต์ทำอะไร ใช้อะไรสร้าง และรันอย่างไร ใช้ Template ด้านล่างได้ทันที เปลี่ยน <code>&lt;your-username&gt;</code> เป็นชื่อบัญชี GitHub ของคุณ</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Markdown · README.md"><code class="language-markdown"># URL Shortener Service
+
+บริการย่อลิงก์ (REST API) เขียนด้วย Node.js 24 LTS + Express 5 เก็บข้อมูลใน SQLite
+
+## Features
+
+- สร้างลิงก์สั้นแบบสุ่ม 7 ตัวอักษร หรือตั้งชื่อย่อเอง (alias)
+- Redirect ด้วย 302 (ค่าเริ่มต้น) หรือ 301 (ลิงก์ถาวร) และนับจำนวนคลิก
+- ตรวจ Input ด้วย zod 4 และตอบ Error เป็น JSON รูปแบบเดียวกันทุกที่
+- SQLite ผ่าน better-sqlite3 ใช้ Prepared Statement ทุกคำสั่ง
+- helmet, Rate Limit ที่ POST /api/links, จำกัดขนาด Body 10kb
+- Log แบบ JSON ด้วย pino และซ่อน Header ที่เป็นความลับ
+- Graceful Shutdown เมื่อได้รับ SIGINT / SIGTERM
+- Test 24 กรณีด้วย node:test + supertest
+
+## Tech Stack
+
+Node.js 24 LTS, Express 5.3.0, zod 4.6.7, better-sqlite3 13.0.3, helmet 8.3.0,
+express-rate-limit 8.7.1, pino 10.4.0, pino-http 11.0.0, supertest 7.3.1
+
+## Getting Started
+
+```bash
+git clone https://github.com/&lt;your-username&gt;/url-shortener.git
+cd url-shortener
+nvm use            # อ่านเวอร์ชันจากไฟล์ .nvmrc
+npm ci
+cp .env.example .env
+npm run dev        # โหมดพัฒนา (Log สวยด้วย pino-pretty)
+```
+
+## Environment Variables
+
+| ชื่อ | ค่าเริ่มต้น | ความหมาย |
+|---|---|---|
+| NODE_ENV | development | development / production / test |
+| PORT | 3000 | พอร์ตของ Server |
+| BASE_URL | http://localhost:3000 | ใช้สร้าง shortUrl |
+| DB_FILE | data/links.db | ไฟล์ฐานข้อมูล SQLite |
+| LOG_LEVEL | info | fatal / error / warn / info / debug / trace / silent |
+| RATE_LIMIT_MAX | 10 | จำนวนครั้งที่สร้างลิงก์ได้ต่อนาทีต่อ IP |
+
+## API Endpoints
+
+| Method | Path | ผลลัพธ์ |
+|---|---|---|
+| POST | /api/links | 201 สร้างลิงก์, 400 ข้อมูลผิด, 409 ชื่อย่อซ้ำ, 429 ถี่เกินไป |
+| GET | /api/links?limit=20&amp;offset=0 | 200 รายการลิงก์ |
+| GET | /api/links/:code | 200 สถิติ, 404 ไม่พบ |
+| DELETE | /api/links/:code | 204 ลบแล้ว, 404 ไม่พบ |
+| GET | /:code | 302 หรือ 301 ไปยัง URL ต้นฉบับ, 404 ไม่พบ |
+| GET | /health | 200 สถานะ Server |
+
+## Examples
+
+```bash
+curl -s -X POST http://localhost:3000/api/links \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://nodejs.org/en/learn"}'
+
+curl -i http://localhost:3000/&lt;code&gt;
+curl -s http://localhost:3000/api/links/&lt;code&gt;
+```
+
+## Tests
+
+```bash
+npm test
+```
+
+## Docker
+
+```bash
+docker build -t url-shortener:1.0.0 .
+docker run --rm -p 3000:3000 --env-file .env --name url-shortener url-shortener:1.0.0
+```
+
+## License
+
+MIT</code></pre>
+<p>จากนั้น Push ขึ้น GitHub ตามขั้นตอนที่เรียนในหัวข้อ <a data-t="17"></a> สร้าง Repository เปล่าชื่อ <code>url-shortener</code> บน GitHub ก่อน (ไม่ต้องติ๊กสร้าง README เพราะเรามีแล้ว)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/url-shortener
+git init -b main
+git add .
+# ตรวจก่อน commit: ต้องไม่มี .env, data/ และ node_modules/
+git status --short</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>A  .dockerignore
+A  .env.example
+A  .gitignore
+A  .nvmrc
+A  Dockerfile
+A  README.md
+A  ecosystem.config.cjs
+A  package-lock.json
+A  package.json
+A  src/app.js
+A  src/config.js
+A  src/db.js
+A  src/lib/code.js
+A  src/middleware/error-handler.js
+A  src/routes/links.js
+A  src/routes/redirect.js
+A  src/schemas.js
+A  src/server.js
+A  test/code.test.js
+A  test/links.api.test.js</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git commit -m "feat: URL shortener service with Express 5, zod, SQLite and tests"
+git remote add origin https://github.com/&lt;your-username&gt;/url-shortener.git
+git push -u origin main</code></pre>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ใส่ผล <code>npm test</code> (24 tests pass) และตัวอย่าง curl ลงใน README ผู้อ่านจะเห็นว่าโปรเจกต์ทำงานจริง</li>
+<li>ตั้ง Description และ Topics ของ Repository เช่น <code>nodejs</code>, <code>express</code>, <code>sqlite</code>, <code>rest-api</code> เพื่อให้ค้นเจอง่าย</li>
+<li>Commit ทีละเรื่องด้วยข้อความที่บอกว่าเปลี่ยนอะไร เช่น <code>feat: add rate limit</code> หรือ <code>test: cover 409 conflict</code> ประวัติ Commit ที่อ่านรู้เรื่องคือหลักฐานว่าคุณทำงานเป็นระบบ</li>
+</ul></div>
+</li>
+
+</ol>
+
+<h4>ไอเดียต่อยอด</h4>
+<p>เมื่อทำครบทุก Step แล้ว ลองเพิ่มฟีเจอร์เหล่านี้ทีละข้อ แต่ละข้อฝึกทักษะที่ใช้ในงาน Backend จริง</p>
+<ol>
+  <li><strong>GitHub Actions:</strong> รัน <code>npm ci</code> และ <code>npm test</code> อัตโนมัติทุกครั้งที่ Push บน Node 22, 24 และ 26 พร้อมกัน โดยสร้างไฟล์ด้านล่าง (ตรวจเวอร์ชันล่าสุดของ <code>actions/checkout</code> และ <code>actions/setup-node</code> ที่ GitHub Marketplace ก่อนใช้)
+<pre class="code" data-env="file" data-label="YAML · .github/workflows/test.yml"><code class="language-yaml">name: test
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        node: [22, 24, 26]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      # ติดตั้งตาม package-lock.json แล้วรัน Test
+      - run: npm ci
+      - run: npm test</code></pre></li>
+  <li><strong>วันหมดอายุของลิงก์:</strong> เพิ่มคอลัมน์ <code>expires_at</code> และฟิลด์ <code>expiresInDays</code> ใน Body ลิงก์ที่หมดอายุแล้วตอบ 410 Gone</li>
+  <li><strong>API Key:</strong> ให้ <code>POST</code> และ <code>DELETE</code> ต้องส่ง Header <code>Authorization: Bearer ...</code> อ่าน Key จาก Environment Variable และเปรียบเทียบด้วย <code>crypto.timingSafeEqual</code></li>
+  <li><strong>สถิติละเอียดขึ้น:</strong> สร้างตาราง <code>clicks</code> เก็บเวลา Referer และ User-Agent ของแต่ละคลิก แล้วทำ Endpoint สรุปจำนวนคลิกรายวันด้วย SQL <code>GROUP BY date(clicked_at)</code></li>
+  <li><strong>QR Code:</strong> เพิ่ม <code>GET /api/links/:code/qr</code> ที่คืนรูป PNG ของ shortUrl (ศึกษา Package สร้าง QR Code และ pin เวอร์ชันที่ทดสอบแล้ว)</li>
+  <li><strong>หน้าเว็บ:</strong> ทำหน้า HTML ง่าย ๆ ที่มีช่องกรอก URL และเรียก API ด้วย <code>fetch</code> ตามที่เรียนในหัวข้อ <a data-t="4"></a> แล้วตั้ง Content-Security-Policy ของ helmet ให้รองรับ</li>
+  <li><strong>ย้ายเป็น TypeScript:</strong> ใช้ <code>z.infer</code> สร้าง Type จาก Schema และใส่ Type ให้ Repository ตามที่เรียนในหัวข้อ <a data-t="15"></a></li>
+  <li><strong>Cache ลิงก์ยอดนิยม:</strong> เก็บผลการค้นหา code ที่ถูกเปิดบ่อยไว้ใน <code>Map</code> พร้อมจำกัดขนาด แล้ววัดความเร็วก่อนและหลังด้วยเครื่องมือยิงโหลด เช่น autocannon</li>
+</ol>
+
+<h3 id="s13-4-cheat">Cheat Sheet</h3>
+<p>สรุปคำสั่งและ Syntax ที่ใช้บ่อยที่สุดของหัวข้อนี้ แบ่งตามเรื่อง เปิดหน้านี้ค้างไว้ระหว่างเขียนโค้ดได้เลย ทุกตัวอย่างใช้ ES Modules และเวอร์ชันเดียวกับในบทเรียน</p>
+
+<h4>nvm และ Node CLI</h4>
+<div class="tbl"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>nvm install --lts</code></td><td>ติดตั้ง Node.js รุ่น LTS ล่าสุด</td><td><code>nvm install --lts &amp;&amp; node -v</code></td></tr>
+<tr><td><code>nvm use</code></td><td>สลับไปใช้เวอร์ชันที่เขียนใน <code>.nvmrc</code></td><td><code>echo 24 &gt; .nvmrc &amp;&amp; nvm use</code></td></tr>
+<tr><td><code>nvm ls</code></td><td>ดูเวอร์ชันที่ติดตั้งไว้ทั้งหมด</td><td><code>nvm ls</code></td></tr>
+<tr><td><code>node file.js</code></td><td>รันไฟล์ JavaScript</td><td><code>node src/server.js</code></td></tr>
+<tr><td><code>node -e</code> / <code>node -p</code></td><td>รันโค้ดสั้น ๆ (<code>-p</code> พิมพ์ผลลัพธ์ให้ด้วย)</td><td><code>node -p "process.version"</code></td></tr>
+<tr><td><code>node --watch</code></td><td>รีสตาร์ตเองเมื่อไฟล์เปลี่ยน ใช้แทน nodemon ได้</td><td><code>node --watch src/server.js</code></td></tr>
+<tr><td><code>node --env-file=.env</code></td><td>โหลดตัวแปรจากไฟล์ .env (Node 20.6+) ไม่เขียนทับตัวแปรที่มีอยู่แล้ว</td><td><code>node --env-file=.env src/server.js</code></td></tr>
+<tr><td><code>node --inspect</code> / <code>--inspect-brk</code></td><td>เปิด Debugger (<code>-brk</code> หยุดที่บรรทัดแรก) แล้วต่อจาก <code>chrome://inspect</code> หรือ VS Code</td><td><code>node --inspect-brk src/server.js</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>npm</h4>
+<div class="tbl"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>npm init -y</code> + <code>npm pkg set</code></td><td>สร้าง package.json และตั้งค่าโดยไม่ต้องเปิดไฟล์</td><td><code>npm init -y &amp;&amp; npm pkg set type=module</code></td></tr>
+<tr><td><code>npm install pkg@ver --save-exact</code></td><td>ติดตั้งแบบ pin เวอร์ชันตรงตัว ไม่มี <code>^</code></td><td><code>npm install --save-exact express@5.3.0</code></td></tr>
+<tr><td><code>npm install -D</code></td><td>ติดตั้งเป็น devDependency ใช้ตอนพัฒนาและ Test</td><td><code>npm install -D supertest@7.3.1</code></td></tr>
+<tr><td><code>npm ci</code></td><td>ติดตั้งตาม package-lock.json ตรงทุกตัว ลบ node_modules เดิมก่อน ใช้ใน CI และ Docker</td><td><code>npm ci --omit=dev</code></td></tr>
+<tr><td><code>npm run &lt;script&gt;</code></td><td>รัน Script ใน package.json (<code>start</code> และ <code>test</code> ไม่ต้องพิมพ์ <code>run</code>)</td><td><code>npm run dev</code></td></tr>
+<tr><td><code>npm ls</code> / <code>npm outdated</code></td><td>ดู Package ที่ติดตั้ง และตัวที่มีเวอร์ชันใหม่กว่า</td><td><code>npm ls --depth=0</code></td></tr>
+<tr><td><code>npx &lt;bin&gt;</code></td><td>รันคำสั่งจาก Package ในโปรเจกต์ หรือดาวน์โหลดมารันครั้งเดียว</td><td><code>npx pino-pretty &lt; app.log</code></td></tr>
+<tr><td><code>^1.2.3</code> / <code>~1.2.3</code> / <code>1.2.3</code></td><td>Semver Range: ยอม Minor และ Patch / ยอมแค่ Patch / ตรงตัวเท่านั้น</td><td><code>"zod": "4.6.7"</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>Modules</h4>
+<div class="tbl"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>"type": "module"</code></td><td>ให้ไฟล์ .js ทั้งโปรเจกต์เป็น ES Modules</td><td><code>npm pkg set type=module</code></td></tr>
+<tr><td><code>export</code> / <code>export default</code></td><td>ส่งออก Named Export หรือ Default Export</td><td><code>export function openDb(file) {}</code></td></tr>
+<tr><td><code>import { a } from './x.js'</code></td><td>นำเข้า ต้องใส่นามสกุล <code>.js</code> เสมอใน Relative Import</td><td><code>import { createApp } from './app.js';</code></td></tr>
+<tr><td><code>import x from 'node:mod'</code></td><td>นำเข้า Core Module ด้วย Prefix <code>node:</code></td><td><code>import path from 'node:path';</code></td></tr>
+<tr><td><code>import.meta.dirname</code></td><td>โฟลเดอร์ของไฟล์ปัจจุบัน ใช้แทน <code>__dirname</code> ใน ESM (Node 20.11+)</td><td><code>path.join(import.meta.dirname, 'data')</code></td></tr>
+<tr><td><code>await import()</code></td><td>Dynamic Import โหลด Module ตอนรันจริง และเป็นวิธีที่ CommonJS ใช้โหลด ESM</td><td><code>const m = await import('./plugin.js');</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>Core Modules และ process</h4>
+<div class="tbl"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>readFile</code> / <code>writeFile</code> จาก <code>node:fs/promises</code></td><td>อ่านและเขียนไฟล์แบบ Promise</td><td><code>const txt = await readFile(file, 'utf8');</code></td></tr>
+<tr><td><code>mkdir(dir, { recursive: true })</code></td><td>สร้างโฟลเดอร์ซ้อนกันได้ ไม่ Error ถ้ามีอยู่แล้ว</td><td><code>await mkdir('data/logs', { recursive: true });</code></td></tr>
+<tr><td><code>path.join</code> / <code>path.resolve</code></td><td>ต่อ Path ให้ถูกต้อง / แปลงเป็น Absolute Path</td><td><code>path.resolve(import.meta.dirname, '..')</code></td></tr>
+<tr><td><code>crypto.randomUUID()</code> / <code>randomInt(n)</code></td><td>สร้าง UUID / สุ่มเลขเต็ม 0 ถึง n-1 แบบปลอดภัย</td><td><code>ALPHABET[randomInt(62)]</code></td></tr>
+<tr><td><code>createHash('sha256')</code></td><td>คำนวณ Hash ของข้อมูล</td><td><code>createHash('sha256').update(buf).digest('hex')</code></td></tr>
+<tr><td><code>new URL()</code> / <code>searchParams</code></td><td>แยกส่วนของ URL และอ่าน Query (URL ผิดจะ throw <code>ERR_INVALID_URL</code>)</td><td><code>new URL(req.url, 'http://localhost').searchParams.get('q')</code></td></tr>
+<tr><td><code>process.env.X</code></td><td>อ่าน Environment Variable (เป็น String เสมอ)</td><td><code>Number(process.env.PORT ?? 3000)</code></td></tr>
+<tr><td><code>util.parseArgs</code></td><td>แยก Argument ของ CLI เป็น Option และ Positional</td><td><code>parseArgs({ options: { name: { type: 'string' } } })</code></td></tr>
+<tr><td><code>process.exitCode = 1</code> / <code>process.exit(1)</code></td><td>ตั้ง Exit Code ให้ออกเมื่องานเสร็จ / ออกทันที</td><td><code>console.error('bad config'); process.exit(1);</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>Async และ Event Loop</h4>
+<div class="tbl"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>Promise.all</code></td><td>รันหลายงานพร้อมกัน รอครบทุกตัว ตัวใดพังทั้งชุดพัง</td><td><code>const [a, b] = await Promise.all([getA(), getB()]);</code></td></tr>
+<tr><td><code>Promise.allSettled</code></td><td>รอครบทุกตัว ได้ผลทั้งสำเร็จและล้มเหลว</td><td><code>results.filter((r) =&gt; r.status === 'rejected')</code></td></tr>
+<tr><td><code>setTimeout</code> จาก <code>node:timers/promises</code></td><td>รอแบบ await ได้</td><td><code>await setTimeout(300);</code></td></tr>
+<tr><td><code>AbortSignal.timeout(ms)</code></td><td>ยกเลิกงานที่ใช้เวลานานเกิน</td><td><code>await fetch(url, { signal: AbortSignal.timeout(5000) })</code></td></tr>
+<tr><td><code>new Error(msg, { cause })</code></td><td>ห่อ Error เดิมไว้ใน Error ใหม่โดยไม่ทิ้งต้นเหตุ</td><td><code>throw new Error('load failed', { cause: err });</code></td></tr>
+<tr><td><code>process.on('unhandledRejection')</code></td><td>บันทึก Log ของ Promise ที่ไม่มีใคร catch แล้วออกจากโปรแกรม</td><td><code>process.on('unhandledRejection', (e) =&gt; { log(e); process.exit(1); })</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>HTTP และ Express 5</h4>
+<div class="tbl"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>http.createServer((req, res) =&gt; {})</code></td><td>สร้าง HTTP Server ด้วย Core Module</td><td><code>res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{}');</code></td></tr>
+<tr><td><code>express.Router()</code></td><td>แยก Route เป็นไฟล์ แล้ว Mount ที่ Path</td><td><code>app.use('/api/links', linksRouter)</code></td></tr>
+<tr><td><code>express.json({ limit })</code></td><td>อ่าน JSON Body และจำกัดขนาด (เกินได้ 413)</td><td><code>app.use(express.json({ limit: '10kb' }))</code></td></tr>
+<tr><td><code>req.params</code> / <code>req.query</code> / <code>req.body</code></td><td>ค่าจาก Path / Query String / Body</td><td><code>router.get('/:code', (req, res) =&gt; res.json(req.params))</code></td></tr>
+<tr><td><code>res.status().location().json()</code></td><td>ตอบพร้อม Status Code และ Header Location</td><td><code>res.status(201).location('/api/links/abc').json(link)</code></td></tr>
+<tr><td><code>res.redirect(status, url)</code></td><td>Redirect ด้วย 301 หรือ 302</td><td><code>res.redirect(302, 'https://nodejs.org')</code></td></tr>
+<tr><td><code>(err, req, res, next) =&gt; {}</code></td><td>Error-handling Middleware ต้องมี 4 พารามิเตอร์และวางท้ายสุด</td><td><code>app.use((err, req, res, next) =&gt; res.status(500).json({ error: 'InternalServerError' }))</code></td></tr>
+<tr><td><code>'/*splat'</code> / <code>'{/:param}'</code></td><td>Path Syntax ของ Express 5 แทน <code>'*'</code> และ Parameter แบบไม่บังคับ</td><td><code>app.get('/files/*splat', handler)</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>Testing และ Debugging</h4>
+<div class="tbl"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>node --test --test-reporter=spec</code></td><td>รัน Test ด้วย Test Runner ที่มากับ Node</td><td><code>node --test --test-reporter=spec 'test/*.test.js'</code></td></tr>
+<tr><td><code>describe</code> / <code>it</code> / <code>beforeEach</code></td><td>จัดกลุ่ม Test และเตรียมข้อมูลก่อนทุก Test</td><td><code>beforeEach(() =&gt; { db = openDb(':memory:'); })</code></td></tr>
+<tr><td><code>assert.equal</code> / <code>deepEqual</code> / <code>match</code></td><td>ตรวจค่า (จาก <code>node:assert/strict</code>)</td><td><code>assert.deepEqual(res.body.items.map((i) =&gt; i.code), ['ccc', 'bbb'])</code></td></tr>
+<tr><td><code>assert.rejects</code></td><td>ตรวจว่า async function throw Error ที่คาดไว้</td><td><code>await assert.rejects(load('x'), { name: 'NotFoundError' })</code></td></tr>
+<tr><td><code>request(app).get(path)</code></td><td>supertest ยิง Request ใส่ app โดยไม่ต้อง listen</td><td><code>const res = await request(app).get('/health');</code></td></tr>
+<tr><td><code>debugger;</code></td><td>หยุดโปรแกรมที่บรรทัดนี้เมื่อเปิด Debugger อยู่</td><td><code>debugger; // ดูค่า input ตรงนี้</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>Security และ Logging</h4>
+<div class="tbl"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>helmet()</code></td><td>ใส่ Security Header มาตรฐานและลบ X-Powered-By</td><td><code>app.use(helmet())</code></td></tr>
+<tr><td><code>rateLimit({ windowMs, limit })</code></td><td>จำกัดจำนวน Request ต่อ IP เกินได้ 429</td><td><code>rateLimit({ windowMs: 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false })</code></td></tr>
+<tr><td><code>schema.safeParse(data)</code></td><td>ตรวจข้อมูลด้วย zod โดยไม่ throw</td><td><code>if (!r.success) return res.status(400).json(z.flattenError(r.error))</code></td></tr>
+<tr><td><code>db.prepare('... ?').get(v)</code></td><td>Prepared Statement กัน SQL Injection</td><td><code>db.prepare('SELECT * FROM links WHERE code = ?').get(code)</code></td></tr>
+<tr><td><code>npm audit</code> / <code>npm audit fix</code></td><td>ตรวจและแก้ช่องโหว่ใน Dependency (อย่าใช้ <code>--force</code> โดยไม่อ่าน)</td><td><code>npm audit --omit=dev</code></td></tr>
+<tr><td><code>pino({ level })</code> / <code>pinoHttp({ logger, redact })</code></td><td>Log แบบ JSON และซ่อนค่าลับ</td><td><code>pinoHttp({ logger, redact: ['req.headers.authorization'] })</code></td></tr>
+<tr><td><code>req.log.info(obj, msg)</code></td><td>เขียน Log ที่ผูกกับ Request นั้น</td><td><code>req.log.info({ code }, 'link created')</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>Streams และ worker_threads</h4>
+<div class="tbl"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>pipeline(a, b, c)</code> จาก <code>node:stream/promises</code></td><td>ต่อ Stream พร้อมจัดการ Backpressure, Error และการปิด</td><td><code>await pipeline(createReadStream(src), createGzip(), createWriteStream(dst))</code></td></tr>
+<tr><td><code>readline.createInterface</code> + <code>for await</code></td><td>อ่านไฟล์ใหญ่ทีละบรรทัดโดยใช้หน่วยความจำคงที่</td><td><code>for await (const line of rl) count++;</code></td></tr>
+<tr><td><code>write()</code> คืน <code>false</code> + <code>once(stream, 'drain')</code></td><td>รอให้ Buffer ว่างก่อนเขียนต่อ (Backpressure)</td><td><code>if (!ws.write(line)) await once(ws, 'drain');</code></td></tr>
+<tr><td><code>new Transform({ transform })</code></td><td>สร้าง Stream ที่แปลงข้อมูลระหว่างทาง</td><td><code>callback(null, chunk.toString().toUpperCase())</code></td></tr>
+<tr><td><code>new Worker(new URL('./w.js', import.meta.url))</code></td><td>ย้ายงาน CPU หนักไปอีก Thread ให้ Event Loop ไม่ค้าง</td><td><code>new Worker(new URL('./primes-worker.js', import.meta.url), { workerData: { limit: 5_000_000 } })</code></td></tr>
+<tr><td><code>parentPort.postMessage()</code></td><td>Worker ส่งผลลัพธ์กลับไป Thread หลัก</td><td><code>parentPort.postMessage({ count })</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>Production: pm2, systemd และ Docker</h4>
+<div class="tbl"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>process.on('SIGTERM', shutdown)</code></td><td>Graceful Shutdown: หยุดรับงานใหม่ ปิด DB แล้วออก</td><td><code>server.close(() =&gt; { db.close(); process.exit(0); })</code></td></tr>
+<tr><td><code>pm2 start</code> / <code>status</code> / <code>logs</code></td><td>รันแอปด้วย pm2 ดูสถานะและ Log</td><td><code>pm2 start ecosystem.config.cjs &amp;&amp; pm2 logs url-shortener</code></td></tr>
+<tr><td><code>pm2 startup</code> + <code>pm2 save</code></td><td>ให้ pm2 เปิดแอปเองหลังรีบูตเครื่อง</td><td><code>pm2 startup &amp;&amp; pm2 save</code></td></tr>
+<tr><td><code>systemctl enable --now</code></td><td>เปิดใช้ systemd Service และเริ่มทันที</td><td><code>sudo systemctl enable --now url-shortener</code></td></tr>
+<tr><td><code>journalctl -u &lt;name&gt; -f</code></td><td>ดู Log ของ systemd Service แบบสด</td><td><code>journalctl -u url-shortener -f</code></td></tr>
+<tr><td><code>docker build -t name:tag .</code></td><td>สร้าง Image จาก Dockerfile</td><td><code>docker build -t url-shortener:1.0.0 .</code></td></tr>
+<tr><td><code>docker run -p --env-file -v</code></td><td>รัน Container เปิดพอร์ต อ่าน .env และผูก Volume</td><td><code>docker run -d -p 3000:3000 --env-file .env -v url-shortener-data:/app/data url-shortener:1.0.0</code></td></tr>
+<tr><td><code>docker logs -f</code> / <code>docker stop</code></td><td>ดู Log ของ Container / หยุดด้วย SIGTERM</td><td><code>docker stop url-shortener</code></td></tr>
+</tbody>
+</table></div>
+
+<h3 id="s13-4-interview">Interview Questions</h3>
+<p>คำถาม 5 ข้อนี้ผสมระดับ Junior และ Mid-level ที่พบบ่อยในการสัมภาษณ์ตำแหน่ง Backend Developer และ Full-stack Developer ที่ใช้ Node.js ลองตอบด้วยตัวเองออกเสียงก่อน แล้วค่อยเปิดดูแนวคำตอบ ในห้องสัมภาษณ์จริง ให้อ้างถึงโปรเจกต์ URL Shortener ของคุณเป็นตัวอย่างทุกครั้งที่ทำได้</p>
+
+<details class="iq"><summary>1. Node.js ทำงานบน Thread เดียว แล้วรับ Request พร้อมกันหลายพันตัวได้อย่างไร และงานแบบไหนไม่เหมาะกับ Node.js (Junior)</summary><div>
+<p><strong>แนวคำตอบ:</strong> โค้ด JavaScript ของเรารันบน Main Thread เดียวจริง แต่งาน I/O เช่น อ่านไฟล์ คุยกับฐานข้อมูล หรือรอ Network ไม่ได้ทำบน Thread นั้น Node.js ส่งงานเหล่านี้ให้ libuv ซึ่งใช้กลไกของระบบปฏิบัติการ (epoll บน Linux) และ Thread Pool ของตัวเองทำแทน ระหว่างรอ Main Thread ว่างไปรับ Request อื่นได้ เมื่องาน I/O เสร็จ Callback หรือ Promise จะถูกนำกลับมาทำต่อผ่าน Event Loop นี่คือ Non-blocking I/O</p>
+<p>จุดสำคัญที่ผู้สัมภาษณ์อยากได้ยิน:</p>
+<ul>
+<li>Node.js = V8 (รัน JavaScript) + libuv (Event Loop และ Async I/O) + Core Modules</li>
+<li>เหมาะกับงานที่ส่วนใหญ่เป็นการรอ I/O เช่น REST API, Real-time (WebSocket), API Gateway หรือ BFF และ CLI</li>
+<li>ไม่เหมาะกับงานคำนวณหนักต่อเนื่อง (เข้ารหัสวิดีโอ คำนวณตัวเลขจำนวนมาก) บน Main Thread เพราะระหว่างคำนวณ Event Loop จะค้าง ทุก Request ต้องรอ ถ้าจำเป็นต้องทำ ให้ย้ายไป <code>worker_threads</code> หรือแยกเป็น Service อื่น</li>
+</ul>
+<p>ตัวอย่างสั้น ๆ ที่ใช้อธิบาย: ใน URL Shortener ทุก Request ใช้เวลาเพียงไม่กี่มิลลิวินาที เพราะงานหลักคือคำสั่ง SQL สั้น ๆ Node.js ตัวเดียวจึงรับโหลดได้มาก แต่ถ้าเพิ่มฟีเจอร์ย่อรูปภาพขนาดใหญ่ใน Handler โดยตรง Request อื่นทั้งหมดจะช้าลงทันที</p>
+</div></details>
+
+<details class="iq"><summary>2. Middleware ใน Express คืออะไร ทำไมลำดับของ app.use() ถึงสำคัญ และ Express 5 จัดการ Error จาก async Handler ต่างจาก Express 4 อย่างไร (Junior–Mid)</summary><div>
+<p><strong>แนวคำตอบ:</strong> Middleware คือฟังก์ชันรูปแบบ <code>(req, res, next)</code> ที่ Request วิ่งผ่านเรียงตามลำดับที่ลงทะเบียนไว้ แต่ละตัวทำได้ 3 อย่าง: แก้ <code>req</code>/<code>res</code> แล้วเรียก <code>next()</code> ให้ตัวถัดไปทำต่อ, ตอบกลับเลยแล้วจบ หรือเรียก <code>next(err)</code> เพื่อข้ามไปยัง Error-handling Middleware ที่มี 4 พารามิเตอร์ <code>(err, req, res, next)</code></p>
+<p>ลำดับสำคัญเพราะ Express ทำงานจากบนลงล่าง ตัวอย่างจากโปรเจกต์: pino-http ต้องอยู่บนสุดเพื่อ Log ทุก Request, <code>express.json()</code> ต้องอยู่ก่อน Route ไม่อย่างนั้น <code>req.body</code> เป็น <code>undefined</code>, Route <code>/:code</code> ต้องอยู่หลัง <code>/health</code> ไม่อย่างนั้นจะจับ <code>/health</code> ไปเป็น code และ 404 Handler กับ Error Handler ต้องอยู่ท้ายสุด</p>
+<p>เรื่อง async: ใน Express 4 ถ้า async Handler throw หรือ Promise ถูก reject Express ไม่รู้ ต้องเขียน <code>try/catch</code> แล้วเรียก <code>next(err)</code> เอง หรือใช้ Package เสริม ไม่อย่างนั้น Request ค้างและเกิด Unhandled Rejection ส่วน Express 5 จับ Promise ที่ reject แล้วส่งให้ <code>next(err)</code> อัตโนมัติ โค้ดจึงสั้นลงมาก</p>
+<pre class="code" data-env="file" data-label="JavaScript · ตัวอย่างใน Express 5"><code class="language-javascript">// Express 5: Error จาก await ถูกส่งไป Error Handler เอง ไม่ต้อง try/catch
+router.get('/:code', async (req, res) =&gt; {
+  const link = await repo.findByCodeAsync(req.params.code);
+  if (!link) throw new HttpError(404, 'NotFound', 'ไม่พบลิงก์');
+  res.json(link);
+});</code></pre>
+<p>คะแนนพิเศษถ้าพูดถึงการเปลี่ยนแปลงอื่นของ Express 5 เช่น Path แบบ <code>'*'</code> ต้องเขียนเป็น <code>'/*splat'</code> และ <code>req.query</code> เป็น Getter ที่แก้ค่าตรง ๆ ไม่ได้</p>
+</div></details>
+
+<details class="iq"><summary>3. มี Endpoint หนึ่งทำงานหนักจน Server ทั้งตัวตอบช้า คุณจะหาสาเหตุและแก้อย่างไร (Mid)</summary><div>
+<p><strong>แนวคำตอบ:</strong> ผู้สมัครที่ดีจะตอบเป็นขั้นตอน ไม่เดาทันที</p>
+<ol>
+<li><strong>ยืนยันอาการ:</strong> ดู Log ของ pino ว่า <code>responseTime</code> สูงขึ้นทุก Endpoint หรือเฉพาะตัวเดียว ถ้า Endpoint อื่นที่ปกติเร็วก็ช้าตามไปด้วย แปลว่า Event Loop ถูก Block</li>
+<li><strong>วัดผล:</strong> ใช้ <code>perf_hooks.monitorEventLoopDelay()</code> ดูความหน่วงของ Event Loop หรือรันด้วย <code>node --inspect</code> แล้วอัด CPU Profile ใน Chrome DevTools ดูว่าฟังก์ชันไหนกิน CPU</li>
+<li><strong>แก้ตามสาเหตุ:</strong>
+<ul>
+<li>ใช้ API แบบ Sync ใน Handler เช่น <code>readFileSync</code> หรือ <code>crypto.pbkdf2Sync</code> ให้เปลี่ยนเป็นแบบ Async</li>
+<li>อ่านไฟล์หรือ Body ขนาดใหญ่ทั้งก้อน ให้เปลี่ยนเป็น Stream ด้วย <code>pipeline()</code></li>
+<li>JSON ขนาดใหญ่มาก ให้แบ่งหน้า (Pagination) เหมือน <code>limit</code>/<code>offset</code> ในโปรเจกต์</li>
+<li>งาน CPU จริง ๆ ให้ย้ายไป <code>worker_threads</code> (หรือ Pool ของ Worker) หรือส่งเข้า Queue ให้ Service อื่นทำแล้วตอบ 202 Accepted</li>
+<li>Regex ที่เขียนไม่ดีอาจใช้เวลานานมากกับ Input บางแบบ (ReDoS) ให้จำกัดความยาว Input ก่อนตรวจ</li>
+</ul></li>
+<li><strong>ป้องกันซ้ำ:</strong> ตั้ง Alert ที่ Event Loop Delay และเพิ่ม Load Test ใน CI</li>
+</ol>
+<p>คำตอบที่อ่อนคือ "เพิ่ม Server" อย่างเดียว เพราะถ้า Event Loop ถูก Block ทุก Instance ก็จะค้างแบบเดียวกัน</p>
+</div></details>
+
+<details class="iq"><summary>4. Graceful Shutdown คืออะไร ทำไม Service ที่รันใน Docker หรือ Kubernetes ต้องมี และเขียนอย่างไร (Mid)</summary><div>
+<p><strong>แนวคำตอบ:</strong> Graceful Shutdown คือการปิดโปรแกรมแบบไม่ทิ้งงานค้าง เมื่อได้รับสัญญาณ SIGTERM (Docker, Kubernetes, systemd และ pm2 ส่งสัญญาณนี้ตอนสั่งหยุดหรือ Deploy เวอร์ชันใหม่) โปรแกรมต้อง:</p>
+<ol>
+<li>หยุดรับ Connection ใหม่ด้วย <code>server.close()</code></li>
+<li>รอ Request ที่กำลังทำอยู่ให้เสร็จ และปิด Keep-Alive Connection ที่ว่างด้วย <code>server.closeIdleConnections()</code></li>
+<li>ปิดทรัพยากรอื่น เช่น ฐานข้อมูล Queue และ Flush Log</li>
+<li>ออกด้วย Exit Code 0 และตั้ง Timer สำรองที่เรียก <code>.unref()</code> ไว้บังคับออกถ้าปิดไม่เสร็จในเวลาที่กำหนด (ไม่ควรเกินเวลาที่ Docker รอก่อนส่ง SIGKILL ซึ่งค่าเริ่มต้นคือ 10 วินาที ถ้าต้องรอนานกว่านั้นให้ตั้ง <code>docker run --stop-timeout</code>)</li>
+</ol>
+<p>ถ้าไม่มี ระหว่าง Deploy ผู้ใช้จะเจอ Connection ถูกตัด และฐานข้อมูลอาจปิดไม่เรียบร้อย อีกจุดที่ต้องพูดถึงคือ Dockerfile ต้องใช้ <code>CMD ["node", "src/server.js"]</code> แบบ Exec Form ให้ Node เป็น PID 1 และได้รับสัญญาณโดยตรง ถ้าใช้ <code>npm start</code> สัญญาณอาจไปไม่ถึง Node และ Container จะถูก SIGKILL หลังหมดเวลา</p>
+<pre class="code" data-env="file" data-label="JavaScript · ย่อจาก src/server.js"><code class="language-javascript">process.on('SIGTERM', () =&gt; {
+  // บังคับออกถ้าเกิน 10 วินาที และไม่ให้ timer นี้รั้ง process ไว้
+  setTimeout(() =&gt; process.exit(1), 10_000).unref();
+  server.close(() =&gt; {
+    db.close();
+    process.exit(0);
+  });
+  server.closeIdleConnections();
+});</code></pre>
+</div></details>
+
+<details class="iq"><summary>5. ถ้าให้ออกแบบ URL Shortener ที่รองรับผู้ใช้จำนวนมาก คุณจะเลือก 301 หรือ 302 จะสร้าง code ไม่ให้ซ้ำอย่างไร และจะป้องกันการใช้งานในทางที่ผิดอย่างไร (Mid)</summary><div>
+<p><strong>แนวคำตอบ:</strong> คำถาม System Design ขนาดเล็กแบบนี้ ผู้สัมภาษณ์ดูว่าคุณชั่งข้อดีข้อเสียได้ ไม่ได้มองหาคำตอบเดียว</p>
+<ul>
+<li><strong>301 หรือ 302:</strong> 301 ให้เบราว์เซอร์ Cache ได้ ลดโหลดของ Server แต่ทำให้นับคลิกไม่ครบและเปลี่ยนปลายทางภายหลังได้ยาก 302 นับคลิกได้ครบและแก้ปลายทางได้ จึงควรเป็นค่าเริ่มต้นถ้าธุรกิจต้องการสถิติ และให้ 301 เป็นตัวเลือกสำหรับลิงก์ถาวร (แบบเดียวกับโปรเจกต์ของเรา)</li>
+<li><strong>code ไม่ซ้ำ:</strong> สุ่มจากตัวอักษร 62 ตัวด้วย <code>crypto.randomInt</code> ยาว 7 ตัว ได้ประมาณ 3.5 ล้านล้านแบบ ให้ฐานข้อมูลบังคับด้วย <code>UNIQUE</code> แล้วลองใหม่เมื่อชน อีกทางคือแปลงเลข ID ที่เพิ่มขึ้นเรื่อย ๆ เป็นฐาน 62 ไม่มีวันชน แต่เดาลิงก์ถัดไปได้ง่าย ถ้าระบบมีหลาย Server ต้องมีตัวแจก ID กลาง</li>
+<li><strong>ขยายระบบ:</strong> การอ่าน (Redirect) มากกว่าการเขียนหลายเท่า จึงใส่ Cache เช่น Redis หน้าฐานข้อมูล นับคลิกแบบรวมเป็นชุด (Batch) แทนการ UPDATE ทุกคลิก และย้ายจาก SQLite ไป PostgreSQL เมื่อต้องรันหลาย Instance เพราะ SQLite เป็นไฟล์บนเครื่องเดียว</li>
+<li><strong>ป้องกันการใช้ผิด:</strong> Rate Limit ต่อ IP หรือต่อ API Key, รับเฉพาะ http/https, ตรวจ URL กับรายการเว็บอันตราย, ห้ามชื่อย่อที่ชนกับ Path ของระบบ และมีช่องทางแจ้งลิงก์ผิดกฎหมายเพื่อปิดลิงก์</li>
+</ul>
+<p>ปิดท้ายด้วยตัวเลขจากโปรเจกต์จริงของคุณ เช่น "ผมเขียน Test 24 กรณีครอบคลุม 201, 301, 302, 400, 404, 409, 413 และ 429" จะทำให้คำตอบน่าเชื่อถือขึ้นมาก</p>
+</div></details>
+
+<h3 id="s13-4-resources">แหล่งเรียนต่อ</h3>
+<p>เริ่มจากเอกสารทางการก่อนเสมอ เพราะอัปเดตตรงกับเวอร์ชันล่าสุด แล้วค่อยเสริมด้วยคอร์สและแนวปฏิบัติจากชุมชน</p>
+<ul class="res">
+  <li><a href="https://nodejs.org/en/learn" target="_blank" rel="noopener">Node.js Learn</a> – บทเรียนทางการของ Node.js ตั้งแต่การติดตั้ง Event Loop ไปจนถึง Security เหมาะอ่านคู่กับ Part 2 <span class="pill">ฟรี</span></li>
+  <li><a href="https://nodejs.org/docs/latest/api/" target="_blank" rel="noopener">Node.js API Documentation</a> – เอกสารอ้างอิงของ Core Module ทุกตัว เช่น fs, http, stream, test และ worker_threads เลือกเวอร์ชันให้ตรงกับเครื่องของคุณ <span class="pill">ฟรี</span></li>
+  <li><a href="https://expressjs.com/" target="_blank" rel="noopener">Express</a> – เอกสารทางการของ Express รวมคู่มือ Routing, Middleware, Error Handling และหน้าคู่มือย้ายจาก Express 4 ไป 5 <span class="pill">ฟรี</span></li>
+  <li><a href="https://zod.dev/" target="_blank" rel="noopener">Zod</a> – เอกสารของ zod 4 อธิบาย Schema ทุกแบบ การจัดรูปแบบ Error และการใช้ร่วมกับ TypeScript <span class="pill">ฟรี</span></li>
+  <li><a href="https://github.com/WiseLibs/better-sqlite3" target="_blank" rel="noopener">better-sqlite3</a> – Repository และเอกสาร API ของ better-sqlite3 เช่น prepare, transaction และ pragma <span class="pill">ฟรี</span></li>
+  <li><a href="https://getpino.io/" target="_blank" rel="noopener">Pino</a> – เอกสารของ pino ทั้งการตั้งค่า Level, Redaction, Transport และ pino-http <span class="pill">ฟรี</span></li>
+  <li><a href="https://docs.npmjs.com/" target="_blank" rel="noopener">npm Docs</a> – คู่มือคำสั่ง npm, package.json, Semver และ npm audit <span class="pill">ฟรี</span></li>
+  <li><a href="https://github.com/goldbergyoni/nodebestpractices" target="_blank" rel="noopener">Node.js Best Practices</a> – รวมแนวปฏิบัติที่ดีจากชุมชน แบ่งเป็นหมวดโครงสร้างโปรเจกต์ Error Handling, Security, Testing และ Production <span class="pill">ฟรี</span></li>
+  <li><a href="https://www.theodinproject.com/" target="_blank" rel="noopener">The Odin Project</a> – คอร์ส Full Stack JavaScript ที่มีบทเรียน Node.js และ Express พร้อมโปรเจกต์ให้ทำ <span class="pill">ฟรี</span></li>
+  <li><a href="https://training.linuxfoundation.org/" target="_blank" rel="noopener">Linux Foundation Training</a> – แหล่งคอร์สและใบรับรองของ OpenJS Foundation เช่น JSNAD และ JSNSD ซึ่งเคยเปลี่ยนสถานะการเปิดสอบมาแล้ว ตรวจสอบก่อนวางแผนสมัครทุกครั้ง <span class="pill">มีค่าใช้จ่าย</span></li>
+</ul>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>คุณจบหัวข้อ Node.js เมื่อทำสิ่งเหล่านี้ได้ด้วยตัวเอง: สร้าง REST API ด้วย Express 5 ที่ตรวจ Input ด้วย zod และเก็บข้อมูลใน SQLite, เขียน Test ด้วย <code>node:test</code> + supertest ให้ผ่านทั้งหมด, อธิบายได้ว่าทำไม Event Loop ไม่ควรถูก Block, และ Push โปรเจกต์ URL Shortener ขึ้น GitHub พร้อม README ที่คนอื่นอ่านแล้วรันตามได้</p></div>
+</section>
+

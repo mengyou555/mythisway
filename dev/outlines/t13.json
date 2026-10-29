@@ -1,0 +1,175 @@
+{
+ "concepts": [
+  {
+   "id": "c01",
+   "level": "b",
+   "title": "Node.js คืออะไร: V8, libuv, Event Loop, REPL และการรันไฟล์แรก",
+   "covers": "Matches Part 1 Step 1. What Node.js is: V8 + libuv + core modules + npm; single main thread, event loop and non-blocking I/O; when Node fits (I/O-heavy APIs, real-time, CLI, BFF) and when it does not (long CPU-bound work without worker_threads). Differences from browser JS (no window/document/DOM; has process, globalThis, Buffer, file and network access; fetch, URL, setTimeout, console exist in both). REPL basics (node, .help, .editor, _, .exit), node -e and node -p, node --watch. Runnable example: ~/projects/node-lab/hello.js that prints process.version, process.platform, process.arch, os.cpus().length, typeof window, typeof globalThis, a setTimeout(0) callback logged AFTER a synchronous line (first glimpse of non-blocking order), and process.uptime(). Run with `node hello.js`; also show `node -p \"1 + 2\"` and `node -e` one-liner outputs. Mistakes with real messages: `ReferenceError: document is not defined`, `Command 'node' not found` (nvm not loaded: open a new terminal / source ~/.bashrc), `Error: Cannot find module '/home/somchai/projects/node-lab/helo.js'` (code MODULE_NOT_FOUND) from a typo, `SyntaxError: Cannot use import statement outside a module` (preview of c02).",
+   "language": "javascript",
+   "env": "file"
+  },
+  {
+   "id": "c02",
+   "level": "b",
+   "title": "Modules: ES Modules (import/export) กับ CommonJS (require)",
+   "covers": "Matches Step 2. Why modules; ESM as the standard (\"type\": \"module\" in package.json or .mjs) vs CommonJS (.cjs, require, module.exports). Named vs default export, `import * as`, mandatory file extension in relative ESM imports ('./math.js'), `node:` prefix for core modules, import.meta.dirname / import.meta.filename (Node 20.11+) replacing __dirname/__filename, import.meta.url, top-level await, dynamic import(), JSON import via `import data from './x.json' with { type: 'json' }` (works on 22/24/26) or reading with fs, interop: ESM can import CJS default export; CJS should use dynamic import() for ESM (do NOT rely on require(esm)). Runnable example in ~/projects/node-lab/modules-lab: package.json {\"type\":\"module\"}, lib/math.js (named exports add, multiply, PI_TH = 3.14), lib/greet.js (default export function greet(name) returning 'สวัสดี somchai'), legacy/old-tax.cjs (CommonJS module.exports = { vat: (n) => n * 0.07 }), main.js importing all three plus `import os from 'node:os'`, printing results and import.meta.dirname, with a top-level await of a dynamic import. Mistakes: `Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/home/somchai/projects/node-lab/modules-lab/lib/math' imported from ...` (missing .js), `SyntaxError: The requested module './lib/math.js' does not provide an export named 'sum'`, `ReferenceError: require is not defined in ES module scope, you can use import instead`, `ReferenceError: __dirname is not defined in ES module scope`.",
+   "language": "javascript",
+   "env": "file"
+  },
+  {
+   "id": "c03",
+   "level": "b",
+   "title": "npm, package.json, Semantic Versioning, package-lock.json และ npx",
+   "covers": "Matches Step 3. npm init -y, npm pkg set type=module, fields name/version/type/scripts/dependencies/devDependencies/engines; npm install pkg@exact, --save-dev, npm uninstall, npm ls, npm outdated, npm ci vs npm install, package-lock.json purpose (commit it; never commit node_modules), semver MAJOR.MINOR.PATCH with ^ and ~ and exact pins, npm config `save-exact` concept, npm scripts (start, dev, test, custom + pre/post hooks), npm run, npx (runs local bin or a one-off package), .gitignore for node_modules. Runnable example in ~/projects/node-lab/npm-lab: install semver@7.8.5, file check-versions.js using semver.satisfies on a table of ranges (^5.3.0 vs 5.9.1/6.0.0, ~5.3.0 vs 5.3.7/5.4.0, >=22 vs 24.22.0) printed with console.table-free plain lines, plus package.json scripts {\"check\": \"node check-versions.js\", \"hello\": \"echo สวัสดีจาก npm script\"}; run `npm run check` and `npx semver -r '^5.3.0' 5.3.0 5.9.1 6.0.0`. Show real output (npm prints the `> npm-lab@1.0.0 check` header lines). Mistakes: `npm error Missing script: \"strat\"`, `npm error code ETARGET ... No matching version found for semver@9.9.9`, `npm error code EUSAGE` from npm ci without lockfile, and forgetting to commit package-lock.json (different versions on teammates' machines).",
+   "language": "javascript",
+   "env": "file"
+  },
+  {
+   "id": "c04",
+   "level": "b",
+   "title": "Core Modules: fs/promises, path, os, crypto และ URL",
+   "covers": "Matches Step 4. node:fs/promises (readFile, writeFile, appendFile, mkdir {recursive:true}, readdir, stat, rm), why the promise API over sync calls in servers, error.code ENOENT/EEXIST/EACCES handling, path.join/resolve/basename/extname/dirname built from import.meta.dirname, os (homedir, platform, cpus, totalmem, EOL), crypto (randomUUID, randomInt, createHash('sha256')), URL and URLSearchParams (parse, searchParams.get/set, url.origin, invalid URL throws TypeError ERR_INVALID_URL). Runnable example ~/projects/node-lab/core-lab/notes.js: reads data/notes.json (handles ENOENT by starting with [] ), appends a note {id: crypto.randomUUID(), owner:'somchai', text, createdAt}, writes back with JSON.stringify(...,null,2), prints count, sha256 of the file, and builds/parses a URL 'https://example.com/search?q=node&page=2'. Also generate a 7-char code from A-Z a-z 0-9 with crypto.randomInt (foreshadows the mini project). Output with UUIDs/hashes must be marked as differing per run. Mistakes: `Error: ENOENT: no such file or directory, open '/home/somchai/projects/node-lab/core-lab/data/notes.json'`, `SyntaxError: Unexpected end of JSON input` from an empty file, `TypeError: Invalid URL` (code ERR_INVALID_URL), relative paths resolved against process.cwd() instead of the script folder.",
+   "language": "javascript",
+   "env": "file"
+  },
+  {
+   "id": "c05",
+   "level": "i",
+   "title": "process, argv, util.parseArgs, Environment Variables และ node --env-file",
+   "covers": "Matches Step 5. process.argv, process.env (always strings), process.cwd(), process.pid, process.exitCode vs process.exit(), process.on('exit'), stdout/stderr (console.log vs console.error), exit codes checked with `echo $?`. util.parseArgs with string/boolean options, short aliases, defaults, positionals, strict mode errors. Environment variables: export, inline `PORT=4000 node app.js`, node --env-file=.env (Node 20.6+), .env vs .env.example, never commit .env (.gitignore), validating config at startup and failing fast (plain JS here; zod version comes in c09). Runnable example ~/projects/node-lab/env-lab: .env with APP_NAME=Somchai Notes, PORT=3000, GREETING_TIMES=2; cli.js `node --env-file=.env cli.js --name somsri --times 2 --shout extra1` printing parsed values, config from env with defaults, and exiting with code 1 plus an error message on stderr when --times is not a positive integer. Show both the success and the failing run with `echo $?`. Mistakes: `TypeError [ERR_PARSE_ARGS_UNKNOWN_OPTION]: Unknown option '--nmae'`, `node: .env: not found` (missing env file), PORT treated as string ('3000' + 1 = '30001'), committing .env with secrets.",
+   "language": "javascript",
+   "env": "file"
+  },
+  {
+   "id": "c06",
+   "level": "i",
+   "title": "Asynchronous Programming, Event Loop และการจัดการ Error",
+   "covers": "Matches Step 6. Callbacks -> Promises -> async/await; event loop phases at a beginner-friendly level (timers, poll, check), microtasks (process.nextTick, Promise.then) vs macrotasks (setTimeout, setImmediate); predicting output order; blocking the loop with a CPU loop and why it freezes a server; sequential await vs Promise.all / Promise.allSettled / Promise.race with timing; timers/promises setTimeout; AbortController timeout; try/catch with async, custom Error classes with cause, unhandled rejections (Node exits with code 1 by default), process.on('unhandledRejection') / 'uncaughtException' only for logging then exit. Runnable examples in ~/projects/node-lab/async-lab: order.js (sync, nextTick, promise, setTimeout, setImmediate, inside fs.readFile callback) with deterministic printed order; parallel.js using node:timers/promises to simulate 3 fetches of 300/200/100 ms comparing sequential (~600 ms) vs Promise.all (~300 ms) with rounded timing; errors.js with class NotFoundError extends Error, allSettled results, and an intentionally unhandled rejection shown in the output. Timings vary slightly per machine (say so). Mistakes: `[UnhandledPromiseRejection: This error originated either by throwing inside of an async function without a catch block...]`, forgetting await (logs `Promise { <pending> }`), `await` inside forEach not waiting, `SyntaxError: await is only valid in async functions and the top level bodies of modules` (CommonJS file).",
+   "language": "javascript",
+   "env": "file"
+  },
+  {
+   "id": "c07",
+   "level": "i",
+   "title": "EventEmitter และ HTTP Server ด้วย node:http",
+   "covers": "Matches Step 7. EventEmitter: on/once/emit/off, passing data, the special 'error' event (throws if no listener), extending EventEmitter in a class. node:http: createServer, req.method, req.url parsed with new URL(req.url, 'http://localhost'), headers, res.writeHead/statusCode/setHeader/end, JSON responses with Content-Type application/json; charset=utf-8, reading a JSON body by collecting chunks (for await of req) with a size limit, 400 on invalid JSON, 404/405, server.listen and the 'listening'/'error' events. Runnable examples in ~/projects/node-lab/http-lab: order-events.js (class OrderQueue extends EventEmitter emitting 'added' and 'error'), server.js on PORT 3000 with routes GET /health, GET /api/hello?name=somchai, POST /api/echo (JSON body echo), 404 fallback; test with curl -i in a second terminal and show the real status line and headers (Date header value varies). Mistakes: `Error: listen EADDRINUSE: address already in use :::3000` (find with `ss -ltnp | grep 3000`, stop the old process), forgetting res.end() (curl hangs), `SyntaxError: Unexpected token 'x', \"xx\" is not valid JSON` crashing the server when JSON.parse is not in try/catch, `Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client`.",
+   "language": "javascript",
+   "env": "file"
+  },
+  {
+   "id": "c08",
+   "level": "i",
+   "title": "Express 5: Routing, Middleware และ Error-handling Middleware",
+   "covers": "Matches Step 8. Express 5.3.0: app/express.Router(), route params, query, express.json() with limit, middleware chain and next(), order of app.use, a request-logger and a request-id middleware, 404 handler after routes, error-handling middleware with 4 args (err, req, res, next) returning a consistent JSON error shape {error, message}, async handler errors forwarded automatically in Express 5 (no express-async-errors needed), Express 5 path syntax changes ('/*splat' instead of '*', optional '{/:param}'), req.query is a getter, res.status().json(), res.location, app.disable('x-powered-by'). Exporting the app separately from listen (app.js + server.js) to prepare for testing. Runnable example ~/projects/node-lab/express-lab: in-memory books CRUD (sample data in notes) at /api/books with routes/books.js router: GET list, GET /:id, POST (201 + Location), PATCH /:id, DELETE /:id (204); GET /api/hello/:name; GET /api/boom (async throw to show the error handler); curl outputs shown. Mistakes: `TypeError: Missing parameter name at index 1: *; visit https://git.new/pathToRegexpError for info` (Express 4 style '*' path in Express 5), req.body undefined without express.json(), error handler with 3 params never called, sending a response twice (ERR_HTTP_HEADERS_SENT), `Cannot GET /api/book` default 404 HTML when no custom 404 handler.",
+   "language": "javascript",
+   "env": "file"
+  },
+  {
+   "id": "c09",
+   "level": "a",
+   "title": "REST API ตรวจข้อมูลด้วย zod 4 และเก็บข้อมูลใน SQLite ด้วย better-sqlite3",
+   "covers": "Matches Step 9. REST design (plural nouns, status codes 200/201/204/400/404/409, Location header, consistent error JSON, pagination with limit/offset), zod 4.6.7 schemas (z.object, z.string().min().max(), z.coerce.number().int(), z.url(), .optional(), .partial() for PATCH, safeParse, z.flattenError for 400 details, z.infer mention for TS users), a small validate(schema, 'body'|'params'|'query') middleware; validating env config with zod at startup. better-sqlite3 13.0.3: new Database(file), db.pragma('journal_mode = WAL'), db.exec for schema, prepare().run/get/all with ? and @named placeholders (SQL injection prevention, link to topic 14), info.changes / info.lastInsertRowid, UNIQUE constraint -> 409 via err.code === 'SQLITE_CONSTRAINT_UNIQUE', db.transaction(), closing the db; SQL table design reused from topic 14. Note better-sqlite3 bundles its own SQLite (3.53.x) which differs from the apt CLI 3.45.1. Runnable example ~/projects/node-lab/zod-lab: src/db.js, src/schemas.js, src/app.js (books API with persistence at data/books.db, table books(id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, author TEXT NOT NULL, year INTEGER NOT NULL, isbn TEXT UNIQUE, created_at TEXT NOT NULL DEFAULT (datetime('now')))), src/server.js; demonstrate via curl: create (201), invalid body (400 with fieldErrors), duplicate isbn (409), restart server and data still there, PATCH, DELETE 204, GET 404. Mistakes: building SQL with template strings (injection), `SqliteError: UNIQUE constraint failed: books.isbn` crashing as 500, `TypeError: Cannot open database because the directory does not exist`, native module mismatch `The module ... was compiled against a different Node.js version using NODE_MODULE_VERSION 127. This version of Node.js requires NODE_MODULE_VERSION 137` after switching Node with nvm (fix: npm rebuild better-sqlite3 or rm -rf node_modules && npm ci), using zod 3 syntax z.string().url() (deprecated in v4).",
+   "language": "javascript",
+   "env": "file"
+  },
+  {
+   "id": "c10",
+   "level": "a",
+   "title": "Testing ด้วย node:test + supertest และ Debugging ด้วย node --inspect",
+   "covers": "Matches Step 10. node:test (test, describe/it, before/after/beforeEach hooks, t.mock / mock.method, mock.timers), node:assert/strict (equal, deepEqual, match, throws, rejects), running with `node --test --test-reporter=spec 'test/*.test.js'` via npm test (always pass --test-reporter=spec: Node 22 prints TAP when output is not a TTY), --test-only, --watch, coverage with --experimental-test-coverage (show as optional, output format varies). supertest 7.3.1 against an exported app factory createApp({ db }) using ':memory:' SQLite for isolated tests; tests for 201/400/404/409/204. Debugging: node --inspect and --inspect-brk, chrome://inspect, VS Code JavaScript Debug Terminal and launch.json (show a launch.json file), `debugger;` statement, breakpoints and watch on a WSL project via the WSL extension (cannot be run in sandbox; describe carefully). Runnable example ~/projects/node-lab/testing-lab reusing the zod-lab books API structure: test/slug.test.js (unit tests for a pure function toSlug) and test/books.api.test.js (8 API cases), with real spec-reporter output (durations vary; say so). Mistakes: test file not found because glob not quoted or wrong folder, `AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:` with diff explanation, tests sharing one database file and failing randomly, forgetting to await supertest (test passes falsely), `Error: listen EADDRINUSE` when tests call app.listen instead of passing app to request().",
+   "language": "javascript",
+   "env": "file"
+  },
+  {
+   "id": "c11",
+   "level": "a",
+   "title": "Security และ Logging: helmet, express-rate-limit, npm audit และ pino",
+   "covers": "Matches Step 11. Threats for an API (injection, oversized bodies, brute force, leaking stack traces, vulnerable dependencies). helmet 8.3.0 default headers (Content-Security-Policy, X-Content-Type-Options, Strict-Transport-Security, X-Frame-Options...) and removing X-Powered-By; express-rate-limit 8.7.1 (windowMs, limit, standardHeaders: 'draft-8', legacyHeaders: false, 429 JSON message, app.set('trust proxy', 1) only behind a real proxy); express.json({ limit: '10kb' }) giving 413; never returning err.stack in production; npm audit / npm audit fix and reading severity, Dependabot mention; secrets only in env. pino 10.4.0 + pino-http 11.0.0: JSON logs, levels, req.log.info({ bookId }, 'message'), redact ['req.headers.authorization','req.headers.cookie'], customLogLevel by status, pino-pretty 13.2.0 only in development via pipe (`node src/server.js | npx pino-pretty`). Runnable example ~/projects/node-lab/secure-lab: app.js with helmet, rate limit (5 requests per 60 s on /api for the demo), body limit, pino-http; curl -i showing helmet headers, a loop of 6 requests showing 429 on the 6th with RateLimit headers, a 413 for a big body, and a raw JSON log line (time/pid/hostname values vary). npm audit output on a clean project ('found 0 vulnerabilities'). Mistakes: `ValidationError: The 'X-Forwarded-For' header is set but the Express 'trust proxy' setting is false` (ERR_ERL_UNEXPECTED_X_FORWARDED_FOR), logging passwords/tokens, using pino-pretty in production, running `npm audit fix --force` blindly (major upgrades break the app).",
+   "language": "javascript",
+   "env": "file"
+  },
+  {
+   "id": "c12",
+   "level": "a",
+   "title": "Streams, Backpressure และ worker_threads",
+   "covers": "Matches Step 12. Why streams (constant memory for big files and HTTP bodies); Readable, Writable, Transform, Duplex; fs.createReadStream/createWriteStream with highWaterMark; backpressure: write() returning false and waiting for 'drain' (events.once), and why stream/promises pipeline handles it plus errors and cleanup; readline + for await...of to read a large file line by line; zlib.createGzip in a pipeline; custom Transform (uppercase or CSV-to-JSON-lines); streaming an HTTP response. worker_threads overview: new Worker(new URL('./worker.js', import.meta.url), { workerData }), parentPort.postMessage, measuring that the main event loop stays responsive (setInterval ticks continue) while a CPU task (counting primes up to 5,000,000 or sha256 hashing loop) runs in a worker; comparison table of worker_threads vs child_process vs cluster. Runnable example ~/projects/node-lab/stream-lab: make-log.js writes 200,000 access-log lines (deterministic content, e.g. status codes cycling 200/200/404/500) respecting backpressure; analyze-log.js counts status codes with readline and reports process.memoryUsage().heapUsed in MB (varies); gzip.js compresses with pipeline and prints sizes; primes-worker.js + main-worker.js show ticks while computing. Mistakes: `Error: ENOENT` caught only via pipeline (unhandled 'error' event crashing with `node:events ... Unhandled 'error' event`), reading a 1 GB file with readFile (`RangeError [ERR_FS_FILE_TOO_LARGE]` or heap out of memory `FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory`), ignoring write() return value, worker path relative to cwd giving ERR_MODULE_NOT_FOUND.",
+   "language": "javascript",
+   "env": "file"
+  }
+ ],
+ "mini_project": {
+  "name": "URL Shortener Service",
+  "summary": "Express 5 REST service in ~/projects/url-shortener (GitHub repo url-shortener) that creates short codes for URLs, redirects with 301 (permanent) or 302 (default), counts clicks, validates input with zod, stores data in SQLite via better-sqlite3, protects itself with helmet and express-rate-limit, logs with pino/pino-http, is tested with node:test + supertest, reads config via node --env-file, shuts down gracefully on SIGINT/SIGTERM, and runs in Docker (node:24-slim, USER node). It is also where Part 1 Step 13 production topics (graceful shutdown, pm2/systemd, Docker) are shown in full.",
+  "features": [
+   "Folder structure: url-shortener/ with package.json, package-lock.json, .nvmrc (contains 24), .env.example, .env (gitignored), .gitignore (node_modules/, .env, data/, coverage/), .dockerignore, Dockerfile, README.md, ecosystem.config.cjs (pm2, optional), data/ (created at runtime, holds links.db), src/config.js, src/db.js, src/app.js, src/server.js, src/lib/code.js, src/schemas.js, src/routes/links.js, src/routes/redirect.js, src/middleware/error-handler.js, test/code.test.js, test/links.api.test.js",
+   "Config (src/config.js) parsed with zod from process.env and loaded by node --env-file=.env: PORT=3000, BASE_URL=http://localhost:3000, DB_FILE=data/links.db, LOG_LEVEL=info, RATE_LIMIT_MAX=10 (POST requests per minute per IP), NODE_ENV=development; invalid config prints the zod error and exits with code 1",
+   "Database (src/db.js) openDb(file) with WAL and table links(id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL UNIQUE, url TEXT NOT NULL, permanent INTEGER NOT NULL DEFAULT 0 CHECK (permanent IN (0,1)), clicks INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), last_clicked_at TEXT); all queries are prepared statements; tests use ':memory:'",
+   "Code generation (src/lib/code.js): generateCode(length = 7) using crypto.randomInt over the 62-char alphabet A-Z a-z 0-9; isValidCustomCode for custom aliases matching ^[A-Za-z0-9_-]{3,32}$; reserved codes 'api' and 'health' are rejected; on the rare UNIQUE collision of a generated code, retry up to 5 times",
+   "API: POST /api/links body {url (http/https only, max 2048 chars, z.url({ protocol: /^https?$/ })), code? (custom alias), permanent? (boolean, default false)} -> 201 JSON {code, url, shortUrl, permanent, clicks, createdAt} with Location: /api/links/{code}; 400 {error:'ValidationError', message, details: fieldErrors}; 409 {error:'Conflict', message} for a taken alias",
+   "API: GET /api/links?limit=20&offset=0 (limit 1-100) -> 200 {items, limit, offset}; GET /api/links/:code -> 200 stats {code, url, shortUrl, permanent, clicks, createdAt, lastClickedAt}; DELETE /api/links/:code -> 204; unknown code -> 404 {error:'NotFound', message}",
+   "Redirect: GET /:code -> 301 when permanent, otherwise 302, with Location header set to the original URL; clicks incremented and last_clicked_at updated in one UPDATE statement; GET /health -> 200 {status:'ok', uptime}",
+   "Security: helmet(), app.disable('x-powered-by') (helmet already removes it), express.json({ limit: '10kb' }), express-rate-limit on POST /api/links with limit RATE_LIMIT_MAX per 60 s and JSON 429 {error:'TooManyRequests', message}, standardHeaders 'draft-8', legacyHeaders false; error handler hides stack traces when NODE_ENV=production",
+   "Logging: pino with level from LOG_LEVEL, pino-http with redact of authorization and cookie headers; dev script pipes to pino-pretty; production logs stay JSON",
+   "Graceful shutdown (src/server.js): on SIGINT/SIGTERM log 'shutting down', server.close(), db.close(), exit 0; force exit with code 1 after 10 s timeout (timer.unref())",
+   "Tests: test/code.test.js (unit tests for generateCode/isValidCustomCode) and test/links.api.test.js (at least 12 supertest cases: create 201 + Location, generated code length 7, invalid URL 400, ftp URL 400, custom alias 201, duplicate alias 409, reserved alias 400, 302 redirect + click count, permanent 301, stats 200, delete 204 then 404, unknown 404, rate limit 429 with RATE_LIMIT_MAX set low via createApp option); npm test passes on Node 22, 24 and 26",
+   "Run: npm run dev (node --watch --env-file=.env src/server.js | pino-pretty), npm start (node --env-file=.env src/server.js), npm test; Docker: docker build -t url-shortener:1.0.0 . and docker run --rm -p 3000:3000 --env-file .env --name url-shortener url-shortener:1.0.0; pm2 start ecosystem.config.cjs and a systemd unit file shown as alternatives",
+   "README template with features, endpoints table, curl examples, how to run tests, environment variables table and Docker commands; push to GitHub as repo url-shortener (topic 17)"
+  ],
+  "stack": {
+   "runtime": "Node.js 24.22.0 LTS (also runs on 26.x; tested in the sandbox on 22)",
+   "express": "5.3.0",
+   "zod": "4.6.7",
+   "better-sqlite3": "13.0.3",
+   "helmet": "8.3.0",
+   "express-rate-limit": "8.7.1",
+   "pino": "10.4.0",
+   "pino-http": "11.0.0",
+   "pino-pretty (devDependency)": "13.2.0",
+   "supertest (devDependency)": "7.3.1",
+   "test runner": "node:test + node:assert/strict (built in)",
+   "pm2 (optional, global)": "7.0.4",
+   "docker base image": "node:24-slim",
+   "docker": "Docker Desktop 4.95.0 with WSL 2 backend"
+  }
+ },
+ "versions": {
+  "nvm": "v0.40.8 (install: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh | bash; then nvm install --lts)",
+  "node": "24.22.0 LTS is the reference version printed in version checks (node -v -> v24.22.0); 26.12.0 becomes Active LTS on 2026-10-28; code must run on 22, 24 and 26; npm shown as 11.x (say the exact npm version on the learner's machine may differ)",
+  "express": "5.3.0",
+  "zod": "4.6.7",
+  "better-sqlite3": "13.0.3 (requires Node >=22, bundles SQLite 3.53.x)",
+  "supertest": "7.3.1",
+  "helmet": "8.3.0",
+  "express-rate-limit": "8.7.1",
+  "pino": "10.4.0",
+  "pino-http": "11.0.0",
+  "pino-pretty": "13.2.0",
+  "semver": "7.8.5",
+  "eslint": "10.13.0 (mention only)",
+  "prettier": "3.9.10 (mention only)",
+  "nodemon": "3.1.14 (mention only; prefer node --watch)",
+  "pm2": "7.0.4",
+  "sqlite3 CLI": "3.45.1 (apt)",
+  "curl": "8.5.0 (apt)",
+  "docker image": "node:24-slim",
+  "Docker Desktop": "4.95.0",
+  "VS Code": "latest stable with the WSL extension",
+  "install pattern": "Always install exact versions: npm install express@5.3.0 zod@4.6.7 ...; devDependencies with -D (npm install -D supertest@7.3.1 pino-pretty@13.2.0)"
+ },
+ "notes": [
+  "Learner username somchai; all practice code lives in ~/projects/node-lab/<lab> exactly as Part 1 names them: hello.js in ~/projects/node-lab (c01), modules-lab (c02), npm-lab (c03), core-lab (c04), env-lab (c05), async-lab (c06), http-lab (c07), express-lab (c08), zod-lab (c09), testing-lab (c10), secure-lab (c11), stream-lab (c12), prod-lab (Part 4 extras if needed). Mini Project lives in ~/projects/url-shortener. Show paths as /home/somchai/... in error messages.",
+  "Every lab starts with: mkdir -p ~/projects/node-lab/<lab> && cd ~/projects/node-lab/<lab> && npm init -y && npm pkg set type=module. Use ES modules everywhere; the only CommonJS files are legacy/old-tax.cjs in c02 and ecosystem.config.cjs for pm2 (say so explicitly).",
+  "Always import core modules with the node: prefix (node:fs/promises, node:path, node:http, node:crypto, node:events, node:stream/promises, node:worker_threads, node:test, node:assert/strict, node:util, node:readline, node:zlib, node:os, node:timers/promises).",
+  "Use import.meta.dirname for file paths (not __dirname). Default port 3000; when two servers run at once use 3001.",
+  "Node 22 compatibility (sandbox is Node 22.22.0): do NOT use TypeScript type stripping, require(esm), RegExp.escape, `using` declarations, fs.glob, or other features newer than 22. Allowed: --env-file, util.parseArgs, node --watch, import.meta.dirname, node:test with mock.timers, Promise.withResolvers, URL.parse, JSON import attributes `with { type: 'json' }`.",
+  "npm test script is always: node --test --test-reporter=spec 'test/*.test.js' (quote the glob; Node 22 defaults to TAP when stdout is not a TTY, so always set the spec reporter). Test files end with .test.js inside test/.",
+  "Sample data for the books API (c08-c10): {id:1,title:'Clean Code',author:'Robert C. Martin',year:2008,isbn:'9780132350884'}, {id:2,title:'You Don\\'t Know JS Yet',author:'Kyle Simpson',year:2020,isbn:'9798602477429'}, {id:3,title:'Node.js Design Patterns',author:'Mario Casciaro',year:2020,isbn:'9781839214110'}. Validation: title 1-200 chars, author 1-100 chars, year integer 1450..2026, isbn optional string of 10-13 digits, unique. Database file data/books.db.",
+  "Sample notes for c04: owner 'somchai', texts 'ติดตั้ง Node.js ด้วย nvm' and 'เรียน ES Modules'; file data/notes.json.",
+  "Error response JSON shape everywhere (Express parts and mini project): {\"error\": \"NotFound\" | \"ValidationError\" | \"Conflict\" | \"TooManyRequests\" | \"InternalServerError\", \"message\": \"Thai or English message\", \"details\"?: {...}}. Messages shown to API clients may be Thai, e.g. 'ไม่พบหนังสือ id 99'.",
+  "App/server split: src/app.js exports createApp(options) (or app) without calling listen; src/server.js calls listen and handles shutdown. Tests import createApp and pass ':memory:' databases.",
+  "Terminology: keep English terms (Event Loop, Middleware, Route, Handler, Request, Response, Status Code, Header, Body, Stream, Backpressure, Worker, Prepared Statement, Graceful Shutdown, Rate Limit) with Thai explanations. Call the topic numbers via <a data-t=\"4\"></a> JavaScript, <a data-t=\"15\"></a> TypeScript, <a data-t=\"14\"></a> SQL, <a data-t=\"17\"></a> Git, <a data-t=\"19\"></a> Linux.",
+  "Outputs that vary (UUIDs, hashes, timings, PIDs, dates, Date headers, log time/hostname, memory usage, npm 'added N packages in Xs') must be shown realistically and marked in Thai as varying per machine. In curl examples use `curl -i` or `curl -s` against http://localhost:3000.",
+  "Certifications: no certification the market relies on for Node.js; OpenJS Foundation certifications (JSNAD/JSNSD) have changed availability over time, so tell learners to check the OpenJS/Linux Foundation training site before planning. Do not invent salary numbers.",
+  "Cheat sheet (Part 4) groups: nvm & node CLI, npm, modules, core modules/process, async, http/express, testing, security/logging, streams/workers, production (pm2/systemd/docker)."
+ ]
+}

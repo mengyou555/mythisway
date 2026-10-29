@@ -1,0 +1,2279 @@
+<section class="part" data-part="4">
+<h2 id="s14-4"><span class="sec-no">14.4</span>ส่วนเสริม: Mini Project, Cheat Sheet, Interview</h2>
+<p>ส่วนนี้คือส่วนที่รวมทุกอย่างที่เรียนมาใน Part 1–3 เข้าเป็นงานชิ้นเดียว คุณจะได้สร้างฐานข้อมูลร้านค้าออนไลน์ที่ใหญ่กว่าฐานข้อมูล <code>shop</code> ที่ใช้ฝึกมาก มีลูกค้า 500 คน คำสั่งซื้อ 5,000 รายการ และรายการสินค้าในคำสั่งซื้อกว่า 12,000 แถว จากนั้นจะเขียน Query วิเคราะห์ธุรกิจ 20 ข้อ ปรับความเร็วด้วย Index เขียนสคริปต์ Python ทำรายงาน และนำขึ้น GitHub เป็น Portfolio</p>
+<p>ท้ายส่วนมี Cheat Sheet สำหรับเปิดดูระหว่างทำงาน คำถามสัมภาษณ์งาน 5 ข้อพร้อมแนวคำตอบ และแหล่งเรียนต่อ</p>
+
+<h3 id="s14-4-project">Mini Project: E-commerce Database</h3>
+<h4>เป้าหมายของโปรเจกต์</h4>
+<p>ออกแบบและสร้างฐานข้อมูลร้านค้าออนไลน์บน PostgreSQL 16 ให้มีคุณภาพแบบที่ใช้ในงานจริง แล้วใช้มันตอบคำถามธุรกิจด้วย SQL งานนี้ตั้งใจให้เป็น Repository ที่คุณเปิดให้ผู้สัมภาษณ์ดูได้ทันที เพราะมันแสดงทักษะที่บริษัทต้องการครบทั้ง Data Modeling, การเขียน Query ที่ซับซ้อน, การปรับ Performance, ความปลอดภัย และการเชื่อมต่อจาก Python</p>
+<p>หัวใจของโปรเจกต์คือ <strong>ทุกอย่างสร้างใหม่ได้ด้วยคำสั่งเดียว และได้ผลเหมือนเดิมทุกครั้ง</strong> ข้อมูลตัวอย่างสร้างด้วยเลขคณิตแบบกำหนดแน่นอน (Deterministic) ไม่ใช้ <code>random()</code> ดังนั้นผลลัพธ์ทุกตัวเลขในหน้านี้จะตรงกับที่คุณได้บนเครื่องตัวเอง (ยกเว้นเวลาที่ใช้รัน ซึ่งขึ้นกับเครื่อง)</p>
+
+<h4>ฟีเจอร์ที่จะได้</h4>
+<ul>
+<li><strong>6 ตาราง</strong> <code>customers</code>, <code>categories</code>, <code>products</code>, <code>orders</code>, <code>order_items</code>, <code>payments</code> พร้อม Constraint ครบทุกชนิด ได้แก่ Primary Key, Foreign Key, UNIQUE, NOT NULL, CHECK และ DEFAULT</li>
+<li><strong>Seed แบบ Deterministic</strong> หมวดสินค้า 10 หมวด 2 ระดับ สินค้า 30 รายการ ลูกค้า 500 คน คำสั่งซื้อ 5,000 รายการ ระหว่าง 2025-01-01 ถึง 2026-06-30 และข้อมูลการชำระเงิน</li>
+<li><strong>ER Diagram</strong> ทั้งแบบตัวอักษร (ASCII) และแบบ Mermaid ที่ GitHub วาดเป็นรูปให้อัตโนมัติ</li>
+<li><strong>Query วิเคราะห์ 20 ข้อ</strong> แต่ละไฟล์ขึ้นต้นด้วยคำถามธุรกิจเป็นภาษาไทย ผลลัพธ์จริงเก็บไว้ใน <code>results/</code></li>
+<li><strong>Index Tuning</strong> วัดด้วย <code>EXPLAIN (ANALYZE, BUFFERS)</code> ก่อนและหลังสร้าง Index แล้วบันทึกไว้ใน <code>docs/explain.md</code></li>
+<li><strong>report.py</strong> สคริปต์ Python ใช้ psycopg 3 กับ Parameterized Query รับค่า <code>--month</code> และ <code>--top</code> พิมพ์รายงานภาษาไทยและบันทึก CSV ได้</li>
+<li><strong>Role อ่านอย่างเดียว</strong> <code>ecommerce_report</code> สำหรับทีมทำรายงาน พร้อมพิสูจน์ว่าเขียนข้อมูลไม่ได้</li>
+<li><strong>Backup และทดสอบ Restore</strong> ด้วย <code>pg_dump -Fc</code> และ <code>pg_restore</code> แล้วเทียบจำนวนแถวอัตโนมัติ</li>
+<li><strong>README</strong> ที่อธิบายโปรเจกต์ครบ พร้อมนำขึ้น GitHub</li>
+</ul>
+
+<h4>เครื่องมือและเวอร์ชันที่ใช้</h4>
+<ul>
+<li>Ubuntu 24.04 LTS บน WSL2 (ทดสอบบน 24.04.5)</li>
+<li>PostgreSQL 16 จาก apt (<code>psql</code> 16) ตามที่ติดตั้งไว้ใน Part 2</li>
+<li>Python 3.12.3 กับ venv และ <code>psycopg[binary]==3.3.6</code></li>
+<li>Git 2.43.0 และบัญชี GitHub (ดูหัวข้อ <a data-t="17"></a>)</li>
+<li>ไม่บังคับ: <code>sqlfluff==4.4.0</code> สำหรับตรวจรูปแบบ SQL (dialect <code>postgres</code>)</li>
+</ul>
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>โปรเจกต์นี้ต้องการสิ่งที่ทำไว้แล้วใน Part 2 คือ PostgreSQL 16 ที่เปิดอยู่ (<code>sudo service postgresql start</code>) และ Role ชื่อเดียวกับผู้ใช้ Linux ของคุณที่มีสิทธิ์สร้างฐานข้อมูล (<code>sudo -u postgres createuser --createdb "$USER"</code>) ถ้ายังไม่ได้ทำ ให้กลับไปทำส่วน “เตรียมเครื่องสำหรับหัวข้อนี้” ใน Part 2 ก่อน โปรเจกต์ใช้ฐานข้อมูลชื่อ <code>ecommerce</code> แยกจาก <code>shop</code> ที่ใช้ฝึก จึงไม่กระทบงานเดิม</p></div>
+
+<h4>โครงสร้างโฟลเดอร์เมื่อทำเสร็จ</h4>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Plaintext · โครงสร้างโปรเจกต์"><code class="language-plaintext">~/projects/ecommerce-db/
+├── README.md                 # หน้าแรกของ Repository
+├── .gitignore                # ไฟล์ที่ไม่ขึ้น GitHub
+├── requirements.txt          # psycopg[binary]==3.3.6
+├── report.py                 # รายงานยอดขายรายเดือนด้วย Python
+├── schema/
+│   ├── 01_tables.sql         # CREATE TABLE ทั้ง 6 ตาราง
+│   └── 02_indexes.sql        # Index ที่ได้จากการวัดผล
+├── seed/
+│   └── seed.sql              # ข้อมูลตัวอย่างแบบ Deterministic
+├── queries/
+│   ├── q01_monthly_revenue.sql
+│   ├── ...                   # q02 ถึง q19 (ครบทั้ง 20 ไฟล์ แสดงใน Step 5–6)
+│   └── q20_day_of_week_sales.sql
+├── results/
+│   ├── q01.txt               # ผลลัพธ์จริงของแต่ละ Query
+│   └── ...                   # q02.txt ถึง q20.txt
+├── scripts/
+│   ├── rebuild.sh            # ลบแล้วสร้างฐานข้อมูลใหม่ด้วยคำสั่งเดียว
+│   ├── check.sql             # ตรวจความถูกต้องของข้อมูล
+│   ├── constraint_test.sql   # ทดสอบว่า Constraint กันข้อมูลผิดได้จริง
+│   ├── run_queries.sh        # รันทุก Query แล้วเก็บผลลง results/
+│   ├── explain.sql           # Query ที่ใช้วัดผล Index
+│   ├── roles.sql             # สร้าง Role อ่านอย่างเดียว
+│   ├── roles_demo.sql        # พิสูจน์สิทธิ์ของ Role
+│   └── backup_test.sh        # Backup แล้วทดสอบ Restore
+├── docs/
+│   ├── er.md                 # ER Diagram และคำอธิบายความสัมพันธ์
+│   └── explain.md            # บันทึกผล EXPLAIN ก่อนและหลังสร้าง Index
+├── backups/                  # ไฟล์ .dump (อยู่ใน .gitignore)
+└── .venv/                    # Python virtual environment (อยู่ใน .gitignore)</code></pre>
+<p>หมายเหตุ: บรรทัดที่เขียนว่า <code>...</code> ในแผนผังนี้ใช้ย่อเพื่อให้อ่านง่ายเท่านั้น โค้ดเต็มของทุกไฟล์อยู่ใน Step ด้านล่าง</p>
+
+<h4>ER Diagram แบบตัวอักษร</h4>
+<p>ก่อนเขียนโค้ด ให้ออกแบบความสัมพันธ์ก่อนเสมอ เครื่องหมาย <code>1 ──&lt; N</code> แปลว่า “หนึ่งต่อหลาย” เช่น ลูกค้า 1 คนมีคำสั่งซื้อได้หลายรายการ</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Plaintext · docs/er.md (ส่วน ASCII)"><code class="language-plaintext">                 ┌──────────────┐
+                 │  categories  │──┐ parent_id (หมวดแม่ อ้างอิงตัวเอง)
+                 └──────┬───────┘&lt;─┘
+                        │ 1
+                        │
+                        │ N
+┌────────────┐   ┌──────┴───────┐
+│ customers  │   │   products   │
+└─────┬──────┘   └──────┬───────┘
+      │ 1               │ 1
+      │                 │
+      │ N               │ N
+┌─────┴──────┐ 1   N ┌──┴──────────┐
+│   orders   │───────│ order_items │   PK (order_id, product_id)
+└─────┬──────┘       └─────────────┘   orders กับ products เป็น M:N ผ่าน order_items
+      │ 1
+      │
+      │ 0..1
+┌─────┴──────┐
+│  payments  │   order_id เป็น UNIQUE: 1 คำสั่งซื้อจ่ายได้ไม่เกิน 1 รายการ
+└────────────┘</code></pre>
+
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ให้นึกถึงใบเสร็จร้านสะดวกซื้อ หัวใบเสร็จ (เลขที่ วันที่ ลูกค้า) คือแถวใน <code>orders</code> แต่ละบรรทัดสินค้าในใบเสร็จคือแถวใน <code>order_items</code> และรายการรูดบัตรหรือสแกน PromptPay ที่แนบมาคือแถวใน <code>payments</code> การแยกเป็นหลายตารางทำให้เราไม่ต้องเขียนชื่อลูกค้าซ้ำทุกบรรทัดสินค้า</p></div>
+
+<ol class="proj-steps">
+<li>
+<h4>Step 1: เตรียมโฟลเดอร์ Git และ Python venv</h4>
+<p>สร้างโฟลเดอร์ทั้งหมดในครั้งเดียว เริ่มต้น Git Repository และสร้าง venv สำหรับ <code>report.py</code> ตามที่เรียนในหัวข้อ <a data-t="9"></a> (Ubuntu 24.04 ไม่ให้ติดตั้งแพ็กเกจด้วย pip นอก venv)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เปิด PostgreSQL ก่อนทุกครั้งที่เปิดเครื่อง (WSL ที่ไม่ได้เปิด systemd)
+sudo service postgresql start
+
+# สร้างโฟลเดอร์ทั้งหมดของโปรเจกต์ในคำสั่งเดียวด้วย Brace Expansion
+mkdir -p ~/projects/ecommerce-db/{schema,seed,queries,results,scripts,docs,backups}
+cd ~/projects/ecommerce-db
+
+# เริ่ม Git Repository โดยตั้งชื่อ Branch หลักเป็น main
+git init -b main
+
+# สร้างและเปิดใช้ venv
+python3 -m venv .venv
+source .venv/bin/activate</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> * Starting PostgreSQL 16 database server
+   ...done.
+Initialized empty Git repository in /home/somchai/projects/ecommerce-db/.git/</code></pre>
+<p>สร้างไฟล์ <code>.gitignore</code> เพื่อกันไม่ให้ไฟล์ที่ไม่ควรเผยแพร่ขึ้น GitHub โดยเฉพาะไฟล์ Backup ซึ่งในงานจริงมีข้อมูลส่วนบุคคลของลูกค้า</p>
+<pre class="code" data-env="file" data-label="Gitignore · .gitignore"><code class="language-plaintext"># Python virtual environment
+.venv/
+__pycache__/
+# ไฟล์ชั่วคราวและไฟล์ความลับ
+results/*.tmp
+.env
+# ไฟล์ Backup อาจมีข้อมูลลูกค้าจริง ห้ามขึ้น GitHub
+backups/
+# ไฟล์ CSV ที่ report.py สร้าง
+*.csv</code></pre>
+<pre class="code" data-env="file" data-label="Text · requirements.txt"><code class="language-plaintext">psycopg[binary]==3.3.6</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ติดตั้งแพ็กเกจภายใน venv (ต้องเห็น (.venv) หน้า Prompt)
+python3 -m pip install -r requirements.txt
+
+# ตรวจเวอร์ชันที่ติดตั้งได้
+python3 -c "import psycopg; print(psycopg.__version__)"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>3.3.6</code></pre>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ถ้าคำสั่ง <code>pip install</code> ขึ้น <code>error: externally-managed-environment</code> แปลว่ายังไม่ได้เปิด venv ให้รัน <code>source .venv/bin/activate</code> ก่อน แล้วติดตั้งใหม่</p></div>
+</li>
+<li>
+<h4>Step 2: ออกแบบ Schema และเขียน CREATE TABLE ทั้ง 6 ตาราง</h4>
+<p>ไฟล์นี้คือแบบแปลนของฐานข้อมูล ทุกคอลัมน์ถูกเลือกชนิดข้อมูลและ Constraint อย่างตั้งใจ เพื่อให้ฐานข้อมูลปฏิเสธข้อมูลผิดตั้งแต่ต้นทาง แทนที่จะปล่อยให้โค้ดของแอปตรวจเองทั้งหมด</p>
+<pre class="code" data-env="file" data-label="SQL · schema/01_tables.sql"><code class="language-sql">-- schema/01_tables.sql : สร้าง 6 ตารางของร้านค้าออนไลน์ พร้อม Constraint ครบ
+-- ตารางลูกค้า
+CREATE TABLE customers (
+    customer_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    full_name   TEXT        NOT NULL,
+    email       TEXT        NOT NULL UNIQUE,
+    phone       TEXT,                                   -- ไม่บังคับกรอก จึงเป็น NULL ได้
+    province    TEXT        NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ตารางหมวดสินค้า อ้างอิงตัวเองเพื่อทำหมวดแม่-หมวดลูก
+CREATE TABLE categories (
+    category_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name        TEXT NOT NULL UNIQUE,
+    parent_id   INTEGER REFERENCES categories (category_id)
+);
+
+-- ตารางสินค้า ราคาใช้ NUMERIC เพื่อไม่ให้ทศนิยมเพี้ยน
+CREATE TABLE products (
+    product_id  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    sku         TEXT          NOT NULL UNIQUE,
+    name        TEXT          NOT NULL,
+    category_id INTEGER       NOT NULL REFERENCES categories (category_id),
+    price       NUMERIC(10,2) NOT NULL CHECK (price &gt;= 0),
+    stock       INTEGER       NOT NULL DEFAULT 0 CHECK (stock &gt;= 0),
+    is_active   BOOLEAN       NOT NULL DEFAULT TRUE
+);
+
+-- ตารางคำสั่งซื้อ สถานะต้องเป็นค่าใดค่าหนึ่งใน 5 ค่านี้เท่านั้น
+CREATE TABLE orders (
+    order_id     INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    customer_id  INTEGER       NOT NULL REFERENCES customers (customer_id),
+    ordered_at   TIMESTAMPTZ   NOT NULL,
+    status       TEXT          NOT NULL
+                 CHECK (status IN ('pending', 'paid', 'shipped', 'delivered', 'cancelled')),
+    shipping_fee NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (shipping_fee &gt;= 0)
+);
+
+-- รายการสินค้าในคำสั่งซื้อ (ตาราง Junction ระหว่าง orders กับ products)
+-- unit_price คือราคา ณ วันที่ซื้อ เก็บไว้เป็นประวัติ ไม่ใช่ข้อมูลซ้ำซ้อน
+CREATE TABLE order_items (
+    order_id   INTEGER       NOT NULL REFERENCES orders (order_id) ON DELETE CASCADE,
+    product_id INTEGER       NOT NULL REFERENCES products (product_id),
+    quantity   INTEGER       NOT NULL CHECK (quantity &gt; 0),
+    unit_price NUMERIC(10,2) NOT NULL CHECK (unit_price &gt;= 0),
+    PRIMARY KEY (order_id, product_id)
+);
+
+-- การชำระเงิน 1 คำสั่งซื้อมีได้ไม่เกิน 1 รายการ (UNIQUE บน order_id)
+CREATE TABLE payments (
+    payment_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    order_id   INTEGER       NOT NULL UNIQUE REFERENCES orders (order_id) ON DELETE CASCADE,
+    method     TEXT          NOT NULL
+               CHECK (method IN ('credit_card', 'promptpay', 'bank_transfer', 'cod')),
+    amount     NUMERIC(10,2) NOT NULL CHECK (amount &gt; 0),
+    paid_at    TIMESTAMPTZ,
+    status     TEXT          NOT NULL CHECK (status IN ('success', 'failed', 'refunded'))
+);</code></pre>
+<h5>เหตุผลของการออกแบบแต่ละจุด</h5>
+<div class="tbl mid"><table class="explain"><thead><tr><th>ส่วนของ Schema</th><th>เหตุผล</th></tr></thead><tbody>
+<tr><td><code>GENERATED ALWAYS AS IDENTITY</code></td><td>วิธีสร้างเลขลำดับอัตโนมัติตามมาตรฐาน SQL ที่ PostgreSQL แนะนำ แทน <code>SERIAL</code> แบบเก่า และกันไม่ให้ใครใส่เลข id เองโดยไม่ตั้งใจ</td></tr>
+<tr><td><code>NUMERIC(10,2)</code> สำหรับเงิน</td><td>เก็บทศนิยมแบบแม่นยำ ไม่เพี้ยนแบบ <code>REAL</code> หรือ <code>DOUBLE PRECISION</code> (เช่น 0.1 + 0.2 ไม่เท่ากับ 0.3)</td></tr>
+<tr><td><code>TIMESTAMPTZ</code> สำหรับ <code>ordered_at</code></td><td>เก็บเวลาพร้อม Time Zone ทำให้คำนวณช่วงเวลาได้ถูกต้องแม้ผู้ใช้อยู่คนละประเทศ</td></tr>
+<tr><td><code>email TEXT NOT NULL UNIQUE</code></td><td>ลูกค้า 1 คนใช้อีเมลเดียว และ UNIQUE สร้าง Index ให้อัตโนมัติ ค้นหาด้วยอีเมลจึงเร็ว</td></tr>
+<tr><td><code>phone TEXT</code> (ไม่มี NOT NULL)</td><td>ลูกค้าบางคนไม่ให้เบอร์โทร เราจึงยอมให้เป็น NULL ได้ เบอร์โทรเก็บเป็น TEXT เพราะต้องเก็บเลข 0 นำหน้า และไม่ได้เอาไปคำนวณ</td></tr>
+<tr><td><code>parent_id REFERENCES categories</code></td><td>Self-referencing Foreign Key ทำให้มีหมวดแม่และหมวดลูกได้ไม่จำกัดชั้น ใช้ Recursive CTE ไล่ลำดับชั้นได้</td></tr>
+<tr><td><code>CHECK (status IN (...))</code></td><td>บังคับให้สถานะมีแค่ 5 ค่า ถ้าโค้ดพิมพ์ผิดเป็น <code>'shipping'</code> ฐานข้อมูลจะปฏิเสธทันที</td></tr>
+<tr><td><code>PRIMARY KEY (order_id, product_id)</code></td><td>Composite Primary Key กันสินค้าเดียวกันซ้ำในคำสั่งซื้อเดียว ถ้าซื้อ 2 ชิ้นให้เพิ่ม <code>quantity</code> แทน</td></tr>
+<tr><td><code>ON DELETE CASCADE</code> ที่ <code>order_items</code> และ <code>payments</code></td><td>ถ้าลบคำสั่งซื้อ รายการสินค้าและการชำระเงินของคำสั่งซื้อนั้นจะถูกลบตามไปด้วย ไม่เหลือแถวกำพร้า แต่ <code>products</code> ไม่ใช้ CASCADE เพราะเราไม่อยากให้การลบสินค้าไปลบประวัติการขาย</td></tr>
+<tr><td><code>unit_price</code> ใน <code>order_items</code></td><td>เป็น Snapshot ราคา ณ วันที่ซื้อ ถ้าวันหน้าขึ้นราคาสินค้า ยอดขายในอดีตต้องไม่เปลี่ยน จึงไม่ใช่ข้อมูลซ้ำซ้อนที่ขัดกับ Normalization</td></tr>
+<tr><td><code>order_id ... UNIQUE</code> ใน <code>payments</code></td><td>ทำให้ความสัมพันธ์ orders กับ payments เป็น 1 ต่อ 0..1 คือคำสั่งซื้อหนึ่งมีการชำระเงินได้ไม่เกิน 1 รายการ</td></tr>
+</tbody></table></div>
+
+<h5>ทดสอบว่า Constraint ทำงานจริง</h5>
+<p>ก่อนใส่ข้อมูลจริง ให้ลองสร้างตารางในฐานข้อมูลทดลอง <code>ecommerce_test</code> แล้วยิงข้อมูลผิดเข้าไป เพื่อดูว่าฐานข้อมูลปฏิเสธได้จริงหรือไม่ เขียนไฟล์ทดสอบนี้ไว้ใน <code>scripts/</code></p>
+<pre class="code" data-env="file" data-label="SQL · scripts/constraint_test.sql"><code class="language-sql">INSERT INTO categories (name) VALUES ('Electronics');                                       -- ผ่าน: ข้อมูลถูกต้อง
+INSERT INTO products (sku, name, category_id, price) VALUES ('X-001', 'Test Item', 1, -5);    -- ต้องติด CHECK ราคาติดลบ
+INSERT INTO products (sku, name, category_id, price) VALUES ('X-001', 'Test Item', 99, 100);  -- ต้องติด FK ไม่มีหมวด 99
+INSERT INTO customers (full_name, email, province) VALUES ('Somchai Jaidee', 'somchai@example.com', 'Bangkok'); -- ผ่าน
+INSERT INTO orders (customer_id, ordered_at, status) VALUES (1, now(), 'shipping');           -- ต้องติด CHECK สถานะ
+INSERT INTO customers (full_name, email, province) VALUES ('Somchai Copy', 'somchai@example.com', 'Bangkok'); -- ต้องติด UNIQUE</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/ecommerce-db
+# สร้างฐานข้อมูลทดลอง (ลบของเก่าก่อนถ้ามี)
+dropdb --if-exists ecommerce_test
+createdb ecommerce_test
+# สร้างตารางทั้ง 6 แล้วดูรายชื่อตาราง
+psql -X -d ecommerce_test -f schema/01_tables.sql
+psql -X -d ecommerce_test -c '\dt'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+           List of relations
+ Schema |    Name     | Type  |  Owner  
+--------+-------------+-------+---------
+ public | categories  | table | somchai
+ public | customers   | table | somchai
+ public | order_items | table | somchai
+ public | orders      | table | somchai
+ public | payments    | table | somchai
+ public | products    | table | somchai
+(6 rows)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ยิงข้อมูลผิดเข้าไป (ไม่ใส่ ON_ERROR_STOP เพื่อให้รันครบทุกบรรทัด)
+psql -X -d ecommerce_test -f scripts/constraint_test.sql
+# ลบฐานข้อมูลทดลองทิ้งเมื่อทดสอบเสร็จ
+dropdb ecommerce_test</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>INSERT 0 1
+psql:scripts/constraint_test.sql:2: ERROR:  new row for relation "products" violates check constraint "products_price_check"
+DETAIL:  Failing row contains (1, X-001, Test Item, 1, -5.00, 0, t).
+psql:scripts/constraint_test.sql:3: ERROR:  insert or update on table "products" violates foreign key constraint "products_category_id_fkey"
+DETAIL:  Key (category_id)=(99) is not present in table "categories".
+INSERT 0 1
+psql:scripts/constraint_test.sql:5: ERROR:  new row for relation "orders" violates check constraint "orders_status_check"
+DETAIL:  Failing row contains (1, 1, 2026-10-20 15:06:11.953003+00, shipping, 0.00).
+psql:scripts/constraint_test.sql:6: ERROR:  duplicate key value violates unique constraint "customers_email_key"
+DETAIL:  Key (email)=(somchai@example.com) already exists.</code></pre>
+<p>ได้ Error ครบทั้ง 4 แบบตามที่ตั้งใจ ได้แก่ CHECK ราคา, Foreign Key, CHECK สถานะ และ UNIQUE อีเมล ชื่อ Constraint อย่าง <code>products_price_check</code> PostgreSQL ตั้งให้อัตโนมัติจากรูปแบบ <code>ตาราง_คอลัมน์_ชนิด</code> ส่วนเวลาในบรรทัด <code>Failing row contains</code> ของ orders จะเป็นเวลาที่คุณรันจริงและ Time Zone ของเครื่องคุณ จึงไม่ตรงกับตัวอย่าง</p>
+
+<h5>เขียน ER Diagram ลงเอกสาร</h5>
+<p>สร้างไฟล์ <code>docs/er.md</code> ที่มีทั้งแผนผัง ASCII (คัดลอกจากด้านบน) และ Mermaid <code>erDiagram</code> ซึ่ง GitHub จะแสดงเป็นรูปภาพให้อัตโนมัติเมื่อเปิดไฟล์ Markdown</p>
+<pre class="code" data-env="file" data-label="Markdown · docs/er.md"><code class="language-markdown"># ER Diagram: ecommerce
+
+## ความสัมพันธ์
+
+- ลูกค้า 1 คน มีคำสั่งซื้อได้หลายรายการ (customers 1:N orders)
+- คำสั่งซื้อ 1 รายการ มีสินค้าได้หลายรายการ และสินค้า 1 ตัวอยู่ในหลายคำสั่งซื้อ (orders M:N products ผ่าน order_items)
+- หมวดสินค้า 1 หมวด มีสินค้าได้หลายตัว (categories 1:N products)
+- หมวดสินค้ามีหมวดแม่ได้ 1 หมวด (categories อ้างอิงตัวเองผ่าน parent_id)
+- คำสั่งซื้อ 1 รายการ มีการชำระเงินได้ 0 หรือ 1 รายการ (orders 1:0..1 payments)
+
+## Mermaid
+
+```mermaid
+erDiagram
+    CUSTOMERS  ||--o{ ORDERS      : places
+    ORDERS     ||--|{ ORDER_ITEMS : contains
+    PRODUCTS   ||--o{ ORDER_ITEMS : "appears in"
+    CATEGORIES ||--o{ PRODUCTS    : groups
+    CATEGORIES |o--o{ CATEGORIES  : "parent of"
+    ORDERS     ||--o| PAYMENTS    : "paid by"
+
+    CUSTOMERS {
+        int customer_id PK
+        text full_name
+        text email UK
+        text phone
+        text province
+        timestamptz created_at
+    }
+    CATEGORIES {
+        int category_id PK
+        text name UK
+        int parent_id FK
+    }
+    PRODUCTS {
+        int product_id PK
+        text sku UK
+        text name
+        int category_id FK
+        numeric price
+        int stock
+        boolean is_active
+    }
+    ORDERS {
+        int order_id PK
+        int customer_id FK
+        timestamptz ordered_at
+        text status
+        numeric shipping_fee
+    }
+    ORDER_ITEMS {
+        int order_id PK, FK
+        int product_id PK, FK
+        int quantity
+        numeric unit_price
+    }
+    PAYMENTS {
+        int payment_id PK
+        int order_id FK, UK
+        text method
+        numeric amount
+        timestamptz paid_at
+        text status
+    }
+```</code></pre>
+<div class="callout"><span class="c-label tip">Tip</span><p>สัญลักษณ์ใน Mermaid อ่านจากฝั่งที่ใกล้ชื่อตาราง เช่น <code>||--o{</code> แปลว่า “หนึ่งเดียวแน่นอน ต่อ ศูนย์หรือหลาย” และ <code>||--|{</code> แปลว่า “หนึ่ง ต่อ หนึ่งหรือหลาย” (คำสั่งซื้อต้องมีสินค้าอย่างน้อย 1 รายการ) ลองวางโค้ดที่ <a href="https://mermaid.live" target="_blank" rel="noopener">mermaid.live</a> เพื่อดูรูปก่อน Push</p></div>
+</li>
+<li>
+<h4>Step 3: เขียน Seed Script แบบ Deterministic</h4>
+<p>ข้อมูลตัวอย่างที่ดีต้องมีขนาดพอให้ Index เห็นผล มีรูปแบบที่สมจริง (สินค้าบางตัวขายดี ลูกค้าบางคนซื้อบ่อย ร้านค่อย ๆ โตขึ้น) และที่สำคัญที่สุดคือ <strong>ทุกคนรันแล้วได้ข้อมูลเหมือนกันทุกแถว</strong> เราจึงไม่ใช้ <code>random()</code> แต่ใช้ <code>generate_series</code> คู่กับเลขคณิต Modulo (<code>%</code>) แทน</p>
+<p>หมวดสินค้าและสินค้าเขียนเองทีละแถว เพราะเป็นข้อมูลที่ต้องมีความหมาย ส่วนลูกค้า คำสั่งซื้อ รายการสินค้า และการชำระเงินสร้างด้วยสูตร</p>
+<pre class="code" data-env="file" data-label="SQL · seed/seed.sql"><code class="language-sql">-- seed/seed.sql : ข้อมูลตัวอย่างแบบกำหนดแน่นอน (Deterministic) ไม่มี random()
+-- ทุกคนที่รันไฟล์นี้จะได้ข้อมูลเหมือนกันทุกแถว ผล Query จึงตรงกับในบทเรียน
+
+-- 1) หมวดสินค้า 10 หมวด 2 ระดับ (id 1-10 ตามลำดับการ INSERT)
+INSERT INTO categories (name, parent_id) VALUES
+    ('Electronics',        NULL),  -- 1
+    ('Computers',          1),     -- 2
+    ('Mobile &amp; Tablets',   1),     -- 3
+    ('Accessories',        1),     -- 4
+    ('Home &amp; Kitchen',     NULL),  -- 5
+    ('Kitchen Appliances', 5),     -- 6
+    ('Home Decor',         5),     -- 7
+    ('Books',              NULL),  -- 8
+    ('Programming Books',  8),     -- 9
+    ('Business Books',     8);     -- 10
+
+-- 2) สินค้า 30 รายการ (id 1-30)
+INSERT INTO products (sku, name, category_id, price, stock, is_active) VALUES
+    ('EL-CMP-001', 'Laptop Air 13',          2, 32900.00,  12, TRUE),   -- 1
+    ('EL-CMP-002', 'Laptop Pro 15',          2, 54900.00,   7, TRUE),   -- 2
+    ('EL-CMP-003', 'Gaming Desktop',         2, 45900.00,   4, TRUE),   -- 3
+    ('EL-CMP-004', '27-inch Monitor',        2,  7990.00,  25, TRUE),   -- 4
+    ('EL-MOB-001', 'Smartphone A',           3, 12990.00,  30, TRUE),   -- 5
+    ('EL-MOB-002', 'Smartphone Pro',         3, 29990.00,   9, TRUE),   -- 6
+    ('EL-MOB-003', 'Tablet 11',              3, 15900.00,   6, TRUE),   -- 7
+    ('EL-MOB-004', 'Smartwatch',             3,  6490.00,  18, TRUE),   -- 8
+    ('EL-ACC-001', 'Wireless Mouse',         4,   590.00, 120, TRUE),   -- 9
+    ('EL-ACC-002', 'Mechanical Keyboard',    4,  2490.00,  40, TRUE),   -- 10
+    ('EL-ACC-003', 'USB-C Hub',              4,  1290.00,   0, TRUE),   -- 11
+    ('EL-ACC-004', 'Phone Case',             4,   290.00, 200, TRUE),   -- 12
+    ('EL-ACC-005', 'Power Bank 20000mAh',    4,   890.00,  75, TRUE),   -- 13
+    ('EL-ACC-006', 'Bluetooth Earbuds',      4,  1990.00,  55, TRUE),   -- 14
+    ('HK-KIT-001', 'Rice Cooker',            6,  1890.00,  33, TRUE),   -- 15
+    ('HK-KIT-002', 'Air Fryer',              6,  3290.00,   8, TRUE),   -- 16
+    ('HK-KIT-003', 'Electric Kettle',        6,   790.00,  64, TRUE),   -- 17
+    ('HK-KIT-004', 'Blender',                6,  1590.00,  21, TRUE),   -- 18
+    ('HK-KIT-005', 'Coffee Maker',           6,  2990.00,  14, TRUE),   -- 19
+    ('HK-DEC-001', 'LED Desk Lamp',          7,   690.00,  47, TRUE),   -- 20
+    ('HK-DEC-002', 'Wall Clock',             7,   450.00,  38, TRUE),   -- 21
+    ('HK-DEC-003', 'Cushion Set',            7,   390.00,  52, TRUE),   -- 22
+    ('HK-DEC-004', 'Storage Box',            7,   250.00,  90, TRUE),   -- 23
+    ('BK-PRG-001', 'SQL for Beginners',      9,   450.00,  80, TRUE),   -- 24
+    ('BK-PRG-002', 'Python Crash Course',    9,   690.00,  44, TRUE),   -- 25
+    ('BK-PRG-003', 'Learning Go',            9,   890.00,   3, TRUE),   -- 26
+    ('BK-BUS-001', 'Startup Playbook',      10,   520.00,  26, TRUE),   -- 27
+    ('BK-BUS-002', 'Data-Driven Marketing', 10,   590.00,  19, TRUE),   -- 28
+    ('BK-BUS-003', 'Negotiation Basics',    10,   380.00,  15, TRUE),   -- 29 ยังขายไม่ได้
+    ('EL-ACC-007', 'Old MP3 Player',         4,   990.00,   5, FALSE);  -- 30 เลิกขายแล้ว
+
+-- 3) ลูกค้า 500 คน สร้างด้วย generate_series และเลขคณิต mod
+INSERT INTO customers (full_name, email, phone, province, created_at)
+SELECT
+    (ARRAY['Somchai','Somying','Wichai','Manee','Piti','Chujai','Duangjai','Anan','Kanya','Prasert'])[1 + g % 10]
+        || ' ' ||
+    (ARRAY['Jaidee','Rakrian','Mankhong','Meesuk','Yindee','Faidee','Saendee','Thongkham','Srisuk','Boonmee','Kaewkla'])[1 + g % 11],
+    'customer' || lpad(g::text, 3, '0') || '@example.com',
+    CASE WHEN g % 7 = 0 THEN NULL                       -- ทุกคนที่ 7 ไม่ได้ให้เบอร์โทร
+         ELSE '08' || lpad(((g * 7919) % 100000000)::text, 8, '0') END,
+    (ARRAY['Bangkok','Chiang Mai','Khon Kaen','Phuket','Chon Buri','Songkhla',
+           'Nakhon Ratchasima','Udon Thani'])[1 + g % 8],
+    TIMESTAMPTZ '2024-12-01 09:00:00+07' + (g % 31) * INTERVAL '1 day'
+FROM generate_series(1, 500) AS g
+ORDER BY g;
+
+-- 4) คำสั่งซื้อ 5,000 รายการ ระหว่าง 2025-01-01 ถึง 2026-06-30
+--    p คือเลขที่สลับลำดับแล้ว ใช้เลือกลูกค้า:
+--    p 0-149 = ลูกค้า 251-400 ซื้อคนละ 1 ครั้ง, p 150-249 = ลูกค้า 401-450 ซื้อคนละ 2 ครั้ง
+--    ที่เหลือกระจายให้ลูกค้าประจำ 1-250 ด้วยสูตรกำลังสอง (บางคนซื้อบ่อยกว่าคนอื่น)
+--    ลูกค้า 451-500 ไม่เคยซื้อเลย
+--    day ใช้ sqrt ทำให้ยอดสั่งซื้อค่อย ๆ เพิ่มขึ้นตามเวลา (ร้านกำลังโต)
+WITH base AS (
+    SELECT g,
+           (g * 7919) % 5000                                   AS p,
+           floor(546 * sqrt((g - 1) / 5000.0))::int            AS day
+    FROM generate_series(1, 5000) AS g
+), picked AS (
+    SELECT g, day,
+           CASE WHEN p &lt; 150 THEN 251 + p
+                WHEN p &lt; 250 THEN 401 + (p - 150) % 50
+                ELSE 1 + ((g * g * 31 + g * 17) % 997) % 250 END AS customer_id
+    FROM base
+)
+INSERT INTO orders (customer_id, ordered_at, status)
+SELECT customer_id,
+       TIMESTAMPTZ '2025-01-01 00:00:00+07'
+           + day * INTERVAL '1 day'
+           + (8 + (g * 13) % 14) * INTERVAL '1 hour'
+           + ((g * 7) % 60) * INTERVAL '1 minute',
+       CASE WHEN (g + customer_id) % 19 = 0 THEN 'cancelled'
+            WHEN customer_id % 8 = 3 AND g % 9 = 0 THEN 'cancelled'  -- ภูเก็ตยกเลิกบ่อยกว่า
+            WHEN day &gt;= 536 THEN (ARRAY['pending','paid','shipped'])[1 + g % 3]
+            WHEN day &gt;= 520 THEN 'shipped'
+            ELSE 'delivered' END
+FROM picked
+ORDER BY g;
+
+-- 5) รายการสินค้าในคำสั่งซื้อ: แต่ละคำสั่งซื้อมี 1-5 รายการ
+--    สินค้ายอดนิยมอยู่ในอาร์เรย์หลายครั้งจึงถูกเลือกบ่อยกว่า (สินค้า 29, 30 ไม่อยู่ในอาร์เรย์)
+INSERT INTO order_items (order_id, product_id, quantity, unit_price)
+SELECT o.order_id,
+       w.product_id,
+       1 + ((o.order_id + k) % 6 = 0)::int + ((o.order_id + k) % 15 = 0)::int,
+       round(pr.price * CASE WHEN o.order_id % 10 = 0 THEN 0.90 ELSE 1 END, 2)  -- ทุกคำสั่งซื้อที่ 10 ลด 10%
+FROM orders AS o
+CROSS JOIN LATERAL generate_series(
+        1, (ARRAY[1,1,1,2,2,2,2,3,3,3,4,5])[1 + (o.order_id * 7) % 12]) AS k
+CROSS JOIN LATERAL (
+    SELECT (ARRAY[9,9,9,9,12,12,12,12,13,13,13,14,14,14,24,24,24,25,25,25,
+                  17,17,5,5,10,10,15,15,16,16,20,20,
+                  1,2,3,4,6,7,8,11,18,19,21,22,23,26,27,28])
+           [1 + (o.order_id * 17 + k * 11) % 48] AS product_id
+) AS w
+JOIN products AS pr ON pr.product_id = w.product_id
+ORDER BY o.order_id, k
+ON CONFLICT (order_id, product_id) DO NOTHING;   -- ถ้าสุ่มได้สินค้าซ้ำในคำสั่งซื้อเดียวกัน ให้ข้ามไป
+
+-- 6) ค่าส่ง: ยอดสินค้าตั้งแต่ 1,000 บาทส่งฟรี ไม่ถึงคิด 50 บาท
+UPDATE orders AS o
+SET shipping_fee = CASE WHEN t.subtotal &gt;= 1000 THEN 0 ELSE 50 END
+FROM (SELECT order_id, SUM(quantity * unit_price) AS subtotal
+      FROM order_items GROUP BY order_id) AS t
+WHERE t.order_id = o.order_id;
+
+-- 7) การชำระเงิน
+--    paid/shipped/delivered = success, cancelled บางรายการเคยจ่ายแล้วจึงคืนเงิน = refunded
+--    pending บางรายการจ่ายไม่ผ่าน = failed
+INSERT INTO payments (order_id, method, amount, paid_at, status)
+SELECT o.order_id,
+       m.method,
+       t.subtotal + o.shipping_fee,
+       CASE WHEN o.status = 'pending' THEN NULL
+            WHEN m.method = 'cod' THEN o.ordered_at + INTERVAL '3 days'  -- เก็บเงินปลายทาง
+            ELSE o.ordered_at + INTERVAL '10 minutes' END,
+       CASE WHEN o.status = 'cancelled' THEN 'refunded'
+            WHEN o.status = 'pending'   THEN 'failed'
+            ELSE 'success' END
+FROM orders AS o
+JOIN (SELECT order_id, SUM(quantity * unit_price) AS subtotal
+      FROM order_items GROUP BY order_id) AS t ON t.order_id = o.order_id
+CROSS JOIN LATERAL (
+    SELECT (ARRAY['promptpay','promptpay','promptpay','credit_card','credit_card',
+                  'bank_transfer','cod'])[1 + o.order_id % 7] AS method
+) AS m
+WHERE o.status IN ('paid', 'shipped', 'delivered')
+   OR (o.status = 'cancelled' AND o.order_id % 3 = 0)
+   OR (o.status = 'pending'   AND o.order_id % 4 = 0)
+ORDER BY o.order_id;</code></pre>
+<h5>เทคนิคที่ใช้ใน Seed</h5>
+<div class="tbl mid"><table class="explain"><thead><tr><th>เทคนิค</th><th>ทำงานอย่างไร</th></tr></thead><tbody>
+<tr><td><code>generate_series(1, 500) AS g</code></td><td>สร้างตัวเลข 1 ถึง 500 เป็นแถว ๆ ให้เราใช้ <code>g</code> เป็นวัตถุดิบคำนวณค่าของแต่ละคอลัมน์</td></tr>
+<tr><td><code>(ARRAY[...])[1 + g % 8]</code></td><td>เลือกค่าจากอาร์เรย์แบบวนรอบ Array ใน PostgreSQL เริ่มที่ตำแหน่ง 1 จึงต้องบวก 1 เสมอ ลูกค้าจึงกระจายครบ 8 จังหวัดเท่า ๆ กัน</td></tr>
+<tr><td><code>lpad(g::text, 3, '0')</code></td><td>เติม 0 ด้านหน้าให้ครบ 3 หลัก ได้อีเมล <code>customer007@example.com</code> ที่เรียงตามตัวอักษรได้ถูกต้อง</td></tr>
+<tr><td><code>(g * 7919) % 5000</code></td><td>7919 เป็นจำนวนเฉพาะที่หาร 5000 ไม่ลงตัว ผลลัพธ์จึงเป็นการสลับลำดับเลข 0–4999 ครบทุกตัวไม่ซ้ำ ใช้แทนการสุ่มได้</td></tr>
+<tr><td><code>floor(546 * sqrt((g - 1) / 5000.0))</code></td><td>กระจายวันที่สั่งซื้อแบบรากที่สอง ทำให้ช่วงท้ายมีคำสั่งซื้อต่อวันมากกว่าช่วงแรก เหมือนร้านที่กำลังเติบโต</td></tr>
+<tr><td><code>CROSS JOIN LATERAL generate_series(1, n)</code></td><td>LATERAL ให้ Subquery ด้านขวาอ้างอิงคอลัมน์ของแถวซ้ายได้ แต่ละคำสั่งซื้อจึงได้จำนวนรายการสินค้าไม่เท่ากัน (1–5 รายการ)</td></tr>
+<tr><td>อาร์เรย์สินค้าที่มีเลขซ้ำ</td><td>สินค้า 9 (Wireless Mouse) อยู่ในอาร์เรย์ 4 ครั้ง จึงถูกเลือกบ่อยกว่าสินค้าที่อยู่ครั้งเดียว ส่วนสินค้า 29 และ 30 ไม่อยู่ในอาร์เรย์เลย จึงขายไม่ได้ ใช้ทดสอบ Query หาสินค้าที่ไม่เคยขาย</td></tr>
+<tr><td><code>ON CONFLICT (order_id, product_id) DO NOTHING</code></td><td>ถ้าสูตรเลือกสินค้าซ้ำในคำสั่งซื้อเดียว แถวที่ซ้ำจะถูกข้าม แทนที่จะทำให้ทั้งไฟล์ล้มเพราะชน Primary Key</td></tr>
+<tr><td><code>UPDATE ... FROM (subquery)</code></td><td>คำนวณค่าส่งจากยอดรวมของแต่ละคำสั่งซื้อ แล้วอัปเดตกลับในคำสั่งเดียว</td></tr>
+<tr><td><code>ORDER BY</code> ท้าย INSERT ... SELECT</td><td>บังคับลำดับการใส่ข้อมูล ทำให้เลข IDENTITY ของทุกแถวตรงกันทุกเครื่อง</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ใช้อีเมลโดเมน <code>example.com</code> ซึ่งสงวนไว้สำหรับตัวอย่างโดยเฉพาะ ไม่มีวันส่งอีเมลไปหาคนจริงโดยไม่ตั้งใจ</li>
+<li>ห้ามใช้ข้อมูลลูกค้าจริงเป็น Seed ใน Repository สาธารณะ เพราะผิดหลัก PDPA (พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล)</li>
+<li>เขียนคอมเมนต์อธิบายสูตรไว้ในไฟล์ คนที่มาอ่านทีหลัง (รวมถึงตัวคุณเองในอีก 3 เดือน) จะเข้าใจว่าข้อมูลมาจากไหน</li>
+</ul></div>
+</li>
+
+<li>
+<h4>Step 4: สคริปต์สร้างใหม่ด้วยคำสั่งเดียว และตรวจความถูกต้องของข้อมูล</h4>
+<p><code>scripts/rebuild.sh</code> ลบฐานข้อมูล <code>ecommerce</code> แล้วสร้างใหม่ทั้งหมด ใช้ตอนเริ่มโปรเจกต์ ตอนแก้ Schema และตอนวัดผล Index แบบ “ก่อนปรับ” (ใส่ <code>--no-indexes</code>)</p>
+<pre class="code" data-env="file" data-label="Bash · scripts/rebuild.sh"><code class="language-bash">#!/usr/bin/env bash
+# scripts/rebuild.sh : ลบแล้วสร้างฐานข้อมูล ecommerce ใหม่ทั้งหมดด้วยคำสั่งเดียว
+# วิธีใช้: ./scripts/rebuild.sh            (สร้างครบพร้อม Index)
+#         ./scripts/rebuild.sh --no-indexes (ไม่สร้าง Index ใช้ตอนวัดผล EXPLAIN แบบ "ก่อน")
+set -euo pipefail                     # หยุดทันทีเมื่อมีคำสั่งใดล้มเหลว
+cd "$(dirname "$0")/.."               # ย้ายไปที่โฟลเดอร์หลักของโปรเจกต์
+DB="${DB:-ecommerce}"                 # เปลี่ยนชื่อฐานข้อมูลได้ด้วย DB=ชื่อ ./scripts/rebuild.sh
+
+echo "==&gt; สร้างฐานข้อมูล $DB ใหม่"
+dropdb --if-exists "$DB"
+createdb "$DB"
+# ให้ทุก Session ของฐานข้อมูลนี้ใช้เวลาไทย ผลวันที่จะได้ตรงกันทุกเครื่อง
+psql -X -q -d "$DB" -c "ALTER DATABASE \"$DB\" SET timezone TO 'Asia/Bangkok';"
+
+echo "==&gt; สร้างตาราง"
+psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f schema/01_tables.sql
+echo "==&gt; ใส่ข้อมูลตัวอย่าง"
+psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f seed/seed.sql
+
+if [[ "${1:-}" == "--no-indexes" ]]; then
+    echo "==&gt; ข้ามการสร้าง Index (โหมดวัดผลก่อนปรับ)"
+    psql -X -q -d "$DB" -c "ANALYZE customers, categories, products, orders, order_items, payments;"
+else
+    echo "==&gt; สร้าง Index"
+    psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f schema/02_indexes.sql
+fi
+echo "==&gt; เสร็จแล้ว"</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>set -euo pipefail</code></td><td><code>-e</code> หยุดเมื่อคำสั่งใดล้มเหลว <code>-u</code> หยุดเมื่อใช้ตัวแปรที่ไม่ได้กำหนด <code>pipefail</code> ให้ Pipe ล้มเหลวถ้าคำสั่งใดใน Pipe ล้มเหลว</td></tr>
+<tr><td><code>cd "$(dirname "$0")/.."</code></td><td>ย้ายไปโฟลเดอร์หลักของโปรเจกต์ จะรันสคริปต์จากที่ไหนก็ได้ผลเหมือนกัน</td></tr>
+<tr><td><code>DB="${DB:-ecommerce}"</code></td><td>ใช้ค่าจากตัวแปร <code>DB</code> ถ้ามี ไม่มีก็ใช้ <code>ecommerce</code></td></tr>
+<tr><td><code>ALTER DATABASE ... SET timezone</code></td><td>ตั้งเวลาไทยให้ฐานข้อมูลนี้ ฟังก์ชันอย่าง <code>date_trunc('month', ...)</code> จะตัดเดือนตามเวลาไทยเสมอ ไม่ขึ้นกับ Time Zone ของเครื่อง</td></tr>
+<tr><td><code>psql -X -q -v ON_ERROR_STOP=1</code></td><td><code>-X</code> ไม่อ่าน <code>~/.psqlrc</code>, <code>-q</code> ไม่พิมพ์ข้อความอย่าง <code>INSERT 0 1</code>, <code>ON_ERROR_STOP=1</code> หยุดทันทีที่เจอ Error แทนที่จะรันต่อแบบข้อมูลไม่ครบ</td></tr>
+<tr><td><code>[[ "${1:-}" == "--no-indexes" ]]</code></td><td>ตรวจ Argument ตัวแรก ถ้าเป็น <code>--no-indexes</code> จะข้ามการสร้าง Index แต่ยังรัน <code>ANALYZE</code> เพื่อให้ Planner มีสถิติ</td></tr>
+</tbody></table></div>
+<p>ไฟล์ <code>scripts/check.sql</code> คือการตรวจสุขภาพข้อมูลหลังสร้างเสร็จ แต่ละข้อมีค่าที่ควรได้ระบุไว้ในหัวข้อ ถ้าค่าไม่ตรง แปลว่า Seed มีปัญหา</p>
+<pre class="code" data-env="file" data-label="SQL · scripts/check.sql"><code class="language-sql">-- scripts/check.sql : ตรวจความถูกต้องของข้อมูลหลัง rebuild ทุกข้อควรได้ผลตามที่คาดไว้
+\echo '--- 1) จำนวนแถวในแต่ละตาราง'
+SELECT 'customers' AS table_name, COUNT(*) AS rows FROM customers
+UNION ALL SELECT 'categories',  COUNT(*) FROM categories
+UNION ALL SELECT 'products',    COUNT(*) FROM products
+UNION ALL SELECT 'orders',      COUNT(*) FROM orders
+UNION ALL SELECT 'order_items', COUNT(*) FROM order_items
+UNION ALL SELECT 'payments',    COUNT(*) FROM payments;
+
+\echo '--- 2) ยอดชำระที่สำเร็จต้องเท่ากับยอดสินค้า + ค่าส่ง (ควรได้ 0 แถวที่ไม่ตรง)'
+SELECT COUNT(*) AS mismatched_payments
+FROM payments AS pm
+JOIN orders AS o ON o.order_id = pm.order_id
+JOIN (SELECT order_id, SUM(quantity * unit_price) AS subtotal
+      FROM order_items GROUP BY order_id) AS t ON t.order_id = o.order_id
+WHERE pm.amount &lt;&gt; t.subtotal + o.shipping_fee;
+
+\echo '--- 3) คำสั่งซื้อที่ไม่มีสินค้าเลย (ควรเป็น 0)'
+SELECT COUNT(*) AS empty_orders
+FROM orders AS o
+WHERE NOT EXISTS (SELECT 1 FROM order_items AS oi WHERE oi.order_id = o.order_id);
+
+\echo '--- 4) ช่วงวันที่ของคำสั่งซื้อ'
+SELECT MIN(ordered_at)::date AS first_order, MAX(ordered_at)::date AS last_order FROM orders;</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/ecommerce-db
+# ให้สิทธิ์รันสคริปต์ทุกไฟล์ใน scripts/
+chmod +x scripts/*.sh
+# สร้างฐานข้อมูลครั้งแรก
+./scripts/rebuild.sh
+# ตรวจข้อมูล
+psql -X -d ecommerce -f scripts/check.sql</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>==&gt; สร้างฐานข้อมูล ecommerce ใหม่
+NOTICE:  database "ecommerce" does not exist, skipping
+==&gt; สร้างตาราง
+==&gt; ใส่ข้อมูลตัวอย่าง
+==&gt; สร้าง Index
+==&gt; เสร็จแล้ว
+--- 1) จำนวนแถวในแต่ละตาราง
+ table_name  | rows  
+-------------+-------
+ customers   |   500
+ categories  |    10
+ products    |    30
+ orders      |  5000
+ order_items | 12084
+ payments    |  4790
+(6 rows)
+
+--- 2) ยอดชำระที่สำเร็จต้องเท่ากับยอดสินค้า + ค่าส่ง (ควรได้ 0 แถวที่ไม่ตรง)
+ mismatched_payments 
+---------------------
+                   0
+(1 row)
+
+--- 3) คำสั่งซื้อที่ไม่มีสินค้าเลย (ควรเป็น 0)
+ empty_orders 
+--------------
+            0
+(1 row)
+
+--- 4) ช่วงวันที่ของคำสั่งซื้อ
+ first_order | last_order 
+-------------+------------
+ 2025-01-01  | 2026-06-30
+(1 row)</code></pre>
+<p>บรรทัด <code>NOTICE: ... does not exist, skipping</code> ขึ้นเฉพาะครั้งแรก เพราะยังไม่มีฐานข้อมูลให้ลบ ครั้งต่อไปจะไม่ขึ้นแล้ว ข้อมูลได้ครบตามแผน ลูกค้า 500 คน คำสั่งซื้อ 5,000 รายการ รายการสินค้า 12,084 แถว (บางแถวที่ซ้ำถูก <code>ON CONFLICT</code> ข้ามไป) และยอดชำระตรงกับยอดสินค้าบวกค่าส่งทุกรายการ</p>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>bash: ./scripts/rebuild.sh: Permission denied</code></td><td>ไฟล์ยังไม่มีสิทธิ์ Execute</td><td>รัน <code>chmod +x scripts/*.sh</code> หนึ่งครั้ง Git จะจำสิทธิ์นี้ไว้ให้</td></tr>
+<tr><td><code>dropdb: error: database removal failed: ERROR:  database "ecommerce" is being accessed by other users</code></td><td>ยังเปิด <code>psql -d ecommerce</code> ค้างไว้ในอีกหน้าต่าง</td><td>ออกจาก psql ในหน้าต่างอื่นด้วย <code>\q</code> ก่อน หรือใช้ <code>dropdb --force</code> (PostgreSQL 13 ขึ้นไป) เมื่อแน่ใจว่าไม่มีงานสำคัญค้างอยู่</td></tr>
+<tr><td><code>createdb: error: database creation failed: ERROR:  permission denied to create database</code></td><td>Role ของคุณไม่มีสิทธิ์ CREATEDB</td><td>รัน <code>sudo -u postgres psql -c "ALTER ROLE $USER CREATEDB;"</code></td></tr>
+<tr><td><code>psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory</code></td><td>ยังไม่ได้เปิด PostgreSQL หลังเปิดเครื่อง</td><td>รัน <code>sudo service postgresql start</code></td></tr>
+</tbody></table></div>
+</li>
+<li>
+<h4>Step 5: Query วิเคราะห์ธุรกิจ ชุดที่ 1 (q01–q10)</h4>
+<p>ทุกไฟล์ใน <code>queries/</code> ขึ้นต้นด้วยคอมเมนต์ภาษาไทยที่บอกคำถามธุรกิจ เพราะในงานจริง คนที่ขอรายงานไม่ได้ถามว่า “ช่วย JOIN สามตารางให้หน่อย” แต่ถามว่า “เดือนไหนขายดีที่สุด” หน้าที่ของเราคือแปลคำถามเป็น SQL และอ่านผลให้เป็นคำตอบ</p>
+<p>กติกาที่ใช้ทุกข้อ: <strong>ยอดขาย</strong> นับเฉพาะคำสั่งซื้อสถานะ <code>paid</code>, <code>shipped</code>, <code>delivered</code> (ไม่นับ <code>pending</code> ที่ยังไม่จ่าย และ <code>cancelled</code>) และคิดจาก <code>quantity * unit_price</code> โดยไม่รวมค่าส่ง ส่วนวันที่อ้างอิงคือ <code>2026-06-30</code> แทน <code>CURRENT_DATE</code> เพื่อให้ทุกเครื่องได้ผลตรงกัน</p>
+<p>รัน Query แต่ละไฟล์ด้วยคำสั่งรูปแบบนี้ (เปลี่ยนชื่อไฟล์ตามข้อ)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/ecommerce-db
+# -P null=NULL ทำให้ค่า NULL แสดงเป็นคำว่า NULL แทนช่องว่าง
+psql -X -P null=NULL -d ecommerce -f queries/q01_monthly_revenue.sql</code></pre>
+
+<h5>q01: ยอดขายรายเดือน</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q01_monthly_revenue.sql"><code class="language-sql">-- q01: ยอดขายรายเดือนเป็นเท่าไร (นับเฉพาะคำสั่งซื้อที่ชำระแล้ว: paid, shipped, delivered)
+SELECT to_char(date_trunc('month', o.ordered_at), 'YYYY-MM') AS month,
+       COUNT(DISTINCT o.order_id)                            AS orders,
+       SUM(oi.quantity * oi.unit_price)                      AS revenue
+FROM orders AS o
+JOIN order_items AS oi ON oi.order_id = o.order_id
+WHERE o.status IN ('paid', 'shipped', 'delivered')
+GROUP BY date_trunc('month', o.ordered_at)
+ORDER BY month;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>  month  | orders |  revenue   
+---------+--------+------------
+ 2025-01 |     14 |  322744.00
+ 2025-02 |     38 |  665212.00
+ 2025-03 |     71 | 1245339.00
+ 2025-04 |     97 | 1747511.00
+ 2025-05 |    133 | 2364294.00
+ 2025-06 |    154 | 2670189.00
+ 2025-07 |    191 | 3145954.00
+ 2025-08 |    226 | 3911469.00
+ 2025-09 |    244 | 4219237.00
+ 2025-10 |    286 | 4992397.00
+ 2025-11 |    303 | 5263849.00
+ 2025-12 |    332 | 5799824.00
+ 2026-01 |    366 | 6302310.00
+ 2026-02 |    358 | 6396581.00
+ 2026-03 |    429 | 7349875.00
+ 2026-04 |    441 | 7408200.00
+ 2026-05 |    489 | 8501581.00
+ 2026-06 |    446 | 8068892.00
+(18 rows)</code></pre>
+<p><strong>อ่านผล:</strong> ร้านโตต่อเนื่องจาก 322,744 บาทในเดือนแรก เป็น 8.5 ล้านบาทในเดือน 2026-05 ต้องใช้ <code>COUNT(DISTINCT o.order_id)</code> เพราะหลัง JOIN กับ <code>order_items</code> คำสั่งซื้อหนึ่งรายการกลายเป็นหลายแถว ถ้าใช้ <code>COUNT(*)</code> จะนับเกินจริง</p>
+
+<h5>q02: ยอดขายตามหมวดระดับบนสุด (Recursive CTE)</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q02_revenue_by_top_category.sql"><code class="language-sql">-- q02: หมวดสินค้าระดับบนสุดหมวดไหนทำยอดขายได้มากที่สุด (ไล่หมวดลูกขึ้นไปหาหมวดแม่ด้วย Recursive CTE)
+WITH RECURSIVE tree AS (
+    -- Anchor: หมวดระดับบนสุด ตั้ง root_name เป็นชื่อตัวเอง
+    SELECT category_id, name AS root_name
+    FROM categories
+    WHERE parent_id IS NULL
+    UNION ALL
+    -- Recursive: หมวดลูกรับ root_name ต่อจากหมวดแม่
+    SELECT c.category_id, t.root_name
+    FROM categories AS c
+    JOIN tree AS t ON c.parent_id = t.category_id
+)
+SELECT t.root_name                                  AS top_category,
+       SUM(oi.quantity * oi.unit_price)             AS revenue,
+       round(100.0 * SUM(oi.quantity * oi.unit_price)
+             / SUM(SUM(oi.quantity * oi.unit_price)) OVER (), 2) AS pct
+FROM order_items AS oi
+JOIN orders   AS o ON o.order_id   = oi.order_id
+JOIN products AS p ON p.product_id = oi.product_id
+JOIN tree     AS t ON t.category_id = p.category_id
+WHERE o.status IN ('paid', 'shipped', 'delivered')
+GROUP BY t.root_name
+ORDER BY revenue DESC;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>  top_category  |   revenue   |  pct  
+----------------+-------------+-------
+ Electronics    | 74826913.00 | 93.10
+ Home &amp; Kitchen |  4142439.00 |  5.15
+ Books          |  1406106.00 |  1.75
+(3 rows)</code></pre>
+<p><strong>อ่านผล:</strong> สินค้าผูกกับหมวดลูก เช่น Computers แต่ผู้บริหารอยากเห็นภาพรวมระดับ Electronics จึงต้องไล่ขึ้นไปหาหมวดแม่ Recursive CTE ทำงานได้ไม่ว่าต้นไม้หมวดจะลึกกี่ชั้น ส่วน <code>SUM(SUM(...)) OVER ()</code> คือ Window Function ซ้อนบน Aggregate ใช้หาผลรวมทั้งหมดมาเป็นตัวหารเพื่อคิดเปอร์เซ็นต์ในคำสั่งเดียว</p>
+
+<h5>q03: สินค้า 10 อันดับที่ทำรายได้สูงสุด</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q03_top10_products.sql"><code class="language-sql">-- q03: สินค้า 10 อันดับแรกที่ทำรายได้สูงสุด และขายได้กี่ชิ้น
+SELECT p.sku,
+       p.name,
+       SUM(oi.quantity)                 AS units,
+       SUM(oi.quantity * oi.unit_price) AS revenue
+FROM order_items AS oi
+JOIN orders   AS o ON o.order_id   = oi.order_id
+JOIN products AS p ON p.product_id = oi.product_id
+WHERE o.status IN ('paid', 'shipped', 'delivered')
+GROUP BY p.product_id, p.sku, p.name
+ORDER BY revenue DESC
+LIMIT 10;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>    sku     |        name         | units |   revenue   
+------------+---------------------+-------+-------------
+ EL-MOB-002 | Smartphone Pro      |   632 | 18827722.00
+ EL-CMP-003 | Gaming Desktop      |   303 | 13815900.00
+ EL-CMP-002 | Laptop Pro 15       |   238 | 12967380.00
+ EL-MOB-001 | Smartphone A        |   591 |  7601748.00
+ EL-CMP-001 | Laptop Air 13       |   186 |  6119400.00
+ EL-MOB-003 | Tablet 11           |   287 |  4499700.00
+ EL-ACC-006 | Bluetooth Earbuds   |  1223 |  2410487.00
+ EL-CMP-004 | 27-inch Monitor     |   295 |  2325889.00
+ EL-ACC-002 | Mechanical Keyboard |   941 |  2323419.00
+ EL-MOB-004 | Smartwatch          |   287 |  1850948.00
+(10 rows)</code></pre>
+<p><strong>อ่านผล:</strong> Bluetooth Earbuds ขายได้ 1,223 ชิ้น มากกว่า Smartphone Pro เกือบ 2 เท่า แต่รายได้ต่ำกว่ามาก การจัดอันดับด้วย “จำนวนชิ้น” กับ “รายได้” ให้คำตอบต่างกัน ต้องถามผู้ขอรายงานให้ชัดเสมอว่าต้องการแบบไหน การ <code>GROUP BY p.product_id</code> แทนชื่อสินค้าอย่างเดียว ป้องกันกรณีสินค้าสองตัวชื่อซ้ำกัน</p>
+
+<h5>q04: ลูกค้า 10 คนที่มี Lifetime Value สูงสุด</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q04_top_customers_ltv.sql"><code class="language-sql">-- q04: ลูกค้า 10 คนที่มี Lifetime Value (ยอดซื้อสะสม) สูงที่สุด
+SELECT c.customer_id,
+       c.full_name,
+       c.province,
+       COUNT(DISTINCT o.order_id)       AS orders,
+       SUM(oi.quantity * oi.unit_price) AS lifetime_value
+FROM customers AS c
+JOIN orders      AS o  ON o.customer_id = c.customer_id
+JOIN order_items AS oi ON oi.order_id   = o.order_id
+WHERE o.status IN ('paid', 'shipped', 'delivered')
+GROUP BY c.customer_id, c.full_name, c.province
+ORDER BY lifetime_value DESC, c.customer_id
+LIMIT 10;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> customer_id |    full_name     |     province      | orders | lifetime_value 
+-------------+------------------+-------------------+--------+----------------
+         182 | Wichai Saendee   | Nakhon Ratchasima |     37 |      763329.00
+          56 | Duangjai Rakrian | Bangkok           |     38 |      726703.00
+          93 | Manee Faidee     | Songkhla          |     36 |      723559.00
+          10 | Somchai Kaewkla  | Khon Kaen         |     36 |      718817.00
+           5 | Chujai Faidee    | Songkhla          |     28 |      662210.00
+         104 | Piti Faidee      | Bangkok           |     32 |      652883.00
+          18 | Kanya Thongkham  | Khon Kaen         |     34 |      634724.00
+         205 | Chujai Thongkham | Songkhla          |     25 |      612356.00
+         181 | Somying Faidee   | Songkhla          |     29 |      606987.00
+          90 | Somchai Mankhong | Khon Kaen         |     34 |      606859.00
+(10 rows)</code></pre>
+<p><strong>อ่านผล:</strong> ลูกค้าอันดับ 1 ซื้อสะสมกว่า 7.6 แสนบาท การใส่ <code>c.customer_id</code> เป็นตัวเรียงลำดับที่สองใน <code>ORDER BY</code> เรียกว่า Tie-breaker ถ้ามีลูกค้ายอดเท่ากัน ผลจะเรียงเหมือนเดิมทุกครั้ง ไม่สลับไปมา ซึ่งจำเป็นเมื่อใช้ร่วมกับ <code>LIMIT</code></p>
+
+<h5>q05: มูลค่าเฉลี่ยต่อคำสั่งซื้อ (AOV) รายปี</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q05_average_order_value.sql"><code class="language-sql">-- q05: มูลค่าเฉลี่ยต่อคำสั่งซื้อ (Average Order Value) ของแต่ละปีเป็นเท่าไร
+WITH order_totals AS (
+    SELECT o.order_id,
+           o.ordered_at,
+           SUM(oi.quantity * oi.unit_price) AS total
+    FROM orders AS o
+    JOIN order_items AS oi ON oi.order_id = o.order_id
+    WHERE o.status IN ('paid', 'shipped', 'delivered')
+    GROUP BY o.order_id, o.ordered_at
+)
+SELECT EXTRACT(YEAR FROM ordered_at)::int AS year,
+       COUNT(*)                           AS orders,
+       SUM(total)                         AS revenue,
+       round(AVG(total), 2)               AS aov
+FROM order_totals
+GROUP BY EXTRACT(YEAR FROM ordered_at)
+ORDER BY year;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> year | orders |   revenue   |   aov    
+------+--------+-------------+----------
+ 2025 |   2089 | 36348019.00 | 17399.72
+ 2026 |   2529 | 44027439.00 | 17409.03
+(2 rows)</code></pre>
+<p><strong>อ่านผล:</strong> AOV สองปีใกล้กันมาก (ประมาณ 17,400 บาท) แปลว่าร้านโตเพราะ “จำนวนคำสั่งซื้อ” เพิ่มขึ้น ไม่ใช่เพราะลูกค้าซื้อต่อครั้งมากขึ้น ต้องรวมยอดต่อคำสั่งซื้อใน CTE ก่อน แล้วค่อยหาค่าเฉลี่ย ถ้าใช้ <code>AVG(quantity * unit_price)</code> ตรง ๆ จะได้ค่าเฉลี่ยต่อ “รายการสินค้า” ซึ่งเป็นคนละคำถาม</p>
+
+<h5>q06: จำนวนคำสั่งซื้อในแต่ละสถานะ</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q06_orders_per_status.sql"><code class="language-sql">-- q06: คำสั่งซื้อแต่ละสถานะมีกี่รายการ คิดเป็นกี่เปอร์เซ็นต์
+SELECT status,
+       COUNT(*)                                           AS orders,
+       round(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 2) AS pct
+FROM orders
+GROUP BY status
+ORDER BY orders DESC;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>  status   | orders |  pct  
+-----------+--------+-------
+ delivered |   4236 | 84.72
+ cancelled |    331 |  6.62
+ shipped   |    325 |  6.50
+ paid      |     57 |  1.14
+ pending   |     51 |  1.02
+(5 rows)</code></pre>
+<p><strong>อ่านผล:</strong> อัตรายกเลิก 6.62% เป็นตัวเลขที่ทีมบริการลูกค้าควรติดตาม การเขียน <code>100.0 * COUNT(*)</code> ใช้ <code>100.0</code> ที่มีทศนิยมเพื่อเลี่ยงกับดักการหารจำนวนเต็ม (ถ้าเขียน <code>100 * COUNT(*) / ...</code> ผลจะถูกปัดทิ้งทศนิยม)</p>
+
+<h5>q07: สัดส่วนช่องทางการชำระเงิน</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q07_payment_method_share.sql"><code class="language-sql">-- q07: ลูกค้าจ่ายเงินช่องทางไหนมากที่สุด (เฉพาะการชำระที่สำเร็จ)
+SELECT method,
+       COUNT(*)                                                   AS payments,
+       SUM(amount)                                                AS amount,
+       round(100.0 * SUM(amount) / SUM(SUM(amount)) OVER (), 2)   AS amount_pct
+FROM payments
+WHERE status = 'success'
+GROUP BY method
+ORDER BY amount DESC;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>    method     | payments |   amount    | amount_pct 
+---------------+----------+-------------+------------
+ promptpay     |     1990 | 34695291.00 |      43.15
+ credit_card   |     1314 | 22701356.00 |      28.23
+ cod           |      653 | 11649319.00 |      14.49
+ bank_transfer |      661 | 11369042.00 |      14.14
+(4 rows)</code></pre>
+<p><strong>อ่านผล:</strong> PromptPay ครองสัดส่วน 43.15% ของยอดเงิน ยอดใน <code>payments.amount</code> รวมค่าส่งแล้ว จึงไม่เท่ากับยอดสินค้าใน q01 การเลือกตารางต้นทางให้ตรงกับคำถาม (ยอดขายสินค้า หรือ เงินที่รับจริง) เป็นทักษะสำคัญของงานวิเคราะห์</p>
+
+<h5>q08: อัตราลูกค้าซื้อซ้ำ</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q08_repeat_customer_rate.sql"><code class="language-sql">-- q08: ลูกค้าที่เคยซื้อ กลับมาซื้อซ้ำ (2 คำสั่งซื้อขึ้นไป) กี่เปอร์เซ็นต์
+WITH per_customer AS (
+    SELECT customer_id, COUNT(*) AS orders
+    FROM orders
+    WHERE status &lt;&gt; 'cancelled'
+    GROUP BY customer_id
+)
+SELECT COUNT(*)                                        AS buyers,
+       COUNT(*) FILTER (WHERE orders &gt;= 2)             AS repeat_buyers,
+       round(100.0 * COUNT(*) FILTER (WHERE orders &gt;= 2) / COUNT(*), 2) AS repeat_rate_pct
+FROM per_customer;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> buyers | repeat_buyers | repeat_rate_pct 
+--------+---------------+-----------------
+    425 |           279 |           65.65
+(1 row)</code></pre>
+<p><strong>อ่านผล:</strong> จากลูกค้า 425 คนที่เคยซื้อ มี 279 คน (65.65%) กลับมาซื้อซ้ำ <code>COUNT(*) FILTER (WHERE ...)</code> เป็น Syntax ของ PostgreSQL ที่อ่านง่ายกว่า <code>SUM(CASE WHEN ... THEN 1 ELSE 0 END)</code> แต่ให้ผลเหมือนกัน</p>
+
+<h5>q09: ลูกค้าที่หายไปเกิน 90 วัน</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q09_inactive_customers_90d.sql"><code class="language-sql">-- q09: ลูกค้าที่เคยซื้อแต่ไม่ได้ซื้อเลยใน 90 วันล่าสุด (นับถึงวันที่ 2026-06-30) มีใครบ้าง
+-- ใช้วันที่คงที่แทน CURRENT_DATE เพื่อให้ผลลัพธ์ตรงกันทุกเครื่อง
+WITH last_order AS (
+    SELECT customer_id, MAX(ordered_at) AS last_ordered_at
+    FROM orders
+    WHERE status &lt;&gt; 'cancelled'
+    GROUP BY customer_id
+)
+SELECT c.customer_id,
+       c.full_name,
+       c.email,
+       l.last_ordered_at::date                       AS last_order_date,
+       DATE '2026-06-30' - l.last_ordered_at::date   AS days_since
+FROM last_order AS l
+JOIN customers AS c ON c.customer_id = l.customer_id
+WHERE l.last_ordered_at &lt; TIMESTAMPTZ '2026-06-30 23:59:59+07' - INTERVAL '90 days'
+ORDER BY days_since DESC, c.customer_id
+LIMIT 10;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> customer_id |     full_name     |          email          | last_order_date | days_since 
+-------------+-------------------+-------------------------+-----------------+------------
+         279 | Prasert Yindee    | customer279@example.com | 2025-01-26      |        520
+         307 | Anan Kaewkla      | customer307@example.com | 2025-02-07      |        508
+         335 | Chujai Faidee     | customer335@example.com | 2025-02-15      |        500
+         363 | Manee Jaidee      | customer363@example.com | 2025-02-22      |        493
+         391 | Somying Saendee   | customer391@example.com | 2025-03-01      |        486
+         266 | Duangjai Mankhong | customer266@example.com | 2025-04-15      |        441
+         294 | Piti Srisuk       | customer294@example.com | 2025-04-19      |        437
+         322 | Wichai Meesuk     | customer322@example.com | 2025-04-22      |        434
+         350 | Somchai Boonmee   | customer350@example.com | 2025-04-25      |        431
+         378 | Kanya Yindee      | customer378@example.com | 2025-04-28      |        428
+(10 rows)</code></pre>
+<p><strong>อ่านผล:</strong> รายชื่อนี้ส่งให้ทีมการตลาดทำแคมเปญดึงลูกค้ากลับได้ทันที <code>DATE - DATE</code> ใน PostgreSQL ได้ผลเป็นจำนวนวัน (integer) ส่วน <code>TIMESTAMPTZ - INTERVAL</code> ได้ผลเป็นเวลา ใช้เปรียบเทียบกับ <code>ordered_at</code> ได้ตรง ๆ</p>
+
+<h5>q10: การเติบโตเทียบเดือนก่อน (Month-over-Month) ด้วย LAG</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q10_mom_growth.sql"><code class="language-sql">-- q10: ยอดขายเดือนนี้โตขึ้นหรือลดลงกี่เปอร์เซ็นต์เทียบกับเดือนก่อน (ใช้ LAG)
+WITH monthly AS (
+    SELECT date_trunc('month', o.ordered_at)  AS month,
+           SUM(oi.quantity * oi.unit_price)   AS revenue
+    FROM orders AS o
+    JOIN order_items AS oi ON oi.order_id = o.order_id
+    WHERE o.status IN ('paid', 'shipped', 'delivered')
+    GROUP BY date_trunc('month', o.ordered_at)
+)
+SELECT to_char(month, 'YYYY-MM')                    AS month,
+       revenue,
+       LAG(revenue) OVER (ORDER BY month)            AS prev_revenue,
+       round(100.0 * (revenue - LAG(revenue) OVER (ORDER BY month))
+             / NULLIF(LAG(revenue) OVER (ORDER BY month), 0), 2) AS growth_pct
+FROM monthly
+ORDER BY month;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>  month  |  revenue   | prev_revenue | growth_pct 
+---------+------------+--------------+------------
+ 2025-01 |  322744.00 |         NULL |       NULL
+ 2025-02 |  665212.00 |    322744.00 |     106.11
+ 2025-03 | 1245339.00 |    665212.00 |      87.21
+ 2025-04 | 1747511.00 |   1245339.00 |      40.32
+ 2025-05 | 2364294.00 |   1747511.00 |      35.29
+ 2025-06 | 2670189.00 |   2364294.00 |      12.94
+ 2025-07 | 3145954.00 |   2670189.00 |      17.82
+ 2025-08 | 3911469.00 |   3145954.00 |      24.33
+ 2025-09 | 4219237.00 |   3911469.00 |       7.87
+ 2025-10 | 4992397.00 |   4219237.00 |      18.32
+ 2025-11 | 5263849.00 |   4992397.00 |       5.44
+ 2025-12 | 5799824.00 |   5263849.00 |      10.18
+ 2026-01 | 6302310.00 |   5799824.00 |       8.66
+ 2026-02 | 6396581.00 |   6302310.00 |       1.50
+ 2026-03 | 7349875.00 |   6396581.00 |      14.90
+ 2026-04 | 7408200.00 |   7349875.00 |       0.79
+ 2026-05 | 8501581.00 |   7408200.00 |      14.76
+ 2026-06 | 8068892.00 |   8501581.00 |      -5.09
+(18 rows)</code></pre>
+<p><strong>อ่านผล:</strong> เดือนแรกไม่มีเดือนก่อนหน้า <code>LAG</code> จึงคืน NULL และการคำนวณที่มี NULL ก็ได้ NULL ตามไปด้วย ซึ่งถูกต้องแล้ว ส่วน <code>NULLIF(x, 0)</code> กันกรณีเดือนก่อนมียอด 0 ที่จะทำให้เกิด <code>ERROR:  division by zero</code> เดือน 2026-06 ยอดลดลง 5.09% เป็นครั้งแรกในรอบ 18 เดือน เป็นสัญญาณที่ควรรายงานผู้บริหาร</p>
+<div class="callout"><span class="c-label tip">Tip</span><p>เมื่อเขียน <code>LAG(revenue) OVER (ORDER BY month)</code> ซ้ำหลายครั้ง ให้ลองย้ายไปใช้ <code>WINDOW w AS (ORDER BY month)</code> แล้วเขียน <code>LAG(revenue) OVER w</code> แทน โค้ดจะสั้นลงและแก้จุดเดียวได้ทั้งหมด</p></div>
+</li>
+<li>
+<h4>Step 6: Query วิเคราะห์ธุรกิจ ชุดที่ 2 (q11–q20) และสคริปต์รันทั้งหมด</h4>
+<p>ชุดนี้ใช้ Window Function, CTE หลายชั้น และ Anti Join หนักขึ้น เป็นคำถามระดับที่ Data Analyst และ Backend Developer เจอในงานจริง</p>
+
+<h5>q11: ยอดขายสะสม (Running Total) ของปี 2026</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q11_running_total.sql"><code class="language-sql">-- q11: ยอดขายสะสม (Running Total) ของปี 2026 ถึงแต่ละเดือนเป็นเท่าไร
+WITH monthly AS (
+    SELECT date_trunc('month', o.ordered_at) AS month,
+           SUM(oi.quantity * oi.unit_price)  AS revenue
+    FROM orders AS o
+    JOIN order_items AS oi ON oi.order_id = o.order_id
+    WHERE o.status IN ('paid', 'shipped', 'delivered')
+      AND o.ordered_at &gt;= TIMESTAMPTZ '2026-01-01 00:00:00+07'
+    GROUP BY date_trunc('month', o.ordered_at)
+)
+SELECT to_char(month, 'YYYY-MM')                AS month,
+       revenue,
+       SUM(revenue) OVER (ORDER BY month
+                          ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total
+FROM monthly
+ORDER BY month;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>  month  |  revenue   | running_total 
+---------+------------+---------------
+ 2026-01 | 6302310.00 |    6302310.00
+ 2026-02 | 6396581.00 |   12698891.00
+ 2026-03 | 7349875.00 |   20048766.00
+ 2026-04 | 7408200.00 |   27456966.00
+ 2026-05 | 8501581.00 |   35958547.00
+ 2026-06 | 8068892.00 |   44027439.00
+(6 rows)</code></pre>
+<p><strong>อ่านผล:</strong> ยอดสะสมเดือนสุดท้าย 44,027,439.00 ตรงกับยอดปี 2026 ใน q05 พอดี เป็นวิธีตรวจคำตอบข้าม Query ที่ดี การเขียน Frame <code>ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW</code> ให้ชัด ปลอดภัยกว่าพึ่ง Frame เริ่มต้น (<code>RANGE</code>) ซึ่งจะรวมแถวที่มีค่า <code>ORDER BY</code> เท่ากันเข้าด้วยกัน</p>
+
+<h5>q12: สินค้าขายดี 3 อันดับแรกของแต่ละหมวดใหญ่ (Top-N per Group)</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q12_top3_per_category.sql"><code class="language-sql">-- q12: สินค้าขายดี 3 อันดับแรก (ตามจำนวนชิ้น) ของแต่ละหมวดระดับบนสุด
+WITH product_units AS (
+    SELECT COALESCE(parent.name, c.name) AS top_category,
+           p.name                        AS product,
+           SUM(oi.quantity)              AS units
+    FROM order_items AS oi
+    JOIN orders     AS o      ON o.order_id     = oi.order_id
+    JOIN products   AS p      ON p.product_id   = oi.product_id
+    JOIN categories AS c      ON c.category_id  = p.category_id
+    LEFT JOIN categories AS parent ON parent.category_id = c.parent_id
+    WHERE o.status IN ('paid', 'shipped', 'delivered')
+    GROUP BY COALESCE(parent.name, c.name), p.name
+), ranked AS (
+    SELECT top_category, product, units,
+           ROW_NUMBER() OVER (PARTITION BY top_category ORDER BY units DESC, product) AS rn
+    FROM product_units
+)
+SELECT top_category, rn, product, units
+FROM ranked
+WHERE rn &lt;= 3                         -- Window Function ใช้ใน WHERE ตรง ๆ ไม่ได้ จึงห่อด้วย CTE
+ORDER BY top_category, rn;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>  top_category  | rn |       product       | units 
+----------------+----+---------------------+-------
+ Books          |  1 | Python Crash Course |   818
+ Books          |  2 | SQL for Beginners   |   711
+ Books          |  3 | Startup Playbook    |   298
+ Electronics    |  1 | Wireless Mouse      |  1457
+ Electronics    |  2 | Bluetooth Earbuds   |  1223
+ Electronics    |  3 | Phone Case          |  1008
+ Home &amp; Kitchen |  1 | LED Desk Lamp       |   632
+ Home &amp; Kitchen |  2 | Rice Cooker         |   522
+ Home &amp; Kitchen |  3 | Electric Kettle     |   427
+(9 rows)</code></pre>
+<p><strong>อ่านผล:</strong> รูปแบบ CTE + <code>ROW_NUMBER() OVER (PARTITION BY ...)</code> + <code>WHERE rn &lt;= N</code> คือคำตอบมาตรฐานของคำถาม “Top-N ต่อกลุ่ม” ซึ่งเป็นคำถามสัมภาษณ์ยอดนิยม Query นี้ใช้ <code>LEFT JOIN</code> หาหมวดแม่แทน Recursive CTE เพราะต้นไม้หมวดของเรามีแค่ 2 ชั้น ถ้าวันหน้ามี 3 ชั้น ต้องเปลี่ยนไปใช้วิธีของ q02</p>
+
+<h5>q13: แบ่งกลุ่มลูกค้าแบบ RFM ด้วย NTILE</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q13_rfm_segments.sql"><code class="language-sql">-- q13: แบ่งกลุ่มลูกค้าแบบ RFM (Recency, Frequency, Monetary) ด้วย NTILE(4)
+-- คะแนน 4 = ดีที่สุด, วันอ้างอิงคือ 2026-06-30
+WITH rfm AS (
+    SELECT o.customer_id,
+           DATE '2026-06-30' - MAX(o.ordered_at)::date AS recency_days,
+           COUNT(DISTINCT o.order_id)                  AS frequency,
+           SUM(oi.quantity * oi.unit_price)            AS monetary
+    FROM orders AS o
+    JOIN order_items AS oi ON oi.order_id = o.order_id
+    WHERE o.status IN ('paid', 'shipped', 'delivered')
+    GROUP BY o.customer_id
+), scored AS (
+    SELECT customer_id,
+           NTILE(4) OVER (ORDER BY recency_days DESC) AS r,   -- ซื้อล่าสุดยิ่งใกล้ ยิ่งได้คะแนนสูง
+           NTILE(4) OVER (ORDER BY frequency)         AS f,
+           NTILE(4) OVER (ORDER BY monetary)          AS m
+    FROM rfm
+)
+SELECT CASE
+           WHEN r = 4 AND f = 4 AND m = 4 THEN '1 Champions'
+           WHEN r &gt;= 3 AND f &gt;= 3         THEN '2 Loyal'
+           WHEN r &gt;= 3                    THEN '3 Promising'
+           WHEN r = 2                     THEN '4 Need Attention'
+           ELSE                                '5 At Risk'
+       END                 AS segment,
+       COUNT(*)            AS customers
+FROM scored
+GROUP BY 1
+ORDER BY 1;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>     segment      | customers 
+------------------+-----------
+ 1 Champions      |        49
+ 2 Loyal          |       131
+ 3 Promising      |        30
+ 4 Need Attention |       105
+ 5 At Risk        |       105
+(5 rows)</code></pre>
+<p><strong>อ่านผล:</strong> RFM เป็นเทคนิคการตลาดที่ให้คะแนนลูกค้า 3 ด้าน คือซื้อล่าสุดเมื่อไร (Recency) ซื้อบ่อยแค่ไหน (Frequency) และใช้เงินเท่าไร (Monetary) <code>NTILE(4)</code> แบ่งลูกค้าที่เรียงแล้วเป็น 4 กลุ่มเท่า ๆ กัน กลุ่ม Champions 49 คนคือคนที่ควรได้สิทธิพิเศษก่อน ตัวเลขนำหน้าชื่อกลุ่มช่วยให้ <code>ORDER BY 1</code> เรียงตามลำดับความสำคัญ</p>
+
+<h5>q14: Cohort ตามเดือนที่ซื้อครั้งแรก</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q14_cohort_first_order.sql"><code class="language-sql">-- q14: Cohort ตามเดือนที่ซื้อครั้งแรก: แต่ละเดือนได้ลูกค้าใหม่กี่คน และกี่คนกลับมาซื้อภายใน 90 วัน
+WITH valid AS (
+    SELECT customer_id, ordered_at
+    FROM orders
+    WHERE status &lt;&gt; 'cancelled'
+), firsts AS (
+    SELECT customer_id, MIN(ordered_at) AS first_at
+    FROM valid
+    GROUP BY customer_id
+)
+SELECT to_char(date_trunc('month', f.first_at), 'YYYY-MM') AS cohort,
+       COUNT(*)                                            AS new_customers,
+       COUNT(*) FILTER (WHERE EXISTS (
+           SELECT 1 FROM valid AS v
+           WHERE v.customer_id = f.customer_id
+             AND v.ordered_at &gt;  f.first_at
+             AND v.ordered_at &lt;= f.first_at + INTERVAL '90 days'
+       ))                                                  AS returned_90d
+FROM firsts AS f
+GROUP BY date_trunc('month', f.first_at)
+ORDER BY cohort;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> cohort  | new_customers | returned_90d 
+---------+---------------+--------------
+ 2025-01 |            14 |            2
+ 2025-02 |            35 |           17
+ 2025-03 |            55 |           34
+ 2025-04 |            63 |           54
+ 2025-05 |            43 |           34
+ 2025-06 |            15 |            6
+ 2025-07 |            25 |           14
+ 2025-08 |            33 |           19
+ 2025-09 |            10 |            0
+ 2025-10 |            13 |            0
+ 2025-11 |            12 |            1
+ 2025-12 |            13 |            4
+ 2026-01 |            14 |            4
+ 2026-02 |            12 |            2
+ 2026-03 |            21 |            3
+ 2026-04 |            17 |            6
+ 2026-05 |            15 |            0
+ 2026-06 |            15 |            0
+(18 rows)</code></pre>
+<p><strong>อ่านผล:</strong> Cohort 2025-04 ได้ลูกค้าใหม่ 63 คน และกลับมาซื้อภายใน 90 วันถึง 54 คน (86%) ส่วน Cohort ช่วงปลายปี 2025 กลับมาซื้อน้อยมาก ทีมการตลาดควรหาว่าช่วงนั้นได้ลูกค้ามาจากช่องทางไหน ส่วน Cohort 2026-05 และ 2026-06 ได้ 0 เพราะข้อมูลยังไม่ครบ 90 วัน ไม่ได้แปลว่าลูกค้าไม่กลับมา ข้อควรระวังแบบนี้ต้องเขียนกำกับไว้ในรายงานเสมอ</p>
+
+<h5>q15: ขนาดตะกร้าสินค้า (Basket Size)</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q15_basket_size.sql"><code class="language-sql">-- q15: แต่ละคำสั่งซื้อมีสินค้ากี่รายการ (Basket Size) และแบบไหนพบบ่อยที่สุด
+WITH basket AS (
+    SELECT order_id, COUNT(*) AS lines, SUM(quantity) AS units
+    FROM order_items
+    GROUP BY order_id
+)
+SELECT lines                                              AS items_per_order,
+       COUNT(*)                                           AS orders,
+       round(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 2) AS pct,
+       round(AVG(units), 2)                               AS avg_units
+FROM basket
+GROUP BY lines
+ORDER BY lines;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> items_per_order | orders |  pct  | avg_units 
+-----------------+--------+-------+-----------
+               1 |   1250 | 25.00 |      1.07
+               2 |   1666 | 33.32 |      2.60
+               3 |   1251 | 25.02 |      3.53
+               4 |    416 |  8.32 |      5.20
+               5 |    417 |  8.34 |      6.40
+(5 rows)</code></pre>
+<p><strong>อ่านผล:</strong> คำสั่งซื้อที่มีสินค้า 2 รายการพบบ่อยที่สุด (33.32%) <code>lines</code> คือจำนวนรายการไม่ซ้ำ ส่วน <code>units</code> คือจำนวนชิ้นรวม สองค่านี้ต่างกันเพราะบางรายการซื้อ 2–3 ชิ้น</p>
+
+<h5>q16: สินค้าที่ยังไม่เคยขายได้</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q16_products_never_sold.sql"><code class="language-sql">-- q16: สินค้าใดที่ยังไม่เคยขายได้เลย (Anti Join ด้วย NOT EXISTS)
+SELECT p.product_id, p.sku, p.name, p.stock, p.is_active
+FROM products AS p
+WHERE NOT EXISTS (
+    SELECT 1 FROM order_items AS oi WHERE oi.product_id = p.product_id
+)
+ORDER BY p.product_id;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> product_id |    sku     |        name        | stock | is_active 
+------------+------------+--------------------+-------+-----------
+         29 | BK-BUS-003 | Negotiation Basics |    15 | t
+         30 | EL-ACC-007 | Old MP3 Player     |     5 | f
+(2 rows)</code></pre>
+<p><strong>อ่านผล:</strong> ได้ 2 ตัวตามที่ Seed ตั้งใจไว้ <code>NOT EXISTS</code> ปลอดภัยกว่า <code>NOT IN</code> เมื่อ Subquery อาจคืนค่า NULL และ PostgreSQL วางแผนเป็น Anti Join ได้อย่างมีประสิทธิภาพ คอลัมน์ <code>is_active</code> แสดงเป็น <code>t</code> และ <code>f</code> ซึ่งเป็นรูปแบบที่ psql ใช้แสดงค่า BOOLEAN</p>
+
+<h5>q17: แจ้งเตือนสต็อกต่ำ</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q17_low_stock_alert.sql"><code class="language-sql">-- q17: สินค้าที่ยังขายอยู่แต่สต็อกต่ำกว่า 10 ชิ้น พร้อมยอดขาย 30 วันล่าสุด เพื่อตัดสินใจสั่งของเพิ่ม
+SELECT p.sku,
+       p.name,
+       p.stock,
+       COALESCE(SUM(oi.quantity) FILTER (
+           WHERE o.ordered_at &gt;= TIMESTAMPTZ '2026-06-30 23:59:59+07' - INTERVAL '30 days'
+             AND o.status &lt;&gt; 'cancelled'), 0) AS sold_last_30d
+FROM products AS p
+LEFT JOIN order_items AS oi ON oi.product_id = p.product_id
+LEFT JOIN orders      AS o  ON o.order_id    = oi.order_id
+WHERE p.is_active
+  AND p.stock &lt; 10
+GROUP BY p.product_id, p.sku, p.name, p.stock
+ORDER BY p.stock, p.sku;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>    sku     |      name      | stock | sold_last_30d 
+------------+----------------+-------+---------------
+ EL-ACC-003 | USB-C Hub      |     0 |            27
+ BK-PRG-003 | Learning Go    |     3 |            27
+ EL-CMP-003 | Gaming Desktop |     4 |            34
+ EL-MOB-003 | Tablet 11      |     6 |            29
+ EL-CMP-002 | Laptop Pro 15  |     7 |            23
+ HK-KIT-002 | Air Fryer      |     8 |            42
+ EL-MOB-002 | Smartphone Pro |     9 |            73
+(7 rows)</code></pre>
+<p><strong>อ่านผล:</strong> USB-C Hub หมดสต็อกแล้วแต่ 30 วันที่ผ่านมาขายได้ 27 ชิ้น ต้องสั่งของด่วนที่สุด และ Smartphone Pro เหลือ 9 ชิ้นแต่ขายได้ 73 ชิ้นใน 30 วัน จะหมดในไม่กี่วัน จุดสำคัญคือ <code>LEFT JOIN</code> ทำให้สินค้าที่ไม่มียอดขายยังอยู่ในผล และเงื่อนไขของตาราง <code>orders</code> ถูกวางไว้ใน <code>FILTER</code> แทน <code>WHERE</code> ถ้าย้ายไปไว้ใน <code>WHERE</code> แถวที่ไม่มีคำสั่งซื้อจะหายไป และ LEFT JOIN จะกลายเป็น INNER JOIN โดยไม่ตั้งใจ</p>
+
+<h5>q18: อัตราการยกเลิกตามจังหวัด</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q18_cancel_rate_by_province.sql"><code class="language-sql">-- q18: จังหวัดไหนมีอัตราการยกเลิกคำสั่งซื้อสูงที่สุด
+SELECT c.province,
+       COUNT(*)                                            AS orders,
+       COUNT(*) FILTER (WHERE o.status = 'cancelled')      AS cancelled,
+       round(100.0 * COUNT(*) FILTER (WHERE o.status = 'cancelled') / COUNT(*), 2) AS cancel_rate_pct
+FROM orders AS o
+JOIN customers AS c ON c.customer_id = o.customer_id
+GROUP BY c.province
+ORDER BY cancel_rate_pct DESC;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>     province      | orders | cancelled | cancel_rate_pct 
+-------------------+--------+-----------+-----------------
+ Phuket            |    646 |       103 |           15.94
+ Bangkok           |    591 |        38 |            6.43
+ Nakhon Ratchasima |    572 |        34 |            5.94
+ Khon Kaen         |    597 |        31 |            5.19
+ Udon Thani        |    710 |        36 |            5.07
+ Songkhla          |    667 |        33 |            4.95
+ Chiang Mai        |    598 |        29 |            4.85
+ Chon Buri         |    619 |        27 |            4.36
+(8 rows)</code></pre>
+<p><strong>อ่านผล:</strong> ภูเก็ตมีอัตรายกเลิก 15.94% สูงกว่าจังหวัดอื่นราว 3 เท่า ข้อมูลนี้ชี้ให้ทีมขนส่งไปตรวจว่าการจัดส่งไปภูเก็ตช้าหรือมีปัญหาหรือไม่ (ใน Seed เราตั้งใจใส่รูปแบบนี้ไว้ เพื่อให้เห็นว่า SQL ช่วยหาความผิดปกติได้อย่างไร)</p>
+
+<h5>q19: ยอดคืนเงินรายเดือน</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q19_refund_by_month.sql"><code class="language-sql">-- q19: แต่ละเดือนคืนเงินลูกค้าไปกี่รายการ เป็นเงินเท่าไร (ปี 2026)
+SELECT to_char(date_trunc('month', o.ordered_at), 'YYYY-MM') AS month,
+       COUNT(*)                                            AS refunds,
+       SUM(pm.amount)                                      AS refunded_amount
+FROM payments AS pm
+JOIN orders   AS o ON o.order_id = pm.order_id
+WHERE pm.status = 'refunded'
+  AND o.ordered_at &gt;= TIMESTAMPTZ '2026-01-01 00:00:00+07'
+GROUP BY date_trunc('month', o.ordered_at)
+ORDER BY month;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>  month  | refunds | refunded_amount 
+---------+---------+-----------------
+ 2026-01 |      17 |       235062.00
+ 2026-02 |      12 |       178851.00
+ 2026-03 |      11 |       155102.00
+ 2026-04 |      13 |       103803.00
+ 2026-05 |      20 |       107722.00
+ 2026-06 |      16 |       119150.00
+(6 rows)</code></pre>
+<p><strong>อ่านผล:</strong> เดือน 2026-05 มีการคืนเงินมากที่สุด 20 รายการ แต่ยอดเงินรวมน้อยกว่าเดือน 2026-01 เพราะเป็นคำสั่งซื้อมูลค่าต่ำ จำนวนรายการกับจำนวนเงินจึงควรแสดงคู่กันเสมอ</p>
+
+<h5>q20: ยอดขายตามวันในสัปดาห์</h5>
+<pre class="code" data-env="file" data-label="SQL · queries/q20_day_of_week_sales.sql"><code class="language-sql">-- q20: วันไหนของสัปดาห์ขายดีที่สุด (ISODOW: 1 = จันทร์ ... 7 = อาทิตย์)
+SELECT EXTRACT(ISODOW FROM o.ordered_at)::int  AS dow,
+       to_char(o.ordered_at, 'Dy')             AS day,
+       COUNT(DISTINCT o.order_id)              AS orders,
+       SUM(oi.quantity * oi.unit_price)        AS revenue
+FROM orders AS o
+JOIN order_items AS oi ON oi.order_id = o.order_id
+WHERE o.status IN ('paid', 'shipped', 'delivered')
+GROUP BY 1, 2
+ORDER BY dow;</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> dow | day | orders |   revenue   
+-----+-----+--------+-------------
+   1 | Mon |    658 | 11514129.00
+   2 | Tue |    671 | 11384091.00
+   3 | Wed |    658 | 11405261.00
+   4 | Thu |    647 | 11022515.00
+   5 | Fri |    669 | 11661675.00
+   6 | Sat |    656 | 11486226.00
+   7 | Sun |    659 | 11901561.00
+(7 rows)</code></pre>
+<p><strong>อ่านผล:</strong> ยอดขายแต่ละวันใกล้เคียงกันมาก วันอาทิตย์สูงสุดเล็กน้อย จึงยังไม่มีเหตุผลพอจะจัดโปรโมชันเฉพาะวัน <code>EXTRACT(ISODOW ...)</code> ให้วันจันทร์เป็น 1 ตามมาตรฐาน ISO ส่วน <code>EXTRACT(DOW ...)</code> ให้วันอาทิตย์เป็น 0 ระวังสับสน ผลนี้คำนวณตามเวลาไทยเพราะเราตั้ง <code>timezone</code> ของฐานข้อมูลไว้ใน <code>rebuild.sh</code></p>
+
+<h5>รันทั้ง 20 ข้อแล้วเก็บผลลง results/</h5>
+<p>การรันทีละไฟล์ช้าและพลาดง่าย สคริปต์นี้รันทุกไฟล์แล้วเขียนผลลง <code>results/qNN.txt</code> ไฟล์ผลลัพธ์เหล่านี้ Commit ขึ้น Git ด้วย คนที่เปิด Repository จะเห็นผลได้โดยไม่ต้องติดตั้งอะไร และเมื่อแก้ Query แล้วผลเปลี่ยน <code>git diff results/</code> จะบอกทันทีว่าตัวเลขไหนเปลี่ยน</p>
+<pre class="code" data-env="file" data-label="Bash · scripts/run_queries.sh"><code class="language-bash">#!/usr/bin/env bash
+# scripts/run_queries.sh : รันทุกไฟล์ใน queries/ แล้วเก็บผลไว้ที่ results/qNN.txt
+set -euo pipefail
+cd "$(dirname "$0")/.."
+DB="${DB:-ecommerce}"
+mkdir -p results
+
+for f in queries/q*.sql; do
+    name="$(basename "$f" .sql)"      # เช่น q01_monthly_revenue
+    out="results/${name%%_*}.txt"     # ตัดส่วนหลัง _ แรกออก เหลือ q01 -&gt; results/q01.txt
+    # -X ไม่อ่าน ~/.psqlrc เพื่อให้ผลเหมือนกันทุกเครื่อง, -P null=NULL แสดงค่าว่างให้เห็นชัด
+    psql -X -q -v ON_ERROR_STOP=1 -P null=NULL -d "$DB" -f "$f" &gt; "$out"
+    echo "OK  $f -&gt; $out"
+done</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/ecommerce-db
+./scripts/run_queries.sh</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>OK  queries/q01_monthly_revenue.sql -&gt; results/q01.txt
+OK  queries/q02_revenue_by_top_category.sql -&gt; results/q02.txt
+OK  queries/q03_top10_products.sql -&gt; results/q03.txt
+OK  queries/q04_top_customers_ltv.sql -&gt; results/q04.txt
+OK  queries/q05_average_order_value.sql -&gt; results/q05.txt
+OK  queries/q06_orders_per_status.sql -&gt; results/q06.txt
+OK  queries/q07_payment_method_share.sql -&gt; results/q07.txt
+OK  queries/q08_repeat_customer_rate.sql -&gt; results/q08.txt
+OK  queries/q09_inactive_customers_90d.sql -&gt; results/q09.txt
+OK  queries/q10_mom_growth.sql -&gt; results/q10.txt
+OK  queries/q11_running_total.sql -&gt; results/q11.txt
+OK  queries/q12_top3_per_category.sql -&gt; results/q12.txt
+OK  queries/q13_rfm_segments.sql -&gt; results/q13.txt
+OK  queries/q14_cohort_first_order.sql -&gt; results/q14.txt
+OK  queries/q15_basket_size.sql -&gt; results/q15.txt
+OK  queries/q16_products_never_sold.sql -&gt; results/q16.txt
+OK  queries/q17_low_stock_alert.sql -&gt; results/q17.txt
+OK  queries/q18_cancel_rate_by_province.sql -&gt; results/q18.txt
+OK  queries/q19_refund_by_month.sql -&gt; results/q19.txt
+OK  queries/q20_day_of_week_sales.sql -&gt; results/q20.txt</code></pre>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>ERROR:  window functions are not allowed in WHERE</code></td><td>เขียน <code>WHERE ROW_NUMBER() OVER (...) &lt;= 3</code> ตรง ๆ ซึ่ง SQL ไม่อนุญาต เพราะ WHERE ทำงานก่อน Window Function</td><td>คำนวณ <code>rn</code> ใน CTE ก่อน แล้วกรองด้วย <code>WHERE rn &lt;= 3</code> ที่ Query ชั้นนอก</td></tr>
+<tr><td><code>ERROR:  column "p.name" must appear in the GROUP BY clause or be used in an aggregate function</code></td><td>SELECT คอลัมน์ที่ไม่ได้อยู่ใน GROUP BY และไม่ได้ครอบด้วย Aggregate</td><td>เพิ่มคอลัมน์นั้นใน GROUP BY หรือ GROUP BY ด้วย Primary Key ของตาราง (PostgreSQL ยอมให้ SELECT คอลัมน์อื่นของตารางนั้นได้)</td></tr>
+<tr><td>ยอดขายสูงเกินจริงหลายเท่า</td><td>JOIN กับ <code>payments</code> และ <code>order_items</code> พร้อมกัน แล้ว SUM ค่าจากตารางฝั่ง “หนึ่ง” ทำให้ค่าถูกนับซ้ำตามจำนวนรายการสินค้า (Fan-out)</td><td>รวมยอดของแต่ละตารางใน Subquery หรือ CTE ให้เหลือ 1 แถวต่อคำสั่งซื้อก่อน แล้วค่อย JOIN แบบใน <code>scripts/check.sql</code></td></tr>
+<tr><td>ผลของ q09 และ q17 เปลี่ยนไปทุกวัน ไม่ตรงกับไฟล์ใน <code>results/</code></td><td>แก้ Query ไปใช้ <code>CURRENT_DATE</code> หรือ <code>now()</code> แทนวันที่คงที่ ค่าจึงขึ้นกับวันที่รัน</td><td>ในโปรเจกต์ Portfolio ให้ใช้วันอ้างอิงคงที่ <code>DATE '2026-06-30'</code> ส่วนในระบบจริงค่อยเปลี่ยนเป็น <code>CURRENT_DATE</code> และเขียนบอกไว้ใน README</td></tr>
+</tbody></table></div>
+</li>
+<li>
+<h4>Step 7: Index Tuning ด้วย EXPLAIN (ANALYZE, BUFFERS) แบบก่อนและหลัง</h4>
+<p>ใน Step 4 สคริปต์ <code>rebuild.sh</code> สร้าง Index ให้เราอัตโนมัติ แต่ในงานจริง เราไม่ควรสร้าง Index เพราะ “เดาว่าน่าจะช่วย” ขั้นตอนที่ถูกต้องคือ วัดผลก่อน สร้าง Index แล้ววัดซ้ำ จากนั้นจดบันทึกไว้ให้ทีมอ่าน Step นี้จะทำครบทั้งสามขั้นกับ Query 4 ตัวที่จำลองหน้าจอจริงของร้านค้า</p>
+<ul>
+<li><strong>A)</strong> หน้า “คำสั่งซื้อของฉัน” ที่ลูกค้า 1 คนเปิดดูประวัติ ต้องกรองด้วย <code>customer_id</code></li>
+<li><strong>B)</strong> รายงานรายสัปดาห์ ต้องกรองช่วงเวลาด้วย <code>ordered_at</code></li>
+<li><strong>C)</strong> หน้าสินค้าฝั่งแอดมิน ต้องรวมยอดขายของสินค้า 1 ตัวจาก <code>order_items.product_id</code></li>
+<li><strong>D)</strong> หน้าจอทีมแพ็กของ ต้องดึงคำสั่งซื้อสถานะ <code>pending</code> ที่เก่าที่สุด 20 รายการ</li>
+</ul>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Seq Scan คือการหาชื่อเพื่อนในสมุดโทรศัพท์โดยเปิดอ่านทุกหน้า ส่วน Index Scan คือการเปิดดูดัชนีท้ายเล่มก่อนแล้วกระโดดไปหน้าที่ถูกต้องเลย สมุดเล่มบาง ๆ อ่านทุกหน้าก็ไม่ช้า แต่ถ้าสมุดหนาเป็นพันหน้า ดัชนีช่วยได้มาก Index จึงคุ้มค่าเมื่อตารางใหญ่และเราต้องการแถวเพียงส่วนน้อย</p></div>
+
+<h5>7.1 เขียนไฟล์ Query ที่ใช้วัดผล</h5>
+<p>ใช้ <code>EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)</code> ซึ่งจะ <strong>รัน Query จริง</strong> แล้วรายงานเวลาและจำนวนหน้าข้อมูล (Buffers) ที่อ่าน ตัวเลือก <code>COSTS OFF</code> ซ่อนค่าประมาณการของ Planner เพื่อให้อ่านง่ายขึ้น Query ทั้ง 4 ตัวเป็น <code>SELECT</code> จึงรันซ้ำได้อย่างปลอดภัย</p>
+<pre class="code" data-env="file" data-label="SQL · scripts/explain.sql"><code class="language-sql">-- scripts/explain.sql : 4 Query ที่ใช้วัดผลก่อนและหลังสร้าง Index (ผลจริงบันทึกใน docs/explain.md)
+-- A) ประวัติคำสั่งซื้อของลูกค้า 1 คน (หน้า "คำสั่งซื้อของฉัน")
+EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+SELECT order_id, ordered_at, status FROM orders WHERE customer_id = 42 ORDER BY ordered_at DESC;
+
+-- B) คำสั่งซื้อในช่วง 1 สัปดาห์ (รายงานรายสัปดาห์)
+EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+SELECT COUNT(*) FROM orders
+WHERE ordered_at &gt;= TIMESTAMPTZ '2026-06-01 00:00:00+07'
+  AND ordered_at &lt;  TIMESTAMPTZ '2026-06-08 00:00:00+07';
+
+-- C) ยอดขายของสินค้า 1 ตัว (หน้าสินค้าฝั่งแอดมิน)
+EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+SELECT SUM(quantity) FROM order_items WHERE product_id = 26;
+
+-- D) คิวคำสั่งซื้อที่รอดำเนินการ เรียงจากเก่าไปใหม่ (หน้าจอทีมแพ็กของ)
+EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+SELECT order_id, ordered_at FROM orders WHERE status = 'pending' ORDER BY ordered_at LIMIT 20;</code></pre>
+
+<h5>7.2 วัดผล “ก่อน” โดยสร้างฐานข้อมูลแบบไม่มี Index</h5>
+<p>สคริปต์ <code>rebuild.sh</code> รับตัวเลือก <code>--no-indexes</code> ที่เราเตรียมไว้ตั้งแต่ Step 4 ตัวเลือกนี้ข้ามไฟล์ <code>schema/02_indexes.sql</code> แต่ยังรัน <code>ANALYZE</code> ให้ Planner มีสถิติล่าสุด เราจึงเทียบผลได้อย่างยุติธรรม</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/ecommerce-db
+# สร้างฐานข้อมูลใหม่โดยไม่สร้าง Index เพิ่ม (มีเฉพาะ Index ของ PRIMARY KEY และ UNIQUE)
+./scripts/rebuild.sh --no-indexes
+# รัน Query วัดผลทั้ง 4 ตัว
+psql -X -q -d ecommerce -f scripts/explain.sql</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · rebuild.sh --no-indexes"><code>==&gt; สร้างฐานข้อมูล ecommerce ใหม่
+==&gt; สร้างตาราง
+==&gt; ใส่ข้อมูลตัวอย่าง
+==&gt; ข้ามการสร้าง Index (โหมดวัดผลก่อนปรับ)
+==&gt; เสร็จแล้ว</code></pre>
+<p>ผลของ Query A (ประวัติคำสั่งซื้อของลูกค้าหมายเลข 42):</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · ก่อน A"><code>                             QUERY PLAN                              
+---------------------------------------------------------------------
+ Sort (actual time=0.356..0.358 rows=10 loops=1)
+   Sort Key: ordered_at DESC
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=77
+   -&gt;  Seq Scan on orders (actual time=0.117..0.331 rows=10 loops=1)
+         Filter: (customer_id = 42)
+         Rows Removed by Filter: 4990
+         Buffers: shared hit=74
+ Planning:
+   Buffers: shared hit=83
+ Planning Time: 0.366 ms
+ Execution Time: 0.394 ms
+(12 rows)</code></pre>
+<p>ผลของ Query B (คำสั่งซื้อในสัปดาห์แรกของเดือนมิถุนายน 2026):</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · ก่อน B"><code>                                                                         QUERY PLAN                                                                         
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate (actual time=0.501..0.501 rows=1 loops=1)
+   Buffers: shared hit=74
+   -&gt;  Seq Scan on orders (actual time=0.401..0.487 rows=122 loops=1)
+         Filter: ((ordered_at &gt;= '2026-06-01 00:00:00+07'::timestamp with time zone) AND (ordered_at &lt; '2026-06-08 00:00:00+07'::timestamp with time zone))
+         Rows Removed by Filter: 4878
+         Buffers: shared hit=74
+ Planning:
+   Buffers: shared hit=11
+ Planning Time: 0.094 ms
+ Execution Time: 0.538 ms
+(10 rows)</code></pre>
+<p>ผลของ Query C (ยอดขายของสินค้าหมายเลข 26):</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · ก่อน C"><code>                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Aggregate (actual time=0.759..0.760 rows=1 loops=1)
+   Buffers: shared hit=77
+   -&gt;  Seq Scan on order_items (actual time=0.012..0.739 rows=209 loops=1)
+         Filter: (product_id = 26)
+         Rows Removed by Filter: 11875
+         Buffers: shared hit=77
+ Planning:
+   Buffers: shared hit=34
+ Planning Time: 0.154 ms
+ Execution Time: 0.774 ms
+(10 rows)</code></pre>
+<p>ผลของ Query D (คิวคำสั่งซื้อ pending 20 รายการแรก):</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · ก่อน D"><code>                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Limit (actual time=0.347..0.350 rows=20 loops=1)
+   Buffers: shared hit=74
+   -&gt;  Sort (actual time=0.345..0.346 rows=20 loops=1)
+         Sort Key: ordered_at
+         Sort Method: top-N heapsort  Memory: 25kB
+         Buffers: shared hit=74
+         -&gt;  Seq Scan on orders (actual time=0.321..0.333 rows=51 loops=1)
+               Filter: (status = 'pending'::text)
+               Rows Removed by Filter: 4949
+               Buffers: shared hit=74
+ Planning:
+   Buffers: shared hit=8
+ Planning Time: 0.056 ms
+ Execution Time: 0.363 ms
+(14 rows)</code></pre>
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>ตัวเลข <code>actual time</code>, <code>Planning Time</code> และ <code>Execution Time</code> บนเครื่องของคุณจะต่างจากนี้ เพราะขึ้นกับความเร็ว CPU และข้อมูลที่อยู่ในแคช สิ่งที่ต้องตรงกันคือ <strong>รูปแบบแผน</strong> (เช่น <code>Seq Scan on orders</code>), จำนวนแถว <code>rows=</code> และ <code>Rows Removed by Filter</code> เพราะ Seed ของเราเป็นแบบ Deterministic</p></div>
+
+<h5>7.3 อ่านแผนการทำงาน (Query Plan) ให้เป็น</h5>
+<div class="tbl mid"><table class="explain"><thead><tr><th>คำที่เห็นในแผน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>Seq Scan on orders</code></td><td>อ่านตาราง <code>orders</code> ทุกแถวตั้งแต่ต้นจนจบ แล้วกรองทีละแถว</td></tr>
+<tr><td><code>Filter: (customer_id = 42)</code></td><td>เงื่อนไขที่ใช้กรองหลังจากอ่านแถวขึ้นมาแล้ว</td></tr>
+<tr><td><code>Rows Removed by Filter: 4990</code></td><td>อ่านมาแล้วทิ้งไป 4,990 แถว เพื่อให้ได้ 10 แถวที่ต้องการ ตัวเลขนี้สูงมากเมื่อเทียบกับผลจริง คือสัญญาณว่า Index น่าจะช่วยได้</td></tr>
+<tr><td><code>Buffers: shared hit=74</code></td><td>อ่านหน้าข้อมูล (Page ขนาด 8 kB) จากหน่วยความจำ 74 หน้า ถ้าเป็น <code>read=</code> แปลว่าต้องอ่านจากดิสก์</td></tr>
+<tr><td><code>Sort Method: top-N heapsort</code></td><td>ต้องเรียงข้อมูลเองเพราะไม่มี Index ที่เรียงไว้ให้ ใช้ Heap เก็บเฉพาะ N แถวบนสุดเพราะมี <code>LIMIT</code></td></tr>
+<tr><td><code>actual time=0.117..0.331</code></td><td>เวลาเป็นมิลลิวินาที ตัวแรกคือเวลาที่ได้แถวแรก ตัวหลังคือเวลาที่ได้แถวสุดท้าย</td></tr>
+<tr><td><code>rows=10 loops=1</code></td><td>Node นี้คืนแถวจริง 10 แถว และถูกเรียกทำงาน 1 รอบ</td></tr>
+<tr><td><code>Execution Time</code></td><td>เวลาทั้งหมดที่ใช้รัน Query ไม่รวมเวลาส่งผลกลับไปยัง psql</td></tr>
+</tbody></table></div>
+
+<h5>7.4 สร้าง Index จากสิ่งที่วัดได้</h5>
+<p>จากผล “ก่อน” ทั้ง 4 Query ใช้ <code>Seq Scan</code> และทิ้งแถวไปเกือบทั้งหมด เราจึงสร้าง Index ตามคอลัมน์ที่ใช้กรอง ไฟล์นี้เขียนไว้แล้วใน Step 4 แต่ตอนนี้เราเข้าใจแล้วว่าแต่ละบรรทัดมีไว้แก้ปัญหาของ Query ไหน</p>
+<pre class="code" data-env="file" data-label="SQL · schema/02_indexes.sql"><code class="language-sql">-- schema/02_indexes.sql : Index ที่ได้จากการวัดด้วย EXPLAIN ANALYZE (ดู docs/explain.md)
+-- PostgreSQL ไม่สร้าง Index ให้ Foreign Key อัตโนมัติ ต้องสร้างเอง
+CREATE INDEX IF NOT EXISTS idx_orders_customer_id   ON orders (customer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_ordered_at    ON orders (ordered_at);
+CREATE INDEX IF NOT EXISTS idx_order_items_product  ON order_items (product_id);
+CREATE INDEX IF NOT EXISTS idx_products_category    ON products (category_id);
+-- Partial Index: เก็บเฉพาะคำสั่งซื้อที่รอดำเนินการ ซึ่งมีจำนวนน้อยแต่ถูกค้นบ่อย
+CREATE INDEX IF NOT EXISTS idx_orders_pending       ON orders (ordered_at) WHERE status = 'pending';
+-- อัปเดตสถิติให้ Query Planner หลังโหลดข้อมูลจำนวนมาก
+ANALYZE customers, categories, products, orders, order_items, payments;</code></pre>
+<div class="tbl wide"><table class="explain"><thead><tr><th>Index</th><th>ช่วย Query</th><th>เหตุผล</th></tr></thead><tbody>
+<tr><td><code>idx_orders_customer_id</code></td><td>A, q04, q09, q13</td><td>Foreign Key <code>orders.customer_id</code> ถูกใช้ทั้งกรองและ JOIN บ่อยมาก และ PostgreSQL ไม่สร้าง Index ให้ Foreign Key เอง</td></tr>
+<tr><td><code>idx_orders_ordered_at</code></td><td>B, q01, q10, q11, report.py</td><td>รายงานเกือบทุกตัวกรองช่วงเวลา B-tree รองรับ <code>&gt;=</code> และ <code>&lt;</code> ได้ดี</td></tr>
+<tr><td><code>idx_order_items_product</code></td><td>C, q03, q12, q16</td><td>Primary Key ของ <code>order_items</code> คือ <code>(order_id, product_id)</code> ซึ่งขึ้นต้นด้วย <code>order_id</code> จึงใช้ค้นด้วย <code>product_id</code> อย่างเดียวไม่ได้ (กฎ Leftmost Prefix)</td></tr>
+<tr><td><code>idx_products_category</code></td><td>q02, q12</td><td>Foreign Key ไปหมวดสินค้า ตารางยังเล็กแต่ใส่ไว้เพื่อรองรับสินค้าที่เพิ่มขึ้นในอนาคต</td></tr>
+<tr><td><code>idx_orders_pending</code></td><td>D</td><td>Partial Index เก็บเฉพาะแถว <code>status = 'pending'</code> ซึ่งมีแค่ 51 จาก 5,000 แถว จึงเล็กมาก และเรียงตาม <code>ordered_at</code> ไว้แล้ว</td></tr>
+</tbody></table></div>
+
+<h5>7.5 วัดผล “หลัง” สร้าง Index</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างฐานข้อมูลใหม่แบบมี Index ครบ
+./scripts/rebuild.sh
+# รัน Query ชุดเดิมอีกครั้ง
+psql -X -q -d ecommerce -f scripts/explain.sql
+# ดูรายการ Index ทั้งหมดในฐานข้อมูล
+psql -X -d ecommerce -c '\di'</code></pre>
+<p>ผลของ Query A หลังสร้าง Index:</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · หลัง A"><code>                                             QUERY PLAN                                             
+----------------------------------------------------------------------------------------------------
+ Sort (actual time=0.079..0.081 rows=10 loops=1)
+   Sort Key: ordered_at DESC
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=10 read=2
+   -&gt;  Bitmap Heap Scan on orders (actual time=0.033..0.048 rows=10 loops=1)
+         Recheck Cond: (customer_id = 42)
+         Heap Blocks: exact=7
+         Buffers: shared hit=7 read=2
+         -&gt;  Bitmap Index Scan on idx_orders_customer_id (actual time=0.023..0.024 rows=10 loops=1)
+               Index Cond: (customer_id = 42)
+               Buffers: shared read=2
+ Planning:
+   Buffers: shared hit=134 read=3
+ Planning Time: 0.500 ms
+ Execution Time: 0.128 ms
+(15 rows)</code></pre>
+<p>ผลของ Query B หลังสร้าง Index:</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · หลัง B"><code>                                                                           QUERY PLAN                                                                           
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate (actual time=0.079..0.079 rows=1 loops=1)
+   Buffers: shared hit=10 read=2
+   -&gt;  Index Only Scan using idx_orders_ordered_at on orders (actual time=0.049..0.067 rows=122 loops=1)
+         Index Cond: ((ordered_at &gt;= '2026-06-01 00:00:00+07'::timestamp with time zone) AND (ordered_at &lt; '2026-06-08 00:00:00+07'::timestamp with time zone))
+         Heap Fetches: 122
+         Buffers: shared hit=10 read=2
+ Planning:
+   Buffers: shared hit=11
+ Planning Time: 0.113 ms
+ Execution Time: 0.109 ms
+(10 rows)</code></pre>
+<p>ผลของ Query C หลังสร้าง Index:</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · หลัง C"><code>                                              QUERY PLAN                                              
+------------------------------------------------------------------------------------------------------
+ Aggregate (actual time=0.173..0.174 rows=1 loops=1)
+   Buffers: shared hit=77 read=2
+   -&gt;  Bitmap Heap Scan on order_items (actual time=0.035..0.156 rows=209 loops=1)
+         Recheck Cond: (product_id = 26)
+         Heap Blocks: exact=77
+         Buffers: shared hit=77 read=2
+         -&gt;  Bitmap Index Scan on idx_order_items_product (actual time=0.021..0.021 rows=209 loops=1)
+               Index Cond: (product_id = 26)
+               Buffers: shared read=2
+ Planning:
+   Buffers: shared hit=43 read=1
+ Planning Time: 0.150 ms
+ Execution Time: 0.193 ms
+(13 rows)</code></pre>
+<p>ผลของ Query D หลังสร้าง Index:</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · หลัง D"><code>                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Limit (actual time=0.021..0.026 rows=20 loops=1)
+   Buffers: shared hit=1 read=1
+   -&gt;  Index Scan using idx_orders_pending on orders (actual time=0.020..0.024 rows=20 loops=1)
+         Buffers: shared hit=1 read=1
+ Planning:
+   Buffers: shared hit=8
+ Planning Time: 0.074 ms
+ Execution Time: 0.035 ms
+(8 rows)</code></pre>
+<p>ผลของ <code>\di</code> (Index ที่ลงท้ายด้วย <code>_pkey</code> และ <code>_key</code> มาจาก PRIMARY KEY และ UNIQUE ซึ่ง PostgreSQL สร้างให้อัตโนมัติ):</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · \di"><code>                        List of relations
+ Schema |          Name           | Type  |  Owner  |    Table    
+--------+-------------------------+-------+---------+-------------
+ public | categories_name_key     | index | somchai | categories
+ public | categories_pkey         | index | somchai | categories
+ public | customers_email_key     | index | somchai | customers
+ public | customers_pkey          | index | somchai | customers
+ public | idx_order_items_product | index | somchai | order_items
+ public | idx_orders_customer_id  | index | somchai | orders
+ public | idx_orders_ordered_at   | index | somchai | orders
+ public | idx_orders_pending      | index | somchai | orders
+ public | idx_products_category   | index | somchai | products
+ public | order_items_pkey        | index | somchai | order_items
+ public | orders_pkey             | index | somchai | orders
+ public | payments_order_id_key   | index | somchai | payments
+ public | payments_pkey           | index | somchai | payments
+ public | products_pkey           | index | somchai | products
+ public | products_sku_key        | index | somchai | products
+(15 rows)</code></pre>
+<p>Index ไม่ได้มาฟรี มันกินพื้นที่ดิสก์ และทุกครั้งที่ INSERT หรือ UPDATE ฐานข้อมูลต้องปรับ Index ด้วย ลองดูขนาดของ Index ที่เราสร้าง:</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">psql -X -d ecommerce -c "SELECT indexrelname AS index_name, pg_size_pretty(pg_relation_size(indexrelid)) AS size FROM pg_stat_user_indexes WHERE indexrelname LIKE 'idx_%' ORDER BY indexrelname"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>       index_name        |  size  
+-------------------------+--------
+ idx_order_items_product | 104 kB
+ idx_orders_customer_id  | 64 kB
+ idx_orders_ordered_at   | 128 kB
+ idx_orders_pending      | 16 kB
+ idx_products_category   | 16 kB
+(5 rows)</code></pre>
+<p>สังเกตว่า <code>idx_orders_pending</code> มีขนาดเพียง 16 kB เทียบกับ <code>idx_orders_ordered_at</code> ที่ 128 kB ทั้งที่เรียงตามคอลัมน์เดียวกัน เพราะ Partial Index เก็บเฉพาะแถวที่ตรงเงื่อนไข</p>
+
+<h5>7.6 สรุปผลและบันทึกลง docs/explain.md</h5>
+<div class="tbl wide"><table class="explain"><thead><tr><th>Query</th><th>แผนก่อน</th><th>แผนหลัง</th><th>Buffers</th><th>Execution Time (เครื่องทดสอบ)</th></tr></thead><tbody>
+<tr><td>A</td><td>Seq Scan + Sort</td><td>Bitmap Index Scan บน <code>idx_orders_customer_id</code></td><td class="num">77 → 12</td><td class="num">0.394 → 0.128 ms</td></tr>
+<tr><td>B</td><td>Seq Scan</td><td>Index Only Scan บน <code>idx_orders_ordered_at</code></td><td class="num">74 → 12</td><td class="num">0.538 → 0.109 ms</td></tr>
+<tr><td>C</td><td>Seq Scan</td><td>Bitmap Index Scan บน <code>idx_order_items_product</code></td><td class="num">77 → 79</td><td class="num">0.774 → 0.193 ms</td></tr>
+<tr><td>D</td><td>Seq Scan + top-N heapsort</td><td>Index Scan บน <code>idx_orders_pending</code> ไม่ต้อง Sort</td><td class="num">74 → 2</td><td class="num">0.363 → 0.035 ms</td></tr>
+</tbody></table></div>
+<p>Query C น่าสนใจที่สุด เวลาลดลงแต่ Buffers ไม่ลด เพราะ 209 แถวของสินค้าหมายเลข 26 กระจายอยู่ทั่วทั้ง 77 หน้าของตาราง (<code>Heap Blocks: exact=77</code>) Index ช่วยไม่ต้องตรวจเงื่อนไขกับทุกแถว แต่ยังต้องเปิดทุกหน้าอยู่ดี บทเรียนคือ Index ช่วยได้มากที่สุดเมื่อแถวที่ต้องการมี <strong>สัดส่วนน้อย</strong> และอยู่รวมกัน</p>
+<p>บันทึกผลทั้งหมดลงไฟล์ Markdown เพื่อให้คนที่เปิด Repository เข้าใจว่าทำไมมี Index แต่ละตัว:</p>
+<pre class="code" data-env="file" data-label="Markdown · docs/explain.md"><code class="language-markdown"># Index Tuning: บันทึกผล EXPLAIN ก่อนและหลังสร้าง Index
+
+วัดด้วย `EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)` จากไฟล์ `scripts/explain.sql`
+ข้อมูล: customers 500, orders 5,000, order_items 12,084 แถว (seed แบบ Deterministic)
+
+&gt; เวลา (Planning/Execution Time) ขึ้นกับเครื่องและแคช ตัวเลขด้านล่างวัดบนเครื่องทดสอบ
+&gt; สิ่งที่ควรเทียบคือ "รูปแบบแผน" (Seq Scan หรือ Index Scan) และจำนวน Buffers
+
+| Query | ก่อน (ไม่มี Index) | หลัง | Buffers ก่อน → หลัง | Execution Time ก่อน → หลัง |
+|---|---|---|---|---|
+| A) orders ของลูกค้า 1 คน | Seq Scan, Rows Removed by Filter: 4990 | Bitmap Index Scan on idx_orders_customer_id | 77 → 12 | 0.394 ms → 0.128 ms |
+| B) orders ในช่วง 1 สัปดาห์ | Seq Scan, Rows Removed by Filter: 4878 | Index Only Scan using idx_orders_ordered_at | 74 → 12 | 0.538 ms → 0.109 ms |
+| C) ยอดขายสินค้า 1 ตัว | Seq Scan on order_items, Rows Removed: 11875 | Bitmap Index Scan on idx_order_items_product | 77 → 79 | 0.774 ms → 0.193 ms |
+| D) คิวคำสั่งซื้อ pending 20 รายการแรก | Seq Scan + top-N heapsort | Index Scan using idx_orders_pending (Partial Index) | 74 → 2 | 0.363 ms → 0.035 ms |
+
+## ข้อสังเกต
+
+1. A, B และ D อ่านหน้าข้อมูลน้อยลงมาก เพราะ Index พาไปที่แถวที่ต้องการโดยตรง
+2. C เร็วขึ้นแต่ Buffers ไม่ลด เพราะ 209 แถวของสินค้านี้กระจายอยู่ครบทั้ง 77 หน้า (Heap Blocks: exact=77)
+   Index ช่วยตัดงานกรองทิ้ง แต่ยังต้องเปิดทุกหน้า ถ้าข้อมูลใหญ่ขึ้นมาก ผลต่างจะชัดกว่านี้
+3. B เป็น Index Only Scan แต่ยังมี Heap Fetches: 122 เพราะยังไม่ได้ VACUUM ตาราง (Visibility Map ยังไม่อัปเดต)
+4. D ใช้ Partial Index ที่เก็บเฉพาะแถว status = 'pending' (51 แถวจาก 5,000) Index จึงเล็กและเรียงตาม ordered_at อยู่แล้ว ไม่ต้อง Sort
+5. Index ทุกตัวมีต้นทุน: INSERT/UPDATE ช้าลงเล็กน้อยและใช้พื้นที่ดิสก์ จึงสร้างเฉพาะตัวที่วัดแล้วว่าคุ้ม</code></pre>
+
+<h5>ข้อผิดพลาดที่มือใหม่เจอบ่อยใน Step นี้</h5>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td>สร้าง Index แล้วแต่แผนยังเป็น <code>Seq Scan</code></td><td>ลืมรัน <code>ANALYZE</code> หลังโหลดข้อมูลจำนวนมาก Planner จึงใช้สถิติเก่า หรือ Query ต้องการแถวเป็นสัดส่วนใหญ่ของตาราง ซึ่ง Seq Scan เร็วกว่าจริง</td><td>รัน <code>ANALYZE ชื่อตาราง;</code> แล้ววัดใหม่ ถ้ายังเป็น Seq Scan ให้ดูว่าแถวที่ได้มีกี่เปอร์เซ็นต์ของตาราง ถ้ามากก็ไม่ต้องสร้าง Index</td></tr>
+<tr><td><code>ERROR:  relation "idx_orders_customer_id" already exists</code></td><td>รันไฟล์ Index ซ้ำ โดยใช้ <code>CREATE INDEX</code> ที่ไม่มี <code>IF NOT EXISTS</code></td><td>ใช้ <code>CREATE INDEX IF NOT EXISTS</code> แบบในไฟล์ <code>02_indexes.sql</code> ทำให้รันซ้ำได้</td></tr>
+<tr><td>Index บน <code>ordered_at</code> ไม่ถูกใช้เมื่อเขียน <code>WHERE ordered_at::date = '2026-06-01'</code></td><td>การแปลงชนิดหรือเรียกฟังก์ชันกับคอลัมน์ ทำให้ B-tree ปกติใช้ไม่ได้</td><td>เขียนเป็นช่วงแทน <code>ordered_at &gt;= '2026-06-01' AND ordered_at &lt; '2026-06-02'</code> แบบ Query B</td></tr>
+<tr><td>ข้อมูลหายหลังลองวัดผล <code>EXPLAIN ANALYZE DELETE ...</code></td><td><code>EXPLAIN ANALYZE</code> รันคำสั่งจริง ไม่ใช่แค่จำลอง</td><td>ครอบด้วย <code>BEGIN;</code> ... <code>ROLLBACK;</code> ทุกครั้งที่วัดผลคำสั่งที่แก้ไขข้อมูล</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>สร้าง Index ให้ Foreign Key ที่ใช้ JOIN หรือกรองบ่อยเสมอ เพราะ PostgreSQL ไม่ทำให้อัตโนมัติ</li>
+<li>บนระบบที่มีผู้ใช้จริง ใช้ <code>CREATE INDEX CONCURRENTLY</code> เพื่อไม่ล็อกตารางระหว่างสร้าง</li>
+<li>เก็บหลักฐานก่อนและหลังไว้ใน Repository เสมอ เวลาสัมภาษณ์งาน การเล่าว่า “วัดแล้ว Buffers ลดจาก 74 เหลือ 2” น่าเชื่อถือกว่าการบอกว่า “ใส่ Index แล้วเร็วขึ้น” มาก</li>
+</ul></div>
+</li>
+<li>
+<h4>Step 8: report.py รายงานรายเดือนด้วย Python และ Parameterized Query</h4>
+<p>Query ใน <code>queries/</code> เหมาะกับนักวิเคราะห์ที่เปิด psql เป็น แต่ผู้จัดการร้านอยากได้รายงานที่สั่งได้ด้วยคำสั่งเดียว Step นี้เขียนสคริปต์ Python ที่รับเดือนและจำนวนสินค้าขายดีจาก Command Line แล้วพิมพ์รายงานภาษาไทย และบันทึก CSV ได้ด้วย สคริปต์นี้ใช้ทุกอย่างที่เรียนในแนวคิดที่ 12 ของ Part 2 ได้แก่ psycopg 3, <code>dict_row</code>, Placeholder แบบมีชื่อ <code>%(name)s</code> และการอ่าน Connection String จาก Environment Variable</p>
+<p>ถ้ายังไม่ได้ติดตั้ง psycopg ใน venv ของโปรเจกต์ (ทำไว้แล้วใน Step 1) ให้รันคำสั่งนี้ก่อน:</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/ecommerce-db
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt</code></pre>
+<pre class="code" data-env="file" data-label="Python · report.py"><code class="language-python">"""report.py : พิมพ์รายงานยอดขายรายเดือนจากฐานข้อมูล ecommerce
+
+วิธีใช้:
+    python report.py --month 2026-06 --top 5
+    python report.py --month 2026-05 --csv top_products.csv
+"""
+import argparse
+import csv
+import os
+import sys
+from datetime import date, datetime
+
+import psycopg
+from psycopg.rows import dict_row
+
+# อ่าน Connection String จาก Environment Variable ห้ามเขียนรหัสผ่านลงในโค้ด
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql:///ecommerce")
+
+PAID = ("paid", "shipped", "delivered")   # สถานะที่นับเป็นยอดขาย
+
+SUMMARY_SQL = """
+    SELECT COUNT(DISTINCT o.order_id)        AS orders,
+           COALESCE(SUM(oi.quantity * oi.unit_price), 0) AS revenue
+    FROM orders AS o
+    JOIN order_items AS oi ON oi.order_id = o.order_id
+    WHERE o.status = ANY(%(statuses)s)
+      AND o.ordered_at &gt;= %(start)s::date
+      AND o.ordered_at &lt;  %(start)s::date + INTERVAL '1 month'
+"""
+
+TOP_SQL = """
+    SELECT p.sku, p.name,
+           SUM(oi.quantity)                 AS units,
+           SUM(oi.quantity * oi.unit_price) AS revenue
+    FROM orders AS o
+    JOIN order_items AS oi ON oi.order_id   = o.order_id
+    JOIN products    AS p  ON p.product_id  = oi.product_id
+    WHERE o.status = ANY(%(statuses)s)
+      AND o.ordered_at &gt;= %(start)s::date
+      AND o.ordered_at &lt;  %(start)s::date + INTERVAL '1 month'
+    GROUP BY p.product_id, p.sku, p.name
+    ORDER BY revenue DESC, p.sku
+    LIMIT %(top)s
+"""
+
+
+def parse_month(text: str) -&gt; date:
+    """แปลง 'YYYY-MM' เป็นวันที่ 1 ของเดือน ถ้ารูปแบบผิดให้ argparse แจ้ง Error"""
+    try:
+        return datetime.strptime(text, "%Y-%m").date()
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"รูปแบบเดือนต้องเป็น YYYY-MM แต่ได้ '{text}'")
+
+
+def build_report(conn, start: date, top: int) -&gt; tuple[dict, list[dict]]:
+    """ดึงตัวเลขสรุปและสินค้าขายดี ทุกค่าส่งผ่าน Placeholder ไม่ต่อสตริงเอง"""
+    params = {"statuses": list(PAID), "start": start, "top": top}
+    with conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(SUMMARY_SQL, params)
+        summary = cur.fetchone()
+        cur.execute(TOP_SQL, params)
+        top_rows = cur.fetchall()
+    return summary, top_rows
+
+
+def print_report(start: date, summary: dict, top_rows: list[dict]) -&gt; None:
+    orders, revenue = summary["orders"], summary["revenue"]
+    aov = revenue / orders if orders else 0
+    print(f"รายงานยอดขายประจำเดือน {start:%Y-%m}")
+    print("=" * 52)
+    print(f"จำนวนคำสั่งซื้อ      : {orders:&gt;14,}")
+    print(f"ยอดขาย (บาท)        : {revenue:&gt;14,.2f}")
+    print(f"ยอดเฉลี่ยต่อคำสั่งซื้อ  : {aov:&gt;14,.2f}")
+    print("-" * 52)
+    print(f"สินค้าขายดี {len(top_rows)} อันดับแรก")
+    for i, row in enumerate(top_rows, start=1):
+        print(f"{i:&gt;2}. {row['sku']}  {row['name']:&lt;20} {row['units']:&gt;5} ชิ้น {row['revenue']:&gt;14,.2f}")
+
+
+def write_csv(path: str, top_rows: list[dict]) -&gt; None:
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=["sku", "name", "units", "revenue"])
+        writer.writeheader()
+        writer.writerows(top_rows)
+    print(f"บันทึก CSV แล้วที่ {path}")
+
+
+def main() -&gt; int:
+    parser = argparse.ArgumentParser(description="รายงานยอดขายรายเดือน")
+    parser.add_argument("--month", type=parse_month, default=parse_month("2026-06"),
+                        help="เดือนที่ต้องการ รูปแบบ YYYY-MM (ค่าเริ่มต้น 2026-06)")
+    parser.add_argument("--top", type=int, default=5, help="จำนวนสินค้าขายดีที่จะแสดง")
+    parser.add_argument("--csv", help="ถ้าระบุ จะบันทึกสินค้าขายดีเป็นไฟล์ CSV")
+    args = parser.parse_args()
+
+    if not 1 &lt;= args.top &lt;= 50:
+        parser.error("--top ต้องอยู่ระหว่าง 1 ถึง 50")
+
+    try:
+        with psycopg.connect(DATABASE_URL) as conn:
+            summary, top_rows = build_report(conn, args.month, args.top)
+    except psycopg.OperationalError as e:
+        print(f"เชื่อมต่อฐานข้อมูลไม่ได้: {e}", file=sys.stderr)
+        return 1
+
+    print_report(args.month, summary, top_rows)
+    if args.csv:
+        write_csv(args.csv, top_rows)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())</code></pre>
+
+<h5>รันรายงาน</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># รายงานเดือนมิถุนายน 2026 พร้อมสินค้าขายดี 5 อันดับ
+python report.py --month 2026-06 --top 5</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>รายงานยอดขายประจำเดือน 2026-06
+====================================================
+จำนวนคำสั่งซื้อ      :            446
+ยอดขาย (บาท)        :   8,068,892.00
+ยอดเฉลี่ยต่อคำสั่งซื้อ  :      18,091.69
+----------------------------------------------------
+สินค้าขายดี 5 อันดับแรก
+ 1. EL-MOB-002  Smartphone Pro          64 ชิ้น   1,901,366.00
+ 2. EL-CMP-003  Gaming Desktop          34 ชิ้น   1,551,420.00
+ 3. EL-CMP-002  Laptop Pro 15           23 ชิ้น   1,257,210.00
+ 4. EL-MOB-001  Smartphone A            59 ชิ้น     759,915.00
+ 5. EL-CMP-001  Laptop Air 13           17 ชิ้น     559,300.00</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เดือนพฤษภาคม 3 อันดับ และบันทึกเป็น CSV
+python report.py --month 2026-05 --top 3 --csv top_products.csv
+cat top_products.csv</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>รายงานยอดขายประจำเดือน 2026-05
+====================================================
+จำนวนคำสั่งซื้อ      :            489
+ยอดขาย (บาท)        :   8,501,581.00
+ยอดเฉลี่ยต่อคำสั่งซื้อ  :      17,385.65
+----------------------------------------------------
+สินค้าขายดี 3 อันดับแรก
+ 1. EL-MOB-002  Smartphone Pro          67 ชิ้น   1,997,334.00
+ 2. EL-CMP-003  Gaming Desktop          31 ชิ้น   1,413,720.00
+ 3. EL-CMP-002  Laptop Pro 15           25 ชิ้น   1,361,520.00
+บันทึก CSV แล้วที่ top_products.csv
+sku,name,units,revenue
+EL-MOB-002,Smartphone Pro,67,1997334.00
+EL-CMP-003,Gaming Desktop,31,1413720.00
+EL-CMP-002,Laptop Pro 15,25,1361520.00</code></pre>
+<p>ตัวเลขของเดือน 2026-05 คือ 489 คำสั่งซื้อ และ 8,501,581.00 บาท ตรงกับแถว <code>2026-05</code> ในผลของ <code>q01</code> ใน Step 5 ทุกตัว นี่คือการตรวจข้ามกันระหว่าง SQL กับ Python ที่ควรทำทุกครั้งที่เขียนรายงานใหม่</p>
+
+<h5>ทดสอบข้อมูลนำเข้าที่ผิด</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เดือนที่ 13 ไม่มีจริง
+python report.py --month 2026-13
+# จำนวนอันดับเกินขอบเขต
+python report.py --top 100</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>usage: report.py [-h] [--month MONTH] [--top TOP] [--csv CSV]
+report.py: error: argument --month: รูปแบบเดือนต้องเป็น YYYY-MM แต่ได้ '2026-13'
+usage: report.py [-h] [--month MONTH] [--top TOP] [--csv CSV]
+report.py: error: --top ต้องอยู่ระหว่าง 1 ถึง 50</code></pre>
+<p>ลองแกล้งส่ง SQL Injection เข้าไปในพารามิเตอร์ <code>--month</code> แล้วนับจำนวนคำสั่งซื้อหลังจากนั้น (ทำกับฐานข้อมูลของตัวเองบนเครื่องตัวเองเท่านั้น การทดลองกับระบบของผู้อื่นผิด พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์):</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python report.py --month "2026-06'; DROP TABLE orders;--"
+psql -X -At -d ecommerce -c "SELECT COUNT(*) FROM orders"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>usage: report.py [-h] [--month MONTH] [--top TOP] [--csv CSV]
+report.py: error: argument --month: รูปแบบเดือนต้องเป็น YYYY-MM แต่ได้ '2026-06'; DROP TABLE orders;--'
+5000</code></pre>
+<p>ข้อความถูกปฏิเสธตั้งแต่ชั้นตรวจรูปแบบของ <code>argparse</code> และตาราง <code>orders</code> ยังอยู่ครบ 5,000 แถว ต่อให้ไม่มีชั้นตรวจนี้ ค่าก็ถูกส่งเป็นพารามิเตอร์แยกจากตัว SQL อยู่ดี PostgreSQL จึงมองเป็นข้อมูล ไม่ใช่คำสั่ง นี่คือแนวคิด <strong>Defense in Depth</strong> คือป้องกันหลายชั้น</p>
+
+<h5>อธิบายโค้ดทีละส่วน</h5>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>DATABASE_URL = os.environ.get(...)</code></td><td>อ่าน Connection String จาก Environment Variable ถ้าไม่มีให้ใช้ <code>postgresql:///ecommerce</code> ซึ่งเชื่อมผ่าน Unix Socket ด้วย Peer Authentication จึงไม่ต้องมีรหัสผ่านในโค้ด</td></tr>
+<tr><td><code>PAID = ("paid", "shipped", "delivered")</code></td><td>นิยามสถานะที่นับเป็นยอดขายไว้ที่เดียว ใช้ร่วมกันทั้งสอง Query</td></tr>
+<tr><td><code>o.status = ANY(%(statuses)s)</code></td><td>ส่ง Python <code>list</code> ไปเป็น PostgreSQL Array แล้วเทียบด้วย <code>ANY</code> แทนการต่อสตริง <code>IN ('paid', ...)</code> เอง</td></tr>
+<tr><td><code>%(start)s::date + INTERVAL '1 month'</code></td><td>กรองเป็นช่วงครึ่งเปิด ตั้งแต่วันที่ 1 จนถึงก่อนวันที่ 1 ของเดือนถัดไป ทำให้ใช้ <code>idx_orders_ordered_at</code> ได้</td></tr>
+<tr><td><code>COALESCE(SUM(...), 0)</code></td><td>ถ้าเดือนนั้นไม่มียอดขาย <code>SUM</code> จะได้ <code>NULL</code> จึงแปลงเป็น 0 เพื่อไม่ให้การคำนวณใน Python พัง</td></tr>
+<tr><td><code>ORDER BY revenue DESC, p.sku</code></td><td>เรียงด้วย <code>sku</code> เป็นตัวตัดสินรอง ผลจึงคงที่ทุกครั้งแม้รายได้เท่ากัน</td></tr>
+<tr><td><code>LIMIT %(top)s</code></td><td>ค่า LIMIT ก็ส่งเป็นพารามิเตอร์ได้ ไม่ต้องใส่ลงในสตริง</td></tr>
+<tr><td><code>parse_month()</code></td><td>แปลง <code>YYYY-MM</code> เป็น <code>date</code> และโยน <code>ArgumentTypeError</code> เมื่อรูปแบบผิด <code>argparse</code> จะแสดงข้อความแล้วจบโปรแกรมด้วยรหัส 2</td></tr>
+<tr><td><code>conn.cursor(row_factory=dict_row)</code></td><td>ได้แต่ละแถวเป็น <code>dict</code> เรียกค่าด้วยชื่อคอลัมน์ เช่น <code>row['sku']</code> อ่านง่ายกว่าเลขตำแหน่ง</td></tr>
+<tr><td><code>aov = revenue / orders if orders else 0</code></td><td>คำนวณยอดเฉลี่ยต่อคำสั่งซื้อ และกันการหารด้วยศูนย์เมื่อเดือนนั้นไม่มีคำสั่งซื้อ <code>revenue</code> เป็น <code>Decimal</code> จึงไม่มีปัญหาทศนิยมเพี้ยนแบบ <code>float</code></td></tr>
+<tr><td><code>{revenue:&gt;14,.2f}</code></td><td>จัดตัวเลขชิดขวา 14 ช่อง ใส่จุลภาคคั่นหลักพัน และทศนิยม 2 ตำแหน่ง</td></tr>
+<tr><td><code>csv.DictWriter</code></td><td>เขียน CSV จาก list ของ dict โดยตรง <code>newline=""</code> กันบรรทัดว่างเกินบน Windows</td></tr>
+<tr><td><code>with psycopg.connect(...) as conn</code></td><td>เมื่อออกจากบล็อก psycopg 3 จะ Commit (หรือ Rollback ถ้ามี Exception) แล้วปิด Connection ให้อัตโนมัติ</td></tr>
+<tr><td><code>except psycopg.OperationalError</code></td><td>จับปัญหาเชื่อมต่อ เช่น ลืมเปิด PostgreSQL แล้วแสดงข้อความภาษาไทยทาง <code>stderr</code> พร้อมคืนรหัส 1</td></tr>
+</tbody></table></div>
+
+<h5>ข้อผิดพลาดที่มือใหม่เจอบ่อยใน Step นี้</h5>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>เชื่อมต่อฐานข้อมูลไม่ได้: connection failed: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  database "nodb" does not exist</code></td><td>ตั้ง <code>DATABASE_URL</code> ชี้ไปฐานข้อมูลที่ไม่มี หรือยังไม่ได้รัน <code>rebuild.sh</code></td><td>ตรวจด้วย <code>echo $DATABASE_URL</code> และ <code>psql -l</code> แล้วรัน <code>./scripts/rebuild.sh</code></td></tr>
+<tr><td><code>psycopg.errors.InvalidTextRepresentation: malformed array literal: "(paid,shipped)"</code></td><td>ส่ง <code>tuple</code> ให้ <code>ANY(%s)</code> psycopg 3 แปลงเฉพาะ <code>list</code> เป็น Array</td><td>ใช้ <code>list(PAID)</code> แบบในโค้ด</td></tr>
+<tr><td><code>TypeError: object of type 'int' has no len()</code></td><td>เขียน <code>cur.execute(sql, (42))</code> วงเล็บเดี่ยวไม่ใช่ tuple จึงส่งเลข 42 ไปตรง ๆ</td><td>ใส่จุลภาค <code>(42,)</code> หรือใช้ dict กับ Placeholder แบบมีชื่อ</td></tr>
+<tr><td><code>psycopg.ProgrammingError: the query has 2 placeholders but 1 parameters were passed</code></td><td>จำนวน <code>%s</code> ใน SQL ไม่เท่ากับจำนวนค่าที่ส่ง</td><td>นับให้ตรงกัน หรือเปลี่ยนเป็น <code>%(name)s</code> ซึ่งตรวจง่ายกว่า</td></tr>
+<tr><td><code>psycopg.errors.SyntaxError: syntax error at or near "order"</code></td><td>พิมพ์ชื่อตาราง <code>order</code> ซึ่งเป็นคำสงวน (Reserved Word) ของ SQL แทน <code>orders</code></td><td>ใช้ชื่อตารางพหูพจน์ <code>orders</code> แบบใน Schema</td></tr>
+</tbody></table></div>
+<div class="callout sec"><span class="c-label sec">Security</span><p>ห้ามเขียน <code>f"... WHERE ordered_at &gt;= '{args.month}'"</code> เด็ดขาด แม้ว่าวันนี้จะมี <code>argparse</code> ตรวจอยู่ เพราะวันหนึ่งอาจมีคนนำฟังก์ชัน <code>build_report()</code> ไปเรียกจาก Web API ที่ไม่มีการตรวจ ค่าจากผู้ใช้ทุกค่าต้องผ่าน Placeholder เสมอ</p></div>
+</li>
+
+<li>
+<h4>Step 9: Role อ่านอย่างเดียวสำหรับทีมรายงาน และ Backup พร้อมทดสอบ Restore</h4>
+<p>ระบบจริงไม่ให้ทุกคนใช้ Role เจ้าของตาราง ทีมทำรายงานควรอ่านได้อย่างเดียว ถ้าสคริปต์ของทีมนั้นมีบั๊กหรือถูกเจาะ ข้อมูลก็จะไม่ถูกแก้หรือลบ นี่คือหลัก <strong>Least Privilege</strong> (ให้สิทธิ์น้อยที่สุดที่ยังทำงานได้) และอีกเรื่องที่ขาดไม่ได้คือ Backup ซึ่งต้อง <strong>ทดสอบ Restore จริง</strong> ด้วย เพราะ Backup ที่ไม่เคยลอง Restore อาจใช้ไม่ได้ในวันที่ต้องการ</p>
+
+<h5>9.1 สร้าง Role ecommerce_report</h5>
+<pre class="code" data-env="file" data-label="SQL · scripts/roles.sql"><code class="language-sql">-- scripts/roles.sql : สร้าง Role อ่านอย่างเดียวสำหรับทีมทำรายงาน (รันด้วยสิทธิ์ postgres)
+-- วิธีใช้: sudo -u postgres psql -d ecommerce -v owner="$USER" &lt; scripts/roles.sql
+-- :owner คือเจ้าของตาราง (ชื่อผู้ใช้ Linux ของเรา) ส่งเข้ามาด้วย -v
+
+-- 1) สร้าง Role เฉพาะเมื่อยังไม่มี (\gexec รันผลลัพธ์ของ SELECT เป็นคำสั่ง SQL)
+SELECT 'CREATE ROLE ecommerce_report NOLOGIN'
+WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'ecommerce_report') \gexec
+
+-- 2) ให้สิทธิ์แค่เชื่อมต่อ มองเห็น Schema และอ่านตาราง ไม่มีสิทธิ์เขียน
+GRANT CONNECT ON DATABASE ecommerce TO ecommerce_report;
+GRANT USAGE ON SCHEMA public TO ecommerce_report;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO ecommerce_report;
+
+-- 3) ตารางที่ owner สร้างในอนาคตจะอ่านได้ทันทีโดยไม่ต้อง GRANT ซ้ำ
+ALTER DEFAULT PRIVILEGES FOR ROLE :"owner" IN SCHEMA public
+    GRANT SELECT ON TABLES TO ecommerce_report;
+
+-- 4) ให้ owner สลับไปเป็น ecommerce_report ได้ด้วย SET ROLE เพื่อทดสอบสิทธิ์
+GRANT ecommerce_report TO :"owner";</code></pre>
+<p>การสร้าง Role ต้องใช้สิทธิ์ผู้ดูแลระบบ จึงรันด้วยผู้ใช้ <code>postgres</code> และส่งชื่อผู้ใช้ Linux ของเราเข้าไปเป็นตัวแปร <code>owner</code>:</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">sudo -u postgres psql -X -d ecommerce -v owner="$USER" &lt; scripts/roles.sql</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>CREATE ROLE
+GRANT
+GRANT
+GRANT
+ALTER DEFAULT PRIVILEGES
+GRANT ROLE</code></pre>
+
+<h5>9.2 พิสูจน์ว่าอ่านได้แต่เขียนไม่ได้</h5>
+<pre class="code" data-env="file" data-label="SQL · scripts/roles_demo.sql"><code class="language-sql">-- scripts/roles_demo.sql : พิสูจน์ว่า ecommerce_report อ่านได้แต่เขียนไม่ได้
+SET ROLE ecommerce_report;                         -- สวมบทบาทเป็น Role อ่านอย่างเดียว
+SELECT current_user, COUNT(*) AS orders FROM orders;   -- อ่านได้
+INSERT INTO categories (name) VALUES ('Test Category'); -- ต้องถูกปฏิเสธ
+DELETE FROM payments WHERE payment_id = 1;              -- ต้องถูกปฏิเสธ
+RESET ROLE;                                        -- กลับเป็นตัวเรา
+SELECT current_user;</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">psql -X -d ecommerce -f scripts/roles_demo.sql</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>SET
+   current_user   | orders 
+------------------+--------
+ ecommerce_report |   5000
+(1 row)
+
+psql:scripts/roles_demo.sql:4: ERROR:  permission denied for table categories
+psql:scripts/roles_demo.sql:5: ERROR:  permission denied for table payments
+RESET
+ current_user 
+--------------
+ somchai
+(1 row)</code></pre>
+<p>บรรทัด <code>SELECT</code> ได้ผล 5,000 แถว ส่วน <code>INSERT</code> และ <code>DELETE</code> ถูกปฏิเสธด้วย <code>permission denied</code> ตรงตามที่ออกแบบ (ชื่อใน <code>current_user</code> บรรทัดสุดท้ายจะเป็นชื่อผู้ใช้ของคุณ)</p>
+
+<h5>9.3 บทเรียนสำคัญ: สิทธิ์หายเมื่อสร้างฐานข้อมูลใหม่</h5>
+<p>ลองรัน <code>./scripts/rebuild.sh</code> แล้วรัน <code>roles_demo.sql</code> ซ้ำ จะได้ผลนี้:</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">./scripts/rebuild.sh
+psql -X -d ecommerce -f scripts/roles_demo.sql</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>SET
+psql:scripts/roles_demo.sql:3: ERROR:  permission denied for table orders
+psql:scripts/roles_demo.sql:4: ERROR:  permission denied for table categories
+psql:scripts/roles_demo.sql:5: ERROR:  permission denied for table payments
+RESET
+ current_user 
+--------------
+ somchai
+(1 row)</code></pre>
+<p>คราวนี้แม้แต่ <code>SELECT</code> ก็ถูกปฏิเสธ เหตุผลคือ <strong>Role อยู่ระดับ Cluster</strong> (ใช้ร่วมกันทุกฐานข้อมูลบนเซิร์ฟเวอร์) จึงยังอยู่ แต่ <strong>GRANT อยู่ในฐานข้อมูลและตาราง</strong> เมื่อ <code>dropdb</code> สิทธิ์ทั้งหมดก็หายไปพร้อมตาราง วิธีแก้คือรัน <code>roles.sql</code> ซ้ำทุกครั้งหลัง Rebuild ไฟล์นี้เขียนให้รันซ้ำได้อย่างปลอดภัย (Idempotent):</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">sudo -u postgres psql -X -d ecommerce -v owner="$USER" &lt; scripts/roles.sql</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>GRANT
+GRANT
+GRANT
+ALTER DEFAULT PRIVILEGES
+NOTICE:  role "somchai" has already been granted membership in role "ecommerce_report" by role "postgres"
+GRANT ROLE</code></pre>
+<p>ครั้งที่สองไม่มีบรรทัด <code>CREATE ROLE</code> เพราะ <code>\gexec</code> ไม่ได้รันอะไรเมื่อ Role มีอยู่แล้ว และมี <code>NOTICE</code> บอกว่าเคยให้สมาชิกภาพแล้ว ซึ่งไม่ใช่ Error</p>
+
+<h5>9.4 Backup ด้วย pg_dump และทดสอบ Restore</h5>
+<pre class="code" data-env="file" data-label="Bash · scripts/backup_test.sh"><code class="language-bash">#!/usr/bin/env bash
+# scripts/backup_test.sh : Backup ฐานข้อมูลด้วย pg_dump แล้วลอง Restore เพื่อพิสูจน์ว่าไฟล์ใช้ได้จริง
+set -euo pipefail
+cd "$(dirname "$0")/.."
+DB="${DB:-ecommerce}"
+RESTORE_DB="${DB}_restore"
+mkdir -p backups                       # backups/ อยู่ใน .gitignore ไม่ขึ้น GitHub
+
+echo "==&gt; Backup $DB เป็น custom format (-Fc)"
+pg_dump -Fc -d "$DB" -f "backups/$DB.dump"
+ls -lh "backups/$DB.dump" | awk '{print "    ขนาดไฟล์:", $5}'
+
+echo "==&gt; Restore ลงฐานข้อมูลใหม่ $RESTORE_DB"
+dropdb --if-exists "$RESTORE_DB"
+createdb "$RESTORE_DB"
+pg_restore --no-owner -d "$RESTORE_DB" "backups/$DB.dump"
+
+echo "==&gt; เทียบจำนวนแถวของต้นฉบับกับฉบับที่ Restore"
+COUNT_SQL="SELECT 'customers', COUNT(*) FROM customers UNION ALL
+           SELECT 'orders', COUNT(*) FROM orders UNION ALL
+           SELECT 'order_items', COUNT(*) FROM order_items UNION ALL
+           SELECT 'payments', COUNT(*) FROM payments"
+diff &lt;(psql -X -At -d "$DB" -c "$COUNT_SQL") \
+     &lt;(psql -X -At -d "$RESTORE_DB" -c "$COUNT_SQL") \
+  &amp;&amp; echo "    ผ่าน: จำนวนแถวตรงกันทุกตาราง" \
+  || { echo "    ไม่ผ่าน: จำนวนแถวไม่ตรงกัน"; exit 1; }
+psql -X -At -d "$RESTORE_DB" -c "$COUNT_SQL" | sed 's/^/    /'</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">chmod +x scripts/backup_test.sh
+./scripts/backup_test.sh</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>==&gt; Backup ecommerce เป็น custom format (-Fc)
+    ขนาดไฟล์: 158K
+==&gt; Restore ลงฐานข้อมูลใหม่ ecommerce_restore
+NOTICE:  database "ecommerce_restore" does not exist, skipping
+==&gt; เทียบจำนวนแถวของต้นฉบับกับฉบับที่ Restore
+    ผ่าน: จำนวนแถวตรงกันทุกตาราง
+    customers|500
+    orders|5000
+    order_items|12084
+    payments|4790</code></pre>
+<p>ขนาดไฟล์บนเครื่องของคุณอาจต่างไปเล็กน้อย ส่วน <code>NOTICE</code> จะเห็นเฉพาะครั้งแรกที่ยังไม่มีฐานข้อมูล <code>ecommerce_restore</code> จากนั้นจะเงียบไป</p>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>pg_dump -Fc</code></td><td>Backup เป็น Custom Format ที่บีบอัดแล้ว และเลือก Restore บางตารางได้ด้วย <code>pg_restore</code></td></tr>
+<tr><td><code>pg_restore --no-owner</code></td><td>Restore โดยไม่พยายามตั้งเจ้าของตามต้นฉบับ ใช้ได้แม้ย้ายไปเครื่องที่มีชื่อผู้ใช้ต่างกัน</td></tr>
+<tr><td><code>diff &lt;(psql ...) &lt;(psql ...)</code></td><td>Process Substitution ของ Bash นำผลของสองคำสั่งมาเทียบกันโดยไม่ต้องสร้างไฟล์ชั่วคราว ถ้าตรงกัน <code>diff</code> คืนค่า 0</td></tr>
+<tr><td><code>psql -At</code></td><td><code>-A</code> ไม่จัดคอลัมน์ และ <code>-t</code> ไม่แสดงหัวตาราง ได้ผลเป็น <code>ชื่อ|จำนวน</code> ที่เทียบกันง่าย</td></tr>
+<tr><td><code>mkdir -p backups</code></td><td>โฟลเดอร์นี้อยู่ใน <code>.gitignore</code> เพราะไฟล์ Backup ของระบบจริงมีข้อมูลส่วนบุคคลของลูกค้า</td></tr>
+</tbody></table></div>
+<div class="callout sec"><span class="c-label sec">Security</span><p>ไฟล์ Backup ของระบบจริงมีชื่อ อีเมล และเบอร์โทรของลูกค้า ซึ่งเป็นข้อมูลส่วนบุคคลตาม พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล (PDPA) ห้ามนำขึ้น GitHub ห้ามส่งผ่านแชต และควรเข้ารหัสก่อนเก็บนอกเครื่อง ถ้าต้องการตั้งเวลา Backup อัตโนมัติ ใช้ <code>cron</code> ที่เรียนในหัวข้อ <a data-t="19"></a></p></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ฝึก Restore แบบเลือกตาราง:</p><ol>
+<li>รัน <code>pg_restore -l backups/ecommerce.dump | head</code> เพื่อดูรายการวัตถุในไฟล์ Backup</li>
+<li>สร้างฐานข้อมูลว่าง <code>createdb only_products</code></li>
+<li>Restore เฉพาะตาราง <code>categories</code> และ <code>products</code> ด้วย <code>pg_restore --no-owner -d only_products -t categories -t products backups/ecommerce.dump</code></li>
+<li>นับแถวด้วย <code>psql -d only_products -c 'SELECT COUNT(*) FROM products'</code> ควรได้ 30 แล้วลบทิ้งด้วย <code>dropdb only_products</code></li>
+</ol></div>
+</li>
+<li>
+<h4>Step 10: ตรวจสอบทั้งโปรเจกต์ตั้งแต่ศูนย์ (Verification)</h4>
+<p>ก่อนนำขึ้น GitHub ต้องพิสูจน์ว่าคนอื่นที่ Clone ไปจะได้ผลเหมือนเราทุกตัวเลข ขั้นตอนนี้สร้างฐานข้อมูลใหม่ตั้งแต่ศูนย์ ให้สิทธิ์ Role ใหม่ ตรวจความถูกต้องของข้อมูล รัน Query ทั้ง 20 ข้อ แล้วใช้ Git ตรวจว่าไฟล์ผลลัพธ์ใน <code>results/</code> ไม่เปลี่ยนแม้แต่ตัวอักษรเดียว จากนั้นทดสอบสิทธิ์ รายงาน และ Backup ต่อกันในรอบเดียว</p>
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>คำสั่ง <code>git diff --quiet -- results/</code> ใช้ได้เมื่อไฟล์ใน <code>results/</code> ถูก Commit ไว้แล้ว ถ้ายังไม่เคย Commit ให้ทำ Step 12 ก่อน แล้วค่อยกลับมารันชุดนี้ซ้ำ ทุกครั้งที่แก้ Schema หรือ Seed ก็ควรรันชุดนี้ใหม่</p></div>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/ecommerce-db
+source .venv/bin/activate
+
+# 1) สร้างฐานข้อมูลใหม่ทั้งหมด
+./scripts/rebuild.sh
+# 2) ให้สิทธิ์ Role อ่านอย่างเดียวอีกครั้ง (สิทธิ์หายไปพร้อม dropdb)
+sudo -u postgres psql -X -q -d ecommerce -v owner="$USER" &lt; scripts/roles.sql
+# 3) ตรวจความถูกต้องของข้อมูล
+psql -X -q -d ecommerce -f scripts/check.sql
+# 4) รัน Query ทั้ง 20 ข้อ แสดงเฉพาะ 2 บรรทัดสุดท้าย
+./scripts/run_queries.sh | tail -n 2
+# 5) ผลลัพธ์ต้องเหมือนเดิมทุกตัวอักษร (git diff --quiet คืนค่า 0 เมื่อไม่มีความต่าง)
+git diff --quiet -- results/ &amp;&amp; echo "results/ ไม่เปลี่ยนแปลง: ผลลัพธ์ Deterministic"
+# 6) นับจำนวนครั้งที่ Role อ่านอย่างเดียวถูกปฏิเสธ (ต้องได้ 2 คือ INSERT และ DELETE)
+psql -X -d ecommerce -f scripts/roles_demo.sql 2&gt;&amp;1 | grep -c 'permission denied'
+# 7) รายงานจาก Python
+python report.py --month 2026-06 --top 3
+# 8) Backup และทดสอบ Restore
+./scripts/backup_test.sh | tail -n 5</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>==&gt; สร้างฐานข้อมูล ecommerce ใหม่
+==&gt; สร้างตาราง
+==&gt; ใส่ข้อมูลตัวอย่าง
+==&gt; สร้าง Index
+==&gt; เสร็จแล้ว
+NOTICE:  role "somchai" has already been granted membership in role "ecommerce_report" by role "postgres"
+--- 1) จำนวนแถวในแต่ละตาราง
+ table_name  | rows  
+-------------+-------
+ customers   |   500
+ categories  |    10
+ products    |    30
+ orders      |  5000
+ order_items | 12084
+ payments    |  4790
+(6 rows)
+
+--- 2) ยอดชำระที่สำเร็จต้องเท่ากับยอดสินค้า + ค่าส่ง (ควรได้ 0 แถวที่ไม่ตรง)
+ mismatched_payments 
+---------------------
+                   0
+(1 row)
+
+--- 3) คำสั่งซื้อที่ไม่มีสินค้าเลย (ควรเป็น 0)
+ empty_orders 
+--------------
+            0
+(1 row)
+
+--- 4) ช่วงวันที่ของคำสั่งซื้อ
+ first_order | last_order 
+-------------+------------
+ 2025-01-01  | 2026-06-30
+(1 row)
+
+OK  queries/q19_refund_by_month.sql -&gt; results/q19.txt
+OK  queries/q20_day_of_week_sales.sql -&gt; results/q20.txt
+results/ ไม่เปลี่ยนแปลง: ผลลัพธ์ Deterministic
+2
+รายงานยอดขายประจำเดือน 2026-06
+====================================================
+จำนวนคำสั่งซื้อ      :            446
+ยอดขาย (บาท)        :   8,068,892.00
+ยอดเฉลี่ยต่อคำสั่งซื้อ  :      18,091.69
+----------------------------------------------------
+สินค้าขายดี 3 อันดับแรก
+ 1. EL-MOB-002  Smartphone Pro          64 ชิ้น   1,901,366.00
+ 2. EL-CMP-003  Gaming Desktop          34 ชิ้น   1,551,420.00
+ 3. EL-CMP-002  Laptop Pro 15           23 ชิ้น   1,257,210.00
+    ผ่าน: จำนวนแถวตรงกันทุกตาราง
+    customers|500
+    orders|5000
+    order_items|12084
+    payments|4790</code></pre>
+<div class="tbl wide"><table class="explain"><thead><tr><th>สิ่งที่ตรวจ</th><th>ผลที่ต้องได้</th><th>ถ้าไม่ตรงให้ดูที่</th></tr></thead><tbody>
+<tr><td>จำนวนแถวในแต่ละตาราง</td><td>500 / 10 / 30 / 5000 / 12084 / 4790</td><td><code>seed/seed.sql</code> ใน Step 3 โดยเฉพาะ <code>generate_series</code> และสูตร <code>%</code></td></tr>
+<tr><td><code>mismatched_payments</code> และ <code>empty_orders</code></td><td>0 ทั้งคู่</td><td>ส่วนที่สร้าง <code>payments</code> ใน Seed ว่ารวมค่าส่งหรือไม่</td></tr>
+<tr><td>ช่วงวันที่</td><td>2025-01-01 ถึง 2026-06-30</td><td>การตั้ง <code>timezone</code> ใน <code>rebuild.sh</code></td></tr>
+<tr><td><code>git diff --quiet -- results/</code></td><td>พิมพ์ข้อความ “ไม่เปลี่ยนแปลง”</td><td>ใช้ <code>git diff results/</code> ดูว่าข้อไหนเปลี่ยน มักเกิดจาก <code>ORDER BY</code> ที่ไม่มีตัวตัดสินรอง</td></tr>
+<tr><td>จำนวน <code>permission denied</code></td><td>2</td><td>ถ้าได้ 3 แปลว่าลืมขั้นที่ 2 ถ้าได้ 0 แปลว่าให้สิทธิ์เกิน</td></tr>
+<tr><td>รายงาน 2026-06</td><td>446 คำสั่งซื้อ 8,068,892.00 บาท</td><td>เทียบกับแถว <code>2026-06</code> ใน <code>results/q01.txt</code></td></tr>
+<tr><td>Backup</td><td>“ผ่าน: จำนวนแถวตรงกันทุกตาราง”</td><td>สิทธิ์ <code>createdb</code> ของ Role และพื้นที่ดิสก์</td></tr>
+</tbody></table></div>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>ถ้าผลของคุณตรงกับตารางด้านบนทุกข้อ แปลว่าโปรเจกต์ของคุณ Rebuild ได้ด้วยคำสั่งชุดเดียว ผลลัพธ์ตรวจซ้ำได้ สิทธิ์ถูกต้อง และ Backup ใช้ได้จริง ซึ่งเป็นสี่เรื่องที่ทีมฐานข้อมูลในบริษัทจริงตรวจทุกครั้งก่อนส่งงาน</p></div>
+</li>
+
+<li>
+<h4>Step 11: เขียน README.md ให้เป็นหน้าร้านของ Portfolio</h4>
+<p>README คือสิ่งแรกที่ผู้สัมภาษณ์เห็นเมื่อเปิด Repository ต้องตอบให้ได้ภายใน 30 วินาทีว่า โปรเจกต์นี้คืออะไร ใช้อะไรทำ รันอย่างไร และเราเก่งเรื่องไหน GitHub แสดงผล Mermaid <code>erDiagram</code> เป็นรูปแผนภาพให้อัตโนมัติ จึงใส่ ER Diagram ไว้ใน README ได้เลยโดยไม่ต้องทำไฟล์รูป</p>
+<p>สร้างไฟล์ <code>README.md</code> ที่โฟลเดอร์หลักของโปรเจกต์ แล้วแก้ <code>&lt;your-username&gt;</code> เป็นชื่อบัญชี GitHub ของคุณ:</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Markdown · README.md"><code class="language-markdown"># E-commerce Database (PostgreSQL 16)
+
+ฐานข้อมูลร้านค้าออนไลน์ 6 ตาราง พร้อม Constraint, Index ที่วัดผลด้วย EXPLAIN ANALYZE,
+ข้อมูลตัวอย่างแบบ Deterministic, Query วิเคราะห์ธุรกิจ 20 ข้อ และรายงานด้วย Python (psycopg 3)
+
+## Tech Stack
+
+- PostgreSQL 16 บน Ubuntu 24.04 LTS (WSL2)
+- Python 3.12 + psycopg[binary]==3.3.6
+- Bash scripts สำหรับสร้างฐานข้อมูลใหม่และรัน Query ทั้งหมด
+
+## ER Diagram
+
+```mermaid
+erDiagram
+    CUSTOMERS  ||--o{ ORDERS      : places
+    ORDERS     ||--|{ ORDER_ITEMS : contains
+    PRODUCTS   ||--o{ ORDER_ITEMS : "appears in"
+    CATEGORIES ||--o{ PRODUCTS    : groups
+    CATEGORIES |o--o{ CATEGORIES  : "parent of"
+    ORDERS     ||--o| PAYMENTS    : "paid by"
+```
+
+รายละเอียดคอลัมน์ทั้งหมดอยู่ที่ [docs/er.md](docs/er.md)
+
+## วิธีติดตั้งและสร้างฐานข้อมูล
+
+```bash
+sudo service postgresql start
+git clone https://github.com/&lt;your-username&gt;/ecommerce-db.git
+cd ecommerce-db
+python3 -m venv .venv &amp;&amp; source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+./scripts/rebuild.sh                                   # สร้างฐานข้อมูล ecommerce ใหม่ทั้งหมด
+psql -X -d ecommerce -f scripts/check.sql              # ตรวจความถูกต้องของข้อมูล
+./scripts/run_queries.sh                               # รัน Query 20 ข้อ เก็บผลใน results/
+python report.py --month 2026-06 --top 5               # รายงานรายเดือน
+```
+
+## Query วิเคราะห์ธุรกิจ
+
+| ไฟล์ | คำถามทางธุรกิจ | เทคนิค SQL |
+|---|---|---|
+| q01 | ยอดขายรายเดือน | date_trunc, GROUP BY |
+| q02 | ยอดขายตามหมวดระดับบนสุด | WITH RECURSIVE |
+| q03 | สินค้าทำรายได้สูงสุด 10 อันดับ | JOIN, ORDER BY, LIMIT |
+| q04 | ลูกค้า Lifetime Value สูงสุด | JOIN, SUM |
+| q05 | มูลค่าเฉลี่ยต่อคำสั่งซื้อรายปี | CTE, AVG |
+| q06 | สัดส่วนคำสั่งซื้อแต่ละสถานะ | SUM() OVER () |
+| q07 | สัดส่วนช่องทางชำระเงิน | GROUP BY, Window |
+| q08 | อัตราลูกค้าซื้อซ้ำ | CTE, FILTER |
+| q09 | ลูกค้าที่ไม่ซื้อใน 90 วัน | CTE, INTERVAL |
+| q10 | การเติบโตเทียบเดือนก่อน | LAG, NULLIF |
+| q11 | ยอดขายสะสม | SUM() OVER (ORDER BY) |
+| q12 | สินค้าขายดี 3 อันดับต่อหมวด | ROW_NUMBER, PARTITION BY |
+| q13 | แบ่งกลุ่มลูกค้าแบบ RFM | NTILE |
+| q14 | Cohort ตามเดือนที่ซื้อครั้งแรก | CTE, FILTER |
+| q15 | การกระจายขนาดตะกร้า | CTE, SUM() OVER () |
+| q16 | สินค้าที่ไม่เคยขายได้ | NOT EXISTS |
+| q17 | สินค้าใกล้หมดสต็อก | LEFT JOIN, FILTER |
+| q18 | อัตรายกเลิกตามจังหวัด | COUNT(*) FILTER |
+| q19 | ยอดคืนเงินรายเดือน | JOIN payments |
+| q20 | ยอดขายตามวันในสัปดาห์ | EXTRACT(ISODOW) |
+
+ผลลัพธ์จริงของทุกข้ออยู่ในโฟลเดอร์ [results/](results/)
+
+### ตัวอย่างผลลัพธ์: q06 คำสั่งซื้อแต่ละสถานะ
+
+```text
+  status   | orders |  pct
+-----------+--------+-------
+ delivered |   4236 | 84.72
+ cancelled |    331 |  6.62
+ shipped   |    325 |  6.50
+ paid      |     57 |  1.14
+ pending   |     51 |  1.02
+(5 rows)
+```
+
+## Index Tuning
+
+วัดด้วย `EXPLAIN (ANALYZE, BUFFERS)` ก่อนและหลังสร้าง Index ทั้งหมดบันทึกไว้ที่ [docs/explain.md](docs/explain.md)
+ตัวอย่าง: คิวคำสั่งซื้อ pending เปลี่ยนจาก Seq Scan (74 buffers) เป็น Index Scan บน Partial Index (2 buffers)
+
+## ความปลอดภัย
+
+- report.py ใช้ Parameterized Query (`%(name)s`) ทุกจุด ไม่ต่อสตริง SQL เอง
+- Connection String อ่านจาก Environment Variable `DATABASE_URL` ไม่มีรหัสผ่านในโค้ด
+- Role `ecommerce_report` อ่านได้อย่างเดียว (ดู scripts/roles.sql)
+- ไฟล์ Backup อยู่ใน .gitignore
+
+## สิ่งที่ได้เรียนรู้
+
+- การออกแบบ Schema ด้วย Constraint ช่วยกันข้อมูลผิดได้ตั้งแต่ระดับฐานข้อมูล
+- Seed แบบ Deterministic ทำให้ผล Query ตรวจสอบซ้ำได้ทุกครั้ง
+- Index ต้องสร้างจากการวัดผล ไม่ใช่การเดา</code></pre>
+<div class="callout"><span class="c-label tip">Tip</span><p>หัวข้อ “สิ่งที่ได้เรียนรู้” สำคัญกว่าที่คิด ผู้สัมภาษณ์มักถามต่อจากตรงนั้น ให้เขียนด้วยคำพูดของคุณเองจากปัญหาที่เจอจริง เช่น สิทธิ์หายหลัง Rebuild ใน Step 9 หรือ Query C ที่ Buffers ไม่ลดใน Step 7 จะน่าสนใจกว่าข้อความทั่วไปมาก</p></div>
+<p>ตรวจว่า Mermaid เขียนถูกก่อน Push ได้ที่ <a href="https://mermaid.live" target="_blank" rel="noopener">mermaid.live</a> โดยวางเฉพาะส่วนที่อยู่ในบล็อก <code>mermaid</code> ลงไป ถ้าแผนภาพแสดงได้ GitHub ก็แสดงได้เช่นกัน</p>
+</li>
+
+<li>
+<h4>Step 12: Commit และนำขึ้น GitHub</h4>
+<p>ขั้นตอนนี้ใช้สิ่งที่เรียนในหัวข้อ <a data-t="17"></a> ทั้งหมด ก่อน Commit ให้ตรวจว่าไฟล์ที่ไม่ควรขึ้น GitHub ถูก <code>.gitignore</code> กันไว้จริง ด้วย <code>git status --short --ignored</code> บรรทัดที่ขึ้นต้นด้วย <code>!!</code> คือไฟล์ที่ Git จะไม่นำขึ้น</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/ecommerce-db
+# ตรวจว่า .venv/ backups/ และไฟล์ CSV ถูกละเว้น
+git status --short --ignored | grep '!!'
+# เพิ่มทุกไฟล์แล้วนับจำนวน
+git add .
+git status --short | wc -l
+# Commit แรก
+git commit -m "Initial e-commerce database: schema, seed, 20 queries, report"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>!! .venv/
+!! backups/
+!! top_products.csv
+57
+[main (root-commit) b3dfadc] Initial e-commerce database: schema, seed, 20 queries, report
+ 57 files changed, 1185 insertions(+)
+ create mode 100644 .gitignore</code></pre>
+<p>รหัส Commit (เช่น <code>b3dfadc</code>) บนเครื่องของคุณจะต่างออกไป ส่วนจำนวน 57 ไฟล์ควรตรงกันถ้าสร้างไฟล์ครบทุก Step (ผลจริงจะแสดงบรรทัด <code>create mode</code> ของทุกไฟล์ ด้านบนตัดมาให้ดูเฉพาะบรรทัดแรก)</p>
+<p>จากนั้นสร้าง Repository ว่างชื่อ <code>ecommerce-db</code> บน GitHub (ไม่ต้องติ๊กสร้าง README เพราะเรามีแล้ว) แล้ว Push ขึ้นไป เลือกวิธีใดวิธีหนึ่ง:</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># วิธีที่ 1: ใช้ SSH Key ที่ตั้งไว้ในหัวข้อ Git และ GitHub
+git remote add origin git@github.com:&lt;your-username&gt;/ecommerce-db.git
+git push -u origin main
+
+# วิธีที่ 2: ใช้ GitHub CLI สร้าง Repository และ Push ในคำสั่งเดียว
+gh repo create ecommerce-db --public --source=. --push</code></pre>
+<p>เมื่อ Push สำเร็จ ให้เปิดหน้า Repository บนเว็บ แล้วตรวจสามเรื่อง คือ (1) README แสดง ER Diagram เป็นรูป (2) คลิกเข้าไปใน <code>results/q01.txt</code> แล้วเห็นตาราง (3) ไม่มีโฟลเดอร์ <code>backups/</code> และ <code>.venv/</code> บน GitHub</p>
+<div class="callout sec"><span class="c-label sec">Security</span><p>ก่อน Push ทุกครั้ง ค้นหาความลับที่อาจหลุดเข้ามาด้วย <code>git grep -n -i 'password\|secret\|DATABASE_URL='</code> ถ้าพบรหัสผ่านจริงใน Commit ใดก็ตาม การลบในไฟล์แล้ว Commit ใหม่ไม่พอ เพราะยังอยู่ในประวัติ Git ต้องเปลี่ยนรหัสผ่านนั้นทันที</p></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ใส่ Topics ให้ Repository เช่น <code>postgresql</code>, <code>sql</code>, <code>data-modeling</code>, <code>psycopg</code> เพื่อให้ค้นเจอง่าย</li>
+<li>ปักหมุด (Pin) Repository นี้ไว้ที่หน้าโปรไฟล์ GitHub และใส่ลิงก์ใน Resume</li>
+<li>Commit ทีละเรื่องเมื่อพัฒนาต่อ เช่น “Add q21 customer churn query” แทนการ Commit รวมทุกอย่างทีเดียว</li>
+</ul></div>
+</li>
+</ol>
+
+<h4>ไอเดียต่อยอด</h4>
+<p>เมื่อทำครบ 12 Step แล้ว เลือกต่อยอดอย่างน้อย 2 ข้อ เพื่อให้ Portfolio ของคุณต่างจากคนอื่น แต่ละข้อเขียนแยกเป็น Commit และอัปเดต README ด้วย</p>
+<ol>
+<li><strong>Stored Procedure สำหรับสั่งซื้อ</strong> เขียน <code>CREATE PROCEDURE place_order(...)</code> ด้วย PL/pgSQL ที่ล็อกสินค้าด้วย <code>SELECT ... FOR UPDATE</code> ตรวจสต็อก สร้างคำสั่งซื้อ และตัดสต็อกใน Transaction เดียว แล้วเขียนเคสทดสอบกรณีสต็อกไม่พอ</li>
+<li><strong>Audit Log ด้วย Trigger</strong> สร้างตาราง <code>order_status_history</code> และ Trigger ที่บันทึกทุกครั้งที่ <code>orders.status</code> เปลี่ยน พร้อมเวลาและสถานะเดิม เพื่อใช้ตอบคำถามว่า “คำสั่งซื้อนี้ใช้เวลาจาก paid ถึง delivered กี่วัน”</li>
+<li><strong>Materialized View สำหรับ Dashboard</strong> เปลี่ยน q01 และ q02 เป็น <code>MATERIALIZED VIEW</code> แล้วตั้ง <code>cron</code> ให้ <code>REFRESH MATERIALIZED VIEW CONCURRENTLY</code> ทุกคืน (ต้องมี UNIQUE Index บน View ก่อน) วัดเวลาก่อนและหลังลงใน <code>docs/explain.md</code></li>
+<li><strong>ขยายข้อมูลเป็น 1 ล้านคำสั่งซื้อ</strong> แก้ Seed ให้รับจำนวนแถวเป็นตัวแปรของ psql (<code>-v n_orders=1000000</code>) แล้ววัด EXPLAIN ใหม่ จะเห็นว่า Index บางตัวที่ดูไม่คุ้มตอน 5,000 แถวกลับสำคัญมาก</li>
+<li><strong>Table Partitioning</strong> แบ่งตาราง <code>orders</code> ตามเดือนด้วย <code>PARTITION BY RANGE (ordered_at)</code> และดูใน EXPLAIN ว่า PostgreSQL ข้าม Partition ที่ไม่เกี่ยวข้อง (Partition Pruning)</li>
+<li><strong>ทดสอบอัตโนมัติด้วย GitHub Actions</strong> สร้าง Workflow ที่เปิด Service Container <code>postgres:16</code> รัน <code>rebuild.sh</code>, <code>run_queries.sh</code> แล้ว <code>git diff --exit-code results/</code> ทุกครั้งที่ Push ถ้า Query ใดให้ผลเปลี่ยน CI จะแดงทันที</li>
+<li><strong>ตรวจรูปแบบ SQL ด้วย sqlfluff</strong> ติดตั้ง <code>sqlfluff==4.4.0</code> ใน venv แล้วรัน <code>sqlfluff lint queries/ --dialect postgres</code> แก้ตามคำแนะนำ และใส่ขั้นนี้ใน CI ด้วย</li>
+<li><strong>Dashboard</strong> นำผลจาก <code>report.py</code> ไปทำกราฟด้วย Streamlit หรือเชื่อม Metabase เข้ากับ Role <code>ecommerce_report</code> ซึ่งอ่านได้อย่างเดียว ปลอดภัยสำหรับเครื่องมือ BI</li>
+</ol>
+<h3 id="s14-4-cheat">Cheat Sheet</h3>
+<p>สรุปคำสั่งที่ใช้บ่อยที่สุดในหัวข้อนี้ จัดกลุ่มตามงาน ตัวอย่างทุกบรรทัดใช้ Schema ร้านค้า <code>shop</code> จาก Part 2 หรือฐานข้อมูล <code>ecommerce</code> จาก Mini Project ถ้าไม่ได้ระบุไว้ คำสั่งใช้ได้ทั้ง PostgreSQL 16 และ SQLite 3.45</p>
+
+<h4>1. เครื่องมือ Command Line (psql และ sqlite3)</h4>
+<div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>sqlite3 ไฟล์.db</code></td><td>เปิดฐานข้อมูล SQLite (ถ้าไม่มีจะสร้างใหม่)</td><td><code>sqlite3 shop.db &lt; notes/c01_select.sql</code></td></tr>
+<tr><td><code>.headers on</code> / <code>.mode box</code></td><td>แสดงหัวคอลัมน์และตารางแบบมีกรอบใน sqlite3</td><td>ใส่ไว้ใน <code>~/.sqliterc</code> ให้เปิดทุกครั้ง</td></tr>
+<tr><td><code>.tables</code> / <code>.schema ตาราง</code></td><td>ดูรายชื่อตาราง และคำสั่ง CREATE ของตาราง ใน sqlite3</td><td><code>.schema products</code></td></tr>
+<tr><td><code>psql -d ฐานข้อมูล</code></td><td>เชื่อมต่อ PostgreSQL ผ่าน Unix Socket ด้วยชื่อผู้ใช้ Linux</td><td><code>psql -d shop</code></td></tr>
+<tr><td><code>psql -v ON_ERROR_STOP=1 -f ไฟล์</code></td><td>รันไฟล์ SQL และหยุดทันทีเมื่อเจอ Error</td><td><code>psql -d ecommerce -v ON_ERROR_STOP=1 -f schema/01_tables.sql</code></td></tr>
+<tr><td><code>\dt</code> / <code>\d ตาราง</code></td><td>ดูรายชื่อตาราง และโครงสร้างตารางพร้อม Index และ Constraint</td><td><code>\d orders</code></td></tr>
+<tr><td><code>\di</code> / <code>\du</code> / <code>\dp</code></td><td>ดู Index, Role และสิทธิ์ของตาราง</td><td><code>\dp customers</code></td></tr>
+<tr><td><code>\timing on</code> / <code>\x auto</code></td><td>แสดงเวลาที่ใช้ทุก Query และสลับเป็นแนวตั้งเมื่อแถวกว้าง</td><td><code>\timing on</code> แล้วรัน Query ใดก็ได้</td></tr>
+<tr><td><code>\q</code> / <code>.quit</code></td><td>ออกจาก psql / sqlite3</td><td><code>\q</code></td></tr>
+</tbody></table></div>
+
+<h4>2. สร้างและแก้โครงสร้าง (DDL)</h4>
+<div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>CREATE TABLE ... (คอลัมน์ ชนิด Constraint)</code></td><td>สร้างตารางใหม่</td><td><code>CREATE TABLE tags (tag_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY, name TEXT NOT NULL UNIQUE);</code></td></tr>
+<tr><td><code>REFERENCES ตาราง ON DELETE CASCADE</code></td><td>สร้าง Foreign Key และลบแถวลูกตามเมื่อแถวแม่ถูกลบ</td><td><code>order_id INTEGER NOT NULL REFERENCES orders ON DELETE CASCADE</code></td></tr>
+<tr><td><code>CHECK (เงื่อนไข)</code></td><td>บังคับให้ค่าผ่านเงื่อนไขทุกครั้งที่เขียนข้อมูล</td><td><code>price NUMERIC(10,2) CHECK (price &gt;= 0)</code></td></tr>
+<tr><td><code>DEFAULT ค่า</code></td><td>ค่าเริ่มต้นเมื่อ INSERT ไม่ระบุคอลัมน์นั้น</td><td><code>created_at TIMESTAMPTZ NOT NULL DEFAULT now()</code></td></tr>
+<tr><td><code>ALTER TABLE ... ADD COLUMN</code></td><td>เพิ่มคอลัมน์ในตารางที่มีอยู่</td><td><code>ALTER TABLE customers ADD COLUMN phone TEXT;</code></td></tr>
+<tr><td><code>DROP TABLE IF EXISTS</code></td><td>ลบตารางโดยไม่ Error ถ้าไม่มีอยู่</td><td><code>DROP TABLE IF EXISTS reviews;</code></td></tr>
+<tr><td><code>CREATE VIEW</code> / <code>CREATE MATERIALIZED VIEW</code></td><td>บันทึก Query เป็นตารางเสมือน / เก็บผลไว้จริงและต้อง REFRESH</td><td><code>REFRESH MATERIALIZED VIEW mv_monthly_sales;</code></td></tr>
+</tbody></table></div>
+
+<h4>3. เพิ่ม แก้ไข ลบข้อมูล (DML)</h4>
+<div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>INSERT INTO ... VALUES ... RETURNING</code></td><td>เพิ่มแถวและรับค่าที่ฐานข้อมูลสร้างให้กลับมา</td><td><code>INSERT INTO categories (name) VALUES ('Toys') RETURNING category_id;</code></td></tr>
+<tr><td><code>INSERT ... SELECT</code></td><td>คัดลอกผลของ Query ลงตาราง</td><td><code>INSERT INTO lab.customers (email) SELECT DISTINCT customer_email FROM lab.orders_flat;</code></td></tr>
+<tr><td><code>ON CONFLICT (คอลัมน์) DO UPDATE</code></td><td>Upsert: ถ้าค่าซ้ำให้แก้แถวเดิมแทน</td><td><code>... ON CONFLICT (email) DO UPDATE SET city = excluded.city;</code></td></tr>
+<tr><td><code>UPDATE ... SET ... WHERE</code></td><td>แก้ข้อมูลเฉพาะแถวที่ตรงเงื่อนไข (ลอง SELECT ด้วย WHERE เดียวกันก่อนเสมอ)</td><td><code>UPDATE products SET stock = stock - 1 WHERE product_id = 4;</code></td></tr>
+<tr><td><code>DELETE FROM ... WHERE</code></td><td>ลบแถวที่ตรงเงื่อนไข</td><td><code>DELETE FROM orders WHERE status = 'cancelled';</code></td></tr>
+</tbody></table></div>
+
+<h4>4. ดึงและกรองข้อมูล</h4>
+<div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>SELECT ... AS ชื่อ</code></td><td>เลือกคอลัมน์ คำนวณ และตั้งชื่อเล่น</td><td><code>SELECT name, price * stock AS stock_value FROM products;</code></td></tr>
+<tr><td><code>ORDER BY ... LIMIT ... OFFSET</code></td><td>เรียงลำดับและแบ่งหน้า</td><td><code>ORDER BY joined_on LIMIT 3 OFFSET 3</code></td></tr>
+<tr><td><code>WHERE ... IN / BETWEEN / LIKE</code></td><td>กรองด้วยรายการค่า ช่วงค่า (รวมปลายทั้งสอง) และรูปแบบข้อความ</td><td><code>WHERE price BETWEEN 500 AND 3000 AND name LIKE '%Phone%'</code></td></tr>
+<tr><td><code>ILIKE</code> (PostgreSQL)</td><td>LIKE แบบไม่สนตัวพิมพ์เล็กใหญ่</td><td><code>WHERE name ILIKE 'sql%'</code></td></tr>
+<tr><td><code>IS NULL</code> / <code>COALESCE(x, ค่าแทน)</code></td><td>ตรวจค่าว่าง (ห้ามใช้ <code>= NULL</code>) และแทนค่าว่างตอนแสดงผล</td><td><code>SELECT COALESCE(city, 'ไม่ระบุ') FROM customers;</code></td></tr>
+<tr><td><code>CASE WHEN ... THEN ... ELSE ... END</code></td><td>สร้างค่าตามเงื่อนไข</td><td><code>CASE WHEN price &lt; 1000 THEN 'ราคาประหยัด' ELSE 'ราคาสูง' END</code></td></tr>
+<tr><td><code>SELECT DISTINCT</code></td><td>ตัดแถวที่ซ้ำกันออก</td><td><code>SELECT DISTINCT city FROM customers;</code></td></tr>
+</tbody></table></div>
+
+<h4>5. สรุปผลและเชื่อมตาราง</h4>
+<div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>GROUP BY ... HAVING</code></td><td>รวมกลุ่มแล้วกรองกลุ่มด้วยค่า Aggregate</td><td><code>GROUP BY month HAVING SUM(revenue) &gt; 20000</code></td></tr>
+<tr><td><code>COUNT(*) FILTER (WHERE ...)</code></td><td>นับแบบมีเงื่อนไขในกลุ่มเดียวกัน (PostgreSQL)</td><td><code>COUNT(*) FILTER (WHERE status = 'cancelled') AS cancelled</code></td></tr>
+<tr><td><code>INNER JOIN ... ON</code></td><td>เอาเฉพาะแถวที่จับคู่ได้ทั้งสองฝั่ง</td><td><code>FROM orders o JOIN customers c ON c.customer_id = o.customer_id</code></td></tr>
+<tr><td><code>LEFT JOIN ... WHERE ขวา IS NULL</code></td><td>Anti Join หาแถวฝั่งซ้ายที่ไม่มีคู่</td><td>หาลูกค้าที่ไม่เคยสั่งซื้อ</td></tr>
+<tr><td><code>UNION</code> / <code>UNION ALL</code> / <code>EXCEPT</code></td><td>รวมผลสอง Query (ตัดซ้ำ / ไม่ตัดซ้ำ) และหาผลต่าง</td><td><code>SELECT city FROM a UNION ALL SELECT city FROM b</code></td></tr>
+<tr><td><code>date_trunc('month', ts)</code> / <code>strftime('%Y-%m', d)</code></td><td>ปัดวันที่เป็นต้นเดือน ใน PostgreSQL / SQLite</td><td><code>GROUP BY date_trunc('month', ordered_at)</code></td></tr>
+</tbody></table></div>
+
+<h4>6. Subquery, CTE และ Window Function</h4>
+<div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>WHERE NOT EXISTS (SELECT 1 ...)</code></td><td>หาแถวที่ไม่มีข้อมูลสัมพันธ์ ปลอดภัยกว่า <code>NOT IN</code> เมื่อมี NULL</td><td>q16 สินค้าที่ไม่เคยขาย</td></tr>
+<tr><td><code>WITH ชื่อ AS (...)</code></td><td>CTE ตั้งชื่อ Query ย่อยให้อ่านง่ายและต่อกันเป็นขั้น</td><td><code>WITH monthly AS (...) SELECT * FROM monthly;</code></td></tr>
+<tr><td><code>WITH RECURSIVE</code></td><td>ไล่ข้อมูลแบบต้นไม้หรือลำดับชั้น</td><td>ไล่หมวดลูกขึ้นไปหาหมวดแม่ใน q02</td></tr>
+<tr><td><code>ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)</code></td><td>ลำดับที่ในแต่ละกลุ่ม ใช้ทำ Top-N ต่อกลุ่ม</td><td>q12 สินค้าขายดี 3 อันดับต่อหมวด</td></tr>
+<tr><td><code>RANK()</code> / <code>DENSE_RANK()</code></td><td>จัดอันดับโดยค่าเท่ากันได้อันดับเดียวกัน (RANK ข้ามเลข, DENSE_RANK ไม่ข้าม)</td><td><code>RANK() OVER (ORDER BY units DESC)</code></td></tr>
+<tr><td><code>SUM(x) OVER (ORDER BY ...)</code></td><td>ยอดสะสม (Running Total)</td><td>q11 ยอดขายสะสมรายเดือน</td></tr>
+<tr><td><code>LAG(x) OVER (ORDER BY ...)</code></td><td>ดึงค่าของแถวก่อนหน้ามาเทียบ</td><td>q10 การเติบโตเทียบเดือนก่อน</td></tr>
+<tr><td><code>NTILE(4) OVER (ORDER BY ...)</code></td><td>แบ่งแถวเป็น 4 กลุ่มเท่า ๆ กัน</td><td>q13 คะแนน RFM</td></tr>
+</tbody></table></div>
+
+<h4>7. ประสิทธิภาพ ความปลอดภัย และการดูแลระบบ</h4>
+<div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>CREATE INDEX IF NOT EXISTS</code></td><td>สร้าง B-tree Index รันซ้ำได้</td><td><code>CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON orders (customer_id);</code></td></tr>
+<tr><td><code>CREATE INDEX ... WHERE</code></td><td>Partial Index เก็บเฉพาะแถวที่ตรงเงื่อนไข</td><td><code>CREATE INDEX idx_orders_pending ON orders (ordered_at) WHERE status = 'pending';</code></td></tr>
+<tr><td><code>EXPLAIN (ANALYZE, BUFFERS)</code></td><td>รัน Query จริงและแสดงแผน เวลา และจำนวนหน้าที่อ่าน</td><td><code>EXPLAIN (ANALYZE, BUFFERS) SELECT ...;</code></td></tr>
+<tr><td><code>EXPLAIN QUERY PLAN</code> (SQLite)</td><td>ดูว่า SQLite ใช้ <code>SCAN</code> หรือ <code>SEARCH ... USING INDEX</code></td><td><code>EXPLAIN QUERY PLAN SELECT * FROM orders WHERE customer_id = 1;</code></td></tr>
+<tr><td><code>ANALYZE ตาราง</code></td><td>อัปเดตสถิติให้ Planner หลังโหลดข้อมูลจำนวนมาก</td><td><code>ANALYZE orders;</code></td></tr>
+<tr><td><code>BEGIN; ... COMMIT;</code> / <code>ROLLBACK;</code></td><td>รวมหลายคำสั่งเป็น Transaction เดียว สำเร็จทั้งหมดหรือยกเลิกทั้งหมด</td><td><code>BEGIN; UPDATE ...; INSERT ...; COMMIT;</code></td></tr>
+<tr><td><code>SAVEPOINT ชื่อ</code> / <code>ROLLBACK TO SAVEPOINT</code></td><td>ย้อนกลับเพียงบางส่วนของ Transaction</td><td><code>SAVEPOINT before_items;</code></td></tr>
+<tr><td><code>SET TRANSACTION ISOLATION LEVEL</code></td><td>เลือกระดับการแยก Transaction</td><td><code>BEGIN ISOLATION LEVEL REPEATABLE READ;</code></td></tr>
+<tr><td><code>SELECT ... FOR UPDATE</code></td><td>ล็อกแถวไว้จนจบ Transaction กันขายเกินสต็อก</td><td><code>SELECT stock FROM products WHERE product_id = 4 FOR UPDATE;</code></td></tr>
+<tr><td><code>GRANT SELECT ON ... TO role</code> / <code>REVOKE</code></td><td>ให้และถอนสิทธิ์</td><td><code>GRANT SELECT ON ALL TABLES IN SCHEMA public TO ecommerce_report;</code></td></tr>
+<tr><td><code>pg_dump -Fc</code> / <code>pg_restore</code></td><td>Backup แบบ Custom Format และ Restore</td><td><code>pg_restore --no-owner -d ecommerce_restore backups/ecommerce.dump</code></td></tr>
+</tbody></table></div>
+
+<h4>8. ใช้ SQL จาก Python</h4>
+<div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>sqlite3.connect()</code> + <code>?</code></td><td>เชื่อม SQLite และส่งค่าผ่าน Placeholder</td><td><code>conn.execute("SELECT * FROM customers WHERE email = ?", (email,))</code></td></tr>
+<tr><td><code>psycopg.connect(DATABASE_URL)</code></td><td>เชื่อม PostgreSQL ด้วย psycopg 3 (Commit/Rollback และปิดให้เมื่อจบ <code>with</code>)</td><td><code>with psycopg.connect("postgresql:///ecommerce") as conn:</code></td></tr>
+<tr><td><code>%s</code> / <code>%(name)s</code></td><td>Placeholder ของ psycopg ห้ามใช้ <code>%</code> หรือ f-string ของ Python ต่อเอง</td><td><code>cur.execute("SELECT ... WHERE order_id = %(id)s", {"id": 7})</code></td></tr>
+<tr><td><code>row_factory=dict_row</code></td><td>ได้แต่ละแถวเป็น dict เรียกด้วยชื่อคอลัมน์</td><td><code>conn.cursor(row_factory=dict_row)</code></td></tr>
+<tr><td><code>psycopg.sql.Identifier</code></td><td>ใส่ชื่อตารางหรือคอลัมน์แบบไดนามิกอย่างปลอดภัย (ใช้คู่กับ Allowlist)</td><td><code>sql.SQL("ORDER BY {}").format(sql.Identifier(col))</code></td></tr>
+</tbody></table></div>
+<h3 id="s14-4-interview">Interview Questions</h3>
+<p>คำถาม 5 ข้อนี้พบบ่อยในการสัมภาษณ์ตำแหน่ง Backend Developer, Data Analyst และ Data Engineer ระดับ Junior ถึง Mid-level ลองตอบด้วยตัวเองก่อนเปิดดูคำตอบตัวอย่าง และฝึกยกตัวอย่างจาก Mini Project ของคุณเอง เพราะผู้สัมภาษณ์ชอบคำตอบที่มาจากประสบการณ์จริงมากกว่าคำจำกัดความในตำรา</p>
+
+<details class="iq"><summary>1. WHERE กับ HAVING ต่างกันอย่างไร และ SQL ประมวลผลคำสั่ง SELECT ตามลำดับใด (Junior)</summary><div>
+<p><strong>คำตอบที่ดี:</strong> <code>WHERE</code> กรอง <strong>แถว</strong> ก่อนจัดกลุ่ม ส่วน <code>HAVING</code> กรอง <strong>กลุ่ม</strong> หลังจาก <code>GROUP BY</code> คำนวณ Aggregate เสร็จแล้ว จึงใช้ <code>SUM()</code> หรือ <code>COUNT()</code> ใน <code>HAVING</code> ได้ แต่ใช้ใน <code>WHERE</code> ไม่ได้</p>
+<p>ลำดับการประมวลผลเชิงตรรกะคือ <code>FROM</code> และ <code>JOIN</code> → <code>WHERE</code> → <code>GROUP BY</code> → <code>HAVING</code> → <code>SELECT</code> (รวม Window Function) → <code>DISTINCT</code> → <code>ORDER BY</code> → <code>LIMIT</code>/<code>OFFSET</code> ลำดับนี้อธิบายได้ว่าทำไมชื่อเล่นที่ตั้งด้วย <code>AS</code> ใน SELECT ใช้ใน <code>ORDER BY</code> ได้ แต่ใช้ใน <code>WHERE</code> ไม่ได้ และทำไม Window Function ใช้ใน <code>WHERE</code> ไม่ได้ ต้องครอบด้วย CTE ก่อน</p>
+<p>ข้อควรพูดเพิ่ม: ถ้าเงื่อนไขกรองได้ตั้งแต่ระดับแถว ควรใส่ใน <code>WHERE</code> เพราะลดจำนวนแถวก่อนจัดกลุ่ม ทำให้เร็วกว่าและใช้ Index ได้</p>
+<pre class="code" data-env="file" data-label="SQL · ตัวอย่างคำตอบ"><code class="language-sql">-- เดือนที่มียอดขายเกิน 8 ล้านบาท นับเฉพาะคำสั่งซื้อที่ไม่ถูกยกเลิก
+SELECT date_trunc('month', o.ordered_at) AS month,
+       SUM(oi.quantity * oi.unit_price)  AS revenue
+FROM orders AS o
+JOIN order_items AS oi ON oi.order_id = o.order_id
+WHERE o.status &lt;&gt; 'cancelled'                       -- กรองแถวก่อนจัดกลุ่ม
+GROUP BY month
+HAVING SUM(oi.quantity * oi.unit_price) &gt; 8000000   -- กรองกลุ่มหลังรวมยอด
+ORDER BY month;</code></pre>
+</div></details>
+
+<details class="iq"><summary>2. INNER JOIN กับ LEFT JOIN ต่างกันอย่างไร และจะหาลูกค้าที่ไม่เคยสั่งซื้อเลยได้อย่างไร (Junior)</summary><div>
+<p><strong>คำตอบที่ดี:</strong> <code>INNER JOIN</code> คืนเฉพาะแถวที่จับคู่ได้ทั้งสองตาราง ส่วน <code>LEFT JOIN</code> คืนทุกแถวของตารางซ้าย ถ้าแถวไหนไม่มีคู่ คอลัมน์ของตารางขวาจะเป็น <code>NULL</code> ในฐานข้อมูล shop ที่มีลูกค้า 8 คนและคำสั่งซื้อ 14 รายการ <code>INNER JOIN</code> ได้ 14 แถว แต่ <code>LEFT JOIN</code> ได้ 15 แถว เพราะมีลูกค้า 1 คน (Anan Thongkham) ที่ไม่เคยสั่งซื้อ</p>
+<p>การหาลูกค้าที่ไม่เคยสั่งซื้อทำได้สองแบบที่ให้ผลเหมือนกัน คือ Anti Join ด้วย <code>LEFT JOIN ... WHERE o.order_id IS NULL</code> หรือ <code>NOT EXISTS</code> ซึ่งอ่านตรงความหมายกว่า ควรหลีกเลี่ยง <code>NOT IN (subquery)</code> เพราะถ้า Subquery คืนค่า <code>NULL</code> แม้แถวเดียว ผลจะว่างทั้งหมดจาก Three-valued Logic</p>
+<p>ข้อควรพูดเพิ่ม: กับดักที่พบบ่อยคือใส่เงื่อนไขของตารางขวาใน <code>WHERE</code> หลัง <code>LEFT JOIN</code> เช่น <code>WHERE o.status = 'paid'</code> ซึ่งทิ้งแถวที่เป็น <code>NULL</code> ไป ทำให้กลายเป็น <code>INNER JOIN</code> โดยไม่รู้ตัว ต้องย้ายเงื่อนไขนั้นไปไว้ใน <code>ON</code></p>
+<pre class="code" data-env="file" data-label="SQL · ตัวอย่างคำตอบ"><code class="language-sql">-- ลูกค้าที่ไม่เคยมีคำสั่งซื้อ
+SELECT c.customer_id, c.name
+FROM customers AS c
+WHERE NOT EXISTS (
+    SELECT 1 FROM orders AS o WHERE o.customer_id = c.customer_id
+);</code></pre>
+</div></details>
+
+<details class="iq"><summary>3. SQL Injection คืออะไร และป้องกันในโค้ด Python อย่างไร (Junior ถึง Mid)</summary><div>
+<p><strong>คำตอบที่ดี:</strong> SQL Injection เกิดเมื่อโปรแกรมนำข้อความจากผู้ใช้ไปต่อเป็นส่วนหนึ่งของคำสั่ง SQL โดยตรง ผู้โจมตีจึงใส่ข้อความที่เปลี่ยนความหมายของคำสั่งได้ เช่น ใส่ <code>x' OR '1'='1</code> ในช่องค้นหาอีเมล แล้วได้ข้อมูลลูกค้าทุกคนออกไป หรือใส่คำสั่งลบตาราง</p>
+<p>วิธีป้องกันหลักคือ <strong>Parameterized Query</strong> ส่งตัวคำสั่งกับค่าแยกกัน ใน psycopg 3 ใช้ <code>%s</code> หรือ <code>%(name)s</code> และส่งค่าเป็นอาร์กิวเมนต์ที่สองของ <code>execute()</code> ใน sqlite3 ใช้ <code>?</code> ห้ามใช้ f-string, <code>+</code> หรือ <code>%</code> ของ Python สร้าง SQL เอง สำหรับชื่อตารางหรือคอลัมน์ที่ต้องเปลี่ยนได้ (ซึ่ง Placeholder ใช้ไม่ได้) ให้ตรวจกับ Allowlist แล้วใช้ <code>psycopg.sql.Identifier</code></p>
+<p>ข้อควรพูดเพิ่ม: ป้องกันหลายชั้น (Defense in Depth) คือ ตรวจรูปแบบข้อมูลนำเข้า ใช้ Role ที่มีสิทธิ์น้อยที่สุด เช่น Role รายงานที่ <code>SELECT</code> ได้อย่างเดียวแบบ <code>ecommerce_report</code> และไม่แสดงข้อความ Error ของฐานข้อมูลให้ผู้ใช้ปลายทางเห็น</p>
+<pre class="code" data-env="file" data-label="Python · ตัวอย่างคำตอบ"><code class="language-python"># ผิด: ต่อสตริงเอง ผู้ใช้ควบคุมคำสั่ง SQL ได้
+cur.execute(f"SELECT * FROM customers WHERE email = '{email}'")
+
+# ถูก: ส่งค่าแยกผ่าน Placeholder ฐานข้อมูลมองเป็นข้อมูลเสมอ
+cur.execute("SELECT * FROM customers WHERE email = %s", (email,))</code></pre>
+</div></details>
+
+<details class="iq"><summary>4. ถ้ามี Query ที่ช้าบน Production คุณจะหาสาเหตุและแก้อย่างไร (Mid)</summary><div>
+<p><strong>คำตอบที่ดี:</strong> ผมจะวัดก่อนแก้เสมอ ขั้นตอนคือ</p>
+<ol>
+<li>หา Query ที่ช้าจริงจาก Log หรือ <code>pg_stat_statements</code> ไม่เดาเอง</li>
+<li>รัน <code>EXPLAIN (ANALYZE, BUFFERS)</code> บนข้อมูลที่ขนาดใกล้เคียงของจริง (ถ้าเป็นคำสั่งแก้ข้อมูลต้องครอบด้วย <code>BEGIN</code>/<code>ROLLBACK</code>) แล้วดูว่ามี <code>Seq Scan</code> ที่ <code>Rows Removed by Filter</code> สูงมาก, จำนวน <code>rows</code> ที่ Planner ประมาณผิดจากของจริงมาก หรือ Sort ที่ล้นหน่วยความจำหรือไม่</li>
+<li>แก้ตามสาเหตุ เช่น สร้าง Index บนคอลัมน์ที่กรองหรือ JOIN (Foreign Key ใน PostgreSQL ไม่มี Index อัตโนมัติ), ใช้ Composite Index ตามกฎ Leftmost Prefix, ใช้ Partial Index สำหรับเงื่อนไขที่เจาะจง, เขียน Query ใหม่ไม่ให้ห่อคอลัมน์ด้วยฟังก์ชัน หรือรัน <code>ANALYZE</code> ถ้าสถิติเก่า</li>
+<li>วัดซ้ำและบันทึกผลก่อนและหลัง แล้วสร้าง Index บน Production ด้วย <code>CREATE INDEX CONCURRENTLY</code> เพื่อไม่ล็อกตาราง</li>
+</ol>
+<p>ตัวอย่างจากโปรเจกต์: คิวคำสั่งซื้อ <code>pending</code> เดิมเป็น <code>Seq Scan</code> อ่าน 74 Buffers หลังสร้าง Partial Index <code>ON orders (ordered_at) WHERE status = 'pending'</code> เหลือ 2 Buffers และไม่ต้อง Sort</p>
+<p>ข้อควรพูดเพิ่ม: Index ไม่ได้ฟรี ทุก Index ทำให้ INSERT และ UPDATE ช้าลงและใช้พื้นที่ดิสก์ และ Planner อาจเลือก Seq Scan อย่างถูกต้องเมื่อตารางเล็กหรือ Query ต้องการแถวเป็นสัดส่วนใหญ่</p>
+</div></details>
+
+<details class="iq"><summary>5. ACID คืออะไร และจะป้องกันการขายสินค้าเกินสต็อกเมื่อมีคนสั่งพร้อมกันได้อย่างไร (Mid)</summary><div>
+<p><strong>คำตอบที่ดี:</strong> ACID คือคุณสมบัติสี่ข้อของ Transaction</p>
+<ul>
+<li><strong>Atomicity</strong> สำเร็จทั้งหมดหรือไม่เกิดอะไรเลย เช่น สร้างคำสั่งซื้อ เพิ่มรายการสินค้า และตัดสต็อก ถ้าขั้นใดล้มเหลวต้องย้อนทั้งหมด</li>
+<li><strong>Consistency</strong> ข้อมูลผ่าน Constraint ทุกข้อเสมอ เช่น <code>CHECK (stock &gt;= 0)</code></li>
+<li><strong>Isolation</strong> Transaction ที่ทำพร้อมกันไม่รบกวนกันตามระดับ Isolation Level ที่เลือก</li>
+<li><strong>Durability</strong> เมื่อ <code>COMMIT</code> แล้วข้อมูลไม่หายแม้เครื่องดับ (PostgreSQL ใช้ WAL) และเสริมด้วย Backup</li>
+</ul>
+<p>ปัญหาขายเกินสต็อกคือ Lost Update สองคนอ่านสต็อกได้ 1 ชิ้นพร้อมกัน แล้วต่างคนต่างขาย วิธีแก้มีหลายระดับ</p>
+<ol>
+<li>ล็อกแถวก่อนตรวจด้วย <code>SELECT ... FOR UPDATE</code> ภายใน Transaction คนที่สองจะรอจนคนแรก Commit แล้วเห็นสต็อกล่าสุด</li>
+<li>เขียนเป็นคำสั่งเดียวที่มีเงื่อนไข <code>UPDATE products SET stock = stock - 1 WHERE product_id = 4 AND stock &gt;= 1</code> แล้วตรวจจำนวนแถวที่ถูกแก้</li>
+<li>ใช้ <code>REPEATABLE READ</code> หรือ <code>SERIALIZABLE</code> แล้วให้แอปลองใหม่ (Retry) เมื่อเจอ <code>could not serialize access due to concurrent update</code></li>
+<li>มี <code>CHECK (stock &gt;= 0)</code> เป็นด่านสุดท้ายเสมอ</li>
+</ol>
+<p>ข้อควรพูดเพิ่ม: ค่าเริ่มต้นของ PostgreSQL คือ <code>READ COMMITTED</code> และควรทำ Transaction ให้สั้น ล็อกแถวตามลำดับเดียวกันทุกครั้ง (เช่น เรียงตาม <code>product_id</code>) เพื่อลดโอกาสเกิด <code>deadlock detected</code></p>
+<pre class="code" data-env="file" data-label="SQL · ตัวอย่างคำตอบ"><code class="language-sql">BEGIN;
+-- ล็อกแถวสินค้า คนอื่นที่จะแก้แถวนี้ต้องรอจนเรา COMMIT หรือ ROLLBACK
+SELECT stock FROM products WHERE product_id = 4 FOR UPDATE;
+-- แอปตรวจว่าสต็อกพอ แล้วจึงทำต่อ
+INSERT INTO orders (customer_id, order_date, status) VALUES (1, DATE '2026-10-20', 'paid');
+UPDATE products SET stock = stock - 1 WHERE product_id = 4;
+COMMIT;</code></pre>
+</div></details>
+
+<h3 id="s14-4-resources">แหล่งเรียนต่อ</h3>
+<p>เรียงจากเอกสารทางการที่ควรเปิดคู่กับการทำงานทุกวัน ไปจนถึงแบบฝึกหัดและเนื้อหาเชิงลึก เมื่อใช้ AI ช่วยอธิบาย Query Plan หรือเขียน SQL (หัวข้อ <a data-t="16"></a>) ให้ตรวจกับเอกสารเหล่านี้และรันจริงทุกครั้ง</p>
+<ul class="res">
+<li><a href="https://www.postgresql.org/docs/16/" target="_blank" rel="noopener">PostgreSQL 16 Documentation</a> – คู่มือทางการฉบับเต็ม บท Tutorial เหมาะกับมือใหม่ ส่วนบท Performance Tips อธิบาย EXPLAIN ละเอียดที่สุด <span class="pill">ฟรี</span></li>
+<li><a href="https://www.sqlite.org/docs.html" target="_blank" rel="noopener">SQLite Documentation</a> – เอกสารทางการของ SQLite รวมรายละเอียด Data Type, STRICT Table และ EXPLAIN QUERY PLAN <span class="pill">ฟรี</span></li>
+<li><a href="https://www.psycopg.org/psycopg3/docs/" target="_blank" rel="noopener">Psycopg 3 Documentation</a> – วิธีใช้ psycopg 3 กับ Python ตั้งแต่การเชื่อมต่อ การส่งพารามิเตอร์ ไปจนถึง Transaction <span class="pill">ฟรี</span></li>
+<li><a href="https://sqlbolt.com/" target="_blank" rel="noopener">SQLBolt</a> – บทเรียนสั้นพร้อมแบบฝึกหัดรันในเบราว์เซอร์ เหมาะทบทวนพื้นฐาน SELECT และ JOIN <span class="pill">ฟรี</span></li>
+<li><a href="https://pgexercises.com/" target="_blank" rel="noopener">PostgreSQL Exercises</a> – โจทย์ฝึก SQL บน PostgreSQL จริง ไล่ระดับตั้งแต่ง่ายจนถึง Window Function และ Recursive Query <span class="pill">ฟรี</span></li>
+<li><a href="https://use-the-index-luke.com/" target="_blank" rel="noopener">Use The Index, Luke</a> – หนังสือออนไลน์เรื่อง Index และประสิทธิภาพ SQL สำหรับนักพัฒนา อธิบาย B-tree และ Composite Index เข้าใจง่าย <span class="pill">ฟรี</span></li>
+<li><a href="https://explain.depesz.com/" target="_blank" rel="noopener">explain.depesz.com</a> – วางผล EXPLAIN ANALYZE แล้วได้ตารางสีที่ชี้ว่าขั้นไหนกินเวลามากที่สุด (อย่าวางแผนที่มีข้อมูลลับของบริษัท) <span class="pill">ฟรี</span></li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html" target="_blank" rel="noopener">OWASP SQL Injection Prevention Cheat Sheet</a> – แนวทางป้องกัน SQL Injection มาตรฐานอุตสาหกรรม <span class="pill">ฟรี</span></li>
+<li><a href="https://roadmap.sh/sql" target="_blank" rel="noopener">roadmap.sh SQL</a> – แผนที่หัวข้อ SQL แบบภาพรวม ใช้ตรวจว่ายังขาดเรื่องไหน <span class="pill">ฟรี</span></li>
+<li><a href="https://dataintensive.net/" target="_blank" rel="noopener">Designing Data-Intensive Applications</a> – หนังสือเชิงลึกเรื่อง Transaction, Isolation Level และการออกแบบระบบข้อมูล เหมาะเมื่อพร้อมก้าวสู่ระดับ Mid-level <span class="pill">มีค่าใช้จ่าย</span></li>
+</ul>
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>ใบรับรองด้าน SQL ไม่มีใบใดที่บังคับสำหรับการสมัครงาน มีใบรับรองของผู้ผลิตฐานข้อมูล เช่น Oracle, Microsoft และบริษัทที่ให้บริการ PostgreSQL ชื่อและรหัสสอบเปลี่ยนบ่อย ให้ตรวจสอบบนเว็บไซต์ของผู้ผลิตก่อนสมัครสอบทุกครั้ง สำหรับการหางาน Repository <code>ecommerce-db</code> ที่ Rebuild ได้ด้วยคำสั่งเดียวและมีผลวัดจริง มักมีน้ำหนักมากกว่าใบรับรอง</p></div>
+</section>

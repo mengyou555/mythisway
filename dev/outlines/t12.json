@@ -1,0 +1,162 @@
+{
+ "concepts": [
+  {
+   "id": "c01",
+   "level": "b",
+   "title": "Backend ทำงานอย่างไร: Client-Server, HTTP Request Lifecycle และ Stateless Server",
+   "covers": "Matches Part 1 Step 1. Client-server model; the path of one request: DNS -> TCP -> TLS -> reverse proxy (nginx) -> ASGI server (Uvicorn) -> middleware -> router -> handler -> database -> response. HTTP anatomy (method, path, query, headers, body; status line, headers, JSON body), statelessness (each request carries its own credentials; why stateless servers scale horizontally). Status code families 2xx/3xx/4xx/5xx with 200, 201, 204, 400, 401, 403, 404, 409, 422, 429, 500, 502, 503. Runnable example: ~/projects/backend-lab/step1/raw_server.py using only the stdlib http.server (BaseHTTPRequestHandler) that answers GET /hello with JSON and 404 otherwise, then `curl -i http://127.0.0.1:8000/hello` and `curl -i .../nope` with real outputs, showing the raw status line and headers. Mistakes: `OSError: [Errno 98] Address already in use` (another server on 8000; stop it or use --port 8001), `curl: (7) Failed to connect to 127.0.0.1 port 8000` (server not running).",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c02",
+   "level": "b",
+   "title": "FastAPI ตัวแรก: venv, Uvicorn, Routing, Path Parameter และ Query Parameter",
+   "covers": "Matches Step 2. Create ~/projects/backend-lab/.venv, install pinned fastapi==0.148.0 and uvicorn[standard]==0.54.0, run `uvicorn main:app --reload`. Routing with @app.get/@app.post, path params with type hints (task_id: int -> automatic 422 for 'abc'), query params with defaults and Optional (status: str | None = None, limit: int = 10), Annotated[int, Query(ge=1, le=100)] and Path(gt=0). Auto docs at /docs and /openapi.json. Runnable example: roadmap/main.py with an in-memory list of 3 sample tasks (see notes) and endpoints GET /, GET /tasks?status=todo&limit=2, GET /tasks/{task_id}; curl outputs for found, 404 via HTTPException, and 422 for /tasks/abc showing FastAPI's validation error JSON. Mistakes: `error: externally-managed-environment` (forgot venv), `ERROR: Error loading ASGI app. Could not import module \"main\"` (wrong folder), route order (/tasks/stats declared after /tasks/{task_id} returns 422).",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c03",
+   "level": "b",
+   "title": "Pydantic Models, Validation, CRUD และ HTTP Status Code",
+   "covers": "Matches Step 3. BaseModel, Field(min_length, max_length, ge, le), Literal['todo','doing','done'], EmailStr (email-validator==2.3.0), separate input/output schemas (TaskCreate, TaskUpdate with all-optional fields and model_dump(exclude_unset=True), TaskOut), response_model filtering, status_code=201 for POST and 204 for DELETE, HTTPException(404). model_config = ConfigDict(extra='forbid') to reject unknown fields. Runnable example: roadmap/crud_app.py full in-memory CRUD (POST/GET list/GET one/PATCH/DELETE /tasks) plus curl session showing 201, 200, 422 (title empty, priority 9, unknown field owner_id), 204 and 404 with real outputs; also a pure-Python script validate_demo.py that calls TaskCreate.model_validate on good and bad dicts and prints ValidationError.errors(). Mistakes: using PUT semantics for partial update, returning the input model containing password, `422 Unprocessable Entity` because the client sent form data instead of JSON (missing -H 'Content-Type: application/json').",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c04",
+   "level": "b",
+   "title": "โครงสร้างโปรเจกต์, Dependency Injection, Configuration และ Error Handling",
+   "covers": "Matches Step 4. Layered layout of ~/projects/taskflow-api (see mini_project.structure): routers (APIRouter with prefix and tags, include_router(prefix='/api/v1')), services (business rules), repositories (queries). Depends and Annotated aliases (DbSession, CurrentUser), dependency with yield for cleanup, app.dependency_overrides for tests. pydantic-settings==2.16.0 Settings(BaseSettings) with SettingsConfigDict(env_file='.env', extra='ignore'), required jwt_secret with no default, .env vs .env.example, .gitignore. Consistent errors as RFC 9457 problem+json ({type:'about:blank', title, status, detail, instance}) via @app.exception_handler for HTTPException and RequestValidationError. Runnable example: roadmap/settings_demo.py printing settings and the pydantic_core ValidationError `jwt_secret Field required` when JWT_SECRET is missing, plus a small app with a custom NotFoundError -> 404 problem+json handler and curl output with content-type application/problem+json. Node/Go mapping: Express routers + middleware, Go http.ServeMux + handler structs.",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c05",
+   "level": "i",
+   "title": "PostgreSQL 16 กับ SQLAlchemy 2: Engine, Model, Session และ Transaction",
+   "covers": "Matches Step 5. `sudo service postgresql start`; create role taskflow (password taskflow_dev_pw) and databases backend_lab and taskflow via `sudo -u postgres psql -c ...`; URL postgresql+psycopg://taskflow:taskflow_dev_pw@localhost:5432/backend_lab. SQLAlchemy 2.1.5 + psycopg[binary]==3.3.6: create_engine, DeclarativeBase, Mapped/mapped_column, sessionmaker, `with SessionLocal() as db, db.begin():`, select()/scalars()/scalar_one_or_none(), db.get, IntegrityError -> 409. Transactions and ACID with the bank-transfer demo: roadmap/tx_demo.py with accounts somchai 1000 and somying 500 that tries a transfer which raises mid-way; total stays 1500 because the transaction rolls back (real output). get_db dependency with yield. Mistakes with real messages: connection refused (postgres not started), `password authentication failed for user \"taskflow\"`, `ModuleNotFoundError: No module named 'psycopg2'` when using an old-style URL with SQLAlchemy 2.0 tutorials, DetachedInstanceError after session closed.",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c06",
+   "level": "i",
+   "title": "Relationships, ปัญหา N+1, Index, Pagination และ Alembic Migration",
+   "covers": "Matches Step 6. relationship()/back_populates between User and Task, cascade='all, delete-orphan', ForeignKey ondelete CASCADE. N+1 demo: roadmap/n_plus_one.py with echo=True or an event counter showing 1+N SELECTs for lazy loading vs 2 queries with selectinload and 1 with joinedload (print query counts, real output). Indexes: composite Index('ix_tasks_owner_status','owner_id','status'); EXPLAIN in psql before/after on generated rows. Pagination: limit/offset with Page[T] response {items,total,limit,offset}, max limit 100, mention keyset/cursor pagination. Alembic 1.20.0: `alembic init migrations`, env.py reading settings.database_url and target_metadata=Base.metadata, `alembic revision --autogenerate -m \"create users and tasks\"`, `alembic upgrade head`, `alembic current`, `alembic downgrade -1`, adding a column (priority) safely; review autogenerate output. Mistakes: `Target database is not up to date.`, forgetting to import models so autogenerate produces an empty migration, editing an already-applied migration.",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c07",
+   "level": "i",
+   "title": "Authentication และ Authorization: Argon2, JWT, Token Expiry และ Role",
+   "covers": "Matches Step 7. Password hashing with pwdlib[argon2]==0.3.1 (PasswordHash.recommended(); hash/verify; never passlib), why not SHA-256. JWT with pyjwt==2.15.1: claims sub (string user id), role, iat, exp (ACCESS_TOKEN_EXPIRE_MINUTES=30), HS256 with JWT_SECRET >= 32 bytes; decode errors ExpiredSignatureError/InvalidTokenError -> 401 with WWW-Authenticate: Bearer. OAuth2PasswordBearer(tokenUrl='/api/v1/auth/login') + OAuth2PasswordRequestForm (needs python-multipart==0.0.32), get_current_user, require_role('admin') dependency factory -> 403, object-level ownership check (another user's task -> 404). Runnable example: roadmap/auth_demo.py that hashes 'S3cure-pass!' (show $argon2id$ prefix; hash differs each run), verifies right/wrong passwords, creates and decodes a token, and shows an expired token raising ExpiredSignatureError; then curl flow register -> login -> /auth/me with Bearer token -> /admin/users as member (403). Mistakes: putting secrets in JWT payload (it is only base64, show decoding), long-lived tokens, comparing roles from request body.",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c08",
+   "level": "i",
+   "title": "Automated Testing ด้วย pytest, TestClient, Fixture และ Test Database",
+   "covers": "Matches Step 8. pytest==9.1.1, pytest-cov==7.1.0, httpx2==2.14.0 (required by the TestClient of Starlette 1.9), fakeredis==2.40.0. tests/conftest.py sets env vars before importing the app (DATABASE_URL='sqlite://', REDIS_URL='', JWT_SECRET test value), engine with StaticPool + check_same_thread False, Base.metadata.create_all per test, fixtures db_session, client (dependency_overrides for get_db and get_cache), user_token and admin_token helpers. Tests: register/login, 401 without token, 403 member on admin route, cannot read another user's task, validation 422, pagination totals, stats cache hit/miss. Run `python -m pytest -q` (real output: 9 passed) and `python -m pytest --cov=app --cov-report=term-missing`. Arrange-Act-Assert, test pyramid, why SQLite for speed but PostgreSQL in CI or a nightly job for parity. Mistakes: tests sharing state, forgetting app.dependency_overrides.clear(), `sqlite3.OperationalError: no such table: users` from creating tables on a different connection without StaticPool.",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c09",
+   "level": "a",
+   "title": "Structured Logging, Middleware, Health Check และ Background Tasks",
+   "covers": "Matches Step 9. JSON logging with stdlib logging + a custom JsonFormatter in app/logging_config.py (fields time UTC ISO, level, logger 'taskflow', message, extra fields), @app.middleware('http') that assigns request_id (from X-Request-ID or uuid4().hex[:12]), measures duration_ms, logs one line per request and echoes x-request-id. Log levels and never logging passwords/tokens. GET /health that runs SELECT 1 and returns {\"status\":\"ok\",\"database\":\"ok\"} or 503 when PostgreSQL is stopped; liveness vs readiness. FastAPI BackgroundTasks for sending a welcome email (simulated by a log line) after register; when to use RQ/Celery + Redis instead (retries, persistence, separate workers). Observability: logs, metrics (rate, errors, duration; p95/p99), tracing with OpenTelemetry concepts. Runnable example: roadmap/log_demo.py printing two JSON log lines (real output) and curl of /health with 200 and 503.",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c10",
+   "level": "a",
+   "title": "Caching ด้วย Redis: Cache-aside, TTL, Invalidation และ Fallback",
+   "covers": "Matches Step 10. `sudo apt install -y redis-server` (7.0.15), `sudo service redis-server start`, redis-cli PING/SET EX/GET/TTL/DEL/INCR/EXPIRE (real outputs incl. TTL -2). redis==8.1.0 Redis.from_url('redis://localhost:6379/0', decode_responses=True). app/cache.py Cache class with get_json/set_json/delete that swallows redis.exceptions.ConnectionError and logs a warning so the API still works when Redis is down. GET /api/v1/tasks/stats cached at key stats:user:{id} with TTL 60s, response field cached true/false; invalidate on create/update/delete task. Runnable example: roadmap/cache_demo.py timing a slow function (time.sleep(0.5) simulating a heavy query) with and without cache, printing MISS/HIT and elapsed ms; tests use fakeredis. Concepts: what to cache, stale data, cache stampede, server-side cache vs HTTP Cache-Control/ETag. Mistakes: `Connection refused` on 6379, KEYS * / FLUSHALL on production, caching per-user data under a global key (data leak).",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c11",
+   "level": "a",
+   "title": "API Security: OWASP API Top 10 (2023), CORS, Rate Limiting และ Secrets",
+   "covers": "Matches Step 11. All 10 OWASP API Security Top 10 2023 items with the FastAPI defence for each (API1 BOLA ownership checks ... API10 unsafe consumption). Mass assignment prevention with extra='forbid' and never accepting role/owner_id from body. CORSMiddleware with allow_origins=['http://localhost:5173'] (real curl preflight outputs: allowed origin 200 with access-control-allow-origin, unknown origin 400 'Disallowed CORS origin'). Rate limiting fixed window with Redis INCR+EXPIRE: 5 login attempts per minute per IP -> 429 with Retry-After; nginx limit_req as the alternative. Secrets in .env locally, GitHub Actions Secrets in CI, rotation, GitHub secret scanning. Security headers, HTTPS at the proxy, disabling /docs in production. pip-audit==2.10.1 `pip-audit -r requirements.txt`. SQL injection: show unsafe f-string in text() vs bound parameters with a runnable sqlite demo. Runnable example: roadmap/rate_limit_demo.py using fakeredis to simulate 7 login attempts and print 200/200/200/200/200/429/429. Include the legal lab-only warning (พ.ร.บ.คอมพิวเตอร์).",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c12",
+   "level": "a",
+   "title": "Docker, docker compose, CI ด้วย GitHub Actions และ Deploy หลัง nginx",
+   "covers": "Matches Steps 12-13. Dockerfile (python:3.12-slim, PYTHONDONTWRITEBYTECODE/PYTHONUNBUFFERED, copy requirements first, --no-cache-dir, non-root appuser uid 10001, CMD uvicorn --host 0.0.0.0 --workers 2), .dockerignore excluding .env/.venv/.git/tests, compose.yaml with api/db(postgres:16)/redis(redis:7), healthchecks (pg_isready, redis-cli ping, python urllib to /health), depends_on condition service_healthy, volume pgdata, service-name hostnames db and redis; `docker compose up -d --build`, `docker compose run --rm api alembic upgrade head`, ps/logs/down/down -v. Docker is not in the sandbox: write carefully, show no fabricated docker output, say so. CI: .github/workflows/ci.yml on push to main and pull_request, runs-on ubuntu-24.04, actions/checkout@v5, actions/setup-python@v6 (python 3.12, cache pip), install requirements + requirements-dev, pytest -q with JWT_SECRET env, pip_audit; branch protection. Deploy: nginx 1.24 site /etc/nginx/sites-available/taskflow (upstream 127.0.0.1:8000, proxy headers, client_max_body_size 1m), `sudo nginx -t`, uvicorn --workers 2 --proxy-headers --forwarded-allow-ips 127.0.0.1; real curl through nginx shows Server: nginx/1.24.0 (Ubuntu) and 502 when Uvicorn is stopped. Scaling concepts: horizontal scaling, load balancer, stateless JWT, Redis/CDN cache layers, queues, read replicas, connection pooling (PgBouncer). Node (Express 5/Fastify 5, PM2) and Go 1.27 mapping.",
+   "language": "yaml",
+   "env": "file"
+  }
+ ],
+ "mini_project": {
+  "name": "TaskFlow API — Production-ready REST API",
+  "summary": "A task-management REST API in ~/projects/taskflow-api built with FastAPI: users register and log in (Argon2 + JWT), manage their own tasks with pagination and filtering, admins list users; PostgreSQL 16 via SQLAlchemy 2 + Alembic (SQLite in-memory for tests), Redis cache-aside for /api/v1/tasks/stats, JSON structured logs with request_id, /health readiness check, rate-limited login, problem+json errors, pytest suite, Dockerfile + compose.yaml, GitHub Actions CI.",
+  "features": [
+   "POST /api/v1/auth/register (201, 409 duplicate email), POST /api/v1/auth/login (OAuth2 form: username=email, password; returns {access_token, token_type:'bearer'}), GET /api/v1/auth/me",
+   "Tasks CRUD under /api/v1/tasks: GET list with ?status=todo|doing|done&limit=20&offset=0 (limit max 100) returning {items,total,limit,offset}; POST (201); GET /{task_id}; PATCH /{task_id} (partial); DELETE /{task_id} (204); other users' tasks return 404",
+   "GET /api/v1/tasks/stats -> {todo, doing, done, cached} cached in Redis key stats:user:{id} for 60 s, invalidated on create/update/delete, falls back to the DB when Redis is down",
+   "GET /api/v1/admin/users protected by require_role('admin') -> 403 for members",
+   "Roles: member (default) and admin; JWT claims sub, role, iat, exp; 30-minute access tokens",
+   "Errors as application/problem+json {type,title,status,detail,instance}; validation errors 422 with an errors list",
+   "Middleware: request_id (X-Request-ID echo), JSON access log line per request with duration_ms",
+   "GET /health -> {status:'ok', database:'ok'} or 503",
+   "Login rate limit: 5 attempts per minute per IP via Redis INCR/EXPIRE -> 429 + Retry-After",
+   "CORS for http://localhost:5173 only",
+   "Alembic migrations, pytest suite (>= 9 tests) with SQLite + fakeredis, coverage report",
+   "Dockerfile, .dockerignore, compose.yaml (api, db postgres:16, redis redis:7), .github/workflows/ci.yml, README with architecture diagram and OWASP API Top 10 table"
+  ],
+  "structure": "taskflow-api/{app/{__init__.py,main.py,config.py,db.py,models.py,schemas.py,security.py,deps.py,cache.py,logging_config.py,services/,repositories/,routers/{__init__.py,auth.py,tasks.py,admin.py}},migrations/{env.py,versions/},tests/{__init__.py,conftest.py,test_api.py},.github/workflows/ci.yml,.env,.env.example,.gitignore,.dockerignore,Dockerfile,compose.yaml,alembic.ini,requirements.txt,requirements-dev.txt,README.md}",
+  "stack": "Python 3.12.3 (Ubuntu 24.04 system python3, venv), fastapi==0.148.0, uvicorn[standard]==0.54.0, pydantic 2.14.1 (pulled by fastapi), pydantic-settings==2.16.0, email-validator==2.3.0, python-multipart==0.0.32, sqlalchemy==2.1.5, psycopg[binary]==3.3.6, alembic==1.20.0, pwdlib[argon2]==0.3.1, pyjwt==2.15.1, redis==8.1.0; dev: pytest==9.1.1, pytest-cov==7.1.0, httpx2==2.14.0, fakeredis==2.40.0, pip-audit==2.10.1; PostgreSQL 16 (apt), Redis 7.0.15 (apt redis-server), nginx 1.24.0 (apt), Docker Desktop 4.95.0 (WSL 2 backend) with images python:3.12-slim, postgres:16, redis:7; GitHub Actions runner ubuntu-24.04"
+ },
+ "versions": {
+  "python": "3.12.3 (system python3 on Ubuntu 24.04; code must run on 3.12+)",
+  "fastapi": "0.148.0",
+  "uvicorn[standard]": "0.54.0",
+  "starlette": "1.9.x (pulled by fastapi)",
+  "pydantic": "2.14.1 (pulled by fastapi)",
+  "pydantic-settings": "2.16.0",
+  "email-validator": "2.3.0",
+  "python-multipart": "0.0.32",
+  "sqlalchemy": "2.1.5",
+  "psycopg[binary]": "3.3.6",
+  "alembic": "1.20.0",
+  "pwdlib[argon2]": "0.3.1",
+  "pyjwt": "2.15.1",
+  "redis (redis-py)": "8.1.0",
+  "pytest": "9.1.1",
+  "pytest-cov": "7.1.0",
+  "httpx2": "2.14.0 (required by Starlette 1.9 TestClient; not httpx)",
+  "fakeredis": "2.40.0",
+  "pip-audit": "2.10.1",
+  "postgresql": "16 (apt postgresql; start with sudo service postgresql start)",
+  "redis-server": "7.0.15 (apt; sudo service redis-server start)",
+  "nginx": "1.24.0 (apt)",
+  "docker_desktop": "4.95.0, WSL 2 backend; images python:3.12-slim, postgres:16, redis:7",
+  "github_actions": "runs-on ubuntu-24.04, actions/checkout@v5, actions/setup-python@v6 (tell learners to check Marketplace for newer majors)",
+  "node_alternative": "Node.js LTS via nvm v0.40.8 (24.x / 26.x), Express 5 or Fastify 5 (tell learners to check npmjs.com for exact versions)",
+  "go_alternative": "Go 1.27.x net/http"
+ },
+ "notes": [
+  "Learner username somchai; home /home/somchai. Practice folder ~/projects/backend-lab with its venv at ~/projects/backend-lab/.venv and small scripts in ~/projects/backend-lab/roadmap/ (Part 1 used roadmap/main.py, crud_app.py, settings_demo.py, tx_demo.py, log_demo.py, cors_demo.py). Part 2 examples should live in ~/projects/backend-lab/concepts/ (e.g. concepts/c03_crud.py) and activate ../.venv; Part 3 exercises in ~/projects/backend-lab/practice/. The Mini Project is ~/projects/taskflow-api with its own .venv.",
+  "Always install with `python3 -m pip install \"pkg==x.y.z\"` inside the venv; Ubuntu 24.04 blocks system pip (externally-managed-environment).",
+  "PostgreSQL: role taskflow, password taskflow_dev_pw (dev only), databases backend_lab (practice) and taskflow (mini project). URL format postgresql+psycopg://taskflow:taskflow_dev_pw@localhost:5432/<db>. In compose the host is db. Tests use sqlite:// in-memory with StaticPool.",
+  "Redis URL redis://localhost:6379/0 (redis://redis:6379/0 in compose). Cache keys use the pattern stats:user:{id}; rate-limit keys rl:login:{ip}.",
+  "Data model: User(id, email unique, full_name, hashed_password, role 'member'|'admin', created_at, tasks); Task(id, title 1-200 chars, description <=2000 nullable, status 'todo'|'doing'|'done' default todo, priority int 1-3 default 2, owner_id FK users.id ON DELETE CASCADE, created_at); composite index ix_tasks_owner_status(owner_id, status). Schemas: UserCreate, UserOut, Token, TaskCreate, TaskUpdate, TaskOut, Page[T].",
+  "Sample people: somchai@example.com (Somchai Jaidee, member, password S3cure-pass!), somying@example.com (Somying Rakdee, member), admin@example.com (admin). Sample tasks: 'เขียน README' (todo), 'ตั้งค่า CI' (doing), 'ออกแบบ Database' (done). Bank-transfer demo accounts: somchai 1000, somying 500.",
+  "API prefix /api/v1; routers auth.py (/auth), tasks.py (/tasks), admin.py (/admin). Errors use application/problem+json with keys type, title, status, detail, instance (+ errors list for 422). Thai detail messages are fine, e.g. 'ไม่พบงานนี้', 'ข้อมูลไม่ถูกต้อง'.",
+  "Env vars: DATABASE_URL, REDIS_URL, JWT_SECRET (required, >= 32 chars, never committed), ACCESS_TOKEN_EXPIRE_MINUTES=30, APP_ENV=dev. .env is git-ignored; .env.example is committed. CI uses JWT_SECRET=ci-only-secret-not-for-production-0123456789.",
+  "Dev server: `uvicorn app.main:app --reload` on port 8000; Swagger UI at http://127.0.0.1:8000/docs. Production-like: `uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2 --proxy-headers --forwarded-allow-ips 127.0.0.1` behind nginx on port 80.",
+  "Docker is NOT available in the sandbox: show Dockerfile/compose carefully per official image docs, never fabricate docker command output, and say so in a หมายเหตุ callout. Everything else (FastAPI, PostgreSQL, Redis, nginx, pytest) was run for real; paste real outputs and note that dates, request_id values, hashes and timings will differ.",
+  "Terminology (keep in English inside Thai text): Request, Response, Endpoint, Router, Middleware, Dependency Injection, Schema, Validation, Session, Transaction, Migration, Hash, Token, Role, Cache, TTL, Invalidation, Rate Limit, Reverse Proxy, Health Check, Container, Image, CI. Never use passlib; use pwdlib[argon2]. Use SQLAlchemy 2.0-style select(), never session.query in new code.",
+  "Cross-links: <a data-t=\"9\"></a> Python, <a data-t=\"14\"></a> SQL, <a data-t=\"8\"></a> API Design, <a data-t=\"1\"></a> Network, <a data-t=\"17\"></a> Git/GitHub, <a data-t=\"19\"></a> Linux, <a data-t=\"13\"></a> Node.js. Certifications: AWS CLF-C02; AWS Developer Associate DVA-C02 until 2026-11-30, DVA-C03 from 2026-12-01; GH-200 GitHub Actions; PCEP-30-02/PCAP-31-03."
+ ]
+}

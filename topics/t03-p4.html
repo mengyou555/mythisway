@@ -1,0 +1,2094 @@
+<section class="part" data-part="4">
+<h2 id="s3-4"><span class="sec-no">3.4</span>ส่วนเสริม: Mini Project, Cheat Sheet, Interview</h2>
+<p>ส่วนนี้คือบทสรุปของหัวข้อ Game Developer คุณจะนำทุกแนวคิดจากส่วนที่ 1–3 มาประกอบเป็นเกมที่เล่นได้จริง ทดสอบได้อัตโนมัติ และปล่อยให้คนอื่นเล่นได้ทั้งบน Windows และบน Browser ต่อด้วย Cheat Sheet สำหรับเปิดดูระหว่างทำงาน คำถามสัมภาษณ์ 5 ข้อพร้อมแนวคำตอบ และแหล่งเรียนต่อ</p>
+
+<h3 id="s3-4-project">Mini Project: 2D Arcade Game: Star Dodger</h3>
+<p>Star Dodger คือเกมเดียวกับที่คุณออกแบบไว้ในไฟล์ <code>gdd-star-dodger.md</code> ตอน Step 1 ของส่วนที่ 1 และสร้างทีละส่วนมาตั้งแต่ Step 5 ถึง Step 13 ในส่วนนี้คุณจะประกอบทุกชิ้นให้ครบเป็นเวอร์ชัน 1.0.0 พร้อมโค้ดเต็มทุกไฟล์ เพิ่ม Playtest อัตโนมัติ แล้วปล่อยขึ้น GitHub และ itch.io เพื่อใช้เป็นผลงานชิ้นแรกใน Portfolio</p>
+
+<h4>เป้าหมายของโปรเจกต์</h4>
+<p>สร้างเกม Arcade 2D มุมมองจากด้านบน (Top-down) ธีมอวกาศ ผู้เล่นบังคับยานเดินได้ 8 ทิศ หลบศัตรูที่ตกลงมาจากขอบบนของจอถี่ขึ้นเรื่อยๆ และเก็บดาวเพื่อทำคะแนน เกมนี้<strong>ไม่มีการยิง</strong> วงจรหลัก (Core Loop) จึงสั้นและชัด: หลบศัตรู → เก็บดาว → ได้คะแนน → ศัตรูเกิดถี่ขึ้น → แพ้ → เล่นใหม่เพื่อทำคะแนนให้สูงกว่าเดิม</p>
+<p>เป้าหมายด้านทักษะคือทำเกมให้<strong>เสร็จ</strong>ตามมาตรฐานที่ผู้สัมภาษณ์มองหา ได้แก่ มีเมนู มีจุดจบ บันทึกสถิติได้ มีเสียงและ Game Feel ผ่านการทดสอบ และมีลิงก์ที่กดแล้วเล่นได้ทันที</p>
+
+<h4>ฟีเจอร์ทั้งหมด</h4>
+<ul>
+  <li><strong>Main Menu</strong>: ชื่อเกม ปุ่ม Play และ Quit พร้อม High Score ที่บันทึกไว้ ปุ่ม Play ได้ Focus ด้วย <code>grab_focus()</code> จึงกด Enter หรือปุ่มบนจอยเพื่อเริ่มได้ทันที</li>
+  <li><strong>Player</strong>: <code>CharacterBody2D</code> เดิน 8 ทิศด้วย <code>Input.get_vector()</code> ความเร็ว 300 px/s อยู่ในจอขนาด 1152 × 648 เสมอ และอมตะ 1 วินาทีพร้อมกะพริบหลังโดนชน</li>
+  <li><strong>Enemy</strong>: <code>Area2D</code> เกิดที่ y = -40 ตำแหน่ง x สุ่มระหว่าง 0–1152 ตกลงมาด้วยความเร็วสุ่ม 150–250 px/s และลบตัวเองเมื่อพ้นจอ ส่วน <code>SpawnTimer</code> เริ่มที่ 1.2 วินาที คูณ 0.97 ทุกครั้งที่ศัตรูเกิด และต่ำสุดที่ 0.35 วินาที</li>
+  <li><strong>Star</strong>: <code>Area2D</code> ที่มี Signal <code>collected(points: int)</code> ได้ดวงละ 10 คะแนน เกิดทุก 2 วินาทีที่ตำแหน่งสุ่มในจอ มี Tween แบบเด้ง Particle และเสียงตอนเก็บ</li>
+  <li><strong>Collision Layer</strong> ที่ตั้งชื่อไว้ใน Project Settings: 1 player, 2 enemies, 3 stars, 4 walls</li>
+  <li><strong>Autoload <code>GameState</code></strong>: เก็บ score, lives (เริ่มที่ 3) และ high_score ส่ง Signal <code>score_changed(new_score: int)</code> และ <code>lives_changed(new_lives: int)</code> มีฟังก์ชัน <code>reset()</code>, <code>add_score()</code> และ <code>lose_life()</code></li>
+  <li><strong>Autoload <code>SaveManager</code></strong>: บันทึก High Score และการตั้งค่าด้วย <code>ConfigFile</code> ที่ <code>user://savegame.cfg</code> ถ้าไฟล์หายหรือเสียจะกลับไปใช้ค่าตั้งต้น</li>
+  <li><strong>HUD และเมนู Pause</strong>: แสดง Score, Lives และ Best โดยอัปเดตผ่าน Signal เท่านั้น กด Esc หรือ P เพื่อหยุดเกม มีปุ่ม Resume, Screen Shake On/Off และ Main Menu</li>
+  <li><strong>เสียง</strong>: Bus ชื่อ Master, Music และ SFX เพลงวนเล่นบน Bus Music ส่วนเสียงเก็บดาว เสียงชน และเสียงแพ้อยู่บน Bus SFX พร้อมสุ่ม <code>pitch_scale</code> 0.9–1.1</li>
+  <li><strong>Game Feel</strong>: Screen Shake ด้วย <code>add_trauma(0.6)</code>, Hit Flash ด้วย <code>modulate</code>, ดาวเด้งด้วย Tween และ Hitstop 0.08 วินาที</li>
+  <li><strong>Game Over</strong>: แสดงคะแนน แสดงข้อความ "New High Score!" เมื่อทำลายสถิติ และมีปุ่ม Retry กับ Main Menu</li>
+  <li><strong>Export</strong>: Preset "Windows Desktop" ได้ไฟล์ <code>build/windows/StarDodger.exe</code> และ Preset "Web" ได้ไฟล์ <code>build/web/index.html</code> (Compatibility Renderer, ปิด Thread Support)</li>
+  <li><strong>การทดสอบ</strong>: Smoke Test 16 ข้อจากส่วนที่ 1 และ Playtest อัตโนมัติ 10 ข้อที่เล่นเกมจริงแบบ headless</li>
+</ul>
+
+<h4>ตัวเลขของเกมในตารางเดียว</h4>
+<p>นักออกแบบเกมเรียกค่าเหล่านี้ว่า Tuning Values การรวมไว้ในตารางเดียวช่วยให้ปรับความยากได้เร็ว และรู้ทันทีว่าต้องแก้ที่ไฟล์ไหน</p>
+<div class="tbl mid"><table class="explain"><thead><tr><th>ค่า</th><th>ตัวเลข</th><th>ตั้งไว้ที่</th></tr></thead><tbody>
+<tr><td>ขนาดจอ (Viewport)</td><td class="num">1152 × 648</td><td><code>project.godot</code> (ค่าตั้งต้นของ Godot 4)</td></tr>
+<tr><td>ความเร็วยาน</td><td class="num">300 px/s</td><td><code>player.gd</code> ตัวแปร <code>speed</code></td></tr>
+<tr><td>เวลาอมตะหลังโดนชน</td><td class="num">1.0 s</td><td><code>player.gd</code> ตัวแปร <code>invincible_time</code></td></tr>
+<tr><td>ชีวิตตอนเริ่ม</td><td class="num">3</td><td><code>game_state.gd</code> ค่าคงที่ <code>START_LIVES</code></td></tr>
+<tr><td>ความเร็วศัตรู</td><td class="num">150–250 px/s</td><td><code>enemy.gd</code> ตัวแปร <code>min_speed</code> และ <code>max_speed</code></td></tr>
+<tr><td>ช่วงเวลาเกิดศัตรู</td><td class="num">1.2 s × 0.97 ต่อตัว (ต่ำสุด 0.35 s)</td><td>Node <code>SpawnTimer</code> ใน <code>game.tscn</code> และ <code>game.gd</code></td></tr>
+<tr><td>ดาว</td><td class="num">เกิดทุก 2.0 s, 10 คะแนน, อยู่ได้ 5 s</td><td>Node <code>StarTimer</code> ใน <code>game.tscn</code> และ <code>star.gd</code></td></tr>
+<tr><td>Screen Shake</td><td class="num">trauma 0.6, decay 2.0, สูงสุด 12 px</td><td><code>game.gd</code> และ <code>shake_camera.gd</code></td></tr>
+<tr><td>Hitstop</td><td class="num">0.08 s ที่ time_scale 0.05</td><td><code>game.gd</code> ฟังก์ชัน <code>_hitstop()</code></td></tr>
+</tbody></table></div>
+
+<h4>ภาพรวมการทำงานของเกม</h4>
+<p>แผนภาพนี้แสดงว่า Scene และ Autoload คุยกันอย่างไร ลูกศรคือทิศทางของการเรียกฟังก์ชันหรือการส่ง Signal หลักที่ใช้ทั้งโปรเจกต์คือ Node ลูกส่ง Signal ขึ้นไป ส่วนข้อมูลที่ต้องอยู่ข้าม Scene เก็บไว้ใน Autoload</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Plaintext · ภาพรวมระบบ"><code class="language-plaintext">Autoload (โหลดก่อนทุก Scene และอยู่ตลอดการเล่น)
+  SaveManager  ── อ่าน/เขียน ──▶ user://savegame.cfg
+  GameState    ── เก็บ score, lives, high_score ──▶ ส่ง score_changed, lives_changed
+
+main_menu.tscn ──Play──▶ game.tscn ──ชีวิตหมด──▶ game_over.tscn ──Retry──▶ game.tscn
+      ▲                     │ (เมนู Pause)            │
+      └────Main Menu────────┴──────────Main Menu──────┘
+
+ภายใน game.tscn
+  SpawnTimer ──▶ สร้าง Enemy ──ชนยาน──▶ Player.hit ──▶ GameState.lose_life()
+  StarTimer  ──▶ สร้าง Star  ──collected(10)──▶ GameState.add_score()
+  GameState.score_changed / lives_changed ──▶ HUD เปลี่ยนตัวเลขบนจอ</code></pre>
+
+<h4>โครงสร้างโฟลเดอร์สุดท้าย</h4>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Plaintext · โครงสร้างโปรเจกต์"><code class="language-plaintext">star-dodger/                  (C:\Users\somchai\godot-projects\star-dodger)
+├── project.godot             ค่าตั้งของโปรเจกต์: Input Map, Autoload, Layer Names
+├── default_bus_layout.tres   Audio Bus: Master, Music, SFX
+├── export_presets.cfg        Preset "Windows Desktop" และ "Web"
+├── icon.svg
+├── .gitignore
+├── .gitattributes
+├── README.md
+├── CHANGELOG.md
+├── LICENSE
+├── assets/
+│   ├── audio/                music_loop.ogg, sfx_pickup.wav, sfx_hit.wav, sfx_game_over.wav
+│   ├── fonts/                kenvector_future.ttf
+│   └── sprites/              player_ship.png, enemy.png, star.png
+├── scenes/                   main_menu, game, game_over, player, enemy, star, hud (.tscn)
+├── scripts/                  game_state, save_manager, audio_settings, player, enemy, star,
+│                             shake_camera, game, hud, main_menu, game_over (.gd)
+├── tools/                    smoke_test.gd, playtest.gd (ไม่ถูกรวมในไฟล์ Export)
+├── docs/                     screenshot.png และไฟล์ว่าง .gdignore (Godot จะไม่ Import โฟลเดอร์นี้)
+├── .godot/                   Cache ที่ Godot สร้างเอง (ไม่ Commit)
+└── build/                    ไฟล์ที่ Export ออกมา (ไม่ Commit)
+    ├── windows/              StarDodger.exe, StarDodger.pck
+    └── web/                  index.html, index.js, index.wasm, index.pck และไฟล์ไอคอน</code></pre>
+<p class="muted small">ข้างไฟล์ Asset ทุกไฟล์จะมีไฟล์ <code>.import</code> และข้าง Script ทุกไฟล์จะมีไฟล์ <code>.uid</code> ที่ Godot สร้างให้ ไฟล์เหล่านี้ต้อง Commit ด้วย</p>
+
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>สิ่งที่ต้องมีก่อนเริ่ม:</p>
+<ul>
+  <li>Godot 4.7.2 รุ่น Standard (ไม่ใช่ .NET) ที่ <code>C:\Godot\Godot_v4.7.2-stable_win64.exe</code> และ <code>C:\Godot\Godot_v4.7.2-stable_win64_console.exe</code> สำหรับสั่งงานจาก PowerShell</li>
+  <li>Export Templates 4.7.2.stable (ติดตั้งใน Step 8)</li>
+  <li>WSL Ubuntu 24.04 ที่มี Python 3.12.3 และ Git 2.43.0 ส่วน ffmpeg กับ zip จะติดตั้งใน Step 2</li>
+  <li>บัญชี GitHub ที่ตั้งค่า Git ไว้แล้วตามหัวข้อ <a data-t="17"></a> และบัญชี itch.io</li>
+  <li>เวลาประมาณ 14–20 ชั่วโมง ตามที่วางไว้ใน Step 14 ของส่วนที่ 1</li>
+</ul></div>
+<div class="callout"><span class="c-label tip">Tip</span><p>ไฟล์โค้ด ไฟล์ Scene และไฟล์ค่าตั้งทุกไฟล์ในหน้านี้ผ่านการรันจริงกับ Godot 4.7.2 แบบ <code>--headless</code> ทั้งการ Import, Smoke Test, Playtest และการ Export จริงทั้งสองแบบ ผลลัพธ์ที่แสดงจึงเป็นผลจากการรันจริง ส่วนขั้นตอนที่ต้องคลิกใน Editor บน Windows เขียนตามเมนูของ Godot 4.7 ถ้าหาค่าตั้งไม่เจอ ให้พิมพ์ชื่อลงในช่อง Filter ของหน้าต่าง Project Settings โค้ด GDScript ในหน้านี้ย่อหน้าด้วย Space 4 ช่อง เมื่อสร้าง Script ใหม่ให้ลบโค้ดตัวอย่างที่ Godot ใส่มาทั้งหมดก่อนวาง เพื่อไม่ให้ Tab กับ Space ปนกันในไฟล์เดียว</p></div>
+<h4>ขั้นตอนการสร้าง</h4>
+<ol class="proj-steps">
+<li>
+<h4>Step 1: สร้างโปรเจกต์และตั้งค่า Project Settings</h4>
+<p>เปิด Godot 4.7.2 ในหน้า Project Manager กด <strong>+ Create</strong> ตั้งค่าตามรายการนี้ แล้วกด Create &amp; Edit</p>
+<ul>
+  <li>Project Name: <code>Star Dodger</code> (ชื่อนี้จะเป็นชื่อโฟลเดอร์ของ <code>user://</code> ด้วย)</li>
+  <li>Project Path: <code>C:\Users\somchai\godot-projects\star-dodger</code></li>
+  <li>Renderer: <strong>Compatibility</strong> เพราะเวอร์ชัน Web ต้องใช้ Renderer นี้ และเครื่องสเปกต่ำก็เปิดเกมได้</li>
+  <li>Version Control Metadata: <strong>Git</strong> (Godot สร้างไฟล์ <code>.gitignore</code> และ <code>.gitattributes</code> ให้ แต่ยังไม่สร้าง Repository)</li>
+</ul>
+<p>จากนั้นเปิดเมนู Project &gt; Project Settings เปิดสวิตช์ Advanced Settings ที่มุมขวาบน แล้วตั้งค่าตามตารางนี้</p>
+<div class="tbl mid"><table class="explain"><thead><tr><th>ตำแหน่งใน Project Settings</th><th>ค่าที่ตั้ง</th></tr></thead><tbody>
+<tr><td>Application &gt; Config &gt; Version</td><td><code>1.0.0</code></td></tr>
+<tr><td>Display &gt; Window &gt; Size &gt; Viewport Width / Height</td><td><code>1152</code> / <code>648</code> เป็นค่าตั้งต้นอยู่แล้ว ไม่ต้องแก้</td></tr>
+<tr><td>Display &gt; Window &gt; Stretch &gt; Mode</td><td><code>canvas_items</code> ภาพและ UI จะย่อขยายตามขนาดหน้าต่าง</td></tr>
+<tr><td>Rendering &gt; Environment &gt; Defaults &gt; Default Clear Color</td><td>R 0.04, G 0.05, B 0.1 เป็นสีพื้นหลังอวกาศ</td></tr>
+<tr><td>Layer Names &gt; 2D Physics</td><td>Layer 1 <code>player</code>, Layer 2 <code>enemies</code>, Layer 3 <code>stars</code>, Layer 4 <code>walls</code></td></tr>
+<tr><td>GUI &gt; Theme &gt; Custom Font</td><td><code>res://assets/fonts/kenvector_future.ttf</code> (ตั้งหลังจบ Step 2)</td></tr>
+</tbody></table></div>
+<p>ต่อไปเปิดแท็บ <strong>Input Map</strong> พิมพ์ชื่อ Action ในช่อง Add New Action แล้วกด Add จากนั้นกดปุ่ม + ท้าย Action แล้วกดปุ่มบนคีย์บอร์ดที่ต้องการผูก ทำให้ครบตามตาราง</p>
+<div class="tbl mid"><table class="explain"><thead><tr><th>Action</th><th>ปุ่มที่ผูก</th></tr></thead><tbody>
+<tr><td><code>move_left</code></td><td>A, Left และ Left Stick ทิศซ้าย (Joypad Axis 0 ค่าลบ)</td></tr>
+<tr><td><code>move_right</code></td><td>D, Right และ Left Stick ทิศขวา (Joypad Axis 0 ค่าบวก)</td></tr>
+<tr><td><code>move_up</code></td><td>W, Up และ Left Stick ทิศขึ้น (Joypad Axis 1 ค่าลบ)</td></tr>
+<tr><td><code>move_down</code></td><td>S, Down และ Left Stick ทิศลง (Joypad Axis 1 ค่าบวก)</td></tr>
+<tr><td><code>pause</code></td><td>Escape และ P</td></tr>
+</tbody></table></div>
+<p>หน้าต่างเพิ่มปุ่มของ Godot 4 ใช้แบบ Physical Keycode เป็นค่าตั้งต้น ให้คงไว้แบบนั้น ปุ่มจะผูกกับ<strong>ตำแหน่ง</strong>บนคีย์บอร์ด ผู้เล่นที่เปิดแป้นภาษาไทยค้างไว้จึงยังกด WASD ได้ ส่วนแกนของจอยต้องเพิ่มจากหมวด Joypad Axes ในหน้าต่างเดียวกัน</p>
+<p>สุดท้ายเปิดแผง <strong>Audio</strong> ด้านล่างของ Editor กด Add Bus สองครั้ง ดับเบิลคลิกชื่อ Bus ใหม่เพื่อเปลี่ยนเป็น <code>Music</code> และ <code>SFX</code> ทั้งสอง Bus ส่งเสียงต่อไปที่ Master เป็นค่าตั้งต้น Godot จะบันทึกผังนี้ลงไฟล์ <code>res://default_bus_layout.tres</code> ให้เอง ไฟล์ที่ได้มีหน้าตาดังนี้</p>
+<pre class="code" data-env="file" data-label="Godot Resource · default_bus_layout.tres"><code class="language-ini">[gd_resource type="AudioBusLayout" format=3]
+
+[resource]
+bus/1/name = &amp;"Music"
+bus/1/solo = false
+bus/1/mute = false
+bus/1/bypass_fx = false
+bus/1/volume_db = 0.0
+bus/1/send = &amp;"Master"
+bus/2/name = &amp;"SFX"
+bus/2/solo = false
+bus/2/mute = false
+bus/2/bypass_fx = false
+bus/2/volume_db = 0.0
+bus/2/send = &amp;"Master"</code></pre>
+<p>เมื่อทำครบทุก Step ไฟล์ <code>project.godot</code> จะเป็นแบบด้านล่าง ใช้เทียบกับไฟล์ของคุณ ส่วน <code>[autoload]</code> จะได้มาใน Step 3 และ <code>run/main_scene</code> ได้มาใน Step 6 ค่า <code>uid://</code> ในเครื่องของคุณจะไม่ตรงกับตัวอย่าง ซึ่งเป็นเรื่องปกติ</p>
+<pre class="code" data-env="file" data-label="INI · project.godot"><code class="language-ini">; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Star Dodger"
+config/version="1.0.0"
+run/main_scene="uid://d085k76kqcdq3"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[autoload]
+
+SaveManager="*res://scripts/save_manager.gd"
+GameState="*res://scripts/game_state.gd"
+
+[display]
+
+window/stretch/mode="canvas_items"
+
+[gui]
+
+theme/custom_font="res://assets/fonts/kenvector_future.ttf"
+
+[input]
+
+move_left={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":65,"key_label":0,"unicode":97,"location":0,"echo":false,"script":null)
+, Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194319,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+, Object(InputEventJoypadMotion,"resource_local_to_scene":false,"resource_name":"","device":-1,"axis":0,"axis_value":-1.0,"script":null)
+]
+}
+move_right={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":68,"key_label":0,"unicode":100,"location":0,"echo":false,"script":null)
+, Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194321,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+, Object(InputEventJoypadMotion,"resource_local_to_scene":false,"resource_name":"","device":-1,"axis":0,"axis_value":1.0,"script":null)
+]
+}
+move_up={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":87,"key_label":0,"unicode":119,"location":0,"echo":false,"script":null)
+, Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194320,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+, Object(InputEventJoypadMotion,"resource_local_to_scene":false,"resource_name":"","device":-1,"axis":1,"axis_value":-1.0,"script":null)
+]
+}
+move_down={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":83,"key_label":0,"unicode":115,"location":0,"echo":false,"script":null)
+, Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194322,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+, Object(InputEventJoypadMotion,"resource_local_to_scene":false,"resource_name":"","device":-1,"axis":1,"axis_value":1.0,"script":null)
+]
+}
+pause={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194305,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+, Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":80,"key_label":0,"unicode":112,"location":0,"echo":false,"script":null)
+]
+}
+
+[layer_names]
+
+2d_physics/layer_1="player"
+2d_physics/layer_2="enemies"
+2d_physics/layer_3="stars"
+2d_physics/layer_4="walls"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.04, 0.05, 0.1, 1)</code></pre>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>อย่าแก้ <code>project.godot</code> ด้วย Text Editor ระหว่างที่เปิดโปรเจกต์ใน Godot อยู่ เพราะ Editor จะเขียนทับค่าที่คุณแก้ตอนบันทึก บรรทัด <code>events</code> ที่ยาวมากเป็นรูปแบบที่ Editor สร้าง ห้ามพิมพ์เอง ให้ตั้งผ่านแท็บ Input Map เท่านั้น ลำดับใน <code>[autoload]</code> ก็มีความหมาย: <code>SaveManager</code> ต้องอยู่บน <code>GameState</code> ตามเหตุผลใน Step 3</p></div>
+</li>
+
+<li>
+<h4>Step 2: เตรียมภาพ ฟอนต์ และเสียง</h4>
+<p>ภาพและฟอนต์มาจากแพ็ก <strong>Space Shooter Redux</strong> ของ Kenney ซึ่งใช้สัญญาอนุญาต CC0 (นำไปใช้ในเกมที่ขายได้ และไม่บังคับให้เครดิต แต่การให้เครดิตเป็นมารยาทที่ดี) ดาวน์โหลดจาก <a href="https://kenney.nl/assets" target="_blank" rel="noopener">kenney.nl/assets</a> แตกไฟล์ zip แล้วคัดลอกพร้อมเปลี่ยนชื่อตามตาราง ใช้ File Explorer ของ Windows ได้เลย</p>
+<div class="tbl mid"><table class="explain"><thead><tr><th>ไฟล์ในแพ็ก</th><th>วางที่ (ขนาดภาพ)</th></tr></thead><tbody>
+<tr><td><code>PNG/playerShip1_blue.png</code></td><td><code>assets/sprites/player_ship.png</code> (99 × 75 px)</td></tr>
+<tr><td><code>PNG/Enemies/enemyRed1.png</code></td><td><code>assets/sprites/enemy.png</code> (93 × 84 px)</td></tr>
+<tr><td><code>PNG/Power-ups/star_gold.png</code></td><td><code>assets/sprites/star.png</code> (31 × 30 px)</td></tr>
+<tr><td><code>Bonus/kenvector_future.ttf</code></td><td><code>assets/fonts/kenvector_future.ttf</code></td></tr>
+</tbody></table></div>
+<p class="muted small">ถ้า Kenney ปรับโครงสร้างโฟลเดอร์ในแพ็ก ให้ค้นจากชื่อไฟล์ ถ้าใช้ภาพอื่นแทน ต้องปรับ Collision Shape และค่า <code>half_size</code> ของยานให้ตรงกับขนาดภาพใหม่</p>
+<p>เสียงชั่วคราว (Placeholder) สร้างเองด้วย Python จากหัวข้อ <a data-t="9"></a> จึงไม่ต้องดาวน์โหลดและไม่มีปัญหาลิขสิทธิ์ สคริปต์นี้ใช้ Standard Library ล้วน: เสียงเก็บดาวเป็นคลื่นสี่เหลี่ยมที่ความถี่ไล่ขึ้น เสียงชนเป็น White Noise ที่ล็อก seed ไว้ เสียงแพ้เป็นคลื่นที่ความถี่ไล่ลงสองช่วง และเพลงเป็น Arpeggio 16 โน้ตยาว 4 วินาทีที่วนต่อกันได้พอดี บันทึกเป็น <code>/home/somchai/projects/gamedev-lab/make_placeholder_audio.py</code></p>
+<pre class="code" data-env="file" data-label="Python · make_placeholder_audio.py"><code class="language-python">"""สร้างไฟล์เสียงชั่วคราว (Placeholder) ให้เกม Star Dodger ด้วย Python Standard Library ล้วน
+วิธีใช้: python3 make_placeholder_audio.py &lt;โฟลเดอร์ปลายทาง&gt;
+"""
+import math
+import random
+import struct
+import sys
+import wave
+from pathlib import Path
+
+SAMPLE_RATE = 44100  # จำนวน Sample ต่อวินาที
+
+
+def sweep(f_start: float, f_end: float, seconds: float, volume: float = 0.4) -&gt; list[float]:
+    """คลื่นสี่เหลี่ยม (Square Wave) ที่ความถี่ไล่จาก f_start ไป f_end แล้วค่อยๆ เบาลง"""
+    total = int(SAMPLE_RATE * seconds)
+    samples: list[float] = []
+    phase = 0.0
+    for i in range(total):
+        progress = i / total                          # ความคืบหน้า 0.0 ถึง 1.0
+        freq = f_start + (f_end - f_start) * progress
+        phase += freq / SAMPLE_RATE                   # นับจำนวนรอบของคลื่น
+        square = 1.0 if (phase % 1.0) &lt; 0.5 else -1.0
+        samples.append(square * volume * (1.0 - progress))
+    return samples
+
+
+def noise(seconds: float, volume: float = 0.5, seed: int = 7) -&gt; list[float]:
+    """เสียงซ่า (White Noise) สำหรับเสียงชน ใช้ seed คงที่ให้ได้ไฟล์เดิมทุกครั้งที่รัน"""
+    rng = random.Random(seed)
+    total = int(SAMPLE_RATE * seconds)
+    return [rng.uniform(-1.0, 1.0) * volume * (1.0 - i / total) ** 2 for i in range(total)]
+
+
+def note(freq: float, seconds: float, volume: float = 0.25) -&gt; list[float]:
+    """โน้ตหนึ่งตัวแบบคลื่นสามเหลี่ยม (Triangle Wave) เฟดหัวท้าย 10 ms กันเสียงคลิก"""
+    total = int(SAMPLE_RATE * seconds)
+    fade = int(SAMPLE_RATE * 0.01)
+    samples: list[float] = []
+    for i in range(total):
+        cycle = (freq * i / SAMPLE_RATE) % 1.0
+        triangle = 4.0 * abs(cycle - 0.5) - 1.0
+        gain = min(1.0, i / fade, (total - i) / fade)
+        samples.append(triangle * volume * gain)
+    return samples
+
+
+def write_wav(path: Path, samples: list[float]) -&gt; None:
+    """บันทึกเป็นไฟล์ WAV แบบ 16-bit Mono แล้วพิมพ์ความยาวกับขนาดไฟล์"""
+    with wave.open(str(path), "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(SAMPLE_RATE)
+        wav.writeframes(b"".join(struct.pack("&lt;h", int(max(-1.0, min(1.0, s)) * 32767)) for s in samples))
+    seconds = len(samples) / SAMPLE_RATE
+    print(f"สร้าง {path.name:&lt;18} {seconds:4.2f} วินาที {path.stat().st_size:&gt;8,} bytes")
+
+
+def main() -&gt; None:
+    if len(sys.argv) != 2:
+        print("วิธีใช้: python3 make_placeholder_audio.py &lt;โฟลเดอร์ปลายทาง&gt;")
+        sys.exit(1)
+    out_dir = Path(sys.argv[1])
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    write_wav(out_dir / "sfx_pickup.wav", sweep(660, 1320, 0.15))           # เก็บดาว: เสียงไล่สูงขึ้นเร็วๆ
+    write_wav(out_dir / "sfx_hit.wav", noise(0.25))                          # โดนชน: เสียงซ่าสั้นๆ
+    write_wav(out_dir / "sfx_game_over.wav", sweep(440, 220, 0.4) + sweep(330, 110, 0.6))  # แพ้: เสียงต่ำลงสองช่วง
+
+    # เพลงวน 4 วินาที: Arpeggio 16 โน้ต โน้ตละ 0.25 วินาที (Am, Am, F, G)
+    melody = [220.0, 261.63, 329.63, 261.63] * 2 + [174.61, 220.0, 261.63, 220.0] + [196.0, 246.94, 293.66, 246.94]
+    music: list[float] = []
+    for freq in melody:
+        music += note(freq, 0.25)
+    write_wav(out_dir / "music_loop.wav", music)
+
+
+if __name__ == "__main__":
+    main()</code></pre>
+<p>ติดตั้ง ffmpeg สำหรับแปลงเพลงเป็น .ogg และ zip ที่จะใช้ใน Step 9</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">sudo apt update
+sudo apt install -y ffmpeg zip</code></pre>
+<p>รันสคริปต์เพื่อสร้างไฟล์เสียงในโฟลเดอร์ <code>audio-build</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gamedev-lab
+python3 make_placeholder_audio.py audio-build</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>สร้าง sfx_pickup.wav     0.15 วินาที   13,274 bytes
+สร้าง sfx_hit.wav        0.25 วินาที   22,094 bytes
+สร้าง sfx_game_over.wav  1.00 วินาที   88,244 bytes
+สร้าง music_loop.wav     4.00 วินาที  352,844 bytes</code></pre>
+<p>แปลงเพลงจาก .wav (352 KB) เป็น .ogg ซึ่งเล็กกว่าเกือบ 9 เท่า แล้วคัดลอกไฟล์เสียงทั้ง 4 ไฟล์ไปไว้ในโปรเจกต์ฝั่ง Windows</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/gamedev-lab
+# -q:a 4 คือคุณภาพระดับกลางของ Vorbis เพียงพอสำหรับเพลงในเกม
+ffmpeg -loglevel error -y -i audio-build/music_loop.wav -c:a libvorbis -q:a 4 audio-build/music_loop.ogg
+# โปรเจกต์ Godot อยู่ฝั่ง Windows จึงเข้าผ่าน /mnt/c
+P=/mnt/c/Users/somchai/godot-projects/star-dodger
+mkdir -p "$P/assets/audio"
+cp audio-build/sfx_pickup.wav audio-build/sfx_hit.wav audio-build/sfx_game_over.wav audio-build/music_loop.ogg "$P/assets/audio/"
+ls -l "$P/assets/audio"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>total 516
+-rwxrwxrwx 1 somchai somchai 40071 Oct 19 10:42 music_loop.ogg
+-rwxrwxrwx 1 somchai somchai 88244 Oct 19 10:42 sfx_game_over.wav
+-rwxrwxrwx 1 somchai somchai 22094 Oct 19 10:42 sfx_hit.wav
+-rwxrwxrwx 1 somchai somchai 13274 Oct 19 10:42 sfx_pickup.wav</code></pre>
+<p class="muted small">ขนาดไฟล์ตรงกับที่ได้จริง ส่วนวันเวลาในเครื่องของคุณจะต่างออกไป ไฟล์บน <code>/mnt/c</code> แสดงสิทธิ์เป็น <code>rwxrwxrwx</code> เสมอ ซึ่งเป็นพฤติกรรมปกติของ WSL</p>
+<p>กลับไปที่ Godot แผง FileSystem จะ Import ไฟล์ใหม่ให้เอง คลิก <code>music_loop.ogg</code> เปิดแผง Import (แท็บข้าง Scene) ติ๊ก <strong>Loop</strong> แล้วกด Reimport เพลงจะวนเล่นไม่หยุด ตรวจผลได้จากไฟล์ <code>.import</code> ที่ Godot สร้าง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">grep '^loop=' /mnt/c/Users/somchai/godot-projects/star-dodger/assets/audio/music_loop.ogg.import</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>loop=true</code></pre>
+<p>เมื่อมีฟอนต์แล้ว ให้กลับไปตั้ง GUI &gt; Theme &gt; Custom Font ตามตารางใน Step 1 ข้อความทุกจุดในเกมจะเปลี่ยนเป็นฟอนต์ Kenney ทันที ฟอนต์นี้มีแต่ตัวอักษรภาษาอังกฤษ ข้อความในเกมนี้จึงเป็นภาษาอังกฤษทั้งหมด</p>
+<div class="callout"><span class="c-label tip">Tip</span><p>เมื่อต้องการเสียงที่ดีกว่า Placeholder ให้ใช้แพ็ก Sci-fi Sounds หรือ Interface Sounds ของ Kenney (CC0 เช่นกัน) ไฟล์ในแพ็กเป็น .ogg ให้แปลงเป็น .wav ด้วยชื่อเดิม เช่น <code>ffmpeg -i ไฟล์ที่เลือก.ogg sfx_hit.wav</code> แล้ววางทับไฟล์เดิม ทุก Scene จะใช้เสียงใหม่โดยไม่ต้องแก้โค้ด</p></div>
+</li>
+<li>
+<h4>Step 3: Autoload สำหรับสถานะเกม การบันทึก และเสียง</h4>
+<p>ข้อมูลที่ต้องอยู่ข้าม Scene (คะแนน ชีวิต สถิติ และการตั้งค่า) ต้องไม่อยู่ใน Scene ใด Scene หนึ่ง เพราะ Scene ถูกลบทุกครั้งที่เปลี่ยนหน้า สร้างโฟลเดอร์ <code>scripts</code> ในแผง FileSystem แล้วสร้าง Script 3 ไฟล์ (คลิกขวาที่โฟลเดอร์ &gt; Create New &gt; Script แล้วเลือก Inherits ให้ตรงกับบรรทัด <code>extends</code>) ทั้งสามไฟล์ไม่ต้องแนบกับ Node ใด</p>
+<p>ไฟล์แรกคือ <code>res://scripts/audio_settings.gd</code> เป็นคลาสช่วยที่มีแต่ฟังก์ชัน <code>static</code> ไม่มีข้อมูลของตัวเอง จึงไม่ต้องเป็น Autoload เรียกผ่านชื่อคลาสได้ทันทีเพราะมี <code>class_name</code></p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">class_name AudioSettings
+extends RefCounted
+# ฟังก์ชันเสียงที่ใช้ร่วมกันทั้งเกม เป็น static จึงเรียกผ่านชื่อคลาสได้เลย เช่น AudioSettings.play_sfx(...)
+
+
+static func set_bus_volume(bus_name: String, linear: float) -&gt; void:
+    # แปลงค่า 0.0–1.0 เป็นเดซิเบลแล้วตั้งให้ Bus (0.5 ประมาณ -6 dB, 0.0 คือเงียบสนิท)
+    var index := AudioServer.get_bus_index(bus_name)
+    if index == -1:
+        push_warning("ไม่พบ Audio Bus ชื่อ %s" % bus_name)
+        return
+    AudioServer.set_bus_volume_db(index, linear_to_db(clampf(linear, 0.0, 1.0)))
+
+
+static func play_sfx(player: AudioStreamPlayer) -&gt; void:
+    # สุ่ม Pitch 0.9–1.1 เสียงเดิมที่ดังซ้ำบ่อยๆ จะได้ไม่น่าเบื่อ
+    player.pitch_scale = randf_range(0.9, 1.1)
+    player.play()</code></pre>
+<p>ไฟล์ที่สองคือ <code>res://scripts/save_manager.gd</code> เป็นที่เดียวในเกมที่แตะไฟล์ Save ถ้าวันหนึ่งต้องเปลี่ยนรูปแบบไฟล์ ก็แก้ที่ไฟล์นี้ไฟล์เดียว</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends Node
+# Autoload ชื่อ SaveManager: ที่เดียวในเกมที่อ่านและเขียนไฟล์ user://savegame.cfg
+
+const SAVE_PATH := "user://savegame.cfg"
+# ค่าตั้งต้น ใช้ตอนเล่นครั้งแรก หรือเมื่อไฟล์เสีย
+const DEFAULT_SETTINGS := {
+    "screen_shake": true,
+    "music_volume": 0.8,
+    "sfx_volume": 1.0,
+}
+
+var _config := ConfigFile.new()
+
+
+func _ready() -&gt; void:
+    var err := _config.load(SAVE_PATH)
+    if err != OK:
+        # ไม่มีไฟล์ (เล่นครั้งแรก) หรือไฟล์เสีย: เริ่มจากค่าตั้งต้นแล้วเขียนไฟล์ใหม่ทันที
+        if err != ERR_FILE_NOT_FOUND:
+            push_warning("ไฟล์ Save เสีย (%s) จึงใช้ค่าตั้งต้นแทน" % error_string(err))
+        _config = ConfigFile.new()
+        _config.set_value("progress", "high_score", 0)
+        for key in DEFAULT_SETTINGS:
+            _config.set_value("settings", key, DEFAULT_SETTINGS[key])
+        _write()
+    # ปรับระดับเสียงของแต่ละ Bus ตามค่าที่บันทึกไว้
+    AudioSettings.set_bus_volume("Music", get_setting("music_volume"))
+    AudioSettings.set_bus_volume("SFX", get_setting("sfx_volume"))
+
+
+func load_high_score() -&gt; int:
+    var value: Variant = _config.get_value("progress", "high_score", 0)
+    # ไฟล์ที่ถูกแก้ด้วยมืออาจมีค่าผิดชนิด เช่น "abc" จึงต้องตรวจก่อนใช้
+    if value is int and value &gt;= 0:
+        return value
+    return 0
+
+
+func save_high_score(score: int) -&gt; void:
+    _config.set_value("progress", "high_score", score)
+    _write()
+
+
+func get_setting(key: String) -&gt; Variant:
+    var fallback: Variant = DEFAULT_SETTINGS[key]
+    var value: Variant = _config.get_value("settings", key, fallback)
+    # ชนิดข้อมูลต้องตรงกับค่าตั้งต้น ถ้าไม่ตรงให้ใช้ค่าตั้งต้น
+    if typeof(value) != typeof(fallback):
+        return fallback
+    return value
+
+
+func set_setting(key: String, value: Variant) -&gt; void:
+    _config.set_value("settings", key, value)
+    _write()
+
+
+func _write() -&gt; void:
+    var err := _config.save(SAVE_PATH)
+    if err != OK:
+        push_error("บันทึกไฟล์ไม่สำเร็จ: %s" % error_string(err))</code></pre>
+<p>ไฟล์ที่สามคือ <code>res://scripts/game_state.gd</code> เก็บข้อมูลของรอบที่กำลังเล่น Node อื่นอ่านค่าได้ แต่ต้องเปลี่ยนค่าผ่านฟังก์ชันเท่านั้น Signal จึงถูกส่งทุกครั้งที่ค่าเปลี่ยน</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends Node
+# Autoload ชื่อ GameState: เก็บคะแนน ชีวิต และ High Score ของรอบที่กำลังเล่น
+# Node อื่นอ่านค่าได้ แต่ให้เปลี่ยนค่าผ่านฟังก์ชันด้านล่างเท่านั้น Signal จึงถูกส่งออกไปทุกครั้ง
+
+signal score_changed(new_score: int)
+signal lives_changed(new_lives: int)
+
+const START_LIVES: int = 3
+
+var score: int = 0
+var lives: int = START_LIVES
+var high_score: int = 0
+var is_new_high_score: bool = false
+
+
+func _ready() -&gt; void:
+    # SaveManager อยู่เหนือ GameState ในรายการ Autoload จึงโหลดไฟล์เสร็จแล้วตอนนี้
+    high_score = SaveManager.load_high_score()
+
+
+func reset() -&gt; void:
+    score = 0
+    lives = START_LIVES
+    is_new_high_score = false
+    score_changed.emit(score)
+    lives_changed.emit(lives)
+
+
+func add_score(points: int) -&gt; void:
+    score += points
+    score_changed.emit(score)
+
+
+func lose_life() -&gt; void:
+    lives = maxi(lives - 1, 0)
+    lives_changed.emit(lives)
+
+
+func finish_run() -&gt; void:
+    # เรียกครั้งเดียวตอนจบรอบ: ถ้าทำลายสถิติ ให้จำไว้และบันทึกลงดิสก์ทันที
+    if score &gt; high_score:
+        high_score = score
+        is_new_high_score = true
+        SaveManager.save_high_score(high_score)</code></pre>
+<p>ลงทะเบียน Autoload ที่ Project &gt; Project Settings &gt; แท็บ Globals &gt; Autoload: กดไอคอนโฟลเดอร์เลือก <code>res://scripts/save_manager.gd</code> ช่อง Node Name ใส่ <code>SaveManager</code> แล้วกด Add จากนั้นกดไอคอนโฟลเดอร์อีกครั้ง เลือก <code>res://scripts/game_state.gd</code> ใส่ Node Name เป็น <code>GameState</code> แล้วกด Add ช่อง Enable ต้องติ๊กไว้ทั้งสองตัว</p>
+<h5>จุดสำคัญในโค้ด</h5>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td>ลำดับ Autoload</td><td>Godot เพิ่ม Autoload เข้า Scene Tree ตามลำดับในรายการ และเรียก <code>_ready()</code> ตามลำดับนั้น <code>GameState._ready()</code> เรียก <code>SaveManager.load_high_score()</code> จึงต้องให้ SaveManager อยู่บนสุด ไม่อย่างนั้นจะอ่านค่าก่อนไฟล์ถูกโหลด</td></tr>
+<tr><td><code>if err != ERR_FILE_NOT_FOUND</code></td><td>แยกกรณีเล่นครั้งแรก (ไม่มีไฟล์ ถือเป็นเรื่องปกติ) ออกจากกรณีไฟล์เสีย (แจ้งเตือนด้วย <code>push_warning</code>) ทั้งสองกรณีเริ่มจากค่าตั้งต้นและเขียนไฟล์ใหม่ทันที</td></tr>
+<tr><td><code>if value is int and value &gt;= 0</code></td><td>ผู้เล่นเปิดไฟล์ .cfg แก้เองได้ ค่าที่อ่านมาจึงอาจเป็นข้อความหรือเลขติดลบ ต้องตรวจชนิดก่อนใช้ทุกครั้ง</td></tr>
+<tr><td><code>typeof(value) != typeof(fallback)</code></td><td>การตั้งค่าแต่ละตัวต้องมีชนิดเดียวกับค่าตั้งต้น เช่น <code>screen_shake</code> ต้องเป็น bool ถ้าไม่ใช่ให้ใช้ค่าตั้งต้น เกมจะไม่พังเพราะไฟล์ผิดรูปแบบ</td></tr>
+<tr><td><code>linear_to_db()</code></td><td>หูคนรับรู้ความดังแบบลอการิทึม Bus จึงตั้งเป็นเดซิเบล ค่า 1.0 คือ 0 dB, 0.5 ประมาณ -6 dB และ 0.0 คือเงียบสนิท</td></tr>
+<tr><td><code>lives = maxi(lives - 1, 0)</code></td><td>ชีวิตไม่มีทางติดลบ แม้โดนชนพร้อมกันหลายตัวในเฟรมเดียว</td></tr>
+<tr><td><code>finish_run()</code></td><td>เรียกครั้งเดียวตอนจบรอบ เขียนไฟล์เฉพาะเมื่อทำลายสถิติ และจำไว้ใน <code>is_new_high_score</code> ให้หน้า Game Over ใช้</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><p>ใช้ Autoload ให้น้อยและชัดเจน โปรเจกต์นี้มีเพียง 2 ตัว ตัวหนึ่งดูแลข้อมูลของรอบที่เล่น อีกตัวดูแลไฟล์ ทั้งสองไม่รู้จัก Scene ใดเลย Scene เป็นฝ่ายเรียกใช้หรือฟัง Signal ของ Autoload เพียงทางเดียว เมื่อโปรเจกต์โตขึ้นจะไม่เกิดปัญหาโค้ดทุกไฟล์พึ่งพากันจนแก้จุดเดียวแล้วพังทั้งเกม</p></div>
+</li>
+<li>
+<h4>Step 4: ยาน ศัตรู และดาว</h4>
+<p>สร้างโฟลเดอร์ <code>scenes</code> แล้วสร้าง Scene ทีละไฟล์: เมนู Scene &gt; New Scene กด Other Node แล้วค้นหาชนิดของ Node ราก เพิ่ม Node ลูกด้วย <kbd>Ctrl</kbd>+<kbd>A</kbd> ตั้งค่าใน Inspector แนบ Script ด้วยปุ่มรูปม้วนกระดาษ แล้วบันทึกด้วย <kbd>Ctrl</kbd>+<kbd>S</kbd> โครงสร้างของทั้งสาม Scene เป็นดังนี้</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Plaintext · Scene Tree"><code class="language-plaintext">scenes/player.tscn
+Player (CharacterBody2D)            แนบ player.gd · Motion Mode: Floating · Layer 1 · Mask 4
+├── Sprite2D                        Texture: player_ship.png · Scale 0.5
+├── CollisionShape2D                RectangleShape2D ขนาด 40 × 30
+└── InvincibleTimer (Timer)         One Shot: เปิด
+
+scenes/enemy.tscn
+Enemy (Area2D)                      แนบ enemy.gd · Layer 2 · Mask 1
+├── Sprite2D                        Texture: enemy.png · Scale 0.5
+├── CollisionShape2D                CircleShape2D รัศมี 18
+└── VisibleOnScreenNotifier2D       Rect: x -24, y -22, w 48, h 44
+
+scenes/star.tscn
+Star (Area2D)                       แนบ star.gd · Layer 3 · Mask 1
+├── Sprite2D                        Texture: star.png
+├── CollisionShape2D                CircleShape2D รัศมี 16
+├── CPUParticles2D                  ประกายสีทอง 16 เม็ด ยิงครั้งเดียว
+└── PickupSound (AudioStreamPlayer) Stream: sfx_pickup.wav · Bus: SFX</code></pre>
+<p>ใน Inspector ช่อง Collision &gt; Layer และ Mask เป็นตาราง 32 ช่อง แต่ในไฟล์ .tscn Godot เก็บเป็นตัวเลขบิต (Bitmask) โดย Layer ที่ n มีค่า 2<sup>n−1</sup>: Layer 2 คือ <code>2</code>, Layer 3 คือ <code>4</code>, Layer 4 คือ <code>8</code> ส่วนค่าที่ตรงกับค่าตั้งต้น (Layer 1 และ Mask 1) จะไม่ถูกเขียนลงไฟล์ ศัตรูและดาวมี Mask 1 จึงตรวจเจอยานที่อยู่ Layer 1 ส่วนยานมี Mask 4 (walls) ไว้รองรับกำแพงหรือสิ่งกีดขวางในเวอร์ชันถัดไป</p>
+<p>ไฟล์ .tscn ด้านล่างใช้เทียบค่าที่ตั้งใน Editor ไม่ต้องพิมพ์เอง ไฟล์ที่ Editor บันทึกจะมี <code>uid="uid://..."</code> เพิ่มในบรรทัด <code>[gd_scene]</code> และ <code>[ext_resource]</code> และ <code>id</code> ของ Resource อาจต่างจากตัวอย่าง ซึ่งเป็นค่าเฉพาะเครื่อง</p>
+<h5>ยานของผู้เล่น</h5>
+<pre class="code" data-env="file" data-label="Godot Scene · scenes/player.tscn"><code class="language-ini">[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player_ship.png" id="2_ship"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ship"]
+size = Vector2(40, 30)
+
+[node name="Player" type="CharacterBody2D"]
+collision_mask = 8
+motion_mode = 1
+script = ExtResource("1_player")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("2_ship")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_ship")
+
+[node name="InvincibleTimer" type="Timer" parent="."]
+one_shot = true</code></pre>
+<p>บันทึกเป็น <code>res://scripts/player.gd</code> แนบกับ Node <code>Player</code> (CharacterBody2D)</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">class_name Player
+extends CharacterBody2D
+# ยานของผู้เล่น: เดิน 8 ทิศ อยู่ในจอเสมอ และอมตะชั่วคราวหลังโดนชน
+
+signal hit  # ส่งเมื่อโดนชนจริง (ระหว่างอมตะจะไม่ส่ง)
+
+@export var speed: float = 300.0
+@export var invincible_time: float = 1.0
+# ครึ่งหนึ่งของขนาดยานบนจอ ใช้กันไม่ให้ยานล้นขอบ
+@export var half_size := Vector2(25.0, 19.0)
+
+@onready var sprite: Sprite2D = $Sprite2D
+@onready var invincible_timer: Timer = $InvincibleTimer
+
+
+func _ready() -&gt; void:
+    add_to_group("player")
+
+
+func _physics_process(_delta: float) -&gt; void:
+    # get_vector() คืน Vector2 ที่ยาวไม่เกิน 1 เดินแนวทแยงจึงไม่เร็วกว่าแนวตรง
+    var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+    velocity = direction * speed
+    move_and_slide()
+    # จำกัดตำแหน่งให้อยู่ในจอ (1152 x 648)
+    var screen := get_viewport_rect().size
+    position = position.clamp(half_size, screen - half_size)
+
+
+func take_hit() -&gt; void:
+    # Timer ยังเดินอยู่ แปลว่ายังอมตะ ชนแล้วไม่เสียชีวิต
+    if not invincible_timer.is_stopped():
+        return
+    invincible_timer.start(invincible_time)
+    hit.emit()
+    _play_hit_effect()
+
+
+func _play_hit_effect() -&gt; void:
+    var tween := create_tween()
+    # Hit Flash: เปลี่ยนเป็นสีแดงทันที แล้วกลับเป็นสีปกติใน 0.1 วินาที
+    sprite.modulate = Color(1.0, 0.3, 0.3)
+    tween.tween_property(sprite, "modulate", Color.WHITE, 0.1)
+    # กะพริบ 4 รอบ รอบละ 0.2 วินาที ให้ผู้เล่นรู้ว่ากำลังอมตะ
+    for i in 4:
+        tween.tween_property(sprite, "modulate:a", 0.2, 0.1)
+        tween.tween_property(sprite, "modulate:a", 1.0, 0.1)</code></pre>
+<ul>
+  <li><code>Input.get_vector()</code> คืนเวกเตอร์ที่ยาวไม่เกิน 1 การเดินแนวทแยงจึงเร็วเท่าแนวตรง และรองรับจอยแบบอนาล็อกโดยไม่ต้องเขียนเพิ่ม</li>
+  <li><code>position.clamp(half_size, screen - half_size)</code> บังคับให้ตัวยานทั้งลำอยู่ในจอ ยานกว้าง 49.5 px สูง 37.5 px หลังย่อ 0.5 เท่า จึงใช้ครึ่งหนึ่งแล้วปัดขึ้นเป็น 25 × 19</li>
+  <li><code>take_hit()</code> ใช้ <code>InvincibleTimer.is_stopped()</code> เป็นตัวบอกว่าพ้นช่วงอมตะหรือยัง ไม่ต้องสร้างตัวแปร bool เพิ่ม</li>
+  <li>Tween ของ Hit Flash ใช้เวลา 0.1 วินาที ตามด้วยการกะพริบ 4 รอบ รอบละ 0.2 วินาที รวม 0.9 วินาที จบก่อนช่วงอมตะ 1 วินาทีพอดี</li>
+</ul>
+<h5>ศัตรู</h5>
+<pre class="code" data-env="file" data-label="Godot Scene · scenes/enemy.tscn"><code class="language-ini">[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy.gd" id="1_enemy"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemy.png" id="2_enemy"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_enemy"]
+radius = 18.0
+
+[node name="Enemy" type="Area2D"]
+collision_layer = 2
+script = ExtResource("1_enemy")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("2_enemy")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_enemy")
+
+[node name="VisibleOnScreenNotifier2D" type="VisibleOnScreenNotifier2D" parent="."]
+rect = Rect2(-24, -22, 48, 44)</code></pre>
+<p>บันทึกเป็น <code>res://scripts/enemy.gd</code> แนบกับ Node <code>Enemy</code> (Area2D)</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends Area2D
+# ศัตรู: ตกลงมาจากขอบบนด้วยความเร็วสุ่ม ชนผู้เล่นแล้วหายไป และลบตัวเองเมื่อพ้นจอ
+
+# เส้นลบทิ้งใต้ขอบล่างของจอ (648 px) ใช้เมื่อ screen_exited ไม่ถูกส่ง
+const DESPAWN_Y: float = 720.0
+
+@export var min_speed: float = 150.0
+@export var max_speed: float = 250.0
+
+var speed: float = 0.0
+
+@onready var notifier: VisibleOnScreenNotifier2D = $VisibleOnScreenNotifier2D
+
+
+func _ready() -&gt; void:
+    speed = randf_range(min_speed, max_speed)
+    body_entered.connect(_on_body_entered)
+    # screen_exited ส่งเมื่อออกจากจอหลังจากเคยอยู่ในจอแล้ว ตอนเกิดเหนือจอจึงไม่ถูกลบ
+    notifier.screen_exited.connect(queue_free)
+
+
+func _physics_process(delta: float) -&gt; void:
+    position.y += speed * delta
+    # ตาข่ายกันพลาด: ตอนรันแบบ --headless ไม่มีการวาดจอ screen_exited จึงไม่ทำงาน
+    if position.y &gt; DESPAWN_Y:
+        queue_free()
+
+
+func _on_body_entered(body: Node2D) -&gt; void:
+    var player := body as Player
+    if player:
+        player.take_hit()
+        queue_free()</code></pre>
+<p><code>body as Player</code> คืนค่า <code>null</code> ถ้า Body ที่ชนไม่ใช่ยานของผู้เล่น โค้ดจึงปลอดภัยแม้วันหลังจะเพิ่ม Body ชนิดอื่นเข้ามาในเกม ส่วน <code>notifier.screen_exited.connect(queue_free)</code> ส่งเมธอดของ Node ไปเป็น Callable ได้ตรงๆ โดยไม่ต้องเขียนฟังก์ชันใหม่</p>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>บรรทัด <code>DESPAWN_Y</code> มาจากบั๊กที่ Playtest อัตโนมัติจับได้ เมื่อรัน Godot 4.7.2 แบบ <code>--headless</code> ซึ่งไม่มีการวาดจอ <code>VisibleOnScreenNotifier2D</code> จะไม่ส่ง <code>screen_exited</code> เลย ตอนทดสอบรันฉากเกม 40 วินาทีโดยไม่มีเงื่อนไขนี้ มีศัตรูค้างอยู่ 71 ตัวและเพิ่มขึ้นเรื่อยๆ หลังเพิ่มเงื่อนไขนี้ จำนวนศัตรูไม่เกิน 11 ตัวตลอดการทดสอบ ตอนเล่นแบบมีหน้าจอ Notifier ทำงานตามปกติ เงื่อนไขสำรองนี้ทำให้เกมถูกต้องทั้งสองโหมด</p></div>
+<h5>ดาว</h5>
+<pre class="code" data-env="file" data-label="Godot Scene · scenes/star.tscn"><code class="language-ini">[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/star.gd" id="1_star"]
+[ext_resource type="Texture2D" path="res://assets/sprites/star.png" id="2_star"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_pickup.wav" id="3_pickup"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_star"]
+radius = 16.0
+
+[node name="Star" type="Area2D"]
+collision_layer = 4
+script = ExtResource("1_star")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_star")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_star")
+
+[node name="CPUParticles2D" type="CPUParticles2D" parent="."]
+emitting = false
+amount = 16
+lifetime = 0.5
+one_shot = true
+explosiveness = 1.0
+spread = 180.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 60.0
+initial_velocity_max = 140.0
+scale_amount_min = 3.0
+scale_amount_max = 5.0
+color = Color(1, 0.85, 0.3, 1)
+
+[node name="PickupSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3_pickup")
+bus = &amp;"SFX"</code></pre>
+<p>บันทึกเป็น <code>res://scripts/star.gd</code> แนบกับ Node <code>Star</code> (Area2D)</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">class_name Star
+extends Area2D
+# ดาว: ผู้เล่นแตะแล้วได้คะแนน มีเอฟเฟกต์เด้ง ประกาย และเสียง แล้วลบตัวเอง
+
+signal collected(points: int)
+
+@export var points: int = 10
+@export var lifetime: float = 5.0  # ถ้าไม่มีใครเก็บภายในเวลานี้ ดาวจะหายไปเอง
+
+@onready var sprite: Sprite2D = $Sprite2D
+@onready var particles: CPUParticles2D = $CPUParticles2D
+@onready var pickup_sound: AudioStreamPlayer = $PickupSound
+
+
+func _ready() -&gt; void:
+    body_entered.connect(_on_body_entered)
+    # false = Timer หยุดเดินตอน Pause ดาวจึงไม่หายระหว่างเปิดเมนู
+    get_tree().create_timer(lifetime, false).timeout.connect(queue_free)
+
+
+func _on_body_entered(body: Node2D) -&gt; void:
+    if not body.is_in_group("player"):
+        return
+    collected.emit(points)
+    # ห้ามปิด monitoring ตรงๆ ระหว่าง Callback ของ Physics จึงใช้ set_deferred
+    set_deferred("monitoring", false)
+    particles.emitting = true
+    AudioSettings.play_sfx(pickup_sound)
+    # Pop: ขยายเร็วๆ แล้วจางหาย รอเสียงกับประกายเล่นจบจึงลบ
+    var tween := create_tween()
+    tween.tween_property(sprite, "scale", sprite.scale * 1.8, 0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+    tween.tween_property(sprite, "modulate:a", 0.0, 0.15)
+    tween.tween_interval(0.35)
+    tween.tween_callback(queue_free)</code></pre>
+<ul>
+  <li>ดาวไม่ได้เพิ่มคะแนนเอง แค่ส่ง Signal <code>collected(points)</code> ออกไป คนที่สร้างดาว (ฉากเกม) เป็นผู้ต่อ Signal เข้ากับ <code>GameState.add_score</code> ดาวจึงนำไปใช้ในฉากอื่นได้โดยไม่ต้องแก้</li>
+  <li>Godot ไม่ยอมให้เปลี่ยน <code>monitoring</code> ระหว่างที่กำลังส่ง Signal ของการชน จึงต้องใช้ <code>set_deferred("monitoring", false)</code> ให้เปลี่ยนตอนจบเฟรม และกันไม่ให้ยานเก็บดาวดวงเดิมซ้ำ</li>
+  <li><code>create_timer(lifetime, false)</code> อาร์กิวเมนต์ที่ 2 คือ <code>process_always</code> ค่า false ทำให้เวลาของดาวหยุดเดินตอน Pause</li>
+  <li>Tween ขยายภาพ 0.1 วินาที จางหาย 0.15 วินาที แล้วรออีก 0.35 วินาทีค่อยลบ Node รวม 0.6 วินาที เสียง (0.15 วินาที) และประกาย (0.5 วินาที) จึงเล่นจบก่อนถูกลบ</li>
+</ul>
+</li>
+<li>
+<h4>Step 5: ฉากเล่นหลัก กล้องสั่น HUD และเมนู Pause</h4>
+<p>ฉากเกมใช้ทั้งกล้องสั่นและ HUD จึงสร้างสองส่วนนี้ก่อน เริ่มจากสคริปต์กล้อง บันทึกเป็น <code>res://scripts/shake_camera.gd</code> (จะแนบกับ Camera2D ในฉากเกม) หลักการคือเก็บค่า <code>trauma</code> ระหว่าง 0 ถึง 1 ทุกครั้งที่โดนชนจะเพิ่มค่า แล้วค่าจะลดลงเองตามเวลา ระยะสั่นคิดจาก trauma ยกกำลังสอง การสั่นจึงแรงตอนแรกแล้วเบาลงอย่างนุ่มนวล</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">class_name ShakeCamera
+extends Camera2D
+# กล้องที่สั่นได้ (Screen Shake) ด้วยค่า trauma: 0 = นิ่ง, 1 = สั่นแรงที่สุด
+
+@export var decay: float = 2.0         # การสั่นลดลงเร็วแค่ไหน (ต่อวินาที)
+@export var max_offset: float = 12.0   # ระยะสั่นสูงสุด หน่วยพิกเซล
+
+var trauma: float = 0.0
+
+
+func add_trauma(amount: float) -&gt; void:
+    # ผู้เล่นปิด Screen Shake ได้ในเมนู Pause (ช่วยคนที่เวียนหัวง่าย)
+    if not SaveManager.get_setting("screen_shake"):
+        return
+    trauma = minf(trauma + amount, 1.0)
+
+
+func _process(delta: float) -&gt; void:
+    if trauma &gt; 0.0:
+        trauma = maxf(trauma - decay * delta, 0.0)
+        var power := trauma * trauma  # ยกกำลังสอง: สั่นแรงช่วงแรกแล้วเบาลงอย่างนุ่มนวล
+        offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * max_offset * power
+    else:
+        offset = Vector2.ZERO</code></pre>
+<p>ต่อไปสร้าง HUD และฉากเกมตามโครงสร้างนี้ Node ที่มีเครื่องหมาย <code>%</code> คือ Node ที่คลิกขวาแล้วเลือก <strong>Access as Unique Name</strong> โค้ดจะอ้างถึงด้วย <code>%ScoreLabel</code> ได้เลยไม่ว่า Node จะถูกย้ายไปอยู่ลึกแค่ไหน</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Plaintext · Scene Tree"><code class="language-plaintext">scenes/hud.tscn
+HUD (CanvasLayer)                       แนบ hud.gd · Process &gt; Mode: Always
+├── TopBar (MarginContainer)            Anchor: Top Wide · Margin ซ้าย บน ขวา 16
+│   └── HBox (HBoxContainer)
+│       ├── %ScoreLabel (Label)         ชิดซ้าย · Size Flags: Expand
+│       ├── %BestLabel (Label)          จัดกึ่งกลาง · Size Flags: Expand
+│       └── %LivesLabel (Label)         ชิดขวา · Size Flags: Expand
+└── %PauseMenu (Control)                Full Rect · ซ่อนไว้ตอนเริ่ม
+    ├── Dim (ColorRect)                 Full Rect · สีดำโปร่งแสง 60%
+    └── Center (CenterContainer)        Full Rect
+        └── VBox (VBoxContainer)        Separation 12
+            ├── PausedLabel (Label)     "PAUSED" ขนาดตัวอักษร 48
+            ├── %ResumeButton (Button)  280 × 48
+            ├── %ShakeButton (Button)   280 × 48
+            └── %MainMenuButton (Button) 280 × 48
+
+scenes/game.tscn
+Game (Node2D)                           แนบ game.gd
+├── ShakeCamera (Camera2D)              แนบ shake_camera.gd · Position (576, 324)
+├── Player (Instance ของ player.tscn)   Position (576, 540)
+├── Enemies (Node2D)                    ที่เก็บศัตรูที่สร้างระหว่างเล่น
+├── Stars (Node2D)                      ที่เก็บดาวที่สร้างระหว่างเล่น
+├── SpawnTimer (Timer)                  Wait Time 1.2 · Autostart
+├── StarTimer (Timer)                   Wait Time 2.0 · Autostart
+├── Music (AudioStreamPlayer)           music_loop.ogg · Autoplay · Bus: Music · Process Mode: Always
+├── HitSound (AudioStreamPlayer)        sfx_hit.wav · Bus: SFX
+└── HUD (Instance ของ hud.tscn)</code></pre>
+<p>กล้องวางที่ (576, 324) ซึ่งเป็นกึ่งกลางของจอ 1152 × 648 ภาพที่เห็นจึงเหมือนไม่มีกล้อง แต่ได้ตัวแปร <code>offset</code> ไว้ใช้สั่นจอ ส่วน Player และ HUD เพิ่มด้วยปุ่ม Instantiate Child Scene (รูปโซ่) แล้วเลือกไฟล์ .tscn</p>
+<h5>HUD และเมนู Pause</h5>
+<pre class="code" data-env="file" data-label="Godot Scene · scenes/hud.tscn"><code class="language-ini">[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
+
+[node name="HUD" type="CanvasLayer"]
+process_mode = 3
+script = ExtResource("1_hud")
+
+[node name="TopBar" type="MarginContainer" parent="."]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 58.0
+grow_horizontal = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+
+[node name="HBox" type="HBoxContainer" parent="TopBar"]
+layout_mode = 2
+
+[node name="ScoreLabel" type="Label" parent="TopBar/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "SCORE: 0"
+
+[node name="BestLabel" type="Label" parent="TopBar/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "BEST: 0"
+horizontal_alignment = 1
+
+[node name="LivesLabel" type="Label" parent="TopBar/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "LIVES: 3"
+horizontal_alignment = 2
+
+[node name="PauseMenu" type="Control" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="PauseMenu"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Center" type="CenterContainer" parent="PauseMenu"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="PauseMenu/Center"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PausedLabel" type="Label" parent="PauseMenu/Center/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "PAUSED"
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="PauseMenu/Center/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(280, 48)
+layout_mode = 2
+text = "Resume"
+
+[node name="ShakeButton" type="Button" parent="PauseMenu/Center/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(280, 48)
+layout_mode = 2
+text = "Screen Shake: On"
+
+[node name="MainMenuButton" type="Button" parent="PauseMenu/Center/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(280, 48)
+layout_mode = 2
+text = "Main Menu"</code></pre>
+<p>บันทึกเป็น <code>res://scripts/hud.gd</code> แนบกับ Node <code>HUD</code> (CanvasLayer)</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends CanvasLayer
+# HUD: แสดงคะแนน สถิติ และชีวิต (อัปเดตผ่าน Signal ของ GameState เท่านั้น)
+# และมีเมนู Pause ที่ยังกดได้ตอนเกมหยุด เพราะ Process Mode ของ HUD เป็น Always
+
+@onready var score_label: Label = %ScoreLabel
+@onready var best_label: Label = %BestLabel
+@onready var lives_label: Label = %LivesLabel
+@onready var pause_menu: Control = %PauseMenu
+@onready var resume_button: Button = %ResumeButton
+@onready var shake_button: Button = %ShakeButton
+@onready var main_menu_button: Button = %MainMenuButton
+
+
+func _ready() -&gt; void:
+    GameState.score_changed.connect(_on_score_changed)
+    GameState.lives_changed.connect(_on_lives_changed)
+    resume_button.pressed.connect(toggle_pause)
+    shake_button.pressed.connect(_on_shake_pressed)
+    main_menu_button.pressed.connect(_on_main_menu_pressed)
+    pause_menu.hide()
+    _update_shake_text()
+    # แสดงค่าปัจจุบันทันที ไม่ต้องรอ Signal ครั้งแรก
+    _on_score_changed(GameState.score)
+    _on_lives_changed(GameState.lives)
+
+
+func _unhandled_input(event: InputEvent) -&gt; void:
+    if event.is_action_pressed("pause"):
+        toggle_pause()
+        get_viewport().set_input_as_handled()
+
+
+func toggle_pause() -&gt; void:
+    var paused := not get_tree().paused
+    get_tree().paused = paused
+    pause_menu.visible = paused
+    if paused:
+        # ให้กดด้วยคีย์บอร์ดหรือจอยได้ทันทีโดยไม่ต้องใช้เมาส์
+        resume_button.grab_focus()
+
+
+func _on_score_changed(new_score: int) -&gt; void:
+    score_label.text = "SCORE: %d" % new_score
+    # ถ้าคะแนนรอบนี้แซงสถิติเดิม ให้แสดงคะแนนรอบนี้เป็น BEST ไปเลย
+    best_label.text = "BEST: %d" % maxi(GameState.high_score, new_score)
+
+
+func _on_lives_changed(new_lives: int) -&gt; void:
+    lives_label.text = "LIVES: %d" % new_lives
+
+
+func _on_shake_pressed() -&gt; void:
+    var enabled: bool = SaveManager.get_setting("screen_shake")
+    SaveManager.set_setting("screen_shake", not enabled)
+    _update_shake_text()
+
+
+func _update_shake_text() -&gt; void:
+    var enabled: bool = SaveManager.get_setting("screen_shake")
+    shake_button.text = "Screen Shake: %s" % ("On" if enabled else "Off")
+
+
+func _on_main_menu_pressed() -&gt; void:
+    # ต้องยกเลิก Pause ก่อนเปลี่ยน Scene ไม่อย่างนั้นหน้าเมนูจะค้างนิ่ง
+    get_tree().paused = false
+    get_tree().change_scene_to_file("res://scenes/main_menu.tscn")</code></pre>
+<h5>ฉากเล่นหลัก</h5>
+<pre class="code" data-env="file" data-label="Godot Scene · scenes/game.tscn"><code class="language-ini">[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/game.gd" id="1_game"]
+[ext_resource type="Script" path="res://scripts/shake_camera.gd" id="2_cam"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="3_player"]
+[ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="4_hud"]
+[ext_resource type="AudioStream" path="res://assets/audio/music_loop.ogg" id="5_music"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_hit.wav" id="6_hit"]
+
+[node name="Game" type="Node2D"]
+script = ExtResource("1_game")
+
+[node name="ShakeCamera" type="Camera2D" parent="."]
+position = Vector2(576, 324)
+script = ExtResource("2_cam")
+
+[node name="Player" parent="." instance=ExtResource("3_player")]
+position = Vector2(576, 540)
+
+[node name="Enemies" type="Node2D" parent="."]
+
+[node name="Stars" type="Node2D" parent="."]
+
+[node name="SpawnTimer" type="Timer" parent="."]
+wait_time = 1.2
+autostart = true
+
+[node name="StarTimer" type="Timer" parent="."]
+wait_time = 2.0
+autostart = true
+
+[node name="Music" type="AudioStreamPlayer" parent="."]
+process_mode = 3
+stream = ExtResource("5_music")
+autoplay = true
+bus = &amp;"Music"
+
+[node name="HitSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("6_hit")
+bus = &amp;"SFX"
+
+[node name="HUD" parent="." instance=ExtResource("4_hud")]</code></pre>
+<p>บันทึกเป็น <code>res://scripts/game.gd</code> แนบกับ Node <code>Game</code> (Node2D) กด <kbd>F6</kbd> เพื่อลองเล่นฉากนี้ได้ทันที</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends Node2D
+# ฉากเล่นหลัก: สร้างศัตรูและดาวตามเวลา จัดการตอนผู้เล่นโดนชน และพาไปหน้า Game Over
+
+const ENEMY_SCENE: PackedScene = preload("res://scenes/enemy.tscn")
+const STAR_SCENE: PackedScene = preload("res://scenes/star.tscn")
+const GAME_OVER_SCENE := "res://scenes/game_over.tscn"
+
+@export var min_wait_time: float = 0.35   # ศัตรูเกิดถี่ที่สุดได้แค่นี้
+@export var spawn_speedup: float = 0.97   # ลดเวลารอลง 3% ทุกครั้งที่ศัตรูเกิด
+
+var is_game_over: bool = false
+
+@onready var player: Player = $Player
+@onready var camera: ShakeCamera = $ShakeCamera
+@onready var enemies: Node2D = $Enemies
+@onready var stars: Node2D = $Stars
+@onready var spawn_timer: Timer = $SpawnTimer
+@onready var star_timer: Timer = $StarTimer
+@onready var hit_sound: AudioStreamPlayer = $HitSound
+
+
+func _ready() -&gt; void:
+    GameState.reset()
+    GameState.lives_changed.connect(_on_lives_changed)
+    player.hit.connect(_on_player_hit)
+    spawn_timer.timeout.connect(_on_spawn_timer_timeout)
+    star_timer.timeout.connect(_on_star_timer_timeout)
+
+
+func _exit_tree() -&gt; void:
+    # ถ้าออกจากฉากระหว่าง Hitstop เวลาของเกมต้องกลับเป็นปกติเสมอ
+    Engine.time_scale = 1.0
+
+
+func _on_spawn_timer_timeout() -&gt; void:
+    var enemy := ENEMY_SCENE.instantiate() as Node2D
+    # ตั้งตำแหน่งก่อน add_child: สุ่มแกน x ตลอดความกว้างจอ และอยู่เหนือขอบบน 40 px
+    enemy.position = Vector2(randf_range(0.0, 1152.0), -40.0)
+    enemies.add_child(enemy)
+    spawn_timer.wait_time = maxf(spawn_timer.wait_time * spawn_speedup, min_wait_time)
+
+
+func _on_star_timer_timeout() -&gt; void:
+    var star := STAR_SCENE.instantiate() as Star
+    # เว้นขอบจอและแถบ HUD ด้านบน ดาวจะได้ไม่เกิดใต้ตัวหนังสือ
+    star.position = Vector2(randf_range(48.0, 1104.0), randf_range(96.0, 600.0))
+    star.collected.connect(GameState.add_score)
+    stars.add_child(star)
+
+
+func _on_player_hit() -&gt; void:
+    GameState.lose_life()
+    AudioSettings.play_sfx(hit_sound)
+    camera.add_trauma(0.6)
+    _hitstop(0.08)
+
+
+func _hitstop(duration: float) -&gt; void:
+    # หยุดเวลาเกือบสนิทชั่วพริบตา ให้รู้สึกถึงแรงชน
+    Engine.time_scale = 0.05
+    # อาร์กิวเมนต์ที่ 4 (ignore_time_scale) = true: Timer นี้นับเวลาจริง ไม่ช้าลงตาม time_scale
+    get_tree().create_timer(duration, true, false, true).timeout.connect(_end_hitstop)
+
+
+func _end_hitstop() -&gt; void:
+    Engine.time_scale = 1.0
+
+
+func _on_lives_changed(new_lives: int) -&gt; void:
+    if new_lives == 0 and not is_game_over:
+        is_game_over = true
+        # Signal นี้มาจาก Callback ของการชน จึงเลื่อนงานที่แก้ Physics ไปทำตอนจบเฟรม
+        _game_over.call_deferred()
+
+
+func _game_over() -&gt; void:
+    spawn_timer.stop()
+    star_timer.stop()
+    # ปิดผู้เล่น: หยุดประมวลผลและถูกนำออกจาก Physics จึงไม่โดนชนซ้ำ
+    player.process_mode = Node.PROCESS_MODE_DISABLED
+    player.hide()
+    GameState.finish_run()
+    # รอ 1 วินาทีให้เห็นจอสั่นก่อนเปลี่ยนหน้า (ใช้ connect แทน await เพราะฉากนี้อาจถูกลบไปก่อน)
+    get_tree().create_timer(1.0, false).timeout.connect(_show_game_over)
+
+
+func _show_game_over() -&gt; void:
+    get_tree().change_scene_to_file(GAME_OVER_SCENE)</code></pre>
+<h5>อธิบายส่วนสำคัญ</h5>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>enemy.position = ...</code> ก่อน <code>add_child</code></td><td>ตั้งตำแหน่งก่อนนำเข้า Scene Tree ศัตรูจะไม่โผล่ที่มุม (0, 0) แม้แต่เฟรมเดียว</td></tr>
+<tr><td><code>maxf(wait_time * spawn_speedup, min_wait_time)</code></td><td>ลดเวลารอลง 3% ต่อศัตรูหนึ่งตัว 1.2 × 0.97<sup>41</sup> ต่ำกว่า 0.35 จึงชนค่าต่ำสุดที่ศัตรูตัวที่ 41 ประมาณวินาทีที่ 28 ของเกม ผลทดสอบจริงก็เห็นค่า 0.350 ที่วินาทีที่ 30</td></tr>
+<tr><td><code>star.collected.connect(GameState.add_score)</code></td><td>ต่อ Signal ของดาวเข้ากับฟังก์ชันของ Autoload โดยตรง ฉากเกมเป็นตัวกลางที่รู้จักทั้งสองฝ่าย</td></tr>
+<tr><td><code>create_timer(duration, true, false, true)</code></td><td>อาร์กิวเมนต์ตัวที่ 4 คือ <code>ignore_time_scale</code> ถ้าไม่ตั้ง Timer ของ Hitstop จะช้าลงตาม <code>time_scale</code> 0.05 ด้วย จาก 0.08 วินาทีจะกลายเป็น 1.6 วินาที</td></tr>
+<tr><td><code>_exit_tree()</code></td><td>คืน <code>Engine.time_scale</code> เป็น 1.0 เสมอ ถ้าผู้เล่นออกจากฉากระหว่าง Hitstop เกมทั้งเกมจะไม่ช้าค้าง</td></tr>
+<tr><td><code>_game_over.call_deferred()</code></td><td>Signal <code>lives_changed</code> ถูกส่งต่อมาจาก Callback ของการชน ซึ่งห้ามแก้สถานะ Physics ระหว่างนั้น จึงเลื่อนงานปิดยานไปทำตอนจบเฟรม</td></tr>
+<tr><td><code>player.process_mode = Node.PROCESS_MODE_DISABLED</code></td><td>หยุดทั้งการประมวลผลและการชนของยาน ศัตรูที่ตกลงมาภายหลังจึงไม่ลดชีวิตซ้ำระหว่างรอเปลี่ยนหน้า</td></tr>
+<tr><td><code>_unhandled_input()</code> ของ HUD</td><td>รับปุ่ม pause หลังจาก UI จัดการ Input แล้ว และ <code>set_input_as_handled()</code> กันไม่ให้ Node อื่นได้ปุ่มเดียวกันซ้ำ</td></tr>
+</tbody></table></div>
+<p>เมื่อกด Pause แต่ละ Node จะทำงานต่างกันตามค่า Process Mode ตารางนี้สรุปว่าอะไรหยุดและอะไรยังทำงาน</p>
+<div class="tbl mid"><table class="explain"><thead><tr><th>Node หรือ Timer</th><th>ผลเมื่อ <code>get_tree().paused = true</code></th></tr></thead><tbody>
+<tr><td>Game, Player, Enemy, Star, SpawnTimer, StarTimer</td><td>หยุด เพราะ Process Mode เป็น Inherit และ Node รากเป็น Pausable</td></tr>
+<tr><td>HUD และเมนู Pause</td><td>ทำงานต่อ เพราะตั้ง Process Mode เป็น Always จึงกดปุ่ม Resume ได้</td></tr>
+<tr><td>Music</td><td>เล่นต่อ เพราะตั้ง Process Mode เป็น Always</td></tr>
+<tr><td>Timer อายุของดาวและ Timer ก่อนไปหน้า Game Over</td><td>หยุด เพราะสร้างด้วย <code>process_always</code> = false</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><p>HUD ไม่เคยถาม GameState ซ้ำทุกเฟรมใน <code>_process()</code> แต่รอ Signal แล้วค่อยเปลี่ยนข้อความ ประหยัดงานของ CPU และมีจุดเปลี่ยนข้อความเพียงจุดเดียว ตอน <code>_ready()</code> HUD แสดงค่าปัจจุบันทันทีหนึ่งครั้ง จึงไม่ต้องรอ Signal แรก</p></div>
+</li>
+<li>
+<h4>Step 6: เมนูหลักและหน้า Game Over</h4>
+<p>ทั้งสองหน้าใช้ Control เป็น Node ราก ตั้ง Layout เป็น Full Rect (ปุ่ม Anchor Preset บนแถบเครื่องมือ) แล้วใช้ CenterContainer กับ VBoxContainer จัดทุกอย่างให้อยู่กลางจอ ไม่ต้องกำหนดพิกัดเอง</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Plaintext · Scene Tree"><code class="language-plaintext">scenes/main_menu.tscn
+MainMenu (Control)                       แนบ main_menu.gd · Full Rect
+└── Center (CenterContainer)             Full Rect
+    └── VBox (VBoxContainer)             Separation 16
+        ├── Title (Label)                "STAR DODGER" ขนาดตัวอักษร 64
+        ├── %BestLabel (Label)
+        ├── %PlayButton (Button)         280 × 56 · Size Flags แนวนอน: Shrink Center
+        ├── %QuitButton (Button)         280 × 56 · Size Flags แนวนอน: Shrink Center
+        └── HelpLabel (Label)            วิธีบังคับ ขนาดตัวอักษร 18
+
+scenes/game_over.tscn
+GameOver (Control)                       แนบ game_over.gd · Full Rect
+├── Center (CenterContainer)             Full Rect
+│   └── VBox (VBoxContainer)             Separation 16
+│       ├── Title (Label)                "GAME OVER" ขนาดตัวอักษร 64
+│       ├── %ScoreLabel (Label)
+│       ├── %NewBestLabel (Label)        "New High Score!" สีทอง ขนาด 32 · ซ่อนไว้
+│       ├── %RetryButton (Button)        280 × 56
+│       └── %MainMenuButton (Button)     280 × 56
+└── GameOverSound (AudioStreamPlayer)    sfx_game_over.wav · Bus: SFX</code></pre>
+<h5>เมนูหลัก</h5>
+<pre class="code" data-env="file" data-label="Godot Scene · scenes/main_menu.tscn"><code class="language-ini">[gd_scene format=3 uid="uid://d085k76kqcdq3"]
+
+[ext_resource type="Script" path="res://scripts/main_menu.gd" id="1_menu"]
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_menu")
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="Center"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="Center/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 64
+text = "STAR DODGER"
+horizontal_alignment = 1
+
+[node name="BestLabel" type="Label" parent="Center/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "BEST: 0"
+horizontal_alignment = 1
+
+[node name="PlayButton" type="Button" parent="Center/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(280, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Play"
+
+[node name="QuitButton" type="Button" parent="Center/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(280, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Quit"
+
+[node name="HelpLabel" type="Label" parent="Center/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Move: WASD / Arrow keys / Left stick    Pause: Esc / P"
+horizontal_alignment = 1</code></pre>
+<p>บันทึกเป็น <code>res://scripts/main_menu.gd</code> แนบกับ Node <code>MainMenu</code> (Control) เวอร์ชัน Web ซ่อนปุ่ม Quit ด้วย <code>OS.has_feature("web")</code> เพราะปิดแท็บของ Browser จากในเกมไม่ได้</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends Control
+# หน้าเมนูหลัก: แสดง High Score ที่บันทึกไว้ และปุ่ม Play กับ Quit
+
+@onready var best_label: Label = %BestLabel
+@onready var play_button: Button = %PlayButton
+@onready var quit_button: Button = %QuitButton
+
+
+func _ready() -&gt; void:
+    best_label.text = "BEST: %d" % GameState.high_score
+    play_button.pressed.connect(_on_play_pressed)
+    quit_button.pressed.connect(_on_quit_pressed)
+    # กด Enter หรือปุ่ม A บนจอยเพื่อเริ่มได้ทันทีโดยไม่ต้องใช้เมาส์
+    play_button.grab_focus()
+    # เวอร์ชัน Web เล่นใน Browser ปุ่ม Quit ไม่มีประโยชน์ จึงซ่อนไว้
+    if OS.has_feature("web"):
+        quit_button.hide()
+
+
+func _on_play_pressed() -&gt; void:
+    get_tree().change_scene_to_file("res://scenes/game.tscn")
+
+
+func _on_quit_pressed() -&gt; void:
+    get_tree().quit()</code></pre>
+<h5>หน้า Game Over</h5>
+<pre class="code" data-env="file" data-label="Godot Scene · scenes/game_over.tscn"><code class="language-ini">[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/game_over.gd" id="1_over"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_game_over.wav" id="2_sfx"]
+
+[node name="GameOver" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_over")
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="Center"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="Center/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 64
+text = "GAME OVER"
+horizontal_alignment = 1
+
+[node name="ScoreLabel" type="Label" parent="Center/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "SCORE: 0   BEST: 0"
+horizontal_alignment = 1
+
+[node name="NewBestLabel" type="Label" parent="Center/VBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 32
+text = "New High Score!"
+horizontal_alignment = 1
+
+[node name="RetryButton" type="Button" parent="Center/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(280, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Retry"
+
+[node name="MainMenuButton" type="Button" parent="Center/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(280, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Main Menu"
+
+[node name="GameOverSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("2_sfx")
+bus = &amp;"SFX"</code></pre>
+<p>บันทึกเป็น <code>res://scripts/game_over.gd</code> แนบกับ Node <code>GameOver</code> (Control) ข้อความ New High Score! กะพริบด้วย Tween ที่เรียก <code>set_loops()</code> โดยไม่ใส่ตัวเลข จึงวนไปเรื่อยๆ และหยุดเองเมื่อ Node ถูกลบ เพราะ Tween ที่สร้างจาก <code>create_tween()</code> ของ Node ผูกอยู่กับ Node นั้น</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends Control
+# หน้า Game Over: แสดงคะแนนรอบนี้ บอกเมื่อทำลายสถิติ และให้เล่นใหม่หรือกลับเมนู
+
+@onready var score_label: Label = %ScoreLabel
+@onready var new_best_label: Label = %NewBestLabel
+@onready var retry_button: Button = %RetryButton
+@onready var main_menu_button: Button = %MainMenuButton
+@onready var game_over_sound: AudioStreamPlayer = $GameOverSound
+
+
+func _ready() -&gt; void:
+    score_label.text = "SCORE: %d   BEST: %d" % [GameState.score, GameState.high_score]
+    new_best_label.visible = GameState.is_new_high_score
+    retry_button.pressed.connect(_on_retry_pressed)
+    main_menu_button.pressed.connect(_on_main_menu_pressed)
+    retry_button.grab_focus()
+    AudioSettings.play_sfx(game_over_sound)
+    if GameState.is_new_high_score:
+        # ข้อความกะพริบช้าๆ ไปเรื่อยๆ (set_loops() ที่ไม่ใส่ตัวเลข = วนไม่สิ้นสุด)
+        var tween := create_tween().set_loops()
+        tween.tween_property(new_best_label, "modulate:a", 0.3, 0.5)
+        tween.tween_property(new_best_label, "modulate:a", 1.0, 0.5)
+
+
+func _on_retry_pressed() -&gt; void:
+    get_tree().change_scene_to_file("res://scenes/game.tscn")
+
+
+func _on_main_menu_pressed() -&gt; void:
+    get_tree().change_scene_to_file("res://scenes/main_menu.tscn")</code></pre>
+<p>สุดท้ายคลิกขวาที่ <code>main_menu.tscn</code> ในแผง FileSystem แล้วเลือก <strong>Set as Main Scene</strong> Godot จะเขียน <code>run/main_scene</code> เป็นค่า <code>uid://</code> ลงใน <code>project.godot</code> จากนั้นกด <kbd>F5</kbd> แล้วเล่นครบหนึ่งรอบ: เมนู → เกม → Game Over → Retry → Main Menu</p>
+</li>
+
+<li>
+<h4>Step 7: ทดสอบด้วย Smoke Test, Playtest อัตโนมัติ และการเล่นจริง</h4>
+<p>การทดสอบเกมแบ่งเป็น 3 ชั้น ชั้นแรก <strong>Smoke Test</strong> ตรวจว่าโปรเจกต์ครบ (ค่าตั้ง Scene Script และการเขียนไฟล์) ชั้นที่สอง <strong>Playtest อัตโนมัติ</strong> เล่นเกมจริงแล้วตรวจกติกา ชั้นที่สาม <strong>การเล่นจริง</strong> ตรวจสิ่งที่โปรแกรมวัดไม่ได้ เช่น ความรู้สึก เสียง และความยาก ทั้งสองสคริปต์อยู่ในโฟลเดอร์ <code>tools</code> ซึ่งถูกตัดออกตอน Export</p>
+<h5>1) Smoke Test</h5>
+<p>บันทึกเป็น <code>res://tools/smoke_test.gd</code> โค้ดชุดเดียวกับ Step 14 ของส่วนที่ 1 สคริปต์นี้สืบทอด SceneTree จึงไม่ต้องแนบกับ Node ใด</p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends SceneTree
+# ตรวจความพร้อมของโปรเจกต์ก่อน Export (Smoke Test)
+# รันจาก Command Line ด้วย --headless --script โดยไม่ต้องเปิด Editor
+
+const REQUIRED_ACTIONS: Array[String] = ["move_left", "move_right", "move_up", "move_down", "pause"]
+const REQUIRED_SCENES: Array[String] = [
+    "res://scenes/main_menu.tscn",
+    "res://scenes/game.tscn",
+    "res://scenes/game_over.tscn",
+    "res://scenes/player.tscn",
+    "res://scenes/enemy.tscn",
+    "res://scenes/star.tscn",
+    "res://scenes/hud.tscn",
+]
+const TEST_SAVE_PATH := "user://smoke_test.cfg"
+
+var passed: int = 0
+var failed: int = 0
+
+func check(ok: bool, label: String) -&gt; void:
+    # พิมพ์ผลทีละข้อ แล้วนับจำนวนข้อที่ผ่านและไม่ผ่าน
+    if ok:
+        passed += 1
+        print("[PASS] ", label)
+    else:
+        failed += 1
+        print("[FAIL] ", label)
+
+func _initialize() -&gt; void:
+    var game_name: String = ProjectSettings.get_setting("application/config/name", "")
+    var version: String = ProjectSettings.get_setting("application/config/version", "")
+    print("Smoke test: %s v%s" % [game_name, version])
+
+    # 1) ต้องตั้งเลขเวอร์ชันก่อนปล่อยเกม
+    check(not version.is_empty(), "ตั้งเลขเวอร์ชันใน Project Settings แล้ว")
+
+    # 2) Main Scene ต้องมีอยู่จริง ไม่อย่างนั้นไฟล์ .exe จะเปิดขึ้นมาแล้วไม่มีอะไรเลย
+    var main_scene: String = ProjectSettings.get_setting("application/run/main_scene", "")
+    check(ResourceLoader.exists(main_scene), "ตั้ง Main Scene และไฟล์มีอยู่จริง")
+
+    # 3) ทุก Action ที่โค้ดเรียกใช้ต้องมีอยู่ใน Input Map
+    for action in REQUIRED_ACTIONS:
+        check(InputMap.has_action(action), "Input Action: " + action)
+
+    # 4) ทุก Scene ต้องโหลดได้ (จับไฟล์ที่ถูกย้าย ลบ หรือเปลี่ยนชื่อ)
+    for path in REQUIRED_SCENES:
+        check(load(path) is PackedScene, "โหลด Scene ได้: " + path.get_file())
+
+    # 5) ทุก Script ใน res://scripts/ ต้องไม่มี Parse Error
+    # (Scene ยังโหลดผ่านได้แม้ Script ที่แนบอยู่จะเสีย จึงต้องตรวจแยก)
+    var broken: Array[String] = []
+    for file in DirAccess.get_files_at("res://scripts"):
+        if file.ends_with(".gd"):
+            var script := load("res://scripts/" + file) as GDScript
+            if script == null or not script.can_instantiate():
+                broken.append(file)
+    var script_label := "Script ใน res://scripts/ ไม่มี Parse Error"
+    if not broken.is_empty():
+        script_label += " (ไฟล์ที่เสีย: %s)" % ", ".join(broken)
+    check(broken.is_empty(), script_label)
+
+    # 6) ต้องเขียนและอ่านไฟล์ใน user:// ได้ แบบเดียวกับระบบ High Score
+    var config := ConfigFile.new()
+    config.set_value("progress", "high_score", 4321)
+    var save_err := config.save(TEST_SAVE_PATH)
+    var loaded := ConfigFile.new()
+    var load_err := loaded.load(TEST_SAVE_PATH)
+    var round_trip_ok: bool = save_err == OK and load_err == OK and loaded.get_value("progress", "high_score", 0) == 4321
+    check(round_trip_ok, "บันทึกและอ่านไฟล์ใน user:// ได้")
+    # ลบไฟล์ทดสอบทิ้ง ไม่ให้ปนกับไฟล์ Save จริง (savegame.cfg)
+    DirAccess.remove_absolute(TEST_SAVE_PATH)
+
+    print("สรุป: ผ่าน %d ข้อ ไม่ผ่าน %d ข้อ" % [passed, failed])
+    # Exit Code 0 = ผ่านทุกข้อ, 1 = มีข้อที่ไม่ผ่าน (ระบบ Build อัตโนมัติใช้ค่านี้ตัดสินได้)
+    quit(1 if failed &gt; 0 else 0)</code></pre>
+<pre class="code" data-env="win" data-label="PowerShell · Windows"><code class="language-powershell">cd "$env:USERPROFILE\godot-projects\star-dodger"
+&amp; "C:\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --path . --script res://tools/smoke_test.gd
+$LASTEXITCODE</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+Smoke test: Star Dodger v1.0.0
+[PASS] ตั้งเลขเวอร์ชันใน Project Settings แล้ว
+[PASS] ตั้ง Main Scene และไฟล์มีอยู่จริง
+[PASS] Input Action: move_left
+[PASS] Input Action: move_right
+[PASS] Input Action: move_up
+[PASS] Input Action: move_down
+[PASS] Input Action: pause
+[PASS] โหลด Scene ได้: main_menu.tscn
+[PASS] โหลด Scene ได้: game.tscn
+[PASS] โหลด Scene ได้: game_over.tscn
+[PASS] โหลด Scene ได้: player.tscn
+[PASS] โหลด Scene ได้: enemy.tscn
+[PASS] โหลด Scene ได้: star.tscn
+[PASS] โหลด Scene ได้: hud.tscn
+[PASS] Script ใน res://scripts/ ไม่มี Parse Error
+[PASS] บันทึกและอ่านไฟล์ใน user:// ได้
+สรุป: ผ่าน 16 ข้อ ไม่ผ่าน 0 ข้อ
+0</code></pre>
+<h5>2) Playtest อัตโนมัติ</h5>
+<p>สคริปต์นี้เปิดเมนูหลักจริง กด Enter เข้าเกม บังคับยาน วางดาวและศัตรูในตำแหน่งที่ต้องการ กด Pause แล้วตรวจผลทีละข้อ บันทึกเป็น <code>res://tools/playtest.gd</code></p>
+<pre class="code" data-env="app" data-label="GDScript · Godot Editor"><code class="language-python">extends SceneTree
+# Playtest อัตโนมัติ: เปิดเกมจริงแบบ headless จำลองการกดปุ่ม แล้วตรวจกติกาหลักของเกม
+# รันด้วย --headless --path . --fixed-fps 60 --script res://tools/playtest.gd
+
+const ENEMY_SCENE: PackedScene = preload("res://scenes/enemy.tscn")
+const STAR_SCENE: PackedScene = preload("res://scenes/star.tscn")
+const SAVE_PATH := "user://savegame.cfg"
+
+var passed: int = 0
+var failed: int = 0
+var state: Node  # Autoload GameState (สคริปต์ --script ใช้ชื่อ Autoload ตรงๆ ไม่ได้ จึงดึงจาก root)
+var game: Node
+var player: Player
+var backup: String = ""  # เนื้อหาไฟล์ Save จริงของผู้เล่น เก็บไว้คืนตอนจบ
+var finished: bool = false
+
+
+func check(ok: bool, label: String) -&gt; void:
+    if ok:
+        passed += 1
+        print("[PASS] ", label)
+    else:
+        failed += 1
+        print("[FAIL] ", label)
+
+
+func _initialize() -&gt; void:
+    # กันค้าง: ถ้าไม่จบภายใน 30 วินาทีของเวลาในเกม ให้ถือว่าไม่ผ่านแล้วออกเลย
+    create_timer(30.0).timeout.connect(_on_watchdog_timeout)
+    # รอให้ SceneTree และ Autoload พร้อมก่อน แล้วค่อยเริ่มเล่น
+    _run.call_deferred()
+
+
+func _run() -&gt; void:
+    print("Playtest: Star Dodger")
+    seed(2026)  # ล็อกค่าสุ่ม ความเร็วศัตรูจะเหมือนเดิมทุกครั้งที่รัน
+    state = root.get_node("GameState")
+    # เก็บไฟล์ Save จริงไว้ก่อน แล้วจำลองว่าเป็นผู้เล่นใหม่ (สถิติ 0) ตอนจบจะคืนไฟล์เดิมให้
+    backup = FileAccess.get_file_as_string(SAVE_PATH)
+    state.high_score = 0
+
+    # 1) เมนูหลัก: ปุ่ม Play ได้ Focus อยู่แล้ว กด Enter (ui_accept) ต้องเข้าฉากเกม
+    change_scene_to_file("res://scenes/main_menu.tscn")
+    await _wait_physics(2)
+    _tap_action("ui_accept")
+    await _wait_physics(3)
+    check(current_scene.name == "Game", "กด Enter ที่เมนูหลักแล้วเข้าฉากเกม (scene = %s)" % current_scene.name)
+    game = current_scene
+    player = game.get_node("Player") as Player
+    # หยุดการเกิดศัตรูและดาวแบบสุ่ม เพื่อจัดสถานการณ์ทดสอบเอง
+    (game.get_node("SpawnTimer") as Timer).stop()
+    (game.get_node("StarTimer") as Timer).stop()
+
+    # 2) กดขวาค้าง 2 วินาที (120 เฟรม) ยานต้องหยุดที่ขอบขวา 1152 - 25 = 1127
+    Input.action_press("move_right")
+    await _wait_physics(120)
+    Input.action_release("move_right")
+    check(is_equal_approx(player.position.x, 1127.0), "กดขวาค้าง 2 วินาที ยานหยุดที่ขอบจอ (x = %.1f)" % player.position.x)
+
+    # 3) วางดาวทับยาน คะแนนต้องเพิ่ม 10
+    var star := STAR_SCENE.instantiate() as Star
+    star.position = player.position
+    star.collected.connect(state.add_score)
+    game.get_node("Stars").add_child(star)
+    await _wait_physics(3)
+    check(state.score == 10, "เก็บดาว 1 ดวง ได้ 10 คะแนน (score = %d)" % state.score)
+
+    # 4) กด Pause แล้วศัตรูต้องหยุดนิ่ง กดอีกครั้งต้องเล่นต่อ และตกพ้นจอแล้วต้องถูกลบ
+    var enemy := _spawn_enemy(Vector2(300.0, 100.0))
+    _tap_action("pause")
+    await _wait_physics(30)
+    var y_paused := enemy.position.y
+    await _wait_physics(30)
+    check(paused and is_equal_approx(enemy.position.y, y_paused), "Pause แล้วศัตรูหยุดนิ่ง (y = %.1f)" % enemy.position.y)
+    _tap_action("pause")
+    await _wait_physics(30)
+    check(not paused and enemy.position.y &gt; y_paused, "Resume แล้วศัตรูเคลื่อนที่ต่อ (y = %.1f)" % enemy.position.y)
+    await _wait_physics(150)
+    check(not is_instance_valid(enemy), "ศัตรูที่ตกพ้นจอถูกลบทิ้ง (เหลือ %d ตัว)" % game.get_node("Enemies").get_child_count())
+
+    # 5) โดนชนเสีย 1 ชีวิต และโดนซ้ำทันทีต้องไม่เสียเพิ่ม (อมตะ 1 วินาที)
+    _spawn_enemy(player.position)
+    await _wait_physics(3)
+    check(state.lives == 2, "โดนศัตรู เสีย 1 ชีวิต (lives = %d)" % state.lives)
+    _spawn_enemy(player.position)
+    await _wait_physics(3)
+    check(state.lives == 2, "โดนซ้ำระหว่างอมตะ ชีวิตไม่ลด (lives = %d)" % state.lives)
+
+    # 6) โดนอีก 2 ครั้ง (เว้นให้พ้นช่วงอมตะ) ต้องไปหน้า Game Over และบันทึก High Score
+    for i in 2:
+        await _wait_physics(70)
+        if is_instance_valid(player):  # ถ้าเกมจบไปก่อนแล้ว ยานจะถูกลบไปพร้อม Scene
+            _spawn_enemy(player.position)
+    await _wait_physics(90)
+    check(current_scene.name == "GameOver", "ชีวิตหมดแล้วไปหน้า Game Over (scene = %s)" % current_scene.name)
+    var save := ConfigFile.new()
+    save.load(SAVE_PATH)
+    var saved_best: int = save.get_value("progress", "high_score", -1)
+    check(state.is_new_high_score and saved_best == 10, "High Score ใหม่ถูกบันทึกลงไฟล์ (high_score = %d)" % saved_best)
+
+    _finish()
+
+
+func _on_watchdog_timeout() -&gt; void:
+    if not finished:
+        check(false, "Playtest จบภายใน 30 วินาที")
+        _finish()
+
+
+func _finish() -&gt; void:
+    finished = true
+    # คืนไฟล์ Save เดิมของผู้เล่น
+    var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+    file.store_string(backup)
+    file.close()
+    print("สรุป: ผ่าน %d ข้อ ไม่ผ่าน %d ข้อ" % [passed, failed])
+    # ปิด Scene แล้วรอให้ระบบเสียงคืนหน่วยความจำ (เกมในโหมดนี้วิ่งเร็วกว่าเวลาจริงมาก) ก่อนออก
+    if current_scene:
+        current_scene.queue_free()
+    await _wait_physics(2)
+    OS.delay_msec(250)
+    quit(1 if failed &gt; 0 else 0)
+
+
+func _spawn_enemy(pos: Vector2) -&gt; Node2D:
+    var enemy := ENEMY_SCENE.instantiate() as Node2D
+    enemy.position = pos
+    game.get_node("Enemies").add_child(enemy)
+    return enemy
+
+
+func _tap_action(action: String) -&gt; void:
+    # ส่ง InputEvent เข้าระบบจริง ปุ่มที่มี Focus และ _unhandled_input ของ HUD จึงเห็นการกด
+    var press := InputEventAction.new()
+    press.action = action
+    press.pressed = true
+    Input.parse_input_event(press)
+    var release := InputEventAction.new()
+    release.action = action
+    release.pressed = false
+    Input.parse_input_event(release)
+
+
+func _wait_physics(frames: int) -&gt; void:
+    for i in frames:
+        await physics_frame</code></pre>
+<pre class="code" data-env="win" data-label="PowerShell · Windows"><code class="language-powershell">&amp; "C:\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --path . --fixed-fps 60 --script res://tools/playtest.gd
+$LASTEXITCODE</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+Playtest: Star Dodger
+[PASS] กด Enter ที่เมนูหลักแล้วเข้าฉากเกม (scene = Game)
+[PASS] กดขวาค้าง 2 วินาที ยานหยุดที่ขอบจอ (x = 1127.0)
+[PASS] เก็บดาว 1 ดวง ได้ 10 คะแนน (score = 10)
+[PASS] Pause แล้วศัตรูหยุดนิ่ง (y = 104.0)
+[PASS] Resume แล้วศัตรูเคลื่อนที่ต่อ (y = 219.5)
+[PASS] ศัตรูที่ตกพ้นจอถูกลบทิ้ง (เหลือ 0 ตัว)
+[PASS] โดนศัตรู เสีย 1 ชีวิต (lives = 2)
+[PASS] โดนซ้ำระหว่างอมตะ ชีวิตไม่ลด (lives = 2)
+[PASS] ชีวิตหมดแล้วไปหน้า Game Over (scene = GameOver)
+[PASS] High Score ใหม่ถูกบันทึกลงไฟล์ (high_score = 10)
+สรุป: ผ่าน 10 ข้อ ไม่ผ่าน 0 ข้อ
+0</code></pre>
+<p>ผลนี้ได้จากการรันจริงสองรอบติดกันและได้ตัวเลขตรงกันทุกบรรทัด เพราะมีกลไกสามอย่างที่ทำให้ผลคงที่</p>
+<ul>
+  <li><code>--fixed-fps 60</code> ทำให้ทุกเฟรมยาว 1/60 วินาทีพอดี ไม่ขึ้นกับความเร็วเครื่อง 120 เฟรมจึงเท่ากับ 2 วินาทีของเกมเสมอ และการทดสอบจบเร็วกว่าเวลาจริงมาก</li>
+  <li><code>seed(2026)</code> ล็อกลำดับของค่าสุ่ม ศัตรูจึงได้ความเร็วเดิมทุกครั้ง ค่า y ในบรรทัด Pause และ Resume จึงซ้ำได้</li>
+  <li>ปุ่มที่กดค้างใช้ <code>Input.action_press()</code> ส่วนปุ่มที่กดครั้งเดียวต้องส่ง <code>InputEventAction</code> ผ่าน <code>Input.parse_input_event()</code> เพราะปุ่มที่มี Focus และ <code>_unhandled_input()</code> ของ HUD รับเฉพาะ InputEvent</li>
+</ul>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ในสคริปต์ที่รันด้วย <code>--script</code> ห้ามเขียน <code>GameState.score</code> ตรงๆ เพราะสคริปต์ถูก Compile ก่อน Autoload ถูกลงทะเบียน ผลจริงคือ <code>SCRIPT ERROR: Compile Error: Identifier not found: GameState</code> และสคริปต์ไม่ทำงานเลย ให้ดึง Node ด้วย <code>root.get_node("GameState")</code> แทน และ Playtest นี้เขียนไฟล์ Save จริง จึงต้องสำรองเนื้อหาไว้ก่อนแล้วคืนให้ตอนจบเสมอ</p></div>
+<p>พิสูจน์ว่า Playtest จับบั๊กได้จริง: แก้บรรทัด <code>if not invincible_timer.is_stopped():</code> ใน <code>player.gd</code> ชั่วคราวเป็น <code>if false and not invincible_timer.is_stopped():</code> (เงื่อนไขเป็นเท็จเสมอ เท่ากับปิดช่วงอมตะ) แล้วรันคำสั่งเดิม ส่วนท้ายของผลลัพธ์เป็นดังนี้</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[PASS] โดนศัตรู เสีย 1 ชีวิต (lives = 2)
+[FAIL] โดนซ้ำระหว่างอมตะ ชีวิตไม่ลด (lives = 1)
+[PASS] ชีวิตหมดแล้วไปหน้า Game Over (scene = GameOver)
+[PASS] High Score ใหม่ถูกบันทึกลงไฟล์ (high_score = 10)
+สรุป: ผ่าน 9 ข้อ ไม่ผ่าน 1 ข้อ
+1</code></pre>
+<p>Exit Code เป็น 1 ระบบ Build อัตโนมัติจะหยุดก่อน Export ได้ทันที ทดสอบเสร็จแล้วอย่าลืมแก้บรรทัดนั้นกลับเหมือนเดิม และสังเกตว่าเมื่อเกมจบเร็วกว่าที่คาด สคริปต์ยังไปต่อจนสรุปผลได้ เพราะเช็ก <code>is_instance_valid(player)</code> ก่อนใช้ และมี Watchdog 30 วินาทีกันค้าง</p>
+<h5>3) ตรวจไฟล์ Save</h5>
+<p>ไฟล์ <code>user://savegame.cfg</code> บน Windows อยู่ที่ <code>%APPDATA%\Godot\app_userdata\Star Dodger\</code> (เปิดโฟลเดอร์นี้จากเมนู Project &gt; Open User Data Folder ได้) หลังเปิดเกมครั้งแรกโดยยังไม่ทำคะแนน ไฟล์จะมีค่าตั้งต้นครบ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">SAVE="/mnt/c/Users/somchai/AppData/Roaming/Godot/app_userdata/Star Dodger/savegame.cfg"
+cat "$SAVE"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[progress]
+
+high_score=0
+
+[settings]
+
+screen_shake=true
+music_volume=0.8
+sfx_volume=1.0</code></pre>
+<p>ทดสอบกรณีไฟล์เสีย: สำรองไฟล์ไว้ก่อน แล้วเขียนข้อมูลพังทับลงไป</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cp "$SAVE" "$SAVE.bak"
+printf '[progress]\nhigh_score = [[[\n' &gt; "$SAVE"</code></pre>
+<p>จากนั้นเปิดเกมแบบ headless 10 เฟรมจาก PowerShell เพื่อให้ SaveManager อ่านไฟล์</p>
+<pre class="code" data-env="win" data-label="PowerShell · Windows"><code class="language-powershell">&amp; "C:\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --path . --quit-after 10</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: ConfigFile parse error at user://savegame.cfg:2: Expected value, got 'EOF'.
+   at: _parse (core/io/config_file.cpp:293)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/save_manager.gd:16)
+WARNING: ไฟล์ Save เสีย (Parse error) จึงใช้ค่าตั้งต้นแทน
+     at: push_warning (core/variant/variant_utility.cpp:1033)
+     GDScript backtrace (most recent call first):
+         [0] _ready (res://scripts/save_manager.gd:20)</code></pre>
+<p>เกมไม่ Crash ได้แค่คำเตือน และเขียนไฟล์ใหม่ด้วยค่าตั้งต้นทันที ลอง <code>cat "$SAVE"</code> อีกครั้งจะเห็นเนื้อหาเหมือนผลลัพธ์ก่อนหน้า เสร็จแล้วคืนไฟล์เดิมด้วย <code>mv "$SAVE.bak" "$SAVE"</code></p>
+<h5>4) เล่นจริงตามรายการตรวจ</h5>
+<ol>
+  <li>กด <kbd>F5</kbd> หน้าเมนูแสดง BEST และกด Enter เพื่อเริ่มได้โดยไม่แตะเมาส์</li>
+  <li>บังคับยานด้วย WASD ปุ่มลูกศร และจอย (ถ้ามี) ได้ครบ 8 ทิศ ยานออกนอกจอไม่ได้</li>
+  <li>เก็บดาวแล้วคะแนนเพิ่ม 10 ดาวเด้ง มีประกาย และมีเสียง</li>
+  <li>โดนชนแล้วชีวิตลด 1 ยานเป็นสีแดงแล้วกะพริบ จอสั่น และเกมหยุดนิ่งชั่วพริบตา (Hitstop)</li>
+  <li>กด Esc หรือ P แล้วศัตรูหยุด เพลงยังเล่นต่อ เปิดปิด Screen Shake แล้วปิดเกมเปิดใหม่ ค่าที่ตั้งต้องยังอยู่</li>
+  <li>ชีวิตหมดแล้วไปหน้า Game Over ในเวลาประมาณ 1 วินาที ถ้าทำลายสถิติจะเห็น New High Score! กะพริบ</li>
+  <li>กด Retry แล้วเริ่มใหม่ด้วย 3 ชีวิต และคะแนน 0</li>
+  <li>เล่นต่อเนื่อง 2 นาที ศัตรูถี่ขึ้นจนท้าทาย แต่ยังหลบได้ถ้าตั้งใจ ถ้าง่ายหรือยากเกินไปให้ปรับตัวเลขในตาราง Tuning Values</li>
+</ol>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไป Step 8 ต้องผ่านครบ: Smoke Test ได้ "ผ่าน 16 ข้อ ไม่ผ่าน 0 ข้อ", Playtest ได้ "ผ่าน 10 ข้อ ไม่ผ่าน 0 ข้อ" ทั้งสองคำสั่งได้ <code>$LASTEXITCODE</code> เป็น 0 และเล่นจริงผ่านทั้ง 8 ข้อในรายการ</p></div>
+</li>
+<li>
+<h4>Step 8: Export เป็น Windows และ Web</h4>
+<p>ติดตั้ง Export Templates ก่อน: เมนู Editor &gt; Manage Export Templates &gt; Download and Install ต้องได้เวอร์ชัน <code>4.7.2.stable</code> ตรงกับ Editor ทุกตัวอักษร ถ้าเครื่องต่ออินเทอร์เน็ตไม่ได้ ให้ดาวน์โหลดไฟล์ <code>.tpz</code> จาก <a href="https://godotengine.org/download/" target="_blank" rel="noopener">godotengine.org/download</a> แล้วกด Install from File</p>
+<p>จากนั้นเปิด Project &gt; Export กด Add... แล้วสร้าง Preset สองตัว</p>
+<ul>
+  <li><strong>Windows Desktop</strong>: Export Path <code>build/windows/StarDodger.exe</code> ในแท็บ Options ตั้ง Application &gt; Product Name เป็น <code>Star Dodger</code> และ File Version กับ Product Version เป็น <code>1.0.0.0</code> ปล่อย Embed PCK ไว้แบบปิด จะได้ไฟล์ .exe คู่กับ .pck</li>
+  <li><strong>Web</strong>: Export Path <code>build/web/index.html</code> ใน Variant ปิด Thread Support และ Extensions Support ส่วน VRAM Texture Compression เปิด For Desktop และปิด For Mobile</li>
+  <li>ทั้งสอง Preset: แท็บ Resources ช่อง Filters to exclude files/folders ใส่ <code>tools/*</code> เพื่อไม่ให้สคริปต์ทดสอบติดไปกับเกม</li>
+</ul>
+<p>Editor จะบันทึกลงไฟล์ <code>export_presets.cfg</code> ซึ่งมีบรรทัดค่าตั้งต้นอีกจำนวนมาก บรรทัดที่สำคัญมีเท่านี้ ไฟล์ด้านล่างเป็นฉบับย่อที่ผ่านการ Export จริงด้วย <code>--export-release</code> แล้ว</p>
+<pre class="code" data-env="file" data-label="INI · export_presets.cfg"><code class="language-ini">[preset.0]
+
+name="Windows Desktop"
+platform="Windows Desktop"
+runnable=true
+export_filter="all_resources"
+include_filter=""
+exclude_filter="tools/*"
+export_path="build/windows/StarDodger.exe"
+
+[preset.0.options]
+
+binary_format/embed_pck=false
+application/product_name="Star Dodger"
+application/file_version="1.0.0.0"
+application/product_version="1.0.0.0"
+
+[preset.1]
+
+name="Web"
+platform="Web"
+runnable=true
+export_filter="all_resources"
+include_filter=""
+exclude_filter="tools/*"
+export_path="build/web/index.html"
+
+[preset.1.options]
+
+variant/extensions_support=false
+variant/thread_support=false
+vram_texture_compression/for_desktop=true
+vram_texture_compression/for_mobile=false</code></pre>
+<p>Export จาก Editor ได้ด้วยปุ่ม Export Project (เอาเครื่องหมายที่ Export With Debug ออก) หรือสั่งจาก PowerShell โดยไม่ต้องเปิด Editor ซึ่งเหมาะกับการทำซ้ำทุกเวอร์ชัน</p>
+<pre class="code" data-env="win" data-label="PowerShell · Windows"><code class="language-powershell">cd "$env:USERPROFILE\godot-projects\star-dodger"
+New-Item -ItemType Directory -Force -Path "build\windows", "build\web" | Out-Null
+&amp; "C:\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --path . --export-release "Windows Desktop" "build/windows/StarDodger.exe"
+&amp; "C:\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --path . --export-release "Web" "build/web/index.html"</code></pre>
+<p>ดูผลจาก WSL</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd /mnt/c/Users/somchai/godot-projects/star-dodger
+ls -lh build/windows build/web</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>build/web:
+total 39M
+-rwxrwxrwx 1 somchai somchai 5.6K Oct 19 11:20 index.apple-touch-icon.png
+-rwxrwxrwx 1 somchai somchai 3.0K Oct 19 11:20 index.audio.position.worklet.js
+-rwxrwxrwx 1 somchai somchai 7.2K Oct 19 11:20 index.audio.worklet.js
+-rwxrwxrwx 1 somchai somchai 5.4K Oct 19 11:20 index.html
+-rwxrwxrwx 1 somchai somchai 2.8K Oct 19 11:20 index.icon.png
+-rwxrwxrwx 1 somchai somchai 274K Oct 19 11:20 index.js
+-rwxrwxrwx 1 somchai somchai 498K Oct 19 11:20 index.pck
+-rwxrwxrwx 1 somchai somchai  21K Oct 19 11:20 index.png
+-rwxrwxrwx 1 somchai somchai  38M Oct 19 11:20 index.wasm
+
+build/windows:
+total 105M
+-rwxrwxrwx 1 somchai somchai 105M Oct 19 11:20 StarDodger.exe
+-rwxrwxrwx 1 somchai somchai 498K Oct 19 11:20 StarDodger.pck</code></pre>
+<p class="muted small">ขนาดได้จากการ Export จริง ไฟล์ .pck ของคุณจะใหญ่กว่านี้เล็กน้อย เพราะภาพจาก Kenney มีรายละเอียดมากกว่าภาพทดสอบ ส่วนวันเวลาจะต่างตามเครื่อง</p>
+<p>ไฟล์ .exe ขนาดราว 104 MiB (คำสั่ง <code>ls -lh</code> ปัดขึ้นเป็น 105M) คือตัว Engine ซึ่งเท่ากันทุกเกม ส่วนเกมของเราจริงๆ คือ .pck ไม่ถึง 1 MB (Scene, Script และ Asset ที่ Import แล้ว) เวอร์ชัน Web ก็เช่นกัน <code>index.wasm</code> คือ Engine ที่ Compile เป็น WebAssembly ส่วน <code>index.pck</code> คือเกม</p>
+<p>ทดสอบเวอร์ชัน Windows ด้วยการดับเบิลคลิก <code>StarDodger.exe</code> (ไฟล์ .pck ต้องอยู่โฟลเดอร์เดียวกัน) ส่วนเวอร์ชัน Web ต้องเปิดผ่าน Web Server เพราะ Browser ไม่ยอมโหลดไฟล์ .wasm และ .pck จาก <code>file://</code> ใช้ Server ที่มากับ Python ได้เลย</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd /mnt/c/Users/somchai/godot-projects/star-dodger/build/web
+python3 -m http.server 8000</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...</code></pre>
+<p>เปิด Chrome หรือ Edge บน Windows ไปที่ <code>http://localhost:8000</code> คลิกที่เกมหนึ่งครั้ง (Browser อนุญาตให้เล่นเสียงหลังผู้ใช้คลิกเท่านั้น) แล้วเล่นตามรายการตรวจใน Step 7 อีกรอบ เสร็จแล้วกด <kbd>Ctrl</kbd>+<kbd>C</kbd> เพื่อหยุด Server ใน Terminal จะมีบรรทัด <code>"GET /index.wasm HTTP/1.1" 200</code> ต่อท้ายทีละไฟล์ที่ Browser โหลด</p>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ตอนเปิด <code>StarDodger.exe</code> ครั้งแรก Windows อาจขึ้นหน้าต่าง "Windows protected your PC" เพราะไฟล์ไม่มี Code Signing ซึ่งเป็นเรื่องปกติของเกมอินดี้ กด More info แล้ว Run anyway ได้ ควรบอกวิธีนี้ไว้ในหน้าเกมด้วย และถ้า Export ไม่ผ่านพร้อมข้อความว่าไม่พบ Export Template ให้ตรวจว่าติดตั้งเวอร์ชันตรงกับ Editor และชื่อ Preset ในคำสั่งตรงกับในไฟล์ <code>export_presets.cfg</code></p></div>
+</li>
+
+<li>
+<h4>Step 9: ขึ้น GitHub และปล่อยเวอร์ชัน 1.0.0</h4>
+<p>ขั้นนี้ใช้ความรู้จากหัวข้อ <a data-t="17"></a> แทนที่ <code>.gitignore</code> และ <code>.gitattributes</code> ที่ Godot สร้างด้วยฉบับนี้ ซึ่งเพิ่ม <code>build/</code> และมีคำอธิบายภาษาไทย</p>
+<pre class="code" data-env="file" data-label="Git · .gitignore"><code class="language-plaintext"># ไฟล์ Cache ที่ Godot สร้างใหม่ได้เองทุกครั้งที่เปิดโปรเจกต์
+.godot/
+# ไฟล์ Android Build Template (ใช้เมื่อ Export Android แบบ Gradle)
+/android/
+# ไฟล์เกมที่ Export ออกมา เก็บไว้ใน GitHub Releases หรือ itch.io แทน
+build/</code></pre>
+<pre class="code" data-env="file" data-label="Git · .gitattributes"><code class="language-plaintext"># ให้ Git เก็บไฟล์ข้อความด้วยปลายบรรทัดแบบ LF เสมอ ไม่ว่าจะแก้บน Windows หรือ WSL
+* text=auto eol=lf</code></pre>
+<p>สร้างโฟลเดอร์ <code>docs</code> พร้อมไฟล์ว่าง <code>.gdignore</code> ซึ่งบอก Godot ว่าไม่ต้อง Import โฟลเดอร์นี้ ภาพหน้าจอจะได้ไม่ถูกรวมเข้าไปในเกม จากนั้นเปิดเกม กด <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> จับภาพตอนเล่น แล้วบันทึกเป็น <code>docs\screenshot.png</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd /mnt/c/Users/somchai/godot-projects/star-dodger
+mkdir -p docs
+touch docs/.gdignore</code></pre>
+<p>README คือหน้าแรกที่ผู้สัมภาษณ์เห็น ใช้แม่แบบนี้แล้วแก้ลิงก์ ชื่อผู้ใช้ และหัวข้อ "สิ่งที่ได้เรียนรู้" ให้เป็นของคุณเอง</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Markdown · README.md"><code class="language-markdown"># Star Dodger
+
+เกม Arcade 2D มุมมองจากด้านบน ธีมอวกาศ บังคับยานหลบศัตรูที่ตกลงมาถี่ขึ้นเรื่อยๆ และเก็บดาวเพื่อทำคะแนนให้สูงที่สุด สร้างด้วย Godot 4.7.2 และ GDScript
+
+- **เล่นบน Browser:** https://somchai.itch.io/star-dodger
+- **ดาวน์โหลดสำหรับ Windows:** หน้า [Releases](https://github.com/somchai/star-dodger/releases)
+
+![ภาพหน้าจอ Star Dodger](docs/screenshot.png)
+
+## วิธีเล่น
+
+| ปุ่ม | การทำงาน |
+|---|---|
+| WASD, ปุ่มลูกศร หรือ Left Stick | บังคับยาน 8 ทิศ |
+| Esc หรือ P | Pause และเล่นต่อ |
+| Enter | กดปุ่มที่เลือกอยู่ในเมนู |
+
+เริ่มด้วย 3 ชีวิต เก็บดาวได้ดวงละ 10 คะแนน ชนศัตรูเสีย 1 ชีวิตแล้วอมตะ 1 วินาที ชีวิตหมดคือจบเกม High Score ถูกบันทึกไว้ในเครื่องของผู้เล่น
+
+## ฟีเจอร์
+
+- เมนูหลัก เมนู Pause และหน้า Game Over ใช้คีย์บอร์ดหรือจอยได้โดยไม่ต้องใช้เมาส์
+- ศัตรูเกิดถี่ขึ้นเรื่อยๆ: เริ่มทุก 1.2 วินาที เร็วขึ้น 3% ต่อตัว จนถึง 0.35 วินาที
+- บันทึก High Score และการตั้งค่าด้วย ConfigFile ที่ `user://savegame.cfg` ถ้าไฟล์เสียจะกลับไปใช้ค่าตั้งต้นเอง
+- Game Feel: Screen Shake (ปิดได้ในเมนู Pause), Hit Flash, Hitstop, ดาวเด้งด้วย Tween และ Particle
+- เสียงแยก Bus เป็น Music และ SFX พร้อมสุ่ม Pitch ให้เสียงไม่ซ้ำ
+- มีทั้งเวอร์ชัน Windows และ Web
+
+## เทคโนโลยี
+
+- Godot Engine 4.7.2 (Standard) ใช้ Renderer แบบ Compatibility
+- GDScript แบบ Static Typing และ Autoload 2 ตัว (`GameState`, `SaveManager`)
+- Smoke Test และ Playtest อัตโนมัติที่รันแบบ `--headless`
+
+## รันจาก Source Code
+
+1. ติดตั้ง Godot 4.7.2 จาก https://godotengine.org/download/
+2. `git clone https://github.com/somchai/star-dodger.git`
+3. เปิด Godot กด Import แล้วเลือกไฟล์ `project.godot`
+4. กด F5 เพื่อเล่น
+
+## ทดสอบ
+
+```powershell
+&amp; "C:\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --path . --script res://tools/smoke_test.gd
+&amp; "C:\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --path . --fixed-fps 60 --script res://tools/playtest.gd
+```
+
+ผ่านเมื่อบรรทัดสุดท้ายเป็น `ไม่ผ่าน 0 ข้อ` และ Exit Code เป็น 0
+
+## สิ่งที่ได้เรียนรู้
+
+- เก็บข้อมูลของรอบที่เล่นไว้ใน Autoload แล้วให้ HUD อัปเดตผ่าน Signal ทำให้แต่ละ Scene ไม่ผูกกันแน่นเกินไป
+- `VisibleOnScreenNotifier2D` ไม่ส่ง `screen_exited` เมื่อรันแบบ `--headless` จึงเพิ่มเงื่อนไขลบศัตรูสำรอง ปัญหานี้เจอได้เพราะมี Playtest อัตโนมัติ
+- Hitstop ที่ใช้ `Engine.time_scale` ต้องคืนค่าเป็น 1.0 เสมอ แม้ผู้เล่นจะออกจาก Scene กลางคัน
+
+## เครดิต
+
+- ภาพยาน ศัตรู ดาว และฟอนต์: [Space Shooter Redux](https://kenney.nl/assets/space-shooter-redux) โดย Kenney (CC0)
+- เสียงและเพลง: สร้างด้วยสคริปต์ Python `make_placeholder_audio.py`
+
+## License
+
+โค้ดใช้สัญญาอนุญาต MIT (ดูไฟล์ `LICENSE`) ส่วน Asset ของ Kenney เป็น CC0</code></pre>
+<pre class="code" data-env="file" data-label="Markdown · CHANGELOG.md"><code class="language-markdown"># Changelog
+
+บันทึกการเปลี่ยนแปลงของ Star Dodger รูปแบบตาม Keep a Changelog และเลขเวอร์ชันแบบ Semantic Versioning
+
+## [1.0.0] - 2026-10-19
+
+### Added
+- เมนูหลักพร้อม High Score ที่บันทึกไว้ และปุ่ม Play กับ Quit
+- ยานผู้เล่นเดิน 8 ทิศ อยู่ในจอเสมอ และอมตะ 1 วินาทีหลังโดนชน
+- ศัตรูที่เกิดถี่ขึ้นเรื่อยๆ และดาวที่เก็บได้ดวงละ 10 คะแนน
+- HUD แสดง Score, Best และ Lives พร้อมเมนู Pause (Esc หรือ P)
+- บันทึก High Score และการตั้งค่าใน user://savegame.cfg
+- Screen Shake (ปิดได้ในเมนู Pause), Hit Flash, Hitstop และ Particle ตอนเก็บดาว
+- Export เป็น Windows และ Web</code></pre>
+<pre class="code" data-env="file" data-label="Text · LICENSE"><code class="language-plaintext">MIT License
+
+Copyright (c) 2026 Somchai
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</code></pre>
+<p>ใส่วันที่ใน CHANGELOG ให้ตรงกับวันที่ปล่อยจริง จากนั้นสร้าง Repository และ Commit แรก</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd /mnt/c/Users/somchai/godot-projects/star-dodger
+git init -b main
+git add .
+git status --short</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Initialized empty Git repository in /mnt/c/Users/somchai/godot-projects/star-dodger/.git/
+A  .gitattributes
+A  .gitignore
+A  CHANGELOG.md
+A  LICENSE
+A  README.md
+A  assets/audio/music_loop.ogg
+A  assets/audio/music_loop.ogg.import
+A  assets/audio/sfx_game_over.wav
+A  assets/audio/sfx_game_over.wav.import
+A  assets/audio/sfx_hit.wav
+A  assets/audio/sfx_hit.wav.import
+A  assets/audio/sfx_pickup.wav
+A  assets/audio/sfx_pickup.wav.import
+A  assets/fonts/kenvector_future.ttf
+A  assets/fonts/kenvector_future.ttf.import
+A  assets/sprites/enemy.png
+A  assets/sprites/enemy.png.import
+A  assets/sprites/player_ship.png
+A  assets/sprites/player_ship.png.import
+A  assets/sprites/star.png
+A  assets/sprites/star.png.import
+A  default_bus_layout.tres
+A  docs/.gdignore
+A  docs/screenshot.png
+A  export_presets.cfg
+A  icon.svg
+A  icon.svg.import
+A  project.godot
+A  scenes/enemy.tscn
+A  scenes/game.tscn
+A  scenes/game_over.tscn
+A  scenes/hud.tscn
+A  scenes/main_menu.tscn
+A  scenes/player.tscn
+A  scenes/star.tscn
+A  scripts/audio_settings.gd
+A  scripts/audio_settings.gd.uid
+A  scripts/enemy.gd
+A  scripts/enemy.gd.uid
+A  scripts/game.gd
+A  scripts/game.gd.uid
+A  scripts/game_over.gd
+A  scripts/game_over.gd.uid
+A  scripts/game_state.gd
+A  scripts/game_state.gd.uid
+A  scripts/hud.gd
+A  scripts/hud.gd.uid
+A  scripts/main_menu.gd
+A  scripts/main_menu.gd.uid
+A  scripts/player.gd
+A  scripts/player.gd.uid
+A  scripts/save_manager.gd
+A  scripts/save_manager.gd.uid
+A  scripts/shake_camera.gd
+A  scripts/shake_camera.gd.uid
+A  scripts/star.gd
+A  scripts/star.gd.uid
+A  tools/playtest.gd
+A  tools/playtest.gd.uid
+A  tools/smoke_test.gd
+A  tools/smoke_test.gd.uid</code></pre>
+<p>ตรวจรายการให้ดี ต้องมีไฟล์ <code>.import</code> และ <code>.uid</code> ครบ (รวม 61 ไฟล์) และต้องไม่มี <code>.godot/</code> กับ <code>build/</code> ถ้าถูกต้องแล้วจึง Commit</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git commit -q -m "Star Dodger 1.0.0: เกมครบทุกฟีเจอร์ พร้อม Smoke Test และ Playtest"
+git log --oneline</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>73e7882 Star Dodger 1.0.0: เกมครบทุกฟีเจอร์ พร้อม Smoke Test และ Playtest</code></pre>
+<p class="muted small">Commit Hash ในเครื่องของคุณจะต่างจากนี้</p>
+<p>สร้าง Repository ชื่อ <code>star-dodger</code> บน GitHub แบบ Public โดยไม่ติ๊กให้สร้าง README, .gitignore หรือ License เพราะเรามีครบแล้ว แล้วส่งโค้ดขึ้นไป ถ้าติดตั้ง GitHub CLI ไว้ ใช้คำสั่ง <code>gh</code> บรรทัดเดียวแทนทั้งสองบรรทัดได้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># วิธีที่ 1: สร้าง Repository บนเว็บ GitHub ก่อน แล้วเชื่อมกับเครื่อง
+git remote add origin https://github.com/somchai/star-dodger.git
+git push -u origin main
+# วิธีที่ 2: ใช้ GitHub CLI สร้าง Repository และ Push ในคำสั่งเดียว
+gh repo create star-dodger --public --source=. --remote=origin --push</code></pre>
+<p>ถ้าใช้วิธีที่ 1 เมื่อ Push สำเร็จ บรรทัดท้ายของผลลัพธ์จะบอกว่า <code>branch 'main' set up to track 'origin/main'.</code> ขั้นต่อไปคือปล่อยเวอร์ชัน: บีบอัดไฟล์ Export เป็น zip ที่มีเลขเวอร์ชันในชื่อ ไฟล์ <code>index.html</code> ต้องอยู่ชั้นบนสุดของ zip เพราะ itch.io จะเปิดไฟล์ชื่อนี้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd /mnt/c/Users/somchai/godot-projects/star-dodger/build
+# วงเล็บทำให้ cd มีผลแค่ในคำสั่งนั้น ไฟล์ใน zip จึงไม่มีโฟลเดอร์ web/ ซ้อนอยู่
+(cd web &amp;&amp; zip -q -r ../StarDodger-v1.0.0-web.zip .)
+(cd windows &amp;&amp; zip -q -r ../StarDodger-v1.0.0-windows.zip .)
+ls -l *.zip
+unzip -l StarDodger-v1.0.0-web.zip</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>-rwxrwxrwx 1 somchai somchai 10715118 Oct 19 11:25 StarDodger-v1.0.0-web.zip
+-rwxrwxrwx 1 somchai somchai 38515721 Oct 19 11:25 StarDodger-v1.0.0-windows.zip
+Archive:  StarDodger-v1.0.0-web.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+     5650  2026-10-19 11:20   index.apple-touch-icon.png
+ 39514754  2026-10-19 11:20   index.wasm
+     7298  2026-10-19 11:20   index.audio.worklet.js
+    21443  2026-10-19 11:20   index.png
+   509128  2026-10-19 11:20   index.pck
+     5441  2026-10-19 11:20   index.html
+   279815  2026-10-19 11:20   index.js
+     2973  2026-10-19 11:20   index.audio.position.worklet.js
+     2846  2026-10-19 11:20   index.icon.png
+---------                     -------
+ 40349348                     9 files</code></pre>
+<p>ติด Tag แล้วสร้าง GitHub Release พร้อมแนบไฟล์ zip ทั้งสอง (ทำผ่านหน้าเว็บ Releases &gt; Draft a new release ตามส่วนที่ 1 ก็ได้)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd /mnt/c/Users/somchai/godot-projects/star-dodger
+git tag -a v1.0.0 -m "Star Dodger 1.0.0: เวอร์ชันแรกที่ปล่อยบน itch.io"
+git push origin v1.0.0
+gh release create v1.0.0 build/StarDodger-v1.0.0-windows.zip build/StarDodger-v1.0.0-web.zip --title "Star Dodger 1.0.0" --notes-file CHANGELOG.md</code></pre>
+<p>สุดท้ายสร้างหน้าเกมบน itch.io: ตั้ง Kind of project เป็น HTML อัปโหลด <code>StarDodger-v1.0.0-web.zip</code> แล้วติ๊ก "This file will be played in the browser" อัปโหลด <code>StarDodger-v1.0.0-windows.zip</code> แล้วติ๊ก Windows ตั้ง Viewport dimensions เป็น 1152 × 648 เปิดปุ่ม Fullscreen ใส่ภาพหน้าจอ วิธีเล่น และเครดิต Kenney เวอร์ชัน Web นี้ปิด Thread Support จึงไม่ต้องเปิดตัวเลือก SharedArrayBuffer ของ itch.io แล้วนำลิงก์หน้าเกมไปใส่ใน README</p>
+<div class="callout sec"><span class="c-label sec">Security</span><p>ห้าม Commit โฟลเดอร์ <code>build/</code> นอกจากทำให้ Repository บวม ไฟล์ <code>StarDodger.exe</code> ยังใหญ่ 104 MiB ซึ่งเกินขีดจำกัดไฟล์ละ 100 MiB ของ GitHub จน Push ไม่ผ่าน ไฟล์เกมให้แนบใน GitHub Releases หรือ itch.io เท่านั้น และอย่าใส่รหัสผ่านหรือ Key ใดๆ ลงใน <code>export_presets.cfg</code> ด้วยมือ Godot เก็บข้อมูลลับของ Export ไว้ใน <code>.godot/export_credentials.cfg</code> ซึ่งไม่ถูก Commit อยู่แล้ว</p></div>
+</li>
+</ol>
+
+<h4>ไอเดียต่อยอด</h4>
+<ul>
+  <li><strong>ศัตรูไล่ล่า</strong>: เพิ่ม <code>scenes/enemy_chaser.tscn</code> ที่ใช้ State Machine <code>enum State {IDLE, CHASE, STUNNED}</code> จาก Step 11 ของส่วนที่ 1 ให้เริ่มเกิดหลังวินาทีที่ 30</li>
+  <li><strong>ปรับระดับเสียง</strong>: ไฟล์ Save มี <code>music_volume</code> และ <code>sfx_volume</code> อยู่แล้ว เพิ่ม HSlider สองตัวในเมนู Pause ที่เรียก <code>AudioSettings.set_bus_volume()</code> และ <code>SaveManager.set_setting()</code></li>
+  <li><strong>Object Pooling</strong>: วัดด้วย Debugger &gt; Monitors ก่อน ถ้าการสร้างและลบศัตรูทำให้เฟรมกระตุกจริง ให้สร้างศัตรูเตรียมไว้ 30 ตัวแล้วหมุนเวียนใช้แทน <code>instantiate()</code> และ <code>queue_free()</code></li>
+  <li><strong>ตารางคะแนน 5 อันดับ</strong>: เก็บ Array ของคะแนนใน ConfigFile แล้วแสดงในเมนูหลัก</li>
+  <li><strong>CI อัตโนมัติ</strong>: เขียน GitHub Actions ที่ดาวน์โหลด Godot 4.7.2 แบบ Linux แล้วรัน Smoke Test กับ Playtest ทุกครั้งที่ Push ถ้า Exit Code ไม่ใช่ 0 ให้ Workflow ล้มเหลว</li>
+  <li><strong>อัปโหลดด้วย butler</strong>: ใช้เครื่องมือ butler ของ itch.io ส่งเวอร์ชันใหม่จาก Command Line แทนการอัปโหลดผ่านเว็บ</li>
+  <li><strong>มือถือ</strong>: เพิ่มปุ่มบนจอด้วย TouchScreenButton แล้ว Export เป็น Android ตามแนวทางของหัวข้อ <a data-t="18"></a></li>
+  <li><strong>Leaderboard ออนไลน์</strong>: ส่งคะแนนไปยัง API ที่เขียนเองตามหัวข้อ <a data-t="12"></a> ด้วย Node HTTPRequest และตรวจข้อมูลฝั่ง Server เสมอ เพราะผู้เล่นแก้คะแนนในเครื่องตัวเองได้</li>
+</ul>
+
+<h3 id="s3-4-cheat">Cheat Sheet</h3>
+<p>รวมคำสั่งและ Syntax ที่ใช้บ่อยที่สุดในหัวข้อนี้ จัดกลุ่มตามงาน ทุกตัวอย่างใช้ได้กับ Godot 4.7.2</p>
+
+<h4>ปุ่มลัดใน Editor</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td class="nw"><kbd>F5</kbd></td><td>รันโปรเจกต์โดยเริ่มจาก Main Scene</td><td>เล่นตั้งแต่หน้าเมนูหลัก</td></tr>
+<tr><td class="nw"><kbd>F6</kbd></td><td>รันเฉพาะ Scene ที่เปิดอยู่</td><td>ทดสอบ <code>game.tscn</code> โดยไม่ผ่านเมนู</td></tr>
+<tr><td class="nw"><kbd>F8</kbd></td><td>หยุดเกมที่กำลังรัน</td><td>ใช้แทนการปิดหน้าต่างเกม</td></tr>
+<tr><td class="nw"><kbd>Ctrl</kbd>+<kbd>A</kbd></td><td>เพิ่ม Node ลูกให้ Node ที่เลือกในแผง Scene</td><td>เพิ่ม Timer ใต้ Player</td></tr>
+<tr><td class="nw"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd></td><td>Instantiate Child Scene: ใส่ Scene อื่นเป็น Node ลูก</td><td>ใส่ <code>player.tscn</code> ลงใน <code>game.tscn</code></td></tr>
+<tr><td class="nw"><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Duplicate Node ที่เลือก</td><td>สร้างปุ่ม Quit จากปุ่ม Play</td></tr>
+</tbody></table></div>
+
+<h4>GDScript</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>var name: Type = value</code></td><td>ประกาศตัวแปรแบบระบุชนิด (Static Typing)</td><td><code>var score: int = 0</code></td></tr>
+<tr><td><code>var name := value</code></td><td>ให้ Godot อนุมานชนิดจากค่าเริ่มต้น</td><td><code>var tween := create_tween()</code></td></tr>
+<tr><td><code>func f(a: Type) -&gt; Type:</code></td><td>ฟังก์ชันที่ระบุชนิดของอาร์กิวเมนต์และค่าที่คืน</td><td><code>func add_score(points: int) -&gt; void:</code></td></tr>
+<tr><td><code>@export var</code></td><td>แสดงตัวแปรใน Inspector ให้ปรับได้โดยไม่แก้โค้ด</td><td><code>@export var speed: float = 300.0</code></td></tr>
+<tr><td><code>@onready var</code></td><td>กำหนดค่าตอน Node พร้อมใช้งาน (ก่อน <code>_ready()</code>)</td><td><code>@onready var sprite: Sprite2D = $Sprite2D</code></td></tr>
+<tr><td><code>%NodeName</code></td><td>อ้างถึง Node ที่ตั้งเป็น Unique Name ไม่ขึ้นกับตำแหน่งใน Tree</td><td><code>@onready var label: Label = %ScoreLabel</code></td></tr>
+<tr><td><code>class_name</code></td><td>ตั้งชื่อคลาสให้ใช้เป็นชนิดข้อมูลได้ทั้งโปรเจกต์</td><td><code>class_name Player</code></td></tr>
+<tr><td><code>value as Type</code></td><td>แปลงชนิดแบบปลอดภัย ถ้าไม่ใช่ชนิดนั้นจะได้ <code>null</code></td><td><code>var player := body as Player</code></td></tr>
+<tr><td><code>"text %d" % value</code></td><td>จัดรูปแบบข้อความ (<code>%d</code> จำนวนเต็ม, <code>%.1f</code> ทศนิยม 1 ตำแหน่ง)</td><td><code>"SCORE: %d" % score</code></td></tr>
+</tbody></table></div>
+
+<h4>Node ที่ใช้บ่อย</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>CharacterBody2D</code></td><td>ตัวละครที่โค้ดคุมการเคลื่อนที่เอง ชนแล้วไถลตามผนัง</td><td>ยานของผู้เล่น</td></tr>
+<tr><td><code>Area2D</code></td><td>ตรวจการทับซ้อนโดยไม่ผลักกัน ส่ง <code>body_entered</code></td><td>ศัตรูและดาว</td></tr>
+<tr><td><code>Timer</code></td><td>นับเวลาแล้วส่ง Signal <code>timeout</code> วนซ้ำหรือครั้งเดียวก็ได้</td><td><code>SpawnTimer</code>, <code>InvincibleTimer</code></td></tr>
+<tr><td><code>CanvasLayer</code></td><td>วาด UI ทับเกมและไม่ขยับตามกล้อง</td><td>HUD และเมนู Pause</td></tr>
+<tr><td><code>AudioStreamPlayer</code></td><td>เล่นเสียงที่ไม่มีตำแหน่งในฉาก เลือก Bus ได้</td><td>เพลงบน Bus Music</td></tr>
+<tr><td><code>CPUParticles2D</code></td><td>Particle ที่คำนวณด้วย CPU ใช้กับ Compatibility Renderer ได้ดี</td><td>ประกายตอนเก็บดาว</td></tr>
+</tbody></table></div>
+
+<h4>Physics และ Signal</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>move_and_slide()</code></td><td>ขยับ CharacterBody2D ตาม <code>velocity</code> (Godot 4 ไม่รับอาร์กิวเมนต์)</td><td><code>velocity = direction * speed</code> แล้ว <code>move_and_slide()</code></td></tr>
+<tr><td><code>signal name(arg: Type)</code> และ <code>.emit()</code></td><td>ประกาศ Signal และส่งออกไปพร้อมข้อมูล</td><td><code>collected.emit(points)</code></td></tr>
+<tr><td><code>.connect(callable)</code></td><td>ต่อ Signal เข้ากับฟังก์ชัน</td><td><code>body_entered.connect(_on_body_entered)</code></td></tr>
+<tr><td><code>collision_layer</code> / <code>collision_mask</code></td><td>Layer = ตัวเองอยู่ชั้นไหน, Mask = ตรวจหาชั้นไหน ในไฟล์เก็บเป็นบิต (Layer n = 2<sup>n−1</sup>)</td><td>ดาว <code>collision_layer = 4</code> คือ Layer 3</td></tr>
+<tr><td><code>set_deferred()</code> / <code>call_deferred()</code></td><td>เลื่อนการแก้ค่าหรือเรียกฟังก์ชันไปทำตอนจบเฟรม ใช้ใน Callback ของ Physics</td><td><code>set_deferred("monitoring", false)</code></td></tr>
+<tr><td><code>add_to_group()</code> / <code>is_in_group()</code></td><td>ติดป้ายกลุ่มให้ Node แล้วตรวจภายหลัง</td><td><code>body.is_in_group("player")</code></td></tr>
+</tbody></table></div>
+
+<h4>Input</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>Input.get_vector()</code></td><td>อ่าน 4 Action เป็นเวกเตอร์ทิศทางที่ยาวไม่เกิน 1</td><td><code>Input.get_vector("move_left", "move_right", "move_up", "move_down")</code></td></tr>
+<tr><td><code>event.is_action_pressed()</code></td><td>ตรวจว่า InputEvent นี้คือการกด Action ที่ต้องการ</td><td><code>if event.is_action_pressed("pause"):</code></td></tr>
+<tr><td><code>set_input_as_handled()</code></td><td>บอก Viewport ว่า Input นี้ถูกใช้แล้ว Node อื่นจะไม่ได้รับซ้ำ</td><td><code>get_viewport().set_input_as_handled()</code></td></tr>
+<tr><td><code>grab_focus()</code></td><td>ให้ปุ่มรับคีย์บอร์ดหรือจอยได้ทันที</td><td><code>play_button.grab_focus()</code></td></tr>
+</tbody></table></div>
+
+<h4>Tween</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>tween_property(obj, "prop", value, sec)</code></td><td>เปลี่ยนค่าแบบนุ่มนวลภายในเวลาที่กำหนด</td><td><code>tween.tween_property(sprite, "modulate:a", 0.0, 0.15)</code></td></tr>
+<tr><td><code>.set_trans()</code> / <code>.set_ease()</code></td><td>เลือกเส้นโค้งของการเปลี่ยนค่า</td><td><code>.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)</code></td></tr>
+<tr><td><code>tween_interval()</code> / <code>tween_callback()</code></td><td>รอตามเวลา และเรียกฟังก์ชันเมื่อถึงลำดับ</td><td><code>tween.tween_callback(queue_free)</code></td></tr>
+<tr><td><code>set_loops()</code></td><td>เล่น Tween ซ้ำ ถ้าไม่ใส่ตัวเลขจะวนไม่สิ้นสุด</td><td><code>create_tween().set_loops()</code></td></tr>
+</tbody></table></div>
+
+<h4>การบันทึกข้อมูล</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>ConfigFile.load()</code> / <code>.save()</code></td><td>อ่านและเขียนไฟล์แบบ <code>[section] key=value</code> คืนค่า Error ให้ตรวจ</td><td><code>var err := config.load("user://savegame.cfg")</code></td></tr>
+<tr><td><code>get_value(section, key, default)</code></td><td>อ่านค่าพร้อมค่าสำรองเมื่อไม่มี key นั้น</td><td><code>config.get_value("progress", "high_score", 0)</code></td></tr>
+<tr><td><code>user://</code> กับ <code>res://</code></td><td><code>user://</code> เขียนได้ เก็บข้อมูลผู้เล่น ส่วน <code>res://</code> อ่านได้อย่างเดียวหลัง Export</td><td><code>%APPDATA%\Godot\app_userdata\Star Dodger\</code></td></tr>
+<tr><td><code>error_string(err)</code></td><td>แปลงรหัส Error เป็นข้อความที่อ่านออก</td><td>ไฟล์พังได้ <code>Parse error</code></td></tr>
+</tbody></table></div>
+
+<h4>Command Line</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td class="nw"><code>--headless</code></td><td>รันโดยไม่เปิดหน้าต่าง ระบบภาพและเสียงเป็นแบบ Dummy</td><td>ใช้กับทุกคำสั่งทดสอบและ Export</td></tr>
+<tr><td class="nw"><code>--path &lt;โฟลเดอร์&gt;</code></td><td>ระบุโฟลเดอร์ที่มี <code>project.godot</code></td><td><code>--path .</code></td></tr>
+<tr><td class="nw"><code>--script &lt;ไฟล์&gt;</code></td><td>รันสคริปต์ที่สืบทอด SceneTree แทน Main Scene</td><td><code>--script res://tools/smoke_test.gd</code></td></tr>
+<tr><td class="nw"><code>--check-only</code></td><td>ตรวจ Syntax ของสคริปต์โดยไม่รัน ได้ Exit Code 1 เมื่อมี Parse Error</td><td><code>--check-only --script res://scripts/player.gd</code></td></tr>
+<tr><td class="nw"><code>--import</code></td><td>Import Asset ทั้งหมดแล้วออก สร้างโฟลเดอร์ <code>.godot/</code></td><td>รันครั้งแรกหลัง <code>git clone</code></td></tr>
+<tr><td class="nw"><code>--fixed-fps &lt;n&gt;</code></td><td>บังคับให้ทุกเฟรมยาว 1/n วินาที ผลทดสอบจึงซ้ำได้</td><td><code>--fixed-fps 60</code></td></tr>
+<tr><td class="nw"><code>--quit-after &lt;n&gt;</code></td><td>ออกจากเกมเมื่อครบ n เฟรม</td><td><code>--quit-after 10</code></td></tr>
+<tr><td class="nw"><code>--export-release</code></td><td>Export ด้วย Release Template ตามชื่อ Preset</td><td><code>--export-release "Web" "build/web/index.html"</code></td></tr>
+<tr><td class="nw"><code>--export-debug</code></td><td>Export ด้วย Debug Template ไฟล์ใหญ่กว่าแต่แสดง Error ละเอียด ใช้หาบั๊กที่เกิดเฉพาะไฟล์ Export</td><td><code>--export-debug "Windows Desktop" "build/debug/StarDodger.exe"</code></td></tr>
+</tbody></table></div>
+
+<h4>Git สำหรับโปรเจกต์ Godot</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>.godot/</code> ใน <code>.gitignore</code></td><td>ไม่ Commit Cache ที่ Godot สร้างใหม่ได้</td><td><code>git check-ignore -v .godot/uid_cache.bin</code></td></tr>
+<tr><td>Commit ไฟล์ <code>.import</code> และ <code>.uid</code></td><td>ให้ทุกเครื่องใช้ค่า Import และ UID เดียวกัน การอ้างอิง <code>uid://</code> จะไม่พัง</td><td><code>git add assets scripts</code></td></tr>
+<tr><td><code>.gdignore</code></td><td>ไฟล์ว่างที่สั่งให้ Godot ข้ามทั้งโฟลเดอร์</td><td><code>touch docs/.gdignore</code></td></tr>
+<tr><td><code>git tag -a</code> และ <code>git push origin &lt;tag&gt;</code></td><td>ติด Tag เวอร์ชันพร้อมข้อความ แล้วส่ง Tag ขึ้น GitHub</td><td><code>git tag -a v1.0.0 -m "Star Dodger 1.0.0"</code></td></tr>
+</tbody></table></div>
+
+<h3 id="s3-4-interview">Interview Questions</h3>
+<p>คำถามที่พบบ่อยในการสัมภาษณ์ตำแหน่ง Junior ถึง Mid-level Game Developer พร้อมแนวคำตอบที่ดี ลองตอบด้วยตัวเองก่อนเปิดดู และยกตัวอย่างจาก Star Dodger ทุกครั้งที่ทำได้ เพราะผู้สัมภาษณ์อยากได้ยินประสบการณ์จริงมากกว่านิยาม</p>
+
+<details class="iq"><summary>1. Delta Time คืออะไร และ _process() ต่างจาก _physics_process() อย่างไร (Junior)</summary><div>
+<p><strong>Delta Time</strong> คือเวลาที่ผ่านไปตั้งแต่เฟรมก่อนหน้า หน่วยเป็นวินาที ทุกการเคลื่อนที่และการนับเวลาต้องคูณด้วย delta เพื่อให้เกมเร็วเท่ากันทุกเครื่อง เช่น ศัตรูความเร็ว 200 px/s ที่ 30 FPS ขยับเฟรมละ 6.67 px ส่วนที่ 144 FPS ขยับเฟรมละ 1.39 px แต่ใน 1 วินาทีได้ระยะ 200 px เท่ากัน ถ้าลืมคูณ delta เกมจะเร็วขึ้นตามความแรงของเครื่อง</p>
+<ul>
+  <li><code>_process(delta)</code> ถูกเรียกทุกเฟรมที่วาดภาพ ค่า delta เปลี่ยนไปตาม FPS เหมาะกับงานด้านภาพ เช่น UI หรือ Screen Shake</li>
+  <li><code>_physics_process(delta)</code> ถูกเรียกด้วยจังหวะคงที่ ค่าตั้งต้น 60 ครั้งต่อวินาที (Physics Ticks per Second) เหมาะกับการเคลื่อนที่ที่เกี่ยวกับการชน ผลจึงคงที่ทุกเครื่อง</li>
+  <li>จุดที่ผู้สัมภาษณ์ชอบถามต่อ: <code>move_and_slide()</code> ใช้ <code>velocity</code> หน่วย px/s และคูณ delta ให้เองแล้ว จึงห้ามคูณซ้ำ ส่วนการขยับ <code>position</code> เองต้องคูณ delta ทุกครั้ง</li>
+</ul>
+<p>ตัวอย่างจาก Star Dodger: ยานเดินใน <code>_physics_process()</code> ด้วย <code>velocity = direction * speed</code> ศัตรูขยับ <code>position.y += speed * delta</code> ส่วนกล้องสั่นอยู่ใน <code>_process()</code> เพราะเป็นงานด้านภาพล้วน และ Hitstop ใช้ <code>Engine.time_scale</code> ซึ่งทำให้ delta ของทุก Node เล็กลงพร้อมกัน ผู้สมัครที่ดีจะพูดถึงการจำกัดค่า delta ที่ใหญ่ผิดปกติหลังเกมค้าง (Spiral of Death) ด้วย</p>
+</div></details>
+
+<details class="iq"><summary>2. Collision Layer กับ Collision Mask ต่างกันอย่างไร (Junior)</summary><div>
+<p><strong>Layer</strong> บอกว่า Object นี้<strong>อยู่</strong>ชั้นไหน ส่วน <strong>Mask</strong> บอกว่า Object นี้<strong>มองหา</strong>ชั้นไหน Area2D จะส่ง <code>body_entered</code> เมื่อ Mask ของมันตรงกับ Layer ของ Body ที่เข้ามา ถ้าตั้งผิดฝั่ง Signal จะไม่ถูกส่งเลยโดยไม่มี Error ให้เห็น ซึ่งเป็นบั๊กที่มือใหม่เจอบ่อยที่สุด</p>
+<p>ใน Star Dodger ยานอยู่ Layer 1 (player) ศัตรูอยู่ Layer 2 และดาวอยู่ Layer 3 ทั้งคู่มี Mask 1 จึงเห็นเฉพาะยาน ศัตรูกับดาวไม่ตรวจกันเอง ประหยัดงานของ Physics Engine และไม่ต้องเขียน if กรองในโค้ด ส่วนยานมี Mask 4 (walls) เพื่อรองรับกำแพงในอนาคต</p>
+<p>คำตอบที่ดีควรพูดถึงการตั้งชื่อ Layer ใน Project Settings &gt; Layer Names เพื่อให้ทีมอ่านเข้าใจ และรู้ว่าไฟล์ .tscn เก็บเป็นบิต เช่น <code>collision_layer = 4</code> คือ Layer 3 ซึ่งช่วยได้มากเวลารีวิวโค้ดผ่าน Git</p>
+</div></details>
+
+<details class="iq"><summary>3. เมื่อไรควรใช้ Signal เมื่อไรควรเรียกฟังก์ชันตรงๆ และควรใช้ Autoload แค่ไหน (Junior–Mid)</summary><div>
+<p>หลักที่ทีม Godot ใช้กันคือ <strong>"Call down, signal up"</strong> Node แม่รู้จักลูกของตัวเอง จึงเรียกฟังก์ชันของลูกได้ตรงๆ ส่วนลูกไม่ควรรู้ว่าใครฟังอยู่ จึงส่ง Signal ขึ้นไป</p>
+<ul>
+  <li>เรียกตรง: <code>game.gd</code> สั่ง <code>spawn_timer.stop()</code> และซ่อนยานเอง เพราะเป็นเจ้าของ Node เหล่านั้น อ่านง่ายและ Debug ง่าย</li>
+  <li>Signal: ดาวส่ง <code>collected(points)</code> โดยไม่รู้ว่าใครให้คะแนน ดาวจึงนำไปใช้ฉากอื่นได้ และมีผู้ฟังหลายรายพร้อมกันได้ ข้อเสียคือถ้าใช้มากเกินไปจะไล่ลำดับการทำงานยาก</li>
+  <li>Group: ใช้เมื่อต้องสั่งหรือค้นหา Node จำนวนมากที่ไม่รู้ตำแหน่ง เช่น <code>get_tree().call_group("enemies", "stun")</code></li>
+</ul>
+<p><strong>Autoload</strong> เหมาะกับข้อมูลหรือบริการที่ต้องอยู่ข้าม Scene เช่น <code>GameState</code> และ <code>SaveManager</code> ข้อดีคือเรียกได้จากทุกที่และไม่หายตอนเปลี่ยน Scene ข้อเสียคือเป็น Global State ที่ซ่อนการพึ่งพากัน ทดสอบแยกส่วนยาก มีปัญหาเรื่องลำดับการโหลด (SaveManager ต้องอยู่ก่อน GameState) และโตเป็น God Object ได้ง่าย คำตอบที่ดีคือใช้ให้น้อย ให้แต่ละตัวมีหน้าที่เดียว และไม่ให้ Autoload อ้างอิง Node ใน Scene</p>
+</div></details>
+
+<details class="iq"><summary>4. จะบันทึกข้อมูลผู้เล่นอย่างไร res:// กับ user:// ต่างกันอย่างไร และรับมือไฟล์เสียแบบไหน (Mid)</summary><div>
+<p><code>res://</code> คือไฟล์ของโปรเจกต์ หลัง Export จะถูกแพ็กอยู่ใน .pck และอ่านได้อย่างเดียว ส่วน <code>user://</code> คือโฟลเดอร์ที่เขียนได้ของผู้เล่นแต่ละคน บน Windows อยู่ที่ <code>%APPDATA%\Godot\app_userdata\ชื่อโปรเจกต์\</code> ส่วนเวอร์ชัน Web เก็บใน IndexedDB ของ Browser ข้อมูลผู้เล่นทุกอย่างจึงต้องเขียนลง <code>user://</code></p>
+<ul>
+  <li><strong>เลือกรูปแบบไฟล์</strong>: ConfigFile เหมาะกับค่าตั้งและสถิติง่ายๆ อ่านด้วยตาได้ JSON ใช้ร่วมกับระบบอื่นได้ แต่ตัวเลขทุกตัวจะถูกอ่านกลับมาเป็น float ส่วน Resource (.tres) สะดวกที่สุดแต่<strong>ห้ามโหลดจากแหล่งที่ไม่น่าเชื่อถือ</strong> เพราะ Resource ฝัง Script ได้ ไฟล์ Save ที่ผู้เล่นแชร์กันจึงอาจรันโค้ดอันตรายได้</li>
+  <li><strong>รับมือไฟล์เสีย</strong>: ตรวจค่า Error จาก <code>load()</code> ทุกครั้ง แยกกรณีไม่มีไฟล์ออกจากไฟล์พัง ตรวจชนิดของทุกค่าที่อ่าน และใช้ค่าตั้งต้นเมื่อผิด แบบเดียวกับ <code>SaveManager</code> ที่ทดสอบให้ดูแล้วว่าเกมไม่ Crash</li>
+  <li><strong>ระดับ Mid ควรพูดต่อ</strong>: ใส่เลขเวอร์ชันของรูปแบบไฟล์เพื่อแปลงข้อมูลเก่าเมื่ออัปเดตเกม และเขียนลงไฟล์ชั่วคราวก่อนแล้วค่อยเปลี่ยนชื่อทับ เพื่อไม่ให้ไฟล์พังถ้าไฟดับระหว่างบันทึก</li>
+</ul>
+</div></details>
+
+<details class="iq"><summary>5. ถ้าทีมใช้ Unity คุณจะนำความรู้จาก Godot ไปใช้อย่างไร (Mid)</summary><div>
+<p>ตลาดงานเกมส่วนใหญ่ใช้ Unity กับ C# หรือ Unreal กับ C++ คำตอบที่ดีแสดงว่าคุณเข้าใจแนวคิด ไม่ได้จำแค่ชื่อเมนู แนวคิดหลักย้ายได้เกือบทั้งหมด</p>
+<div class="tbl mid"><table class="explain"><thead><tr><th>Godot</th><th>Unity</th></tr></thead><tbody>
+<tr><td>Node และ Scene, Instance ของ Scene</td><td>GameObject กับ Component, Prefab</td></tr>
+<tr><td>GDScript (หรือ C# ใน Godot รุ่น .NET)</td><td>C#</td></tr>
+<tr><td><code>_ready()</code> / <code>_process()</code> / <code>_physics_process()</code></td><td><code>Awake()</code> หรือ <code>Start()</code> / <code>Update()</code> / <code>FixedUpdate()</code></td></tr>
+<tr><td>Signal</td><td>C# event หรือ UnityEvent</td></tr>
+<tr><td>Autoload</td><td>Singleton ที่ใช้ <code>DontDestroyOnLoad</code> หรือ ScriptableObject</td></tr>
+<tr><td><code>PackedScene.instantiate()</code></td><td><code>Instantiate(prefab)</code></td></tr>
+<tr><td>Area2D กับ <code>body_entered</code></td><td>Collider2D ที่เปิด Is Trigger กับ <code>OnTriggerEnter2D</code></td></tr>
+<tr><td>Collision Layer / Mask</td><td>Layer กับ Layer Collision Matrix ใน Physics 2D Settings</td></tr>
+<tr><td>Object Pooling ที่เขียนเอง</td><td><code>UnityEngine.Pool.ObjectPool&lt;T&gt;</code></td></tr>
+</tbody></table></div>
+<p>สิ่งที่ต่างจริงคือ Unity ประกอบพฤติกรรมด้วย Component หลายตัวบน GameObject เดียว ขณะที่ Godot ใช้ Node ซ้อนกันเป็น Tree และ Unity ไม่มี Tween ในตัว ทีมมักใช้ Coroutine หรือ Plugin เสริม แนวทางพิสูจน์ตัวเองที่ดีที่สุดคือทำ Star Dodger ซ้ำใน Unity แล้วเทียบให้ดูว่าแต่ละส่วนแปลงอย่างไร และถ้าต้องการใบรับรอง Unity ยังเปิดสอบ Unity Certified User และ Unity Certified Associate อยู่ ส่วน Godot ไม่มีใบรับรองหลัก</p>
+</div></details>
+
+<h3 id="s3-4-resources">แหล่งเรียนต่อ</h3>
+<ul class="res">
+  <li><a href="https://docs.godotengine.org/en/stable/" target="_blank" rel="noopener">Godot Engine Documentation</a> – เอกสารทางการ มี Class Reference ครบทุก Node และบทเรียน "Your first 2D game" ที่ควรทำเทียบกับ Star Dodger <span class="pill">ฟรี</span></li>
+  <li><a href="https://godotengine.org/download/" target="_blank" rel="noopener">Godot Download</a> – ดาวน์โหลด Editor และ Export Templates ทุกเวอร์ชัน ใช้ตรวจเวอร์ชันล่าสุดก่อนอัปเกรดโปรเจกต์ <span class="pill">ฟรี</span></li>
+  <li><a href="https://github.com/godotengine/godot-demo-projects" target="_blank" rel="noopener">Godot Demo Projects</a> – โปรเจกต์ตัวอย่างทางการจากทีม Godot อ่านโค้ดจริงของระบบ 2D, Physics, UI และเสียง <span class="pill">ฟรี</span></li>
+  <li><a href="https://gameprogrammingpatterns.com/" target="_blank" rel="noopener">Game Programming Patterns</a> – หนังสือของ Robert Nystrom อ่านฟรีบนเว็บ อธิบาย Game Loop, State, Object Pool และ Observer (แนวคิดเบื้องหลัง Signal) <span class="pill">ฟรี</span></li>
+  <li><a href="https://kenney.nl/assets" target="_blank" rel="noopener">Kenney Assets</a> – ภาพ เสียง และฟอนต์สำหรับเกมแบบ CC0 ใช้ในเกมที่ขายได้ <span class="pill">ฟรี</span></li>
+  <li><a href="https://itch.io/jams" target="_blank" rel="noopener">itch.io Game Jams</a> – ปฏิทิน Game Jam ทั่วโลก ฝึกทำเกมให้เสร็จในเวลาจำกัดและได้ผลงานเพิ่มใน Portfolio <span class="pill">ฟรี</span></li>
+  <li><a href="https://www.gdquest.com/" target="_blank" rel="noopener">GDQuest</a> – บทเรียน Godot ที่มีชื่อเสียง มีบทความและวิดีโอฟรี ส่วนคอร์สเต็มต้องซื้อ <span class="pill">มีค่าใช้จ่าย</span></li>
+  <li><a href="https://learn.unity.com/" target="_blank" rel="noopener">Unity Learn</a> – คอร์สทางการของ Unity สำหรับต่อยอดสู่ตลาดงานที่ใช้ Unity และ C# <span class="pill">ฟรี</span></li>
+</ul>
+</section>

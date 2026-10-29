@@ -1,0 +1,1926 @@
+<section class="part" data-part="4">
+  <h2 id="s2-4"><span class="sec-no">2.4</span>ส่วนเสริม: Mini Project, Cheat Sheet, Interview</h2>
+  <p>ส่วนนี้รวมทุกอย่างจาก Part 1–3 เป็นงานชิ้นเดียวที่ใส่ใน Portfolio ได้จริง คุณจะสร้างเว็บแอปบันทึกรายรับรายจ่ายร่วมกับ AI ตั้งแต่โฟลเดอร์ว่างจนขึ้น GitHub โดยใช้ Workflow ครบทุกขั้น ได้แก่ เขียน Spec ก่อน ตั้ง Context File ทำงานทีละก้าวพร้อม Git Checkpoint ให้ AI เขียน Test ก่อนโค้ด รีวิว Diff และความปลอดภัย แล้วปิดท้ายด้วย Quality Gate ที่รันทั้งในเครื่องและบน GitHub Actions ท้ายส่วนมี Cheat Sheet คำถามสัมภาษณ์ 5 ข้อ และแหล่งเรียนต่อ</p>
+  <p>โปรเจกต์นี้ใช้ความรู้จาก <a data-t="9"></a> สำหรับโค้ด Python และ pytest, <a data-t="14"></a> สำหรับคำสั่ง SQL, <a data-t="12"></a> สำหรับการออกแบบ Route, <a data-t="16"></a> สำหรับการเขียน Prompt และ <a data-t="17"></a> สำหรับ Git และการนำขึ้น GitHub</p>
+
+  <h3 id="s2-4-project">Mini Project: Personal Finance Web App</h3>
+  <p><span class="lvl" data-lvl="i">Intermediate</span> <span class="muted small">ใช้เวลาประมาณ 3–4 ชั่วโมงเมื่อใช้ AI ตาม Workflow (ถ้าพิมพ์เองทั้งหมดประมาณ 6–8 ชั่วโมง) · ไม่ต้องมี API Key · ใช้เครื่องมือ AI ตัวไหนก็ได้</span></p>
+
+  <h4>เป้าหมาย</h4>
+  <p>สร้างเว็บแอปชื่อ <code>finance-app</code> ในโฟลเดอร์ <code>~/projects/finance-app</code> สำหรับบันทึกรายรับรายจ่ายส่วนตัว ดูสรุปรายเดือน และส่งออกไฟล์ CSV ด้วย Flask 3.1.3 + SQLite + Jinja2 แล้วนำขึ้น GitHub เป็น Repository ชื่อ <code>finance-app</code> สิ่งที่ผู้สัมภาษณ์อยากเห็นไม่ใช่แค่แอปที่ทำงานได้ แต่คือหลักฐานว่าคุณคุม AI ได้ ได้แก่ <code>SPEC.md</code> ที่มี Acceptance Criteria, Test 42 ข้อ, ประวัติ Commit ทีละก้าว, <code>AI_LOG.md</code> ที่มีทั้งข้อเสนอที่รับ แก้ และปฏิเสธ และ CI ที่ผ่าน</p>
+  <p>โค้ดทุกไฟล์ในหน้านี้คือฉบับสุดท้ายที่ผ่านการรีวิวแล้ว และทดสอบจริงบน Ubuntu 24.04 กับ Python 3.12.3 ตอนทำจริงให้ AI เป็นผู้ร่างตาม Prompt ของแต่ละขั้น แล้วเทียบผลกับโค้ดในหน้านี้ คำตอบของ AI จะต่างกันทุกครั้งที่รัน ถ้าโค้ดของคุณต่างจากนี้แต่ Test ผ่านและคุณรีวิวแล้วว่าถูกต้องก็ใช้ได้ แต่ถ้าอยากได้ผลลัพธ์ตรงกับหน้านี้ทุกบรรทัด ให้คัดลอกไฟล์จากหน้านี้</p>
+  <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>AI เหมือนช่างก่อสร้างที่ทำงานเร็วมาก ส่วนคุณคือวิศวกรคุมงาน <code>SPEC.md</code> คือแบบบ้าน, <code>AGENTS.md</code> คือกฎหน้างานที่ติดไว้ให้ช่างทุกคนอ่าน, Test และการรีวิว Diff คือการตรวจรับงานทุกวัน และ <code>AI_LOG.md</code> คือสมุดบันทึกหน้างานว่าวันไหนสั่งอะไร รับงานไหน และสั่งรื้องานไหนเพราะอะไร บ้านจะปลอดภัยได้เพราะการตรวจรับ ไม่ใช่เพราะช่างทำเร็ว</p></div>
+
+  <h4>ฟีเจอร์ทั้งหมด</h4>
+  <ul>
+    <li><strong>หน้าแรก <code>/</code>:</strong> แสดงรายการล่าสุด 50 รายการ เรียงวันที่ใหม่ไปเก่า และฟอร์มเพิ่มรายการ ได้แก่ วันที่ (YYYY-MM-DD), ประเภท (<code>income</code> หรือ <code>expense</code>), หมวดหมู่, จำนวนเงินเป็นบาท และหมายเหตุที่ไม่บังคับกรอก</li>
+    <li><strong>เก็บเงินเป็นสตางค์:</strong> ตาราง <code>transactions(id, date, kind, category, amount_satang, note)</code> มี <code>CHECK</code> ให้ <code>kind</code> เป็น <code>income</code> หรือ <code>expense</code> เท่านั้น และ <code>amount_satang &gt; 0</code> เงินเก็บเป็นจำนวนเต็มหน่วยสตางค์ (1 บาท = 100 สตางค์) เพื่อเลี่ยงปัญหาทศนิยมของ float และแสดงผลเป็น <code>1,250.50 บาท</code></li>
+    <li><strong>ตรวจข้อมูลใน <code>validation.py</code>:</strong> วันที่ต้องผ่าน <code>date.fromisoformat</code>, หมวดหมู่ต้องอยู่ในรายการ อาหาร เดินทาง ที่พัก การเรียน บันเทิง เงินเดือน รายได้เสริม อื่น ๆ, จำนวนเงินต้องมากกว่า 0 มีทศนิยมไม่เกิน 2 ตำแหน่ง และไม่เกิน 1,000,000 บาท ถ้าข้อมูลผิดจะแสดงฟอร์มเดิมพร้อมข้อความ Error ภาษาไทยและ HTTP 400</li>
+    <li><strong>หน้า <code>/summary?month=2026-10</code>:</strong> สรุปรายรับ รายจ่าย คงเหลือ และรายจ่ายแยกตามหมวดหมู่ของเดือนที่เลือก</li>
+    <li><strong>ลบและส่งออก:</strong> <code>POST /delete/&lt;id&gt;</code> ลบรายการแล้ว Redirect กลับหน้าแรก (ไม่รับ GET) และ <code>GET /export.csv?month=2026-10</code> ส่งออกไฟล์ CSV แบบ UTF-8 ที่มี Header <code>date,kind,category,amount,note</code> พร้อมกัน CSV Injection</li>
+    <li><strong>ความปลอดภัย:</strong> SQL ทุกคำสั่งใช้ Parameter <code>?</code>, อ่าน <code>SECRET_KEY</code> จาก Environment Variable และแอปไม่ยอมเริ่มถ้าไม่มีค่านี้, เปิด Autoescape ของ Jinja2 ตลอด และไม่มี <code>debug=True</code> ในโค้ด</li>
+    <li><strong>Test 42 ข้อด้วย pytest 9.1.1:</strong> <code>tests/test_validation.py</code> 24 ข้อ, <code>tests/test_db.py</code> 6 ข้อ และ <code>tests/test_routes.py</code> 12 ข้อ ครอบคลุมการเพิ่ม แสดง สรุป ลบ ส่งออก ข้อมูลผิด SQL Injection และ XSS</li>
+    <li><strong>Quality Gate:</strong> <code>scripts/check.sh</code> 4 ด่าน (ruff check, ruff format --check, pytest, pip-audit) เรียกจาก Hook <code>.git/hooks/pre-commit</code> และ <code>.github/workflows/check.yml</code></li>
+    <li><strong>เอกสาร:</strong> <code>SPEC.md</code>, <code>AGENTS.md</code>, <code>CLAUDE.md</code> (ชี้ไปที่ <code>AGENTS.md</code>), <code>AI_LOG.md</code> 10 รายการ และ <code>README.md</code> ที่บอกวิธีติดตั้ง รัน ทดสอบ และส่วนที่ใช้ AI</li>
+  </ul>
+
+  <h4>แผนที่ขั้นตอนกับแนวคิดใน Part 2</h4>
+  <div class="tbl mid"><table>
+    <thead><tr><th>Step</th><th>งาน</th><th>ทบทวนแนวคิดใน Part 2</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>ตั้งโปรเจกต์ venv, Git, <code>.gitignore</code> และ requirements ที่ Pin เวอร์ชัน</td><td>แนวคิดที่ 2 เตรียมโปรเจกต์ให้ปลอดภัย</td></tr>
+      <tr><td class="num">2</td><td>เขียน <code>SPEC.md</code> ด้วย Spec Interview แล้วตั้ง <code>AGENTS.md</code> และ <code>CLAUDE.md</code></td><td>แนวคิดที่ 3 Spec และแนวคิดที่ 5 Context File</td></tr>
+      <tr><td class="num">3</td><td>Test-first ของการแปลงเงินและการตรวจฟอร์ม</td><td>แนวคิดที่ 6 Test-first Prompting</td></tr>
+      <tr><td class="num">4</td><td>ชั้นฐานข้อมูลแบบ Parameterized</td><td>แนวคิดที่ 4 ก้าวเล็ก และแนวคิดที่ 10 SQL Injection</td></tr>
+      <tr><td class="num">5</td><td>เขียน Test ของ Route ก่อนมีแอป</td><td>แนวคิดที่ 6 และแนวคิดที่ 8 Flask Test Client</td></tr>
+      <tr><td class="num">6</td><td>สร้าง <code>app.py</code> และ Template ให้ Test ผ่าน</td><td>แนวคิดที่ 9 โครงสร้างที่ดี และแนวคิดที่ 10 Secret กับ debug</td></tr>
+      <tr><td class="num">7</td><td>รีวิว Patch ที่ AI ส่งมาแล้วตัดสินใจปฏิเสธ</td><td>แนวคิดที่ 7 อ่าน Diff และแนวคิดที่ 10 Security Review</td></tr>
+      <tr><td class="num">8</td><td>Quality Gate, Hook และ GitHub Actions</td><td>แนวคิดที่ 12 Quality Gate อัตโนมัติ</td></tr>
+      <tr><td class="num">9</td><td>ตรวจทั้งระบบผ่าน Server จริงด้วย <code>curl</code> และ <code>sqlite3</code></td><td>แนวคิดที่ 8 ทำซ้ำได้และตรวจยืนยัน</td></tr>
+      <tr><td class="num">10</td><td>README, <code>AI_LOG.md</code> ครบ 10 รายการ และ Push ขึ้น GitHub</td><td>แนวคิดที่ 11 ความเป็นส่วนตัว และ <a data-t="17"></a></td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>โครงสร้างโฟลเดอร์สุดท้าย</h4>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Text · โครงสร้าง finance-app"><code class="language-plaintext">finance-app/
+├── .github/
+│   └── workflows/
+│       └── check.yml        # GitHub Actions รัน Quality Gate ทุกครั้งที่ Push
+├── scripts/
+│   └── check.sh             # Quality Gate 4 ด่าน
+├── static/
+│   └── style.css
+├── templates/
+│   ├── base.html            # โครงหน้าเว็บที่ทุกหน้าใช้ร่วมกัน
+│   ├── index.html           # รายการล่าสุดและฟอร์มเพิ่มรายการ
+│   └── summary.html         # สรุปรายเดือน
+├── tests/
+│   ├── conftest.py          # Fixture: แอปที่ใช้ฐานข้อมูลชั่วคราว
+│   ├── test_db.py
+│   ├── test_routes.py
+│   └── test_validation.py
+├── .gitignore
+├── AGENTS.md                # กติกาที่ AI ทุกเครื่องมือต้องทำตาม
+├── AI_LOG.md                # บันทึกการใช้ AI 10 รายการ
+├── CLAUDE.md                # ชี้ไปที่ AGENTS.md
+├── README.md
+├── SPEC.md                  # ความต้องการและ Acceptance Criteria
+├── app.py                   # Route ของ Flask (App Factory create_app)
+├── db.py                    # คำสั่ง SQL ทั้งหมด
+├── money.py                 # แปลงข้อความเงินเป็นสตางค์และกลับเป็นข้อความ
+├── pyproject.toml           # ค่าตั้งของ ruff และ pytest
+├── requirements.txt
+└── validation.py            # ตรวจข้อมูลจากฟอร์ม
+
+ไม่ถูก Commit: .venv/, finance.db, .env และ .git/hooks/pre-commit</code></pre>
+
+  <h4>เครื่องมือและเวอร์ชันที่ใช้</h4>
+  <ul>
+    <li>Ubuntu 24.04 LTS บน WSL2, Python 3.12.3 (คำสั่ง <code>python3</code> ของระบบ) และติดตั้งแพ็กเกจใน venv <code>.venv</code> เท่านั้น</li>
+    <li><code>flask==3.1.3</code> (ดึง Werkzeug 3.1.9 และ Jinja2 3.1.6 มาด้วย), <code>pytest==9.1.1</code>, <code>ruff==0.17.1</code> และ <code>pip-audit==2.10.1</code> ซึ่งเป็นชุดเดียวกับ Part 1–3</li>
+    <li>โมดูล <code>sqlite3</code> ของ Python (SQLite 3.45.1) และ <code>sqlite3</code> CLI สำหรับดูข้อมูล (ติดตั้งด้วย apt ใน Step 9)</li>
+    <li>Git 2.43.0 และ GitHub Actions บน <code>ubuntu-24.04</code> ด้วย <code>actions/checkout@v5</code> และ <code>actions/setup-python@v6</code></li>
+    <li>เครื่องมือ AI ระดับใดก็ได้ในสเปกตรัม ได้แก่ AI Chat Assistant บนเว็บ, Inline Completion ใน Editor, Agent ใน Editor หรือ Agentic Coding Tool ใน Terminal เช่น Claude Code, GitHub Copilot และ Cursor ให้ติดตั้งตามเอกสารทางการของแต่ละเครื่องมือ เพราะหน้าตาและแพ็กเกจราคาเปลี่ยนบ่อย</li>
+  </ul>
+  <div class="callout note"><span class="c-label note">หมายเหตุ</span><p>ผลลัพธ์ในหน้านี้มาจากการรันจริงในวันที่ 2026-10-22 ค่าที่จะต่างในเครื่องของคุณ ได้แก่ รหัส Commit, เวลาที่ใช้รัน Test, เวลาใน Log ของ Server และผลของ <code>pip-audit</code> ซึ่งเปลี่ยนตามฐานข้อมูลช่องโหว่ทุกวัน ส่วนตัวเลขเงิน จำนวน Test และข้อความ Error ต้องตรงกับหน้านี้ทุกตัว</p></div>
+
+  <h4>ขั้นตอนการสร้าง</h4>
+  <p>ทำตามลำดับทีละ Step ทุก Step จบด้วยการรัน Test หรือคำสั่งตรวจด้วยตัวเอง แล้วจึง Commit ถ้าผลลัพธ์ของ Step ไหนไม่ตรงกับในหน้านี้ ให้หยุดแก้ให้ตรงก่อน อย่าข้ามไปขั้นต่อไป ค่าบางอย่างบนเครื่องของคุณจะต่างจากหน้านี้เสมอ ได้แก่ Commit Hash, เวลาที่ pytest ใช้ และวันเวลาใน Log ของ Server ซึ่งเป็นเรื่องปกติ</p>
+
+  <ol class="proj-steps">
+    <li>
+      <h4>Step 1: ตั้งโปรเจกต์ด้วย venv, Git และ requirements ที่ Pin เวอร์ชัน</h4>
+      <p>ตั้งโปรเจกต์เองให้เรียบร้อยก่อนเปิดเครื่องมือ AI เพราะมี 3 อย่างที่ต้องพร้อมตั้งแต่ไฟล์แรก คือ venv ที่แยกแพ็กเกจของโปรเจกต์ออกจากระบบ, Git ที่ใช้ย้อนกลับเมื่อ AI แก้ผิด และ <code>.gitignore</code> ที่กันไม่ให้ <code>.env</code> กับไฟล์ฐานข้อมูลหลุดขึ้น GitHub</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/finance-app &amp;&amp; cd ~/projects/finance-app
+python3 -m venv .venv
+source .venv/bin/activate</code></pre>
+      <p>สร้าง 3 ไฟล์แรกด้วย Editor ที่ถนัด ไฟล์ <code>requirements.txt</code> ระบุเวอร์ชันตายตัว (Pin) ทุกบรรทัด เพื่อให้เครื่องของคุณ เครื่องของเพื่อนร่วมทีม และ GitHub Actions ได้แพ็กเกจชุดเดียวกัน ถ้า AI เสนอแพ็กเกจใหม่ภายหลัง ต้องผ่านการตรวจแบบแนวคิดที่ 11 ก่อนจึงจะเพิ่มลงไฟล์นี้ได้</p>
+<pre class="code" data-env="file" data-label="Text · requirements.txt"><code class="language-plaintext">flask==3.1.3
+pytest==9.1.1
+ruff==0.17.1
+pip-audit==2.10.1</code></pre>
+<pre class="code" data-env="file" data-label="Text · .gitignore"><code class="language-plaintext">.venv/
+.env
+__pycache__/
+*.db
+.pytest_cache/
+.ruff_cache/</code></pre>
+<pre class="code" data-env="file" data-label="TOML · pyproject.toml"><code class="language-ini">[tool.pytest.ini_options]
+# ให้ Test import ไฟล์ที่ Root ของโปรเจกต์ได้ และค้นหา Test ในโฟลเดอร์ tests
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/F = ข้อผิดพลาดพื้นฐาน, I = เรียง import, B = บั๊กที่พบบ่อย, UP = ไวยากรณ์ใหม่, S = ความปลอดภัย
+select = ["E", "F", "I", "B", "UP", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+# ไฟล์ Test ใช้ assert ได้ตามปกติ
+"tests/*" = ["S101"]</code></pre>
+      <p><code>pythonpath = ["."]</code> ทำให้ไฟล์ใน <code>tests/</code> import <code>money</code> หรือ <code>app</code> จาก Root ของโปรเจกต์ได้โดยไม่ต้องสร้าง Package ส่วน <code>select</code> เปิดกฎกลุ่ม <code>S</code> (Security) ไว้ตั้งแต่วันแรก โค้ดที่ AI เขียนจึงถูกตรวจเรื่อง Secret ในโค้ด, SQL ที่ต่อ String และ <code>shell=True</code> ทุกครั้งที่รัน ruff ต่อไปติดตั้งแพ็กเกจ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 -m pip install -r requirements.txt</code></pre>
+      <p>บรรทัดสุดท้ายของผลลัพธ์เป็นแบบนี้ (หน้านี้ตัดบรรทัด Collecting และ Downloading ด้านบนออก) แพ็กเกจที่ไม่ได้ Pin โดยตรง เช่น <code>certifi</code>, <code>requests</code> และ <code>rich</code> ซึ่ง pip-audit ดึงมา อาจได้เวอร์ชันใหม่กว่านี้ตามวันที่คุณติดตั้ง</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Successfully installed CacheControl-0.14.4 blinker-1.9.0 boolean.py-5.0 certifi-2026.10.23 charset_normalizer-3.5.2 click-8.5.0 cyclonedx-python-lib-11.12.0 defusedxml-0.7.1 filelock-4.2.4 flask-3.1.3 idna-3.20 iniconfig-2.3.1 itsdangerous-2.2.0 jinja2-3.1.6 license-expression-30.4.4 markdown-it-py-4.2.0 markupsafe-3.0.4 mdurl-0.1.2 msgpack-1.2.4 packageurl-python-0.17.6 packaging-26.3 pip-api-0.0.35 pip-audit-2.10.1 pip-requirements-parser-32.0.1 platformdirs-4.13.7 pluggy-1.7.0 py-serializable-2.1.0 pygments-2.21.0 pyparsing-3.3.3 pytest-9.1.1 requests-2.34.2 rich-15.0.0 ruff-0.17.1 sortedcontainers-2.4.0 tomli-2.5.0 tomli-w-1.2.0 typing_extensions-4.16.0 urllib3-2.8.0 werkzeug-3.1.9</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 --version &amp;&amp; pytest --version &amp;&amp; ruff --version &amp;&amp; pip-audit --version &amp;&amp; flask --version</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Python 3.12.3
+pytest 9.1.1
+ruff 0.17.1
+pip-audit 2.10.1
+Python 3.12.3
+Flask 3.1.3
+Werkzeug 3.1.9</code></pre>
+      <p>เริ่ม Git Repository โดยตั้งชื่อ Branch หลักเป็น <code>main</code> แล้วดูว่า Git เห็นไฟล์อะไรบ้าง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git init -b main
+git status --short</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Initialized empty Git repository in /home/somchai/projects/finance-app/.git/
+?? .gitignore
+?? pyproject.toml
+?? requirements.txt</code></pre>
+      <p>โฟลเดอร์ <code>.venv/</code> ไม่อยู่ในรายการ แปลว่า <code>.gitignore</code> ทำงานแล้ว Commit แรกจึงมีแค่ 3 ไฟล์ที่ตั้งใจใส่</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git add .gitignore requirements.txt pyproject.toml
+git commit -m "chore: เริ่มโปรเจกต์ finance-app พร้อม venv และ requirements"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[main (root-commit) 56f1f7c] chore: เริ่มโปรเจกต์ finance-app พร้อม venv และ requirements
+ 3 files changed, 26 insertions(+)
+ create mode 100644 .gitignore
+ create mode 100644 pyproject.toml
+ create mode 100644 requirements.txt</code></pre>
+      <div class="callout ok"><span class="c-label ok">Best Practice</span><p>ฝึก <code>git add</code> ทีละชื่อไฟล์แทน <code>git add .</code> ในโปรเจกต์ที่ใช้ AI เพราะ Agent อาจสร้างไฟล์ทดลอง ไฟล์ Log หรือไฟล์ที่มีข้อมูลส่วนตัวทิ้งไว้ การเลือกไฟล์เองบังคับให้คุณเห็นทุกไฟล์ก่อนเข้า Commit ถ้า <code>git commit</code> ขึ้นข้อความ <code>Please tell me who you are</code> ให้ตั้ง <code>git config --global user.name</code> และ <code>user.email</code> ตามหัวข้อ <a data-t="17"></a> ก่อน</p></div>
+    </li>
+
+    <li>
+      <h4>Step 2: เขียน SPEC.md ด้วย Spec Interview แล้วตั้ง AGENTS.md และ CLAUDE.md</h4>
+      <p>ก่อนให้ AI เขียนโค้ดแม้แต่บรรทัดเดียว ให้ AI เป็นฝ่ายถามคุณก่อน (Spec Interview) คำถามของ AI ช่วยให้เห็นจุดที่คุณยังไม่ได้ตัดสินใจ เปิด AI Chat Assistant หรือ Agentic Coding Tool ตัวไหนก็ได้ แล้วส่ง Prompt นี้</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Prompt · Spec Interview"><code class="language-plaintext">ผมจะสร้างเว็บแอปบันทึกรายรับรายจ่ายด้วย Flask + SQLite
+อย่าเพิ่งเขียนโค้ด ถามคำถามที่ต้องตอบก่อนเขียน Spec ทีละข้อ ไม่เกิน 10 ข้อ
+
+บริบท:
+- ผู้ใช้คนเดียว รันในเครื่องตัวเองบน Ubuntu 24.04 (WSL2) ด้วย Python 3.12
+- อยากได้: เพิ่มและลบรายการ สรุปรายเดือน และส่งออก CSV
+- ห้ามเสนอ Dependency อื่นนอกจาก Flask
+
+เมื่อถามครบแล้ว ให้ร่าง SPEC.md ตามหัวข้อ เป้าหมาย, ผู้ใช้, ฟีเจอร์ (Must / Should / Won't),
+Acceptance Criteria ที่เป็นตัวอย่าง Input และ Output ที่ตรวจได้, ข้อจำกัดทางเทคนิค และ Out of Scope</code></pre>
+      <p>ในการรันจริงของบทนี้ AI ถามกลับ 8 ข้อ เช่น จะเก็บเงินเป็นทศนิยมหรือจำนวนเต็ม จะลบรายการแบบไหน และมีหลายผู้ใช้หรือไม่ (คำถามและถ้อยคำจะต่างกันทุกครั้งที่รัน) คำตอบของคุณกลายเป็น Spec ด้านล่าง ให้ AI ร่างได้ แต่คุณต้องอ่านและแก้เองทุกบรรทัด เพราะ Acceptance Criteria แต่ละข้อจะถูกแปลงเป็น Test ใน Step 3 ถึง Step 5</p>
+<pre class="code" data-env="file" data-label="Markdown · SPEC.md"><code class="language-markdown"># SPEC.md: Personal Finance Web App
+
+## เป้าหมาย
+เว็บแอปบันทึกรายรับรายจ่ายส่วนตัวที่รันในเครื่อง ใช้ผ่านเบราว์เซอร์ และดูสรุปรายเดือนได้ในคลิกเดียว
+
+## ผู้ใช้
+- ผู้ใช้คนเดียว คือเจ้าของเครื่อง เปิดผ่าน http://127.0.0.1:5000
+- ไม่มีระบบสมาชิก และไม่เปิดให้เครื่องอื่นในเครือข่ายเข้าถึง
+
+## ฟีเจอร์
+### Must
+- M1 หน้าแรกแสดงรายการล่าสุด 50 รายการ เรียงวันที่ใหม่ไปเก่า พร้อมฟอร์มเพิ่มรายการ
+- M2 ฟอร์มรับ วันที่ (YYYY-MM-DD), ประเภท (income/expense), หมวดหมู่, จำนวนเงิน (บาท), หมายเหตุ (ไม่บังคับ)
+- M3 ข้อมูลผิดต้องแสดง Error ภาษาไทยในฟอร์มเดิม ค่าที่กรอกไว้ยังอยู่ และตอบ HTTP 400
+- M4 หน้า /summary?month=YYYY-MM แสดงรายรับ รายจ่าย คงเหลือ และรายจ่ายแยกหมวด
+- M5 ลบรายการด้วย POST /delete/&lt;id&gt; เท่านั้น
+- M6 ส่งออก CSV ของเดือนที่เลือกที่ /export.csv?month=YYYY-MM
+### Should
+- S1 แสดงข้อความยืนยันหลังบันทึกหรือลบ
+- S2 กันสูตรใน CSV (CSV Injection) เมื่อเปิดด้วยโปรแกรม Spreadsheet
+### Won't (รุ่นนี้ยังไม่ทำ)
+- หลายผู้ใช้และ Login, แก้ไขรายการ, กราฟ, หลายสกุลเงิน
+
+## Acceptance Criteria
+- AC1 จำนวนเงิน "1,250.50" เก็บเป็น 125050 สตางค์ และแสดงเป็น "1,250.50 บาท"
+- AC2 จำนวนเงิน "0", "-5", "abc", "12.345", "1000000.01" ถูกปฏิเสธพร้อมข้อความภาษาไทย
+- AC3 วันที่ "2026-02-30" ถูกปฏิเสธด้วยข้อความที่ขึ้นต้นว่า "วันที่ไม่ถูกต้อง"
+- AC4 ประเภทต้องเป็น income หรือ expense และหมวดหมู่ต้องเป็นหนึ่งใน อาหาร, เดินทาง, ที่พัก, การเรียน, บันเทิง, เงินเดือน, รายได้เสริม, อื่น ๆ
+- AC5 หมายเหตุยาวได้ไม่เกิน 100 ตัวอักษร
+- AC6 เมื่อมีข้อมูลตัวอย่าง 6 รายการของ ต.ค. 2026 หน้า /summary?month=2026-10 แสดงรายรับ 26,500.00 บาท รายจ่าย 6,997.00 บาท คงเหลือ 19,503.00 บาท และหมวด ที่พัก อยู่บนสุดของตารางรายจ่าย
+- AC7 month ที่ไม่ใช่รูปแบบ YYYY-MM เช่น 2026-13 หรือ ' OR '1'='1 ได้ HTTP 400 และไม่แสดงข้อมูลใดเลย
+- AC8 GET /delete/1 ได้ HTTP 405 ส่วน POST /delete/1 ลบแล้ว Redirect กลับหน้าแรก
+- AC9 /export.csv?month=2026-10 ได้ไฟล์ CSV แบบ UTF-8 ที่มี Header date,kind,category,amount,note และข้อมูล 6 แถว
+- AC10 หมายเหตุ &lt;script&gt;alert(1)&lt;/script&gt; แสดงเป็นข้อความธรรมดา ไม่ถูกรันเป็นสคริปต์
+- AC11 ถ้าไม่ได้ตั้ง SECRET_KEY แอปไม่ยอมเริ่มทำงาน และบอกวิธีแก้เป็นภาษาไทย
+
+## ข้อจำกัดทางเทคนิค
+- Python 3.12, Flask 3.1.3, โมดูล sqlite3 และ Jinja2 Template ห้ามเพิ่ม Dependency อื่น
+- เก็บเงินเป็นจำนวนเต็มหน่วยสตางค์ (1 บาท = 100 สตางค์) ห้ามใช้ float
+- SQL ทุกคำสั่งใช้ Parameter (?) และกำหนดไฟล์ฐานข้อมูลด้วย FINANCE_DB (ค่าเริ่มต้น finance.db)
+- Test ใช้ฐานข้อมูลชั่วคราวใน tmp_path เท่านั้น
+
+## Out of Scope
+- Deploy ขึ้น Server จริง, แอปมือถือ, การเชื่อมบัญชีธนาคาร</code></pre>
+      <p>สังเกต 3 จุดใน Spec นี้ จุดแรก ทุก AC เป็นตัวอย่าง Input และ Output ที่ตรวจได้จริง เช่น AC1 บอกทั้งข้อความที่กรอก ค่าที่เก็บ และข้อความที่แสดง จุดที่สอง AC7 และ AC10 เขียนการโจมตีไว้ตั้งแต่ Spec จึงกลายเป็น Test ด้านความปลอดภัยโดยอัตโนมัติ จุดที่สาม หัวข้อ Won't และ Out of Scope ช่วยห้าม AI เพิ่มฟีเจอร์เกินขอบเขต ซึ่งเป็นนิสัยที่ AI ทำบ่อยมาก</p>
+      <p>ต่อมาขอแผนโครงสร้างจาก AI โดยยังไม่ให้เขียนโค้ด</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Prompt · ขอแผนก่อนเขียนโค้ด"><code class="language-plaintext">อ่าน SPEC.md แล้วเสนอโครงสร้างไฟล์และแผนงานเป็นข้อ ๆ ยังไม่ต้องเขียนโค้ด</code></pre>
+      <p>แผนแรกที่ได้ใช้ SQLAlchemy และ Flask-WTF และแบ่งงานเป็น 9 โฟลเดอร์ ซึ่งขัดกับข้อจำกัดใน Spec และใหญ่เกินแอปที่มีแค่ 5 Route จึงปฏิเสธ แล้วเขียนกติกา "ห้ามเพิ่ม Dependency" ลง Context File เพื่อไม่ให้ AI เสนอแบบนี้ซ้ำในรอบถัดไป แผนรอบที่สองเหลือ 4 โมดูล คือ <code>money</code>, <code>validation</code>, <code>db</code> และ <code>app</code></p>
+<pre class="code" data-env="file" data-label="Markdown · AGENTS.md"><code class="language-markdown"># AGENTS.md: กติกาของโปรเจกต์ finance-app
+
+## ภาพรวม
+เว็บแอปบันทึกรายรับรายจ่าย (Flask 3 + SQLite + Jinja2) ความต้องการทั้งหมดอยู่ใน SPEC.md
+
+## โครงสร้าง
+- money.py แปลงจำนวนเงิน, validation.py ตรวจข้อมูล, db.py คุยกับ SQLite, app.py มีแค่ Route
+- templates/ คือหน้าเว็บ และ tests/ คือ Test ของ pytest
+
+## คำสั่ง
+- Setup: python3 -m venv .venv &amp;&amp; source .venv/bin/activate &amp;&amp; python3 -m pip install -r requirements.txt
+- Run (dev): export SECRET_KEY=... แล้ว flask --app app run --debug
+- Test: pytest -q
+- Quality Gate: ./scripts/check.sh
+
+## ข้อกำหนดการเขียนโค้ด
+- Python 3.12 มี Type Hint ทุกฟังก์ชัน Docstring และ Comment เป็นภาษาไทย
+- เงินเป็น int หน่วยสตางค์เสมอ แปลงเป็นข้อความด้วย money.format_baht เท่านั้น
+- SQL ใช้ Parameter (?) เท่านั้น
+
+## ห้ามทำ
+- ห้ามเพิ่ม Dependency ใหม่โดยไม่ถามก่อน
+- ห้ามอ่านหรือแก้ไฟล์ .env และห้ามใส่ Secret ในโค้ด
+- ห้ามแก้ไฟล์ใน tests/ เพื่อให้ Test ผ่าน ถ้าคิดว่า Test ผิดให้บอกเหตุผลแล้วรอการอนุมัติ
+- ห้ามใช้ |safe ใน Template ห้ามใส่ debug=True ในโค้ด และห้ามลบข้อมูลด้วย GET
+
+## Definition of Done
+- ./scripts/check.sh ผ่านครบ 4 ด่าน
+- เพิ่มรายการใน AI_LOG.md สำหรับงานที่ใช้ AI</code></pre>
+<pre class="code" data-env="file" data-label="Markdown · CLAUDE.md"><code class="language-markdown"># CLAUDE.md
+@AGENTS.md
+
+## เพิ่มเติมสำหรับ Claude Code
+- ก่อนแก้ไฟล์มากกว่า 1 ไฟล์ ให้เสนอแผนก่อน
+- รัน ./scripts/check.sh ก่อนรายงานว่างานเสร็จ</code></pre>
+      <p><code>AGENTS.md</code> เป็นไฟล์กติกากลางที่เครื่องมือ AI หลายตัวอ่านได้ ส่วน <code>CLAUDE.md</code> เป็นไฟล์ที่ Claude Code อ่าน บรรทัด <code>@AGENTS.md</code> คือรูปแบบการ Import ไฟล์อื่นของ Claude Code กติกาจึงอยู่ที่เดียวและไม่ขัดกันเอง เครื่องมือแต่ละตัวรองรับไฟล์เหล่านี้ไม่เหมือนกันและเปลี่ยนได้ตามเวอร์ชัน ให้ตรวจในเอกสารทางการของเครื่องมือที่คุณใช้ กติกาในหัวข้อ "ห้ามทำ" ทุกข้อตรวจด้วยเครื่องได้ เช่น <code>|safe</code> จะทำให้ Test เรื่อง XSS ล้ม และการแก้ไฟล์ใน <code>tests/</code> เห็นได้จาก <code>git diff --stat</code></p>
+      <p>สุดท้ายสร้าง <code>AI_LOG.md</code> ไว้รอ ทุกครั้งที่ใช้ AI ให้เพิ่มรายการตามรูปแบบในบรรทัดที่ 3 (ฉบับเต็ม 10 รายการอยู่ใน Step 10)</p>
+<pre class="code" data-env="file" data-label="Markdown · AI_LOG.md (เริ่มต้น)"><code class="language-markdown"># AI_LOG.md: บันทึกการใช้ AI ในโปรเจกต์ finance-app
+
+รูปแบบทุกรายการ: วันที่ · ขั้น · เรื่อง แล้วตามด้วย เครื่องมือ, Prompt, AI เสนอ, การตัดสินใจ, เหตุผล, ตรวจสอบด้วย, Commit</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git add SPEC.md AGENTS.md CLAUDE.md AI_LOG.md
+git commit -m "docs: เพิ่ม SPEC.md, AGENTS.md, CLAUDE.md และ AI_LOG.md"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[main 9fb8f5e] docs: เพิ่ม SPEC.md, AGENTS.md, CLAUDE.md และ AI_LOG.md
+ 4 files changed, 82 insertions(+)
+ create mode 100644 AGENTS.md
+ create mode 100644 AI_LOG.md
+ create mode 100644 CLAUDE.md
+ create mode 100644 SPEC.md</code></pre>
+      <div class="callout sec"><span class="c-label sec">Security</span><p>Context File ถูก Commit ขึ้น GitHub และถูกส่งให้ AI ทุกครั้งที่เริ่ม Session ห้ามใส่ Password, API Key, ที่อยู่ Server ภายใน หรือข้อมูลลูกค้าลงใน <code>AGENTS.md</code>, <code>CLAUDE.md</code> หรือ <code>SPEC.md</code> เด็ดขาด ถ้าต้องอ้างถึง Secret ให้เขียนแค่ชื่อตัวแปร เช่น <code>SECRET_KEY</code></p></div>
+    </li>
+
+    <li>
+      <h4>Step 3: Test-first ของการแปลงเงินและการตรวจฟอร์ม</h4>
+      <p>ส่วนที่เสี่ยงที่สุดของแอปการเงินคือการแปลงจำนวนเงิน จึงเริ่มจากส่วนนี้ และใช้ลำดับ Red → Green จากแนวคิดที่ 6 คือให้ AI เขียน Test จาก Acceptance Criteria ก่อน รัน Test เองให้เห็นว่าล้มด้วยเหตุผลที่ถูกต้อง แล้วจึงให้ AI เขียนโค้ดจริง</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Prompt · Test-first"><code class="language-plaintext">อ่าน SPEC.md และ AGENTS.md ก่อน
+งาน: เขียนเฉพาะไฟล์ tests/test_validation.py จาก AC1-AC5 และ AC7 (ส่วนที่ตรวจรูปแบบเดือน)
+
+ฟังก์ชันที่ Test จะเรียก (ยังไม่มีอยู่จริง):
+- money.parse_amount(text: str) -&gt; int        แปลงข้อความเป็นสตางค์ ข้อมูลผิดให้ raise ValueError
+- money.format_baht(satang: int) -&gt; str       เช่น 125050 เป็น "1,250.50 บาท"
+- money.to_csv_amount(satang: int) -&gt; str     เช่น 2500000 เป็น "25000.00"
+- validation.validate_transaction(form) -&gt; tuple[dict, list[str]]
+- validation.validate_month(text: str) -&gt; str
+
+ข้อกำหนด:
+- ใช้ @pytest.mark.parametrize กับกรณีที่หน้าตาเหมือนกัน และ pytest.raises(ValueError, match=...)
+- ทุก Test ต้องเทียบกับค่าที่คาดหวังจริง ห้ามใช้ assert ... is not None
+- ห้ามเขียน money.py หรือ validation.py ในรอบนี้ ผมจะรัน Test เองก่อน</code></pre>
+      <p>AI เสนอ Test มา 24 กรณี มีข้อหนึ่งเป็น <code>assert parse_amount("65") is not None</code> ซึ่งไม่พิสูจน์อะไรเลย เพราะค่าผิดอย่าง 65 หรือ 650000 ก็ผ่าน จึงลบทิ้ง แล้วเพิ่มกรณีเลขไทย <code>"๑๐๐"</code> ที่ AI ไม่ได้คิดถึงแทน ไฟล์ Test หลังรีวิวเป็นแบบนี้</p>
+<pre class="code" data-env="file" data-label="Python · tests/test_validation.py"><code class="language-python">"""Test ของ money.py และ validation.py ตาม AC1-AC5 และ AC7 ใน SPEC.md"""
+
+import pytest
+
+from money import format_baht, parse_amount, to_csv_amount
+from validation import validate_month, validate_transaction
+
+VALID_FORM = {
+    "date": "2026-10-02",
+    "kind": "expense",
+    "category": "อาหาร",
+    "amount": "65",
+    "note": "ข้าวกะเพรา",
+}
+
+
+@pytest.mark.parametrize(
+    ("text", "satang"),
+    [("1,250.50", 125050), ("65", 6500), ("0.5", 50), ("1000000", 100_000_000)],
+)
+def test_parse_amount_valid(text, satang):
+    assert parse_amount(text) == satang
+
+
+@pytest.mark.parametrize(
+    ("text", "message"),
+    [
+        ("0", "มากกว่า 0"),
+        ("-5", "ตัวเลขที่มากกว่า 0"),
+        ("abc", "ตัวเลขที่มากกว่า 0"),
+        ("๑๐๐", "ตัวเลขที่มากกว่า 0"),
+        ("12.345", "ทศนิยมได้ไม่เกิน 2 ตำแหน่ง"),
+        ("1000000.01", "ไม่เกิน 1,000,000 บาท"),
+    ],
+)
+def test_parse_amount_invalid(text, message):
+    with pytest.raises(ValueError, match=message):
+        parse_amount(text)
+
+
+def test_format_baht_and_csv_amount():
+    assert format_baht(125050) == "1,250.50 บาท"
+    assert format_baht(-1500) == "-15.00 บาท"
+    assert to_csv_amount(2500000) == "25000.00"
+
+
+def test_valid_form_returns_clean_data():
+    data, errors = validate_transaction(VALID_FORM)
+    assert errors == []
+    assert data == {
+        "date": "2026-10-02",
+        "kind": "expense",
+        "category": "อาหาร",
+        "amount_satang": 6500,
+        "note": "ข้าวกะเพรา",
+    }
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("date", "2026-02-30", "วันที่ไม่ถูกต้อง"),
+        ("date", "", "วันที่ไม่ถูกต้อง"),
+        ("kind", "transfer", "ประเภทต้องเป็น income"),
+        ("category", "", "กรุณาเลือกหมวดหมู่"),
+        ("category", "ช้อปปิ้ง", "หมวดหมู่ต้องเป็นหนึ่งในรายการที่กำหนด"),
+        ("category", "x" * 31, "ไม่เกิน 30 ตัวอักษร"),
+        ("note", "ก" * 101, "ไม่เกิน 100 ตัวอักษร"),
+    ],
+)
+def test_invalid_field_gives_one_thai_error(field, value, message):
+    _, errors = validate_transaction({**VALID_FORM, field: value})
+    assert len(errors) == 1
+    assert message in errors[0]
+
+
+@pytest.mark.parametrize("text", ["2026-13", "2026-1", "' OR '1'='1", ""])
+def test_invalid_month_raises(text):
+    with pytest.raises(ValueError, match="เดือนไม่ถูกต้อง"):
+        validate_month(text)
+
+
+def test_valid_month_is_stripped():
+    assert validate_month(" 2026-10 ") == "2026-10"</code></pre>
+      <p>รัน Test ทันทีทั้งที่ยังไม่มีโค้ด</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">pytest -q</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>
+==================================== ERRORS ====================================
+__________________ ERROR collecting tests/test_validation.py ___________________
+ImportError while importing test module '/home/somchai/projects/finance-app/tests/test_validation.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_validation.py:5: in &lt;module&gt;
+    from money import format_baht, parse_amount, to_csv_amount
+E   ModuleNotFoundError: No module named 'money'
+=========================== short test summary info ============================
+ERROR tests/test_validation.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.09s</code></pre>
+      <p>นี่คือการล้มด้วยเหตุผลที่ถูกต้อง เพราะยังไม่มีไฟล์ <code>money.py</code> จริง ๆ ไม่ใช่ล้มเพราะพิมพ์ชื่อผิดหรือ Syntax ใน Test ผิด ถ้า Error เป็นอย่างอื่น เช่น <code>SyntaxError</code> ในไฟล์ Test ต้องแก้ Test ก่อน ต่อไปจึงสั่งให้ AI เขียนโค้ดจริง</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Prompt · เขียนโค้ดให้ผ่าน Test"><code class="language-plaintext">เขียน money.py และ validation.py ให้ผ่าน tests/test_validation.py ห้ามแก้ไฟล์ Test
+ทำตาม AGENTS.md: Type Hint ทุกฟังก์ชัน, Docstring ภาษาไทย, เงินเป็น int หน่วยสตางค์</code></pre>
+      <p>รอบแรก AI แปลงเงินด้วย <code>int(float(text) * 100)</code> ซึ่งดูถูกต้องแต่ปัดเศษผิด ลองพิสูจน์ด้วยคำสั่งนี้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 -c "print(0.29 * 100, int(0.29 * 100))"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>28.999999999999996 28</code></pre>
+      <p>เงิน 0.29 บาทกลายเป็น 28 สตางค์ เพราะ float เก็บ 0.29 ได้แค่ค่าประมาณ แล้ว <code>int()</code> ตัดเศษทิ้ง จึงปฏิเสธโค้ดนั้นและสั่งให้แยกส่วนบาทกับส่วนสตางค์จากข้อความโดยตรง อีกจุดที่ต้องระวังคือเลขไทย Python ถือว่าเลขไทยเป็นตัวเลข ทั้งใน <code>int()</code> และใน <code>\d</code> ของ Regular Expression</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 -c 'import re; print(int("๑๐๐"), bool(re.fullmatch(r"\d+", "๑๐๐")), bool(re.fullmatch(r"[0-9]+", "๑๐๐")))'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>100 True False</code></pre>
+      <p>ผลลัพธ์นี้คือเหตุผลที่ <code>money.py</code> ใช้ <code>[0-9]</code> แทน <code>\d</code> โค้ดทั้งสองไฟล์หลังรีวิวเป็นแบบนี้</p>
+<pre class="code" data-env="file" data-label="Python · money.py"><code class="language-python">"""แปลงจำนวนเงินระหว่างข้อความที่ผู้ใช้กรอก จำนวนเต็มหน่วยสตางค์ และข้อความสำหรับแสดงผล"""
+
+import re
+
+# 1 บาท = 100 สตางค์ เพดานต่อรายการคือ 1,000,000 บาท
+MAX_SATANG = 1_000_000 * 100
+# ตัวเลข 0-9 อย่างน้อย 1 ตัว ตามด้วยทศนิยมได้ (ใช้ [0-9] เพื่อไม่รับเลขไทยหรือเลขของภาษาอื่น)
+AMOUNT_RE = re.compile(r"[0-9]+(\.[0-9]+)?")
+
+
+def parse_amount(text: str) -&gt; int:
+    """แปลงข้อความ เช่น "1,250.50" เป็นสตางค์ 125050 ถ้าข้อมูลไม่ถูกต้องจะ raise ValueError"""
+    cleaned = text.strip().replace(",", "")
+    if not AMOUNT_RE.fullmatch(cleaned):
+        raise ValueError("จำนวนเงินต้องเป็นตัวเลขที่มากกว่า 0 เช่น 65 หรือ 1250.50")
+    whole, _, fraction = cleaned.partition(".")
+    whole = whole.lstrip("0") or "0"
+    if len(fraction) &gt; 2:
+        raise ValueError("จำนวนเงินมีทศนิยมได้ไม่เกิน 2 ตำแหน่ง")
+    # ตรวจความยาวก่อนแปลงเป็น int เพื่อกันตัวเลขที่ยาวผิดปกติ
+    if len(whole) &gt; 7:
+        raise ValueError("จำนวนเงินต้องไม่เกิน 1,000,000 บาท")
+    satang = int(whole) * 100 + int(fraction.ljust(2, "0"))
+    if satang == 0:
+        raise ValueError("จำนวนเงินต้องมากกว่า 0")
+    if satang &gt; MAX_SATANG:
+        raise ValueError("จำนวนเงินต้องไม่เกิน 1,000,000 บาท")
+    return satang
+
+
+def format_baht(satang: int) -&gt; str:
+    """แสดงสตางค์เป็นข้อความ เช่น 125050 เป็น "1,250.50 บาท" ค่าติดลบจะมีเครื่องหมาย - นำหน้า"""
+    sign = "-" if satang &lt; 0 else ""
+    baht, rest = divmod(abs(satang), 100)
+    return f"{sign}{baht:,}.{rest:02d} บาท"
+
+
+def to_csv_amount(satang: int) -&gt; str:
+    """แสดงสตางค์เป็นตัวเลขบาทแบบไม่มีจุลภาคสำหรับไฟล์ CSV เช่น 2500000 เป็น 25000.00"""
+    baht, rest = divmod(satang, 100)
+    return f"{baht}.{rest:02d}"</code></pre>
+<pre class="code" data-env="file" data-label="Python · validation.py"><code class="language-python">"""ตรวจข้อมูลจากฟอร์มก่อนบันทึก คืนข้อมูลที่สะอาดพร้อมข้อความ Error ภาษาไทย"""
+
+import re
+from collections.abc import Mapping
+from datetime import date
+
+from money import parse_amount
+
+KINDS = {"income": "รายรับ", "expense": "รายจ่าย"}
+CATEGORIES = (
+    "อาหาร",
+    "เดินทาง",
+    "ที่พัก",
+    "การเรียน",
+    "บันเทิง",
+    "เงินเดือน",
+    "รายได้เสริม",
+    "อื่น ๆ",
+)
+MAX_CATEGORY = 30
+MAX_NOTE = 100
+# ปี 4 หลัก ขีด แล้วเดือน 01-12 เท่านั้น
+MONTH_RE = re.compile(r"[0-9]{4}-(0[1-9]|1[0-2])")
+
+
+def validate_transaction(form: Mapping[str, str]) -&gt; tuple[dict, list[str]]:
+    """ตรวจฟอร์มเพิ่มรายการ คืน (ข้อมูลที่ผ่านการตรวจ, รายการข้อความ Error)"""
+    data: dict = {}
+    errors: list[str] = []
+
+    raw_date = form.get("date", "").strip()
+    try:
+        # fromisoformat ปฏิเสธวันที่ที่ไม่มีจริง เช่น 2026-02-30
+        data["date"] = date.fromisoformat(raw_date).isoformat()
+    except ValueError:
+        errors.append("วันที่ไม่ถูกต้อง ใช้รูปแบบ YYYY-MM-DD เช่น 2026-10-05")
+
+    kind = form.get("kind", "")
+    if kind in KINDS:
+        data["kind"] = kind
+    else:
+        errors.append("ประเภทต้องเป็น income (รายรับ) หรือ expense (รายจ่าย)")
+
+    category = form.get("category", "").strip()
+    if not category:
+        errors.append("กรุณาเลือกหมวดหมู่")
+    elif len(category) &gt; MAX_CATEGORY:
+        errors.append(f"หมวดหมู่ยาวได้ไม่เกิน {MAX_CATEGORY} ตัวอักษร")
+    elif category not in CATEGORIES:
+        errors.append("หมวดหมู่ต้องเป็นหนึ่งในรายการที่กำหนด")
+    else:
+        data["category"] = category
+
+    try:
+        data["amount_satang"] = parse_amount(form.get("amount", ""))
+    except ValueError as exc:
+        errors.append(str(exc))
+
+    note = form.get("note", "").strip()
+    if len(note) &gt; MAX_NOTE:
+        errors.append(f"หมายเหตุยาวได้ไม่เกิน {MAX_NOTE} ตัวอักษร")
+    else:
+        data["note"] = note
+
+    return data, errors
+
+
+def validate_month(text: str) -&gt; str:
+    """ตรวจเดือนรูปแบบ YYYY-MM เช่น "2026-10" ถ้าไม่ถูกต้องจะ raise ValueError"""
+    month = text.strip()
+    if not MONTH_RE.fullmatch(month):
+        raise ValueError("เดือนไม่ถูกต้อง ใช้รูปแบบ YYYY-MM เช่น 2026-10")
+    return month</code></pre>
+      <p>จุดที่ต้องเข้าใจก่อนรับโค้ด</p>
+      <ul>
+        <li><code>parse_amount</code> ลบจุลภาคออก ตรวจรูปแบบด้วย <code>fullmatch</code> แล้วแยกส่วนบาทกับสตางค์ด้วย <code>partition(".")</code> จึงไม่มี float เข้ามาเกี่ยวเลย การตรวจความยาวก่อน <code>int()</code> กันข้อความตัวเลขยาวหลายพันหลักที่ทำให้ระบบช้าหรือขึ้น Error แปลก ๆ</li>
+        <li><code>validate_transaction</code> ใช้ <code>form.get(..., "")</code> ทุกช่อง ฟอร์มที่ขาดช่องจึงได้ข้อความ Error แทนที่จะเกิด <code>KeyError</code> จนได้ HTTP 500 แบบบั๊กในแนวคิดที่ 8 และฟังก์ชันเก็บ Error ทุกช่องไว้ในรายการเดียว ผู้ใช้จึงเห็นทุกจุดที่ต้องแก้ในครั้งเดียว</li>
+        <li><code>CATEGORIES</code> เป็น Whitelist ค่าอื่นนอกรายการถูกปฏิเสธทั้งหมด ส่วน <code>validate_month</code> ปฏิเสธ <code>' OR '1'='1</code> ตั้งแต่ก่อนถึงชั้นฐานข้อมูล เป็นการป้องกันอีกชั้นนอกเหนือจาก Parameter ใน Step 4</li>
+      </ul>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">pytest -q
+ruff check --output-format concise . &amp;&amp; ruff format --check .</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>........................                                                 [100%]
+24 passed in 0.02s
+All checks passed!
+7 files already formatted</code></pre>
+      <p>Test ผ่านครบ 24 ข้อ และ ruff ไม่พบปัญหา จึง Commit โค้ดพร้อม Test ใน Commit เดียวกัน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git add money.py validation.py tests/test_validation.py
+git commit -m "feat: แปลงจำนวนเงินเป็นสตางค์และตรวจข้อมูลฟอร์ม พร้อม Test"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[main 3b9b085] feat: แปลงจำนวนเงินเป็นสตางค์และตรวจข้อมูลฟอร์ม พร้อม Test
+ 3 files changed, 198 insertions(+)
+ create mode 100644 money.py
+ create mode 100644 tests/test_validation.py
+ create mode 100644 validation.py</code></pre>
+      <div class="callout warn"><span class="c-label warn">ระวัง</span><p>ถ้า AI ตอบว่า "แก้ Test นิดหน่อยให้ผ่านแล้ว" ให้ถือว่างานนั้นยังไม่ผ่าน ตรวจทุกครั้งด้วย <code>git diff --stat -- tests/</code> ก่อน Commit ถ้ามีไฟล์ใน <code>tests/</code> เปลี่ยนโดยที่คุณไม่ได้ขอ ให้ย้อนด้วย <code>git restore tests/</code> แล้วสั่งใหม่โดยย้ำกติกาใน <code>AGENTS.md</code></p></div>
+    </li>
+
+    <li>
+      <h4>Step 4: ชั้นฐานข้อมูลแบบ Parameterized ด้วยก้าวเล็ก Plan → Implement → Verify → Commit</h4>
+      <p>งานนี้แตะ SQL ทั้งหมดของแอป จึงใช้ลำดับจากแนวคิดที่ 4 อย่างเคร่งครัด คือขอแผนก่อน อนุมัติแผน ให้เขียน Test ตามแผน แล้วจึงเขียนโค้ด แยกคำสั่ง SQL ทุกคำสั่งไว้ใน <code>db.py</code> ไฟล์เดียว เวลารีวิวเรื่อง SQL Injection จะได้ดูที่เดียวจบ</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Prompt · Plan ก่อน Implement"><code class="language-plaintext">อ่าน SPEC.md, AGENTS.md และ validation.py
+ขั้นที่ 1: เสนอแผนของ db.py เป็นข้อ ๆ ได้แก่ ชื่อฟังก์ชัน, Parameter, ค่าที่คืน, คำสั่ง SQL
+และรายการ Test ที่ควรมี ยังไม่ต้องเขียนโค้ด รอผมอนุมัติก่อน
+
+ข้อบังคับ:
+- ใช้โมดูล sqlite3 ของ Python เท่านั้น
+- SQL ทุกคำสั่งส่งค่าผ่าน Parameter (?) ห้ามต่อ String หรือใช้ f-string
+- แต่ละฟังก์ชันรับ db_path แล้วเปิดและปิด Connection เอง
+- เงินเป็น int หน่วยสตางค์ และใส่ CHECK ในตารางกันค่าที่เป็นไปไม่ได้
+- Test ใช้ไฟล์ฐานข้อมูลใน tmp_path และมี Test ที่ลองส่ง SQL Injection</code></pre>
+      <p>แผนที่ได้มี 7 ฟังก์ชัน ได้แก่ <code>get_conn</code>, <code>init_db</code>, <code>add_transaction</code>, <code>list_transactions</code>, <code>delete_transaction</code>, <code>month_rows</code> และ <code>month_summary</code> แผนตรงกับ Spec จึงอนุมัติ แล้วสั่งต่อว่า "เขียน tests/test_db.py ตามแผนก่อน แล้วค่อยเขียน db.py" ข้อมูลตัวอย่างใน Fixture คือ 6 รายการของเดือนตุลาคม 2026 ตาม AC6 บวกอีก 1 รายการของเดือนกันยายน ไว้พิสูจน์ว่าการกรองเดือนทำงานถูก</p>
+<pre class="code" data-env="file" data-label="Python · tests/test_db.py"><code class="language-python">"""Test ของ db.py: ทุก Test ใช้ไฟล์ฐานข้อมูลใหม่ใน tmp_path"""
+
+import sqlite3
+
+import pytest
+
+import db
+
+
+def tx(date: str, kind: str, category: str, satang: int, note: str = "") -&gt; dict:
+    """สร้างข้อมูลรายการในรูปแบบเดียวกับที่ validate_transaction คืนมา"""
+    return {"date": date, "kind": kind, "category": category, "amount_satang": satang, "note": note}
+
+
+@pytest.fixture
+def db_path(tmp_path):
+    """ฐานข้อมูลที่มีข้อมูลตัวอย่าง ต.ค. 2026 จำนวน 6 รายการ และของ ก.ย. 2026 อีก 1 รายการ"""
+    path = str(tmp_path / "test.db")
+    db.init_db(path)
+    for row in [
+        tx("2026-10-01", "income", "เงินเดือน", 2_500_000),
+        tx("2026-10-02", "expense", "อาหาร", 6_500, "ข้าวกะเพรา"),
+        tx("2026-10-03", "expense", "เดินทาง", 4_200, "BTS"),
+        tx("2026-10-05", "expense", "การเรียน", 39_000, "หนังสือ Python"),
+        tx("2026-10-10", "expense", "ที่พัก", 650_000, "ค่าห้อง"),
+        tx("2026-10-15", "income", "รายได้เสริม", 150_000, "สอนพิเศษ"),
+        tx("2026-09-30", "expense", "อาหาร", 12_000, "เดือนก่อน"),
+    ]:
+        db.add_transaction(path, row)
+    return path
+
+
+def test_list_is_newest_first(db_path):
+    dates = [row["date"] for row in db.list_transactions(db_path)]
+    assert dates[:2] == ["2026-10-15", "2026-10-10"]
+    assert dates[-1] == "2026-09-30"
+
+
+def test_month_summary_matches_spec(db_path):
+    s = db.month_summary(db_path, "2026-10")
+    assert (s["income"], s["expense"], s["balance"]) == (2_650_000, 699_700, 1_950_300)
+    assert s["by_category"][0] == ("ที่พัก", 650_000)
+    assert len(s["by_category"]) == 4
+
+
+def test_month_rows_only_selected_month(db_path):
+    rows = db.month_rows(db_path, "2026-10")
+    assert len(rows) == 6
+    assert rows[0]["date"] == "2026-10-01"
+
+
+def test_sql_injection_in_month_returns_nothing(db_path):
+    # ถ้าโค้ดต่อ String เป็นคำสั่ง SQL ข้อความนี้จะดึงทุกแถวออกมาได้
+    assert db.month_rows(db_path, "2026-10' OR '1'='1") == []
+
+
+def test_delete_transaction(db_path):
+    newest_id = db.list_transactions(db_path)[0]["id"]
+    assert db.delete_transaction(db_path, newest_id) is True
+    assert db.delete_transaction(db_path, newest_id) is False
+    assert len(db.list_transactions(db_path)) == 6
+
+
+def test_check_constraint_blocks_zero_amount(db_path):
+    with pytest.raises(sqlite3.IntegrityError):
+        db.add_transaction(db_path, tx("2026-10-20", "expense", "อาหาร", 0))</code></pre>
+<pre class="code" data-env="file" data-label="Python · db.py"><code class="language-python">"""ชั้นฐานข้อมูล SQLite: ทุกฟังก์ชันเปิดและปิด Connection เอง และส่งค่าผ่าน Parameter (?) เสมอ"""
+
+import sqlite3
+from contextlib import closing
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS transactions (
+    id INTEGER PRIMARY KEY,
+    date TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('income', 'expense')),
+    category TEXT NOT NULL,
+    amount_satang INTEGER NOT NULL CHECK (amount_satang &gt; 0),
+    note TEXT DEFAULT ''
+)
+"""
+
+
+def get_conn(db_path: str) -&gt; sqlite3.Connection:
+    """เปิด Connection ที่คืนแถวเป็น sqlite3.Row เพื่อเรียกคอลัมน์ด้วยชื่อได้"""
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db(db_path: str) -&gt; None:
+    """สร้างตาราง transactions ถ้ายังไม่มี"""
+    with closing(get_conn(db_path)) as conn:
+        conn.execute(SCHEMA)
+        conn.commit()
+
+
+def add_transaction(db_path: str, data: dict) -&gt; int:
+    """บันทึกรายการที่ผ่าน validate_transaction แล้ว คืน id ของแถวใหม่"""
+    with closing(get_conn(db_path)) as conn:
+        cur = conn.execute(
+            "INSERT INTO transactions (date, kind, category, amount_satang, note)"
+            " VALUES (?, ?, ?, ?, ?)",
+            (data["date"], data["kind"], data["category"], data["amount_satang"], data["note"]),
+        )
+        conn.commit()
+        return cur.lastrowid
+
+
+def list_transactions(db_path: str, limit: int = 50) -&gt; list[sqlite3.Row]:
+    """คืนรายการล่าสุดเรียงวันที่ใหม่ไปเก่า ถ้าวันเดียวกันรายการที่เพิ่มทีหลังขึ้นก่อน"""
+    with closing(get_conn(db_path)) as conn:
+        return conn.execute(
+            "SELECT * FROM transactions ORDER BY date DESC, id DESC LIMIT ?", (limit,)
+        ).fetchall()
+
+
+def delete_transaction(db_path: str, tx_id: int) -&gt; bool:
+    """ลบรายการตาม id คืน True ถ้าลบได้ และ False ถ้าไม่พบรายการนั้น"""
+    with closing(get_conn(db_path)) as conn:
+        cur = conn.execute("DELETE FROM transactions WHERE id = ?", (tx_id,))
+        conn.commit()
+        return cur.rowcount &gt; 0
+
+
+def month_rows(db_path: str, month: str) -&gt; list[sqlite3.Row]:
+    """คืนทุกรายการของเดือน month (YYYY-MM) เรียงวันที่เก่าไปใหม่ ใช้กับการส่งออก CSV"""
+    with closing(get_conn(db_path)) as conn:
+        return conn.execute(
+            "SELECT * FROM transactions WHERE substr(date, 1, 7) = ? ORDER BY date, id",
+            (month,),
+        ).fetchall()
+
+
+def month_summary(db_path: str, month: str) -&gt; dict:
+    """สรุปรายรับ รายจ่าย คงเหลือ และรายจ่ายแยกหมวดของเดือน month หน่วยเป็นสตางค์"""
+    with closing(get_conn(db_path)) as conn:
+        totals = conn.execute(
+            """
+            SELECT
+                COALESCE(SUM(CASE WHEN kind = 'income' THEN amount_satang END), 0) AS income,
+                COALESCE(SUM(CASE WHEN kind = 'expense' THEN amount_satang END), 0) AS expense
+            FROM transactions
+            WHERE substr(date, 1, 7) = ?
+            """,
+            (month,),
+        ).fetchone()
+        by_category = conn.execute(
+            """
+            SELECT category, SUM(amount_satang) AS total
+            FROM transactions
+            WHERE kind = 'expense' AND substr(date, 1, 7) = ?
+            GROUP BY category
+            ORDER BY total DESC, category
+            """,
+            (month,),
+        ).fetchall()
+    return {
+        "income": totals["income"],
+        "expense": totals["expense"],
+        "balance": totals["income"] - totals["expense"],
+        "by_category": [(row["category"], row["total"]) for row in by_category],
+    }</code></pre>
+      <p>จุดที่ต้องรีวิวใน <code>db.py</code></p>
+      <ul>
+        <li><code>closing()</code> ปิด Connection ทุกครั้งแม้เกิด Error การเขียน <code>with sqlite3.connect(...) as conn</code> อย่างเดียวแค่ Commit หรือ Rollback Transaction แต่ไม่ปิด Connection ซึ่งเป็นจุดที่ AI เขียนพลาดบ่อย</li>
+        <li>ค่าทุกค่าที่มาจากผู้ใช้ส่งผ่าน <code>?</code> ส่วนคำสั่ง SQL เป็นข้อความคงที่ทั้งหมด แม้แต่ <code>LIMIT ?</code> ก็ใช้ Parameter</li>
+        <li><code>CHECK</code> ในตารางคือด่านสุดท้าย ถ้าวันหนึ่งมีโค้ดข้าม <code>validate_transaction</code> ฐานข้อมูลก็ยังไม่ยอมรับยอดเงิน 0 หรือประเภทที่ไม่รู้จัก Test ข้อสุดท้ายพิสูจน์เรื่องนี้</li>
+        <li><code>ORDER BY total DESC, category</code> ทำให้ลำดับแน่นอนแม้สองหมวดมียอดเท่ากัน Test จึงไม่ผ่านบ้างล้มบ้าง</li>
+      </ul>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">pytest -q tests/test_db.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>......                                                                   [100%]
+6 passed in 0.10s</code></pre>
+      <p>ผ่านไฟล์เดียวแล้วต้องรันทั้งชุดเสมอ เพื่อยืนยันว่าของใหม่ไม่ทำของเดิมพัง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">pytest -q &amp;&amp; ruff check --output-format concise . &amp;&amp; ruff format --check .
+git add db.py tests/test_db.py
+git commit -m "feat: ชั้นฐานข้อมูล SQLite แบบ Parameterized พร้อม Test"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>..............................                                           [100%]
+30 passed in 0.11s
+All checks passed!
+9 files already formatted
+[main 12ae44a] feat: ชั้นฐานข้อมูล SQLite แบบ Parameterized พร้อม Test
+ 2 files changed, 163 insertions(+)
+ create mode 100644 db.py
+ create mode 100644 tests/test_db.py</code></pre>
+      <h5>ทดลอง: ถ้ารับคำแนะนำของ Inline Completion โดยไม่อ่าน</h5>
+      <p>ระหว่างทำ Step นี้ ตอนพิมพ์ Comment <code># ดึงรายการของเดือน month</code> ใน Editor เครื่องมือ Inline Completion เสนอคำสั่ง SQL แบบ f-string มาให้ กด <kbd>Tab</kbd> ครั้งเดียวก็รับได้ทันที ลองจำลองสถานการณ์นั้นด้วย Patch นี้ บันทึกไฟล์ไว้ที่ <code>~/inline-month.patch</code> (นอกโฟลเดอร์โปรเจกต์)</p>
+<pre class="code" data-env="file" data-label="Diff · inline-month.patch (โค้ดที่ AI เขียน)"><code class="language-plaintext">diff --git a/db.py b/db.py
+index d36a798..5624297 100644
+--- a/db.py
++++ b/db.py
+@@ -61,8 +61,7 @@ def month_rows(db_path: str, month: str) -&gt; list[sqlite3.Row]:
+     """คืนทุกรายการของเดือน month (YYYY-MM) เรียงวันที่เก่าไปใหม่ ใช้กับการส่งออก CSV"""
+     with closing(get_conn(db_path)) as conn:
+         return conn.execute(
+-            "SELECT * FROM transactions WHERE substr(date, 1, 7) = ? ORDER BY date, id",
+-            (month,),
++            f"SELECT * FROM transactions WHERE substr(date, 1, 7) = '{month}' ORDER BY date, id"
+         ).fetchall()
+
+ </code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git apply --check ~/inline-month.patch &amp;&amp; git apply ~/inline-month.patch
+ruff check --output-format concise db.py
+pytest -q tests/test_db.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>db.py:64:13: S608 Possible SQL injection vector through string-based query construction
+Found 1 error.
+...F..                                                                   [100%]
+=================================== FAILURES ===================================
+_________________ test_sql_injection_in_month_returns_nothing __________________
+
+db_path = '/tmp/pytest-of-somchai/pytest-0/test_sql_injection_in_month_re0/test.db'
+
+    def test_sql_injection_in_month_returns_nothing(db_path):
+        # ถ้าโค้ดต่อ String เป็นคำสั่ง SQL ข้อความนี้จะดึงทุกแถวออกมาได้
+&gt;       assert db.month_rows(db_path, "2026-10' OR '1'='1") == []
+E       assert [&lt;sqlite3.Row...c7184f0&gt;, ...] == []
+E
+E         Left contains 7 more items, first extra item: &lt;sqlite3.Row object at 0x7f923c7189a0&gt;
+E         Use -v to get more diff
+
+tests/test_db.py:54: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_db.py::test_sql_injection_in_month_returns_nothing - assert...
+1 failed, 5 passed in 0.12s</code></pre>
+      <p>ทั้งสองด่านจับได้ ruff ชี้บรรทัดที่ต่อ String เป็น SQL (กฎ S608) ส่วน Test บอกว่าได้ข้อมูลกลับมาครบ 7 แถว รวมแถวของเดือนกันยายนที่ไม่ควรเห็น แปลว่าข้อความ <code>' OR '1'='1</code> เปลี่ยนเงื่อนไข WHERE ให้เป็นจริงทุกแถว Path ชั่วคราวของ pytest และเลขที่อยู่หน่วยความจำ (เช่น <code>0x7f923c7189a0</code>) บนเครื่องของคุณจะต่างไป ย้อนไฟล์กลับเป็นฉบับที่ Commit ไว้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git restore db.py
+git status --short</code></pre>
+      <p><code>git status --short</code> ไม่แสดงอะไรเลย แปลว่าโฟลเดอร์กลับมาตรงกับ Commit ล่าสุดแล้ว นี่คือประโยชน์ของการ Commit ทุกครั้งที่ Test ผ่าน การทดลองที่ผิดพลาดย้อนกลับได้ในคำสั่งเดียว</p>
+      <div class="callout sec"><span class="c-label sec">Security</span><p>ทดลอง SQL Injection กับแอปและฐานข้อมูลของคุณเองบนเครื่องตัวเองเท่านั้น การลองกับเว็บไซต์ของผู้อื่นโดยไม่ได้รับอนุญาตผิด พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์ แม้จะตั้งใจแค่ทดสอบก็ตาม</p></div>
+    </li>
+
+    <li>
+      <h4>Step 5: เขียน Test ของ Route ก่อนมีแอป</h4>
+      <p>ใช้ Test-first ซ้ำอีกรอบกับชั้นเว็บ คราวนี้ Test เรียกแอปผ่าน Flask Test Client ซึ่งส่ง Request ได้โดยไม่ต้องเปิด Server จริง และทุก Test ใช้ฐานข้อมูลชั่วคราวใน <code>tmp_path</code> จึงไม่แตะ <code>finance.db</code> ที่มีข้อมูลจริงของคุณ</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Prompt · Test ของ Route"><code class="language-plaintext">อ่าน SPEC.md (AC6-AC11), AGENTS.md, validation.py และ db.py
+เขียน tests/conftest.py และ tests/test_routes.py ด้วย Flask Test Client โดยยังไม่ต้องเขียน app.py
+
+สัญญาของแอปที่ Test ใช้:
+- app.create_app(config: dict | None = None) รับค่า TESTING, DATABASE และ SECRET_KEY
+- Route: GET /, POST /add, POST /delete/&lt;id&gt;, GET /summary?month=, GET /export.csv?month=
+
+ข้อกำหนด:
+- Fixture: app (ฐานข้อมูลใน tmp_path และ Key สำหรับ Test เท่านั้น), client และ seeded_client ที่มีข้อมูล 6 รายการตาม AC6
+- ครอบคลุม: เรียงใหม่ไปเก่า, เพิ่มสำเร็จได้ 302 พร้อมข้อความยืนยัน, ข้อมูลผิดได้ 400 และค่าเดิมยังอยู่ในฟอร์ม,
+  SQL Injection ในหมวดหมู่, ยอดสรุปตาม AC6, เดือนผิดตาม AC7, ลบด้วย GET ได้ 405, CSV ตาม AC9,
+  XSS ตาม AC10, สูตรใน CSV, และแอปไม่ยอมเริ่มเมื่อไม่มี SECRET_KEY ตาม AC11</code></pre>
+<pre class="code" data-env="file" data-label="Python · tests/conftest.py"><code class="language-python">"""Fixture กลางของ Test Route: ทุก Test ได้ฐานข้อมูลใหม่ใน tmp_path และ Key สำหรับ Test เท่านั้น"""
+
+import pytest
+
+from app import create_app
+
+FIELDS = ("date", "kind", "category", "amount", "note")
+# ข้อมูลตัวอย่างเดือน ต.ค. 2026 ตรงกับ AC6 ใน SPEC.md (กรอกแบบที่ผู้ใช้พิมพ์จริง)
+SAMPLE_ROWS = [
+    ("2026-10-01", "income", "เงินเดือน", "25000", ""),
+    ("2026-10-02", "expense", "อาหาร", "65", "ข้าวกะเพรา"),
+    ("2026-10-03", "expense", "เดินทาง", "42.00", "BTS"),
+    ("2026-10-05", "expense", "การเรียน", "390", "หนังสือ Python"),
+    ("2026-10-10", "expense", "ที่พัก", "6,500", "ค่าห้อง"),
+    ("2026-10-15", "income", "รายได้เสริม", "1,500.00", "สอนพิเศษ"),
+]
+
+
+@pytest.fixture
+def app(tmp_path):
+    """แอปสำหรับ Test: ฐานข้อมูลชั่วคราว และ SECRET_KEY ที่ใช้ได้แค่ใน Test"""
+    return create_app(
+        {"TESTING": True, "DATABASE": str(tmp_path / "test.db"), "SECRET_KEY": "test-only-key"}
+    )
+
+
+@pytest.fixture
+def client(app):
+    """Test Client ส่ง Request ได้โดยไม่ต้องเปิด Server จริง"""
+    return app.test_client()
+
+
+@pytest.fixture
+def seeded_client(client):
+    """Test Client ที่บันทึกข้อมูลตัวอย่างครบ 6 รายการแล้ว"""
+    for row in SAMPLE_ROWS:
+        response = client.post("/add", data=dict(zip(FIELDS, row, strict=True)))
+        assert response.status_code == 302
+    return client</code></pre>
+<pre class="code" data-env="file" data-label="Python · tests/test_routes.py"><code class="language-python">"""Test ของทุก Route ผ่าน Flask Test Client ตาม AC6-AC11 ใน SPEC.md"""
+
+import pytest
+
+from app import create_app
+
+
+def form(**changes: str) -&gt; dict:
+    """ฟอร์มที่ถูกต้อง 1 รายการ เปลี่ยนบางช่องได้ด้วย keyword เช่น form(amount="abc")"""
+    base = {"date": "2026-10-20", "kind": "expense", "category": "อื่น ๆ", "amount": "1", "note": ""}
+    return {**base, **changes}
+
+
+def test_index_shows_newest_first(seeded_client):
+    html = seeded_client.get("/").get_data(as_text=True)
+    assert html.index("สอนพิเศษ") &lt; html.index("ข้าวกะเพรา")
+    assert "1,500.00 บาท" in html
+
+
+def test_add_redirects_and_flashes(client):
+    response = client.post("/add", data=form(amount="199", note="ดูหนัง"), follow_redirects=True)
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "บันทึกรายการแล้ว" in html
+    assert "199.00 บาท" in html
+
+
+def test_invalid_add_rerenders_form_with_400(client):
+    response = client.post("/add", data=form(date="2026-02-30", amount="abc"))
+    html = response.get_data(as_text=True)
+    assert response.status_code == 400
+    assert "วันที่ไม่ถูกต้อง" in html
+    assert "จำนวนเงินต้องเป็นตัวเลข" in html
+    assert 'value="abc"' in html  # ค่าที่ผู้ใช้กรอกยังอยู่ในฟอร์ม
+
+
+def test_sql_injection_in_category_is_rejected(seeded_client):
+    attack = form(category="อาหาร'); DROP TABLE transactions; --")
+    assert seeded_client.post("/add", data=attack).status_code == 400
+    # ตารางยังอยู่ และข้อมูลเดิมยังแสดงครบ
+    assert "ข้าวกะเพรา" in seeded_client.get("/").get_data(as_text=True)
+
+
+def test_summary_matches_spec(seeded_client):
+    html = seeded_client.get("/summary?month=2026-10").get_data(as_text=True)
+    assert "26,500.00 บาท" in html
+    assert "6,997.00 บาท" in html
+    assert "19,503.00 บาท" in html
+    assert html.index("ที่พัก") &lt; html.index("การเรียน")  # หมวดที่จ่ายมากสุดอยู่บนสุด
+
+
+@pytest.mark.parametrize("month", ["2026-13", "' OR '1'='1"])
+def test_summary_rejects_bad_month(seeded_client, month):
+    response = seeded_client.get("/summary", query_string={"month": month})
+    html = response.get_data(as_text=True)
+    assert response.status_code == 400
+    assert "เดือนไม่ถูกต้อง" in html
+    assert "26,500.00" not in html
+
+
+def test_delete_requires_post(seeded_client):
+    assert seeded_client.get("/delete/1").status_code == 405
+    html = seeded_client.post("/delete/1", follow_redirects=True).get_data(as_text=True)
+    assert "ลบรายการแล้ว" in html
+    assert "25,000.00 บาท" not in html
+    assert seeded_client.post("/delete/999").status_code == 404
+
+
+def test_export_csv(seeded_client):
+    response = seeded_client.get("/export.csv?month=2026-10")
+    lines = response.get_data(as_text=True).splitlines()
+    assert response.mimetype == "text/csv"
+    assert "finance-2026-10.csv" in response.headers["Content-Disposition"]
+    assert lines[0] == "date,kind,category,amount,note"
+    assert lines[1] == "2026-10-01,income,เงินเดือน,25000.00,"
+    assert len(lines) == 7
+
+
+def test_note_is_escaped(client):
+    client.post("/add", data=form(note="&lt;script&gt;alert(1)&lt;/script&gt;"))
+    html = client.get("/").get_data(as_text=True)
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" not in html
+    assert "&amp;lt;script&amp;gt;alert(1)&amp;lt;/script&amp;gt;" in html
+
+
+def test_csv_formula_is_neutralized(client):
+    client.post("/add", data=form(note="=SUM(A1:A9)"))
+    lines = client.get("/export.csv?month=2026-10").get_data(as_text=True).splitlines()
+    assert lines[1].endswith(",'=SUM(A1:A9)")
+
+
+def test_app_refuses_to_start_without_secret_key(tmp_path, monkeypatch):
+    monkeypatch.delenv("SECRET_KEY", raising=False)
+    with pytest.raises(RuntimeError, match="SECRET_KEY"):
+        create_app({"DATABASE": str(tmp_path / "no-key.db")})</code></pre>
+      <p>ข้อมูลใน <code>SAMPLE_ROWS</code> กรอกหลายรูปแบบตั้งใจ เช่น <code>"6,500"</code> และ <code>"1,500.00"</code> เพื่อทดสอบการแปลงเงินจากหน้าเว็บจริง ส่วน <code>zip(..., strict=True)</code> (มีตั้งแต่ Python 3.10) จะ Error ทันทีถ้าจำนวนช่องไม่เท่ากัน Test <code>test_note_is_escaped</code> ตรวจทั้งสองด้าน คือสคริปต์ดิบต้องไม่อยู่ในหน้าเว็บ และต้องเจอฉบับที่ถูก Escape เป็น <code>&amp;lt;script&amp;gt;</code> แทน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">pytest -q</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ImportError while loading conftest '/home/somchai/projects/finance-app/tests/conftest.py'.
+tests/conftest.py:5: in &lt;module&gt;
+    from app import create_app
+E   ModuleNotFoundError: No module named 'app'</code></pre>
+      <p>ล้มด้วยเหตุผลที่ถูกต้องอีกครั้ง เพราะยังไม่มี <code>app.py</code> ยังไม่ Commit ใน Step นี้ เพราะกติกาของโปรเจกต์คือ Commit เมื่อ Test ผ่านเท่านั้น ไฟล์ Test สองไฟล์นี้จะเข้า Commit เดียวกับแอปใน Step 6</p>
+    </li>
+
+    <li>
+      <h4>Step 6: สร้าง app.py และ Template ให้ Test ผ่าน</h4>
+      <p>สั่งงานด้วย Prompt สั้น ๆ เพราะรายละเอียดทั้งหมดอยู่ใน Spec, Context File และ Test แล้ว นี่คือข้อดีของการเตรียม Step 2 ถึง Step 5 ให้ครบ</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Prompt · เขียนแอปให้ผ่าน Test"><code class="language-plaintext">เขียน app.py และ templates ให้ผ่าน tests/test_routes.py ห้ามแก้ไฟล์ใน tests/
+- app.py มีแค่ Route และ create_app ส่วน Logic เรียกใช้จาก money.py, validation.py และ db.py
+- เสนอรายชื่อไฟล์ที่จะสร้างก่อน แล้วค่อยเขียน
+- เสร็จแล้วรัน pytest -q และ ruff check . แล้วรายงานผลจริง</code></pre>
+      <p>โค้ดรอบแรกทำให้ Test ผ่านเกือบครบ แต่รีวิวแล้วเจอ 3 เรื่องที่ต้องตัดสินใจ (บันทึกไว้ใน <code>AI_LOG.md</code>)</p>
+      <ul>
+        <li><strong>แก้ก่อนรับ:</strong> AI ใส่ <code>app.secret_key = "dev"</code> และ <code>app.run(debug=True)</code> ท้ายไฟล์ Secret ในโค้ดจะหลุดขึ้น GitHub และ Debugger ของ Werkzeug ให้คนที่เปิดหน้า Error รันโค้ด Python ได้ จึงให้อ่าน <code>SECRET_KEY</code> จาก Environment Variable และไม่ยอมเริ่มทำงานเมื่อไม่มีค่า</li>
+        <li><strong>ปฏิเสธ:</strong> ปุ่มลบเป็นลิงก์ <code>a href="/delete/1"</code> กับ Route ที่รับ GET ลิงก์แบบนี้ถูกเรียกได้จากรูปภาพในเว็บอื่นหรือจาก Browser Prefetch จึงเปลี่ยนเป็นฟอร์ม POST ตาม AC8</li>
+        <li><strong>แก้ก่อนรับ:</strong> ขอ Second Opinion เรื่องฟังก์ชันส่งออก CSV จาก AI อีกตัว (แนบเฉพาะฟังก์ชันนั้น) ได้คำเตือนเรื่อง CSV Injection ที่ถูกต้อง แต่วิธีแก้ที่เสนอคือลบอักขระ <code>=</code> <code>+</code> <code>-</code> <code>@</code> ทิ้ง ซึ่งทำให้ข้อมูลของผู้ใช้เปลี่ยน จึงใช้วิธีใส่ <code>'</code> นำหน้าตามแนวทางของ OWASP แทน</li>
+      </ul>
+<pre class="code" data-env="file" data-label="Python · app.py"><code class="language-python">"""Personal Finance Web App: ไฟล์นี้มีแค่ Route ส่วน Logic อยู่ใน db.py, validation.py และ money.py"""
+
+import csv
+import io
+import os
+from datetime import date
+
+from flask import Flask, Response, abort, flash, redirect, render_template, request, url_for
+from flask.typing import ResponseReturnValue
+
+import db
+from money import format_baht, to_csv_amount
+from validation import CATEGORIES, KINDS, validate_month, validate_transaction
+
+# อักขระนำหน้าที่ทำให้โปรแกรม Spreadsheet มองข้อความเป็นสูตร (CSV Injection)
+FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+
+
+def safe_csv_cell(text: str) -&gt; str:
+    """ใส่ ' นำหน้าข้อความที่อาจถูกตีความเป็นสูตรเมื่อเปิดไฟล์ CSV"""
+    return "'" + text if text.startswith(FORMULA_PREFIXES) else text
+
+
+def current_month() -&gt; str:
+    """เดือนปัจจุบันในรูปแบบ YYYY-MM"""
+    return date.today().strftime("%Y-%m")
+
+
+def create_app(config: dict | None = None) -&gt; Flask:
+    """App Factory: ค่าใน config จะทับค่าที่อ่านจาก Environment Variable"""
+    app = Flask(__name__)
+    app.config["DATABASE"] = os.environ.get("FINANCE_DB", "finance.db")
+    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "")
+    if config:
+        app.config.update(config)
+    if not app.config["SECRET_KEY"]:
+        raise RuntimeError("ไม่พบ SECRET_KEY: สร้างค่าสุ่มแล้วตั้งด้วย export SECRET_KEY=... ก่อนรันแอป")
+    db.init_db(app.config["DATABASE"])
+    # ให้ Template ใช้ {{ value|baht }} และค่าคงที่ชุดเดียวกับ validation.py
+    app.jinja_env.filters["baht"] = format_baht
+    app.jinja_env.globals.update(kinds=KINDS, categories=CATEGORIES)
+
+    def render_index(form: dict, errors: list[str], status: int = 200) -&gt; ResponseReturnValue:
+        rows = db.list_transactions(app.config["DATABASE"])
+        return render_template("index.html", rows=rows, form=form, errors=errors), status
+
+    @app.get("/")
+    def index() -&gt; ResponseReturnValue:
+        return render_index({"date": date.today().isoformat(), "kind": "expense"}, [])
+
+    @app.post("/add")
+    def add() -&gt; ResponseReturnValue:
+        data, errors = validate_transaction(request.form)
+        if errors:
+            # ส่งค่าที่ผู้ใช้กรอกกลับไปให้แก้ พร้อมสถานะ 400
+            return render_index(request.form.to_dict(), errors, 400)
+        db.add_transaction(app.config["DATABASE"], data)
+        flash("บันทึกรายการแล้ว")
+        return redirect(url_for("index"))
+
+    @app.post("/delete/&lt;int:tx_id&gt;")
+    def delete(tx_id: int) -&gt; ResponseReturnValue:
+        if not db.delete_transaction(app.config["DATABASE"], tx_id):
+            abort(404)
+        flash("ลบรายการแล้ว")
+        return redirect(url_for("index"))
+
+    @app.get("/summary")
+    def summary() -&gt; ResponseReturnValue:
+        try:
+            month = validate_month(request.args.get("month", current_month()))
+        except ValueError as exc:
+            return render_template("summary.html", month=None, error=str(exc)), 400
+        result = db.month_summary(app.config["DATABASE"], month)
+        return render_template("summary.html", month=month, error=None, s=result)
+
+    @app.get("/export.csv")
+    def export_csv() -&gt; ResponseReturnValue:
+        try:
+            month = validate_month(request.args.get("month", current_month()))
+        except ValueError as exc:
+            return Response(str(exc), status=400, mimetype="text/plain")
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(["date", "kind", "category", "amount", "note"])
+        for row in db.month_rows(app.config["DATABASE"], month):
+            amount = to_csv_amount(row["amount_satang"])
+            note = safe_csv_cell(row["note"])
+            writer.writerow([row["date"], row["kind"], row["category"], amount, note])
+        return Response(
+            buffer.getvalue(),
+            mimetype="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=finance-{month}.csv"},
+        )
+
+    return app</code></pre>
+      <p>อ่าน <code>app.py</code> ตามลำดับนี้ <code>create_app</code> อ่านค่าจาก Environment Variable ก่อน แล้วให้ <code>config</code> ทับ Test จึงส่งฐานข้อมูลชั่วคราวและ Key สำหรับ Test เข้ามาได้โดยไม่แตะเครื่องจริง ทุก Route ทำงานแค่ 3 อย่าง คือรับค่า ส่งให้ <code>validation</code> หรือ <code>db</code> แล้วเลือกหน้าที่จะแสดงพร้อมรหัส HTTP ที่ถูกต้อง การลบใช้ <code>@app.post</code> เท่านั้น Flask จึงตอบ 405 ให้ GET เองโดยอัตโนมัติ ส่วนการส่ง <code>request.form.to_dict()</code> กลับไปที่ฟอร์มทำให้ผู้ใช้ไม่ต้องกรอกใหม่ทั้งหมดเมื่อกรอกผิด</p>
+<pre class="code" data-env="file" data-label="HTML · templates/base.html"><code class="language-xml">&lt;!doctype html&gt;
+&lt;html lang="th"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+  &lt;title&gt;{% block title %}{% endblock %} · บัญชีรายรับรายจ่าย&lt;/title&gt;
+  &lt;link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;header&gt;
+    &lt;h1&gt;บัญชีรายรับรายจ่าย&lt;/h1&gt;
+    &lt;nav&gt;
+      &lt;a href="{{ url_for('index') }}"&gt;รายการ&lt;/a&gt;
+      &lt;a href="{{ url_for('summary') }}"&gt;สรุปรายเดือน&lt;/a&gt;
+    &lt;/nav&gt;
+  &lt;/header&gt;
+  &lt;main&gt;
+    {# ข้อความยืนยันจาก flash() เช่น "บันทึกรายการแล้ว" #}
+    {% for message in get_flashed_messages() %}
+      &lt;p class="flash"&gt;{{ message }}&lt;/p&gt;
+    {% endfor %}
+    {% block content %}{% endblock %}
+  &lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<pre class="code" data-env="file" data-label="HTML · templates/index.html"><code class="language-xml">{% extends "base.html" %}
+{% block title %}รายการ{% endblock %}
+{% block content %}
+&lt;h2&gt;เพิ่มรายการ&lt;/h2&gt;
+{% if errors %}
+  &lt;ul class="errors"&gt;
+    {% for error in errors %}&lt;li&gt;{{ error }}&lt;/li&gt;{% endfor %}
+  &lt;/ul&gt;
+{% endif %}
+&lt;form method="post" action="{{ url_for('add') }}" class="tx-form"&gt;
+  &lt;label&gt;วันที่ &lt;input type="date" name="date" value="{{ form.get('date', '') }}" required&gt;&lt;/label&gt;
+  &lt;label&gt;ประเภท
+    &lt;select name="kind"&gt;
+      {% for value, label in kinds.items() %}
+        &lt;option value="{{ value }}" {% if form.get('kind') == value %}selected{% endif %}&gt;{{ label }}&lt;/option&gt;
+      {% endfor %}
+    &lt;/select&gt;
+  &lt;/label&gt;
+  &lt;label&gt;หมวดหมู่
+    &lt;select name="category"&gt;
+      {% for name in categories %}
+        &lt;option value="{{ name }}" {% if form.get('category') == name %}selected{% endif %}&gt;{{ name }}&lt;/option&gt;
+      {% endfor %}
+    &lt;/select&gt;
+  &lt;/label&gt;
+  &lt;label&gt;จำนวนเงิน (บาท) &lt;input name="amount" inputmode="decimal" value="{{ form.get('amount', '') }}" required&gt;&lt;/label&gt;
+  &lt;label&gt;หมายเหตุ &lt;input name="note" maxlength="100" value="{{ form.get('note', '') }}"&gt;&lt;/label&gt;
+  &lt;button type="submit"&gt;บันทึก&lt;/button&gt;
+&lt;/form&gt;
+
+&lt;h2&gt;รายการล่าสุด&lt;/h2&gt;
+{% if rows %}
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;&lt;th&gt;วันที่&lt;/th&gt;&lt;th&gt;ประเภท&lt;/th&gt;&lt;th&gt;หมวดหมู่&lt;/th&gt;&lt;th class="num"&gt;จำนวนเงิน&lt;/th&gt;&lt;th&gt;หมายเหตุ&lt;/th&gt;&lt;th&gt;&lt;/th&gt;&lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+  {% for row in rows %}
+    &lt;tr class="{{ row['kind'] }}"&gt;
+      &lt;td&gt;{{ row['date'] }}&lt;/td&gt;
+      &lt;td&gt;{{ kinds[row['kind']] }}&lt;/td&gt;
+      &lt;td&gt;{{ row['category'] }}&lt;/td&gt;
+      &lt;td class="num"&gt;{{ row['amount_satang']|baht }}&lt;/td&gt;
+      &lt;td&gt;{{ row['note'] }}&lt;/td&gt;
+      &lt;td&gt;
+        {# ลบด้วย POST เท่านั้น ลิงก์ GET ถูกเรียกซ้ำได้โดยไม่ตั้งใจ เช่น จาก Browser Prefetch #}
+        &lt;form method="post" action="{{ url_for('delete', tx_id=row['id']) }}"&gt;
+          &lt;button type="submit" class="link"&gt;ลบ&lt;/button&gt;
+        &lt;/form&gt;
+      &lt;/td&gt;
+    &lt;/tr&gt;
+  {% endfor %}
+  &lt;/tbody&gt;
+&lt;/table&gt;
+{% else %}
+&lt;p&gt;ยังไม่มีรายการ เริ่มเพิ่มรายการแรกจากฟอร์มด้านบน&lt;/p&gt;
+{% endif %}
+{% endblock %}</code></pre>
+<pre class="code" data-env="file" data-label="HTML · templates/summary.html"><code class="language-xml">{% extends "base.html" %}
+{% block title %}สรุปรายเดือน{% endblock %}
+{% block content %}
+&lt;h2&gt;สรุปรายเดือน&lt;/h2&gt;
+&lt;form method="get" action="{{ url_for('summary') }}"&gt;
+  &lt;label&gt;เดือน &lt;input type="month" name="month" value="{{ month or '' }}"&gt;&lt;/label&gt;
+  &lt;button type="submit"&gt;ดูสรุป&lt;/button&gt;
+&lt;/form&gt;
+{% if error %}
+  &lt;p class="errors"&gt;{{ error }}&lt;/p&gt;
+{% else %}
+  &lt;ul class="totals"&gt;
+    &lt;li&gt;รายรับ &lt;strong&gt;{{ s.income|baht }}&lt;/strong&gt;&lt;/li&gt;
+    &lt;li&gt;รายจ่าย &lt;strong&gt;{{ s.expense|baht }}&lt;/strong&gt;&lt;/li&gt;
+    &lt;li&gt;คงเหลือ &lt;strong&gt;{{ s.balance|baht }}&lt;/strong&gt;&lt;/li&gt;
+  &lt;/ul&gt;
+  &lt;h3&gt;รายจ่ายแยกตามหมวดหมู่&lt;/h3&gt;
+  {% if s.by_category %}
+  &lt;table&gt;
+    &lt;thead&gt;&lt;tr&gt;&lt;th&gt;หมวดหมู่&lt;/th&gt;&lt;th class="num"&gt;ยอดรวม&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+    &lt;tbody&gt;
+    {% for category, total in s.by_category %}
+      &lt;tr&gt;&lt;td&gt;{{ category }}&lt;/td&gt;&lt;td class="num"&gt;{{ total|baht }}&lt;/td&gt;&lt;/tr&gt;
+    {% endfor %}
+    &lt;/tbody&gt;
+  &lt;/table&gt;
+  {% else %}
+  &lt;p&gt;ยังไม่มีรายจ่ายในเดือนนี้&lt;/p&gt;
+  {% endif %}
+  &lt;p&gt;&lt;a href="{{ url_for('export_csv', month=month) }}"&gt;ดาวน์โหลด CSV ของเดือน {{ month }}&lt;/a&gt;&lt;/p&gt;
+{% endif %}
+{% endblock %}</code></pre>
+<pre class="code" data-env="file" data-label="CSS · static/style.css"><code class="language-css">/* สไตล์พื้นฐาน อ่านง่ายทั้งบนคอมพิวเตอร์และมือถือ */
+body { font-family: "Sarabun", "Noto Sans Thai", sans-serif; max-width: 960px; margin: 0 auto; padding: 0 16px; color: #1f2933; }
+header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+nav a { margin-left: 12px; }
+.tx-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end; }
+.tx-form label { display: flex; flex-direction: column; gap: 4px; }
+table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+th, td { border-bottom: 1px solid #d9e2ec; padding: 6px 8px; text-align: left; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr.income td.num { color: #127a3a; }
+tr.expense td.num { color: #b42318; }
+.errors { color: #b42318; }
+.flash { background: #e6f4ea; padding: 8px 12px; border-radius: 6px; }
+button.link { background: none; border: none; color: #b42318; cursor: pointer; padding: 0; }</code></pre>
+      <p>Jinja2 ใน Flask Escape ทุกค่าที่อยู่ใน <code>{{ ... }}</code> ของไฟล์ <code>.html</code> ให้อัตโนมัติ หมายเหตุที่มี <code>&lt;script&gt;</code> จึงแสดงเป็นข้อความธรรมดา ความปลอดภัยนี้หายทันทีเมื่อมีคนเติม <code>|safe</code> ซึ่งเป็นเหตุผลที่ <code>AGENTS.md</code> ห้ามไว้ และ Step 7 จะแสดงให้เห็นว่าเกิดอะไรขึ้น ต่อไปรัน Test ทั้งชุดและ ruff</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">pytest -q
+ruff check --output-format concise . &amp;&amp; ruff format --check .</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>..........................................                               [100%]
+42 passed in 0.45s
+All checks passed!
+12 files already formatted</code></pre>
+      <p>ตรวจ AC11 ด้วยมือ โดยลองรันแอปโดยไม่ตั้ง <code>SECRET_KEY</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">unset SECRET_KEY
+flask --app app run</code></pre>
+      <p>Flask แสดง Traceback ยาว บรรทัดท้ายสุดเป็นแบบนี้ ซึ่งบอกทั้งสาเหตุและวิธีแก้เป็นภาษาไทยตาม AC11</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>  File "/home/somchai/projects/finance-app/app.py", line 37, in create_app
+    raise RuntimeError("ไม่พบ SECRET_KEY: สร้างค่าสุ่มแล้วตั้งด้วย export SECRET_KEY=... ก่อนรันแอป")
+RuntimeError: ไม่พบ SECRET_KEY: สร้างค่าสุ่มแล้วตั้งด้วย export SECRET_KEY=... ก่อนรันแอป</code></pre>
+      <p>ตั้ง Key แบบสุ่มแล้วรันในโหมดพัฒนา จากนั้นเปิด <code>http://127.0.0.1:5000</code> ในเบราว์เซอร์ของ Windows ได้เลย เพราะ WSL2 ส่งต่อ localhost ให้โดยค่าเริ่มต้น กด <kbd>Ctrl</kbd>+<kbd>C</kbd> เพื่อหยุด Server</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">export SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
+flask --app app run --debug</code></pre>
+      <div class="callout warn"><span class="c-label warn">ระวัง</span><p><code>--debug</code> ใช้ระหว่างพัฒนาบนเครื่องตัวเองเท่านั้น ห้ามใช้กับ Production เด็ดขาด โหมดนี้เปิด Debugger ที่รันโค้ด Python จากหน้าเบราว์เซอร์ได้ และห้ามเปลี่ยนไปใช้ <code>--host 0.0.0.0</code> เพราะจะเปิดแอปให้ทุกเครื่องในเครือข่ายเข้าถึง ทั้งที่แอปนี้ยังไม่มีระบบ Login</p></div>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git add app.py templates static tests/conftest.py tests/test_routes.py
+git commit -m "feat: หน้าเว็บ Flask เพิ่ม ลบ สรุปรายเดือน และส่งออก CSV พร้อม Test"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[main 614d3bf] feat: หน้าเว็บ Flask เพิ่ม ลบ สรุปรายเดือน และส่งออก CSV พร้อม Test
+ 7 files changed, 359 insertions(+)
+ create mode 100644 app.py
+ create mode 100644 static/style.css
+ create mode 100644 templates/base.html
+ create mode 100644 templates/index.html
+ create mode 100644 templates/summary.html
+ create mode 100644 tests/conftest.py
+ create mode 100644 tests/test_routes.py</code></pre>
+    </li>
+
+    <li>
+      <h4>Step 7: รีวิว Patch ที่ AI ส่งมา แล้วตัดสินใจปฏิเสธ</h4>
+      <p>Step นี้จำลองงานที่เจอบ่อยที่สุดในการทำงานจริง คือ AI ส่ง Diff หลายไฟล์มาให้ แล้วคุณต้องตัดสินใจว่าจะรับหรือไม่ วันหนึ่งคุณอยากได้หน้าค้นหา จึงพิมพ์คำขอสั้น ๆ ให้ Agentic Coding Tool ใน Terminal</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Prompt · คำขอที่ไม่ได้อ้างอิง Spec"><code class="language-plaintext">เพิ่มหน้าค้นหารายการจากหมายเหตุ และไฮไลต์คำที่เจอ</code></pre>
+      <p>สังเกตว่าคำขอนี้ไม่อ้างถึง <code>SPEC.md</code> ไม่ขอ Test และไม่ขอแผนก่อน ซึ่งผิดจากทุก Step ที่ผ่านมา AI ตอบกลับเป็น Patch 3 ไฟล์ บันทึกไว้ที่ <code>~/ai-search.patch</code> นอกโฟลเดอร์โปรเจกต์ แล้วอ่านทีละบรรทัดก่อนรันอะไรทั้งสิ้น</p>
+<pre class="code" data-env="file" data-label="Diff · ai-search.patch (โค้ดที่ AI เขียน)"><code class="language-plaintext">diff --git a/app.py b/app.py
+index 68f2247..a887fbb 100644
+--- a/app.py
++++ b/app.py
+@@ -93,4 +93,17 @@ def create_app(config: dict | None = None) -&gt; Flask:
+             headers={"Content-Disposition": f"attachment; filename=finance-{month}.csv"},
+         )
+
++    @app.get("/search")
++    def search() -&gt; ResponseReturnValue:
++        keyword = request.args.get("q", "")
++        rows = [dict(row) for row in db.search_transactions(app.config["DATABASE"], keyword)]
++        for row in rows:
++            # ไฮไลต์คำที่ค้นเจอด้วยแท็ก &lt;mark&gt;
++            row["note"] = row["note"].replace(keyword, f"&lt;mark&gt;{keyword}&lt;/mark&gt;")
++        return render_template("index.html", rows=rows, form={}, errors=[])
++
+     return app
++
++
++if __name__ == "__main__":
++    create_app().run(debug=True, host="0.0.0.0")
+diff --git a/db.py b/db.py
+index d36a798..90cda7f 100644
+--- a/db.py
++++ b/db.py
+@@ -95,3 +95,10 @@ def month_summary(db_path: str, month: str) -&gt; dict:
+         "balance": totals["income"] - totals["expense"],
+         "by_category": [(row["category"], row["total"]) for row in by_category],
+     }
++
++
++def search_transactions(db_path: str, keyword: str) -&gt; list[sqlite3.Row]:
++    """ค้นหารายการจากคำในหมายเหตุ"""
++    with closing(get_conn(db_path)) as conn:
++        sql = f"SELECT * FROM transactions WHERE note LIKE '%{keyword}%' ORDER BY date DESC"
++        return conn.execute(sql).fetchall()
+diff --git a/templates/index.html b/templates/index.html
+index d06d0f2..ad447b6 100644
+--- a/templates/index.html
++++ b/templates/index.html
+@@ -41,7 +41,7 @@
+       &lt;td&gt;{{ kinds[row['kind']] }}&lt;/td&gt;
+       &lt;td&gt;{{ row['category'] }}&lt;/td&gt;
+       &lt;td class="num"&gt;{{ row['amount_satang']|baht }}&lt;/td&gt;
+-      &lt;td&gt;{{ row['note'] }}&lt;/td&gt;
++      &lt;td&gt;{{ row['note']|safe }}&lt;/td&gt;
+       &lt;td&gt;
+         {# ลบด้วย POST เท่านั้น ลิงก์ GET ถูกเรียกซ้ำได้โดยไม่ตั้งใจ เช่น จาก Browser Prefetch #}
+         &lt;form method="post" action="{{ url_for('delete', tx_id=row['id']) }}"&gt;</code></pre>
+      <p>รีวิวตามรายการตรวจในแนวคิดที่ 7 ทีละ Hunk แล้วเขียนความเห็นแบบที่ใช้ใน Code Review จริง</p>
+      <ol>
+        <li><strong>db.py, <code>search_transactions</code>:</strong> ใส่ <code>keyword</code> ลงใน SQL ด้วย f-string ผู้ใช้ส่ง <code>'</code> มาปิด String แล้วต่อคำสั่ง SQL ของตัวเองได้ (SQL Injection) ต้องเขียนเป็น <code>"... WHERE note LIKE ? ..."</code> แล้วส่ง <code>(f"%{keyword}%",)</code> เป็น Parameter</li>
+        <li><strong>templates/index.html:</strong> เติม <code>|safe</code> ปิดการ Escape ของหมายเหตุ ซึ่งกระทบหน้าแรกด้วย ไม่ใช่แค่หน้าค้นหา หมายเหตุ <code>&lt;script&gt;</code> ที่เคยบันทึกไว้จะถูกรันทันที (Stored XSS) ขัดกับ AC10 และกติกาใน <code>AGENTS.md</code></li>
+        <li><strong>app.py, <code>search</code>:</strong> สร้าง HTML ด้วยการต่อ String <code>&lt;mark&gt;{keyword}&lt;/mark&gt;</code> แล้วพึ่ง <code>|safe</code> ให้แสดงผล เมื่อรวมกับข้อ 1 ผู้โจมตีใส่ <code>UNION SELECT</code> ที่คืนข้อความ <code>&lt;script&gt;</code> ไว้ในพารามิเตอร์ <code>q</code> ได้ ใครเปิดลิงก์นั้นจะรันสคริปต์ในเบราว์เซอร์ทันที (Reflected XSS) การไฮไลต์ที่ถูกต้องต้องให้ Template Escape ข้อความทุกส่วนก่อน แล้วใส่แท็ก <code>&lt;mark&gt;</code> เฉพาะส่วนที่เป็น HTML ของเราเอง</li>
+        <li><strong>app.py ท้ายไฟล์:</strong> <code>run(debug=True, host="0.0.0.0")</code> เปิด Debugger ที่รันโค้ดได้ให้ทุกเครื่องในเครือข่าย ขัดกับหัวข้อผู้ใช้ใน Spec ที่จำกัดไว้แค่ <code>127.0.0.1</code></li>
+        <li><strong>ภาพรวม:</strong> ไม่มี Test ของ Route ใหม่สักข้อ ฟีเจอร์ค้นหาไม่อยู่ใน <code>SPEC.md</code> และการส่ง <code>form={}</code> ทำให้ฟอร์มเพิ่มรายการบนหน้าค้นหาว่างทุกช่อง</li>
+      </ol>
+      <p>ความเห็นจากการอ่านต้องยืนยันด้วยเครื่องมือเสมอ ตรวจว่า Patch ลงได้และแตะไฟล์ไหนบ้าง แล้วลองใส่ชั่วคราวเพื่อรันการตรวจทั้งหมด</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git apply --check ~/ai-search.patch &amp;&amp; git apply --stat ~/ai-search.patch</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> app.py               |   13 +++++++++++++
+ db.py                |    7 +++++++
+ templates/index.html |    2 +-
+ 3 files changed, 21 insertions(+), 1 deletion(-)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git apply ~/ai-search.patch &amp;&amp; git status --short
+ruff check --output-format concise .</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> M app.py
+ M db.py
+ M templates/index.html
+app.py:109:39: S104 Possible binding to all interfaces
+db.py:103:15: S608 Possible SQL injection vector through string-based query construction
+Found 2 errors.</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">pytest -q</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>...............F..........................                               [100%]
+=================================== FAILURES ===================================
+_____________________________ test_note_is_escaped _____________________________
+
+client = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;
+
+    def test_note_is_escaped(client):
+        client.post("/add", data=form(note="&lt;script&gt;alert(1)&lt;/script&gt;"))
+        html = client.get("/").get_data(as_text=True)
+&gt;       assert "&lt;script&gt;alert(1)&lt;/script&gt;" not in html
+E       assert '&lt;script&gt;alert(1)&lt;/script&gt;' not in '&lt;!doctype h...dy&gt;\n&lt;/html&gt;'
+E
+E         '&lt;script&gt;alert(1)&lt;/script&gt;' is contained here:
+E                &lt;td&gt;&lt;script&gt;alert(1)&lt;/script&gt;&lt;/td&gt;
+E                 &lt;td&gt;
+E
+E                   &lt;form method="post" action="/delete/1"&gt;
+E                     &lt;button type="submit" class="link"&gt;ลบ&lt;/button&gt;...
+E
+E         ...Full output truncated (11 lines hidden), use '-vv' to show
+
+tests/test_routes.py:82: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_routes.py::test_note_is_escaped - assert '&lt;script&gt;alert(1)&lt;...
+1 failed, 41 passed in 0.45s</code></pre>
+      <p>ruff ยืนยันความเห็นข้อ 1 (S608) และข้อ 4 (S104) Test เรื่อง XSS ที่เขียนไว้ใน Step 5 ยืนยันข้อ 2 ส่วนข้อ 3 และข้อ 5 ไม่มีเครื่องมือตัวไหนจับได้ ต้องอาศัยการอ่านของคุณเอง สังเกตด้วยว่า ruff ไม่เตือนเรื่อง <code>debug=True</code> ในจุดนี้ เพราะกฎของ ruff ตรวจได้เฉพาะรูปแบบที่รู้จัก ข้อนี้จึงต้องจับด้วยการอ่านและกติกาใน <code>AGENTS.md</code> ต่อไปพิสูจน์ข้อ 1 ให้เห็นกับตาด้วยแอปของเราเองที่ใช้ฐานข้อมูลชั่วคราว</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 - &lt;&lt;'EOF'
+# ทดลองโจมตี Route /search ของ Patch กับแอปของเราเอง ที่ใช้ฐานข้อมูลชั่วคราว
+import tempfile
+from pathlib import Path
+
+from app import create_app
+
+with tempfile.TemporaryDirectory() as tmp:
+    app = create_app(
+        {"TESTING": True, "SECRET_KEY": "test-only-key", "DATABASE": str(Path(tmp) / "demo.db")}
+    )
+    client = app.test_client()
+    attack = "x' UNION SELECT 1, '2026-10-31', 'expense', 'อื่น ๆ', 1, sql FROM sqlite_master --"
+    response = client.get("/search", query_string={"q": attack})
+    html = response.get_data(as_text=True)
+    print("HTTP", response.status_code)
+    print("โครงสร้างตารางรั่วออกมา:", "CREATE TABLE transactions" in html)
+EOF</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>HTTP 200
+โครงสร้างตารางรั่วออกมา: True</code></pre>
+      <p>ข้อความค้นหานี้ปิด String ของ <code>LIKE</code> ด้วย <code>'</code> ต่อด้วย <code>UNION SELECT</code> ที่อ่านตาราง <code>sqlite_master</code> ซึ่งเก็บโครงสร้างของทุกตาราง แล้วใช้ <code>--</code> ทำให้ SQL ส่วนที่เหลือกลายเป็น Comment หน้าค้นหาจึงแสดงคำสั่ง <code>CREATE TABLE transactions</code> ออกมาในช่องหมายเหตุ ผู้โจมตีจริงจะใช้วิธีเดียวกันอ่านข้อมูลทุกตารางในฐานข้อมูล ผลการรีวิวชัดเจนแล้ว จึงย้อน Patch ออกทั้งหมด</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git apply -R ~/ai-search.patch &amp;&amp; git status --short &amp;&amp; pytest -q</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>..........................................                               [100%]
+42 passed in 0.38s</code></pre>
+      <p><code>git status --short</code> ไม่แสดงไฟล์ใดเลย และ Test กลับมาผ่านครบ 42 ข้อ การตัดสินใจครั้งนี้คือ <strong>ปฏิเสธ</strong> และไม่มี Commit ใหม่ แต่ต้องบันทึกลง <code>AI_LOG.md</code> ทุกครั้ง แม้แต่งานที่ปฏิเสธ (ดูรายการที่ 9 ใน Step 10) ถ้ายังต้องการหน้าค้นหาจริง ให้กลับไปเริ่มที่ Step 2 คือเพิ่ม AC ของการค้นหาลง Spec แล้วให้ AI เขียน Test ก่อน ถ้าอยากได้ความเห็นที่สองจาก AI อีกตัว ใช้ Prompt นี้แนบไปกับ Diff</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Prompt · Second Opinion Review"><code class="language-plaintext">คุณคือ Reviewer ด้านความปลอดภัยของแอป Flask + SQLite
+รีวิว Diff ด้านล่างทีละ Hunk ตามหัวข้อเหล่านี้:
+SQL Injection, XSS, Secret ในโค้ด, ค่าตั้งที่อันตราย (debug, host), การแก้ไฟล์ Test,
+Dependency ใหม่, และความตรงกับ Spec ที่แนบมา
+ตอบเป็นตาราง: ไฟล์และบรรทัด | ปัญหา | ความรุนแรง (สูง/กลาง/ต่ำ) | วิธีแก้
+ห้ามเขียนไฟล์ใหม่ทั้งไฟล์ เสนอเฉพาะจุดที่ต้องแก้ ถ้าไม่แน่ใจให้บอกว่าไม่แน่ใจ
+
+[แนบ SPEC.md และ Diff ที่ตรวจแล้วว่าไม่มี Secret หรือข้อมูลส่วนตัว]</code></pre>
+      <div class="callout sec"><span class="c-label sec">Security</span><p>คำสั่งโจมตีใน Step นี้ใช้กับแอปของคุณเองบนเครื่องตัวเอง และใช้ฐานข้อมูลชั่วคราวเท่านั้น ห้ามลองกับเว็บไซต์หรือระบบของผู้อื่น และก่อนส่ง Diff ให้ AI ตัวอื่นรีวิว ให้ตรวจว่าไม่มี Secret, ข้อมูลลูกค้า หรือโค้ดของบริษัทที่ไม่ได้รับอนุญาตติดไปด้วย</p></div>
+    </li>
+
+    <li>
+      <h4>Step 8: Quality Gate, pre-commit Hook และ GitHub Actions</h4>
+      <p>ทุก Step ที่ผ่านมาคุณรัน ruff และ pytest ด้วยมือ ซึ่งวันหนึ่งจะลืมแน่นอน โดยเฉพาะวันที่ AI ส่งโค้ดมาเยอะและคุณรีบ Step นี้เปลี่ยนการตรวจทั้งหมดเป็นสคริปต์เดียว (แนวคิดที่ 12) แล้วให้ Git และ GitHub เรียกสคริปต์นั้นเองโดยอัตโนมัติ</p>
+<pre class="code" data-env="file" data-label="Bash · scripts/check.sh"><code class="language-bash">#!/usr/bin/env bash
+# Quality Gate: รันก่อน Commit ทุกครั้ง โดยเฉพาะหลังรับโค้ดจาก AI
+# set -e หยุดทันทีเมื่อคำสั่งใดล้ม, -u ห้ามใช้ตัวแปรที่ไม่ได้กำหนด, pipefail จับ Error ใน Pipe
+set -euo pipefail
+
+# ย้ายไปที่ Root ของโปรเจกต์ เพื่อให้รันจากโฟลเดอร์ไหนก็ได้
+cd "$(dirname "$0")/.."
+
+echo "[1/4] ruff check (กฎใน pyproject.toml รวมกฎความปลอดภัย S)"
+ruff check --output-format concise .
+
+echo "[2/4] ruff format --check"
+ruff format --check .
+
+echo "[3/4] pytest"
+pytest -q
+
+echo "[4/4] pip-audit"
+pip-audit -r requirements.txt
+
+echo "ผ่านทุกด่าน พร้อม Commit"</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">chmod +x scripts/check.sh
+./scripts/check.sh</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[1/4] ruff check (กฎใน pyproject.toml รวมกฎความปลอดภัย S)
+All checks passed!
+[2/4] ruff format --check
+12 files already formatted
+[3/4] pytest
+..........................................                               [100%]
+42 passed in 0.49s
+[4/4] pip-audit
+No known vulnerabilities found
+ผ่านทุกด่าน พร้อม Commit</code></pre>
+      <p>ด่านที่ 4 ใช้อินเทอร์เน็ตไปถามฐานข้อมูลช่องโหว่ และผลจะเปลี่ยนตามวันที่รัน ถ้าวันหนึ่งมีช่องโหว่ใหม่ของ Flask หรือ Werkzeug ประกาศออกมา ด่านนี้จะล้มทั้งที่โค้ดของคุณไม่ได้เปลี่ยน ซึ่งเป็นพฤติกรรมที่ต้องการ ให้อ่านรายงาน แล้วอัปเดตเวอร์ชันใน <code>requirements.txt</code> เป็นรุ่นที่แก้แล้ว ต่อไปสร้าง Hook ให้ Git เรียกสคริปต์นี้ก่อนทุก Commit</p>
+<pre class="code" data-env="file" data-label="Bash · .git/hooks/pre-commit"><code class="language-bash">#!/usr/bin/env bash
+# รัน Quality Gate ก่อนทุก Commit ถ้าไม่ผ่าน Git จะยกเลิก Commit นั้น
+exec ./scripts/check.sh</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">chmod +x .git/hooks/pre-commit</code></pre>
+      <p>ไฟล์ในโฟลเดอร์ <code>.git/</code> ไม่ถูก Commit ทุกคนที่ Clone โปรเจกต์ไปจึงต้องสร้าง Hook เอง (เขียนวิธีไว้ใน README) ทีมที่มีหลายคนนิยมใช้แพ็กเกจ <code>pre-commit==4.7.0</code> ซึ่งเก็บค่าตั้งของ Hook ไว้ในไฟล์ที่ Commit ได้ ลองพิสูจน์ว่า Hook ทำงานจริงด้วยโค้ดที่ AI เคยเสนอเมื่อขอ "สคริปต์สำรองฐานข้อมูล"</p>
+<pre class="code" data-env="file" data-label="Python · backup.py (โค้ดที่ AI เขียน)"><code class="language-python">"""สำรองไฟล์ฐานข้อมูลไปที่โฟลเดอร์ backup (โค้ดที่ AI เขียน)"""
+
+import subprocess
+
+ADMIN_PASSWORD = "admin1234"
+
+
+def backup(db_path: str) -&gt; None:
+    """คัดลอกไฟล์ฐานข้อมูลด้วยคำสั่ง cp ของระบบ"""
+    subprocess.run(f"cp {db_path} backup/", shell=True, check=True)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git add backup.py
+git commit -m "feat: เพิ่มสคริปต์สำรองข้อมูล"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[1/4] ruff check (กฎใน pyproject.toml รวมกฎความปลอดภัย S)
+backup.py:5:18: S105 Possible hardcoded password assigned to: "ADMIN_PASSWORD"
+backup.py:10:5: S602 `subprocess` call with `shell=True` identified, security issue
+Found 2 errors.</code></pre>
+      <p>Commit ถูกยกเลิก เพราะ ruff เจอรหัสผ่านในโค้ด (S105) และ <code>shell=True</code> ที่ต่อชื่อไฟล์เข้าไปในคำสั่ง Shell (S602) ถ้าชื่อไฟล์มี <code>; rm -rf ~</code> ปนมา คำสั่งนั้นจะถูกรันด้วย ทางที่ถูกคือใช้ <code>shutil.copy2</code> ของ Python แทนการเรียก <code>cp</code> เอาไฟล์นี้ออกจาก Stage แล้วลบทิ้ง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git restore --staged backup.py &amp;&amp; rm backup.py &amp;&amp; git status --short</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>?? .github/
+?? scripts/</code></pre>
+      <p>เหลือเฉพาะไฟล์ของ Step นี้ที่ยังไม่ Commit คือ <code>scripts/</code> และ <code>.github/</code> ซึ่งเป็นที่อยู่ของ Workflow ด้านล่าง Workflow นี้ให้ GitHub รัน Quality Gate ชุดเดียวกันทุกครั้งที่ Push หรือเปิด Pull Request เพื่อตัดปัญหา "เครื่องผมผ่าน" ออกไป AI รุ่นแรกเสนอ <code>actions/checkout@v3</code> และ <code>actions/setup-python@v4</code> ซึ่งเป็นเวอร์ชันเก่าตามข้อมูลที่ AI เคยเรียนมา หลังตรวจหน้า Repository ของแต่ละ Action จึงเปลี่ยนเป็น <code>@v5</code> และ <code>@v6</code></p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Prompt · GitHub Actions"><code class="language-plaintext">เขียน .github/workflows/check.yml ที่รัน ./scripts/check.sh บน ubuntu-24.04 ด้วย Python 3.12
+ให้ทำงานเมื่อ Push ไปที่ main และเมื่อเปิด Pull Request ห้ามใช้ Secret ใด ๆ</code></pre>
+<pre class="code" data-env="file" data-label="YAML · .github/workflows/check.yml"><code class="language-yaml">name: quality-gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      # ดึงโค้ดจาก Repository
+      - uses: actions/checkout@v5
+      # ติดตั้ง Python เวอร์ชันเดียวกับเครื่องที่พัฒนา
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: ติดตั้งแพ็กเกจตาม requirements.txt
+        run: python -m pip install -r requirements.txt
+      - name: รัน Quality Gate ชุดเดียวกับในเครื่อง
+        run: ./scripts/check.sh</code></pre>
+      <p>Commit รอบนี้ Hook จะรัน Quality Gate ให้เองก่อน แล้วจึงสร้าง Commit เมื่อผ่านครบ 4 ด่าน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git add scripts/check.sh .github/workflows/check.yml
+git commit -m "ci: เพิ่ม Quality Gate, pre-commit Hook และ GitHub Actions"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[1/4] ruff check (กฎใน pyproject.toml รวมกฎความปลอดภัย S)
+All checks passed!
+[2/4] ruff format --check
+12 files already formatted
+[3/4] pytest
+..........................................                               [100%]
+42 passed in 0.47s
+[4/4] pip-audit
+No known vulnerabilities found
+ผ่านทุกด่าน พร้อม Commit
+[main fead7ea] ci: เพิ่ม Quality Gate, pre-commit Hook และ GitHub Actions
+ 2 files changed, 42 insertions(+)
+ create mode 100644 .github/workflows/check.yml
+ create mode 100755 scripts/check.sh</code></pre>
+      <p>สังเกตบรรทัด <code>create mode 100755</code> ซึ่งแปลว่า Git จำสิทธิ์รันไฟล์ของ <code>check.sh</code> ไว้ด้วย GitHub Actions จึงรัน <code>./scripts/check.sh</code> ได้โดยไม่ต้อง <code>chmod</code> ซ้ำ</p>
+      <div class="callout warn"><span class="c-label warn">ระวัง</span><p><code>git commit --no-verify</code> ข้าม Hook ได้ บางครั้ง AI Agent ก็เลือกใช้เมื่อ Commit ไม่ผ่าน ให้เขียนห้ามไว้ใน <code>AGENTS.md</code> และอย่าใช้เองเพื่อเลี่ยงด่านที่ล้ม เพราะ GitHub Actions จะล้มตามหลังอยู่ดี ด่านที่ล้มคือสัญญาณให้แก้ ไม่ใช่สิ่งกีดขวางที่ต้องหาทางข้าม</p></div>
+    </li>
+
+    <li>
+      <h4>Step 9: ตรวจทั้งระบบผ่าน Server จริงด้วย curl และ sqlite3</h4>
+      <p>Test ทั้ง 42 ข้อใช้ Test Client และฐานข้อมูลชั่วคราว ก่อนส่งงานให้ตรวจอีกชั้นด้วย Server จริง ไฟล์ฐานข้อมูลจริง และ Request แบบเดียวกับที่เบราว์เซอร์ส่ง ใช้ Terminal 2 หน้าต่าง หน้าต่างแรกเปิด Server ไว้ ถ้ายังไม่มีคำสั่ง <code>sqlite3</code> ให้ติดตั้งด้วย <code>sudo apt install -y sqlite3</code> ก่อน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 1"><code class="language-bash">cd ~/projects/finance-app &amp;&amp; source .venv/bin/activate
+export SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
+export FINANCE_DB=finance.db
+flask --app app run</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> * Serving Flask app 'app'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit</code></pre>
+      <p>ใน Terminal ที่สอง ส่งข้อมูลตัวอย่าง 6 รายการผ่านฟอร์มจริงด้วย <code>curl</code> คำสั่งนี้อ่านข้อมูลทีละบรรทัดแล้วพิมพ์ HTTP Status ของแต่ละ Request ออกมา</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 2"><code class="language-bash">cd ~/projects/finance-app
+while IFS=, read -r d k c a n; do
+  curl -s -o /dev/null -w "%{http_code} " -X POST http://127.0.0.1:5000/add \
+    --data-urlencode "date=$d" --data-urlencode "kind=$k" --data-urlencode "category=$c" \
+    --data-urlencode "amount=$a" --data-urlencode "note=$n"
+done &lt;&lt;'ROWS'
+2026-10-01,income,เงินเดือน,25000,
+2026-10-02,expense,อาหาร,65,ข้าวกะเพรา
+2026-10-03,expense,เดินทาง,42,BTS
+2026-10-05,expense,การเรียน,390,หนังสือ Python
+2026-10-10,expense,ที่พัก,6500,ค่าห้อง
+2026-10-15,income,รายได้เสริม,1500.00,สอนพิเศษ
+ROWS
+echo</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>302 302 302 302 302 302 </code></pre>
+      <p>ทุกรายการได้ 302 คือบันทึกสำเร็จแล้ว Redirect กลับหน้าแรก ต่อไปส่งข้อมูลผิดตาม AC3 และ AC2 แล้วดูข้อมูลที่อยู่ในไฟล์ฐานข้อมูลจริง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 2"><code class="language-bash">curl -s -o /dev/null -w "%{http_code}\n" -X POST http://127.0.0.1:5000/add \
+  --data-urlencode "date=2026-02-30" --data-urlencode "kind=expense" \
+  --data-urlencode "category=อาหาร" --data-urlencode "amount=abc"
+sqlite3 -header finance.db "SELECT id, date, kind, category, amount_satang, note FROM transactions ORDER BY date;"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>400
+id|date|kind|category|amount_satang|note
+1|2026-10-01|income|เงินเดือน|2500000|
+2|2026-10-02|expense|อาหาร|6500|ข้าวกะเพรา
+3|2026-10-03|expense|เดินทาง|4200|BTS
+4|2026-10-05|expense|การเรียน|39000|หนังสือ Python
+5|2026-10-10|expense|ที่พัก|650000|ค่าห้อง
+6|2026-10-15|income|รายได้เสริม|150000|สอนพิเศษ</code></pre>
+      <p>ข้อมูลผิดไม่ถูกบันทึก และเงินทุกรายการเก็บเป็นจำนวนเต็มหน่วยสตางค์ เช่น 25,000 บาทเป็น 2500000 ต่อไปตรวจหน้าสรุป การส่งออก CSV และ Route ที่ต้องปฏิเสธ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 2"><code class="language-bash">curl -s 'http://127.0.0.1:5000/summary?month=2026-10' | grep -E '&lt;li&gt;|&lt;tr&gt;&lt;td&gt;'
+curl -s 'http://127.0.0.1:5000/export.csv?month=2026-10'
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:5000/delete/1
+curl -s -o /dev/null -w "%{http_code}\n" "http://127.0.0.1:5000/summary?month=2026-13"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>    &lt;li&gt;รายรับ &lt;strong&gt;26,500.00 บาท&lt;/strong&gt;&lt;/li&gt;
+    &lt;li&gt;รายจ่าย &lt;strong&gt;6,997.00 บาท&lt;/strong&gt;&lt;/li&gt;
+    &lt;li&gt;คงเหลือ &lt;strong&gt;19,503.00 บาท&lt;/strong&gt;&lt;/li&gt;
+      &lt;tr&gt;&lt;td&gt;ที่พัก&lt;/td&gt;&lt;td class="num"&gt;6,500.00 บาท&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;การเรียน&lt;/td&gt;&lt;td class="num"&gt;390.00 บาท&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;อาหาร&lt;/td&gt;&lt;td class="num"&gt;65.00 บาท&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;เดินทาง&lt;/td&gt;&lt;td class="num"&gt;42.00 บาท&lt;/td&gt;&lt;/tr&gt;
+date,kind,category,amount,note
+2026-10-01,income,เงินเดือน,25000.00,
+2026-10-02,expense,อาหาร,65.00,ข้าวกะเพรา
+2026-10-03,expense,เดินทาง,42.00,BTS
+2026-10-05,expense,การเรียน,390.00,หนังสือ Python
+2026-10-10,expense,ที่พัก,6500.00,ค่าห้อง
+2026-10-15,income,รายได้เสริม,1500.00,สอนพิเศษ
+405
+400</code></pre>
+      <p>กลับไปดู Terminal 1 จะเห็น Log ของทุก Request ที่เพิ่งส่งไป วันเวลาในวงเล็บเหลี่ยมบนเครื่องของคุณจะต่างไป</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output · Terminal 1"><code>127.0.0.1 - - [28/Oct/2026 10:26:22] "POST /add HTTP/1.1" 302 -
+127.0.0.1 - - [28/Oct/2026 10:26:22] "POST /add HTTP/1.1" 302 -
+127.0.0.1 - - [28/Oct/2026 10:26:22] "POST /add HTTP/1.1" 302 -
+127.0.0.1 - - [28/Oct/2026 10:26:22] "POST /add HTTP/1.1" 302 -
+127.0.0.1 - - [28/Oct/2026 10:26:22] "POST /add HTTP/1.1" 302 -
+127.0.0.1 - - [28/Oct/2026 10:26:22] "POST /add HTTP/1.1" 302 -
+127.0.0.1 - - [28/Oct/2026 10:26:22] "POST /add HTTP/1.1" 400 -
+127.0.0.1 - - [28/Oct/2026 10:26:22] "GET /summary?month=2026-10 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Oct/2026 10:26:22] "GET /export.csv?month=2026-10 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Oct/2026 10:26:22] "GET /delete/1 HTTP/1.1" 405 -
+127.0.0.1 - - [28/Oct/2026 10:26:22] "GET /summary?month=2026-13 HTTP/1.1" 400 -</code></pre>
+      <p>เทียบผลกับ Acceptance Criteria ทีละข้อ</p>
+      <div class="tbl mid"><table>
+        <thead><tr><th>Acceptance Criteria</th><th>หลักฐานจากการรันจริง</th><th>ผล</th></tr></thead>
+        <tbody>
+          <tr><td>AC2, AC3 ข้อมูลผิดถูกปฏิเสธ</td><td>วันที่ 2026-02-30 กับจำนวนเงิน abc ได้ 400 และไม่มีแถวที่ 7 ในฐานข้อมูล</td><td>ผ่าน</td></tr>
+          <tr><td>AC6 ยอดสรุปเดือน ต.ค. 2026</td><td>รายรับ 26,500.00 รายจ่าย 6,997.00 คงเหลือ 19,503.00 และ ที่พัก อยู่บนสุด</td><td>ผ่าน</td></tr>
+          <tr><td>AC7 เดือนผิดรูปแบบ</td><td><code>month=2026-13</code> ได้ 400</td><td>ผ่าน</td></tr>
+          <tr><td>AC8 ลบด้วย GET ไม่ได้</td><td><code>GET /delete/1</code> ได้ 405</td><td>ผ่าน</td></tr>
+          <tr><td>AC9 ส่งออก CSV</td><td>มี Header ตาม Spec และข้อมูล 6 แถว</td><td>ผ่าน</td></tr>
+        </tbody>
+      </table></div>
+      <p>กด <kbd>Ctrl</kbd>+<kbd>C</kbd> ใน Terminal 1 เพื่อหยุด Server ไฟล์ <code>finance.db</code> ที่เกิดขึ้นตรงกับรูปแบบ <code>*.db</code> ใน <code>.gitignore</code> จึงไม่หลุดเข้า Commit ข้อมูลการเงินจริงของคุณจะอยู่ในเครื่องเท่านั้น</p>
+      <div class="callout"><span class="c-label tip">Tip</span><p>บันทึกชุดคำสั่ง <code>curl</code> ใน Step นี้เป็นไฟล์ <code>smoke.sh</code> ไว้ใช้ซ้ำหลังแก้โค้ดครั้งใหญ่ทุกครั้ง การตรวจผ่าน Server จริงจับปัญหาที่ Test Client มองไม่เห็นได้ เช่น ลืมใส่ไฟล์ Template ลงโฟลเดอร์ที่ถูกต้อง หรือแอปเปิดไฟล์ฐานข้อมูลผิดที่เพราะตั้ง <code>FINANCE_DB</code> ผิด</p></div>
+    </li>
+
+    <li>
+      <h4>Step 10: README, AI_LOG.md ครบ 10 รายการ และ Push ขึ้น GitHub</h4>
+      <p>ผู้ที่เปิดดู Portfolio ของคุณจะอ่าน README ก่อนโค้ดเสมอ และ <code>AI_LOG.md</code> คือหลักฐานว่าคุณใช้ AI อย่างมีวินัย ไม่ได้แค่กดรับทุกอย่าง ใช้ README ด้านล่างเป็นแม่แบบ แล้วเปลี่ยน <code>somchai</code> ในลิงก์ Badge และคำสั่ง <code>git clone</code> เป็นชื่อบัญชี GitHub ของคุณ</p>
+<pre class="code" data-env="file" data-label="Markdown · README.md"><code class="language-markdown"># finance-app: บัญชีรายรับรายจ่ายส่วนตัว
+
+เว็บแอปบันทึกรายรับรายจ่ายที่รันในเครื่อง สร้างด้วย Flask 3.1.3 + SQLite + Jinja2 ร่วมกับ AI Coding Assistant และคุมคุณภาพด้วย Spec, Test, การรีวิว Diff และ Quality Gate
+
+![quality-gate](https://github.com/somchai/finance-app/actions/workflows/check.yml/badge.svg)
+
+## ฟีเจอร์
+- เพิ่ม ดู และลบรายการ (ลบด้วย POST เท่านั้น) พร้อมข้อความ Error ภาษาไทย
+- สรุปรายเดือน: รายรับ รายจ่าย คงเหลือ และรายจ่ายแยกหมวด
+- ส่งออก CSV รายเดือนที่กันสูตรใน Spreadsheet (CSV Injection)
+- เก็บเงินเป็นสตางค์ (int) จึงไม่มีปัญหาปัดเศษของ float
+
+## เริ่มใช้งาน (Ubuntu 24.04 บน WSL2, Python 3.12)
+```bash
+git clone https://github.com/somchai/finance-app.git
+cd finance-app
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+export SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
+flask --app app run
+```
+เปิด http://127.0.0.1:5000 ข้อมูลอยู่ในไฟล์ finance.db (เปลี่ยนที่เก็บได้ด้วยตัวแปร FINANCE_DB)
+
+## ทดสอบ
+```bash
+pytest -q            # Test 42 ข้อ ใช้ฐานข้อมูลชั่วคราว
+./scripts/check.sh   # ruff check, ruff format --check, pytest, pip-audit
+```
+ติดตั้ง pre-commit Hook หลัง Clone ทุกครั้ง (ไฟล์ใน .git/ ไม่ถูก Commit จึงต้องสร้างเองในแต่ละเครื่อง)
+```bash
+printf '#!/usr/bin/env bash\nexec ./scripts/check.sh\n' &gt; .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
+## โครงสร้าง
+| ไฟล์ | หน้าที่ |
+|---|---|
+| app.py | Route ของ Flask และ App Factory create_app |
+| validation.py | ตรวจข้อมูลฟอร์มและเดือน |
+| money.py | แปลงข้อความเงินเป็นสตางค์และกลับเป็นข้อความ |
+| db.py | คำสั่ง SQL ทั้งหมด (Parameterized) |
+| templates/ และ static/ | หน้าเว็บ Jinja2 และ CSS |
+| tests/ | pytest 42 Test |
+
+## ใช้ AI อย่างไรในโปรเจกต์นี้
+- เขียน SPEC.md ก่อน แล้วให้ AI ถามคำถามที่ยังกำกวม (Spec Interview)
+- ให้ AI เขียน Test จาก Acceptance Criteria ก่อนเขียนโค้ด แล้วรัน Test เองทุกครั้ง
+- รีวิวทุก Diff ก่อนรับ และบันทึกการตัดสินใจทั้งหมดใน AI_LOG.md (รับ 1 แก้ก่อนรับ 4 ปฏิเสธ 5)
+- กติกาที่ AI ต้องทำตามอยู่ใน AGENTS.md และ CLAUDE.md
+
+## ข้อจำกัดที่รู้อยู่
+- ผู้ใช้คนเดียว ไม่มีระบบ Login
+- ยังไม่มี CSRF Token จึงควรรันที่ 127.0.0.1 เท่านั้น
+- Development Server ของ Flask ไม่เหมาะกับ Production
+
+## License
+MIT</code></pre>
+      <p>README ที่ดีตอบ 4 คำถามให้ได้ภายในไม่กี่นาที คือแอปนี้ทำอะไร รันอย่างไร ทดสอบอย่างไร และใช้ AI ตรงไหน หัวข้อ "ข้อจำกัดที่รู้อยู่" สำคัญไม่แพ้ฟีเจอร์ การบอกตรง ๆ ว่ายังไม่มี CSRF Token แสดงว่าคุณเข้าใจความเสี่ยงของระบบตัวเอง ต่อไปคือ <code>AI_LOG.md</code> ฉบับเต็ม ซึ่งเติมรายการตามจริงมาตั้งแต่ Step 2</p>
+<pre class="code" data-env="file" data-label="Markdown · AI_LOG.md"><code class="language-markdown"># AI_LOG.md: บันทึกการใช้ AI ในโปรเจกต์ finance-app
+
+รูปแบบทุกรายการ: วันที่ · ขั้น · เรื่อง แล้วตามด้วย เครื่องมือ, Prompt, AI เสนอ, การตัดสินใจ, เหตุผล, ตรวจสอบด้วย, Commit
+
+## 2026-10-20 · Step 2 · Spec Interview
+- เครื่องมือ: AI Chat Assistant บนเว็บ
+- Prompt: "ผมจะสร้างเว็บแอปบันทึกรายรับรายจ่ายด้วย Flask + SQLite อย่าเพิ่งเขียนโค้ด ถามคำถามที่ต้องตอบก่อนเขียน Spec ทีละข้อ ไม่เกิน 10 ข้อ"
+- AI เสนอ: คำถาม 8 ข้อ เช่น เก็บเงินเป็นทศนิยมหรือจำนวนเต็ม ลบรายการแบบไหน มีหลายผู้ใช้ไหม ส่งออกไฟล์แบบใด
+- การตัดสินใจ: รับ
+- เหตุผล: คำถามเรื่องการเก็บเงินและการลบทำให้เพิ่ม AC1 และ AC8 ซึ่งตอนแรกไม่ได้คิดถึง
+- ตรวจสอบด้วย: อ่าน SPEC.md เทียบกับคำตอบทุกข้อ แล้วให้ AI ชี้ข้อที่ยังกำกวม
+- Commit: 9fb8f5e
+
+## 2026-10-20 · Step 2 · แผนโครงสร้างโปรเจกต์
+- เครื่องมือ: Agentic Coding Tool ใน Terminal
+- Prompt: "อ่าน SPEC.md แล้วเสนอโครงสร้างไฟล์และแผนงานเป็นข้อ ๆ ยังไม่ต้องเขียนโค้ด"
+- AI เสนอ: ใช้ SQLAlchemy และ Flask-WTF แบ่งเป็น 9 โฟลเดอร์
+- การตัดสินใจ: ปฏิเสธ
+- เหตุผล: เพิ่ม Dependency 2 ตัวที่ SPEC.md ไม่อนุญาต และซับซ้อนเกินแอปขนาด 5 Route จึงเขียน "ห้ามเพิ่ม Dependency" ลง AGENTS.md แล้วขอแผนใหม่ที่ใช้ sqlite3
+- ตรวจสอบด้วย: แผนใหม่มี 4 โมดูล (money, validation, db, app) และ requirements.txt ไม่มีแพ็กเกจเพิ่ม
+- Commit: 9fb8f5e
+
+## 2026-10-21 · Step 3 · Test-first ของ validation
+- เครื่องมือ: Agentic Coding Tool ใน Terminal
+- Prompt: แม่แบบ Test-first ใน Step 3 อ้างอิง AC1-AC5
+- AI เสนอ: Test 24 กรณี มีข้อหนึ่งเป็น assert parse_amount("65") is not None
+- การตัดสินใจ: แก้ก่อนรับ
+- เหตุผล: Test ข้อนั้นไม่พิสูจน์อะไร จึงลบออก และเพิ่มกรณีเลขไทย "๑๐๐" ที่ AI ไม่ได้คิดถึง
+- ตรวจสอบด้วย: pytest -q รอบแรกล้มด้วย No module named 'money' ตามที่คาด
+- Commit: 3b9b085
+
+## 2026-10-21 · Step 3 · money.py
+- เครื่องมือ: Agentic Coding Tool ใน Terminal
+- Prompt: "เขียน money.py และ validation.py ให้ผ่าน tests/test_validation.py ห้ามแก้ไฟล์ Test"
+- AI เสนอ: แปลงเงินด้วย int(float(text) * 100)
+- การตัดสินใจ: ปฏิเสธ
+- เหตุผล: float ปัดเศษผิด 0.29 * 100 ได้ 28.999999999999996 แล้ว int() ตัดเหลือ 28 สตางค์ จึงสั่งให้แยกส่วนบาทกับสตางค์จากข้อความแทน
+- ตรวจสอบด้วย: python3 -c "print(int(0.29 * 100))" ได้ 28 และหลังแก้ pytest -q ได้ 24 passed
+- Commit: 3b9b085
+
+## 2026-10-21 · Step 4 · month_rows ใน db.py
+- เครื่องมือ: Inline Completion ใน Editor
+- Prompt: พิมพ์ Comment "# ดึงรายการของเดือน month" แล้วรอคำแนะนำ
+- AI เสนอ: f"SELECT * FROM transactions WHERE substr(date, 1, 7) = '{month}'"
+- การตัดสินใจ: ปฏิเสธ
+- เหตุผล: ต่อ String เป็น SQL เปิดช่อง SQL Injection ขัดกับ AGENTS.md
+- ตรวจสอบด้วย: ruff ขึ้น S608 และ test_sql_injection_in_month_returns_nothing ล้มเพราะได้ครบ 7 แถว เปลี่ยนเป็น Parameter (?) แล้วผ่าน
+- Commit: 12ae44a
+
+## 2026-10-22 · Step 6 · create_app
+- เครื่องมือ: Agentic Coding Tool ใน Terminal
+- Prompt: "เขียน app.py และ templates ให้ผ่าน tests/test_routes.py ห้ามแก้ไฟล์ใน tests/"
+- AI เสนอ: app.secret_key = "dev" และ app.run(debug=True) ท้ายไฟล์
+- การตัดสินใจ: แก้ก่อนรับ
+- เหตุผล: Secret ในโค้ดจะหลุดขึ้น GitHub และ Debugger ของ Werkzeug รันโค้ดได้จากเบราว์เซอร์ จึงให้อ่าน SECRET_KEY จาก Environment และไม่ยอมเริ่มเมื่อไม่มีค่า
+- ตรวจสอบด้วย: test_app_refuses_to_start_without_secret_key ผ่าน และ grep -n "debug" app.py ไม่พบอะไร
+- Commit: 614d3bf
+
+## 2026-10-22 · Step 6 · ปุ่มลบรายการ
+- เครื่องมือ: Agentic Coding Tool ใน Terminal
+- Prompt: งานเดียวกับรายการก่อนหน้า
+- AI เสนอ: ลิงก์ a href="/delete/{{ row.id }}" กับ Route ที่รับ GET
+- การตัดสินใจ: ปฏิเสธ
+- เหตุผล: การลบด้วย GET ถูกเรียกได้จากลิงก์หรือรูปภาพในเว็บอื่น และจาก Browser Prefetch ผิด AC8
+- ตรวจสอบด้วย: test_delete_requires_post ได้ 405 เมื่อใช้ GET
+- Commit: 614d3bf
+
+## 2026-10-22 · Step 6 · ส่งออก CSV
+- เครื่องมือ: AI Chat Assistant บนเว็บ (Second Opinion)
+- Prompt: "รีวิวฟังก์ชัน export_csv นี้ด้านความปลอดภัย ตอบเป็นข้อ ๆ" แนบเฉพาะฟังก์ชันนั้น ไม่แนบ .env หรือข้อมูลจริง
+- AI เสนอ: เตือนเรื่อง CSV Injection เมื่อหมายเหตุขึ้นต้นด้วย = + - @ และให้ลบอักขระเหล่านั้นทิ้ง
+- การตัดสินใจ: แก้ก่อนรับ
+- เหตุผล: ข้อเตือนถูกต้อง แต่การลบอักขระทำให้ข้อมูลผู้ใช้เปลี่ยน จึงใส่ ' นำหน้าตามแนวทางของ OWASP แทน
+- ตรวจสอบด้วย: test_csv_formula_is_neutralized ผ่าน
+- Commit: 614d3bf
+
+## 2026-10-22 · Step 7 · ai-search.patch
+- เครื่องมือ: Agentic Coding Tool ใน Terminal
+- Prompt: "เพิ่มหน้าค้นหารายการจากหมายเหตุ และไฮไลต์คำที่เจอ"
+- AI เสนอ: Patch 3 ไฟล์ มี search_transactions แบบ f-string, Route /search, |safe ใน index.html และ app.run(debug=True, host="0.0.0.0")
+- การตัดสินใจ: ปฏิเสธ
+- เหตุผล: มี SQL Injection, XSS, Debugger เปิดสู่เครือข่าย ไม่มี Test และฟีเจอร์ไม่อยู่ใน SPEC.md
+- ตรวจสอบด้วย: ruff ขึ้น S104 และ S608, pytest ได้ 1 failed (test_note_is_escaped) แล้วย้อนด้วย git apply -R
+- Commit: ไม่มี (ไม่รับ Patch)
+
+## 2026-10-22 · Step 8 · GitHub Actions
+- เครื่องมือ: Agentic Coding Tool ใน Terminal
+- Prompt: "เขียน .github/workflows/check.yml ที่รัน ./scripts/check.sh บน ubuntu-24.04 ด้วย Python 3.12"
+- AI เสนอ: Workflow ที่ใช้ actions/checkout@v3 และ actions/setup-python@v4
+- การตัดสินใจ: แก้ก่อนรับ
+- เหตุผล: เป็นเวอร์ชันเก่าตามข้อมูลที่ AI เคยเรียน ตรวจหน้า Repository ของแต่ละ Action แล้วเปลี่ยนเป็น @v5 และ @v6
+- ตรวจสอบด้วย: Push แล้วแท็บ Actions ขึ้นสถานะผ่าน
+- Commit: fead7ea</code></pre>
+      <p>สัดส่วนรับ 1 แก้ก่อนรับ 4 และปฏิเสธ 5 เป็นเรื่องปกติของงานที่ใช้ AI อย่างมีวินัย ช่องที่มีค่าที่สุดคือ "เหตุผล" และ "ตรวจสอบด้วย" เพราะบอกว่าคุณตัดสินใจจากหลักฐาน ไม่ได้ตัดสินจากความรู้สึก Commit Hash ในไฟล์ของคุณต้องเป็นค่าจาก <code>git log --oneline</code> บนเครื่องของคุณเอง ก่อน Commit ครั้งสุดท้าย ให้ตรวจว่าไม่มีไฟล์ส่วนตัวหลุดเข้าไป (แนวคิดที่ 11)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git status --short
+git check-ignore -v finance.db .env .venv</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> M AI_LOG.md
+?? README.md
+.gitignore:4:*.db	finance.db
+.gitignore:2:.env	.env
+.gitignore:1:.venv/	.venv</code></pre>
+      <p>มีแค่ 2 ไฟล์ที่ตั้งใจเปลี่ยน และ <code>git check-ignore -v</code> ยืนยันว่าทั้งฐานข้อมูลการเงินจริง ไฟล์ Secret และ venv ถูกกันไว้ พร้อมบอกว่ากฎบรรทัดไหนใน <code>.gitignore</code> เป็นตัวกัน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git add README.md AI_LOG.md
+git commit -m "docs: เพิ่ม README และ AI_LOG ครบ 10 รายการ"
+git log --oneline</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[1/4] ruff check (กฎใน pyproject.toml รวมกฎความปลอดภัย S)
+All checks passed!
+[2/4] ruff format --check
+13 files already formatted
+[3/4] pytest
+..........................................                               [100%]
+42 passed in 0.45s
+[4/4] pip-audit
+No known vulnerabilities found
+ผ่านทุกด่าน พร้อม Commit
+[main d28d9dd] docs: เพิ่ม README และ AI_LOG ครบ 10 รายการ
+ 2 files changed, 148 insertions(+)
+ create mode 100644 README.md
+d28d9dd docs: เพิ่ม README และ AI_LOG ครบ 10 รายการ
+fead7ea ci: เพิ่ม Quality Gate, pre-commit Hook และ GitHub Actions
+614d3bf feat: หน้าเว็บ Flask เพิ่ม ลบ สรุปรายเดือน และส่งออก CSV พร้อม Test
+12ae44a feat: ชั้นฐานข้อมูล SQLite แบบ Parameterized พร้อม Test
+3b9b085 feat: แปลงจำนวนเงินเป็นสตางค์และตรวจข้อมูลฟอร์ม พร้อม Test
+9fb8f5e docs: เพิ่ม SPEC.md, AGENTS.md, CLAUDE.md และ AI_LOG.md
+56f1f7c chore: เริ่มโปรเจกต์ finance-app พร้อม venv และ requirements</code></pre>
+      <p>ประวัติ 7 Commit เล่าเรื่องการสร้างแอปได้ครบทุกขั้น ทุก Commit มี Test ผ่าน จึงย้อนกลับไปจุดใดก็ได้อย่างปลอดภัย ขั้นสุดท้ายคือ Push ขึ้น GitHub ตามที่เรียนในหัวข้อ <a data-t="17"></a> โดยสร้าง Repository ว่างชื่อ <code>finance-app</code> บน GitHub ก่อน และไม่ต้องให้ GitHub สร้าง README, <code>.gitignore</code> หรือ License ให้ เพราะโปรเจกต์มีไฟล์เหล่านี้อยู่แล้ว</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git remote add origin https://github.com/somchai/finance-app.git
+git remote -v</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>origin	https://github.com/somchai/finance-app.git (fetch)
+origin	https://github.com/somchai/finance-app.git (push)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git push -u origin main</code></pre>
+      <p>GitHub ไม่รับรหัสผ่านของบัญชีเมื่อ Push ผ่าน HTTPS ให้ยืนยันตัวตนด้วย GitHub CLI (<code>gh auth login</code>) หรือ SSH Key ตามหัวข้อ <a data-t="17"></a> ผลลัพธ์ของ <code>git push</code> แสดงจำนวน Object และความเร็วที่ต่างกันทุกเครื่อง บรรทัดที่ต้องเห็นคือ <code>branch 'main' set up to track 'origin/main'.</code> ถ้าใช้ GitHub CLI อยู่แล้ว คำสั่ง <code>gh repo create finance-app --public --source=. --remote=origin --push</code> สร้าง Repository และ Push ให้ในคำสั่งเดียว (ตรวจตัวเลือกล่าสุดด้วย <code>gh repo create --help</code>)</p>
+      <p>หลัง Push ให้เปิดแท็บ Actions ของ Repository แล้วรอให้ Workflow <code>quality-gate</code> ทำงานจนจบ ถ้าผ่าน Badge ใน README จะแสดงสถานะผ่าน ถ้าในเครื่องผ่านแต่บน GitHub ล้ม ให้อ่าน Log ของด่านที่ล้มก่อนเสมอ สาเหตุที่พบบ่อยคือ pip-audit เจอช่องโหว่ที่เพิ่งประกาศ หรือมีไฟล์ที่ลืม <code>git add</code></p>
+      <div class="callout sec"><span class="c-label sec">Security</span><p>ถ้าเผลอ Commit Secret ขึ้น GitHub ไปแล้ว ให้ถือว่า Secret นั้นรั่วทันที แม้จะลบออกใน Commit ถัดไป เพราะยังอยู่ในประวัติ Git ขั้นแรกคือเปลี่ยน (Rotate) Secret ตัวนั้นทิ้งก่อน แล้วจึงล้างประวัติ ห้ามสลับลำดับ เพราะระหว่างที่ล้างประวัติ ใครก็ตามที่ Clone หรือ Fork ไปแล้วยังใช้ค่าเดิมได้</p></div>
+    </li>
+  </ol>
+
+  <h4>ไอเดียต่อยอด</h4>
+  <p>ทุกไอเดียให้เริ่มด้วยวงจรเดิม คือเพิ่ม AC ลง <code>SPEC.md</code> ให้ AI เขียน Test ก่อน รีวิว Diff ผ่าน Quality Gate แล้วบันทึกลง <code>AI_LOG.md</code></p>
+  <ul>
+    <li><strong>หน้าค้นหาที่ทำถูกวิธี:</strong> ทำฟีเจอร์ที่ปฏิเสธไปใน Step 7 ใหม่ ใช้ <code>LIKE ?</code> กับค่า <code>f"%{keyword}%"</code> และให้ Template Escape ทุกส่วน แล้วเขียน Test ทั้ง SQL Injection และ XSS ของหน้าค้นหา</li>
+    <li><strong>CSRF Token:</strong> ปิดข้อจำกัดใน README ด้วย Token สุ่มที่เก็บใน Session และใส่เป็นช่องซ่อนในทุกฟอร์ม POST พร้อม Test ว่า Request ที่ไม่มี Token ได้ 400 ถ้าจะใช้ Flask-WTF ต้องแก้กติกาเรื่อง Dependency ใน <code>AGENTS.md</code> และตรวจแพ็กเกจตามแนวคิดที่ 11 ก่อน</li>
+    <li><strong>แก้ไขรายการ:</strong> ย้ายฟีเจอร์จากหัวข้อ Won't มาเป็น Should แล้วเพิ่ม <code>POST /edit/&lt;id&gt;</code> ที่ใช้ <code>validate_transaction</code> ตัวเดิม</li>
+    <li><strong>งบประมาณรายหมวด:</strong> เพิ่มตาราง <code>budgets</code> แล้วเตือนบนหน้าสรุปเมื่อรายจ่ายหมวดใดเกินงบ</li>
+    <li><strong>นำเข้า CSV จากธนาคาร:</strong> ตรวจทุกแถวด้วย <code>validate_transaction</code> และรายงานเลขแถวที่ผิด ระหว่างพัฒนาให้ใช้ข้อมูลตัวอย่างที่สร้างเอง ห้ามใช้ Statement จริงหรือส่งข้อมูลการเงินจริงให้ AI</li>
+    <li><strong>ย้ายไป PostgreSQL:</strong> คงชื่อฟังก์ชันใน <code>db.py</code> ไว้ แล้วรัน Test ชุดเดิมกับ PostgreSQL 16 ตามหัวข้อ <a data-t="14"></a></li>
+    <li><strong>Deploy อย่างปลอดภัย:</strong> รันด้วย WSGI Server สำหรับ Production อ่านค่า <code>SECRET_KEY</code> จาก Environment ของ Server และไม่ใช้ <code>--debug</code> ตามหัวข้อ <a data-t="12"></a> และ <a data-t="5"></a></li>
+    <li><strong>AI Review ใน CI:</strong> เพิ่ม <code>tools/ai_review.py</code> จากแนวคิดที่ 12 ที่สลับเป็นโหมดจำลองเองเมื่อไม่มี <code>ANTHROPIC_API_KEY</code> แล้วให้รีวิว Diff ของทุก Pull Request ต่อยอดได้ในหัวข้อ <a data-t="11"></a></li>
+  </ul>
+
+  <h3 id="s2-4-cheat">Cheat Sheet</h3>
+  <p>รวมคำสั่งและรูปแบบที่ใช้ในหัวข้อนี้และใน Mini Project จัดกลุ่มตามลำดับการทำงานจริง ตั้งแต่เตรียมโปรเจกต์ ใช้ Git เป็น Checkpoint รีวิว Diff ทดสอบ ตรวจคุณภาพ จนถึงรูปแบบ Prompt ที่ใช้ซ้ำได้</p>
+
+  <h4>1. ตั้งโปรเจกต์ venv และ Secret</h4>
+  <div class="tbl mid"><table class="cheat">
+    <thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+    <tbody>
+      <tr><td><code>python3 -m venv .venv</code></td><td>สร้าง venv แยกแพ็กเกจของโปรเจกต์ เพราะ Ubuntu 24.04 ไม่ให้ติดตั้งด้วย pip ของระบบ</td><td><code>cd ~/projects/finance-app &amp;&amp; python3 -m venv .venv</code></td></tr>
+      <tr><td><code>source .venv/bin/activate</code></td><td>เปิดใช้ venv ใน Terminal นั้น ออกด้วย <code>deactivate</code></td><td><code>source .venv/bin/activate &amp;&amp; which python3</code></td></tr>
+      <tr><td><code>python3 -m pip install -r requirements.txt</code></td><td>ติดตั้งแพ็กเกจตามเวอร์ชันที่ Pin ไว้ ได้ชุดเดียวกันทุกเครื่อง</td><td><code>flask==3.1.3</code> ใน <code>requirements.txt</code></td></tr>
+      <tr><td><code>python3 -m pip show &lt;ชื่อ&gt;</code></td><td>ดูเวอร์ชัน License และผู้ดูแลของแพ็กเกจที่ติดตั้งแล้ว</td><td><code>python3 -m pip show flask</code></td></tr>
+      <tr><td><code>export NAME="ค่า"</code></td><td>ตั้ง Secret เป็น Environment Variable แทนการเขียนลงในโค้ด</td><td><code>export SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"</code></td></tr>
+      <tr><td><code>os.environ.get("NAME", "")</code></td><td>อ่าน Secret ในโค้ด ถ้าไม่มีค่าให้หยุดพร้อมข้อความที่บอกวิธีแก้</td><td><code>app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "")</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>2. Git Checkpoint และการย้อนกลับ</h4>
+  <div class="tbl mid"><table class="cheat">
+    <thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+    <tbody>
+      <tr><td><code>git status --short</code></td><td>ดูไฟล์ที่ AI เพิ่มหรือแก้ ก่อนตัดสินใจรับ</td><td><code>?? backup.py</code> คือไฟล์ใหม่ที่ยังไม่ถูกติดตาม</td></tr>
+      <tr><td><code>git diff --stat -- tests/</code></td><td>ตรวจว่า AI แก้ไฟล์ Test เพื่อให้ผ่านหรือไม่</td><td>ไม่มีผลลัพธ์ แปลว่าไม่มีไฟล์ใน <code>tests/</code> ถูกแก้</td></tr>
+      <tr><td><code>git add -p &lt;ไฟล์&gt;</code></td><td>เลือกรับการแก้ทีละ Hunk แทนการรับทั้งไฟล์</td><td><code>git add -p app.py</code></td></tr>
+      <tr><td><code>git commit -m "type: ข้อความ"</code></td><td>Commit ทุกครั้งที่ Test ผ่าน แบบ Conventional Commits (feat, fix, test, docs, ci)</td><td><code>git commit -m "fix: ปฏิเสธเดือนที่ไม่ใช่ YYYY-MM"</code></td></tr>
+      <tr><td><code>git restore &lt;ไฟล์&gt;</code></td><td>ทิ้งการแก้ที่ยังไม่ Stage กลับเป็นฉบับใน Commit ล่าสุด</td><td><code>git restore db.py</code></td></tr>
+      <tr><td><code>git restore --staged &lt;ไฟล์&gt;</code></td><td>เอาไฟล์ออกจาก Stage โดยไฟล์ยังอยู่ในโฟลเดอร์</td><td><code>git restore --staged backup.py</code></td></tr>
+      <tr><td><code>git stash</code> / <code>git stash pop</code></td><td>เก็บงานที่ยังไม่เสร็จไว้ชั่วคราว ทดลองอย่างอื่น แล้วเอากลับมา</td><td><code>git stash</code> แล้วตามด้วย <code>git stash pop</code></td></tr>
+      <tr><td><code>git revert &lt;hash&gt;</code></td><td>ย้อน Commit ที่ Push ไปแล้วอย่างปลอดภัย โดยสร้าง Commit ใหม่ที่กลับค่าให้</td><td><code>git revert 614d3bf</code></td></tr>
+      <tr><td><code>git reset --hard HEAD</code></td><td>ทิ้งทุกการแก้ที่ยังไม่ Commit และกู้คืนไม่ได้ ใช้เมื่อแน่ใจเท่านั้น</td><td><code>git reset --hard HEAD</code></td></tr>
+      <tr><td><code>git check-ignore -v &lt;path&gt;</code></td><td>ยืนยันว่าไฟล์ถูก <code>.gitignore</code> กัน และกันด้วยกฎบรรทัดไหน</td><td><code>git check-ignore -v finance.db .env</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>3. Diff และ Patch</h4>
+  <div class="tbl mid"><table class="cheat">
+    <thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+    <tbody>
+      <tr><td><code>git apply --check &lt;patch&gt;</code></td><td>ตรวจว่า Patch ลงได้หรือไม่ โดยยังไม่แก้ไฟล์ใด</td><td><code>git apply --check ~/ai-search.patch</code></td></tr>
+      <tr><td><code>git apply --stat &lt;patch&gt;</code></td><td>ดูว่า Patch แตะไฟล์ไหนบ้าง และเพิ่มหรือลบกี่บรรทัด</td><td><code>3 files changed, 21 insertions(+), 1 deletion(-)</code></td></tr>
+      <tr><td><code>git apply &lt;patch&gt;</code> / <code>git apply -R &lt;patch&gt;</code></td><td>ใส่ Patch ชั่วคราวเพื่อรันการตรวจ แล้วถอดออกเมื่อปฏิเสธ</td><td><code>git apply -R ~/ai-search.patch</code></td></tr>
+      <tr><td><code>git diff &gt; &lt;ไฟล์&gt;.patch</code></td><td>บันทึก Diff เป็นไฟล์ไว้รีวิว หรือส่งให้ AI อีกตัวทำ Second Opinion</td><td><code>git diff &gt; ~/inline-month.patch</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>4. pytest</h4>
+  <div class="tbl mid"><table class="cheat">
+    <thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+    <tbody>
+      <tr><td><code>pytest -q</code></td><td>รัน Test ทั้งหมดแบบสรุปสั้น</td><td><code>42 passed in 0.45s</code></td></tr>
+      <tr><td><code>pytest -x</code></td><td>หยุดทันทีที่ Test แรกล้ม เหมาะตอน Debug</td><td><code>pytest -x tests/test_routes.py</code></td></tr>
+      <tr><td><code>pytest -k &lt;คำ&gt;</code></td><td>รันเฉพาะ Test ที่ชื่อมีคำนั้น</td><td><code>pytest -k summary</code></td></tr>
+      <tr><td><code>pytest --lf</code></td><td>รันเฉพาะ Test ที่ล้มในรอบก่อน ถ้ารอบก่อนผ่านหมดจะรันทั้งชุด</td><td><code>pytest -q --lf</code></td></tr>
+      <tr><td><code>@pytest.mark.parametrize</code></td><td>ใช้ Test ฟังก์ชันเดียวกับข้อมูลหลายชุด</td><td><code>@pytest.mark.parametrize("text", ["2026-13", ""])</code></td></tr>
+      <tr><td><code>pytest.raises(Error, match=...)</code></td><td>ตรวจว่าเกิด Error ถูกชนิด และข้อความตรงตาม Spec</td><td><code>with pytest.raises(ValueError, match="เดือนไม่ถูกต้อง"):</code></td></tr>
+      <tr><td><code>tmp_path</code> / <code>monkeypatch</code></td><td>Fixture โฟลเดอร์ชั่วคราว และการแก้ Environment Variable เฉพาะใน Test</td><td><code>monkeypatch.delenv("SECRET_KEY", raising=False)</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>5. ruff, pip-audit และการตรวจแพ็กเกจ</h4>
+  <div class="tbl mid"><table class="cheat">
+    <thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+    <tbody>
+      <tr><td><code>ruff check --output-format concise .</code></td><td>ตรวจโค้ดตามกฎใน <code>pyproject.toml</code> แสดงผลบรรทัดละ 1 ปัญหา</td><td><code>db.py:64:13: S608 Possible SQL injection vector ...</code></td></tr>
+      <tr><td><code>ruff check --select S &lt;ไฟล์&gt;</code></td><td>ตรวจเฉพาะกฎความปลอดภัย (มาจาก flake8-bandit)</td><td><code>ruff check --select S backup.py</code></td></tr>
+      <tr><td><code>ruff rule &lt;รหัส&gt;</code></td><td>อ่านคำอธิบายของกฎ เหตุผล และตัวอย่างวิธีแก้</td><td><code>ruff rule S608</code></td></tr>
+      <tr><td><code>ruff format .</code> / <code>ruff format --check .</code></td><td>จัดรูปแบบโค้ด หรือตรวจอย่างเดียวโดยไม่แก้ไฟล์ (ใช้ใน Quality Gate)</td><td><code>12 files already formatted</code></td></tr>
+      <tr><td><code>pip-audit -r requirements.txt</code></td><td>ตรวจช่องโหว่ที่ประกาศแล้วของแพ็กเกจ ผลเปลี่ยนตามวันที่รัน</td><td><code>No known vulnerabilities found</code></td></tr>
+      <tr><td><code>python3 -m pip index versions &lt;ชื่อ&gt;</code></td><td>ถาม PyPI ว่าแพ็กเกจที่ AI แนะนำมีอยู่จริงหรือไม่ ก่อนติดตั้ง (เป็นคำสั่ง experimental ของ pip)</td><td><code>ERROR: No matching distribution found for flask-sqlite-helper-pro</code></td></tr>
+      <tr><td><code>./scripts/check.sh</code></td><td>รัน Quality Gate ทั้ง 4 ด่านในคำสั่งเดียว ใช้ทั้งในเครื่อง ใน Hook และใน CI</td><td><code>ผ่านทุกด่าน พร้อม Commit</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>6. Flask, Jinja2 และ SQLite</h4>
+  <div class="tbl mid"><table class="cheat">
+    <thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+    <tbody>
+      <tr><td><code>flask --app app run --debug</code></td><td>รัน Server สำหรับพัฒนาบนเครื่องตัวเอง ห้ามใช้ <code>--debug</code> กับ Production</td><td>เปิด <code>http://127.0.0.1:5000</code></td></tr>
+      <tr><td><code>create_app(config)</code></td><td>App Factory ที่ให้ Test ส่งฐานข้อมูลชั่วคราวและ Key ของตัวเองได้</td><td><code>create_app({"TESTING": True, "DATABASE": str(tmp_path / "test.db"), "SECRET_KEY": "test-only-key"})</code></td></tr>
+      <tr><td><code>@app.get</code> / <code>@app.post</code></td><td>กำหนด Method ของ Route ส่วน Method อื่นได้ 405 อัตโนมัติ</td><td><code>@app.post("/delete/&lt;int:tx_id&gt;")</code></td></tr>
+      <tr><td><code>app.test_client()</code></td><td>ส่ง Request ใน Test โดยไม่ต้องเปิด Server จริง</td><td><code>client.post("/add", data=form(amount="abc"))</code></td></tr>
+      <tr><td><code>conn.execute(sql, params)</code></td><td>ส่งค่าผ่าน Parameter <code>?</code> เพื่อกัน SQL Injection</td><td><code>conn.execute("DELETE FROM transactions WHERE id = ?", (tx_id,))</code></td></tr>
+      <tr><td><code>{{ value }}</code> ใน Jinja2</td><td>แสดงค่าแบบ Escape อัตโนมัติ ห้ามเติม <code>|safe</code> กับข้อมูลจากผู้ใช้</td><td><code>&lt;td&gt;{{ row['note'] }}&lt;/td&gt;</code></td></tr>
+      <tr><td><code>sqlite3 -header &lt;db&gt; "SQL"</code></td><td>ดูข้อมูลในไฟล์ฐานข้อมูลจริงจาก Terminal</td><td><code>sqlite3 -header finance.db "SELECT * FROM transactions;"</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>7. รูปแบบ Prompt ที่ใช้ซ้ำได้</h4>
+  <div class="tbl mid"><table class="cheat">
+    <thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+    <tbody>
+      <tr><td>Spec Interview</td><td>ให้ AI ถามคำถามที่คุณยังไม่ได้ตัดสินใจ ก่อนเขียน Spec</td><td>"อย่าเพิ่งเขียนโค้ด ถามคำถามที่ต้องตอบก่อนเขียน Spec ทีละข้อ ไม่เกิน 10 ข้อ"</td></tr>
+      <tr><td>Plan ก่อน Implement</td><td>ได้แผนที่ตรวจและแก้ได้ ก่อนมีโค้ดสักบรรทัด</td><td>"เสนอแผนเป็นข้อ ๆ ยังไม่ต้องเขียนโค้ด รอผมอนุมัติก่อน"</td></tr>
+      <tr><td>Test-first</td><td>ได้ Test จาก Acceptance Criteria ที่รันให้ล้มก่อนมีโค้ดจริง</td><td>"เขียนเฉพาะ tests/test_validation.py จาก AC1-AC5 ห้ามเขียนโค้ดจริงในรอบนี้"</td></tr>
+      <tr><td>Implement ให้ผ่าน Test</td><td>จำกัดขอบเขตงาน และห้าม AI แก้ Test เพื่อให้ผ่าน</td><td>"เขียน app.py ให้ผ่าน tests/test_routes.py ห้ามแก้ไฟล์ใน tests/"</td></tr>
+      <tr><td>Debug แบบข้อมูลครบ</td><td>ให้ AI วิเคราะห์จากหลักฐานจริง แทนการเดา</td><td>"คำสั่งที่รัน, Error ฉบับเต็ม, ผลที่คาดหวังกับผลที่ได้, สิ่งที่ลองแล้ว ขอสมมติฐาน 3 ข้อก่อนเสนอวิธีแก้"</td></tr>
+      <tr><td>Second Opinion Review</td><td>ให้ AI อีกตัวรีวิว Diff ตามรายการตรวจด้านความปลอดภัย</td><td>"รีวิว Diff ทีละ Hunk ตอบเป็นตาราง ไฟล์และบรรทัด, ปัญหา, ความรุนแรง, วิธีแก้"</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="s2-4-interview">Interview Questions</h3>
+  <p>คำถามชุดนี้มีทั้งระดับ Junior (ข้อ 1 และ 2) และระดับ Mid (ข้อ 3 ถึง 5) ผู้สัมภาษณ์ไม่ได้อยากฟังว่าคุณใช้เครื่องมือ AI ตัวไหน แต่อยากรู้ว่าคุณคุมคุณภาพของโค้ดที่ AI เขียนได้อย่างไร ตอบให้มีหลักการ และยกตัวอย่างจริงจาก Mini Project ประกอบเสมอ</p>
+
+  <details class="iq"><summary>1. Vibe Coding คืออะไร และต่างจากการพัฒนาซอฟต์แวร์โดยมี AI ช่วยแบบมีวินัยอย่างไร (Junior)</summary><div>
+    <p><strong>แนวคำตอบ:</strong> Vibe Coding เป็นคำที่ Andrej Karpathy ทำให้แพร่หลายช่วงต้นปี 2025 หมายถึงการบอกสิ่งที่ต้องการเป็นภาษาคน รับโค้ดที่ AI เขียนโดยแทบไม่อ่าน แล้วปรับไปเรื่อย ๆ ตามความรู้สึกว่าใช้ได้ วิธีนี้เหมาะกับต้นแบบที่จะทิ้งหรือของเล่นส่วนตัว แต่งานที่มีผู้ใช้จริงต้องใช้ AI แบบมีวินัย ซึ่งผู้พัฒนายังรับผิดชอบโค้ดทุกบรรทัดเหมือนเขียนเอง</p>
+    <ul>
+      <li>เริ่มจาก Spec และ Acceptance Criteria ที่ตรวจได้ แล้วแบ่งงานเป็นก้าวเล็ก</li>
+      <li>ให้ AI เขียน Test ก่อน แล้วรัน Test เองทุกครั้ง ไม่เชื่อคำว่า "ผ่านแล้ว" ของ AI</li>
+      <li>อ่าน Diff ทุกบรรทัด และ Commit เป็น Checkpoint ทุกครั้งที่ Test ผ่าน</li>
+      <li>ยิ่งเครื่องมือมีอิสระมาก ตั้งแต่ AI Chat Assistant ไปจนถึง Agentic Coding Tool ใน Terminal ยิ่งต้องมีรั้วกั้นมาก เช่น Context File, Quality Gate และ Hook</li>
+    </ul>
+    <p><strong>ตัวอย่างที่ควรเล่า:</strong> ใน finance-app AI เสนอให้แปลงเงินด้วย <code>int(float(text) * 100)</code> ซึ่งอ่านผ่าน ๆ ดูถูก แต่เงิน 0.29 บาทกลายเป็น 28 สตางค์ ผมจับได้เพราะมี Spec ที่บังคับว่าห้ามใช้ float และพิสูจน์ด้วยคำสั่งเดียวก่อนปฏิเสธ ถ้าทำแบบ Vibe Coding ล้วน ๆ บั๊กนี้จะไปโผล่ในยอดเงินของผู้ใช้แทน</p>
+  </div></details>
+
+  <details class="iq"><summary>2. ถ้า AI แนะนำให้ติดตั้งแพ็กเกจที่คุณไม่รู้จัก คุณจะตรวจอะไรบ้างก่อน pip install (Junior)</summary><div>
+    <p><strong>แนวคำตอบ:</strong> ต้องรู้จัก 3 ความเสี่ยงก่อน คือ Package Hallucination ที่ AI แต่งชื่อแพ็กเกจที่ไม่มีอยู่จริง, Slopsquatting ที่ผู้ไม่หวังดีจดชื่อที่ AI ชอบแต่งไว้ล่วงหน้าแล้วใส่มัลแวร์ และ Typosquatting ที่ตั้งชื่อเลียนแบบแพ็กเกจดังให้ต่างกันแค่ตัวอักษรเดียว ขั้นตอนที่ผมใช้คือ</p>
+    <ol>
+      <li>ถามก่อนว่าจำเป็นไหม ถ้า Standard Library ทำได้ก็ไม่ติดตั้งเพิ่ม และทำตามกติกา "ห้ามเพิ่ม Dependency โดยไม่ถาม" ใน <code>AGENTS.md</code></li>
+      <li>เปิดหน้าแพ็กเกจบน PyPI ดูว่ามีอยู่จริง ออกครั้งแรกเมื่อไร ใครดูแล มีลิงก์ Source Code ที่มีความเคลื่อนไหว และชื่อสะกดตรงกับที่ตั้งใจ</li>
+      <li>ตรวจ License ว่าใช้กับงานของเราได้ เช่น MIT, BSD และ Apache-2.0 ใช้ได้กว้าง ส่วน GPL มีเงื่อนไขเรื่องการเปิด Source Code</li>
+      <li>ติดตั้งใน venv แบบ Pin เวอร์ชันใน <code>requirements.txt</code> แล้วรัน <code>pip-audit -r requirements.txt</code></li>
+      <li>บันทึกเหตุผลลง <code>AI_LOG.md</code></li>
+    </ol>
+    <p><strong>ตัวอย่าง:</strong> <code>python3 -m pip index versions flask-sqlite-helper-pro</code> ตอบว่า <code>No matching distribution found</code> แปลว่าเป็นชื่อที่ AI แต่งขึ้น แต่ถ้าวันหนึ่งชื่อนี้มีอยู่จริงขึ้นมา ก็ยังต้องตรวจอายุและ Source Code ต่อ เพราะอาจเป็นแพ็กเกจที่ผู้โจมตีเพิ่งจดไว้ และไม่รันคำสั่งที่ AI ให้มาแบบ <code>sudo pip install</code> หรือ <code>curl ... | bash</code> โดยไม่อ่านก่อน</p>
+  </div></details>
+
+  <details class="iq"><summary>3. เล่าขั้นตอนรีวิว Diff ที่ AI ส่งมา และยกตัวอย่าง Patch ที่คุณเคยปฏิเสธ (Mid)</summary><div>
+    <p><strong>แนวคำตอบ:</strong> ผมรีวิวเป็น 3 ชั้น คืออ่านเอง ยืนยันด้วยเครื่องมือ แล้วตัดสินใจพร้อมบันทึกเหตุผล</p>
+    <ul>
+      <li><strong>ภาพรวม:</strong> งานนี้อยู่ใน Spec ไหม แล้วใช้ <code>git apply --check</code> และ <code>--stat</code> ดูว่าแตะไฟล์อะไรบ้าง มีไฟล์ใน <code>tests/</code> หรือ <code>requirements.txt</code> ถูกแก้หรือไม่</li>
+      <li><strong>ทีละ Hunk:</strong> ตรงตาม Acceptance Criteria ไหม จัดการกรณีขอบหรือยัง ชื่อและ Type Hint ชัดไหม มี Import ที่ไม่ใช้ไหม และด้านความปลอดภัย ได้แก่ SQL ที่ต่อ String, <code>|safe</code>, <code>debug=True</code>, <code>host="0.0.0.0"</code>, <code>shell=True</code> และ Secret ในโค้ด</li>
+      <li><strong>ยืนยันด้วยเครื่องมือ:</strong> ใส่ Patch ชั่วคราว รัน ruff ที่เปิดกฎ S รัน Test ทั้งชุด และถ้าสงสัยช่องโหว่ก็ลองโจมตีแอปของตัวเองบนเครื่องตัวเอง</li>
+    </ul>
+    <p><strong>ตัวอย่าง:</strong> ผมขอหน้าค้นหาแบบไม่อ้างอิง Spec แล้วได้ Patch 3 ไฟล์ที่ใช้ f-string ใน <code>LIKE</code>, เติม <code>|safe</code> ในหน้าแรก และเปิด <code>run(debug=True, host="0.0.0.0")</code> ruff จับได้ S608 กับ S104 Test เรื่อง XSS ล้ม 1 ข้อ และการทดลอง <code>UNION SELECT</code> ดึงโครงสร้างตารางออกมาได้จริง ผมจึงปฏิเสธ ถอดด้วย <code>git apply -R</code> แล้วนำฟีเจอร์กลับไปเริ่มที่ Spec และ Test ใหม่ ประเด็นที่ควรพูดคือเครื่องมือไม่ได้จับทุกอย่าง ruff ไม่เตือน <code>debug=True</code> ในรูป <code>create_app().run(...)</code> การอ่านของคนจึงยังจำเป็น</p>
+  </div></details>
+
+  <details class="iq"><summary>4. รู้ได้อย่างไรว่า Test ที่ AI เขียนมีประโยชน์จริง และจะกันไม่ให้ AI แก้ Test เพื่อให้ผ่านได้อย่างไร (Mid)</summary><div>
+    <p><strong>แนวคำตอบ:</strong> Test ที่ดีต้องล้มได้เมื่อโค้ดผิด ผมจึงตรวจ Test ทั้งก่อนและหลังมีโค้ด</p>
+    <ul>
+      <li>ให้ AI เขียน Test จาก Acceptance Criteria ก่อนมีโค้ด แล้วรันให้เห็นว่าล้มด้วยเหตุผลที่ถูกต้อง เช่น <code>No module named 'money'</code> ไม่ใช่ล้มเพราะ Test พิมพ์ผิด</li>
+      <li>ปฏิเสธ Test ที่ไม่พิสูจน์อะไร เช่น <code>assert ... is not None</code>, Test ที่ไม่มี assert, Test ที่คัดลอกสูตรจากโค้ดจริงมาเทียบกับตัวเอง และ <code>pytest.raises(Exception)</code> ที่กว้างเกินไป</li>
+      <li>เติมกรณีที่ AI มักลืม เช่น ค่าขอบ ข้อมูลภาษาไทย เลขไทย และ Test ด้านความปลอดภัยอย่าง SQL Injection และ XSS</li>
+      <li>ลองทำให้โค้ดผิดโดยตั้งใจ แล้วดูว่ามี Test ล้มจริง เหมือนตอนใส่ <code>inline-month.patch</code> แล้ว Test ข้อ SQL Injection ล้มทันที</li>
+      <li>กันการแก้ Test ด้วยกติกาใน <code>AGENTS.md</code> และตรวจ <code>git diff --stat -- tests/</code> ก่อนทุก Commit ถ้า AI คิดว่า Test ผิด ต้องอธิบายเหตุผลแล้วรอคนอนุมัติ</li>
+    </ul>
+    <p><strong>ตัวอย่าง:</strong> AI เสนอ <code>assert parse_amount("65") is not None</code> ซึ่งผ่านแม้ฟังก์ชันจะคืน 65 แทน 6500 ผมเปลี่ยนเป็นการเทียบค่าที่คาดหวังตรง ๆ และเพิ่มกรณี <code>"๑๐๐"</code> เพราะ <code>int()</code> ของ Python รับเลขไทยได้ ถ้าไม่มี Test นี้ ระบบจะรับข้อมูลที่ Spec ไม่ได้ตั้งใจให้รับ</p>
+  </div></details>
+
+  <details class="iq"><summary>5. ถ้าทีมจะเริ่มใช้ AI Coding Agent คุณจะวางกติกาและระบบตรวจอะไรบ้าง และงานแบบไหนที่ไม่ควร Vibe Code (Mid)</summary><div>
+    <p><strong>แนวคำตอบ:</strong> ผมจะวาง 4 ชั้น คือกติกาที่ AI อ่านได้ การตรวจอัตโนมัติ การรีวิวโดยคน และนโยบายข้อมูล</p>
+    <ul>
+      <li><strong>Context File:</strong> <code>AGENTS.md</code> สั้นและตรวจได้ มีภาพรวม คำสั่ง Setup และ Test ข้อกำหนดการเขียนโค้ด สิ่งที่ห้ามทำ และ Definition of Done ส่วน <code>CLAUDE.md</code> หรือไฟล์ของเครื่องมืออื่นให้อ้างถึงไฟล์นี้ กติกาจะได้อยู่ที่เดียว</li>
+      <li><strong>Quality Gate:</strong> สคริปต์เดียวที่รัน ruff, ruff format, pytest และ pip-audit ใช้ทั้งใน pre-commit Hook และใน CI ของทุก Pull Request พร้อมตั้ง Branch Protection ให้ต้องผ่านก่อน Merge</li>
+      <li><strong>การรีวิว:</strong> คนรีวิวทุก Pull Request และระบุในคำอธิบายว่าส่วนไหนใช้ AI พร้อมบันทึกการตัดสินใจแบบ <code>AI_LOG.md</code></li>
+      <li><strong>นโยบายข้อมูล:</strong> ใช้เฉพาะเครื่องมือที่บริษัทอนุมัติ ห้ามส่ง Secret ข้อมูลลูกค้า หรือโค้ดของบริษัทให้เครื่องมือที่ไม่ได้รับอนุญาต ตาม PDPA และสัญญากับลูกค้า และลบข้อมูลอ่อนไหวก่อนส่ง Log ให้ AI</li>
+    </ul>
+    <p><strong>งานที่ไม่ควร Vibe Code:</strong> ระบบยืนยันตัวตนและสิทธิ์, Cryptography, การคำนวณเงินและการชำระเงิน, การคำนวณภาษีหรือเรื่องทางกฎหมาย, การแก้ระบบล่มใน Production ที่ไม่มี Test คุ้มกัน, โค้ดที่ทีมอ่านไม่เข้าใจ และช่วงที่กำลังเรียนพื้นฐาน งานเหล่านี้ยังใช้ AI ช่วยอธิบายหรือช่วยเขียน Test ได้ แต่คนต้องออกแบบเอง รีวิวละเอียด และควรมีผู้เชี่ยวชาญตรวจซ้ำ ส่วนการแก้เล็ก ๆ ที่พิมพ์เองเร็วกว่าการเขียน Prompt ก็ไม่จำเป็นต้องใช้ AI</p>
+  </div></details>
+
+  <h3 id="s2-4-resources">แหล่งเรียนต่อ</h3>
+  <ul class="res">
+    <li><a href="https://flask.palletsprojects.com/" target="_blank" rel="noopener">Flask Documentation</a> – เอกสารทางการของ Flask ทั้ง Tutorial, App Factory, Testing และหัวข้อความปลอดภัย <span class="pill">ฟรี</span></li>
+    <li><a href="https://docs.pytest.org/" target="_blank" rel="noopener">pytest Documentation</a> – วิธีใช้ Fixture, <code>parametrize</code>, <code>tmp_path</code>, <code>monkeypatch</code> และตัวเลือกบรรทัดคำสั่งทั้งหมด <span class="pill">ฟรี</span></li>
+    <li><a href="https://docs.astral.sh/ruff/" target="_blank" rel="noopener">Ruff Documentation</a> – รายการกฎทุกข้อรวมถึงกลุ่ม S ด้านความปลอดภัย และการตั้งค่าใน <code>pyproject.toml</code> <span class="pill">ฟรี</span></li>
+    <li><a href="https://github.com/pypa/pip-audit" target="_blank" rel="noopener">pip-audit</a> – Repository ทางการของเครื่องมือตรวจช่องโหว่แพ็กเกจ Python พร้อมตัวเลือกทั้งหมด <span class="pill">ฟรี</span></li>
+    <li><a href="https://owasp.org/www-project-top-ten/" target="_blank" rel="noopener">OWASP Top 10</a> – รายการความเสี่ยงสำคัญของเว็บแอป ใช้เป็นรายการตรวจตอนรีวิวโค้ดที่ AI เขียน <span class="pill">ฟรี</span></li>
+    <li><a href="https://owasp.org/www-community/attacks/CSV_Injection" target="_blank" rel="noopener">OWASP: CSV Injection</a> – อธิบายการโจมตีผ่านสูตรในไฟล์ CSV และแนวทางป้องกันที่ใช้ในฟังก์ชันส่งออกของโปรเจกต์นี้ <span class="pill">ฟรี</span></li>
+    <li><a href="https://agents.md" target="_blank" rel="noopener">AGENTS.md</a> – รูปแบบกลางของ Context File สำหรับ AI Coding Agent และรายชื่อเครื่องมือที่รองรับ <span class="pill">ฟรี</span></li>
+    <li><a href="https://docs.github.com/en/actions" target="_blank" rel="noopener">GitHub Actions Documentation</a> – การเขียน Workflow, การอ่าน Log และการตั้งให้ Pull Request ต้องผ่านการตรวจก่อน Merge <span class="pill">ฟรี</span></li>
+    <li><a href="https://docs.anthropic.com/en/docs/claude-code/overview" target="_blank" rel="noopener">Claude Code Documentation</a> – เอกสารทางการของ Agentic Coding Tool ใน Terminal รวมถึงการใช้ <code>CLAUDE.md</code> อ่านได้ฟรี ส่วนตัวเครื่องมือต้องใช้บัญชีและแผนการใช้งานตามที่ประกาศบนเว็บไซต์ทางการ <span class="pill">ฟรี</span></li>
+    <li><a href="https://docs.github.com/en/copilot" target="_blank" rel="noopener">GitHub Copilot Documentation</a> – เอกสารทางการของ Inline Completion และ Agent ใน Editor ตรวจแผนการใช้งานล่าสุดบนเว็บไซต์ทางการก่อนสมัคร <span class="pill">ฟรี</span></li>
+  </ul>
+</section>

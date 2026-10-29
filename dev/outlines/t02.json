@@ -1,0 +1,118 @@
+{
+  "concepts": [
+    {
+      "id": "c01",
+      "level": "b",
+      "title": "Vibe Coding คืออะไร: สเปกตรัมจาก AI Chat ถึง Agentic Coding",
+      "covers": "Teaches: definition of vibe coding (term popularised by Andrej Karpathy in early 2025: describe what you want in natural language, accept AI code, iterate by feel) versus disciplined AI-assisted development (you stay responsible for every line); the spectrum chat assistant on the web -> inline completion in the editor (e.g. GitHub Copilot) -> chat/agent inside the editor (e.g. Cursor, Copilot agent mode) -> agentic coding tool in the terminal (e.g. Claude Code) that reads the repo, runs commands and edits many files; describe tools generically, UIs change, link official docs for install; strengths (speed, boilerplate, explaining code) and typical failures (looks right but wrong, edge cases, invented APIs/packages, insecure shortcuts); the rule 'never trust, always verify'. Code: c01_verify_ai.py in ~/projects/vibe-lab — contains the AI's FIRST answer to the prompt 'เขียนฟังก์ชัน format_minutes แปลงนาทีเป็นข้อความภาษาไทย' (the buggy version from Part 1 Step 4: hours = total / 60, no negative check, always prints both parts) plus a small table of expected examples from the spec (45 -> '45 นาที', 60 -> '1 ชม.', 95 -> '1 ชม. 35 นาที', 0 -> '0 นาที'); loops over the table and prints PASS/FAIL with got vs expected, then prints a summary 'ผ่าน x/4'. Real output shows e.g. '0.75 ชม. 45 นาที' failures. Show the prompt in a tpl block. No external packages.",
+      "language": "python",
+      "env": "file (Python file + wsl run)"
+    },
+    {
+      "id": "c02",
+      "level": "b",
+      "title": "เตรียมโปรเจกต์ให้ปลอดภัยก่อนเปิดใช้ AI: venv, Git, .gitignore และ Secret ใน Environment Variable",
+      "covers": "Teaches: why set up before inviting AI (checkpoints, isolation, secrets); create ~/projects/vibe-lab, python3 -m venv .venv, activate, install pinned requirements.txt (flask==3.1.3, pytest==9.1.1, ruff==0.17.1, pip-audit==2.10.1), git init, .gitignore (.venv/, .env, __pycache__/, *.db, .pytest_cache/, .ruff_cache/), first commit; .env holds secrets and is never committed nor pasted to AI; read secrets with os.environ; what to do if a secret leaks (rotate it first, then clean history). Code: config.py with get_secret(name) that reads os.environ, raises a clear Thai RuntimeError when missing, and mask(value) that shows only the first 4 characters + '****'; __main__ prints whether SECRET_KEY is set and its masked value. Run three times: without the variable (error message), with `SECRET_KEY=dev-local-123 python3 config.py`, and `git status --short` / `git check-ignore -v .env` proving .env is ignored. Show real outputs.",
+      "language": "python + bash",
+      "env": "file + wsl"
+    },
+    {
+      "id": "c03",
+      "level": "b",
+      "title": "เขียน SPEC.md และ Acceptance Criteria ที่ทดสอบได้ก่อนสั่ง AI",
+      "covers": "Teaches: mini PRD structure (เป้าหมาย, ผู้ใช้, ฟีเจอร์ Must/Should/Won't, Acceptance Criteria, ข้อจำกัดทางเทคนิค, Out of Scope); good vs vague criteria; acceptance criteria as concrete input -> output examples; the 'Spec Interview' prompt where the AI asks YOU clarifying questions before coding (tpl block). Use exactly the SPEC.md from Part 1 Step 3 (vibe-lab ตัวช่วยคำนวณเวลาเรียน, criteria 1-7: format_minutes(45) -> '45 นาที', (60) -> '1 ชม.', (95) -> '1 ชม. 35 นาที', (0) -> '0 นาที', (-5) -> ValueError, average_minutes([30, 60, 90]) -> 60.0, average_minutes([]) -> 0.0). Code: duration.py (correct format_minutes and average_minutes) and ac_check.py that encodes the 7 criteria as a list of (no, description, callable, expected) including the ValueError case, runs them and prints a checklist '[ผ่าน] AC1 ...' with a final count 7/7. Real output.",
+      "language": "markdown + python",
+      "env": "file + wsl"
+    },
+    {
+      "id": "c04",
+      "level": "b",
+      "title": "ทำงานเป็นก้าวเล็ก Plan → Implement → Verify → Commit และย้อนกลับด้วย Git",
+      "covers": "Teaches: plan-then-implement prompting (ask for a numbered plan, approve it, then implement ONE step), PLAN.md checklist, small diffs, commit after every working step with Conventional Commit messages (feat:, fix:, test:, refactor:), rolling back: git diff, git restore <file> (unstaged), git restore --staged, git reset --hard HEAD (warn: destroys uncommitted work), git revert <commit> for committed changes, git stash for experiments, git log --oneline. Code: a full bash session in vibe-lab: commit working duration.py; simulate the AI 'shortening' the function (Part 1 Step 4 broken version written with a heredoc cat > duration.py), run python3 duration.py to see wrong output, git diff --stat, git restore duration.py, run again to see correct output; then commit a bad change and git revert it, showing git log --oneline. Plan-then-Implement prompt in a tpl block. Commit hashes in output differ per machine (say so).",
+      "language": "bash",
+      "env": "wsl"
+    },
+    {
+      "id": "c05",
+      "level": "i",
+      "title": "Context File (AGENTS.md / CLAUDE.md) และมาตรฐานโค้ดที่เครื่องตรวจได้ด้วย ruff",
+      "covers": "Teaches: why AI tools forget project rules between sessions; AGENTS.md as the cross-tool convention and CLAUDE.md for Claude Code (CLAUDE.md can just say 'อ่าน AGENTS.md'), what goes in (overview, commands, code style, forbidden actions, Definition of Done), keep it short and verifiable; turn style rules into machine checks with pyproject.toml [tool.ruff] (line-length 100, target-version py312, select E,F,I,B,UP,S, tests/* ignore S101). Code: the AGENTS.md and pyproject.toml exactly as in Part 1 Step 5, then tags.py as written by AI (unused imports sys/os, typing.List, mutable default tags: List[str] = []) — run python3 tags.py to show the shared-list bug (['python'] then ['python', 'sql']), run `ruff check --output-format concise tags.py` showing F401, UP006/UP035, I001, B006 codes, then the fixed tags.py (tags: list[str] | None = None) with ruff 'All checks passed!' and correct output. Note that ruff rule messages can vary slightly between versions; pin ruff==0.17.1.",
+      "language": "python + toml + markdown",
+      "env": "file + wsl"
+    },
+    {
+      "id": "c06",
+      "level": "i",
+      "title": "Test-first Prompting: ให้ AI เขียน Test จาก Spec แล้วรันเองด้วย pytest",
+      "covers": "Teaches: red -> green loop with AI; ask for tests from acceptance criteria BEFORE implementation (tpl block 'Test-first'); run them yourself and confirm they fail for the right reason; pytest basics: test files/functions naming, assert, pytest.raises, @pytest.mark.parametrize, pytest -q, -x, -k; spotting useless AI tests (tests that assert nothing meaningful, tests that copy the implementation, tests that were edited to pass). Code: tests/test_duration.py with parametrized cases for AC1-AC7 written before average_minutes exists -> first run shows ImportError/collection error (real output), then implement average_minutes in duration.py -> '10 passed' (or the exact real count). Include one example of a weak AI test (assert average_minutes([1, 2]) is not None) and explain why it proves nothing.",
+      "language": "python",
+      "env": "file + wsl"
+    },
+    {
+      "id": "c07",
+      "level": "i",
+      "title": "อ่านและรีวิว Diff ที่ AI เขียนทีละบรรทัด",
+      "covers": "Teaches: reading a unified diff (headers, @@ hunks, +/- lines), the line-by-line review checklist (ตรงตาม Spec ไหม, กรณีขอบ, ชื่อและ Type Hint, Import ที่ไม่ใช้, แก้ไฟล์ Test หรือไม่, Dependency ใหม่, Secret, ความปลอดภัย), git apply --check / git apply / git apply -R, git add -p to accept only parts, second-opinion review prompt (tpl). Code: ai-average.patch (plaintext block, the same buggy patch as Part 1 Step 7: adds unused import os, average_minutes with range(1, len(sessions)) off-by-one and ZeroDivisionError on [], AND a hunk that weakens a test in tests/test_duration.py); learner saves it, runs git apply --check, applies it, runs pytest -q to show real failures, writes review comments as a numbered list, reverts with git apply -R (or git restore), then applies the corrected implementation (sum(sessions) / len(sessions) with empty guard) and pytest passes. The patch must apply cleanly against the c06 versions of duration.py and tests/test_duration.py; test this.",
+      "language": "plaintext diff + python + bash",
+      "env": "file + wsl"
+    },
+    {
+      "id": "c08",
+      "level": "i",
+      "title": "Debug ร่วมกับ AI อย่างเป็นระบบ: ให้ข้อมูลครบ ทำซ้ำได้ แล้วล็อกด้วย Regression Test",
+      "covers": "Teaches: reproduce first, read the full traceback bottom-up, give the AI the full error + command + relevant files + expected vs actual + what you tried (tpl 'Debug แบบข้อมูลครบ'), never paste secrets in error logs, ask for hypotheses before fixes, confirm the root cause, add a regression test, then commit. Introduce the small Flask app that grows in c08-c12: app.py in vibe-lab exposing GET /api/sessions and POST /api/sessions storing study sessions in SQLite file studylog.db (table sessions(id INTEGER PRIMARY KEY, topic TEXT NOT NULL, minutes INTEGER NOT NULL)), using a create_app(db_path) factory so tests use tmp_path. Bug: POST with JSON {\"topic\": \"SQL\", \"minutes\": \"45 นาที\"} or missing 'minutes' gives 500 (KeyError/ValueError). Code: app.py (buggy), tests/test_app.py using Flask test client reproducing the 500, real traceback output (pytest output), the fix that validates input and returns 400 with a Thai error JSON, and the regression tests passing. Show `flask --app app run` only as a command with an explanation (server output may differ), use the test client for real outputs.",
+      "language": "python",
+      "env": "file + wsl"
+    },
+    {
+      "id": "c09",
+      "level": "a",
+      "title": "Refactor ด้วย AI อย่างปลอดภัย: Test คุ้มกัน พฤติกรรมเดิม และ Diff เล็ก",
+      "covers": "Teaches: refactoring means same behaviour, better structure; characterization tests first; the 'Refactor อย่างปลอดภัย' prompt (tpl) that forbids changing tests and public behaviour and asks for small steps; verify: same number of tests passing, ruff clean, git diff --stat shows no change under tests/; detect behaviour changes the AI sneaks in. Code: split the c08 app.py into db.py (get_conn, init_db, add_session, list_sessions, total_minutes) and validation.py (parse_session(payload) -> (topic, minutes) raising ValueError with Thai messages), app.py keeps routes only; also add GET /api/summary returning total minutes and format_minutes text from duration.py. Show before/after file sizes or function list, pytest -q before and after with the same count, git diff --stat output. All tests must use tmp_path databases.",
+      "language": "python",
+      "env": "file + wsl"
+    },
+    {
+      "id": "c10",
+      "level": "a",
+      "title": "Security Review โค้ดที่ AI เขียน: Secret ในโค้ด, SQL Injection, Input Validation และค่าตั้งที่อันตราย",
+      "covers": "Teaches: the vulnerabilities AI commonly produces (hardcoded SECRET_KEY/passwords, f-string SQL -> SQL Injection, no input validation/length limits, debug=True and host 0.0.0.0, shell=True, overly broad exception handling that hides errors); OWASP Top 10 mapping in brief; security review prompt (tpl); ruff S rules. Code: review/ai_search.py exactly as Part 1 Step 10 shows (broken 'import sql' typo fixed to 'import sqlite3' when testing, f-string LIKE query, SECRET_KEY 'dev-secret-123', DB_PASSWORD, debug=True); `ruff check --select S --output-format concise review/ai_search.py` real output; a test that seeds 3 rows and sends topic=\"' OR '1'='1\" (or a UNION payload) through the Flask test client showing ALL rows leak; the fixed version using parameterized query with '?' and LIKE parameter, SECRET_KEY from os.environ via config.get_secret, topic length limit (<= 50 chars) returning 400, debug off; security tests now pass. Lab-only reminder: test only your own app on 127.0.0.1.",
+      "language": "python",
+      "env": "file + wsl"
+    },
+    {
+      "id": "c11",
+      "level": "a",
+      "title": "Supply Chain, License และความเป็นส่วนตัว: ตรวจแพ็กเกจก่อนติดตั้ง และลบ Secret ก่อนส่งให้ AI",
+      "covers": "Teaches: package hallucination vs slopsquatting vs typosquatting; verify a package exists on PyPI/npm (age, maintainer, downloads, repo link) before installing; npm view <name> for npm; pip-audit for known CVEs; licences (MIT/BSD/Apache-2.0 permissive vs GPL copyleft) and checking them with importlib.metadata; privacy: company policy, PDPA, never paste secrets/customer data/company code into unapproved tools, redact before sending. Code (two runnable files): tools/check_pkg.py (PyPI JSON API via urllib, exactly the Part 1 Step 11 behaviour: prints [พบ] name version | ออกครั้งแรก date | License | Source, or [ไม่พบ] for a fake name like 'flask-sqlite-helper-pro'), run against flask and a fake name; and tools/redact.py with regex rules that mask API keys (sk-..., ghp_..., AKIA...), passwords in KEY=VALUE lines and email addresses, reading a sample log file from stdin and printing the redacted text with a count of replacements. Also pip-audit -r on an old requirements file (requests==2.31.0) with the note that vulnerability IDs and counts change daily.",
+      "language": "python + bash",
+      "env": "file + wsl"
+    },
+    {
+      "id": "c12",
+      "level": "a",
+      "title": "Quality Gate อัตโนมัติ, AI Code Review แบบมีโหมดจำลอง และรู้ว่าเมื่อไรไม่ควร Vibe Code",
+      "covers": "Teaches: scripts/check.sh with set -euo pipefail running 4 gates ([1/4] ruff check, [2/4] ruff format --check, [3/4] pytest -q, [4/4] pip-audit -r requirements.txt), .git/hooks/pre-commit calling it (and pre-commit==4.7.0 for teams), .github/workflows/check.yml on ubuntu-24.04 with actions/checkout@v5 and actions/setup-python@v6 python 3.12; automated AI review: tools/ai_review.py reads `git diff --cached` (or a diff file argument), redacts secrets with tools/redact.py, and asks Claude with a review checklist via anthropic==1.15.0 when ANTHROPIC_API_KEY is set (MODEL = os.environ.get('CLAUDE_MODEL', 'claude-opus-5-5'), no temperature/top_p/top_k), otherwise switches to MOCK mode automatically and prints a deterministic rule-based review (flags f-string SQL, shell=True, debug=True, hardcoded secrets, edits under tests/); show MOCK output as the real output. Close with the 'when NOT to vibe code' decision table (auth, crypto, payments, legal calculations, code you cannot read, learning fundamentals, outages without tests, tiny edits). Real outputs: check.sh passing, hook blocking notify.py (S105, S602) as in Part 1 Step 12, ai_review.py in mock mode.",
+      "language": "bash + python + yaml",
+      "env": "file + wsl"
+    }
+  ],
+  "mini_project": {
+    "name": "Personal Finance Web App",
+    "summary": "A small personal income/expense web app built with Flask 3.1.3 + SQLite + HTML (Jinja2 templates), created together with an AI coding assistant using the full workflow from this topic: SPEC.md first, AGENTS.md/CLAUDE.md context files, small steps with git checkpoints, test-first with pytest, diff review, security review, a 4-gate quality gate (scripts/check.sh) also run in GitHub Actions, and AI_LOG.md recording prompts, AI suggestions, accept/modify/reject decisions and reasons. Lives in ~/projects/finance-app and is pushed to GitHub as repo 'finance-app'. Data is stored in finance.db (path configurable through FINANCE_DB env var; tests use tmp_path).",
+    "features": [
+      "หน้าแรก / แสดงรายการล่าสุดเรียงตามวันที่ใหม่ไปเก่า และฟอร์มเพิ่มรายการ (วันที่ YYYY-MM-DD, ประเภท income|expense, หมวดหมู่, จำนวนเงินเป็นบาท, หมายเหตุไม่บังคับ)",
+      "Table transactions(id INTEGER PRIMARY KEY, date TEXT NOT NULL, kind TEXT NOT NULL CHECK(kind IN ('income','expense')), category TEXT NOT NULL, amount_satang INTEGER NOT NULL CHECK(amount_satang > 0), note TEXT DEFAULT ''); money stored as integer satang (1 บาท = 100 สตางค์) to avoid float errors, displayed as '1,250.50 บาท'",
+      "Input validation in validation.py: date must parse with date.fromisoformat, kind must be income or expense, category 1-30 chars from a fixed list (อาหาร, เดินทาง, ที่พัก, การเรียน, บันเทิง, เงินเดือน, รายได้เสริม, อื่น ๆ), amount > 0 with at most 2 decimals and <= 1,000,000 บาท; invalid input re-renders the form with Thai error messages and HTTP 400",
+      "หน้า /summary?month=2026-10 สรุปรายรับ รายจ่าย คงเหลือ และยอดรายจ่ายแยกตามหมวดหมู่ของเดือนที่เลือก",
+      "POST /delete/<id> ลบรายการ (POST only, never GET) and redirect back; GET /export.csv exports the selected month as CSV (UTF-8 with header date,kind,category,amount,note)",
+      "Security: all SQL parameterized with '?'; SECRET_KEY read from the environment and the app refuses to start without it (tests pass a test-only key through create_app(config)); Jinja2 autoescaping kept on; debug off by default",
+      "Tests with pytest 9.1.1 (tests/test_validation.py, tests/test_db.py, tests/test_routes.py) covering add/list/summary/delete/export, invalid inputs, an SQL-injection attempt in the category/month parameter, and XSS text in note being escaped",
+      "Quality gate scripts/check.sh (ruff check, ruff format --check, pytest -q, pip-audit -r requirements.txt), .git/hooks/pre-commit, .github/workflows/check.yml",
+      "Docs: SPEC.md, AGENTS.md, CLAUDE.md (points to AGENTS.md), AI_LOG.md with at least 10 entries using the Part 1 template, README.md describing setup, run, test and where AI was used"
+    ],
+    "stack": "Ubuntu 24.04 LTS on WSL2; Python 3.12.3 + venv (.venv); flask==3.1.3 (pulls Werkzeug 3.1.9, Jinja2 3.1.6); sqlite3 module from the Python standard library (SQLite 3.45.1, optional CLI via apt sqlite3); pytest==9.1.1; ruff==0.17.1; pip-audit==2.10.1; Git 2.43.0; GitHub Actions (ubuntu-24.04, actions/checkout@v5, actions/setup-python@v6, python-version 3.12); optional tools/ai_review.py with anthropic==1.15.0 and automatic mock mode."
+  },
+  "versions": "Tested 2026-10-19/22 (sandbox Python 3.13; code must target Python 3.12+). Ubuntu 24.04 LTS on WSL2; Python 3.12.3 system python3, packages only inside `python3 -m venv .venv`, installed with `python3 -m pip install -r requirements.txt`. requirements.txt for vibe-lab and finance-app (exact, same as Part 1): flask==3.1.3, pytest==9.1.1, ruff==0.17.1, pip-audit==2.10.1. Flask pulls Werkzeug 3.1.9, Jinja2 3.1.6, click 8.5.0, itsdangerous 2.2.0, blinker 1.9.0, MarkupSafe 3.0.4. pre-commit==4.7.0 (optional, teams). anthropic==1.15.0 only for the optional AI review script (per spec/AI_GUIDE.md; PyPI now also has 2.x but this curriculum pins 1.15.0); models: MODEL = os.environ.get('CLAUDE_MODEL', 'claude-opus-5-5'); never send temperature/top_p/top_k. Git 2.43.0. SQLite 3.45.1. GitHub Actions: runs-on ubuntu-24.04, actions/checkout@v5, actions/setup-python@v6 with python-version '3.12'. Old file for pip-audit demos: requests==2.31.0 (vulnerability IDs/counts change daily; always add a Thai note).",
+  "notes": "LEARNER AND FOLDERS: username somchai, home /home/somchai. Parts 2 and 3 work in ~/projects/vibe-lab (the same practice repo as Part 1: venv .venv, git repo, .gitignore with .venv/, .env, __pycache__/, *.db, .pytest_cache/, .ruff_cache/). Part 2 setup (s2-2-setup) must create it from scratch so Part 2 is self-contained: mkdir -p ~/projects/vibe-lab && cd ~/projects/vibe-lab, python3 -m venv .venv, source .venv/bin/activate, requirements.txt as in versions, pip install, version checks (python3 --version -> Python 3.12.3, git --version -> git version 2.43.0, pytest --version -> pytest 9.1.1, ruff --version -> ruff 0.17.1, flask --version shows Flask 3.1.3 and Werkzeug 3.1.9, pip-audit --version -> pip-audit 2.10.1), git init, first commit. Existing Part 1 files in vibe-lab: SPEC.md, AGENTS.md, CLAUDE.md, PLAN.md, AI_LOG.md, pyproject.toml, duration.py (format_minutes, average_minutes), summary.py + sessions.csv (topic,minutes; row 'SQL,45 นาที' is the bad-data example), tags.py, check_average.py, ai-average.patch, review/ai_search.py, notify.py, tools/check_pkg.py, scripts/check.sh, .git/hooks/pre-commit, .github/workflows/check.yml, tests/test_duration.py, tests/test_summary.py. Part 2 adds: c01_verify_ai.py, config.py, ac_check.py, app.py, db.py, validation.py, tests/test_app.py, tests/test_security.py, tools/redact.py, tools/ai_review.py. Part 3 challenge files: ch1_*.py, ch2_*.py, ch3_*.py in the same folder (tests in tests/test_ch*.py). Mini project: ~/projects/finance-app (GitHub repo finance-app); app factory create_app(config: dict | None = None) in app.py; DB path from FINANCE_DB (default finance.db); run with `flask --app app run --debug` only in development and say debug must never be used in production.\n\nDOMAIN DATA: vibe-lab = study-time tracker (ตัวช่วยคำนวณเวลาเรียน). Keep Part 1 acceptance criteria exactly: format_minutes(45) -> '45 นาที', (60) -> '1 ชม.', (95) -> '1 ชม. 35 นาที', (0) -> '0 นาที', (-5) -> ValueError('นาทีต้องไม่ติดลบ'), average_minutes([30, 60, 90]) -> 60.0, average_minutes([]) -> 0.0. Sample sessions: Python 90, SQL 45, Git 30 (topics in English, minutes integers). Flask app table sessions(id, topic, minutes) in studylog.db. Finance sample rows (October 2026): 2026-10-01 income เงินเดือน 25,000.00; 2026-10-02 expense อาหาร 65.00 'ข้าวกะเพรา'; 2026-10-03 expense เดินทาง 42.00 'BTS'; 2026-10-05 expense การเรียน 390.00 'หนังสือ Python'; 2026-10-10 expense ที่พัก 6,500.00 'ค่าห้อง'; 2026-10-15 income รายได้เสริม 1,500.00 'สอนพิเศษ'.\n\nCONVENTIONS: Prompts are shown as tpl blocks (data-kind=\"tpl\" data-env=\"tpl\", data-label 'Prompt · ชื่อ'); AI-generated patches are shown as plaintext blocks labelled 'Diff · name.patch' and must apply cleanly with git apply (test it); label AI-written code in data-label as '(โค้ดที่ AI เขียน)' and fixed code as '(แก้แล้ว)'. Describe AI tools generically (AI Chat Assistant, Inline Completion, Agent ใน Editor, Agentic Coding Tool ใน Terminal) with examples Claude Code, GitHub Copilot, Cursor and link official docs; never claim exact UI menu names or prices. Never show real AI responses as fixed facts: say wording differs per run. Any LLM call must follow spec/AI_GUIDE.md and auto-switch to MOCK mode without ANTHROPIC_API_KEY. AI_LOG.md entry fields: วันที่ · ขั้น, เครื่องมือ, Prompt, AI เสนอ, การตัดสินใจ (รับ / แก้ก่อนรับ / ปฏิเสธ), เหตุผล, ตรวจสอบด้วย, Commit. Terms kept in English: Spec, PRD, Acceptance Criteria, Context File, Diff, Commit, Checkpoint, Test, Refactor, Quality Gate, Hook, Slopsquatting, Package Hallucination, SQL Injection, Secret. Cross-topic links: 17 Git and GitHub, 9 Python, 16 Prompt Engineering, 14 SQL, 12 Backend, 11 AI Engineer, 5 Cyber Security. Machine-specific values (commit hashes, timings, vulnerability IDs) must be noted in Thai as differing on the learner's machine."
+}

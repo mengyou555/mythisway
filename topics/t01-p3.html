@@ -1,0 +1,1414 @@
+<section class="part" data-part="3">
+<h2 id="s1-3"><span class="sec-no">1.3</span>Practice Exercises &amp; Quizzes</h2>
+
+<p>ส่วนนี้ใช้ทบทวนทุกแนวคิดใน Part 2 ด้วยตัวเอง เริ่มจากเติมคำในช่องว่าง 6 ข้อ ต่อด้วยข้อสอบปรนัย 13 ข้อ แล้วปิดท้ายด้วยโจทย์ลงมือทำ 3 ข้อที่จำลองงานจริงของ Network Engineer ตั้งแต่การตรวจแผน IP ของบ้าน ไปจนถึงการสร้าง Firewall ให้สาขาของบริษัท เฉลยทั้งหมดอยู่ท้ายหน้า ขอให้ลองคิดและลองรันเองก่อนเปิดเฉลยทุกครั้ง</p>
+
+<h3 id="s1-3-howto">วิธีใช้หน้านี้ให้ได้ผล</h3>
+<ul>
+  <li>ทำทุกข้อใน Ubuntu 24.04 (WSL) ของคุณ ใช้โฟลเดอร์ <code>~/projects/network-lab/practice/</code> สำหรับแบบฝึกหัด และโฟลเดอร์ย่อย <code>ch1</code>, <code>ch2</code>, <code>ch3</code> สำหรับโจทย์ลงมือทำ เพื่อไม่ให้ปนกับไฟล์ของ Part 2</li>
+  <li>คำตอบทุกข้อมาจาก Part 2 แนวคิดที่ 1 ถึง 12 ถ้าตอบไม่ได้ ให้กลับไปอ่านแนวคิดนั้น แล้วรันตัวอย่างโค้ดอีกครั้ง</li>
+  <li>ผลลัพธ์ทุกบล็อกในหน้านี้ได้จากการรันจริงด้วย Python 3 กับเครื่องมือ <code>iproute2</code>, <code>dig</code>, <code>nftables</code> และ <code>curl</code> บน Ubuntu 24.04 ค่าที่ขึ้นกับเครื่อง เช่น เวลา, ค่า <code>time=</code> ของ ping, Port ฝั่ง Client และเลข PID จะไม่ตรงกับในหน้านี้ ซึ่งเป็นเรื่องปกติ</li>
+  <li>โจทย์ที่ใช้ Network Namespace ต้องรันด้วย <code>sudo</code> และทุกสคริปต์จะลบ Lab เก่าก่อนสร้างใหม่ จึงรันซ้ำได้หลายครั้ง</li>
+</ul>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างโฟลเดอร์สำหรับแบบฝึกหัดทั้งหมดของ Part 3
+mkdir -p ~/projects/network-lab/practice/{ch1,ch2,ch3}
+cd ~/projects/network-lab/practice
+# ตรวจว่ามีเครื่องมือครบ (ติดตั้งไว้แล้วตั้งแต่ Part 2 ถ้ายังไม่มีให้ติดตั้งตามบรรทัดล่าง)
+which ip dig nft curl python3
+# sudo apt update &amp;&amp; sudo apt install -y iproute2 bind9-dnsutils nftables curl dnsmasq-base</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>/usr/sbin/ip
+/usr/bin/dig
+/usr/sbin/nft
+/usr/bin/curl
+/usr/bin/python3</code></pre>
+<div class="callout sec"><span class="c-label sec">Security</span><p>ทุกโจทย์ในหน้านี้ทดสอบเฉพาะเครื่องของคุณเอง คือ <code>127.0.0.1</code> และ Network Namespace ที่คุณสร้างขึ้นเท่านั้น การสแกน Port การดัก Packet หรือการทดสอบ Firewall ของระบบที่คุณไม่ได้เป็นเจ้าของหรือไม่ได้รับอนุญาตเป็นลายลักษณ์อักษร อาจผิด พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์ ห้ามเปลี่ยนเป้าหมายในสคริปต์ให้ชี้ไปที่เครื่องของคนอื่น</p></div>
+
+<h3 id="s1-3-fill">Fill-in-the-blank</h3>
+<p>เติมคำ ตัวเลข หรือคำสั่งที่หายไปในตำแหน่ง <code>_____</code> แต่ละข้ออาจมีหลายช่อง ให้ตอบเรียงตามลำดับ (1), (2), (3) ข้อที่มีโค้ด ให้เติมแล้วรันจริงเพื่อตรวจว่าได้ผลลัพธ์ตรงกับที่แสดงไว้</p>
+
+<ol class="qlist fill">
+
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p><strong>OSI Model และอุปกรณ์</strong> เติมคำให้ถูกต้อง</p>
+<ul>
+  <li>ข้อมูลที่ Layer 2 (Data Link) เรียกว่า (1) _____ ส่วนที่ Layer 3 (Network) เรียกว่า (2) _____</li>
+  <li>Switch ทำงานหลักที่ Layer (3) _____ เพราะตัดสินใจส่งต่อจาก MAC Address ส่วน Router ทำงานที่ Layer (4) _____ เพราะตัดสินใจจาก IP Address</li>
+  <li>เมื่อเครื่องส่ง ARP Request เพื่อถามว่า "ใครมี IP 192.168.1.1" Frame นั้นใช้ Destination MAC เป็น (5) _____ เพื่อให้ทุกเครื่องในวงได้รับ</li>
+</ul>
+</li>
+
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p><strong>คำนวณ Subnet ด้วย Python</strong> สมชายต้องการรู้ข้อมูลของ Subnet <code>192.168.1.0/26</code> ที่จะแบ่งให้กล้องวงจรปิด เติมโค้ดให้ได้ผลลัพธ์ตามที่แสดง</p>
+<pre class="code" data-env="file" data-label="Python · fill2_subnet.py"><code class="language-python"># fill2_subnet.py : หาข้อมูลของ Subnet 192.168.1.0/26
+import ipaddress
+
+net = ipaddress._____("192.168.1.0/26")          # (1)
+print("Network  :", net.network_address)
+print("Netmask  :", net.netmask)
+print("Broadcast:", net._____)                    # (2)
+# จำนวน Host ที่ใช้งานได้จริง (ไม่นับ Network และ Broadcast)
+print("Usable   :", net.num_addresses - _____)    # (3)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/network-lab/practice
+python3 fill2_subnet.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Network  : 192.168.1.0
+Netmask  : 255.255.255.192
+Broadcast: 192.168.1.63
+Usable   : 62</code></pre>
+</li>
+
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p><strong>TCP Client ส่งข้อความไปหา Echo Server</strong> ไฟล์ Server ด้านล่างเขียนเสร็จแล้ว ให้เติมไฟล์ Client ให้สมบูรณ์ โดย (1) เลือกชนิด Socket ของ TCP (2) แปลง <code>str</code> เป็น <code>bytes</code> ก่อนส่ง และ (3) แปลง <code>bytes</code> ที่ได้รับกลับเป็น <code>str</code></p>
+<pre class="code" data-env="file" data-label="Python · fill3_server.py"><code class="language-python"># fill3_server.py : Echo Server ตอบกลับเป็นตัวพิมพ์ใหญ่ (รับ Client 1 ครั้งแล้วจบ)
+import socket
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as srv:
+    # อนุญาตให้ใช้ Port เดิมซ้ำได้ทันที ไม่ต้องรอ TIME-WAIT หมด
+    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    srv.bind(("127.0.0.1", 9000))
+    srv.listen()
+    conn, addr = srv.accept()
+    with conn:
+        data = conn.recv(1024)
+        conn.sendall(data.upper())</code></pre>
+<pre class="code" data-env="file" data-label="Python · fill3_client.py"><code class="language-python"># fill3_client.py : TCP Client ส่งข้อความไปหา Echo Server ที่ 127.0.0.1:9000
+import socket
+
+with socket.socket(socket.AF_INET, socket._____) as s:      # (1)
+    s.connect(("127.0.0.1", 9000))
+    s.sendall("ping from somchai"._____())                   # (2)
+    reply = s.recv(1024)._____()                             # (3)
+    print("ส่งไป  :", "ping from somchai")
+    print("ได้กลับ:", reply)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Terminal ที่ 1: เปิด Server ทิ้งไว้
+cd ~/projects/network-lab/practice
+python3 fill3_server.py
+
+# Terminal ที่ 2: รัน Client
+cd ~/projects/network-lab/practice
+python3 fill3_client.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ส่งไป  : ping from somchai
+ได้กลับ: PING FROM SOMCHAI</code></pre>
+</li>
+
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p><strong>ถาม DNS Lab ของบ้านด้วย dig</strong> เปิด dnsmasq ของ DNS Lab ตามคำสั่งใน Part 2 แนวคิดที่ 5 ไว้ก่อน (ฟังที่ <code>127.0.0.1</code> Port 5300 โซน <code>home.arpa</code>) แล้วเติมตัวเลือกของ <code>dig</code> ให้ได้ผลลัพธ์ตามที่แสดง (1) ระบุ Port ของ DNS Server (2) ทำ Reverse Lookup จาก IP กลับเป็นชื่อ (3) แสดงเฉพาะส่วน Answer ของคำตอบ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ถาม Mail Server ของโดเมน home.arpa (MX Record)
+dig @127.0.0.1 _____ 5300 +short MX home.arpa                 # (1)
+# ถามว่า IP 192.168.1.25 คือเครื่องชื่ออะไร (PTR)
+dig @127.0.0.1 -p 5300 +short _____ 192.168.1.25              # (2)
+# ดูว่า files.home.arpa เป็นชื่อเล่นของเครื่องไหน พร้อม TTL
+dig @127.0.0.1 -p 5300 +noall _____ files.home.arpa           # (3)</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>10 mail.home.arpa.
+mail.home.arpa.
+files.home.arpa.	300	IN	CNAME	nas.home.arpa.
+nas.home.arpa.		300	IN	A	192.168.1.20</code></pre>
+</li>
+
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p><strong>LAN สองวงคุยกันผ่าน Router</strong> สคริปต์นี้สร้าง Network Namespace 3 ตัว คือ <code>p-lan1</code> (10.0.1.10/24), <code>p-rtr</code> (10.0.1.1/24 และ 10.0.2.1/24) และ <code>p-lan2</code> (10.0.2.20/24) เติมช่องว่างให้ ping จาก <code>p-lan1</code> ไปถึง <code>p-lan2</code> ได้ แล้วตอบคำถาม (5) และ (6) จากผลลัพธ์</p>
+<pre class="code" data-env="file" data-label="Bash · fill5_router.sh"><code class="language-bash">#!/usr/bin/env bash
+# fill5_router.sh : LAN 2 วงเชื่อมกันผ่าน Router ที่เป็น Network Namespace
+# รันด้วย: sudo bash fill5_router.sh
+set -e
+# ลบของเก่าก่อน เผื่อเคยรันมาแล้ว (ไม่มีก็ไม่เป็นไร)
+for ns in p-lan1 p-rtr p-lan2; do ip netns del "$ns" 2&gt;/dev/null || true; done
+
+# สร้าง Namespace 3 ตัว
+ip netns add p-lan1
+ip netns add p-rtr
+ip netns add p-lan2
+
+# สายเสมือน 2 เส้น: lan1 &lt;-&gt; rtr และ rtr &lt;-&gt; lan2
+ip link add l1-eth0 type _____ peer name r-l1                 # (1)
+ip link add l2-eth0 type _____ peer name r-l2                 # (1) คำเดียวกัน
+ip link set l1-eth0 netns p-lan1
+ip link set r-l1 netns p-rtr
+ip link set r-l2 netns p-rtr
+ip link set l2-eth0 netns p-lan2
+
+# ใส่ IP และเปิด Interface
+ip -n p-lan1 addr add 10.0.1.10/24 dev l1-eth0
+ip -n p-rtr  addr add 10.0.1.1/24  dev r-l1
+ip -n p-rtr  addr add 10.0.2.1/24  dev r-l2
+ip -n p-lan2 addr add 10.0.2.20/24 dev l2-eth0
+for ns in p-lan1 p-rtr p-lan2; do ip -n "$ns" link set lo up; done
+ip -n p-lan1 link set l1-eth0 up
+ip -n p-rtr  link set r-l1 up
+ip -n p-rtr  link set r-l2 up
+ip -n p-lan2 link set l2-eth0 up
+
+# เปิดให้ Router ส่งต่อ Packet ระหว่าง Interface
+ip netns exec p-rtr sysctl -w net.ipv4._____=1                # (2)
+
+# Default Gateway ของแต่ละฝั่ง
+ip -n p-lan1 route add _____ via 10.0.1.1                     # (3)
+ip -n p-lan2 route add default via _____                      # (4)
+
+# ทดสอบ
+ip netns exec p-lan1 ping -c 2 -W 1 10.0.2.20</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/network-lab/practice
+sudo bash fill5_router.sh
+# ลบ Lab เมื่อทำเสร็จ
+for ns in p-lan1 p-rtr p-lan2; do sudo ip netns del "$ns"; done</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>net.ipv4.ip_forward = 1
+PING 10.0.2.20 (10.0.2.20) 56(84) bytes of data.
+64 bytes from 10.0.2.20: icmp_seq=1 ttl=63 time=0.667 ms
+64 bytes from 10.0.2.20: icmp_seq=2 ttl=63 time=0.047 ms
+
+--- 10.0.2.20 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1007ms
+rtt min/avg/max/mdev = 0.047/0.357/0.667/0.310 ms</code></pre>
+<p class="muted small">ค่า <code>time=</code> และ <code>rtt</code> ในเครื่องของคุณจะต่างจากนี้</p>
+<p>(5) ค่า <code>ttl=63</code> ในผลลัพธ์บอกว่า Packet ผ่าน Router มาแล้ว _____ ตัว (Linux ตั้ง TTL เริ่มต้นเป็น 64)</p>
+<p>(6) ถ้าลบบรรทัดช่องว่าง (4) ออก ping จะได้ผลลัพธ์ <code>_____% packet loss</code> เพราะ <code>p-lan2</code> ไม่รู้ทางส่ง Echo Reply กลับไปวง 10.0.1.0/24</p>
+</li>
+
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p><strong>Firewall ขาเข้าของ Server แบบ Default Deny ด้วย nftables</strong> Server ตัวนี้ต้องเปิดเฉพาะ Web App ที่ TCP 8080 รับ ping ได้ และต้องยังออกไปดาวน์โหลดอัปเดตได้ตามปกติ เติมไฟล์กฎให้ถูกต้อง (1) ค่า Policy ที่ทำให้ Packet ที่ไม่ตรงกฎใดเลยถูกทิ้ง (2) สถานะของ Connection ที่ต้องยอมรับ เพื่อให้คำตอบของ Connection ที่ Server เปิดออกไปเองกลับเข้ามาได้ (3) Keyword ที่ใช้จับ Port ปลายทางของ TCP</p>
+<pre class="code" data-env="file" data-label="nftables · fill6_firewall.nft"><code class="language-plaintext"># fill6_firewall.nft : Firewall ขาเข้าของ Server (Default Deny)
+flush ruleset
+
+table inet filter {
+    chain input {
+        # ถ้าไม่มีกฎไหนตรง ให้ทิ้ง Packet
+        type filter hook input priority 0; policy _____;          # (1)
+
+        # ยอมรับ Packet ที่เป็นคำตอบของ Connection เดิม
+        ct state _____ accept                                      # (2)
+
+        # ยอมรับ Loopback และ ICMP (ping)
+        iif "lo" accept
+        ip protocol icmp accept
+
+        # เปิดเฉพาะ Web App ที่ Port 8080
+        tcp _____ 8080 accept                                      # (3)
+    }
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/network-lab/practice
+# ทดลองใน Namespace แยก เพื่อไม่ให้กระทบ Firewall ของ WSL จริง
+sudo ip netns add fw-test
+# -c = ตรวจ Syntax อย่างเดียว ยังไม่โหลดจริง
+sudo ip netns exec fw-test nft -c -f fill6_firewall.nft &amp;&amp; echo "syntax ok"
+sudo ip netns exec fw-test nft -f fill6_firewall.nft
+sudo ip netns exec fw-test nft list ruleset
+sudo ip netns del fw-test</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>syntax ok
+table inet filter {
+	chain input {
+		type filter hook input priority filter; policy drop;
+		ct state established,related accept
+		iif "lo" accept
+		ip protocol icmp accept
+		tcp dport 8080 accept
+	}
+}</code></pre>
+<p class="muted small">สังเกตว่า <code>nft list ruleset</code> แสดง <code>priority 0</code> เป็นชื่อ <code>priority filter</code> ซึ่งมีค่าเท่ากัน</p>
+</li>
+
+</ol>
+
+<h3 id="s1-3-mcq">Multiple Choice</h3>
+<p>เลือกคำตอบที่ถูกที่สุดเพียงข้อเดียว ข้อสอบ 14 ข้อนี้คละระดับตั้งแต่ง่ายถึงยาก และเน้นความเข้าใจมากกว่าการท่องจำ เฉลยท้ายหน้าอธิบายทั้งเหตุผลที่ข้อถูกถูก และเหตุผลที่ข้อผิดแต่ละข้อผิด</p>
+
+<ol class="qlist mcq">
+
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>เครื่อง Windows ของพนักงานคนหนึ่งได้ IP <code>169.254.23.7</code> Subnet Mask <code>255.255.0.0</code> หลังเปิดเครื่อง และเข้าเว็บไม่ได้ สาเหตุที่เป็นไปได้มากที่สุดคือข้อใด</p>
+<ol class="choices">
+  <li>ISP แจก IP ในวง CGNAT ให้เครื่องโดยตรง</li>
+  <li>มีคนตั้ง Static IP ในวง Private ตาม RFC 1918 ไว้ที่เครื่อง</li>
+  <li>เครื่องติดต่อ DHCP Server ไม่ได้ จึงตั้ง IP แบบ APIPA ให้ตัวเอง</li>
+  <li>เครื่องได้ IPv6 Link-local Address ตามปกติ ไม่มีปัญหาอะไร</li>
+</ol>
+</li>
+
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>Host ที่มี IP <code>172.16.45.200/21</code> อยู่ใน Subnet ใด</p>
+<ol class="choices">
+  <li><code>172.16.45.0/21</code></li>
+  <li><code>172.16.40.0/21</code></li>
+  <li><code>172.16.32.0/21</code></li>
+  <li><code>172.16.44.0/21</code></li>
+</ol>
+</li>
+
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>Switch สร้าง MAC Address Table (ตารางว่า MAC ไหนอยู่ที่ Port ไหน) โดยอ่านข้อมูลส่วนใดของ Frame ที่วิ่งเข้ามา</p>
+<ol class="choices">
+  <li>Destination MAC Address</li>
+  <li>Destination IP Address ใน Packet ที่อยู่ข้างใน</li>
+  <li>ค่า EtherType</li>
+  <li>Source MAC Address</li>
+</ol>
+</li>
+
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>รูปแบบย่อที่สั้นที่สุดและถูกต้องตามมาตรฐานของ IPv6 Address <code>2001:0db8:0000:0000:0000:ff00:0042:8329</code> คือข้อใด</p>
+<ol class="choices">
+  <li><code>2001:db8::ff00:42:8329</code></li>
+  <li><code>2001:db8::ff00::42:8329</code></li>
+  <li><code>2001:db8:ff00:42:8329</code></li>
+  <li><code>2001:db8::ff:42:8329</code></li>
+</ol>
+</li>
+
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>สมชายแก้ A Record ของ <code>nas.home.arpa</code> จาก <code>192.168.1.20</code> เป็น <code>192.168.1.21</code> ที่ Authoritative Server แล้ว Record นี้มี TTL 300 แต่ในช่วง 2–3 นาทีแรก บางเครื่องยังได้ IP เก่า สาเหตุคือข้อใด</p>
+<ol class="choices">
+  <li>ยังไม่ได้แก้ PTR Record ของ 192.168.1.21 จึงได้ IP เก่ากลับมา</li>
+  <li>Resolver ที่เครื่องเหล่านั้นใช้ยังเก็บคำตอบเก่าไว้ใน Cache และจะถามใหม่เมื่อครบ 300 วินาที</li>
+  <li>DNS ส่งคำตอบผ่าน TCP เสมอ จึงต้องรอ 3-way Handshake นานหลายนาที</li>
+  <li>MX Record ของโดเมนมี Priority 10 จึงทำให้ A Record ถูกอ่านทีหลัง</li>
+</ol>
+</li>
+
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>รันคำสั่ง <code>nc -zv 127.0.0.1 9002</code> แล้วได้ผลลัพธ์ทันทีดังนี้ ข้อใดอธิบายสถานการณ์ได้ถูกต้อง</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>nc: connect to 127.0.0.1 port 9002 (tcp) failed: Connection refused</code></pre>
+<ol class="choices">
+  <li>Firewall ทิ้ง Packet SYN ไปเงียบ ๆ โดยไม่ตอบอะไรกลับมา</li>
+  <li>เครื่องแปลงชื่อ 127.0.0.1 เป็น IP ไม่ได้ เพราะ DNS ล่ม</li>
+  <li>เครื่องปลายทางได้รับ SYN แล้วตอบ RST กลับมา เพราะไม่มีโปรแกรมใด Listen ที่ Port 9002</li>
+  <li>3-way Handshake สำเร็จแล้ว แต่โปรแกรมปลายทางปิด Connection ทันทีหลังจากนั้น</li>
+</ol>
+</li>
+
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ใน TLS Lab สมชายสร้าง Self-signed Certificate ชื่อ <code>cert.pem</code> ให้ <code>localhost</code> แล้วรัน <code>curl https://localhost:8443/</code> ได้ Error <code>curl: (60) SSL certificate problem: self-signed certificate</code> วิธีแก้ที่ถูกต้องและยังคงตรวจ Certificate อยู่คือข้อใด</p>
+<ol class="choices">
+  <li>รัน <code>curl --cacert cert.pem https://localhost:8443/</code> เพื่อบอก curl ให้เชื่อ Certificate ตัวนี้</li>
+  <li>ใส่ <code>-k</code> ทุกครั้ง รวมถึงในสคริปต์ของ Production เพราะใช้ได้เหมือนกัน</li>
+  <li>เปลี่ยน URL เป็น <code>http://localhost:8443/</code> เพื่อเลี่ยงการตรวจ Certificate</li>
+  <li>สร้าง Certificate ใหม่โดยไม่ใส่ Subject Alternative Name แล้วใช้แค่ CN</li>
+</ol>
+</li>
+
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>เครื่อง Linux เครื่องหนึ่งมี Routing Table ดังนี้ Packet ที่ส่งไปหา <code>10.0.2.20</code> จะถูกส่งต่อให้ Next hop ใด</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>default via 10.0.1.200 dev d0
+10.0.0.0/8 via 10.0.1.1 dev d0
+10.0.1.0/24 dev d0 proto kernel scope link src 10.0.1.10
+10.0.2.0/24 via 10.0.1.254 dev d0 </code></pre>
+<ol class="choices">
+  <li><code>10.0.1.200</code> เพราะ Default Route อยู่บรรทัดแรกของตาราง</li>
+  <li><code>10.0.1.1</code> เพราะ <code>10.0.0.0/8</code> ครอบคลุมทุก IP ที่ขึ้นต้นด้วย 10</li>
+  <li>ไม่ผ่าน Next hop เลย ส่งออก <code>d0</code> ตรง ๆ เพราะเป็นวง 10 เหมือนกัน</li>
+  <li><code>10.0.1.254</code> เพราะ <code>10.0.2.0/24</code> เป็น Route ที่ Prefix ยาวที่สุดที่ตรงกับปลายทาง</li>
+</ol>
+</li>
+
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ใน Routing Lab ของ Part 2 แนวคิดที่ 8 หลังเพิ่มกฎ <code>iptables -t nat -A POSTROUTING -s 10.0.1.0/24 -o r-lan2 -j MASQUERADE</code> ใน Namespace <code>router</code> แล้ว tcpdump ใน <code>lan2</code> เห็น Source ของ ping เป็น <code>10.0.2.1</code> แทนที่จะเป็น <code>10.0.1.10</code> ข้อใดอธิบายได้ถูกต้อง</p>
+<ol class="choices">
+  <li>ip_forward ใน router ถูกปิดไป ทำให้ router ตอบ ping แทน lan1</li>
+  <li>MASQUERADE เปลี่ยน Source IP เป็น IP ของ Interface ขาออก (r-lan2) และจดการแปลงไว้ใน Connection Tracking เพื่อแปลงคำตอบกลับให้ lan1</li>
+  <li>lan1 เปลี่ยน IP ของตัวเองเป็น 10.0.2.1 ชั่วคราวระหว่าง ping</li>
+  <li>tcpdump แสดง IP ของ Default Gateway แทน Source จริงเสมอ</li>
+</ol>
+</li>
+
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>บน Trunk แบบ 802.1Q ระหว่าง SW1 กับ R1 Frame ที่อยู่ใน Native VLAN ถูกส่งข้าม Trunk อย่างไร</p>
+<ol class="choices">
+  <li>ใส่ Tag 802.1Q ที่มี VLAN ID 1 เสมอ ไม่ว่า Native VLAN จะเป็นเลขอะไร</li>
+  <li>ถูกทิ้งที่ Trunk เพราะ Trunk รับเฉพาะ Frame ที่มี Tag</li>
+  <li>ส่งแบบไม่มี Tag (Untagged) และฝั่งรับจะถือว่าเป็น Native VLAN ของตัวเอง</li>
+  <li>ใส่ Tag ที่มี VLAN ID 4095 เพื่อบอกว่าเป็น Native VLAN</li>
+</ol>
+</li>
+
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>Router 3 ตัวต่อกันเป็นสามเหลี่ยม Link R1–R2 เป็น 100 Mbps ส่วน R1–R3 และ R3–R2 เป็น 1 Gbps ทุกตัวตั้ง <code>auto-cost reference-bandwidth 1000</code> ใน OSPF เมื่อนับเฉพาะ Cost ของ Link ระหว่าง Router เส้นทางที่ R1 ใช้ไปหา R2 คือข้อใด</p>
+<ol class="choices">
+  <li>ผ่าน R3 (R1 → R3 → R2) Cost รวม 2</li>
+  <li>ตรงจาก R1 ไป R2 Cost รวม 10 เพราะผ่าน Router น้อยกว่า</li>
+  <li>แบ่งโหลดทั้งสองเส้นทางเท่า ๆ กัน เพราะ Cost เท่ากัน</li>
+  <li>ตรงจาก R1 ไป R2 Cost รวม 1 เพราะ OSPF นับ Cost เป็นจำนวน Hop</li>
+</ol>
+</li>
+
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>ผู้ดูแลเขียน Named Extended ACL <code>SALES-IN</code> แล้วใช้ขาเข้า (<code>in</code>) ที่ Interface <code>Gi0/0.10</code> ของวง SALES แต่ลืมบรรทัดสุดท้าย <code>permit ip any any</code> ทราฟฟิกจาก <code>192.168.10.25</code> ไป Web Server ภายนอก <code>203.0.113.80</code> TCP 443 จะเป็นอย่างไร</p>
+<pre class="code" data-env="app" data-label="Cisco IOS · Packet Tracer"><code class="language-plaintext">ip access-list extended SALES-IN
+ permit tcp 192.168.10.0 0.0.0.255 host 192.168.20.10 eq 443
+ deny ip 192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255
+!
+interface GigabitEthernet0/0.10
+ ip access-group SALES-IN in</code></pre>
+<ol class="choices">
+  <li>ผ่าน เพราะไม่ตรงกับบรรทัด <code>deny</code> ที่เขียนไว้</li>
+  <li>ผ่าน เพราะ ACL นี้ตรวจเฉพาะทราฟฟิกที่ไปวง HR เท่านั้น</li>
+  <li>ผ่าน เพราะ ACL ขาเข้าไม่มีผลกับทราฟฟิกที่ออกไปอินเทอร์เน็ต</li>
+  <li>ถูกทิ้ง เพราะไม่ตรงบรรทัดใดเลย จึงโดน Implicit Deny ท้าย ACL</li>
+</ol>
+</li>
+
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>Server ตัวหนึ่งโหลดกฎ nftables ขาเข้าแบบ <code>policy drop</code> ที่ยอมรับเฉพาะ <code>iif "lo"</code>, <code>ip protocol icmp</code> และ <code>tcp dport 8080</code> แต่ลืมกฎ <code>ct state established,related accept</code> ผลที่เกิดขึ้นคือข้อใด</p>
+<ol class="choices">
+  <li>Client ภายนอกเข้า Web App ที่ Port 8080 ไม่ได้เลย</li>
+  <li>Client เข้า Web App ที่ 8080 ได้ แต่ Server เองเปิด Connection ออกไป เช่น <code>curl</code> หรือ <code>apt update</code> ไม่สำเร็จ เพราะคำตอบขาเข้าถูกทิ้ง</li>
+  <li>ทุกอย่างใช้ได้ยกเว้น ping เพราะ ICMP ต้องมีกฎ established</li>
+  <li>ไม่มีผลอะไร เพราะ nftables จำ Connection ขาออกและปล่อยคำตอบให้เองเสมอ</li>
+</ol>
+</li>
+
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>Port <code>Fa0/5</code> ของ Switch ตั้ง <code>spanning-tree portfast</code> และ <code>spanning-tree bpduguard enable</code> ไว้สำหรับเครื่องพนักงาน วันหนึ่งพนักงานนำ Switch ตัวเล็กมาเสียบที่ Port นี้ และ Switch ตัวเล็กส่ง BPDU ออกมา จะเกิดอะไรขึ้น</p>
+<ol class="choices">
+  <li>Switch ตัวเล็กกลายเป็น Root Bridge ของทั้งวงทันที</li>
+  <li>Port <code>Fa0/5</code> เปลี่ยนเป็น Trunk อัตโนมัติเพื่อรับ VLAN ทั้งหมด</li>
+  <li>Port <code>Fa0/5</code> ถูกปิดเป็นสถานะ err-disabled ทันที</li>
+  <li>PortFast ทำให้ Port ไม่สนใจ BPDU และส่งข้อมูลต่อตามปกติ</li>
+</ol>
+</li>
+
+</ol>
+
+<h3 id="s1-3-hands">Hands-on Challenge</h3>
+<p>โจทย์ 3 ข้อนี้จำลองงานที่ Network Engineer ได้รับจริง ข้อแรกเป็นงานวางแผน IP ข้อที่สองเป็นงานตรวจ Service บนเครื่องของตัวเอง และข้อสุดท้ายเป็นการสร้าง Lab ของสาขาพร้อม Firewall แล้วพิสูจน์ด้วยสคริปต์ทดสอบ ให้ลงมือเขียนเองก่อน แล้วค่อยเทียบกับเฉลยท้ายหน้า ผลลัพธ์ของคุณไม่จำเป็นต้องเหมือนเฉลยทุกตัวอักษร ขอแค่ทำงานได้ตามเงื่อนไขทุกข้อ</p>
+
+<article class="challenge" data-lvl="b">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 1</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h4>ตรวจแผน Static IP ของวง LAN บ้าน</h4>
+<h5>สถานการณ์</h5>
+<p>บ้านของสมชายใช้วง LAN <code>192.168.1.0/24</code> มี Router เป็น Default Gateway ที่ <code>192.168.1.1</code> และ Router แจก IP ผ่าน DHCP ในช่วง <code>192.168.1.100</code> ถึง <code>192.168.1.199</code> สมาชิกในบ้านจดรายการอุปกรณ์ที่อยากตั้ง Static IP ไว้ในไฟล์ CSV แต่ไม่มีใครตรวจว่าตั้งถูกหรือไม่ ถ้าตั้ง IP ซ้ำกัน หรือตั้งทับช่วง DHCP Pool อุปกรณ์จะหลุดจากเครือข่ายเป็นระยะ ซึ่งเป็นปัญหาที่หาสาเหตุยากมาก คุณต้องเขียนสคริปต์ Python ที่ตรวจไฟล์นี้ก่อนนำไปตั้งค่าจริง</p>
+<p>สร้างไฟล์ข้อมูลนี้ไว้ใน <code>~/projects/network-lab/practice/ch1/devices.csv</code></p>
+<pre class="code" data-env="file" data-label="CSV · devices.csv"><code class="language-plaintext">name,ip,note
+router,192.168.1.1,ISP Router / Default Gateway
+nas,192.168.1.20,NAS เก็บไฟล์
+mail,192.168.1.25,Mail Server ทดลอง
+printer,192.168.1.50,เครื่องพิมพ์ชั้น 2
+camera,192.168.1.120,กล้องหน้าบ้าน
+smart-tv,192.168.1.20,ทีวีห้องนั่งเล่น
+guest-ap,192.168.2.10,Access Point แขก
+smart-plug,192.168.1.255,ปลั๊กอัจฉริยะ</code></pre>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+  <li>เขียนไฟล์ <code>ip_plan.py</code> ด้วย Standard Library เท่านั้น (<code>csv</code>, <code>ipaddress</code>, <code>argparse</code>, <code>sys</code>) โดยรับชื่อไฟล์ CSV เป็น Argument และใช้ <code>devices.csv</code> เป็นค่าเริ่มต้น</li>
+  <li>ตรวจอุปกรณ์ทีละแถวด้วยกฎ 5 ข้อ: รูปแบบ IP ต้องถูกต้อง, ต้องอยู่ในวง <code>192.168.1.0/24</code>, ต้องไม่ใช่ Network Address หรือ Broadcast Address, ต้องไม่อยู่ใน DHCP Pool <code>.100</code> ถึง <code>.199</code> และต้องไม่ซ้ำกับอุปกรณ์ที่อยู่ก่อนหน้า</li>
+  <li>พิมพ์ตารางผลแบบอ่านง่าย 3 คอลัมน์ คือ DEVICE, IP และ RESULT (<code>OK</code> หรือ <code>ปัญหา: ...</code>) แล้วพิมพ์บรรทัดสรุปจำนวนที่ผ่านและที่มีปัญหา</li>
+  <li>แนะนำ IP ว่างที่อยู่นอก DHCP Pool และยังไม่มีใครใช้ ให้มีจำนวนเท่ากับอุปกรณ์ที่มีปัญหา เรียงจากน้อยไปมาก</li>
+  <li>จบโปรแกรมด้วย Exit code <code>0</code> เมื่อไม่มีปัญหา, <code>1</code> เมื่อพบปัญหา และ <code>2</code> เมื่อหาไฟล์ CSV ไม่เจอ (พร้อมข้อความภาษาไทยที่บอกวิธีแก้) เพื่อให้สคริปต์อื่นนำไปใช้ต่อได้</li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<p>เมื่อรัน <code>python3 ip_plan.py devices.csv</code> ควรพบปัญหา 4 รายการ คือ กล้องที่ตั้งทับ DHCP Pool, ทีวีที่ใช้ IP ซ้ำกับ NAS, Access Point ที่อยู่นอกวง และปลั๊กที่ใช้ Broadcast Address</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>DEVICE      IP              RESULT
+----------------------------------------------------
+router      192.168.1.1     OK
+nas         192.168.1.20    OK
+mail        192.168.1.25    OK
+printer     192.168.1.50    OK
+camera      192.168.1.120   ปัญหา: ชนกับ DHCP Pool .100-.199
+smart-tv    192.168.1.20    ปัญหา: IP ซ้ำกับ nas
+guest-ap    192.168.2.10    ปัญหา: อยู่นอกวง 192.168.1.0/24
+smart-plug  192.168.1.255   ปัญหา: เป็น Broadcast Address ใช้กับอุปกรณ์ไม่ได้
+----------------------------------------------------
+สรุป: ตรวจ 8 รายการ ผ่าน 4 มีปัญหา 4
+IP ว่างที่แนะนำ (นอก DHCP Pool): 192.168.1.2, 192.168.1.3, 192.168.1.4, 192.168.1.5
+exit code: 1</code></pre>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+  <li>ใช้ <code>ipaddress.ip_address(text)</code> แปลงข้อความเป็น IP ถ้ารูปแบบผิดจะเกิด <code>ValueError</code> ให้ดักด้วย <code>try/except</code></li>
+  <li>ตรวจว่า IP อยู่ในวงหรือไม่ด้วยตัวดำเนินการ <code>in</code> เช่น <code>ip in ipaddress.ip_network("192.168.1.0/24")</code> และเปรียบเทียบช่วงด้วย <code>start &lt;= ip &lt;= end</code> ได้โดยตรง เพราะ IP Object เปรียบเทียบมากกว่าน้อยกว่ากันได้</li>
+  <li>เก็บ IP ที่ถูกจองแล้วใน Dictionary รูปแบบ <code>{ip: ชื่ออุปกรณ์}</code> จะบอกได้ทันทีว่าซ้ำกับใคร</li>
+  <li>หา IP ว่างโดยวนลูป <code>net.hosts()</code> ซึ่งไม่รวม Network และ Broadcast ให้อยู่แล้ว</li>
+  <li><code>csv.DictReader</code> อ่านแต่ละแถวเป็น Dictionary ที่ใช้ชื่อคอลัมน์จากแถวแรกเป็น Key และต้องเปิดไฟล์ด้วย <code>encoding="utf-8"</code> เพราะมีภาษาไทย</li>
+</ul>
+</div></details>
+</article>
+
+<article class="challenge" data-lvl="i">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 2</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h4>Port Audit: ตรวจว่า Service บนเครื่องตัวเองเปิดและปิดตรงตามแผน</h4>
+<h5>สถานการณ์</h5>
+<p>ทีมพัฒนามีกติกาว่า ก่อน Demo งานให้ลูกค้า เครื่องของนักพัฒนาต้องเปิด Service ที่จำเป็นครบ และต้องไม่มี Database ที่ไม่ได้ใช้เปิดค้างไว้ หัวหน้าทีมขอให้สมชายเขียนเครื่องมือตรวจ Port ของเครื่องตัวเองจากไฟล์ Config แล้วบันทึกผลเป็น JSON เพื่อแนบในรายงาน เครื่องมือนี้ต้องปลอดภัย คือต้องปฏิเสธทุกเป้าหมายที่ไม่ใช่เครื่องของตัวเอง เพื่อไม่ให้ใครนำไปสแกนเครื่องของคนอื่นโดยไม่ได้ตั้งใจ</p>
+<p>สร้างไฟล์ Config ไว้ใน <code>~/projects/network-lab/practice/ch2/services.json</code></p>
+<pre class="code" data-env="file" data-label="JSON · services.json"><code class="language-json">{
+  "host": "127.0.0.1",
+  "services": [
+    {"name": "web-site",  "port": 8000, "expect": "open"},
+    {"name": "api-dev",   "port": 8001, "expect": "open"},
+    {"name": "flask-app", "port": 5000, "expect": "open"},
+    {"name": "redis",     "port": 6379, "expect": "closed"},
+    {"name": "mysql",     "port": 3306, "expect": "closed"}
+  ]
+}</code></pre>
+<p>จำลอง Service 2 ตัวที่เปิดอยู่ด้วย <code>http.server</code> ส่วน <code>flask-app</code> ตั้งใจไม่เปิด เพื่อให้เห็นกรณี FAIL</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/network-lab/practice/ch2
+mkdir -p site api
+echo '&lt;h1&gt;Hello Network&lt;/h1&gt;' &gt; site/index.html
+echo '{"status":"ok"}' &gt; api/health.json
+# เปิด Service จำลอง 2 ตัวเป็นงานเบื้องหลัง ฟังเฉพาะ 127.0.0.1
+python3 -m http.server 8000 --bind 127.0.0.1 --directory site &gt; /dev/null 2&gt;&amp;1 &amp;
+python3 -m http.server 8001 --bind 127.0.0.1 --directory api  &gt; /dev/null 2&gt;&amp;1 &amp;
+# ยืนยันว่ามีโปรแกรม Listen อยู่จริง
+ss -tln | grep -E 'State|:800[01] '</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess
+LISTEN 0      5          127.0.0.1:8001       0.0.0.0:*
+LISTEN 0      5          127.0.0.1:8000       0.0.0.0:*          </code></pre>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+  <li>เขียน <code>port_audit.py</code> ที่อ่าน <code>services.json</code> (หรือไฟล์ที่ระบุเป็น Argument) และรับตัวเลือก <code>--host</code> สำหรับเขียนทับ host ในไฟล์ และ <code>--out</code> สำหรับชื่อไฟล์รายงาน (ค่าเริ่มต้น <code>port-audit.json</code>)</li>
+  <li>เขียนฟังก์ชัน <code>is_allowed_target(host)</code> ที่ยอมรับเฉพาะ IP แบบ Loopback (<code>127.0.0.0/8</code> และ <code>::1</code>) ถ้าไม่ผ่านให้พิมพ์ข้อความภาษาไทยแล้วจบด้วย Exit code <code>2</code> โดยไม่ส่ง Packet ใดออกไปเลย</li>
+  <li>เขียนฟังก์ชัน <code>check_port(host, port)</code> ที่ใช้ <code>socket.create_connection</code> พร้อม Timeout 0.5 วินาที และแยกผลเป็น <code>open</code>, <code>closed</code> (ได้ <code>ConnectionRefusedError</code>), <code>timeout</code> และ <code>error</code></li>
+  <li>ตรวจทุก Port พร้อมกันด้วย <code>concurrent.futures.ThreadPoolExecutor</code> แล้วเทียบผลจริงกับค่า <code>expect</code> พิมพ์ตาราง SERVICE, PORT, EXPECT, ACTUAL และ RESULT (<code>PASS</code>/<code>FAIL</code>)</li>
+  <li>บันทึกรายงาน JSON ที่มี host, เวลาที่ตรวจ, จำนวน FAIL และผลรายตัว แล้วจบด้วย Exit code <code>0</code> เมื่อผ่านทั้งหมด หรือ <code>1</code> เมื่อมี FAIL</li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ตรวจ 127.0.0.1 เวลา 2026-10-20 15:02:21
+SERVICE     PORT  EXPECT ACTUAL  RESULT
+web-site    8000  open   open    PASS
+api-dev     8001  open   open    PASS
+flask-app   5000  open   closed  FAIL
+redis       6379  closed closed  PASS
+mysql       3306  closed closed  PASS
+สรุป: FAIL 1 จาก 5 รายการ บันทึกรายงานที่ port-audit.json
+exit code: 1</code></pre>
+<p>และเมื่อลองใส่เป้าหมายที่ไม่ใช่เครื่องตัวเอง เช่น <code>--host 192.0.2.10</code> ต้องถูกปฏิเสธทันที</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ปฏิเสธ: 192.0.2.10 ไม่ใช่ IP แบบ Loopback (127.0.0.0/8 หรือ ::1) โปรแกรมนี้ตรวจได้เฉพาะเครื่องของตัวเอง
+exit code: 2</code></pre>
+<p class="muted small">วันที่และเวลาในบรรทัดแรกจะเป็นเวลาที่คุณรันจริง ถ้าเครื่องของคุณมี Redis หรือ MySQL เปิดอยู่จริง ผลของสองแถวนั้นจะเป็น FAIL ซึ่งก็คือสิ่งที่เครื่องมือนี้ต้องการจับให้ได้</p>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+  <li><code>ipaddress.ip_address(host).is_loopback</code> เป็น <code>True</code> ทั้งกับ <code>127.x.x.x</code> และ <code>::1</code> ถ้า <code>host</code> เป็นชื่อโดเมน จะเกิด <code>ValueError</code> ให้ถือว่าไม่อนุญาต เพราะชื่ออาจชี้ไปเครื่องอื่นได้</li>
+  <li>ใช้ <code>with socket.create_connection((host, port), timeout=0.5):</code> ถ้าเข้า Block <code>with</code> ได้แปลว่า Handshake สำเร็จ ให้ดัก <code>ConnectionRefusedError</code> ก่อน <code>TimeoutError</code> แล้วค่อยดัก <code>OSError</code> เป็นลำดับสุดท้าย เพราะ Exception สองตัวแรกเป็นลูกของ <code>OSError</code></li>
+  <li><code>pool.map(func, items)</code> คืนผลลัพธ์เรียงตามลำดับของ <code>items</code> เสมอ จึงใช้ <code>zip(services, states)</code> จับคู่ได้ทันที</li>
+  <li>ใช้ <code>json.dump(report, f, ensure_ascii=False, indent=2)</code> เพื่อให้ภาษาไทยในไฟล์อ่านออก</li>
+</ul>
+</div></details>
+</article>
+
+<article class="challenge" data-lvl="a">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 3</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h4>สร้าง Lab สาขาและ Firewall ตามนโยบาย SALES-IN แล้วพิสูจน์ด้วยสคริปต์ทดสอบ</h4>
+<h5>สถานการณ์</h5>
+<p>บริษัทกำลังเปิดสาขาใหม่ที่มีสองวง คือ VLAN 10 SALES (<code>192.168.10.0/24</code> Gateway <code>.1</code>) และ VLAN 20 HR (<code>192.168.20.0/24</code> Gateway <code>.1</code>) Server ของ HR อยู่ที่ <code>192.168.20.10</code> และมี 2 ระบบ คือ HR Portal ที่ TCP 443 ซึ่งทุกคนต้องใช้ และระบบเงินเดือน (Payroll) ที่ TCP 8080 ซึ่งเฉพาะฝ่าย HR เท่านั้นที่เข้าได้ ฝ่าย Security ส่งนโยบายมาเป็นข้อความเดียวกับ ACL <code>SALES-IN</code> ใน Part 2 ก่อนจะตั้งค่า Router จริงในสาขา หัวหน้าขอให้คุณสร้าง Lab บน Linux เพื่อพิสูจน์ว่านโยบายนี้ทำงานตามที่ตั้งใจ และส่งสคริปต์ทดสอบที่รันซ้ำได้ทุกครั้งที่มีคนแก้กฎ</p>
+<p>นโยบายที่ต้องทำให้เป็นจริง:</p>
+<ul>
+  <li>เครื่องในวง SALES เข้า HR Portal (<code>192.168.20.10</code> TCP 443) ได้</li>
+  <li>ทราฟฟิกอื่นทั้งหมดจากวง SALES ไปวง HR ต้องถูกทิ้ง ทั้ง Payroll ที่ TCP 8080 และ ping</li>
+  <li>เครื่องในวง SALES ยัง ping Gateway ของตัวเอง (<code>192.168.10.1</code>) ได้ตามปกติ</li>
+  <li>ฝั่ง HR ยังเริ่ม Connection ไปหาวง SALES ได้ตามปกติ (เช่น ping เพื่อช่วยแก้ปัญหาเครื่องของ SALES)</li>
+</ul>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+  <li>เขียน <code>cleanup.sh</code> ที่ปิด Process ทุกตัวใน Namespace ของ Lab แล้วลบ Namespace <code>b-sales</code>, <code>b-hr</code> และ <code>b-rtr</code> โดยไม่ Error ถ้ายังไม่เคยสร้าง</li>
+  <li>เขียน <code>branch_lab.sh</code> ที่เรียก <code>cleanup.sh</code> ก่อน แล้วสร้าง Namespace 3 ตัว ต่อด้วย veth 2 เส้น ใส่ IP ตามแผน ตั้ง Default Gateway ของ SALES และ HR และเปิด <code>net.ipv4.ip_forward</code> ใน Router</li>
+  <li>ใน <code>b-hr</code> เปิด Web Server 2 ตัวด้วย <code>python3 -m http.server</code> ที่ Port 443 (หน้า <code>HR Portal</code>) และ 8080 (หน้า <code>Payroll Admin</code>) แล้วรอจนทั้งสองตัว Listen จริงก่อนไปขั้นต่อไป Lab นี้ใช้ HTTP ธรรมดาที่ Port 443 เพราะ Firewall ตัดสินจากเลข Port ไม่ได้ดูว่าเป็น TLS หรือไม่</li>
+  <li>เขียนไฟล์กฎ <code>branch_fw.nft</code> ใน Chain <code>forward</code> ของ Router ให้ทำงานเทียบเท่า ACL <code>SALES-IN</code> พร้อม <code>counter</code> ในกฎที่สำคัญ แล้วโหลดเข้า <code>b-rtr</code> ด้วย <code>nft -f</code></li>
+  <li>เขียน <code>verify.sh</code> ที่ทดสอบนโยบายทั้ง 4 ข้อ (5 การทดสอบ) ด้วย <code>curl</code> และ <code>ping</code> จาก Namespace ที่ถูกต้อง พิมพ์ <code>PASS</code>/<code>FAIL</code> ทีละบรรทัด สรุปจำนวน และจบด้วย Exit code <code>0</code> เฉพาะเมื่อผ่านทั้งหมด</li>
+  <li>ดูค่า <code>counter</code> ด้วย <code>nft list ruleset</code> เพื่อยืนยันว่า Packet ถูกจับด้วยกฎที่ตั้งใจจริง แล้วรัน <code>cleanup.sh</code> ปิด Lab</li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Lab พร้อมแล้ว: SALES 192.168.10.10 | HR 192.168.20.10 | Router 192.168.10.1, 192.168.20.1
+PASS  SALES -&gt; HR Portal tcp/443 (ได้ allow)
+PASS  SALES -&gt; Payroll tcp/8080 (ได้ deny)
+PASS  SALES -&gt; HR ping (ได้ deny)
+PASS  SALES -&gt; Router ping (ได้ allow)
+PASS  HR -&gt; SALES ping (ได้ allow)
+สรุป: PASS 5  FAIL 0
+exit code: 0</code></pre>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+  <li>Hook <code>forward</code> เห็นเฉพาะ Packet ที่ Router ส่งต่อระหว่าง Interface ส่วน ping ไปหา IP ของ Router เองวิ่งผ่าน Hook <code>input</code> จึงไม่โดนกฎใน Chain <code>forward</code></li>
+  <li>ตั้ง <code>policy accept</code> ใน Chain <code>forward</code> เพื่อเลียนแบบ <code>permit ip any any</code> ท้าย ACL แล้วใส่ <code>ct state established,related accept</code> เป็นกฎแรก เพื่อให้คำตอบของ Connection ที่อนุญาตแล้วกลับได้ และให้ HR เริ่ม Connection ไปหา SALES ได้</li>
+  <li>เรียงกฎ <code>accept</code> ของ TCP 443 ไว้ก่อนกฎ <code>drop</code> ของทั้งวง HR เพราะ nftables ตรวจกฎจากบนลงล่างและหยุดที่กฎแรกที่ตรง เหมือน ACL ของ Cisco</li>
+  <li>ใช้ <code>iifname "r-sales"</code> ระบุ Interface ขาเข้า เพื่อให้เทียบเท่ากับการใช้ ACL แบบ <code>in</code> ที่ Sub-interface ของวง SALES</li>
+  <li>รอ Server ด้วยลูปที่เช็ก <code>ip netns exec b-hr ss -Htln | wc -l</code> ดีกว่าใช้ <code>sleep</code> ค่าคงที่ เพราะ Python อาจใช้เวลาเริ่มทำงานนานกว่า 1 วินาทีในเครื่องที่ช้า</li>
+  <li>ใน <code>verify.sh</code> ให้ถือว่า Exit code 0 ของคำสั่งทดสอบคือ allow และไม่ใช่ 0 คือ deny ใช้ <code>curl -s -m 2</code> และ <code>ping -c 1 -W 1</code> เพื่อไม่ให้รอนาน</li>
+</ul>
+</div></details>
+</article>
+
+<h3 id="s1-3-answers">เฉลย</h3>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ลองทำทุกข้อด้วยตัวเองก่อนเปิดเฉลย โดยเฉพาะข้อที่มีโค้ด ให้เติมแล้วรันจริงในเครื่องของคุณก่อน การเปิดเฉลยเร็วเกินไปทำให้รู้สึกว่าเข้าใจ แต่จะทำเองไม่ได้เมื่อเจอปัญหาจริงหรือตอนสอบ Network+ และ CCNA ถ้าติดอยู่นานเกิน 15 นาที ให้เปิด Hint ก่อน แล้วค่อยเปิดเฉลย</p></div>
+
+<h4>เฉลย Fill-in-the-blank</h4>
+
+<details class="ans"><summary>ข้อ 1</summary><div>
+<p><strong>คำตอบ:</strong> (1) <code>Frame</code> (2) <code>Packet</code> (3) <code>2</code> (4) <code>3</code> (5) <code>ff:ff:ff:ff:ff:ff</code></p>
+<ul>
+  <li><strong>Frame และ Packet:</strong> แต่ละ Layer เรียกหน่วยข้อมูล (PDU) ต่างกัน เรียงจากล่างขึ้นบนคือ Bits (L1), Frame (L2), Packet (L3), Segment สำหรับ TCP หรือ Datagram สำหรับ UDP (L4) และ Data (L5–L7) การเรียกชื่อให้ถูกช่วยให้สื่อสารกับทีมได้ตรงกัน เช่น "Frame หาย" หมายถึงปัญหาในวง LAN ส่วน "Packet หาย" มักหมายถึงปัญหาเรื่อง Routing</li>
+  <li><strong>Switch ที่ Layer 2:</strong> Switch อ่าน Destination MAC ใน Ethernet Header แล้วเปิด MAC Address Table เพื่อเลือก Port ปลายทาง โดยไม่ต้องดู IP</li>
+  <li><strong>Router ที่ Layer 3:</strong> Router แกะ Frame ออก อ่าน Destination IP แล้วเลือกเส้นทางจาก Routing Table จากนั้นห่อ Frame ใหม่ด้วย MAC ของ Next hop</li>
+  <li><strong>Broadcast MAC:</strong> ARP Request ส่งไปที่ <code>ff:ff:ff:ff:ff:ff</code> เพราะผู้ส่งยังไม่รู้ MAC ของเจ้าของ IP จึงต้องถามทุกเครื่องในวง Broadcast Domain เดียวกัน ส่วน ARP Reply ส่งกลับแบบ Unicast ถึงผู้ถามโดยตรง</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 2</summary><div>
+<p><strong>คำตอบ:</strong> (1) <code>ip_network</code> (2) <code>broadcast_address</code> (3) <code>2</code></p>
+<pre class="code" data-env="file" data-label="Python · fill2_subnet.py"><code class="language-python"># fill2_subnet.py : หาข้อมูลของ Subnet 192.168.1.0/26
+import ipaddress
+
+net = ipaddress.ip_network("192.168.1.0/26")
+print("Network  :", net.network_address)
+print("Netmask  :", net.netmask)
+print("Broadcast:", net.broadcast_address)
+# จำนวน Host ที่ใช้งานได้จริง (ไม่นับ Network และ Broadcast)
+print("Usable   :", net.num_addresses - 2)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 fill2_subnet.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Network  : 192.168.1.0
+Netmask  : 255.255.255.192
+Broadcast: 192.168.1.63
+Usable   : 62</code></pre>
+<ul>
+  <li><code>ip_network()</code> สร้าง Object ของทั้งวง ส่วน <code>ip_address()</code> สร้าง IP ตัวเดียว ถ้าใช้ <code>ip_address("192.168.1.0/26")</code> จะได้ <code>ValueError</code> เพราะ IP เดี่ยวไม่มี Prefix</li>
+  <li>/26 เหลือบิตของ Host 32 − 26 = 6 บิต จึงมี 2<sup>6</sup> = 64 Address ใช้ได้จริง 64 − 2 = 62 เพราะ Address แรก (<code>.0</code>) เป็น Network Address และ Address สุดท้าย (<code>.63</code>) เป็น Broadcast Address</li>
+  <li>ตรวจด้วยมือ: Subnet Mask <code>255.255.255.192</code> มีขนาดบล็อก 256 − 192 = 64 วงถัดไปจึงเริ่มที่ <code>192.168.1.64</code> และ Broadcast ของวงนี้คือ 64 − 1 = <code>.63</code></li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 3</summary><div>
+<p><strong>คำตอบ:</strong> (1) <code>SOCK_STREAM</code> (2) <code>encode</code> (3) <code>decode</code></p>
+<pre class="code" data-env="file" data-label="Python · fill3_client.py"><code class="language-python"># fill3_client.py : TCP Client ส่งข้อความไปหา Echo Server ที่ 127.0.0.1:9000
+import socket
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.connect(("127.0.0.1", 9000))
+    s.sendall("ping from somchai".encode())
+    reply = s.recv(1024).decode()
+    print("ส่งไป  :", "ping from somchai")
+    print("ได้กลับ:", reply)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Terminal ที่ 1
+python3 fill3_server.py
+# Terminal ที่ 2
+python3 fill3_client.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ส่งไป  : ping from somchai
+ได้กลับ: PING FROM SOMCHAI</code></pre>
+<ul>
+  <li><code>SOCK_STREAM</code> คือ Socket ของ TCP ที่ต้องทำ 3-way Handshake ก่อนส่งข้อมูล ส่วน <code>SOCK_DGRAM</code> คือ UDP ที่ส่งได้ทันทีโดยไม่ต้องสร้าง Connection ถ้าใส่ <code>SOCK_DGRAM</code> แล้วเรียก <code>connect()</code> ไปที่ Server TCP จะไม่เกิด Handshake และ <code>recv()</code> จะได้ Error <code>ConnectionRefusedError</code> เพราะไม่มีโปรแกรมรอรับ UDP ที่ Port 9000</li>
+  <li>Socket รับส่งเฉพาะ <code>bytes</code> ถ้าส่ง <code>str</code> ตรง ๆ จะได้ <code>TypeError: a bytes-like object is required, not 'str'</code> จึงต้อง <code>encode()</code> ก่อนส่ง และ <code>decode()</code> หลังรับ ทั้งสองใช้ UTF-8 เป็นค่าเริ่มต้น จึงรองรับภาษาไทยด้วย</li>
+  <li>ต้องเปิด Server ก่อน Client เสมอ ถ้าสลับลำดับจะได้ <code>ConnectionRefusedError: [Errno 111] Connection refused</code></li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 4</summary><div>
+<p><strong>คำตอบ:</strong> (1) <code>-p</code> (2) <code>-x</code> (3) <code>+answer</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">dig @127.0.0.1 -p 5300 +short MX home.arpa
+dig @127.0.0.1 -p 5300 +short -x 192.168.1.25
+dig @127.0.0.1 -p 5300 +noall +answer files.home.arpa</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>10 mail.home.arpa.
+mail.home.arpa.
+files.home.arpa.	300	IN	CNAME	nas.home.arpa.
+nas.home.arpa.		300	IN	A	192.168.1.20</code></pre>
+<ul>
+  <li><code>-p 5300</code> บอก <code>dig</code> ให้ถาม Port 5300 แทน Port 53 ที่เป็นค่าเริ่มต้น Lab นี้ใช้ Port สูงเพราะ Port ต่ำกว่า 1024 ต้องใช้สิทธิ์ root ถ้าลืม <code>-p</code> จะได้ <code>;; communications error to 127.0.0.1#53: connection refused</code></li>
+  <li><code>-x</code> สร้างคำถาม PTR ให้อัตโนมัติ โดยกลับลำดับ IP เป็น <code>25.1.168.192.in-addr.arpa</code> ซึ่ง dnsmasq สร้าง PTR ให้จาก <code>--host-record</code> เอง</li>
+  <li><code>+noall</code> ปิดทุกส่วนของคำตอบ แล้ว <code>+answer</code> เปิดเฉพาะส่วน Answer จึงเห็น TTL (300) และชนิด Record ชัดเจน ผลลัพธ์แสดงว่า <code>files.home.arpa</code> เป็น CNAME ที่ชี้ไป <code>nas.home.arpa</code> และ dnsmasq ซึ่งรู้จักทั้งสองชื่อส่ง A Record <code>192.168.1.20</code> ของ <code>nas.home.arpa</code> มาในส่วน Answer เดียวกันเลย จึงไม่ต้องถามซ้ำอีกรอบ</li>
+  <li>ในคำตอบ MX ตัวเลข <code>10</code> คือ Priority ยิ่งน้อยยิ่งถูกเลือกก่อน</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 5</summary><div>
+<p><strong>คำตอบ:</strong> (1) <code>veth</code> (2) <code>ip_forward</code> (3) <code>default</code> (4) <code>10.0.2.1</code> (5) <code>1</code> (6) <code>100</code></p>
+<ul>
+  <li><strong>veth:</strong> veth (virtual Ethernet) สร้างเป็นคู่เสมอ เหมือนสาย LAN ที่มีหัวสองด้าน Packet ที่ส่งเข้าด้านหนึ่งจะออกอีกด้านหนึ่ง เราจึงย้ายแต่ละหัวไปไว้คนละ Namespace เพื่อจำลองการเสียบสายระหว่างเครื่อง</li>
+  <li><strong>ip_forward:</strong> Linux ปิดการส่งต่อ Packet ระหว่าง Interface เป็นค่าเริ่มต้น ถ้าไม่เปิด Router จะรับ Packet ที่ไม่ได้ส่งถึงตัวเองแล้วทิ้งไป ping จะได้ 100% packet loss</li>
+  <li><strong>default via 10.0.1.1 และ default via 10.0.2.1:</strong> แต่ละฝั่งรู้จักเฉพาะวงของตัวเอง (Connected Route) ปลายทางที่อยู่วงอื่นจึงต้องส่งไป Default Gateway ซึ่งต้องเป็น IP ของ Router ที่อยู่ในวงเดียวกับตัวเอง ฝั่ง <code>p-lan2</code> จึงต้องใช้ <code>10.0.2.1</code> ถ้าใส่ <code>10.0.1.1</code> จะได้ <code>Error: Nexthop has invalid gateway.</code> เพราะ Gateway อยู่นอกวงที่เชื่อมต่อโดยตรง</li>
+  <li><strong>ttl=63:</strong> Linux เริ่ม TTL ที่ 64 และ Router ลด TTL ลง 1 ทุกครั้งที่ส่งต่อ Echo Reply จาก <code>p-lan2</code> ผ่าน <code>p-rtr</code> หนึ่งตัวก่อนถึง <code>p-lan1</code> จึงเหลือ 63 วิธีนี้ใช้ประมาณจำนวน Hop ได้คร่าว ๆ จากผลของ ping</li>
+  <li><strong>100% packet loss:</strong> ถ้า <code>p-lan2</code> ไม่มี Default Route Echo Request ยังไปถึงได้ แต่ Echo Reply ส่งกลับไม่ได้ เพราะ <code>p-lan2</code> ไม่รู้จักวง <code>10.0.1.0/24</code> ผลที่ได้จริงเมื่อลบบรรทัดนั้นออกคือ</li>
+</ul>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>--- 10.0.2.20 ping statistics ---
+2 packets transmitted, 0 received, 100% packet loss, time 1026ms</code></pre>
+<p>บทเรียนสำคัญคือ Routing ต้องถูกต้องทั้งขาไปและขากลับ (Return Route) เวลาแก้ปัญหา "ping ไม่ผ่าน" อย่าดูแค่ฝั่งต้นทาง</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 6</summary><div>
+<p><strong>คำตอบ:</strong> (1) <code>drop</code> (2) <code>established,related</code> (3) <code>dport</code></p>
+<ul>
+  <li><strong>policy drop:</strong> คือหลัก Default Deny Packet ที่ไม่ตรงกฎใดเลยจะถูกทิ้งโดยไม่ตอบกลับ เราจึงต้องเขียนเฉพาะสิ่งที่อนุญาต แทนที่จะไล่ห้ามทีละอย่างซึ่งไม่มีวันครบ</li>
+  <li><strong>ct state established,related:</strong> nftables ใช้ Connection Tracking จำ Connection ที่เกิดขึ้นแล้ว <code>established</code> คือ Packet ของ Connection ที่มีอยู่แล้ว เช่น คำตอบจาก Mirror ของ Ubuntu ตอน <code>apt update</code> ส่วน <code>related</code> คือ Packet ที่เกี่ยวข้อง เช่น ICMP Error ของ Connection นั้น ถ้าไม่มีกฎนี้ Server จะเปิด Connection ออกไปได้ แต่คำตอบขาเข้าจะโดน <code>policy drop</code> ทิ้งทั้งหมด</li>
+  <li><strong>tcp dport 8080:</strong> <code>dport</code> คือ Destination Port ของ Packet ขาเข้า ซึ่งคือ Port ที่ Server เปิดฟังอยู่ ถ้าเขียนเป็น <code>sport</code> จะจับ Port ต้นทางของ Client ซึ่งเป็น Ephemeral Port ที่สุ่มทุกครั้ง กฎจะไม่ตรงเลย</li>
+  <li>ลำดับก็สำคัญ ควรวางกฎ <code>ct state</code> ไว้บนสุด เพราะ Packet ส่วนใหญ่ของ Server เป็น Packet ของ Connection เดิม การจับได้ตั้งแต่กฎแรกทำให้ตรวจเร็วขึ้น</li>
+</ul>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>syntax ok
+table inet filter {
+	chain input {
+		type filter hook input priority filter; policy drop;
+		ct state established,related accept
+		iif "lo" accept
+		ip protocol icmp accept
+		tcp dport 8080 accept
+	}
+}</code></pre>
+</div></details>
+
+<h4>เฉลย Multiple Choice</h4>
+
+<details class="ans"><summary>ข้อ 1</summary><div>
+<p><strong>คำตอบ: C</strong> IP ในวง <code>169.254.0.0/16</code> คือ APIPA (Automatic Private IP Addressing) หรือ Link-local ของ IPv4 ที่ Windows ตั้งให้ตัวเองเมื่อส่ง DHCP Discover ออกไปแล้วไม่มี DHCP Server ตอบ จึงทำ DORA ไม่ครบ เครื่องที่ได้ IP แบบนี้คุยได้เฉพาะเครื่องอื่นในวงเดียวกันที่เป็น APIPA เหมือนกัน และไม่มี Default Gateway จึงออกอินเทอร์เน็ตไม่ได้ สิ่งที่ควรตรวจต่อคือสาย LAN หรือ Wi-Fi, สถานะของ DHCP Server บน Router และลองรัน <code>ipconfig /release</code> ตามด้วย <code>ipconfig /renew</code></p>
+<ul class="why-wrong">
+  <li><strong>A</strong> ผิดเพราะ CGNAT ใช้วง <code>100.64.0.0/10</code> และเป็น IP ที่ ISP ใช้ฝั่ง WAN ของ Router ไม่ได้แจกให้เครื่องในบ้านโดยตรง</li>
+  <li><strong>B</strong> ผิดเพราะวง Private ตาม RFC 1918 มีแค่ <code>10.0.0.0/8</code>, <code>172.16.0.0/12</code> และ <code>192.168.0.0/16</code> ซึ่งไม่รวม <code>169.254.0.0/16</code> และโดยปกติไม่มีใครตั้ง Static IP เป็น APIPA</li>
+  <li><strong>D</strong> ผิดเพราะ <code>169.254.23.7</code> เป็น IPv4 ส่วน IPv6 Link-local Address ขึ้นต้นด้วย <code>fe80::</code> และการมี IPv6 Link-local เป็นเรื่องปกติที่ไม่ทำให้เข้าเว็บไม่ได้</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 2</summary><div>
+<p><strong>คำตอบ: B</strong> /21 คือ Subnet Mask <code>255.255.248.0</code> Octet ที่ 3 มีขนาดบล็อก 256 − 248 = 8 วงจึงเริ่มที่ 0, 8, 16, 24, 32, 40, 48 ไปเรื่อย ๆ ค่า 45 อยู่ระหว่าง 40 ถึง 47 Subnet จึงเป็น <code>172.16.40.0/21</code> และ Broadcast คือ <code>172.16.47.255</code> ตรวจด้วย Python ได้ผลตรงกัน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 -c "import ipaddress as i; n=i.ip_interface('172.16.45.200/21').network; print(n, n.broadcast_address, n.num_addresses-2)"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>172.16.40.0/21 172.16.47.255 2046</code></pre>
+<ul class="why-wrong">
+  <li><strong>A</strong> ผิดเพราะ <code>172.16.45.0</code> ยังมีบิตของ Host ค้างอยู่ใน Octet ที่ 3 (45 ไม่ใช่ผลคูณของ 8) จึงไม่ใช่ Network Address ของ /21 ถ้าส่งค่านี้ให้ <code>ipaddress.ip_network()</code> จะได้ <code>ValueError: 172.16.45.0/21 has host bits set</code></li>
+  <li><strong>C</strong> ผิดเพราะ <code>172.16.32.0/21</code> ครอบคลุมเฉพาะ 172.16.32.0 ถึง 172.16.39.255 ซึ่งเป็นผลของการคิดขนาดบล็อกผิดเป็น 16 (แบบ /20)</li>
+  <li><strong>D</strong> ผิดเพราะ <code>172.16.44.0</code> ไม่ใช่ผลคูณของ 8 และเป็นผลของการคิดบล็อกเป็น 4 ซึ่งคือ /22 ไม่ใช่ /21</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 3</summary><div>
+<p><strong>คำตอบ: D</strong> Switch เรียนรู้จาก Source MAC Address ทุกครั้งที่ Frame เข้ามาที่ Port ใด Switch จะจดว่า "MAC ต้นทางนี้อยู่หลัง Port นี้" ลงใน MAC Address Table หลังจากนั้นเมื่อมี Frame ส่งถึง MAC นี้ Switch จะส่งออกเฉพาะ Port นั้น ถ้ายังไม่รู้จัก Destination MAC Switch จะส่งออกทุก Port ยกเว้น Port ที่รับเข้ามา (Flooding)</p>
+<ul class="why-wrong">
+  <li><strong>A</strong> ผิดเพราะ Destination MAC ใช้ตัดสินใจว่าจะส่ง Frame ออก Port ไหน (Forwarding) ไม่ได้ใช้เรียนรู้ เพราะ Switch ไม่รู้ว่าเจ้าของ MAC ปลายทางอยู่ที่ไหนจนกว่าเครื่องนั้นจะส่ง Frame ออกมาเอง</li>
+  <li><strong>B</strong> ผิดเพราะ IP อยู่ใน Layer 3 Switch แบบ Layer 2 ไม่ได้อ่าน IP เพื่อสร้าง MAC Address Table ตารางที่จับคู่ IP กับ MAC คือ ARP Cache ของแต่ละเครื่อง</li>
+  <li><strong>C</strong> ผิดเพราะ EtherType บอกแค่ว่าข้างใน Frame เป็นโปรโตคอลอะไร เช่น <code>0x0800</code> คือ IPv4 และ <code>0x0806</code> คือ ARP ไม่ได้บอกตำแหน่งของเครื่อง</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 4</summary><div>
+<p><strong>คำตอบ: A</strong> ใช้กฎย่อ 2 ข้อ คือ ตัดเลข 0 ที่อยู่ข้างหน้าของแต่ละกลุ่ม (<code>0db8</code> เป็น <code>db8</code>, <code>0042</code> เป็น <code>42</code>) และแทนกลุ่ม 0 ที่ต่อกันยาวที่สุดด้วย <code>::</code> ได้เพียงครั้งเดียว ได้ <code>2001:db8::ff00:42:8329</code> ซึ่งตรงกับที่ Python แสดง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 -c "import ipaddress; print(ipaddress.ip_address('2001:0db8:0000:0000:0000:ff00:0042:8329'))"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>2001:db8::ff00:42:8329</code></pre>
+<ul class="why-wrong">
+  <li><strong>B</strong> ผิดเพราะใช้ <code>::</code> สองครั้ง ซึ่งทำให้ไม่รู้ว่าแต่ละ <code>::</code> แทน 0 กี่กลุ่ม ถ้าส่งค่านี้ให้ <code>ipaddress.ip_address()</code> จะได้ <code>ValueError: '2001:db8::ff00::42:8329' does not appear to be an IPv4 or IPv6 address</code> (ถ้าใช้ <code>ipaddress.IPv6Address()</code> ตรง ๆ ข้อความจะบอกสาเหตุชัดกว่าว่า <code>At most one '::' permitted</code>) นอกจากนี้ <code>ff00</code> กับ <code>42</code> ก็อยู่ติดกันอยู่แล้ว ไม่มีกลุ่ม 0 คั่น</li>
+  <li><strong>C</strong> ผิดเพราะลบกลุ่ม 0 ทั้งสามกลุ่มทิ้งโดยไม่ใส่ <code>::</code> เหลือแค่ 5 กลุ่ม ซึ่งไม่ครบ 128 บิต และเป็น Address ที่ไม่ถูกต้อง</li>
+  <li><strong>D</strong> ผิดเพราะเปลี่ยน <code>ff00</code> เป็น <code>ff</code> ซึ่งตัดเลข 0 ข้างหลัง กฎอนุญาตให้ตัดเฉพาะ 0 ข้างหน้า <code>ff</code> จะหมายถึง <code>00ff</code> ซึ่งเป็นค่าคนละตัว</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 5</summary><div>
+<p><strong>คำตอบ: B</strong> TTL (Time To Live) ของ Record บอก Recursive Resolver ว่าเก็บคำตอบไว้ใน Cache ได้นานกี่วินาที เครื่องที่เคยถาม <code>nas.home.arpa</code> ก่อนการแก้จะได้คำตอบเก่าจาก Cache จนกว่าจะครบ 300 วินาที (5 นาที) แล้ว Resolver จึงถาม Authoritative Server ใหม่ งานจริงจึงมักลด TTL ลงล่วงหน้าก่อนย้าย Server แล้วค่อยเพิ่มกลับหลังย้ายเสร็จ</p>
+<ul class="why-wrong">
+  <li><strong>A</strong> ผิดเพราะ PTR ใช้สำหรับ Reverse Lookup (จาก IP เป็นชื่อ) การถามชื่อเพื่อหา IP ใช้ A Record เท่านั้น PTR จะถูกหรือผิดก็ไม่ทำให้ได้ A Record เก่า</li>
+  <li><strong>C</strong> ผิดเพราะ DNS ใช้ UDP Port 53 เป็นหลัก และใช้ TCP เมื่อคำตอบใหญ่เกินหรือทำ Zone Transfer อีกทั้ง Handshake ใช้เวลาระดับมิลลิวินาที ไม่ใช่หลายนาที</li>
+  <li><strong>D</strong> ผิดเพราะ Priority ของ MX ใช้เลือก Mail Server เท่านั้น ไม่มีผลต่อลำดับหรือความสดใหม่ของ A Record</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 6</summary><div>
+<p><strong>คำตอบ: C</strong> <code>Connection refused</code> ที่ได้ทันทีแปลว่ามี Packet ตอบกลับมา คือเครื่องปลายทางได้รับ SYN แล้วตอบ RST (Reset) เพราะไม่มีโปรแกรมใด Listen ที่ Port นั้น เครื่องปลายทางจึงยังทำงานอยู่และเส้นทางไปถึงได้ ปัญหาอยู่ที่ Service ยังไม่เปิด หรือเปิดผิด Port หรือผิด IP (เช่นฟังแค่ <code>127.0.0.1</code> แต่เราต่อไปที่ IP อื่น) ตรวจต่อด้วย <code>ss -tlnp</code> บนเครื่องปลายทาง</p>
+<ul class="why-wrong">
+  <li><strong>A</strong> ผิดเพราะถ้า Firewall ทิ้ง Packet แบบเงียบ (drop) Client จะไม่ได้คำตอบเลยและต้องรอจนหมดเวลา ผลจะเป็น <code>Connection timed out</code> หรือสถานะ <code>filtered</code> ใน nmap ไม่ใช่ refused ทันที</li>
+  <li><strong>B</strong> ผิดเพราะ <code>127.0.0.1</code> เป็น IP อยู่แล้ว ไม่ต้องแปลงผ่าน DNS และถ้าแปลงชื่อไม่ได้ Error จะเป็นแนว <code>Name or service not known</code></li>
+  <li><strong>D</strong> ผิดเพราะถ้า Handshake สำเร็จ <code>nc -zv</code> จะรายงานว่า <code>succeeded!</code> เนื่องจาก <code>-z</code> ตรวจแค่ว่าเชื่อมต่อได้แล้วปิดเอง</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 7</summary><div>
+<p><strong>คำตอบ: A</strong> Error (60) เกิดเพราะ curl ไม่พบ Certificate Authority ที่เซ็น Certificate ตัวนี้ใน Trust Store ของระบบ สำหรับ Self-signed Certificate ตัว Certificate เองคือ CA ของตัวเอง การส่ง <code>--cacert cert.pem</code> จึงเป็นการบอก curl ว่า "เชื่อ Certificate นี้" โดย curl ยังตรวจชื่อ (SAN ต้องมี <code>localhost</code>), วันหมดอายุ และลายเซ็นครบทุกข้อ</p>
+<ul class="why-wrong">
+  <li><strong>B</strong> ผิดเพราะ <code>-k</code> (<code>--insecure</code>) ปิดการตรวจ Certificate ทั้งหมด ทำให้ถูกดักกลางทาง (Man-in-the-Middle) ได้โดยไม่รู้ตัว ใช้ได้แค่ชั่วคราวตอนดีบัก และห้ามใช้ในสคริปต์ Production เด็ดขาด</li>
+  <li><strong>C</strong> ผิดเพราะ Server ที่ Port 8443 พูด TLS ถ้าส่ง HTTP ธรรมดาไปจะคุยกันไม่รู้เรื่อง และต่อให้ทำได้ ข้อมูลก็ไม่ถูกเข้ารหัส ซึ่งเป็นการหนีปัญหา ไม่ใช่การแก้</li>
+  <li><strong>D</strong> ผิดเพราะ Error (60) เป็นปัญหาเรื่อง Trust ไม่ใช่เรื่องชื่อ Certificate ใหม่ที่ไม่มี SAN ก็ยังเป็น Self-signed curl จึงยังแจ้ง Error (60) เหมือนเดิม นอกจากนี้การพึ่ง CN อย่างเดียวเป็นวิธีที่เลิกใช้แล้ว Browser อย่าง Chrome ไม่ยอมรับ Certificate ที่ไม่มี SAN เลย (curl 8.5 ยังยอมใช้ CN เมื่อไม่มี SAN แต่ไม่ควรพึ่งพฤติกรรมนี้)</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 8</summary><div>
+<p><strong>คำตอบ: D</strong> Router และ Linux เลือก Route ด้วยหลัก Longest Prefix Match คือในบรรดา Route ที่ครอบคลุมปลายทาง ให้เลือกตัวที่ Prefix ยาวที่สุด (เจาะจงที่สุด) <code>10.0.2.20</code> ตรงกับ <code>default</code> (/0), <code>10.0.0.0/8</code> และ <code>10.0.2.0/24</code> ตัวที่ยาวที่สุดคือ /24 จึงส่งไปที่ <code>10.0.1.254</code> ลำดับบรรทัดในตารางไม่มีผล ตรวจได้ด้วย <code>ip route get</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ถาม Kernel ว่าจะส่งไปแต่ละปลายทางผ่านทางไหน (รันใน Namespace ที่มีตารางตามโจทย์)
+ip route get 10.0.2.20
+ip route get 10.9.9.9
+ip route get 203.0.113.5</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>10.0.2.20 via 10.0.1.254 dev d0 src 10.0.1.10 uid 0
+    cache
+10.9.9.9 via 10.0.1.1 dev d0 src 10.0.1.10 uid 0
+    cache
+203.0.113.5 via 10.0.1.200 dev d0 src 10.0.1.10 uid 0
+    cache </code></pre>
+<p class="muted small">ผลนี้รันใน Network Namespace ที่สร้างตารางตามโจทย์ด้วย root จึงเห็น <code>uid 0</code> ถ้ารันเป็นผู้ใช้ปกติจะเห็น uid ของคุณ</p>
+<ul class="why-wrong">
+  <li><strong>A</strong> ผิดเพราะ Default Route (/0) ถูกเลือกเป็นตัวสุดท้ายเมื่อไม่มี Route อื่นตรงเลย ลำดับบรรทัดที่ <code>ip route</code> แสดงไม่ใช่ลำดับความสำคัญ</li>
+  <li><strong>B</strong> ผิดเพราะ <code>10.0.0.0/8</code> ตรงจริง แต่มี /24 ที่เจาะจงกว่า Route /8 จะถูกใช้กับปลายทางในวง 10 อื่น ๆ เช่น <code>10.9.9.9</code> ตามผลด้านบน</li>
+  <li><strong>C</strong> ผิดเพราะ Connected Route ของ <code>d0</code> คือ <code>10.0.1.0/24</code> เท่านั้น <code>10.0.2.20</code> อยู่นอกวงนี้ การขึ้นต้นด้วย 10 เหมือนกันไม่ได้แปลว่าอยู่วงเดียวกัน ต้องดูจาก Prefix</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 9</summary><div>
+<p><strong>คำตอบ: B</strong> MASQUERADE เป็น Source NAT แบบหนึ่งที่ใช้ IP ของ Interface ขาออก (<code>r-lan2</code> คือ <code>10.0.2.1</code>) แทน Source IP เดิม และเมื่อมีหลาย Connection ก็เปลี่ยน Port ด้วย (PAT) ตาราง Connection Tracking ของ Router จดการแปลงไว้ เมื่อคำตอบกลับมาที่ <code>10.0.2.1</code> Router จึงแปลงปลายทางกลับเป็น <code>10.0.1.10</code> ได้ถูกต้อง นี่คือหลักเดียวกับที่ Router บ้านใช้ให้ทุกเครื่องในวง <code>192.168.1.0/24</code> ออกอินเทอร์เน็ตด้วย Public IP เดียว และเป็นวิธีที่ WSL2 แบบ NAT Mode ใช้ด้วย</p>
+<ul class="why-wrong">
+  <li><strong>A</strong> ผิดเพราะถ้าปิด ip_forward Router จะไม่ส่งต่อ Packet เลย lan2 จะไม่เห็น ping ใด ๆ และ Router ไม่ได้ตอบ ping แทนเครื่องอื่น</li>
+  <li><strong>C</strong> ผิดเพราะ IP ของ lan1 ยังเป็น <code>10.0.1.10</code> ตลอด การเปลี่ยนเกิดใน Router ตอน Packet ผ่าน Hook POSTROUTING ไม่ได้เกิดที่เครื่องต้นทาง</li>
+  <li><strong>D</strong> ผิดเพราะ tcpdump แสดง Header ตามที่เห็นจริงบนสาย ไม่ได้แก้ไขอะไร ก่อนเพิ่มกฎ NAT tcpdump ใน lan2 ก็แสดง <code>10.0.1.10</code> ตามจริง</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 10</summary><div>
+<p><strong>คำตอบ: C</strong> ตามมาตรฐาน 802.1Q Frame ของ Native VLAN ถูกส่งข้าม Trunk แบบไม่มี Tag ฝั่งที่รับ Frame ไม่มี Tag จะถือว่าเป็นของ Native VLAN ที่ตัวเองตั้งไว้ ถ้าสองฝั่งตั้ง Native VLAN ไม่ตรงกัน Frame จะรั่วข้าม VLAN และ Cisco จะแจ้ง <code>%CDP-4-NATIVE_VLAN_MISMATCH</code> แนวปฏิบัติที่ดีคือตั้ง Native VLAN เป็น VLAN ที่ไม่ได้ใช้งานและให้ตรงกันทั้งสองฝั่ง</p>
+<ul class="why-wrong">
+  <li><strong>A</strong> ผิดเพราะ Native VLAN ไม่ถูกใส่ Tag โดยปกติ และเลข Native VLAN เปลี่ยนได้ด้วย <code>switchport trunk native vlan</code> ไม่ได้ผูกกับ VLAN 1 เสมอ</li>
+  <li><strong>B</strong> ผิดเพราะ Trunk รับ Frame ที่ไม่มี Tag ได้ และจัดให้อยู่ใน Native VLAN ซึ่งเป็นเหตุผลที่ Native VLAN มีอยู่ตั้งแต่แรก</li>
+  <li><strong>D</strong> ผิดเพราะ VLAN ID 4095 (และ 0) สงวนไว้ ไม่ใช้กับ Native VLAN ช่วงที่ใช้งานได้คือ 1 ถึง 4094 ตามขนาด 12 บิตของ VID</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 11</summary><div>
+<p><strong>คำตอบ: A</strong> OSPF คำนวณ Cost = Reference Bandwidth ÷ Bandwidth ของ Interface เมื่อตั้ง Reference เป็น 1000 Mbps Link 100 Mbps มี Cost 1000 ÷ 100 = 10 และ Link 1 Gbps มี Cost 1000 ÷ 1000 = 1 เส้นทางตรง R1 → R2 มี Cost 10 ส่วน R1 → R3 → R2 มี Cost 1 + 1 = 2 อัลกอริทึม SPF (Dijkstra) เลือกเส้นทางที่ Cost รวมต่ำที่สุด จึงผ่าน R3 แม้จะผ่าน Router มากกว่า</p>
+<ul class="why-wrong">
+  <li><strong>B</strong> ผิดเพราะ OSPF เป็น Link State ที่ตัดสินจาก Cost รวม ไม่ได้นับจำนวน Router ที่ผ่าน เส้นทางตรงมี Cost 10 ซึ่งแย่กว่า 2</li>
+  <li><strong>C</strong> ผิดเพราะ OSPF แบ่งโหลด (ECMP) เฉพาะเมื่อ Cost รวมเท่ากันทุกเส้นทาง ในกรณีนี้ 10 กับ 2 ไม่เท่ากัน</li>
+  <li><strong>D</strong> ผิดเพราะการนับ Hop เป็นวิธีของ RIP (Distance Vector) ไม่ใช่ OSPF และ Cost ของ Link 100 Mbps ที่ Reference 1000 คือ 10 ไม่ใช่ 1</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 12</summary><div>
+<p><strong>คำตอบ: D</strong> ทุก ACL ของ Cisco มีบรรทัด <code>deny ip any any</code> ที่มองไม่เห็นอยู่ท้ายสุด (Implicit Deny) Packet จาก <code>192.168.10.25</code> ไป <code>203.0.113.80</code> ไม่ตรงบรรทัดแรก (ปลายทางไม่ใช่ <code>192.168.20.10</code>) และไม่ตรงบรรทัดที่สอง (ปลายทางไม่ใช่วง <code>192.168.20.0/24</code>) จึงตกไปที่ Implicit Deny และถูกทิ้ง ผลคือวง SALES ออกอินเทอร์เน็ตไม่ได้ทั้งหมด นี่คือเหตุผลที่ ACL <code>SALES-IN</code> ใน Part 2 ต้องจบด้วย <code>permit ip any any</code></p>
+<ul class="why-wrong">
+  <li><strong>A</strong> ผิดเพราะการไม่ตรงกับบรรทัด deny ไม่ได้แปลว่าผ่าน ACL ตรวจบนลงล่าง ถ้าไม่ตรงบรรทัดใดเลยจะโดน Implicit Deny</li>
+  <li><strong>B</strong> ผิดเพราะ ACL ที่ผูกกับ Interface ด้วย <code>ip access-group ... in</code> ตรวจทุก Packet ที่เข้า Interface นั้น ไม่ได้ดูแค่ Packet ที่ตรงกับบรรทัดที่เขียนไว้</li>
+  <li><strong>C</strong> ผิดเพราะ ACL ขาเข้าตรวจ Packet ตอนเข้ามาที่ <code>Gi0/0.10</code> ก่อน Router จะเลือกเส้นทาง จึงมีผลกับทุกปลายทาง รวมถึงอินเทอร์เน็ต</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 13</summary><div>
+<p><strong>คำตอบ: B</strong> Client ที่เข้ามาที่ Port 8080 ยังใช้ได้ เพราะทุก Packet ขาเข้าของ Connection นั้นมี Destination Port เป็น 8080 จึงตรงกฎ <code>tcp dport 8080 accept</code> ทุก Packet แต่เมื่อ Server เปิด Connection ออกไปเอง คำตอบขาเข้าจะมาจาก Port 80 หรือ 443 ของปลายทางไปยัง Ephemeral Port ของ Server ซึ่งไม่ตรงกฎใดเลย จึงโดน <code>policy drop</code> ผลจากการทดสอบใน Lab ของ Namespace จริงคือ Client เปิดหน้าเว็บที่ 8080 ได้ แต่ <code>curl</code> จาก Server ออกไปหมดเวลาด้วย Exit code 28 (Timeout) DNS ที่ใช้ UDP ก็จะใช้ไม่ได้เช่นกัน</p>
+<ul class="why-wrong">
+  <li><strong>A</strong> ผิดเพราะกฎ <code>tcp dport 8080 accept</code> จับได้ทั้ง SYN และ Packet ถัดไปทั้งหมดจาก Client ส่วนคำตอบจาก Server เป็นขาออก ซึ่ง Chain <code>input</code> ไม่ได้กรอง</li>
+  <li><strong>C</strong> ผิดเพราะมีกฎ <code>ip protocol icmp accept</code> อยู่แล้ว ทั้ง Echo Request ที่เข้ามาและ Echo Reply ของ ping ที่ Server ส่งออกไปเองเป็น ICMP จึงผ่านได้โดยไม่ต้องพึ่งกฎ established</li>
+  <li><strong>D</strong> ผิดเพราะ nftables จำสถานะไว้ใน Connection Tracking ก็จริง แต่จะปล่อยคำตอบผ่านก็ต่อเมื่อเรามีกฎที่ใช้ <code>ct state</code> เขียนไว้ ถ้าไม่มี Packet จะถูกตัดสินตามกฎที่เหลือและ Policy เท่านั้น</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 14</summary><div>
+<p><strong>คำตอบ: C</strong> BPDU Guard ถูกออกแบบมาคู่กับ PortFast สำหรับ Port ที่ควรต่อกับเครื่องปลายทางเท่านั้น ถ้า Port นั้นได้รับ BPDU (ซึ่งมีแต่ Switch ที่ส่ง) Switch จะปิด Port เป็นสถานะ err-disabled ทันที เพื่อป้องกัน Loop และป้องกันไม่ให้ Switch แปลกปลอมเปลี่ยนโครงสร้าง STP ผู้ดูแลต้องถอด Switch ตัวเล็กออกแล้วเปิด Port ใหม่ด้วย <code>shutdown</code> ตามด้วย <code>no shutdown</code> หรือตั้ง <code>errdisable recovery</code></p>
+<ul class="why-wrong">
+  <li><strong>A</strong> ผิดเพราะ BPDU Guard ปิด Port ก่อนที่ BPDU จะมีผลต่อการเลือก Root Bridge และ Root Bridge ตัดสินจาก Bridge ID ที่ต่ำที่สุด ไม่ได้เปลี่ยนทันทีที่มี Switch ใหม่เสียบเข้ามา</li>
+  <li><strong>B</strong> ผิดเพราะการเป็น Trunk เกิดจากการตั้ง <code>switchport mode trunk</code> หรือการเจรจา DTP ไม่เกี่ยวกับ BPDU และ Port ที่ตั้งเป็น Access ไว้จะไม่เปลี่ยนเป็น Trunk เอง</li>
+  <li><strong>D</strong> ผิดเพราะ PortFast แค่ข้ามสถานะ Listening และ Learning ให้ Port ส่งข้อมูลได้เร็ว ไม่ได้ทำให้เพิกเฉยต่อ BPDU และเมื่อเปิด BPDU Guard ไว้ BPDU ที่เข้ามาจะทำให้ Port ถูกปิดทันที</li>
+</ul>
+</div></details>
+
+<h4>เฉลย Hands-on Challenge</h4>
+<p>เฉลยทั้ง 3 ข้อนี้รันจริงบน Ubuntu 24.04 แล้ว ผลลัพธ์ที่แสดงคัดลอกมาจากการรันจริง โค้ดของคุณอาจเขียนต่างจากเฉลยได้ เช่น ตั้งชื่อฟังก์ชันต่างกันหรือจัดรูปแบบตารางต่างกัน สิ่งที่ต้องเหมือนคือพฤติกรรม: ตรวจเจอปัญหาครบทุกรายการ และจบด้วย Exit code ที่ถูกต้อง</p>
+
+<details class="ans"><summary>โจทย์ที่ 1: ตรวจแผน Static IP ของวง LAN บ้าน</summary><div>
+<h5>แนวคิด</h5>
+<p>โจทย์นี้คือการแปลงความรู้เรื่อง Subnet ให้เป็นกฎที่คอมพิวเตอร์ตรวจได้ แทนที่จะเทียบข้อความ IP ทีละตัวอักษร เราแปลงทุกค่าเป็น Object ของโมดูล <code>ipaddress</code> แล้วให้ Python ตอบคำถามแทน ได้แก่ IP นี้อยู่ในวงไหม เป็น Network หรือ Broadcast Address ไหม และอยู่ในช่วง DHCP Pool ไหม วิธีนี้แม่นยำกว่าการตัดข้อความด้วย <code>split(".")</code> มาก เพราะโมดูลจัดการกรณีพิเศษให้ทั้งหมด เช่น <code>192.168.1.300</code> ที่ดูเหมือน IP แต่ไม่ใช่</p>
+<ul>
+  <li><strong>ลำดับการตรวจสำคัญ:</strong> ตรวจรูปแบบก่อน เพราะถ้ารูปแบบผิดก็ไม่มี IP Object ให้ตรวจต่อ จากนั้นตรวจว่าอยู่ในวงไหม ถ้าอยู่นอกวงก็ไม่ต้องถามต่อว่าเป็น Broadcast หรืออยู่ใน Pool จึงใช้ <code>if/elif</code> ต่อกัน</li>
+  <li><strong>การตรวจ IP ซ้ำแยกออกมาเป็น <code>if</code> อีกชุด:</strong> เพราะอุปกรณ์หนึ่งอาจมีปัญหาสองอย่างพร้อมกันได้ เช่น ตั้ง IP ทับ Pool และซ้ำกับเครื่องอื่นด้วย</li>
+  <li><strong>Dictionary <code>seen</code> เก็บ <code>{ip: ชื่ออุปกรณ์}</code>:</strong> เมื่อเจอ IP ซ้ำ เราบอกได้ทันทีว่าซ้ำกับใคร ซึ่งช่วยคนแก้ปัญหาได้มากกว่าข้อความ "IP ซ้ำ" เฉย ๆ</li>
+  <li><strong>Exit code คือสัญญากับโปรแกรมอื่น:</strong> <code>0</code> ผ่าน, <code>1</code> พบปัญหา, <code>2</code> ใช้งานผิด (หาไฟล์ไม่เจอ) เป็นแบบแผนเดียวกับเครื่องมือ Linux ส่วนใหญ่ เช่น <code>grep</code> ทำให้นำสคริปต์ไปต่อใน CI หรือ Bash Script ได้ทันที</li>
+</ul>
+
+<h5>โค้ดเฉลย</h5>
+<pre class="code" data-env="file" data-label="Python · ip_plan.py"><code class="language-python"># ip_plan.py : ตรวจแผน Static IP ของวง LAN บ้าน 192.168.1.0/24
+import argparse
+import csv
+import ipaddress
+import sys
+
+# ค่าของวง LAN บ้าน (ตรงกับ Sample Network ของบทเรียน)
+LAN = ipaddress.ip_network("192.168.1.0/24")
+POOL_START = ipaddress.ip_address("192.168.1.100")
+POOL_END = ipaddress.ip_address("192.168.1.199")
+
+
+def check_device(ip_text, seen):
+    """ตรวจ IP หนึ่งตัว คืนค่าเป็นรายการปัญหา (ว่าง = ผ่าน)"""
+    problems = []
+    try:
+        ip = ipaddress.ip_address(ip_text)
+    except ValueError:
+        return ["รูปแบบ IP ไม่ถูกต้อง"], None
+
+    if ip not in LAN:
+        problems.append(f"อยู่นอกวง {LAN}")
+    elif ip == LAN.network_address:
+        problems.append("เป็น Network Address ใช้กับอุปกรณ์ไม่ได้")
+    elif ip == LAN.broadcast_address:
+        problems.append("เป็น Broadcast Address ใช้กับอุปกรณ์ไม่ได้")
+    elif POOL_START &lt;= ip &lt;= POOL_END:
+        problems.append("ชนกับ DHCP Pool .100-.199")
+
+    if ip in seen:
+        problems.append(f"IP ซ้ำกับ {seen[ip]}")
+    return problems, ip
+
+
+def suggest_free(used, count):
+    """หา IP ว่างนอก DHCP Pool เรียงจากน้อยไปมาก"""
+    free = []
+    if count == 0:
+        return free
+    for host in LAN.hosts():
+        if POOL_START &lt;= host &lt;= POOL_END or host in used:
+            continue
+        free.append(str(host))
+        if len(free) == count:
+            break
+    return free
+
+
+def main():
+    parser = argparse.ArgumentParser(description="ตรวจแผน Static IP")
+    parser.add_argument("csv_file", nargs="?", default="devices.csv")
+    args = parser.parse_args()
+
+    seen = {}          # เก็บว่า IP ไหนถูกใช้โดยอุปกรณ์ชื่ออะไรแล้ว
+    total = 0          # จำนวนอุปกรณ์ทั้งหมด
+    bad = 0            # จำนวนอุปกรณ์ที่มีปัญหา
+    try:
+        f = open(args.csv_file, newline="", encoding="utf-8")
+    except FileNotFoundError:
+        print(f"ไม่พบไฟล์ {args.csv_file} ตรวจชื่อไฟล์และโฟลเดอร์อีกครั้ง")
+        sys.exit(2)
+    print(f"{'DEVICE':&lt;12}{'IP':&lt;16}RESULT")
+    print("-" * 52)
+    with f:
+        for row in csv.DictReader(f):
+            total += 1
+            problems, ip = check_device(row["ip"], seen)
+            status = "OK" if not problems else "ปัญหา: " + "; ".join(problems)
+            print(f"{row['name']:&lt;12}{row['ip']:&lt;16}{status}")
+            if problems:
+                bad += 1
+            # จำเฉพาะ IP ที่อยู่ในวงและยังไม่ถูกจอง
+            if ip is not None and ip in LAN and ip not in seen:
+                seen[ip] = row["name"]
+
+    print("-" * 52)
+    print(f"สรุป: ตรวจ {total} รายการ ผ่าน {total - bad} มีปัญหา {bad}")
+    if bad:
+        print("IP ว่างที่แนะนำ (นอก DHCP Pool):", ", ".join(suggest_free(seen, bad)))
+    # Exit code 1 เมื่อมีปัญหา เพื่อให้ Script อื่นนำไปใช้ต่อได้
+    sys.exit(1 if bad else 0)
+
+
+if __name__ == "__main__":
+    main()</code></pre>
+
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/network-lab/practice/ch1
+python3 ip_plan.py devices.csv
+# $? เก็บ Exit code ของคำสั่งล่าสุด
+echo "exit code: $?"</code></pre>
+<h5>ผลลัพธ์ที่ได้จริง</h5>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>DEVICE      IP              RESULT
+----------------------------------------------------
+router      192.168.1.1     OK
+nas         192.168.1.20    OK
+mail        192.168.1.25    OK
+printer     192.168.1.50    OK
+camera      192.168.1.120   ปัญหา: ชนกับ DHCP Pool .100-.199
+smart-tv    192.168.1.20    ปัญหา: IP ซ้ำกับ nas
+guest-ap    192.168.2.10    ปัญหา: อยู่นอกวง 192.168.1.0/24
+smart-plug  192.168.1.255   ปัญหา: เป็น Broadcast Address ใช้กับอุปกรณ์ไม่ได้
+----------------------------------------------------
+สรุป: ตรวจ 8 รายการ ผ่าน 4 มีปัญหา 4
+IP ว่างที่แนะนำ (นอก DHCP Pool): 192.168.1.2, 192.168.1.3, 192.168.1.4, 192.168.1.5
+exit code: 1</code></pre>
+
+<h5>ทดสอบกรณีอื่นให้ครบทุก Exit code</h5>
+<p>เครื่องมือที่ดีต้องทดสอบทั้งกรณีที่มีปัญหาและกรณีที่ผ่าน ให้สร้างไฟล์ <code>devices-fixed.csv</code> ที่แก้ตาม IP ที่โปรแกรมแนะนำ แล้วลองกรณีหาไฟล์ไม่เจอ และกรณีขอบ (Edge case) คือ Network Address กับ IP ที่รูปแบบผิด</p>
+<pre class="code" data-env="file" data-label="CSV · devices-fixed.csv"><code class="language-plaintext">name,ip,note
+router,192.168.1.1,ISP Router / Default Gateway
+nas,192.168.1.20,NAS เก็บไฟล์
+mail,192.168.1.25,Mail Server ทดลอง
+printer,192.168.1.50,เครื่องพิมพ์ชั้น 2
+camera,192.168.1.2,กล้องหน้าบ้าน
+smart-tv,192.168.1.3,ทีวีห้องนั่งเล่น
+guest-ap,192.168.1.4,Access Point แขก
+smart-plug,192.168.1.5,ปลั๊กอัจฉริยะ</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/network-lab/practice/ch1
+# กรณีที่ 1: แผนที่แก้แล้ว ควรผ่านทั้งหมด
+python3 ip_plan.py devices-fixed.csv; echo "exit code: $?"
+# กรณีที่ 2: พิมพ์ชื่อไฟล์ผิด
+python3 ip_plan.py nofile.csv; echo "exit code: $?"
+# กรณีที่ 3: Network Address และ IP ที่รูปแบบผิด
+printf 'name,ip,note\nx,192.168.1.0,a\ny,192.168.1.300,b\n' &gt; edge.csv
+python3 ip_plan.py edge.csv; echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>DEVICE      IP              RESULT
+----------------------------------------------------
+router      192.168.1.1     OK
+nas         192.168.1.20    OK
+mail        192.168.1.25    OK
+printer     192.168.1.50    OK
+camera      192.168.1.2     OK
+smart-tv    192.168.1.3     OK
+guest-ap    192.168.1.4     OK
+smart-plug  192.168.1.5     OK
+----------------------------------------------------
+สรุป: ตรวจ 8 รายการ ผ่าน 8 มีปัญหา 0
+exit code: 0
+ไม่พบไฟล์ nofile.csv ตรวจชื่อไฟล์และโฟลเดอร์อีกครั้ง
+exit code: 2
+DEVICE      IP              RESULT
+----------------------------------------------------
+x           192.168.1.0     ปัญหา: เป็น Network Address ใช้กับอุปกรณ์ไม่ได้
+y           192.168.1.300   ปัญหา: รูปแบบ IP ไม่ถูกต้อง
+----------------------------------------------------
+สรุป: ตรวจ 2 รายการ ผ่าน 0 มีปัญหา 2
+IP ว่างที่แนะนำ (นอก DHCP Pool): 192.168.1.1, 192.168.1.2
+exit code: 1</code></pre>
+<p>สังเกตกรณีที่ 3: ไฟล์นี้ไม่มี Router อยู่ในรายการ โปรแกรมจึงแนะนำ <code>192.168.1.1</code> ว่าว่าง ในงานจริงเราควรใส่ Default Gateway ไว้ในรายการเสมอ หรือกันไว้ในโค้ดเป็นค่าคงที่ ซึ่งเป็นหนึ่งในไอเดียต่อยอดด้านล่าง</p>
+
+<h5>อธิบายส่วนสำคัญ</h5>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>ipaddress.ip_network("192.168.1.0/24")</code></td><td>สร้าง Object ของทั้งวง ใช้ถาม <code>.network_address</code>, <code>.broadcast_address</code> และ <code>.hosts()</code> ได้ โดยไม่ต้องคำนวณ Subnet Mask เอง</td></tr>
+<tr><td><code>except ValueError</code></td><td>ดักข้อความที่ไม่ใช่ IP เช่น <code>192.168.1.300</code> แล้วคืน <code>None</code> แทน IP เพื่อบอกส่วนอื่นว่าไม่ต้องจำค่านี้</td></tr>
+<tr><td><code>ip not in LAN</code></td><td>ตัวดำเนินการ <code>in</code> ระหว่าง IP กับ Network ตรวจว่า IP อยู่ในวงนั้นหรือไม่ โดยเทียบ Network Bits ให้อัตโนมัติ</td></tr>
+<tr><td><code>POOL_START &lt;= ip &lt;= POOL_END</code></td><td>IP Object เปรียบเทียบมากน้อยกันได้ตามค่าตัวเลข 32 บิต จึงตรวจช่วง DHCP ได้ในบรรทัดเดียว</td></tr>
+<tr><td><code>if count == 0: return free</code></td><td>ป้องกันกรณีไม่มีปัญหาเลย ถ้าไม่มีบรรทัดนี้ ลูปจะไม่เคยเจอเงื่อนไข <code>len(free) == 0</code> หลังเพิ่มค่าแรก และจะคืน IP ว่างทั้งวงออกมา</td></tr>
+<tr><td><code>LAN.hosts()</code></td><td>วนเฉพาะ IP ที่ใช้กับอุปกรณ์ได้ (<code>.1</code> ถึง <code>.254</code>) ไม่รวม Network และ Broadcast</td></tr>
+<tr><td><code>open(..., newline="", encoding="utf-8")</code></td><td><code>newline=""</code> เป็นค่าที่เอกสารของโมดูล <code>csv</code> แนะนำ และ <code>utf-8</code> ทำให้อ่านคอลัมน์ภาษาไทยได้ถูกต้อง</td></tr>
+<tr><td><code>if ip is not None and ip in LAN and ip not in seen</code></td><td>จำเฉพาะ IP ที่อยู่ในวงและยังไม่มีเจ้าของ เพื่อให้ข้อความ "ซ้ำกับ" ชี้ไปยังอุปกรณ์ตัวแรกที่จองไว้เสมอ</td></tr>
+<tr><td><code>sys.exit(1 if bad else 0)</code></td><td>ส่ง Exit code ให้ Shell ทำให้เขียน <code>python3 ip_plan.py &amp;&amp; echo "พร้อมตั้งค่า"</code> ได้</td></tr>
+</tbody></table></div>
+
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ถ้าคุณเขียน <code>if ip == LAN.broadcast_address</code> ก่อนตรวจว่าอยู่ในวงหรือไม่ ผลยังถูกต้อง แต่ถ้าสลับให้ตรวจ DHCP Pool ก่อนตรวจรูปแบบ IP โปรแกรมจะหยุดด้วย <code>TypeError</code> เมื่อเจอข้อความที่ไม่ใช่ IP เพราะเปรียบเทียบ <code>str</code> กับ <code>IPv4Address</code> ไม่ได้ ให้แปลงเป็น Object ให้สำเร็จก่อนเสมอ</p></div>
+
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+  <li>รับค่าวง LAN, Gateway และช่วง DHCP Pool ผ่าน <code>argparse</code> เช่น <code>--network 10.0.0.0/24 --pool 10.0.0.50-10.0.0.150</code> แทนการเขียนตายตัวในโค้ด เพื่อใช้กับเครือข่ายอื่นได้ และกัน IP ของ Gateway ไม่ให้ถูกแนะนำ</li>
+  <li>ตรวจ MAC Address ด้วย โดยเพิ่มคอลัมน์ <code>mac</code> ในไฟล์ CSV ตรวจรูปแบบด้วย Regular Expression และหา MAC ซ้ำ แล้วส่งออกเป็นไฟล์ Config แบบ <code>dhcp-host=MAC,IP,ชื่อ</code> ของ dnsmasq เพื่อทำ DHCP Reservation แทน Static IP</li>
+  <li>เขียน Unit Test ด้วย <code>unittest</code> หรือ <code>pytest</code> ที่ทดสอบฟังก์ชัน <code>check_device</code> ทุกกรณี (OK, นอกวง, Network, Broadcast, ใน Pool, ซ้ำ, รูปแบบผิด) แล้วตั้ง GitHub Actions ให้รันทุกครั้งที่มีคนแก้ไฟล์ CSV</li>
+  <li>รองรับ IPv6 โดยเพิ่มวง <code>fd00:1::/64</code> และตรวจว่า IPv6 Address อยู่ในวงหรือไม่ โมดูล <code>ipaddress</code> ใช้คำสั่งชุดเดิมได้ทั้ง IPv4 และ IPv6</li>
+</ol>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 2: Port Audit ตรวจ Service บนเครื่องตัวเอง</summary><div>
+<h5>แนวคิด</h5>
+<p>หัวใจของโจทย์นี้คือความเข้าใจ TCP 3-way Handshake ที่เรียนใน Part 2 เมื่อเราเรียก <code>socket.create_connection</code> ระบบปฏิบัติการจะส่ง SYN ไปที่ Port ปลายทาง แล้วผลมีได้ 3 แบบหลัก ซึ่งตรงกับสถานะที่ nmap ใช้</p>
+<div class="tbl wide"><table class="explain"><thead><tr><th>สิ่งที่เกิดขึ้นบนสาย</th><th>Exception ใน Python</th><th>สถานะในเครื่องมือของเรา</th><th>สถานะที่ nmap รายงาน</th></tr></thead><tbody>
+<tr><td>ได้ SYN-ACK กลับมา Handshake สำเร็จ</td><td>ไม่มี (เข้า Block <code>with</code> ได้)</td><td><code>open</code></td><td>open</td></tr>
+<tr><td>ได้ RST กลับมา เพราะไม่มีโปรแกรมฟัง Port นี้</td><td><code>ConnectionRefusedError</code></td><td><code>closed</code></td><td>closed</td></tr>
+<tr><td>ไม่มีคำตอบเลย มักเพราะ Firewall ทิ้ง Packet</td><td><code>TimeoutError</code> (<code>socket.timeout</code>)</td><td><code>timeout</code></td><td>filtered</td></tr>
+<tr><td>ปัญหาอื่น เช่น ไม่มี Route หรือเครื่องไม่ได้เปิด IPv6</td><td><code>OSError</code> ตัวอื่น</td><td><code>error</code></td><td>ขึ้นกับสาเหตุ</td></tr>
+</tbody></table></div>
+<ul>
+  <li><strong>ด่านความปลอดภัยต้องมาก่อนทุกอย่าง:</strong> ฟังก์ชัน <code>is_allowed_target</code> ถูกเรียกก่อนสร้าง Socket ตัวแรก ถ้าไม่ผ่านโปรแกรมจบทันที จึงรับประกันได้ว่าไม่มี Packet ออกไปหาเครื่องอื่น และปฏิเสธชื่อโดเมนทั้งหมด แม้แต่ <code>localhost</code> เพราะชื่อแก้ไขได้ในไฟล์ <code>/etc/hosts</code> หรือ DNS ให้ชี้ไปที่เครื่องอื่นได้</li>
+  <li><strong>ทำงานพร้อมกันด้วย Thread:</strong> งานตรวจ Port เป็นงานรอ Network (I/O-bound) Thread จึงช่วยได้มาก ถ้ามี 5 Port ที่ Timeout ทั้งหมด การตรวจทีละตัวจะใช้เวลาประมาณ 2.5 วินาที แต่ตรวจพร้อมกันจะใช้ประมาณ 0.5 วินาที</li>
+  <li><strong><code>pool.map</code> คืนผลตามลำดับเดิม:</strong> แม้ Thread จะเสร็จไม่พร้อมกัน แต่ผลลัพธ์เรียงตามลำดับของรายการที่ส่งเข้าไป จึงใช้ <code>zip</code> จับคู่กับ <code>services</code> ได้อย่างปลอดภัย</li>
+  <li><strong>รายงานเป็น JSON:</strong> ทำให้ระบบอื่นอ่านต่อได้ เช่น Dashboard หรือ CI ส่วนตารางบนหน้าจอมีไว้ให้คนอ่าน</li>
+</ul>
+
+<h5>โค้ดเฉลย</h5>
+<pre class="code" data-env="file" data-label="Python · port_audit.py"><code class="language-python"># port_audit.py : ตรวจว่า Service บนเครื่องตัวเองเปิด/ปิดตรงกับที่ควรเป็นหรือไม่
+# ใช้กับเครื่องของตัวเองเท่านั้น (127.0.0.0/8 และ ::1)
+import argparse
+import ipaddress
+import json
+import socket
+import sys
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+
+
+def is_allowed_target(host):
+    """อนุญาตเฉพาะ Loopback: 127.0.0.0/8 และ ::1"""
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return False          # ไม่รับชื่อโดเมน ป้องกันการชี้ไปเครื่องอื่น
+    return ip.is_loopback
+
+
+def check_port(host, port, timeout=0.5):
+    """คืนค่า open, closed (ถูกปฏิเสธ), timeout หรือ error"""
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return "open"
+    except ConnectionRefusedError:
+        return "closed"       # ได้ RST กลับมา: เครื่องอยู่ แต่ไม่มีโปรแกรมฟัง Port นี้
+    except (socket.timeout, TimeoutError):
+        return "timeout"      # ไม่มีคำตอบ: อาจโดน Firewall ทิ้ง Packet
+    except OSError:
+        return "error"        # ปัญหาอื่น เช่น เครื่องไม่รองรับ IPv6
+
+
+def main():
+    parser = argparse.ArgumentParser(description="ตรวจ Port ของ Service บนเครื่องตัวเอง")
+    parser.add_argument("config", nargs="?", default="services.json")
+    parser.add_argument("--host", help="เขียนทับ host ในไฟล์ config")
+    parser.add_argument("--out", default="port-audit.json")
+    args = parser.parse_args()
+
+    with open(args.config, encoding="utf-8") as f:
+        cfg = json.load(f)
+    host = args.host or cfg["host"]
+
+    # ด่านความปลอดภัย: ปฏิเสธทุกเป้าหมายที่ไม่ใช่เครื่องตัวเอง
+    if not is_allowed_target(host):
+        print(f"ปฏิเสธ: {host} ไม่ใช่ IP แบบ Loopback (127.0.0.0/8 หรือ ::1) โปรแกรมนี้ตรวจได้เฉพาะเครื่องของตัวเอง")
+        sys.exit(2)
+
+    services = cfg["services"]
+    # ตรวจทุก Port พร้อมกันด้วย Thread เพื่อไม่ต้องรอทีละตัว
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        states = list(pool.map(lambda s: check_port(host, s["port"]), services))
+
+    results = []
+    fails = 0
+    print(f"ตรวจ {host} เวลา {datetime.now():%Y-%m-%d %H:%M:%S}")
+    print(f"{'SERVICE':&lt;11}{'PORT':&gt;5}  {'EXPECT':&lt;7}{'ACTUAL':&lt;8}RESULT")
+    for svc, state in zip(services, states):
+        ok = state == svc["expect"]
+        fails += 0 if ok else 1
+        result = "PASS" if ok else "FAIL"
+        print(f"{svc['name']:&lt;11}{svc['port']:&gt;5}  {svc['expect']:&lt;7}{state:&lt;8}{result}")
+        results.append({**svc, "actual": state, "result": result})
+
+    report = {
+        "host": host,
+        "checked_at": datetime.now().isoformat(timespec="seconds"),
+        "fails": fails,
+        "results": results,
+    }
+    with open(args.out, "w", encoding="utf-8") as f:
+        json.dump(report, f, ensure_ascii=False, indent=2)
+    print(f"สรุป: FAIL {fails} จาก {len(services)} รายการ บันทึกรายงานที่ {args.out}")
+    sys.exit(1 if fails else 0)
+
+
+if __name__ == "__main__":
+    main()</code></pre>
+
+<p>ก่อนรัน ให้เปิด Service จำลองตามคำสั่งในโจทย์ไว้แล้ว (Port 8000 และ 8001) จากนั้นรันโปรแกรม แล้วดูไฟล์รายงาน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/network-lab/practice/ch2
+python3 port_audit.py services.json; echo "exit code: $?"
+# ดูรายงานที่บันทึกไว้
+cat port-audit.json</code></pre>
+<h5>ผลลัพธ์ที่ได้จริง</h5>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ตรวจ 127.0.0.1 เวลา 2026-10-21 11:28:40
+SERVICE     PORT  EXPECT ACTUAL  RESULT
+web-site    8000  open   open    PASS
+api-dev     8001  open   open    PASS
+flask-app   5000  open   closed  FAIL
+redis       6379  closed closed  PASS
+mysql       3306  closed closed  PASS
+สรุป: FAIL 1 จาก 5 รายการ บันทึกรายงานที่ port-audit.json
+exit code: 1
+{
+  "host": "127.0.0.1",
+  "checked_at": "2026-10-21T11:28:40",
+  "fails": 1,
+  "results": [
+    {
+      "name": "web-site",
+      "port": 8000,
+      "expect": "open",
+      "actual": "open",
+      "result": "PASS"
+    },
+    {
+      "name": "api-dev",
+      "port": 8001,
+      "expect": "open",
+      "actual": "open",
+      "result": "PASS"
+    },
+    {
+      "name": "flask-app",
+      "port": 5000,
+      "expect": "open",
+      "actual": "closed",
+      "result": "FAIL"
+    },
+    {
+      "name": "redis",
+      "port": 6379,
+      "expect": "closed",
+      "actual": "closed",
+      "result": "PASS"
+    },
+    {
+      "name": "mysql",
+      "port": 3306,
+      "expect": "closed",
+      "actual": "closed",
+      "result": "PASS"
+    }
+  ]
+}</code></pre>
+<p class="muted small">วันที่และเวลาในผลลัพธ์จะเป็นเวลาที่คุณรันจริงบนเครื่องของคุณ</p>
+
+<h5>ทดสอบด่านความปลอดภัย</h5>
+<p>ลองส่งเป้าหมายที่ไม่ใช่เครื่องตัวเอง ทั้ง IP ในช่วงสำหรับเอกสาร (<code>192.0.2.10</code>) และชื่อ <code>localhost</code> ทั้งสองแบบต้องถูกปฏิเสธด้วย Exit code 2 และไม่มีการเชื่อมต่อเกิดขึ้น</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 port_audit.py --host 192.0.2.10; echo "exit code: $?"
+python3 port_audit.py --host localhost; echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ปฏิเสธ: 192.0.2.10 ไม่ใช่ IP แบบ Loopback (127.0.0.0/8 หรือ ::1) โปรแกรมนี้ตรวจได้เฉพาะเครื่องของตัวเอง
+exit code: 2
+ปฏิเสธ: localhost ไม่ใช่ IP แบบ Loopback (127.0.0.0/8 หรือ ::1) โปรแกรมนี้ตรวจได้เฉพาะเครื่องของตัวเอง
+exit code: 2</code></pre>
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>ถ้าลอง <code>--host ::1</code> โปรแกรมจะยอมให้ตรวจ เพราะเป็น Loopback ของ IPv6 แต่ผลจะไม่เหมือนเดิม เนื่องจาก Server จำลองของเราฟังเฉพาะ <code>127.0.0.1</code> ซึ่งเป็น IPv4 ถ้าเครื่องของคุณเปิด IPv6 บน Loopback ไว้ ค่า ACTUAL จะเป็น <code>closed</code> ทุกแถว ทำให้แถวที่คาดว่า <code>open</code> เป็น FAIL แต่ถ้าไม่ได้เปิด IPv6 ไว้ ค่า ACTUAL จะเป็น <code>error</code> ทุกแถว และ FAIL ครบทั้ง 5 แถว รวมถึง redis และ mysql ด้วย นี่คือบทเรียนสำคัญว่า "Service เปิดอยู่" ต้องระบุเสมอว่าเปิดที่ IP ไหน</p></div>
+
+<h5>ทดสอบกรณีผ่านทั้งหมด และปิด Service ให้เรียบร้อย</h5>
+<p>เปิด Service ที่ Port 5000 เพิ่ม แล้วบันทึกรายงานเป็นไฟล์ใหม่ด้วย <code>--out</code> ผลควรผ่านทั้งหมดและได้ Exit code 0 จากนั้นปิด Server จำลองทั้งหมด แล้วตรวจซ้ำเพื่อดูว่าเครื่องมือจับได้ว่า Service หายไป</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/network-lab/practice/ch2
+python3 -m http.server 5000 --bind 127.0.0.1 --directory site &gt; /dev/null 2&gt;&amp;1 &amp;
+sleep 1
+python3 port_audit.py --out demo-ready.json; echo "exit code: $?"
+# ปิด Server จำลองทุกตัวที่เปิดด้วย http.server
+pkill -f "python3 -m http.server"
+sleep 1
+ss -tln | grep -E ':(8000|8001|5000) ' || echo "ปิดหมดแล้ว"
+python3 port_audit.py --out after.json; echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ตรวจ 127.0.0.1 เวลา 2026-10-21 11:28:47
+SERVICE     PORT  EXPECT ACTUAL  RESULT
+web-site    8000  open   open    PASS
+api-dev     8001  open   open    PASS
+flask-app   5000  open   open    PASS
+redis       6379  closed closed  PASS
+mysql       3306  closed closed  PASS
+สรุป: FAIL 0 จาก 5 รายการ บันทึกรายงานที่ demo-ready.json
+exit code: 0
+ปิดหมดแล้ว
+ตรวจ 127.0.0.1 เวลา 2026-10-21 11:28:52
+SERVICE     PORT  EXPECT ACTUAL  RESULT
+web-site    8000  open   closed  FAIL
+api-dev     8001  open   closed  FAIL
+flask-app   5000  open   closed  FAIL
+redis       6379  closed closed  PASS
+mysql       3306  closed closed  PASS
+สรุป: FAIL 3 จาก 5 รายการ บันทึกรายงานที่ after.json
+exit code: 1</code></pre>
+
+<h5>อธิบายส่วนสำคัญ</h5>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>ipaddress.ip_address(host).is_loopback</code></td><td>เป็น <code>True</code> สำหรับทุก IP ใน <code>127.0.0.0/8</code> และ <code>::1</code> เท่านั้น ใช้เป็นรายการอนุญาต (Allowlist) ที่แคบที่สุด</td></tr>
+<tr><td><code>with socket.create_connection((host, port), timeout=timeout)</code></td><td>ทำ TCP Handshake จริง ถ้าสำเร็จจะเข้า Block และ <code>with</code> ปิด Socket ให้ทันทีเมื่อออกจาก Block จึงไม่มี Connection ค้าง</td></tr>
+<tr><td>ลำดับ <code>except</code></td><td><code>ConnectionRefusedError</code> และ <code>TimeoutError</code> เป็นลูกของ <code>OSError</code> ถ้าดัก <code>OSError</code> ก่อน สองตัวแรกจะไม่ถูกจับเลย และทุกอย่างจะกลายเป็น <code>error</code></td></tr>
+<tr><td><code>(socket.timeout, TimeoutError)</code></td><td>ตั้งแต่ Python 3.10 <code>socket.timeout</code> เป็นชื่อเดียวกับ <code>TimeoutError</code> การเขียนทั้งคู่ทำให้คนอ่านโค้ดรุ่นเก่าเข้าใจได้ทันที</td></tr>
+<tr><td><code>ThreadPoolExecutor(max_workers=8)</code></td><td>จำกัดจำนวน Thread เพื่อไม่ให้เปิด Connection พร้อมกันมากเกินไป เป็นมารยาทที่ดีแม้จะตรวจเครื่องตัวเอง</td></tr>
+<tr><td><code>{**svc, "actual": state, "result": result}</code></td><td>คัดลอกข้อมูลเดิมของ Service แล้วเพิ่มผลการตรวจ ทำให้รายงานมีข้อมูลครบโดยไม่แก้ค่าใน Config</td></tr>
+<tr><td><code>json.dump(..., ensure_ascii=False, indent=2)</code></td><td>บันทึกภาษาไทยเป็นตัวอักษรจริงแทน <code>\uXXXX</code> และจัดย่อหน้าให้อ่านง่าย</td></tr>
+</tbody></table></div>
+
+<div class="callout sec"><span class="c-label sec">Security</span><p>การสแกน Port ของระบบที่ไม่ได้เป็นเจ้าของหรือไม่ได้รับอนุญาตเป็นลายลักษณ์อักษร อาจเข้าข่ายความผิดตาม พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์ เครื่องมือที่เราเขียนเองจึงควรมี "ด่าน" แบบ <code>is_allowed_target</code> ติดมาตั้งแต่แรก ถ้าต้องการขยายให้ตรวจ Container หรือ Namespace ของตัวเอง ให้เพิ่มเฉพาะวง IP ที่คุณสร้างเองลงใน Allowlist อย่างชัดเจน ไม่ควรเปลี่ยนเป็นรับทุก IP</p></div>
+
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+  <li>เพิ่มการตรวจระดับ Application สำหรับ Service ที่เป็น HTTP เช่น เพิ่มฟิลด์ <code>"path": "/health.json"</code> ใน Config แล้วใช้ <code>urllib.request</code> ตรวจว่าได้ Status 200 จริง เพราะ Port เปิดไม่ได้แปลว่าแอปทำงานถูกต้องเสมอ</li>
+  <li>ตรวจว่า Service ฟังที่ IP ไหน โดยรัน <code>ss -Htlnp</code> ผ่าน <code>subprocess</code> แล้วแจ้งเตือนเมื่อ Database ฟังที่ <code>0.0.0.0</code> ซึ่งแปลว่าเครื่องอื่นในวง LAN เข้าถึงได้ แทนที่จะฟังเฉพาะ <code>127.0.0.1</code></li>
+  <li>ขยาย Allowlist ให้รับวง Lab ที่กำหนดเองผ่านตัวเลือก <code>--allow-net 10.0.9.0/24</code> แล้วใช้ตรวจ Network Namespace จากแนวคิดที่ 11 ของ Part 2 เทียบผลกับ <code>nmap -sT</code> ว่าตรงกันหรือไม่ รวมทั้งสถานะ <code>timeout</code> ที่ควรตรงกับ <code>filtered</code></li>
+  <li>เก็บรายงานย้อนหลังทุกครั้งเป็นไฟล์ตามวันที่ แล้วเขียนคำสั่ง <code>--diff</code> ที่เทียบกับรายงานครั้งก่อน และพิมพ์เฉพาะ Port ที่สถานะเปลี่ยน ใช้ตรวจหา Service ที่ถูกเปิดโดยไม่ตั้งใจหลังติดตั้งโปรแกรมใหม่</li>
+</ol>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 3: Lab สาขาและ Firewall ตามนโยบาย SALES-IN</summary><div>
+<h5>แนวคิด</h5>
+<p>โจทย์นี้รวมสามเรื่องเข้าด้วยกัน คือ Routing ระหว่างวง, Firewall แบบ Stateful และการทดสอบอัตโนมัติ เราใช้ Network Namespace แทนเครื่องจริง 3 เครื่อง โดย <code>b-rtr</code> ทำหน้าที่เหมือน Router ที่มี Sub-interface ของ VLAN 10 และ VLAN 20 ส่วน veth แต่ละเส้นแทนสายที่ต่อเข้า Router</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="แผนผัง Lab"><code class="language-plaintext">  b-sales                        b-rtr                           b-hr
+ [s-eth0]------------------[r-sales]  [r-hr]-------------------[h-eth0]
+ 192.168.10.10/24      192.168.10.1   192.168.20.1         192.168.20.10/24
+ GW 192.168.10.1          (ip_forward=1, nftables)          GW 192.168.20.1
+                                                             :443  HR Portal
+                                                             :8080 Payroll</code></pre>
+<p>การแปล ACL <code>SALES-IN</code> ของ Cisco มาเป็น nftables ทำได้ทีละบรรทัด ตารางนี้แสดงการเทียบกัน</p>
+<div class="tbl wide"><table class="explain"><thead><tr><th>Cisco IOS (ACL SALES-IN)</th><th>nftables ใน <code>b-rtr</code></th><th>เหตุผล</th></tr></thead><tbody>
+<tr><td><code>ip access-group SALES-IN in</code> บน Gi0/0.10</td><td><code>iifname "r-sales"</code> ในทุกกฎ</td><td>ตรวจเฉพาะ Packet ที่เข้ามาจากขาของวง SALES</td></tr>
+<tr><td>(ไม่มีบรรทัดตรงกัน: ACL แบบนี้ไม่จำ Connection)</td><td><code>ct state established,related accept</code></td><td>nftables เป็น Stateful จึงต้องปล่อยคำตอบของ Connection ที่อนุญาตแล้ว เช่น คำตอบ ping ที่ HR เริ่มส่งไปหา SALES</td></tr>
+<tr><td><code>permit tcp 192.168.10.0 0.0.0.255 host 192.168.20.10 eq 443</code></td><td><code>ip saddr 192.168.10.0/24 ip daddr 192.168.20.10 tcp dport 443 counter accept</code></td><td>Wildcard <code>0.0.0.255</code> เท่ากับ <code>/24</code> และ <code>host</code> คือ IP เดียว</td></tr>
+<tr><td><code>deny ip 192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255</code></td><td><code>ip saddr 192.168.10.0/24 ip daddr 192.168.20.0/24 counter drop</code></td><td>ทิ้งทุก Protocol จาก SALES ไปวง HR ที่ไม่ตรงกฎก่อนหน้า</td></tr>
+<tr><td><code>permit ip any any</code></td><td><code>policy accept</code> ของ Chain</td><td>Packet ที่ไม่ตรงกฎใดเลยให้ผ่าน เช่น SALES ไปอินเทอร์เน็ต</td></tr>
+</tbody></table></div>
+<p>ส่วน ping ไปหา Gateway (<code>192.168.10.1</code>) เป็น Packet ที่ส่งถึงตัว Router เอง จึงผ่าน Hook <code>input</code> ไม่ใช่ <code>forward</code> และไม่โดนกฎของเรา ซึ่งตรงกับพฤติกรรมของ Cisco ที่ ACL แบบ <code>in</code> ในโจทย์นี้ไม่ได้ปิดการ ping Gateway เพราะ Gateway อยู่นอกวง <code>192.168.20.0/24</code></p>
+
+<h5>โค้ดเฉลย</h5>
+<p>สร้างโฟลเดอร์ <code>~/projects/network-lab/practice/ch3</code> แล้วสร้างไฟล์ 4 ไฟล์ต่อไปนี้ไว้ในโฟลเดอร์เดียวกัน ถ้ายังไม่ได้ติดตั้ง nftables ให้ติดตั้งก่อน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">sudo apt update &amp;&amp; sudo apt install -y nftables iproute2 iputils-ping curl
+nft --version
+mkdir -p ~/projects/network-lab/practice/ch3 &amp;&amp; cd ~/projects/network-lab/practice/ch3</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>nftables v1.0.9 (Old Doc Yak #3)</code></pre>
+
+<pre class="code" data-env="file" data-label="Bash · cleanup.sh"><code class="language-bash">#!/usr/bin/env bash
+# cleanup.sh : ลบ Lab ทั้งหมด (ลบ Namespace แล้ว veth และ Process ข้างในจะหายไปด้วย)
+for ns in b-sales b-hr b-rtr; do
+    # ปิด Process ที่ยังรันอยู่ใน Namespace ก่อน
+    for pid in $(ip netns pids "$ns" 2&gt;/dev/null); do kill "$pid" 2&gt;/dev/null || true; done
+    ip netns del "$ns" 2&gt;/dev/null || true
+done</code></pre>
+
+<pre class="code" data-env="file" data-label="Bash · branch_lab.sh"><code class="language-bash">#!/usr/bin/env bash
+# branch_lab.sh : จำลองสาขา 2 VLAN (SALES, HR) ต่อผ่าน Router ด้วย Network Namespace
+# รันด้วย: sudo bash branch_lab.sh
+set -e
+cd "$(dirname "$0")"
+
+# 1) ล้าง Lab เก่าทิ้งก่อนเสมอ เพื่อให้รันซ้ำได้
+bash ./cleanup.sh
+
+# 2) สร้าง Namespace: เครื่อง SALES, Server HR และ Router
+ip netns add b-sales
+ip netns add b-hr
+ip netns add b-rtr
+
+# 3) สาย veth 2 เส้น: SALES &lt;-&gt; Router และ HR &lt;-&gt; Router
+ip link add s-eth0 type veth peer name r-sales
+ip link add h-eth0 type veth peer name r-hr
+ip link set s-eth0 netns b-sales
+ip link set h-eth0 netns b-hr
+ip link set r-sales netns b-rtr
+ip link set r-hr netns b-rtr
+
+# 4) ใส่ IP ตามแผนของสาขา (VLAN 10 = SALES, VLAN 20 = HR)
+ip -n b-sales addr add 192.168.10.10/24 dev s-eth0
+ip -n b-hr    addr add 192.168.20.10/24 dev h-eth0
+ip -n b-rtr   addr add 192.168.10.1/24  dev r-sales
+ip -n b-rtr   addr add 192.168.20.1/24  dev r-hr
+for ns in b-sales b-hr b-rtr; do ip -n "$ns" link set lo up; done
+ip -n b-sales link set s-eth0 up
+ip -n b-hr    link set h-eth0 up
+ip -n b-rtr   link set r-sales up
+ip -n b-rtr   link set r-hr up
+
+# 5) Default Gateway ของแต่ละฝั่ง และเปิดการส่งต่อ Packet ใน Router
+ip -n b-sales route add default via 192.168.10.1
+ip -n b-hr    route add default via 192.168.20.1
+ip netns exec b-rtr sysctl -q -w net.ipv4.ip_forward=1
+
+# 6) เปิด Web Server 2 ตัวบน Server HR: 443 (HR Portal) และ 8080 (ระบบเงินเดือน)
+mkdir -p www-portal www-payroll
+echo '&lt;h1&gt;HR Portal&lt;/h1&gt;' &gt; www-portal/index.html
+echo '&lt;h1&gt;Payroll Admin&lt;/h1&gt;' &gt; www-payroll/index.html
+ip netns exec b-hr python3 -m http.server 443  --bind 192.168.20.10 --directory www-portal  &gt; portal.log 2&gt;&amp;1 &amp;
+ip netns exec b-hr python3 -m http.server 8080 --bind 192.168.20.10 --directory www-payroll &gt; payroll.log 2&gt;&amp;1 &amp;
+# รอจน Server ทั้งสองตัวพร้อมรับ Connection (รอสูงสุดประมาณ 10 วินาที)
+for i in $(seq 1 20); do
+    [ "$(ip netns exec b-hr ss -Htln | wc -l)" -ge 2 ] &amp;&amp; break
+    sleep 0.5
+done
+
+# 7) โหลดกฎ Firewall เข้า Router
+ip netns exec b-rtr nft -f branch_fw.nft
+echo "Lab พร้อมแล้ว: SALES 192.168.10.10 | HR 192.168.20.10 | Router 192.168.10.1, 192.168.20.1"</code></pre>
+
+<pre class="code" data-env="file" data-label="nftables · branch_fw.nft"><code class="language-plaintext"># branch_fw.nft : กฎเทียบเท่า ACL SALES-IN บน Router ของสาขา
+flush ruleset
+
+table inet branch {
+    chain forward {
+        # Packet ที่ไม่ตรงกฎไหนเลยให้ผ่าน (เทียบกับ permit ip any any ท้าย ACL)
+        type filter hook forward priority 0; policy accept;
+
+        # คำตอบของ Connection ที่อนุญาตไปแล้วต้องกลับได้
+        ct state established,related accept
+
+        # กฎ 1: SALES เข้า HR Portal ได้เฉพาะ TCP 443
+        iifname "r-sales" ip saddr 192.168.10.0/24 ip daddr 192.168.20.10 tcp dport 443 counter accept
+
+        # กฎ 2: ทราฟฟิกอื่นจาก SALES ไปวง HR ทิ้งทั้งหมด
+        iifname "r-sales" ip saddr 192.168.10.0/24 ip daddr 192.168.20.0/24 counter drop
+    }
+}</code></pre>
+
+<pre class="code" data-env="file" data-label="Bash · verify.sh"><code class="language-bash">#!/usr/bin/env bash
+# verify.sh : ทดสอบนโยบาย Firewall ทีละข้อ แล้วพิมพ์ PASS/FAIL
+pass=0; fail=0
+
+check() {
+    # $1 = คำอธิบาย, $2 = ผลที่คาดหวัง (allow/deny), ที่เหลือ = คำสั่งทดสอบ
+    local desc="$1" expect="$2"; shift 2
+    if "$@" &gt; /dev/null 2&gt;&amp;1; then got="allow"; else got="deny"; fi
+    if [ "$got" = "$expect" ]; then
+        echo "PASS  $desc (ได้ $got)"; pass=$((pass + 1))
+    else
+        echo "FAIL  $desc (คาดว่า $expect แต่ได้ $got)"; fail=$((fail + 1))
+    fi
+}
+
+S="ip netns exec b-sales"
+H="ip netns exec b-hr"
+check "SALES -&gt; HR Portal tcp/443"   allow $S curl -s -m 2 http://192.168.20.10:443/
+check "SALES -&gt; Payroll tcp/8080"    deny  $S curl -s -m 2 http://192.168.20.10:8080/
+check "SALES -&gt; HR ping"             deny  $S ping -c 1 -W 1 192.168.20.10
+check "SALES -&gt; Router ping"         allow $S ping -c 1 -W 1 192.168.10.1
+check "HR -&gt; SALES ping"             allow $H ping -c 1 -W 1 192.168.10.10
+echo "สรุป: PASS $pass  FAIL $fail"
+[ "$fail" -eq 0 ]</code></pre>
+
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/network-lab/practice/ch3
+# การสร้าง Namespace และโหลดกฎ Firewall ต้องใช้สิทธิ์ root
+sudo bash branch_lab.sh; echo "exit code: $?"
+sudo bash verify.sh; echo "exit code: $?"
+# ดูค่า counter ว่ากฎไหนจับ Packet ไปกี่ตัว
+sudo ip netns exec b-rtr nft list ruleset
+# HR เองยังเข้าระบบเงินเดือนได้ (ทดสอบจากฝั่ง HR)
+sudo ip netns exec b-hr curl -s -m 2 http://192.168.20.10:8080/</code></pre>
+<h5>ผลลัพธ์ที่ได้จริง</h5>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Lab พร้อมแล้ว: SALES 192.168.10.10 | HR 192.168.20.10 | Router 192.168.10.1, 192.168.20.1
+exit code: 0
+PASS  SALES -&gt; HR Portal tcp/443 (ได้ allow)
+PASS  SALES -&gt; Payroll tcp/8080 (ได้ deny)
+PASS  SALES -&gt; HR ping (ได้ deny)
+PASS  SALES -&gt; Router ping (ได้ allow)
+PASS  HR -&gt; SALES ping (ได้ allow)
+สรุป: PASS 5  FAIL 0
+exit code: 0
+table inet branch {
+	chain forward {
+		type filter hook forward priority filter; policy accept;
+		ct state established,related accept
+		iifname "r-sales" ip saddr 192.168.10.0/24 ip daddr 192.168.20.10 tcp dport 443 counter packets 1 bytes 60 accept
+		iifname "r-sales" ip saddr 192.168.10.0/24 ip daddr 192.168.20.0/24 counter packets 3 bytes 204 drop
+	}
+}
+&lt;h1&gt;Payroll Admin&lt;/h1&gt;</code></pre>
+
+<h5>อ่านค่า counter ให้เป็น</h5>
+<ul>
+  <li><strong>กฎ accept TCP 443 จับได้ 1 Packet 60 bytes:</strong> คือ SYN ตัวแรกของ curl เท่านั้น Packet ที่เหลือของ Connection นี้ (ACK, คำขอ HTTP) ถูกปล่อยโดยกฎ <code>ct state established,related</code> ซึ่งอยู่บรรทัดแรก นี่คือหลักฐานว่า Firewall ทำงานแบบ Stateful จริง</li>
+  <li><strong>กฎ drop จับได้ 3 Packet 204 bytes:</strong> มาจาก SYN ไปยัง Port 8080 จำนวน 2 ตัว (ตัวละ 60 bytes เพราะ curl ส่ง SYN ซ้ำเมื่อไม่ได้คำตอบภายใน 1 วินาที และเรากำหนด <code>-m 2</code>) รวมกับ ICMP Echo Request ของ ping อีก 1 ตัว (84 bytes) รวมเป็น 60 + 60 + 84 = 204 bytes</li>
+  <li><strong>ping ไป Router และ ping จาก HR ไม่ปรากฏใน counter เลย:</strong> ตัวแรกวิ่งผ่าน Hook <code>input</code> ส่วนตัวหลังเข้ามาทาง <code>r-hr</code> จึงไม่ตรงเงื่อนไข <code>iifname "r-sales"</code> และคำตอบที่กลับจาก SALES ถูกปล่อยด้วยกฎ <code>established</code></li>
+</ul>
+<p class="muted small">จำนวน Packet ของกฎ drop อาจต่างไปเล็กน้อยบนเครื่องของคุณ ขึ้นกับจังหวะการส่ง SYN ซ้ำของ Kernel แต่กฎ accept ควรนับได้ 1 Packet ต่อการรัน <code>verify.sh</code> หนึ่งครั้ง</p>
+
+<h5>พิสูจน์ว่าสคริปต์ทดสอบจับข้อผิดพลาดได้จริง</h5>
+<p>สคริปต์ทดสอบที่ผ่านตลอดไม่ได้พิสูจน์อะไร ต้องลองทำให้กฎผิดแล้วดูว่ามันจับได้ ให้สร้างไฟล์ <code>branch_fw_wrong.nft</code> ที่สลับลำดับกฎ drop ขึ้นไปก่อนกฎ accept ซึ่งเป็นความผิดพลาดที่พบบ่อยที่สุดของการเขียน ACL</p>
+<pre class="code" data-env="file" data-label="nftables · branch_fw_wrong.nft"><code class="language-plaintext"># branch_fw_wrong.nft : ตัวอย่างที่ผิด (กฎ drop อยู่ก่อนกฎ accept) ใช้ทดสอบว่า verify.sh จับได้
+flush ruleset
+
+table inet branch {
+    chain forward {
+        # Packet ที่ไม่ตรงกฎไหนเลยให้ผ่าน (เทียบกับ permit ip any any ท้าย ACL)
+        type filter hook forward priority 0; policy accept;
+
+        # คำตอบของ Connection ที่อนุญาตไปแล้วต้องกลับได้
+        ct state established,related accept
+
+        # กฎ 2: ทราฟฟิกอื่นจาก SALES ไปวง HR ทิ้งทั้งหมด
+        iifname "r-sales" ip saddr 192.168.10.0/24 ip daddr 192.168.20.0/24 counter drop
+
+        # กฎ 1: SALES เข้า HR Portal ได้เฉพาะ TCP 443
+        iifname "r-sales" ip saddr 192.168.10.0/24 ip daddr 192.168.20.10 tcp dport 443 counter accept
+    }
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/network-lab/practice/ch3
+# โหลดกฎที่เรียงผิด แล้วทดสอบ
+sudo ip netns exec b-rtr nft -f branch_fw_wrong.nft
+sudo bash verify.sh; echo "exit code: $?"
+# โหลดกฎที่ถูกกลับคืน แล้วทดสอบอีกครั้งแบบดูเฉพาะ Exit code
+sudo ip netns exec b-rtr nft -f branch_fw.nft
+sudo bash verify.sh &gt; /dev/null; echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>FAIL  SALES -&gt; HR Portal tcp/443 (คาดว่า allow แต่ได้ deny)
+PASS  SALES -&gt; Payroll tcp/8080 (ได้ deny)
+PASS  SALES -&gt; HR ping (ได้ deny)
+PASS  SALES -&gt; Router ping (ได้ allow)
+PASS  HR -&gt; SALES ping (ได้ allow)
+สรุป: PASS 4  FAIL 1
+exit code: 1
+exit code: 0</code></pre>
+<p>เมื่อกฎ drop ทั้งวงขึ้นไปอยู่ก่อน Packet ไป HR Portal ก็ตรงกฎนั้นก่อนและถูกทิ้ง กฎ accept ด้านล่างจึงไม่มีโอกาสทำงานเลย เป็นหลักการ "First match wins" เดียวกับ ACL ของ Cisco และเนื่องจาก <code>flush ruleset</code> อยู่บรรทัดแรกของไฟล์ การโหลดไฟล์ใหม่จึงแทนที่กฎเดิมทั้งหมด ไม่ซ้อนกัน</p>
+
+<h5>ปิด Lab</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/network-lab/practice/ch3
+sudo bash cleanup.sh; echo "exit code: $?"
+# นับ Namespace ของ Lab ที่ยังเหลือ (ควรเป็น 0)
+sudo ip netns list | grep -c '^b-'
+# รันซ้ำได้โดยไม่ Error แม้ Lab ถูกลบไปแล้ว
+sudo bash cleanup.sh; echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>exit code: 0
+0
+exit code: 0</code></pre>
+
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ถ้ารัน <code>branch_lab.sh</code> โดยไม่ใช้ <code>sudo</code> จะได้ <code>mount --make-shared /run/netns failed: Operation not permitted</code> หรือ <code>RTNETLINK answers: Operation not permitted</code> และถ้าลืมเปิด <code>net.ipv4.ip_forward</code> ใน <code>b-rtr</code> การทดสอบที่ข้ามวงจะได้ deny ทั้งหมด ทำให้ข้อ HR Portal และ HR ไป SALES ขึ้น FAIL ทั้งที่กฎ Firewall ถูกต้อง ให้ตรวจ Routing ก่อนสงสัย Firewall เสมอ</p></div>
+
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+  <li>เพิ่ม Namespace ที่สาม <code>b-guest</code> สำหรับวง Guest Wi-Fi (<code>192.168.30.0/24</code>) ที่เข้าได้เฉพาะอินเทอร์เน็ต แล้วเขียน Chain แบบ <code>policy drop</code> (Default deny) แทน <code>policy accept</code> พร้อมเพิ่มการทดสอบใน <code>verify.sh</code> ว่า Guest เข้าวง SALES และ HR ไม่ได้ทั้งคู่</li>
+  <li>เพิ่ม <code>log prefix "SALES-IN DROP: "</code> ในกฎ drop แล้วดู Log ด้วย <code>sudo dmesg | tail</code> หรือ <code>journalctl -k</code> เพื่อฝึกอ่าน Log ของ Firewall แบบที่ทีม SOC ใช้สืบหาว่าใครพยายามเข้าระบบเงินเดือน</li>
+  <li>ย้ายการทดสอบไปอยู่ใน GitHub Actions: ให้ Workflow รัน <code>branch_lab.sh</code> และ <code>verify.sh</code> บน Runner ของ Ubuntu ทุกครั้งที่มีคนแก้ไฟล์ <code>branch_fw.nft</code> และบล็อกการ Merge ถ้า Exit code ไม่เป็น 0 ซึ่งเป็นแนวคิด Network as Code ที่ใช้จริงในองค์กร</li>
+  <li>ทำให้ Lab ใกล้ของจริงขึ้นด้วย VLAN Tagging: ใช้ veth เส้นเดียวระหว่าง Switch จำลอง (Linux Bridge ที่เปิด <code>vlan_filtering</code>) กับ Router แล้วสร้าง Sub-interface <code>r-trunk.10</code> และ <code>r-trunk.20</code> ด้วย <code>ip link add link r-trunk name r-trunk.10 type vlan id 10</code> ให้ตรงกับ Router-on-a-Stick ใน Part 2</li>
+  <li>เปลี่ยน HR Portal ให้เป็น HTTPS จริงด้วย Self-signed Certificate ที่สร้างจาก <code>openssl req -x509</code> โดยใส่ <code>-addext "subjectAltName=IP:192.168.20.10"</code> แล้วทดสอบด้วย <code>curl --cacert cert.pem https://192.168.20.10/</code> (ไม่ใช้ <code>-k</code> ตามเหตุผลใน MCQ ข้อ 7) เพื่อยืนยันว่ากฎ Firewall ไม่ต้องเปลี่ยนเลย เพราะกฎดูแค่หมายเลข Port</li>
+</ol>
+</div></details>
+</section>

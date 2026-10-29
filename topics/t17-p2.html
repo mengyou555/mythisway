@@ -1,0 +1,1861 @@
+<section class="part" data-part="2">
+  <h2 id="s17-2"><span class="sec-no">17.2</span>Core Concept &amp; Quick Guide</h2>
+  <p>ส่วนนี้คือคู่มือใช้งานจริงของ Git และ GitHub แบบ W3Schools มีทั้งหมด 12 แนวคิด เรียงจากง่ายไปยาก แต่ละแนวคิดมีคำอธิบายสั้นๆ ตัวอย่างที่พิมพ์ตามได้ทั้งชุด ผลลัพธ์ที่ได้จากการรันจริง ตารางอธิบายทีละบรรทัด ข้อผิดพลาดที่มือใหม่เจอบ่อยพร้อมข้อความ Error จริง และแบบฝึกให้ลองเอง แนวคิดที่ 1–4 ตรงกับ Step 1–5 ในส่วนที่ 1 ของหัวข้อนี้ แนวคิดที่ 5–8 ตรงกับ Step 6–9 และแนวคิดที่ 9–12 ตรงกับ Step 10–13</p>
+  <p>ทุกตัวอย่างพิมพ์ใน Terminal ของ Ubuntu บน WSL2 ตามที่เตรียมไว้ในหัวข้อ <a data-t="19"></a> ตัวอย่างทั้งหมดอยู่ใน <code>~/projects/git-lab/</code> แยกโฟลเดอร์ตามแนวคิด (<code>c01-first-repo</code> ถึง <code>c12-site</code>) และทุกชุดเริ่มด้วย <code>rm -rf</code> โฟลเดอร์ของตัวเอง เพื่อให้รันซ้ำกี่ครั้งก็ได้ผลเหมือนเดิม ส่วนที่ต้องใช้ GitHub จริง เช่น Pull Request หรือ GitHub Actions เราจะจำลองด้วย Bare repository ในเครื่องก่อน เพื่อให้เห็นผลลัพธ์จริงของ <code>push</code>, <code>fetch</code> และ <code>pull</code> แล้วค่อยอธิบายว่าบน GitHub จะเห็นอะไร</p>
+
+  <h3 id="s17-2-setup">เตรียมเครื่องสำหรับหัวข้อนี้</h3>
+  <p>Ubuntu 24.04 มี Git มาให้แล้วในหลายเครื่อง แต่ให้ติดตั้งชุดเครื่องมือทั้งหมดของหัวข้อนี้ในคำสั่งเดียว เพื่อให้เวอร์ชันตรงกับที่หลักสูตรใช้ แพ็กเกจที่ติดตั้งมีดังนี้: <code>git</code> (ตัวหลัก), <code>git-lfs</code> (เก็บไฟล์ใหญ่ ใช้ในแนวคิดที่ 11), <code>git-filter-repo</code> (ลบไฟล์ออกจากประวัติ ใช้ในแนวคิดที่ 10), <code>tig</code> (ดูประวัติแบบโต้ตอบใน Terminal), <code>openssh-client</code> (สร้าง SSH key ใช้ในแนวคิดที่ 7) และ <code>nano</code> (Editor ที่ Git เปิดให้เขียนข้อความ Commit)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># อัปเดตรายการแพ็กเกจ แล้วติดตั้งเครื่องมือทั้งหมดของหัวข้อนี้
+sudo apt update
+sudo apt install -y git git-lfs git-filter-repo tig openssh-client nano
+
+# (ไม่บังคับ) gitk โปรแกรมดูประวัติแบบหน้าต่าง GUI ที่เปิดผ่าน WSLg ได้
+sudo apt install -y gitk</code></pre>
+  <p>ตรวจเวอร์ชันของทุกเครื่องมือ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ตรวจเวอร์ชันทีละตัว
+git --version
+git lfs version
+git filter-repo --version
+tig --version | head -1
+ssh -V
+nano --version | head -1</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>git version 2.43.0
+git-lfs/3.4.1 (GitHub; linux amd64; go 1.22.2)
+ed61b4050b71
+tig version 2.5.8
+OpenSSH_9.6p1 Ubuntu-3ubuntu13.20, OpenSSL 3.0.13 30 Jan 2024
+ GNU nano, version 7.2</code></pre>
+  <p class="muted small"><code>git filter-repo --version</code> แสดงรหัส Commit สั้นของตัวโปรแกรม (<code>ed61b4050b71</code>) ไม่ใช่เลขเวอร์ชัน ถ้าอยากเห็นเลขเวอร์ชันของแพ็กเกจ ให้ใช้ <code>apt-cache policy git-filter-repo</code> ซึ่งจะแสดง <code>2.38.0-2</code> ส่วนเลขท้ายของ OpenSSH เช่น <code>13.20</code> อาจต่างจากเครื่องคุณเล็กน้อยตามรอบอัปเดตความปลอดภัยของ Ubuntu</p>
+  <p>ถัดมาตรวจค่าตั้งของ Git ที่ทำไว้ตั้งแต่ Day 0 และส่วนที่ 1 ถ้ายังไม่เคยตั้ง ให้รันคำสั่ง <code>git config</code> ทั้ง 5 บรรทัดก่อน (ใส่ชื่อและอีเมลของคุณเอง ส่วนตัวอย่างในหน้านี้ใช้ชื่อ Somchai Jaidee)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ตั้งค่าครั้งเดียว ใช้กับทุก Repository ในเครื่อง (ข้ามได้ถ้าตั้งไว้แล้ว)
+git config --global user.name "Somchai Jaidee"
+git config --global user.email "somchai@example.com"
+git config --global init.defaultBranch main     # Branch แรกชื่อ main
+git config --global core.editor nano            # ใช้ nano เขียนข้อความ Commit
+git config --global pull.rebase false           # git pull แบบ Merge (ค่าเริ่มต้นของหลักสูตร)
+
+# ตรวจค่าที่ตั้งไว้ทั้งหมด
+git config --global --list
+
+# สร้างโฟลเดอร์ห้องทดลองของส่วนนี้
+mkdir -p ~/projects/git-lab</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>user.name=Somchai Jaidee
+user.email=somchai@example.com
+init.defaultbranch=main
+core.editor=nano
+pull.rebase=false</code></pre>
+  <p>แนวคิดที่ 12 ต้องใช้ <code>npx</code> เพื่อตรวจเว็บในเครื่องด้วยคำสั่งเดียวกับที่ GitHub Actions ใช้ จึงต้องมี Node.js LTS ที่ติดตั้งผ่าน nvm v0.40.8 (ถ้าติดตั้งไว้แล้วจากหัวข้ออื่น ข้ามขั้นนี้ได้)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ติดตั้ง nvm เวอร์ชัน v0.40.8 แล้วโหลดค่าใหม่ของ Shell
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh | bash
+source ~/.bashrc
+
+# ติดตั้ง Node.js รุ่น LTS แล้วตรวจเวอร์ชัน
+nvm install --lts
+node --version
+npx --version</code></pre>
+  <p>ณ วันที่ 2026-10-19 <code>nvm install --lts</code> จะได้ Node.js 24 (<code>node --version</code> แสดง <code>v24.22.0</code>) แต่ตั้งแต่ 2026-10-28 Node.js 26 จะขึ้นเป็น Active LTS และคำสั่งเดียวกันจะได้ <code>v26.x</code> แทน ตัวอย่างในหัวข้อนี้ใช้ได้กับทั้งสองรุ่น</p>
+  <div class="callout note"><span class="c-label note">หมายเหตุ</span><p>ผลลัพธ์ในหน้านี้ได้จากการรันจริงบน Ubuntu 24.04 กับ Git 2.43.0 แต่สิ่งต่อไปนี้จะต่างจากเครื่องของคุณเสมอ: รหัส Commit (Hash) เช่น <code>1d44376</code>, วันเวลา, ชื่อเครื่อง, จำนวน Byte และความเร็วในการส่งข้อมูล นอกจากนี้ เวลารันใน Terminal จริง Git จะแสดงบรรทัดความคืบหน้า เช่น <code>Enumerating objects: 3, done.</code> และใส่สีให้ข้อความ ซึ่งไม่ปรากฏในผลลัพธ์ที่คัดลอกมาที่นี่ ถ้ารหัส Commit ไม่ตรงกับหน้านี้ถือว่าปกติ ให้ดูที่ข้อความและโครงสร้างแทน</p></div>
+  <div class="callout"><span class="c-label tip">Tip</span><p>คำสั่งอย่าง <code>git log</code>, <code>git diff</code> และ <code>git show</code> จะเปิดผลลัพธ์ในโปรแกรม <code>less</code> เมื่อข้อความยาวเกินหน้าจอ และค้างอยู่ที่ <code>(END)</code> ให้กด <kbd>q</kbd> เพื่อออก ถ้าอยากให้ผลลัพธ์พิมพ์ออกมาตรงๆ ใช้ <code>git --no-pager log</code> หรือตั้ง <code>GIT_PAGER=cat</code> ชั่วคราวในหน้าต่างนั้น</p></div>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 1</span><span class="lvl" data-lvl="b">Beginner</span></div>
+    <h3 id="s17-2-c01">Repository, 3 พื้นที่ของ Git และ Commit แรก</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p><strong>Version Control</strong> คือระบบที่บันทึกประวัติการเปลี่ยนแปลงของไฟล์ทุกครั้งที่เราสั่ง ทำให้ย้อนดูได้ว่าใครแก้อะไร เมื่อไร และเพราะอะไร และย้อนกลับไปเวอร์ชันเก่าได้โดยไม่ต้องตั้งชื่อไฟล์แบบ <code>report_final_v3_จริงๆ.docx</code> อีกต่อไป <strong>Git</strong> คือโปรแกรม Version Control ที่ทำงานในเครื่องของเรา ส่วน <strong>GitHub</strong> คือเว็บไซต์ที่รับฝาก Repository ของ Git ไว้บน Internet และเพิ่มเครื่องมือทำงานเป็นทีม เช่น Pull Request, Issues และ Actions เปรียบง่ายๆ คือ Git ใช้ได้โดยไม่มี GitHub แต่ GitHub ทำงานบน Git เสมอ</p>
+    <p><strong>Repository</strong> (เรียกสั้นๆ ว่า Repo) คือโฟลเดอร์โปรเจกต์ที่ Git ดูแล สร้างได้ด้วย <code>git init</code> ซึ่งจะสร้างโฟลเดอร์ซ่อนชื่อ <code>.git</code> ไว้ข้างใน ประวัติทั้งหมดเก็บอยู่ในโฟลเดอร์นี้ ถ้าลบ <code>.git</code> ทิ้ง ไฟล์งานยังอยู่ แต่ประวัติหายหมด ภายในเครื่องของเรา การเปลี่ยนแปลงจะเดินทางผ่าน 3 พื้นที่ ดังแผนภาพนี้ (พื้นที่ที่ 4 คือ Remote จะเรียนในแนวคิดที่ 7)</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Diagram · 3 พื้นที่ในเครื่อง"><code class="language-plaintext">  [ 1. Working Tree ]        ไฟล์จริงในโฟลเดอร์ ที่คุณเปิดแก้ใน VS Code หรือ nano
+          |                         ^
+          | git add &lt;ไฟล์&gt;          | git restore &lt;ไฟล์&gt;  (แนวคิดที่ 4)
+          v                         |
+  [ 2. Staging Area ]        รายการที่เลือกไว้แล้วว่าจะเข้า Commit ถัดไป (ไฟล์ .git/index)
+          |                         ^
+          | git commit -m "..."     | git restore --staged &lt;ไฟล์&gt;  (แนวคิดที่ 4)
+          v                         |
+  [ 3. Local Repository ]    ประวัติทุก Commit ในโฟลเดอร์ .git   HEAD = Commit ล่าสุดที่เรายืนอยู่</code></pre>
+    <p>ไฟล์แต่ละไฟล์จึงมีสถานะได้ 4 แบบ ซึ่งดูได้จาก <code>git status</code></p>
+    <ul>
+      <li><strong>Untracked</strong>: ไฟล์ใหม่ที่ Git ยังไม่เคยรู้จัก <code>git status -s</code> แสดงเป็น <code>??</code></li>
+      <li><strong>Modified</strong>: ไฟล์ที่ Git รู้จักแล้ว และถูกแก้หลัง Commit ล่าสุด แสดงเป็น <code> M</code> (มีช่องว่างนำหน้า หมายถึงแก้ใน Working Tree แต่ยังไม่ add)</li>
+      <li><strong>Staged</strong>: ไฟล์ที่ <code>git add</code> แล้ว รอเข้า Commit แสดงเป็น <code>A</code> (ไฟล์ใหม่) หรือ <code>M </code> (ไฟล์เดิมที่แก้) ในคอลัมน์ซ้าย ถ้าเห็น <code>MM</code> แปลว่า add ไปแล้วรอบหนึ่ง แล้วแก้ต่ออีก</li>
+      <li><strong>Committed</strong>: ไฟล์ที่ตรงกับ Commit ล่าสุดทุกตัวอักษร <code>git status -s</code> จะไม่แสดงไฟล์นั้นเลย</li>
+    </ul>
+    <p><strong>Commit</strong> คือภาพถ่าย (Snapshot) ของทุกไฟล์ที่ Staged ณ เวลานั้น พร้อมข้อมูลกำกับ คือ ชื่อและอีเมลผู้เขียน (Author), วันเวลา, ข้อความอธิบาย (Message), Commit ก่อนหน้า (Parent) และรหัสประจำตัวยาว 40 ตัวอักษรที่คำนวณด้วย SHA-1 จากเนื้อหาทั้งหมด ถ้าเนื้อหาเปลี่ยนแม้ตัวอักษรเดียว รหัสก็เปลี่ยน ใช้แนวคิดนี้ทุกครั้งที่เริ่มโปรเจกต์ใหม่ และทุกครั้งที่งานเสร็จเป็นชิ้นที่มีความหมาย เช่น เพิ่มหน้าใหม่เสร็จ หรือแก้บั๊กหนึ่งตัวเสร็จ</p>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>การถ่ายรูปหมู่ <strong>Working Tree</strong> คือทุกคนที่อยู่ในงาน <strong>git add</strong> คือการเรียกคนที่จะถ่ายมายืนหน้ากล้อง (Staging Area) ใครยังไม่ถูกเรียกก็จะไม่อยู่ในรูป <strong>git commit</strong> คือการกดชัตเตอร์ รูปที่ได้ถูกเก็บลงอัลบั้ม (Local Repository) พร้อมเขียนใต้รูปว่าถ่ายเมื่อไร ใครถ่าย และเป็นงานอะไร รูปในอัลบั้มไม่เปลี่ยนตามคนที่ขยับทีหลัง ถ้าอยากได้ภาพใหม่ต้องถ่ายใหม่</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>ไม่ต้องติดตั้งอะไรเพิ่มจากส่วนเตรียมเครื่อง เริ่มจากสร้าง Repository เปล่า แล้วสร้างไฟล์แรก (บรรทัดแรกลบโฟลเดอร์เก่าทิ้ง เพื่อให้รันซ้ำได้)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ลบของเก่า (ถ้ามี) แล้วสร้างโฟลเดอร์ใหม่และเข้าไปข้างใน
+rm -rf ~/projects/git-lab/c01-first-repo
+mkdir -p ~/projects/git-lab/c01-first-repo &amp;&amp; cd ~/projects/git-lab/c01-first-repo
+
+# ให้ Git เริ่มดูแลโฟลเดอร์นี้ (สร้างโฟลเดอร์ .git)
+git init
+
+# สร้างไฟล์แรก แล้วดูสถานะ
+echo '# First Repo' &gt; README.md
+git status</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Initialized empty Git repository in /home/somchai/projects/git-lab/c01-first-repo/.git/
+On branch main
+
+No commits yet
+
+Untracked files:
+  (use "git add &lt;file&gt;..." to include in what will be committed)
+	README.md
+
+nothing added to commit but untracked files present (use "git add" to track)</code></pre>
+    <p>ต่อมานำไฟล์เข้า Staging Area แล้วสร้าง Commit แรก จากนั้นแก้ไฟล์อีกรอบเพื่อดูสถานะ Modified</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เลือก README.md เข้า Staging Area แล้วดูสถานะแบบสั้น
+git add README.md
+git status -s
+
+# สร้าง Commit แรก พร้อมข้อความอธิบาย
+git commit -m 'docs: add README'
+
+# แก้ไฟล์ต่อ (เพิ่มบรรทัดท้ายไฟล์ด้วย &gt;&gt;) แล้วดูสถานะอีกครั้ง
+echo 'ฝึก Git วันแรก' &gt;&gt; README.md
+git status -s
+
+# ดูไฟล์ทั้งหมดรวมไฟล์ซ่อน จะเห็นโฟลเดอร์ .git
+ls -a</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>A  README.md
+[main (root-commit) 0e5ea71] docs: add README
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+ M README.md
+.
+..
+.git
+README.md</code></pre>
+    <p>ทดลองให้เห็นรหัสสถานะทั้ง 3 แบบที่เจอบ่อย คือ <code>??</code>, <code>M </code> และ <code>MM</code> แล้วเปิดดูข้างในของ Commit ด้วย <code>git cat-file</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สถานะตอนนี้: README.md ถูกแก้แต่ยังไม่ add  และมีไฟล์ใหม่ todo.txt
+echo "งานที่ต้องทำ" &gt; todo.txt
+git status -s
+
+# add README.md แล้วดูอีกครั้ง (M ย้ายไปคอลัมน์ซ้าย = Staged)
+git add README.md
+git status -s
+
+# แก้ README.md เพิ่มหลัง add (กลายเป็น MM)
+echo "ทบทวนคำสั่ง status" &gt;&gt; README.md
+git status -s
+
+# เปิดดูข้อมูลที่เก็บอยู่ใน Commit ล่าสุด (HEAD)
+git cat-file -p HEAD</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> M README.md
+?? todo.txt
+M  README.md
+?? todo.txt
+MM README.md
+?? todo.txt
+tree 2e6ef7f3b0f9d3f81d1f0f7094f81f3e1067d8ce
+author Somchai Jaidee &lt;somchai@example.com&gt; 1792415700 +0700
+committer Somchai Jaidee &lt;somchai@example.com&gt; 1792415700 +0700
+
+docs: add README</code></pre>
+    <p class="muted small">รหัส <code>0e5ea71</code> และตัวเลข <code>1792415700</code> (เวลาแบบ Unix timestamp) ในเครื่องของคุณจะต่างจากนี้ Commit แรกไม่มีบรรทัด <code>parent</code> เพราะไม่มี Commit ก่อนหน้า Commit ถัดๆ ไปจะมีบรรทัด <code>parent</code> ชี้กลับไปหา Commit ก่อนหน้าเสมอ</p>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>git init</code></td><td>สร้างโฟลเดอร์ <code>.git</code> ทำให้โฟลเดอร์ปัจจุบันเป็น Repository Branch แรกชื่อ <code>main</code> เพราะตั้ง <code>init.defaultBranch</code> ไว้</td></tr>
+      <tr><td><code>git status</code></td><td>บอกว่าอยู่ Branch ไหน มี Commit หรือยัง และไฟล์ไหนอยู่ในสถานะอะไร พร้อมแนะนำคำสั่งถัดไปในวงเล็บ อ่านข้อความแนะนำนี้ทุกครั้ง</td></tr>
+      <tr><td><code>No commits yet</code> / <code>Untracked files</code></td><td>Repository ยังว่าง และ <code>README.md</code> เป็นไฟล์ที่ Git ยังไม่ติดตาม</td></tr>
+      <tr><td><code>git add README.md</code></td><td>คัดลอกเนื้อหาไฟล์ ณ ตอนนี้เข้า Staging Area ถ้าแก้ไฟล์หลังจากนี้ ต้อง <code>add</code> ซ้ำ ส่วน <code>git add .</code> คือ add ทุกไฟล์ในโฟลเดอร์ปัจจุบันลงไป</td></tr>
+      <tr><td><code>git status -s</code></td><td>สถานะแบบสั้น คอลัมน์ซ้ายคือ Staging Area คอลัมน์ขวาคือ Working Tree เช่น <code>A </code> = ไฟล์ใหม่ที่ Staged, <code> M</code> = แก้แล้วยังไม่ add, <code>M </code> = แก้แล้ว add แล้ว, <code>MM</code> = add แล้วแก้ต่อ, <code>??</code> = Untracked</td></tr>
+      <tr><td><code>git commit -m 'docs: add README'</code></td><td>บันทึกสิ่งที่อยู่ใน Staging Area เป็น Commit ใหม่ ถ้าไม่ใส่ <code>-m</code> Git จะเปิด nano ให้เขียนข้อความ เขียนเสร็จกด <kbd>Ctrl</kbd>+<kbd>O</kbd>, <kbd>Enter</kbd> เพื่อบันทึก แล้ว <kbd>Ctrl</kbd>+<kbd>X</kbd> เพื่อออก</td></tr>
+      <tr><td><code>[main (root-commit) 0e5ea71]</code></td><td>Commit นี้อยู่บน Branch <code>main</code> เป็น Commit แรก (root) และมีรหัสย่อ 7 ตัวแรกเป็น <code>0e5ea71</code></td></tr>
+      <tr><td><code>1 file changed, 1 insertion(+)</code> / <code>create mode 100644</code></td><td>สรุปว่ามี 1 ไฟล์เปลี่ยน เพิ่ม 1 บรรทัด และเป็นไฟล์ใหม่ที่มีสิทธิ์แบบไฟล์ธรรมดา (100644)</td></tr>
+      <tr><td><code>ls -a</code> แสดง <code>.git</code></td><td>โฟลเดอร์ซ่อนที่เก็บประวัติทั้งหมด ห้ามแก้ไฟล์ข้างในด้วยมือ</td></tr>
+      <tr><td><code>git cat-file -p HEAD</code></td><td><code>HEAD</code> คือตัวชี้ไปยัง Commit ที่เรายืนอยู่ คำสั่งนี้แสดงข้อมูลดิบของ Commit: <code>tree</code> (ภาพถ่ายของไฟล์ทั้งหมด), <code>author</code>, <code>committer</code> และข้อความ</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td><code>fatal: not a git repository (or any of the parent directories): .git</code></td><td>รันคำสั่ง Git ในโฟลเดอร์ที่ไม่ใช่ Repository เช่น ลืม <code>cd</code> เข้าโปรเจกต์ หรือยังไม่ได้ <code>git init</code></td><td>ใช้ <code>pwd</code> ดูว่าอยู่ที่ไหน แล้ว <code>cd ~/projects/git-lab/c01-first-repo</code> หรือรัน <code>git init</code> ถ้าเป็นโปรเจกต์ใหม่</td></tr>
+      <tr><td><code>nothing added to commit but untracked files present (use "git add" to track)</code></td><td>สั่ง <code>git commit</code> ทั้งที่ยังไม่ได้ <code>git add</code> ไฟล์ใดเลย Staging Area จึงว่าง</td><td>รัน <code>git add &lt;ไฟล์&gt;</code> หรือ <code>git add .</code> ก่อน แล้วตรวจด้วย <code>git status -s</code> ว่าไฟล์อยู่คอลัมน์ซ้ายแล้วจึง Commit</td></tr>
+      <tr><td><code>Author identity unknown</code><br><code>*** Please tell me who you are.</code><br><code>fatal: unable to auto-detect email address (got 'somchai@vm.(none)')</code></td><td>ยังไม่ได้ตั้งชื่อและอีเมล Git จึงไม่รู้ว่าจะบันทึกใครเป็นผู้เขียน Commit (ส่วน <code>vm</code> คือชื่อเครื่อง ในเครื่องคุณจะเป็นชื่อคอมพิวเตอร์ของคุณ)</td><td><code>git config --global user.name "ชื่อของคุณ"</code> และ <code>git config --global user.email "อีเมลของคุณ"</code> แล้วรัน <code>git commit</code> ซ้ำ</td></tr>
+      <tr><td>ทุกโฟลเดอร์ใน Home กลายเป็นไฟล์ <code>??</code> ยาวเหยียด เมื่อรัน <code>git status</code> ที่ใดก็ได้ใต้ <code>~</code></td><td>เผลอรัน <code>git init</code> ใน Home (<code>/home/somchai</code>) Git จึงมองว่าทั้ง Home เป็น Repository เดียว</td><td>ตรวจก่อนว่าเป็น Repository ผิดที่จริงด้วย <code>ls -a ~</code> (เห็น <code>.git</code>) และ <code>git -C ~ log</code> (ต้องไม่มี Commit สำคัญ) แล้วลบเฉพาะ <code>rm -rf ~/.git</code> พิมพ์ให้ถูกทุกตัวอักษร ห้ามลบอย่างอื่น</td></tr>
+      <tr><td>Commit ไปแล้วแต่การแก้ล่าสุดไม่อยู่ใน Commit (<code>git status -s</code> ยังเห็น <code> M</code>)</td><td>แก้ไฟล์หลัง <code>git add</code> แล้วไม่ได้ add ซ้ำ Commit จึงเก็บเฉพาะเนื้อหาตอนที่ add</td><td>ดู <code>git status -s</code> ก่อน Commit ทุกครั้ง ถ้าเห็น <code>MM</code> ให้ <code>git add</code> ไฟล์นั้นอีกรอบ</td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>สร้าง 1 Repository ต่อ 1 โปรเจกต์ ไว้ใน <code>~/projects/ชื่อโปรเจกต์</code> ไม่ใช่ใน Home หรือ <code>/mnt/c</code></li>
+      <li>รัน <code>git status</code> ก่อนและหลังทุกคำสั่งที่เปลี่ยนสถานะ จนเป็นนิสัย นักพัฒนามืออาชีพก็ทำแบบนี้</li>
+      <li>ระบุชื่อไฟล์ตอน <code>git add</code> เมื่อแก้หลายเรื่องพร้อมกัน ใช้ <code>git add .</code> เฉพาะเมื่อมั่นใจว่าทุกไฟล์เป็นเรื่องเดียวกัน และมี <code>.gitignore</code> แล้ว (แนวคิดที่ 3)</li>
+      <li>Commit บ่อยๆ ทุกครั้งที่งานชิ้นเล็กเสร็จและไฟล์อยู่ในสภาพใช้งานได้</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ต่อยอดจาก Repository <code>c01-first-repo</code> ที่เพิ่งสร้าง</p><ol>
+      <li>รัน <code>git add README.md todo.txt</code> แล้ว <code>git commit -m "docs: add todo list"</code> ตรวจด้วย <code>git status</code> ว่าขึ้น <code>nothing to commit, working tree clean</code></li>
+      <li>สร้างไฟล์ <code>about.md</code> ที่มีชื่อเล่นของคุณ แล้วสังเกตรหัสใน <code>git status -s</code> ก่อนและหลัง <code>git add</code></li>
+      <li>Commit โดยไม่ใส่ <code>-m</code> ให้ nano เปิดขึ้นมา พิมพ์ <code>docs: add about me</code> บันทึกและออก</li>
+      <li>รัน <code>git cat-file -p HEAD</code> แล้วหาบรรทัด <code>parent</code> ว่าชี้ไปที่ Commit ไหน</li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 2</span><span class="lvl" data-lvl="b">Beginner</span></div>
+    <h3 id="s17-2-c02">อ่านประวัติด้วย git log, git diff และ git show</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p>ประวัติที่บันทึกไว้จะมีค่าก็ต่อเมื่อเราอ่านมันได้ Git มีคำสั่งอ่านประวัติหลัก 3 ตัว คือ <code>git log</code> แสดงรายการ Commit ย้อนจากล่าสุดไปเก่าสุด, <code>git diff</code> แสดงว่าบรรทัดไหนเปลี่ยนไปอย่างไร และ <code>git show</code> แสดงรายละเอียดของ Commit เดียวหรือเนื้อหาไฟล์ ณ Commit ใดก็ได้ ใช้ทุกครั้งก่อน Commit (ตรวจว่าจะบันทึกอะไร), ตอนรีวิวงานเพื่อน และตอนหาว่าบั๊กเริ่มเข้ามาเมื่อไร</p>
+    <p>คำสั่งสำคัญที่ควรรู้มีดังนี้</p>
+    <ul>
+      <li><code>git log --oneline</code> หนึ่ง Commit ต่อหนึ่งบรรทัด, <code>--graph --all</code> วาดเส้นของทุก Branch, <code>-n 3</code> เฉพาะ 3 Commit ล่าสุด, <code>--stat</code> บอกจำนวนบรรทัดที่เปลี่ยนต่อไฟล์, <code>-p</code> แสดง diff เต็มของแต่ละ Commit</li>
+      <li>กรองประวัติ: <code>--author="Somchai"</code> เฉพาะผู้เขียนคนนี้, <code>--since="1 week ago"</code> เฉพาะช่วงเวลา และ <code>-- menu.md</code> เฉพาะ Commit ที่แตะไฟล์นี้</li>
+      <li><code>git diff</code> เทียบ Working Tree กับ Staging Area (สิ่งที่แก้แต่ยังไม่ add), <code>git diff --staged</code> เทียบ Staging Area กับ Commit ล่าสุด (สิ่งที่กำลังจะ Commit) และ <code>git diff HEAD~2 HEAD</code> เทียบสอง Commit</li>
+      <li>การอ้าง Commit: <code>HEAD</code> คือ Commit ปัจจุบัน, <code>HEAD~1</code> คือ Commit ก่อนหน้า 1 ขั้น, <code>HEAD~2</code> ก่อนหน้า 2 ขั้น หรือใช้รหัสย่อ เช่น <code>f8ef866</code></li>
+      <li><code>git show &lt;commit&gt;</code> ดูรายละเอียด Commit และ <code>git show HEAD~2:menu.md</code> ดูเนื้อหาไฟล์ ณ Commit นั้นโดยไม่แตะไฟล์ปัจจุบัน</li>
+    </ul>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p><code>git log</code> คือสารบัญของสมุดบันทึกประจำวัน บอกว่าแต่ละวันเขียนเรื่องอะไร <code>git show</code> คือการเปิดอ่านหน้าวันใดวันหนึ่งแบบเต็มๆ ส่วน <code>git diff</code> คือการวางเอกสารสองฉบับเทียบกัน แล้วใช้ปากกาแดงขีดฆ่าส่วนที่ถูกลบ (<code>-</code>) และปากกาเขียวเขียนส่วนที่เพิ่ม (<code>+</code>)</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>สร้างเมนูร้านกาแฟ 2 Commit แล้วแก้ราคาลาเต้ เพื่อดู <code>git diff</code> ทั้งก่อนและหลัง <code>git add</code> (ไม่ต้องติดตั้งอะไรเพิ่ม)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เตรียม Repository ใหม่ (ลบของเก่าเพื่อให้รันซ้ำได้)
+rm -rf ~/projects/git-lab/c02-history
+mkdir -p ~/projects/git-lab/c02-history &amp;&amp; cd ~/projects/git-lab/c02-history
+git init -q                      # -q = quiet ไม่ต้องพิมพ์ข้อความ
+
+# Commit ที่ 1: เมนูเริ่มต้น
+echo "# เมนู" &gt; menu.md
+echo "ลาเต้ 60 บาท" &gt;&gt; menu.md
+git add menu.md
+git commit -m "feat: add menu"
+
+# Commit ที่ 2: เพิ่มมอคค่า (-a = add ไฟล์ที่ Git รู้จักแล้วให้อัตโนมัติ)
+echo "มอคค่า 70 บาท" &gt;&gt; menu.md
+git commit -am "feat: add mocha"
+
+# แก้ราคาลาเต้จาก 60 เป็น 65 แล้วดูความต่างที่ยังไม่ add
+sed -i 's/ลาเต้ 60 บาท/ลาเต้ 65 บาท/' menu.md
+git diff</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[main (root-commit) f49ac7f] feat: add menu
+ 1 file changed, 2 insertions(+)
+ create mode 100644 menu.md
+[main f8ef866] feat: add mocha
+ 1 file changed, 1 insertion(+)
+diff --git a/menu.md b/menu.md
+index e115da2..2240b7b 100644
+--- a/menu.md
++++ b/menu.md
+@@ -1,3 +1,3 @@
+ # เมนู
+-ลาเต้ 60 บาท
++ลาเต้ 65 บาท
+ มอคค่า 70 บาท</code></pre>
+    <p>เมื่อ <code>git add</code> แล้ว <code>git diff</code> เฉยๆ จะว่างเปล่า ต้องใช้ <code>--staged</code> จึงจะเห็น</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git add menu.md
+git diff                 # ว่างเปล่า เพราะ Working Tree ตรงกับ Staging Area แล้ว
+git diff --staged        # สิ่งที่กำลังจะเข้า Commit
+git commit -m "fix: update latte price"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>diff --git a/menu.md b/menu.md
+index e115da2..2240b7b 100644
+--- a/menu.md
++++ b/menu.md
+@@ -1,3 +1,3 @@
+ # เมนู
+-ลาเต้ 60 บาท
++ลาเต้ 65 บาท
+ มอคค่า 70 บาท
+[main 1d44376] fix: update latte price
+ 1 file changed, 1 insertion(+), 1 deletion(-)</code></pre>
+    <p>ตอนนี้มี 3 Commit แล้ว มาอ่านประวัติด้วยรูปแบบต่างๆ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git log --oneline                    # รายการ Commit แบบย่อ
+git log --stat -n 1                  # Commit ล่าสุด 1 อัน พร้อมสถิติไฟล์
+git show HEAD --stat                 # รายละเอียดของ HEAD (ผลเหมือนบรรทัดบนในกรณีนี้)
+git show HEAD~2:menu.md              # เนื้อหา menu.md ตอน Commit แรก
+git diff HEAD~2 HEAD                 # เทียบ Commit แรกกับ Commit ล่าสุด
+git log --oneline --author="Somchai" --since="1 week ago" -- menu.md   # กรองประวัติ</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>1d44376 fix: update latte price
+f8ef866 feat: add mocha
+f49ac7f feat: add menu
+commit 1d44376d07fc1a911ca06d0c5a8ccbdad4efad00
+Author: Somchai Jaidee &lt;somchai@example.com&gt;
+Date:   Mon Oct 19 20:15:00 2026 +0700
+
+    fix: update latte price
+
+ menu.md | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+commit 1d44376d07fc1a911ca06d0c5a8ccbdad4efad00
+Author: Somchai Jaidee &lt;somchai@example.com&gt;
+Date:   Mon Oct 19 20:15:00 2026 +0700
+
+    fix: update latte price
+
+ menu.md | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+# เมนู
+ลาเต้ 60 บาท
+diff --git a/menu.md b/menu.md
+index 92684ac..2240b7b 100644
+--- a/menu.md
++++ b/menu.md
+@@ -1,2 +1,3 @@
+ # เมนู
+-ลาเต้ 60 บาท
++ลาเต้ 65 บาท
++มอคค่า 70 บาท
+1d44376 fix: update latte price
+f8ef866 feat: add mocha
+f49ac7f feat: add menu</code></pre>
+    <p class="muted small">รหัส Commit และวันเวลาในเครื่องของคุณจะต่างจากนี้ ถ้ารันใน Terminal จริงแล้วผลลัพธ์ยาวเกินจอ Git จะเปิดใน <code>less</code> ให้กด <kbd>q</kbd> เพื่อออก</p>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>git commit -am "..."</code></td><td><code>-a</code> สั่งให้ add ไฟล์ที่ Git ติดตามอยู่แล้วทุกไฟล์ก่อน Commit (ไม่รวมไฟล์ Untracked) ใช้ได้เมื่อแก้แต่ไฟล์เดิม</td></tr>
+      <tr><td><code>diff --git a/menu.md b/menu.md</code></td><td>หัวของ diff บอกว่ากำลังเทียบไฟล์ <code>menu.md</code> ฝั่งเก่า (a) กับฝั่งใหม่ (b)</td></tr>
+      <tr><td><code>index e115da2..2240b7b 100644</code></td><td>รหัสเนื้อหาไฟล์ก่อนและหลังแก้ ใช้ภายใน Git ไม่ต้องจำ</td></tr>
+      <tr><td><code>--- a/menu.md</code> / <code>+++ b/menu.md</code></td><td>เครื่องหมาย <code>-</code> แทนฝั่งเก่า <code>+</code> แทนฝั่งใหม่</td></tr>
+      <tr><td><code>@@ -1,3 +1,3 @@</code></td><td>ช่วงบรรทัดที่เปลี่ยน (Hunk): ฝั่งเก่าเริ่มบรรทัด 1 ยาว 3 บรรทัด ฝั่งใหม่เริ่มบรรทัด 1 ยาว 3 บรรทัด ส่วน <code>@@ -1,2 +1,3 @@</code> แปลว่าจาก 2 บรรทัดกลายเป็น 3 บรรทัด</td></tr>
+      <tr><td>บรรทัดขึ้นต้นด้วย <code>-</code> / <code>+</code> / ช่องว่าง</td><td>ถูกลบ / ถูกเพิ่ม / ไม่เปลี่ยน (แสดงไว้เป็นบริบท) การแก้ 1 บรรทัดจึงแสดงเป็นลบ 1 เพิ่ม 1</td></tr>
+      <tr><td><code>git diff</code> กับ <code>git diff --staged</code></td><td>ตัวแรกดูสิ่งที่ยังไม่ add ตัวหลังดูสิ่งที่ add แล้วและกำลังจะ Commit ใช้ทั้งคู่ก่อน Commit เพื่อไม่ให้ของแปลกปลอมหลุดเข้าไป</td></tr>
+      <tr><td><code>git log --stat -n 1</code></td><td>แสดงรหัสเต็ม 40 ตัว ผู้เขียน วันที่ ข้อความ และสรุป <code>menu.md | 2 +-</code> (1 บรรทัดเพิ่ม 1 บรรทัดลบ)</td></tr>
+      <tr><td><code>git show HEAD~2:menu.md</code></td><td>รูปแบบ <code>&lt;commit&gt;:&lt;path&gt;</code> พิมพ์เนื้อหาไฟล์ ณ Commit นั้นออกจอ เหมาะกับการดูของเก่าโดยไม่เปลี่ยนไฟล์จริง</td></tr>
+      <tr><td><code>git diff HEAD~2 HEAD</code></td><td>เทียบสอง Commit ใดก็ได้ ผลคือรวมการเปลี่ยนแปลงทั้งหมดระหว่างทาง (เพิ่มมอคค่าและแก้ราคาลาเต้)</td></tr>
+      <tr><td><code>--author</code>, <code>--since</code>, <code>-- menu.md</code></td><td>ตัวกรองใช้รวมกันได้ <code>--</code> คั่นระหว่างตัวเลือกกับชื่อไฟล์ เพื่อไม่ให้ Git สับสนว่าเป็นชื่อ Branch</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td><code>fatal: ambiguous argument 'HEAD~5': unknown revision or path not in the working tree.</code><br><code>Use '--' to separate paths from revisions, like this:</code></td><td>อ้างย้อนหลังเกินจำนวน Commit ที่มีจริง (มีแค่ 3 Commit แต่ขอ <code>HEAD~5</code>) หรือพิมพ์รหัส Commit ผิด</td><td>ดูจำนวน Commit ด้วย <code>git log --oneline</code> ก่อน แล้วใช้ตัวเลขที่มีจริง หรือคัดลอกรหัสจาก log</td></tr>
+      <tr><td><code>git diff</code> ไม่แสดงอะไรเลย ทั้งที่เพิ่งแก้ไฟล์</td><td>ไฟล์ถูก <code>git add</code> ไปแล้ว ความต่างจึงย้ายไปอยู่ระหว่าง Staging Area กับ Commit ล่าสุด</td><td>ใช้ <code>git diff --staged</code> (หรือชื่อเดิม <code>--cached</code>) หรือ <code>git diff HEAD</code> เพื่อดูทั้งหมดเทียบกับ Commit ล่าสุด</td></tr>
+      <tr><td>หน้าจอค้าง มีคำว่า <code>(END)</code> หรือ <code>:</code> ที่ด้านล่าง พิมพ์อะไรไม่ได้</td><td>ผลลัพธ์ยาวเกินจอ Git จึงเปิดด้วยโปรแกรม <code>less</code> (Pager)</td><td>กด <kbd>q</kbd> เพื่อออก เลื่อนด้วยลูกศรหรือ <kbd>Space</kbd> ถ้าไม่อยากให้เปิด Pager ใช้ <code>git --no-pager log</code></td></tr>
+      <tr><td><code>fatal: your current branch 'main' does not have any commits yet</code></td><td>รัน <code>git log</code> ใน Repository ที่ยังไม่มี Commit เลย</td><td>สร้าง Commit แรกก่อน (<code>git add</code> แล้ว <code>git commit</code>) จากนั้นจึงใช้ <code>git log</code></td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>ก่อน Commit ทุกครั้งให้อ่าน <code>git diff --staged</code> ทั้งหมด เป็นการรีวิวงานตัวเองก่อนให้คนอื่นรีวิว</li>
+      <li>ตั้ง Alias ที่ใช้บ่อย เช่น <code>git config --global alias.lg "log --oneline --graph --all"</code> แล้วใช้ <code>git lg</code></li>
+      <li>เวลาสงสัยว่าบรรทัดหนึ่งมาจากไหน ให้เริ่มที่ <code>git log -p -- &lt;ไฟล์&gt;</code> ก่อนถามเพื่อนร่วมทีม</li>
+      <li>ใช้ <code>tig</code> (ติดตั้งแล้วในส่วนเตรียมเครื่อง) เมื่ออยากเลื่อนดูประวัติและ diff แบบโต้ตอบใน Terminal</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ทำต่อใน <code>c02-history</code></p><ol>
+      <li>เพิ่มบรรทัด <code>อเมริกาโน่ 55 บาท</code> แล้วดู <code>git diff</code> ระบุว่า Hunk header เปลี่ยนเป็นค่าอะไร</li>
+      <li>Commit ด้วยข้อความ <code>feat: add americano</code> แล้วรัน <code>git log --oneline -n 2</code></li>
+      <li>ใช้ <code>git show HEAD~1:menu.md</code> ดูเมนูก่อนเพิ่มอเมริกาโน่</li>
+      <li>รัน <code>git log -p --oneline -- menu.md</code> แล้วนับว่าราคาลาเต้ถูกแก้กี่ครั้ง</li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 3</span><span class="lvl" data-lvl="b">Beginner</span></div>
+    <h3 id="s17-2-c03">Commit อย่างมืออาชีพ: Conventional Commits และ .gitignore</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p>ประวัติ Git ที่ดีอ่านแล้วเข้าใจได้ทันทีว่าโปรเจกต์เปลี่ยนไปอย่างไร หลักการของ Commit ที่ดีมี 3 ข้อ (1) <strong>หนึ่ง Commit หนึ่งเรื่อง</strong> เช่น แก้บั๊กกับเพิ่มฟีเจอร์ให้แยกกัน (2) <strong>หัวเรื่อง (Subject)</strong> สั้น ไม่เกิน 50–72 ตัวอักษร เขียนแบบคำสั่ง เช่น <code>add</code> ไม่ใช่ <code>added</code> (3) ถ้าเหตุผลไม่ชัด ให้เขียน <strong>เนื้อความ (Body)</strong> อธิบาย "ทำไม" โดยเว้น 1 บรรทัดหลังหัวเรื่อง เวลาแก้หลายเรื่องในไฟล์เดียว ใช้ <code>git add -p</code> เลือกเข้า Staging ทีละส่วน (Hunk) ได้</p>
+    <p>ทีมส่วนใหญ่ใช้รูปแบบ <strong>Conventional Commits 1.0.0</strong> คือ <code>type(scope): คำอธิบาย</code> โดย type ที่ใช้บ่อยมีดังนี้: <code>feat</code> ฟีเจอร์ใหม่, <code>fix</code> แก้บั๊ก, <code>docs</code> เอกสาร, <code>style</code> จัดรูปแบบโค้ดโดยไม่เปลี่ยนการทำงาน, <code>refactor</code> ปรับโครงสร้างโค้ด, <code>test</code> เพิ่มหรือแก้เทสต์, <code>chore</code> งานดูแลทั่วไป, <code>ci</code> แก้ระบบ CI ส่วน scope ในวงเล็บระบุส่วนที่แก้ เช่น <code>feat(menu): add mocha</code> และถ้าการเปลี่ยนแปลงทำให้ของเดิมใช้ไม่ได้ (Breaking change) ให้ใส่ <code>!</code> เช่น <code>feat(api)!: remove v1 endpoint</code> รูปแบบนี้ทำให้เครื่องมือสร้าง Changelog และกำหนดเลขเวอร์ชันได้อัตโนมัติ</p>
+    <p>ส่วน <strong>.gitignore</strong> คือไฟล์ที่บอก Git ว่าไฟล์ไหน "ไม่ต้องสนใจ" ได้แก่ ไฟล์ที่โปรแกรมสร้างเอง (<code>__pycache__/</code>, <code>node_modules/</code>, <code>*.log</code>), ไฟล์ของระบบปฏิบัติการ (<code>.DS_Store</code> ของ macOS, <code>Thumbs.db</code> ของ Windows) และที่สำคัญที่สุดคือไฟล์ความลับ <code>.env</code> ที่เก็บรหัสผ่านหรือ API key ซึ่งห้าม Commit เด็ดขาด เราจะ Commit ไฟล์ <code>.env.example</code> ที่มีแต่ชื่อตัวแปรแต่ไม่มีค่าแทน เพื่อให้คนอื่นรู้ว่าต้องตั้งค่าอะไรบ้าง สร้าง <code>.gitignore</code> ตั้งแต่ Commit แรกของทุกโปรเจกต์</p>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ข้อความ Commit คือป้ายติดกล่องตอนย้ายบ้าน ป้าย "ของ" ไม่ช่วยอะไร แต่ป้าย "ครัว: จานชามแตกง่าย" บอกทั้งหมวดและเนื้อหา Conventional Commits คือการตกลงกันทั้งบ้านว่าจะเขียนป้ายรูปแบบเดียวกัน ส่วน <code>.gitignore</code> คือรายการของที่ไม่ต้องขนไป เช่น ถุงขยะและกล่องเปล่า ส่วน <code>.env</code> คือกุญแจบ้านที่ต้องพกติดตัว ห้ามใส่กล่องไปกับรถขนของ</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>สร้างโปรเจกต์ที่มีไฟล์หลายประเภทปนกันก่อน แล้วดูว่า Git เห็นอะไรบ้างก่อนมี <code>.gitignore</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เตรียม Repository ใหม่
+rm -rf ~/projects/git-lab/c03-ignore
+mkdir -p ~/projects/git-lab/c03-ignore &amp;&amp; cd ~/projects/git-lab/c03-ignore
+git init -q
+
+# สร้างไฟล์ตัวอย่างหลายประเภท (ค่า API_KEY เป็นค่าปลอมสำหรับฝึกเท่านั้น)
+echo "เริ่มรันโปรแกรม" &gt; app.log
+echo "API_KEY=fake-key-for-lab-only" &gt; .env
+echo "API_KEY=" &gt; .env.example
+echo "# บันทึกโปรเจกต์" &gt; notes.md
+mkdir -p __pycache__ &amp;&amp; echo "bytecode" &gt; __pycache__/app.cpython-312.pyc
+
+git status -s</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>?? .env
+?? .env.example
+?? __pycache__/
+?? app.log
+?? notes.md</code></pre>
+    <p>สร้างไฟล์ <code>.gitignore</code> ที่ระดับบนสุดของโปรเจกต์ด้วย <code>nano .gitignore</code> แล้ววางเนื้อหานี้ (บรรทัดที่ขึ้นต้นด้วย <code>#</code> คือคอมเมนต์)</p>
+<pre class="code" data-env="file" data-label="gitignore · .gitignore"><code class="language-plaintext"># ไฟล์ความลับ ห้ามขึ้น Git เด็ดขาด
+.env
+# Log ทุกไฟล์ ยกเว้น keep.log
+*.log
+!keep.log
+# Python
+__pycache__/
+.venv/
+# Node.js
+node_modules/
+# ไฟล์ที่ระบบปฏิบัติการสร้างเอง
+.DS_Store
+Thumbs.db
+# เฉพาะ todo.txt ที่อยู่ระดับบนสุดของโปรเจกต์
+/todo.txt
+# โฟลเดอร์ temp ที่ระดับไหนก็ได้
+**/temp</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git status -s                       # ไฟล์ที่ถูก ignore หายไปจากรายการ
+git check-ignore -v .env app.log    # ถามว่าไฟล์ถูก ignore เพราะกฎบรรทัดไหน
+git status --short --ignored        # แสดงไฟล์ที่ถูก ignore ด้วยเครื่องหมาย !!</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>?? .env.example
+?? .gitignore
+?? notes.md
+.gitignore:2:.env	.env
+.gitignore:4:*.log	app.log
+?? .env.example
+?? .gitignore
+?? notes.md
+!! .env
+!! __pycache__/
+!! app.log</code></pre>
+    <p>ตอนนี้ <code>git add .</code> ได้อย่างปลอดภัย เพราะไฟล์ที่ไม่ควรขึ้น Git ถูกกันไว้แล้ว ต่อจากนั้นจำลองความผิดพลาดที่เจอบ่อย คือ Commit ไฟล์ <code>secret.txt</code> ไปก่อน แล้วค่อยเพิ่มชื่อลง <code>.gitignore</code> (ไฟล์นี้มีค่าปลอม ไม่ใช่รหัสจริง)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Commit ชุดแรกที่มี .gitignore และ .env.example
+git add .
+git commit -m "chore: add .gitignore and .env.example"
+
+# จำลองว่าเผลอ Commit secret.txt ไปแล้ว
+echo "password=not-a-real-password" &gt; secret.txt
+git add secret.txt
+git commit -m "feat: add config"
+
+# เพิ่มชื่อลง .gitignore ทีหลัง แล้วลองแก้ไฟล์
+echo "secret.txt" &gt;&gt; .gitignore
+echo "password=changed" &gt; secret.txt
+git status -s                 # secret.txt ยังขึ้น M เพราะถูกติดตามอยู่แล้ว
+
+# เลิกติดตามไฟล์ แต่ไม่ลบไฟล์ออกจากเครื่อง
+git rm --cached secret.txt
+git status -s
+git commit -am "chore: stop tracking secret.txt"
+git ls-files                  # รายชื่อไฟล์ที่ Git ติดตามอยู่ตอนนี้
+
+# ลอง add .env ตรงๆ
+git add .env</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[main (root-commit) d2201ad] chore: add .gitignore and .env.example
+ 3 files changed, 19 insertions(+)
+ create mode 100644 .env.example
+ create mode 100644 .gitignore
+ create mode 100644 notes.md
+[main 642edf3] feat: add config
+ 1 file changed, 1 insertion(+)
+ create mode 100644 secret.txt
+ M .gitignore
+ M secret.txt
+rm 'secret.txt'
+ M .gitignore
+D  secret.txt
+[main d34a65b] chore: stop tracking secret.txt
+ 2 files changed, 1 insertion(+), 1 deletion(-)
+ delete mode 100644 secret.txt
+.env.example
+.gitignore
+notes.md
+The following paths are ignored by one of your .gitignore files:
+.env
+hint: Use -f if you really want to add them.
+hint: Turn this message off by running
+hint: "git config advice.addIgnoredFile false"</code></pre>
+    <p class="muted small">ไฟล์ <code>secret.txt</code> ยังอยู่ในโฟลเดอร์ แต่ Git เลิกติดตามแล้ว อย่างไรก็ตาม ค่าเดิมยังอยู่ในประวัติของ Commit <code>642edf3</code> ถ้าเป็นความลับจริงต้องทำตามขั้นตอนในแนวคิดที่ 10 ด้วย</p>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>.env</code></td><td>ignore ไฟล์ชื่อ <code>.env</code> ทุกระดับโฟลเดอร์</td></tr>
+      <tr><td><code>*.log</code> และ <code>!keep.log</code></td><td><code>*</code> แทนตัวอักษรอะไรก็ได้ จึง ignore ทุกไฟล์ที่ลงท้าย <code>.log</code> ส่วน <code>!</code> คือข้อยกเว้น ให้ติดตาม <code>keep.log</code> ตามปกติ (ต้องเขียนหลังกฎที่ ignore)</td></tr>
+      <tr><td><code>__pycache__/</code>, <code>.venv/</code>, <code>node_modules/</code></td><td>ลงท้ายด้วย <code>/</code> หมายถึงเฉพาะโฟลเดอร์ ใช้กับโฟลเดอร์ที่ Python และ Node.js สร้างเอง ซึ่งสร้างใหม่ได้เสมอจาก <code>requirements.txt</code> หรือ <code>package.json</code></td></tr>
+      <tr><td><code>/todo.txt</code></td><td>ขึ้นต้นด้วย <code>/</code> หมายถึงเฉพาะไฟล์ที่ระดับบนสุดของ Repository ไม่รวม <code>docs/todo.txt</code></td></tr>
+      <tr><td><code>**/temp</code></td><td><code>**</code> แทนโฟลเดอร์ลึกกี่ชั้นก็ได้ จึงตรงกับ <code>temp</code>, <code>src/temp</code> และ <code>a/b/temp</code></td></tr>
+      <tr><td><code>git check-ignore -v .env app.log</code></td><td>บอกชื่อไฟล์กฎ เลขบรรทัด และกฎที่ทำให้ไฟล์ถูก ignore เช่น <code>.gitignore:4:*.log</code> ใช้ตรวจเวลาไม่แน่ใจว่ากฎไหนทำงาน</td></tr>
+      <tr><td><code>git status --short --ignored</code></td><td>แสดงไฟล์ที่ถูก ignore ด้วย <code>!!</code> ช่วยยืนยันว่า <code>.env</code> ถูกกันไว้แล้วจริง</td></tr>
+      <tr><td><code>git rm --cached secret.txt</code></td><td>ลบไฟล์ออกจาก Staging Area (เลิกติดตาม) แต่เก็บไฟล์จริงไว้ในเครื่อง สถานะ <code>D </code> หมายถึง Commit ถัดไปจะบันทึกว่าไฟล์นี้ถูกเอาออกจาก Repository</td></tr>
+      <tr><td><code>git ls-files</code></td><td>รายชื่อไฟล์ที่ Git ติดตามทั้งหมด ไม่มี <code>.env</code> และ <code>secret.txt</code> แล้ว</td></tr>
+      <tr><td><code>The following paths are ignored ...</code></td><td>Git ปฏิเสธไม่ add ไฟล์ที่ถูก ignore ให้ ถือเป็นด่านป้องกันที่ดี ห้ามใช้ <code>-f</code> กับไฟล์ความลับ</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td>เพิ่มชื่อไฟล์ใน <code>.gitignore</code> แล้ว แต่ <code>git status -s</code> ยังแสดง <code> M secret.txt</code></td><td><code>.gitignore</code> มีผลเฉพาะไฟล์ที่ยังไม่ถูกติดตาม ไฟล์ที่ Commit ไปแล้วจะถูกติดตามต่อ</td><td><code>git rm --cached &lt;ไฟล์&gt;</code> แล้ว Commit ถ้าเป็นโฟลเดอร์ใช้ <code>git rm -r --cached &lt;โฟลเดอร์&gt;</code></td></tr>
+      <tr><td><code>The following paths are ignored by one of your .gitignore files:</code><br><code>.env</code><br><code>hint: Use -f if you really want to add them.</code></td><td>พยายาม add ไฟล์ที่อยู่ใน <code>.gitignore</code></td><td>ถ้าเป็นไฟล์ความลับ ให้หยุดและไม่ add ถ้าเป็นไฟล์ที่ต้องการจริง ให้แก้กฎใน <code>.gitignore</code> (เช่น เพิ่ม <code>!ชื่อไฟล์</code>) แทนการใช้ <code>-f</code></td></tr>
+      <tr><td>ใน Code Review ถูกขอให้แก้ข้อความ Commit เช่น <code>update</code>, <code>fix stuff</code>, <code>แก้งาน</code></td><td>ข้อความไม่บอกว่าเปลี่ยนอะไรและทำไม คนอ่านประวัติต้องเปิด diff ทุกอัน</td><td>เขียนตามรูปแบบ <code>type(scope): สิ่งที่ทำ</code> เช่น <code>fix(menu): correct latte price</code> ถ้ายังไม่ Push แก้ข้อความล่าสุดด้วย <code>git commit --amend</code> (แนวคิดที่ 4)</td></tr>
+      <tr><td>สร้าง <code>.gitignore</code> แล้วไม่มีผลเลย และ <code>ls -a</code> เห็นไฟล์ชื่อ <code>.gitignore.txt</code></td><td>สร้างไฟล์ด้วย Notepad ของ Windows ซึ่งเติม <code>.txt</code> ต่อท้ายให้อัตโนมัติ</td><td>สร้างไฟล์ใน Ubuntu ด้วย <code>nano .gitignore</code> หรือ VS Code ที่เปิดผ่าน <code>code .</code> ถ้ามีไฟล์ผิดแล้วให้ <code>mv .gitignore.txt .gitignore</code></td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>สร้าง <code>.gitignore</code> เป็นไฟล์แรกของทุกโปรเจกต์ เริ่มจากแม่แบบของภาษาที่ใช้ ที่ <a href="https://github.com/github/gitignore" target="_blank" rel="noopener">github.com/github/gitignore</a></li>
+      <li>ตั้ง Global ignore สำหรับไฟล์ของเครื่องตัวเอง เช่น <code>.DS_Store</code> หรือไฟล์ตั้งค่า Editor: สร้าง <code>~/.gitignore_global</code> แล้วรัน <code>git config --global core.excludesFile ~/.gitignore_global</code></li>
+      <li>Commit <code>.env.example</code> ที่มีชื่อตัวแปรครบทุกตัวแต่ไม่มีค่า และเขียนใน README ว่าให้คัดลอกเป็น <code>.env</code> ด้วย <code>cp .env.example .env</code></li>
+      <li>ใช้ <code>git add -p</code> เมื่อไฟล์เดียวมีการแก้หลายเรื่อง เพื่อแยกเป็นหลาย Commit ที่อ่านง่าย</li>
+    </ul></div>
+    <div class="callout sec"><span class="c-label sec">Security</span><p>บอตบน Internet สแกนหา API key ใน Repository สาธารณะตลอดเวลา key ที่หลุดขึ้น GitHub อาจถูกนำไปใช้ภายในไม่กี่นาที ตรวจ <code>git status --short --ignored</code> ทุกครั้งที่เพิ่มไฟล์ความลับใหม่ และอ่านขั้นตอนรับมือเมื่อความลับหลุดในแนวคิดที่ 10</p></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ทำต่อใน <code>c03-ignore</code></p><ol>
+      <li>สร้างโฟลเดอร์ <code>src/temp</code> และไฟล์ <code>src/temp/cache.txt</code> แล้วยืนยันด้วย <code>git check-ignore -v src/temp/cache.txt</code> ว่าถูก ignore เพราะกฎบรรทัดไหน</li>
+      <li>สร้างไฟล์ <code>keep.log</code> แล้วดูว่า <code>git status -s</code> แสดงหรือไม่ เพราะอะไร</li>
+      <li>เพิ่มตัวแปร <code>DB_URL=</code> ใน <code>.env.example</code> แล้ว Commit ด้วยข้อความแบบ Conventional Commits ที่มี scope</li>
+      <li>เขียนข้อความ Commit ที่มีทั้งหัวเรื่องและเนื้อความ โดยรัน <code>git commit</code> (ไม่ใส่ <code>-m</code>) แล้วเว้น 1 บรรทัดระหว่างหัวเรื่องกับเหตุผล</li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 4</span><span class="lvl" data-lvl="b">Beginner</span></div>
+    <h3 id="s17-2-c04">ย้อนกลับอย่างปลอดภัย: restore, amend และ revert</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p>ทุกคนทำพลาด เช่น แก้ไฟล์จนพัง add ไฟล์ผิด พิมพ์ข้อความ Commit ผิด หรือ Commit โค้ดที่มีบั๊กขึ้นไปแล้ว Git มีคำสั่งย้อนกลับหลายตัว และแต่ละตัวเหมาะกับสถานการณ์ต่างกัน หลักการเลือกคือดูว่า "ความผิดพลาดอยู่ในพื้นที่ไหน" และ "แชร์ให้คนอื่นไปแล้วหรือยัง" ใช้ตารางนี้ตัดสินใจ</p>
+    <div class="tbl wide"><table><thead><tr><th>สถานการณ์</th><th>คำสั่ง</th><th>ผลลัพธ์</th><th>ความเสี่ยง</th></tr></thead><tbody>
+      <tr><td>แก้ไฟล์แล้วพัง ยังไม่ได้ add</td><td><code>git restore &lt;ไฟล์&gt;</code></td><td>ไฟล์กลับไปเหมือน Commit ล่าสุด (หรือเหมือน Staging ถ้า add ไว้)</td><td>สูง: การแก้ที่ยังไม่เคย Commit หายถาวร กู้คืนไม่ได้</td></tr>
+      <tr><td>add ไฟล์ผิดเข้า Staging</td><td><code>git restore --staged &lt;ไฟล์&gt;</code></td><td>เอาออกจาก Staging ไฟล์จริงไม่เปลี่ยน</td><td>ไม่มี</td></tr>
+      <tr><td>ข้อความ Commit ล่าสุดผิด หรือลืม add ไฟล์ และยังไม่ Push</td><td><code>git commit --amend</code></td><td>แทนที่ Commit ล่าสุดด้วย Commit ใหม่ (รหัสเปลี่ยน)</td><td>ห้ามใช้กับ Commit ที่ Push แล้ว</td></tr>
+      <tr><td>Commit ที่มีปัญหาถูก Push และแชร์ไปแล้ว</td><td><code>git revert &lt;commit&gt;</code></td><td>สร้าง Commit ใหม่ที่กลับด้านการเปลี่ยนแปลงนั้น ประวัติเดิมยังอยู่ครบ</td><td>ต่ำ: ปลอดภัยที่สุดสำหรับงานทีม</td></tr>
+      <tr><td>อยากได้ไฟล์เดียวจาก Commit เก่า</td><td><code>git restore --source=HEAD~1 &lt;ไฟล์&gt;</code></td><td>เขียนทับไฟล์ใน Working Tree ด้วยเวอร์ชันเก่า</td><td>กลาง: ทับการแก้ที่ยังไม่ Commit ของไฟล์นั้น</td></tr>
+    </tbody></table></div>
+    <p>บทเรียนเก่าบนอินเทอร์เน็ตจะใช้ <code>git checkout -- &lt;ไฟล์&gt;</code> แทน <code>git restore &lt;ไฟล์&gt;</code> และ <code>git reset HEAD &lt;ไฟล์&gt;</code> แทน <code>git restore --staged &lt;ไฟล์&gt;</code> ซึ่งยังใช้ได้ แต่คำสั่ง <code>restore</code> ชัดเจนกว่าและเป็นสิ่งที่ <code>git status</code> แนะนำในปัจจุบัน ส่วน <code>git reset</code> แบบย้าย Branch จะเรียนในแนวคิดที่ 10</p>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>นึกถึงการเขียนรายงานส่งอาจารย์ <code>git restore</code> คือขยำกระดาษร่างทิ้งแล้วเริ่มจากฉบับที่ถ่ายเอกสารเก็บไว้ (ร่างที่ขยำทิ้งเอาคืนไม่ได้) <code>--amend</code> คือแก้คำผิดบนหน้าปกก่อนส่ง ซึ่งทำได้เพราะยังไม่มีใครเห็น ส่วน <code>git revert</code> คือรายงานที่ส่งไปแล้ว จะดึงกลับมาแก้ไม่ได้ จึงต้องส่ง "ใบแก้คำผิด" ตามไปอีกแผ่น ทุกคนเห็นทั้งฉบับเดิมและใบแก้</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>สถานการณ์ที่ 1–2: แก้ไฟล์พังแล้วย้อนกลับ และ add ไฟล์ผิดแล้วเอาออก</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เตรียม Repository ที่มี index.html 1 Commit
+rm -rf ~/projects/git-lab/c04-undo
+mkdir -p ~/projects/git-lab/c04-undo &amp;&amp; cd ~/projects/git-lab/c04-undo
+git init -q
+echo "&lt;h1&gt;ร้านกาแฟของสมชาย&lt;/h1&gt;" &gt; index.html
+git add index.html
+git commit -q -m "feat: add home page"
+
+# สถานการณ์ที่ 1: เผลอเขียนทับไฟล์ แล้วย้อนกลับ
+echo "พิมพ์มั่วๆ ทับของเดิม" &gt; index.html
+git status -s
+git restore index.html          # ระวัง: การแก้ที่ยังไม่ Commit จะหายถาวร
+git status -s                   # ไม่แสดงอะไร = สะอาด
+cat index.html
+
+# สถานการณ์ที่ 2: add ไฟล์ร่างเข้าไปโดยไม่ตั้งใจ
+echo "ร่างที่ยังไม่เสร็จ" &gt; draft.txt
+git add .
+git status -s
+git restore --staged draft.txt  # เอาออกจาก Staging แต่ไฟล์ยังอยู่
+git status -s</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> M index.html
+&lt;h1&gt;ร้านกาแฟของสมชาย&lt;/h1&gt;
+A  draft.txt
+?? draft.txt</code></pre>
+    <p>สถานการณ์ที่ 3–4: แก้ข้อความ Commit ที่พิมพ์ผิดด้วย <code>--amend</code> และยกเลิก Commit ที่มีปัญหาด้วย <code>revert</code> (ใช้ <code>--no-edit</code> เพื่อใช้ข้อความอัตโนมัติ ถ้าไม่ใส่ Git จะเปิด nano ให้แก้ข้อความก่อน)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สถานการณ์ที่ 3: Commit แล้วพิมพ์ contact ผิดเป็น contcat
+echo "&lt;p&gt;ติดต่อเรา: 02-000-0000&lt;/p&gt;" &gt;&gt; index.html
+git add index.html
+git commit -q -m "feat: add contcat section"
+git log --oneline
+git commit --amend -m "feat: add contact section"   # แทนที่ Commit ล่าสุด
+git log --oneline                                   # สังเกตว่ารหัสเปลี่ยน
+
+# สถานการณ์ที่ 4: Commit แบนเนอร์ที่ทำหน้าเว็บพัง (สมมติว่า Push ไปแล้ว)
+echo "&lt;marquee&gt;ลดราคา!!!&lt;/marquee&gt;" &gt;&gt; index.html
+git commit -q -am "feat: add broken banner"
+git revert --no-edit HEAD      # สร้าง Commit ใหม่ที่กลับด้าน Commit ล่าสุด
+git log --oneline
+cat index.html
+
+# สถานการณ์ที่ 5: ดึง index.html จาก 3 Commit ก่อนมาดู แล้วคืนค่าเดิม
+git restore --source=HEAD~3 index.html
+cat index.html
+git status -s
+git restore index.html</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>695c2d4 feat: add contcat section
+60bc7a7 feat: add home page
+[main 5b1dd13] feat: add contact section
+ Date: Mon Oct 19 20:15:00 2026 +0700
+ 1 file changed, 1 insertion(+)
+5b1dd13 feat: add contact section
+60bc7a7 feat: add home page
+[main 1187351] Revert "feat: add broken banner"
+ Date: Mon Oct 19 20:15:00 2026 +0700
+ 1 file changed, 1 deletion(-)
+1187351 Revert "feat: add broken banner"
+1597242 feat: add broken banner
+5b1dd13 feat: add contact section
+60bc7a7 feat: add home page
+&lt;h1&gt;ร้านกาแฟของสมชาย&lt;/h1&gt;
+&lt;p&gt;ติดต่อเรา: 02-000-0000&lt;/p&gt;
+&lt;h1&gt;ร้านกาแฟของสมชาย&lt;/h1&gt;
+ M index.html
+?? draft.txt</code></pre>
+    <p class="muted small">รหัส Commit ในเครื่องคุณจะต่างจากนี้ แต่ให้สังเกตว่าหลัง <code>--amend</code> รหัส <code>695c2d4</code> หายไปและถูกแทนด้วย <code>5b1dd13</code> ส่วนหลัง <code>revert</code> ประวัติมี 4 Commit คือ Commit ที่ผิดยังอยู่ และมี Commit ใหม่ที่ยกเลิกมัน</p>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>git restore index.html</code></td><td>คืนไฟล์ใน Working Tree ให้เหมือนใน Staging Area (ซึ่งตรงกับ Commit ล่าสุด) การแก้ "พิมพ์มั่วๆ" หายไป สถานะกลับมาสะอาด</td></tr>
+      <tr><td><code>git add .</code> แล้วเห็น <code>A  draft.txt</code></td><td>ไฟล์ร่างเข้า Staging ไปด้วยโดยไม่ตั้งใจ ถ้า Commit ตอนนี้ ไฟล์ร่างจะเข้าประวัติ</td></tr>
+      <tr><td><code>git restore --staged draft.txt</code></td><td>เอาออกจาก Staging สถานะกลับเป็น <code>??</code> ไฟล์และเนื้อหายังอยู่ครบ</td></tr>
+      <tr><td><code>git commit --amend -m "..."</code></td><td>สร้าง Commit ใหม่แทน Commit ล่าสุด โดยใช้ Staging ปัจจุบันและข้อความใหม่ ถ้าลืม add ไฟล์ ให้ add ก่อนแล้ว <code>--amend --no-edit</code> เพื่อคงข้อความเดิม</td></tr>
+      <tr><td><code>Date: Mon Oct 19 20:15:00 2026 +0700</code></td><td>Git แสดงวันที่เดิมของผู้เขียน เพราะ <code>--amend</code> และ <code>revert</code> เก็บเวลาที่เขียนต้นฉบับแยกจากเวลาที่ Commit จริง</td></tr>
+      <tr><td><code>git revert --no-edit HEAD</code></td><td>คำนวณการเปลี่ยนแปลงของ Commit นั้นแบบกลับด้าน (บรรทัดที่เพิ่มจะถูกลบ) แล้วสร้าง Commit ใหม่ชื่อ <code>Revert "..."</code> ใส่รหัสของ Commit เก่าแทน <code>HEAD</code> ได้</td></tr>
+      <tr><td><code>cat index.html</code> หลัง revert</td><td>บรรทัด <code>&lt;marquee&gt;</code> หายไป เหลือหัวข้อและข้อมูลติดต่อตามเดิม</td></tr>
+      <tr><td><code>git restore --source=HEAD~3 index.html</code></td><td>นำเนื้อหาไฟล์ ณ Commit ที่ระบุมาเขียนทับไฟล์ปัจจุบัน ไฟล์จึงขึ้น <code> M</code> เพราะต่างจาก Commit ล่าสุด ต้องการเก็บก็ add และ Commit ไม่ต้องการก็ <code>git restore index.html</code></td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td><code>error: pathspec 'indx.html' did not match any file(s) known to git</code></td><td>พิมพ์ชื่อไฟล์ผิด หรือรันผิดโฟลเดอร์</td><td>ใช้ <kbd>Tab</kbd> เติมชื่อไฟล์อัตโนมัติ และดูชื่อที่ถูกต้องจาก <code>git status -s</code></td></tr>
+      <tr><td><code>error: pathspec 'newfile.txt' did not match any file(s) known to git</code> ตอนพยายาม <code>git restore</code> ไฟล์ที่เผลอลบ</td><td>ไฟล์นั้นไม่เคยถูก Commit หรือ add เลย Git จึงไม่มีสำเนาให้กู้</td><td>Git กู้ได้เฉพาะสิ่งที่เคย add หรือ Commit แล้วเท่านั้น ลองหาใน Recycle Bin ของ Editor หรือเขียนใหม่ แล้วจำไว้ว่าต้อง Commit บ่อยๆ</td></tr>
+      <tr><td><code>! [rejected]        main -&gt; main (non-fast-forward)</code> หลัง <code>--amend</code></td><td>แก้ Commit ที่ Push ไปแล้ว Commit ในเครื่องกับบน Remote จึงคนละตัวกัน</td><td>ถ้าเป็น <code>main</code> ที่แชร์กับทีม อย่า Force push ให้ใช้ <code>git revert</code> หรือสร้าง Commit ใหม่แทน ถ้าเป็น Branch ของตัวเองคนเดียวใช้ <code>git push --force-with-lease</code> ได้ (แนวคิดที่ 9)</td></tr>
+      <tr><td><code>CONFLICT (content): Merge conflict in menu.md</code><br><code>error: could not revert e2f982c... fix: update latte price</code><br><code>hint: After resolving the conflicts, mark them with</code><br><code>hint: "git add/rm &lt;pathspec&gt;", then run</code><br><code>hint: "git revert --continue".</code></td><td>revert Commit เก่าที่มี Commit ใหม่กว่าแก้บรรทัดเดียวกันซ้ำ Git จึงกลับด้านให้อัตโนมัติไม่ได้</td><td>แก้ไฟล์ตามวิธีในแนวคิดที่ 6 แล้ว <code>git add</code> และ <code>git revert --continue</code> หรือยกเลิกด้วย <code>git revert --abort</code></td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>ก่อนรัน <code>git restore &lt;ไฟล์&gt;</code> ให้ดู <code>git diff &lt;ไฟล์&gt;</code> ก่อนเสมอ เพื่อยืนยันว่าสิ่งที่จะทิ้งไม่มีอะไรสำคัญ</li>
+      <li>กฎของทีม: Commit ที่ Push แล้วให้แก้ด้วย <code>revert</code> เท่านั้น <code>--amend</code> ใช้กับ Commit ในเครื่องที่ยังไม่มีใครเห็น</li>
+      <li>เมื่อ revert ให้เขียนเหตุผลในเนื้อความ Commit (ไม่ใส่ <code>--no-edit</code> แล้วเขียนใน nano) เช่น "แบนเนอร์ทำให้หน้าเว็บกระพริบบนมือถือ"</li>
+      <li>ถ้าไม่แน่ใจว่าจะใช้คำสั่งไหน ให้อ่านคำแนะนำในวงเล็บของ <code>git status</code> ก่อน เพราะ Git บอกคำสั่งที่เหมาะกับสถานะปัจจุบันไว้แล้ว</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ทำต่อใน <code>c04-undo</code></p><ol>
+      <li>แก้ <code>index.html</code> แล้วรัน <code>git diff</code> ก่อน แล้วจึง <code>git restore index.html</code></li>
+      <li>เพิ่มไฟล์ <code>style.css</code> แต่ Commit เฉพาะ <code>index.html</code> ที่แก้ แล้วใช้ <code>git add style.css</code> ตามด้วย <code>git commit --amend --no-edit</code> ให้ไฟล์เข้า Commit เดิม ตรวจด้วย <code>git show --stat HEAD</code></li>
+      <li>revert Commit <code>feat: add contact section</code> โดยใช้รหัสจาก <code>git log --oneline</code> แล้วดูผลใน <code>index.html</code></li>
+      <li>อธิบายด้วยคำพูดตัวเองว่าทำไมสถานการณ์ที่ 4 จึงใช้ <code>revert</code> ไม่ใช่ <code>--amend</code></li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 5</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+    <h3 id="s17-2-c05">Branch, Merge (Fast-forward กับ Merge commit) และ Stash</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p><strong>Branch</strong> คือป้ายชื่อที่ชี้ไปยัง Commit หนึ่ง และเลื่อนตามไปเองทุกครั้งที่เรา Commit บน Branch นั้น ส่วน <code>HEAD</code> คือป้ายที่บอกว่าตอนนี้เรายืนอยู่บน Branch ไหน การสร้าง Branch จึงเร็วมากเพราะ Git ไม่ได้คัดลอกไฟล์ แค่สร้างป้ายใหม่ ใช้ Branch ทุกครั้งที่เริ่มงานชิ้นใหม่ เพื่อให้ <code>main</code> อยู่ในสภาพใช้งานได้เสมอ และทดลองได้โดยไม่กระทบงานหลัก ทีมส่วนใหญ่ตั้งชื่อตามประเภทงาน เช่น <code>feature/contact</code>, <code>fix/broken-link</code>, <code>docs/readme</code></p>
+    <p>เมื่องานบน Branch เสร็จ เราจะรวมกลับด้วย <code>git merge</code> ซึ่งเกิดได้ 2 แบบ</p>
+    <ul>
+      <li><strong>Fast-forward</strong>: ถ้า <code>main</code> ไม่มี Commit ใหม่ตั้งแต่แยก Branch ออกไป Git แค่เลื่อนป้าย <code>main</code> ไปข้างหน้า ไม่มี Commit ใหม่เกิดขึ้น ประวัติเป็นเส้นตรง</li>
+      <li><strong>Merge commit (3-way merge)</strong>: ถ้าทั้งสองฝั่งมี Commit ใหม่ Git จะสร้าง Commit พิเศษที่มี Parent 2 ตัว รวมงานของทั้งสองฝั่ง โดยใช้กลยุทธ์ชื่อ <code>ort</code> ซึ่งเป็นค่าเริ่มต้นของ Git รุ่นปัจจุบัน ถ้าอยากได้ Merge commit เสมอแม้ Fast-forward ได้ ให้ใช้ <code>git merge --no-ff</code></li>
+    </ul>
+    <p><strong>Stash</strong> คือที่พักงานชั่วคราว ใช้เมื่อกำลังแก้งานค้างอยู่แล้วต้องสลับ Branch ด่วน เช่น ต้องไปแก้บั๊กบน <code>main</code> คำสั่ง <code>git stash push -m "ข้อความ"</code> เก็บการแก้ทั้งหมดออกไปพัก ทำให้ Working Tree สะอาด จากนั้น <code>git stash pop</code> นำกลับมาและลบออกจากรายการ ส่วน <code>git stash apply</code> นำกลับมาแต่ยังเก็บไว้ในรายการ ถ้ามีไฟล์ใหม่ที่ยังไม่ add ต้องใช้ <code>git stash -u</code> ถ้างานค้างนานกว่าหนึ่งวัน ให้ Commit เป็น <code>wip</code> บน Branch ของตัวเองดีกว่า เพราะ Stash ลืมง่ายและไม่ขึ้น Remote</p>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Branch เหมือนที่คั่นหนังสือ หนังสือ (ประวัติ) มีเล่มเดียว แต่เราวางที่คั่นได้หลายอัน แต่ละอันระบุว่าอ่านถึงหน้าไหน การ Merge แบบ Fast-forward คือการเลื่อนที่คั่น <code>main</code> ไปหน้าที่ที่คั่น <code>feature</code> อยู่ ส่วน Merge commit คือการเขียนหน้าสรุปใหม่ที่รวมสองเส้นเรื่องเข้าด้วยกัน Stash คือการหยิบงานบนโต๊ะใส่ลิ้นชักชั่วคราวเพื่อเคลียร์โต๊ะไปทำงานด่วน</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>ส่วนที่ 1: Fast-forward merge ด้วย Branch <code>feature/contact</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เตรียม Repository ที่มี README.md บน main
+rm -rf ~/projects/git-lab/c05-branch
+mkdir -p ~/projects/git-lab/c05-branch &amp;&amp; cd ~/projects/git-lab/c05-branch
+git init -q
+echo "# ร้านกาแฟ" &gt; README.md
+git add README.md
+git commit -q -m "docs: add README"
+
+# สร้าง Branch ใหม่และย้ายไปอยู่บนนั้นในคำสั่งเดียว
+git switch -c feature/contact
+echo "โทร 02-000-0000" &gt; contact.md
+git add contact.md
+git commit -m "feat: add contact page"
+git branch -v                   # ดูทุก Branch พร้อม Commit ล่าสุด
+
+# กลับไป main แล้วรวมงาน (main ไม่มีอะไรใหม่ จึงเป็น Fast-forward)
+git switch main
+git merge feature/contact</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Switched to a new branch 'feature/contact'
+[feature/contact 77e6295] feat: add contact page
+ 1 file changed, 1 insertion(+)
+ create mode 100644 contact.md
+* feature/contact 77e6295 feat: add contact page
+  main            9f36da1 docs: add README
+Switched to branch 'main'
+Updating 9f36da1..77e6295
+Fast-forward
+ contact.md | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 contact.md</code></pre>
+    <p>ส่วนที่ 2: Merge commit เมื่อทั้งสองฝั่งมีงานใหม่ (ใส่ <code>--no-edit</code> เพื่อใช้ข้อความ Merge อัตโนมัติ ถ้าไม่ใส่ Git จะเปิด nano ให้ยืนยันข้อความ กด <kbd>Ctrl</kbd>+<kbd>X</kbd> เพื่อยอมรับ)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># งานบน feature/menu
+git switch -c feature/menu
+echo "ลาเต้ 60 บาท" &gt; menu.md
+git add menu.md
+git commit -q -m "feat: add menu"
+
+# ระหว่างนั้น main ก็มี Commit ใหม่
+git switch main
+echo "แผน: เปิดร้านออนไลน์" &gt;&gt; README.md
+git commit -q -am "docs: add plan to README"
+
+# รวม feature/menu เข้า main แล้วดูภาพประวัติ
+git merge --no-edit feature/menu
+git log --oneline --graph --all
+
+# ลบ Branch ที่รวมแล้ว
+git branch -d feature/contact feature/menu
+git branch</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Switched to a new branch 'feature/menu'
+Switched to branch 'main'
+Merge made by the 'ort' strategy.
+ menu.md | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 menu.md
+*   cf7a6e0 Merge branch 'feature/menu'
+|\  
+| * d01d93d feat: add menu
+* | 2e4efeb docs: add plan to README
+|/  
+* 77e6295 feat: add contact page
+* 9f36da1 docs: add README
+Deleted branch feature/contact (was 77e6295).
+Deleted branch feature/menu (was d01d93d).
+* main</code></pre>
+    <p>ส่วนที่ 3: พักงานค้างด้วย Stash</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># กำลังแก้ README อยู่ แต่ต้องเคลียร์โต๊ะด่วน
+echo "กำลังแก้ README ยังไม่เสร็จ" &gt;&gt; README.md
+git status -s
+git stash push -m "wip: readme"   # เก็บงานค้างไปพัก
+git status -s                     # ไม่แสดงอะไร = สะอาด สลับ Branch ได้อย่างปลอดภัย
+git stash list
+git stash pop                     # นำงานกลับมา และลบออกจากรายการ
+git status -s</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> M README.md
+Saved working directory and index state On main: wip: readme
+stash@{0}: On main: wip: readme
+On branch main
+Changes not staged for commit:
+  (use "git add &lt;file&gt;..." to update what will be committed)
+  (use "git restore &lt;file&gt;..." to discard changes in working directory)
+	modified:   README.md
+
+no changes added to commit (use "git add" and/or "git commit -a")
+Dropped refs/stash@{0} (4865400c9e1291168b9c42e3415cefb43d3f2a43)
+ M README.md</code></pre>
+    <p class="muted small">รหัส Commit และรหัสของ Stash ในเครื่องคุณจะต่างจากนี้ <code>git stash pop</code> พิมพ์ผลของ <code>git status</code> ให้ด้วยโดยอัตโนมัติ</p>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>git switch -c feature/contact</code></td><td>สร้าง Branch ใหม่จาก Commit ปัจจุบันแล้วย้ายไปอยู่บนนั้น (<code>-c</code> = create) ถ้า Branch มีอยู่แล้วใช้ <code>git switch ชื่อ</code> ไม่ต้องมี <code>-c</code></td></tr>
+      <tr><td><code>git branch -v</code></td><td>แสดงทุก Branch ในเครื่อง <code>*</code> คือ Branch ที่ HEAD ชี้อยู่ พร้อมรหัสและข้อความของ Commit ล่าสุดของแต่ละ Branch</td></tr>
+      <tr><td><code>Updating 9f36da1..77e6295</code> / <code>Fast-forward</code></td><td>Git เลื่อน <code>main</code> จาก Commit เดิมไป Commit ของ feature โดยไม่สร้าง Commit ใหม่</td></tr>
+      <tr><td><code>Merge made by the 'ort' strategy.</code></td><td>ทั้งสองฝั่งมี Commit ใหม่ Git จึงสร้าง Merge commit ด้วยกลยุทธ์ <code>ort</code> และรวมได้เองเพราะแก้คนละไฟล์</td></tr>
+      <tr><td>ภาพ <code>*   cf7a6e0</code>, <code>|\</code>, <code>|/</code></td><td>แต่ละ <code>*</code> คือ Commit เส้น <code>|\</code> คือจุดที่ Merge commit มี Parent 2 ตัว และ <code>|/</code> คือจุดที่ Branch แยกออกไป</td></tr>
+      <tr><td><code>git branch -d ...</code></td><td>ลบป้าย Branch ที่รวมเข้า Branch ปัจจุบันแล้ว Commit ไม่หายไปไหนเพราะอยู่ในประวัติของ <code>main</code> แล้ว</td></tr>
+      <tr><td><code>git stash push -m "wip: readme"</code></td><td>เก็บการแก้ที่ยังไม่ Commit (ทั้ง Working Tree และ Staging) ไว้ในรายการ Stash พร้อมข้อความ แล้วคืน Working Tree ให้สะอาด</td></tr>
+      <tr><td><code>stash@{0}: On main: wip: readme</code></td><td>Stash ล่าสุดเป็นลำดับที่ 0 ถูกสร้างบน <code>main</code> ถ้ามีหลายอัน อันเก่าจะเป็น <code>stash@{1}</code>, <code>stash@{2}</code></td></tr>
+      <tr><td><code>git stash pop</code> / <code>Dropped refs/stash@{0}</code></td><td>นำการแก้กลับมาและลบออกจากรายการ ถ้าอยากเก็บไว้ด้วยใช้ <code>git stash apply</code> และลบทีหลังด้วย <code>git stash drop</code></td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td><code>error: Your local changes to the following files would be overwritten by checkout:</code><br><code>	README.md</code><br><code>Please commit your changes or stash them before you switch branches.</code><br><code>Aborting</code></td><td>มีการแก้ที่ยังไม่ Commit ในไฟล์ที่ Branch ปลายทางมีเนื้อหาต่างออกไป ถ้าสลับไป งานจะถูกทับ Git จึงหยุดไว้</td><td>Commit งานให้เสร็จ หรือ <code>git stash push -m "..."</code> แล้วค่อย <code>git switch</code> เมื่อกลับมาให้ <code>git stash pop</code></td></tr>
+      <tr><td><code>error: the branch 'feature/x' is not fully merged.</code><br><code>If you are sure you want to delete it, run 'git branch -D feature/x'</code></td><td>Branch มี Commit ที่ยังไม่ถูกรวมเข้า Branch ปัจจุบัน ถ้าลบ Commit เหล่านั้นจะหาได้ยาก</td><td>ตรวจด้วย <code>git log main..feature/x --oneline</code> ถ้างานยังต้องใช้ให้ Merge ก่อน ใช้ <code>-D</code> เฉพาะเมื่อตั้งใจทิ้งงานนั้นจริง (กู้คืนได้ด้วย reflog ในแนวคิดที่ 10)</td></tr>
+      <tr><td><code>fatal: a branch named 'feature/contact' already exists</code></td><td>ใช้ <code>git switch -c</code> กับชื่อที่มีอยู่แล้ว</td><td>ถ้าต้องการไปที่ Branch นั้นใช้ <code>git switch feature/contact</code> ถ้าต้องการ Branch ใหม่ให้ตั้งชื่ออื่น</td></tr>
+      <tr><td>ทำงานไปหลายไฟล์แล้วเพิ่งรู้ว่าอยู่บน <code>main</code></td><td>ลืมสร้าง Branch ก่อนเริ่มงาน</td><td>ถ้ายังไม่ Commit ให้รัน <code>git switch -c feature/ชื่องาน</code> ทันที การแก้ที่ยังไม่ Commit จะย้ายไปอยู่บน Branch ใหม่ด้วย แล้ว Commit ที่นั่น</td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>ใช้ <strong>GitHub Flow</strong>: <code>main</code> พร้อมใช้งานเสมอ ทุกงานเริ่มจาก Branch ใหม่ที่แยกจาก <code>main</code> ล่าสุด แล้วกลับเข้า <code>main</code> ผ่าน Pull Request (แนวคิดที่ 8) ทีมใหญ่บางทีมใช้ <strong>Trunk-based</strong> คือ Branch อายุสั้นมาก รวมเข้า <code>main</code> วันละหลายครั้ง</li>
+      <li>ให้ Branch มีอายุสั้น (ไม่กี่วัน) และทำเรื่องเดียว จะ Merge ง่ายและเกิด Conflict น้อย</li>
+      <li>ลบ Branch ทันทีหลัง Merge เพื่อให้ <code>git branch</code> อ่านง่าย</li>
+      <li>ตั้งชื่อ Stash ทุกครั้งด้วย <code>-m</code> และเคลียร์รายการ <code>git stash list</code> เป็นประจำ</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ทำต่อใน <code>c05-branch</code></p><ol>
+      <li>สร้าง Branch <code>feature/about</code> เพิ่มไฟล์ <code>about.md</code> แล้ว Merge กลับด้วย <code>git merge --no-ff --no-edit feature/about</code> ดูภาพด้วย <code>git log --oneline --graph</code> ว่าต่างจาก Fast-forward อย่างไร</li>
+      <li>สร้างไฟล์ใหม่ <code>idea.txt</code> (ยังไม่ add) แล้วลอง <code>git stash</code> ธรรมดา สังเกตว่าไฟล์ยังอยู่ จากนั้นลอง <code>git stash -u</code></li>
+      <li>สร้าง Stash 2 อัน แล้วใช้ <code>git stash apply stash@{1}</code> นำอันเก่ากลับมา</li>
+      <li>ลบ Branch <code>feature/about</code> ด้วย <code>-d</code> และอธิบายว่าทำไมไม่ต้องใช้ <code>-D</code></li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 6</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+    <h3 id="s17-2-c06">แก้ Merge Conflict ทีละขั้น</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p><strong>Merge Conflict</strong> เกิดเมื่อสอง Branch แก้ <strong>บรรทัดเดียวกัน</strong> ของไฟล์เดียวกันไปคนละแบบ (หรือฝั่งหนึ่งลบไฟล์ อีกฝั่งแก้ไฟล์นั้น) Git ไม่เดาแทนเราว่าแบบไหนถูก จึงหยุด Merge ไว้กลางทาง ใส่เครื่องหมายลงในไฟล์ และรอให้เราตัดสินใจ Conflict ไม่ใช่ความผิดพลาดของใคร เป็นเรื่องปกติของการทำงานเป็นทีม และเกิดได้ทั้งตอน <code>merge</code>, <code>pull</code>, <code>rebase</code>, <code>revert</code> และ <code>cherry-pick</code></p>
+    <p>ขั้นตอนแก้มีลำดับตายตัว: (1) อ่าน <code>git status</code> หาไฟล์ที่ขึ้น <code>both modified</code> (2) เปิดไฟล์ หาเครื่องหมาย 3 ชุด <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</code> (ฝั่งของเรา), <code>=======</code> (เส้นแบ่ง) และ <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt; ชื่อbranch</code> (ฝั่งที่รวมเข้ามา) (3) แก้ให้เหลือเนื้อหาที่ถูกต้อง จะเลือกฝั่งเดียว เก็บทั้งสอง หรือเขียนใหม่ก็ได้ แล้วลบเครื่องหมายทั้งหมด (4) <code>git add</code> ไฟล์เพื่อบอกว่าแก้แล้ว (5) <code>git commit</code> (หรือ <code>git merge --continue</code>) ถ้าสับสนจนอยากเริ่มใหม่ ใช้ <code>git merge --abort</code> กลับไปสถานะก่อน Merge ได้เสมอ</p>
+    <p>ใน VS Code ที่เปิดจาก WSL ด้วย <code>code .</code> ไฟล์ที่มี Conflict จะแสดงปุ่มเหนือแต่ละจุด ได้แก่ <strong>Accept Current Change</strong> (ฝั่ง HEAD), <strong>Accept Incoming Change</strong> (ฝั่งที่รวมเข้ามา), <strong>Accept Both Changes</strong> และปุ่ม <strong>Resolve in Merge Editor</strong> ที่เปิดหน้าจอ 3 ช่องให้เลือกทีละส่วน ปุ่มเหล่านี้แค่แก้ไฟล์ให้ เรายังต้อง <code>git add</code> และ Commit เหมือนเดิม</p>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>สมชายกับมาลีแก้ป้ายเมนูหน้าร้านแผ่นเดียวกัน สมชายเขียน "ลาเต้ 65 บาท" มาลีเขียน "ลาเต้ 60 บาท (ราคาโปรโมชัน)" ผู้จัดการ (Git) ไม่รู้ว่าใครถูก จึงแปะกระดาษสองแผ่นซ้อนกันบนป้ายพร้อมเขียนว่า "ของสมชาย / ของมาลี" แล้วรอให้ทั้งคู่คุยกันและเขียนป้ายแผ่นสุดท้ายเอง</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>สร้าง Conflict ขึ้นมาจริงๆ ตามสถานการณ์ในส่วนที่ 1: Branch <code>price/somchai</code> ขึ้นราคาลาเต้เป็น 65 บาท ส่วน <code>main</code> เขียนว่าเป็นราคาโปรโมชัน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เตรียม Repository ที่มี menu.md 2 บรรทัด
+rm -rf ~/projects/git-lab/c06-conflict
+mkdir -p ~/projects/git-lab/c06-conflict &amp;&amp; cd ~/projects/git-lab/c06-conflict
+git init -q
+printf '# เมนู\nลาเต้ 60 บาท\n' &gt; menu.md
+git add menu.md
+git commit -q -m "feat: add menu"
+
+# ฝั่งที่ 1: Branch price/somchai แก้บรรทัดที่ 2
+git switch -q -c price/somchai
+sed -i 's/ลาเต้ 60 บาท/ลาเต้ 65 บาท/' menu.md
+git commit -q -am "fix: raise latte price to 65"
+
+# ฝั่งที่ 2: main แก้บรรทัดเดียวกันไปอีกแบบ
+git switch -q main
+sed -i 's/ลาเต้ 60 บาท/ลาเต้ 60 บาท (ราคาโปรโมชัน)/' menu.md
+git commit -q -am "feat: mark latte as promotion"
+
+# รวม แล้วดูสถานะ เนื้อหาไฟล์ และ diff ระหว่าง Conflict
+git merge price/somchai
+git status
+cat menu.md
+git diff</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Auto-merging menu.md
+CONFLICT (content): Merge conflict in menu.md
+Automatic merge failed; fix conflicts and then commit the result.
+On branch main
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+  (use "git merge --abort" to abort the merge)
+
+Unmerged paths:
+  (use "git add &lt;file&gt;..." to mark resolution)
+	both modified:   menu.md
+
+no changes added to commit (use "git add" and/or "git commit -a")
+# เมนู
+&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+ลาเต้ 60 บาท (ราคาโปรโมชัน)
+=======
+ลาเต้ 65 บาท
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; price/somchai
+diff --cc menu.md
+index bf9b9d6,be5fcc7..0000000
+--- a/menu.md
++++ b/menu.md
+@@@ -1,2 -1,2 +1,6 @@@
+  # เมนู
+++&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+ +ลาเต้ 60 บาท (ราคาโปรโมชัน)
+++=======
++ ลาเต้ 65 บาท
+++&gt;&gt;&gt;&gt;&gt;&gt;&gt; price/somchai</code></pre>
+    <p>สมมติว่าคุยกันแล้วได้ข้อสรุปว่า ราคาใหม่คือ 65 บาท และยังเป็นโปรโมชันจนถึงสิ้นเดือน เราจึงเขียนไฟล์ฉบับสุดท้ายใหม่ทั้งไฟล์ (จะเปิดแก้ด้วย <code>nano menu.md</code> ก็ได้ ผลเหมือนกัน) แล้วตรวจว่าไม่มีเครื่องหมายเหลือก่อน add</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เขียนเนื้อหาที่ตกลงกันแล้วทับทั้งไฟล์ (Heredoc)
+cat &gt; menu.md &lt;&lt;'END'
+# เมนู
+ลาเต้ 65 บาท (ราคาโปรโมชันถึงสิ้นเดือน)
+END
+
+# ตรวจว่าไม่มีเครื่องหมาย Conflict หลงเหลือ
+grep -n '&lt;&lt;&lt;&lt;&lt;&lt;&lt;' menu.md || echo "ไม่พบเครื่องหมาย Conflict"
+
+# บอก Git ว่าแก้แล้ว แล้วปิด Merge ด้วย Commit
+git add menu.md
+git status -s
+git commit --no-edit
+git log --oneline --graph</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ไม่พบเครื่องหมาย Conflict
+M  menu.md
+[main 563d2d3] Merge branch 'price/somchai'
+*   563d2d3 Merge branch 'price/somchai'
+|\  
+| * 24db56c fix: raise latte price to 65
+* | a8d947e feat: mark latte as promotion
+|/  
+* f49ac7f feat: add menu</code></pre>
+    <p>ทดลองกรณีที่สอง: เกิด Conflict แล้วเลือก <strong>ยกเลิก</strong> เพื่อกลับไปสถานะก่อน Merge</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Branch price/malee แยกจาก Commit ก่อน Merge แล้วตั้งราคา 70 บาท
+git switch -q -c price/malee HEAD~1
+sed -i 's/^ลาเต้.*/ลาเต้ 70 บาท/' menu.md
+git commit -q -am "fix: raise latte price to 70"
+git switch -q main
+
+git merge price/malee        # เกิด Conflict อีกครั้ง
+git merge --abort            # ยกเลิก กลับไปเหมือนก่อนสั่ง merge
+git status
+cat menu.md</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Auto-merging menu.md
+CONFLICT (content): Merge conflict in menu.md
+Automatic merge failed; fix conflicts and then commit the result.
+On branch main
+nothing to commit, working tree clean
+# เมนู
+ลาเต้ 65 บาท (ราคาโปรโมชันถึงสิ้นเดือน)</code></pre>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>CONFLICT (content): Merge conflict in menu.md</code></td><td>Git รวมไฟล์นี้เองไม่ได้ เพราะเนื้อหาบรรทัดเดียวกันต่างกัน Merge หยุดกลางทาง ยังไม่มี Commit ใหม่</td></tr>
+      <tr><td><code>Unmerged paths:</code> / <code>both modified:   menu.md</code></td><td>รายชื่อไฟล์ที่ต้องแก้ ทั้งสองฝั่งแก้ไฟล์นี้ ถ้ามีหลายไฟล์ต้องแก้ให้ครบทุกไฟล์</td></tr>
+      <tr><td><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</code> ถึง <code>=======</code></td><td>เนื้อหาฝั่ง Branch ปัจจุบัน (<code>main</code>) เรียกว่า "ours" หรือ Current</td></tr>
+      <tr><td><code>=======</code> ถึง <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt; price/somchai</code></td><td>เนื้อหาฝั่งที่กำลังรวมเข้ามา เรียกว่า "theirs" หรือ Incoming</td></tr>
+      <tr><td><code>git diff</code> ระหว่าง Conflict (<code>diff --cc</code>)</td><td>diff แบบรวมที่มี 2 คอลัมน์เครื่องหมาย เทียบกับทั้งสองฝั่ง ใช้ดูว่ายังเหลือจุดไหนที่ต้องแก้</td></tr>
+      <tr><td><code>cat &gt; menu.md &lt;&lt;'END'</code></td><td>เขียนเนื้อหาใหม่ทับทั้งไฟล์ด้วย Heredoc ซึ่งเป็นการ "เขียนฉบับใหม่" ที่รวมความต้องการของทั้งสองฝั่ง</td></tr>
+      <tr><td><code>grep -n '&lt;&lt;&lt;&lt;&lt;&lt;&lt;' menu.md</code></td><td>ค้นหาเครื่องหมายที่หลงเหลือ ถ้าไม่เจอ <code>grep</code> คืนค่าไม่สำเร็จ คำสั่งหลัง <code>||</code> จึงทำงาน</td></tr>
+      <tr><td><code>git add menu.md</code></td><td>ในบริบทของ Conflict การ add แปลว่า "ไฟล์นี้แก้เสร็จแล้ว" สถานะเปลี่ยนจาก <code>UU</code> เป็น <code>M </code></td></tr>
+      <tr><td><code>git commit --no-edit</code></td><td>สร้าง Merge commit ด้วยข้อความที่ Git เตรียมไว้ (<code>Merge branch 'price/somchai'</code>) ถ้าไม่ใส่ <code>--no-edit</code> จะเปิด nano ให้เพิ่มรายละเอียดว่าแก้อย่างไร</td></tr>
+      <tr><td><code>git merge --abort</code></td><td>ยกเลิก Merge ที่ค้างอยู่ คืนทุกไฟล์เป็นเหมือนก่อนสั่ง <code>merge</code> ใช้ได้เฉพาะตอนที่ Merge ยังไม่ถูก Commit</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td>Commit ไฟล์ที่ยังมี <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> ไปแล้ว หน้าเว็บแสดงเครื่องหมายแปลกๆ หรือโปรแกรมรันไม่ได้ ถ้าตรวจด้วย <code>git diff --cached --check</code> จะเห็น <code>menu.md:2: leftover conflict marker</code></td><td>add ไฟล์ก่อนลบเครื่องหมายให้ครบ Git ไม่ตรวจให้อัตโนมัติ</td><td>ก่อน add รัน <code>grep -n '&lt;&lt;&lt;&lt;&lt;&lt;&lt;' -r .</code> หรือหลัง add รัน <code>git diff --cached --check</code> ถ้า Commit ไปแล้ว ให้แก้ไฟล์และ Commit ใหม่ทันที</td></tr>
+      <tr><td><code>error: Committing is not possible because you have unmerged files.</code><br><code>hint: Fix them up in the work tree, and then use 'git add/rm &lt;file&gt;'</code><br><code>fatal: Exiting because of an unresolved conflict.</code></td><td>สั่ง Commit ทั้งที่ยังไม่ได้ add ไฟล์ที่ Conflict</td><td>แก้ไฟล์ให้เสร็จ แล้ว <code>git add &lt;ไฟล์&gt;</code> ทุกไฟล์ที่อยู่ใน <code>Unmerged paths</code> แล้วจึง Commit</td></tr>
+      <tr><td><code>fatal: You have not concluded your merge (MERGE_HEAD exists).</code><br><code>Please, commit your changes before you merge.</code></td><td>แก้และ add แล้ว แต่ลืม Commit แล้วสั่ง <code>merge</code> หรือ <code>pull</code> ใหม่</td><td>รัน <code>git commit --no-edit</code> ให้ Merge เดิมจบก่อน หรือ <code>git merge --abort</code> ถ้าต้องการยกเลิก</td></tr>
+      <tr><td>Merge ผ่านแล้ว แต่ราคาที่เพื่อนตั้งใจไว้หายไปโดยไม่มีใครรู้</td><td>กด Accept Current ทุกจุดโดยไม่อ่าน หรือลบบรรทัดของอีกฝ่ายทิ้งโดยไม่ถาม</td><td>ดูที่มาของแต่ละฝั่งด้วย <code>git log --merge -p</code> และคุยกับเจ้าของงานก่อนตัดสินใจ ถ้าต้องการทั้งไฟล์จากฝั่งเดียวจริง ใช้ <code>git checkout --ours &lt;ไฟล์&gt;</code> หรือ <code>--theirs</code> อย่างตั้งใจ</td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>ป้องกันดีกว่าแก้: ทำ PR ให้เล็ก, <code>git pull</code> หรือรวม <code>main</code> เข้า Branch บ่อยๆ และใช้ Formatter ตัวเดียวกันทั้งทีม เพื่อไม่ให้การจัดย่อหน้าต่างกันกลายเป็น Conflict</li>
+      <li>หลังแก้ Conflict ให้รันเว็บหรือเทสต์ก่อน Commit เพราะไฟล์ที่ไม่มีเครื่องหมายแล้วอาจยังทำงานผิด</li>
+      <li>เขียนในข้อความ Merge commit ว่าตัดสินใจอย่างไรและคุยกับใคร คนที่อ่านประวัติภายหลังจะเข้าใจ</li>
+      <li>เลือกฝั่งทั้งไฟล์ได้ด้วย <code>git checkout --ours menu.md</code> (เก็บของเรา) หรือ <code>git checkout --theirs menu.md</code> (เก็บของที่รวมเข้ามา) แล้วจึง <code>git add</code> เหมาะกับไฟล์ที่สร้างอัตโนมัติ เช่น Lock file</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ทำต่อใน <code>c06-conflict</code></p><ol>
+      <li>รัน <code>git merge price/malee</code> อีกครั้ง คราวนี้แก้โดยเก็บทั้งสองบรรทัด (ลาเต้ร้อน 65 บาท และลาเต้เย็น 70 บาท) แล้ว Commit</li>
+      <li>ก่อน Commit ลองรัน <code>git commit</code> ทั้งที่ยังไม่ add เพื่อดูข้อความ Error ด้วยตาตัวเอง</li>
+      <li>สร้าง Conflict ใหม่ที่ไฟล์ <code>README.md</code> แล้วเปิดด้วย <code>code .</code> ลองใช้ปุ่ม Accept Both Changes ใน VS Code</li>
+      <li>เขียนข้อความ Merge commit ที่อธิบายว่าเลือกราคาไหนเพราะอะไร โดยไม่ใส่ <code>--no-edit</code></li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 7</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+    <h3 id="s17-2-c07">Remote, SSH Key และการ push, fetch, pull, clone</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p><strong>Remote</strong> คือ Repository อีกชุดที่อยู่นอกเครื่อง เช่น บน GitHub ซึ่ง Repository ในเครื่องจำไว้ด้วยชื่อสั้นๆ ชื่อมาตรฐานคือ <code>origin</code> คำสั่งที่ใช้กับ Remote มี 4 ตัวหลัก: <code>git push</code> ส่ง Commit ของเราขึ้นไป, <code>git fetch</code> ดึง Commit ใหม่ของคนอื่นลงมาเก็บไว้ใน <strong>Remote-tracking branch</strong> เช่น <code>origin/main</code> โดยยังไม่แตะไฟล์งาน, <code>git pull</code> คือ <code>fetch</code> แล้วตามด้วย <code>merge</code> (ค่าเริ่มต้นของหลักสูตร <code>pull.rebase false</code>) หรือ <code>rebase</code> (ถ้าใช้ <code>git pull --rebase</code>) และ <code>git clone</code> คัดลอก Repository ทั้งหมดลงเครื่องพร้อมตั้ง <code>origin</code> ให้</p>
+    <p>เมื่อมีคน Push ก่อนเรา การ Push ของเราจะถูกปฏิเสธ (<code>rejected (fetch first)</code>) เพราะ Git ไม่ยอมให้ทับงานของคนอื่น เราต้อง <code>pull</code> มารวมก่อนแล้วค่อย Push ใหม่ คำสั่ง <code>git branch -vv</code> บอกได้ว่า Branch ของเรานำหน้า (ahead) หรือตามหลัง (behind) Remote อยู่กี่ Commit ส่วน <code>git fetch --prune</code> ลบ Remote-tracking branch ที่ถูกลบบน Remote ไปแล้ว</p>
+    <p>การเชื่อมต่อ GitHub ใช้ได้ 2 แบบ คือ <strong>HTTPS</strong> (<code>https://github.com/somchai-dev/learning-journal.git</code>) ซึ่งต้องใช้ Personal Access Token แทนรหัสผ่าน และ <strong>SSH</strong> (<code>git@github.com:somchai-dev/learning-journal.git</code>) ซึ่งใช้คู่กุญแจ (Key pair) ที่สร้างครั้งเดียวแล้วไม่ต้องพิมพ์อะไรอีก หลักสูตรนี้ใช้ SSH ใช้แนวคิดนี้ทุกครั้งที่ต้องสำรองงานขึ้น GitHub หรือทำงานร่วมกับคนอื่น</p>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Remote คือตู้เอกสารกลางของออฟฟิศ <code>push</code> คือนำแฟ้มของเราไปใส่ตู้ <code>fetch</code> คือถ่ายเอกสารแฟ้มล่าสุดในตู้มาวางไว้ข้างโต๊ะเพื่ออ่าน (ยังไม่เอาไปปนกับงานบนโต๊ะ) <code>pull</code> คือถ่ายเอกสารมาแล้วรวมเข้ากับงานบนโต๊ะทันที ส่วน SSH key คือบัตรพนักงานแบบแตะ ลงทะเบียนครั้งเดียวที่ป้อมยาม (GitHub) แล้วเข้าออกได้โดยไม่ต้องบอกรหัสผ่านทุกครั้ง</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p><strong>ส่วนที่ทำบน GitHub จริง</strong> (รันใน Sandbox ของหลักสูตรไม่ได้ เพราะต้องเชื่อมต่อ github.com ให้ทำในเครื่องของคุณ): สร้าง SSH key แบบ Ed25519 แล้วเพิ่มลง GitHub</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างคู่กุญแจ ใส่อีเมลที่ใช้กับ GitHub (กด Enter ยอมรับตำแหน่งไฟล์ แล้วตั้ง Passphrase)
+ssh-keygen -t ed25519 -C "somchai@example.com"
+
+# เปิด ssh-agent แล้วฝากกุญแจไว้ จะได้ไม่ต้องพิมพ์ Passphrase บ่อย
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+
+# แสดงกุญแจสาธารณะ (.pub) เพื่อคัดลอกไปวางใน GitHub
+cat ~/.ssh/id_ed25519.pub
+
+# หลังเพิ่มกุญแจใน GitHub แล้ว ทดสอบการเชื่อมต่อ
+ssh -T git@github.com</code></pre>
+    <p>หลังรัน <code>cat</code> ให้คัดลอกข้อความทั้งบรรทัดที่ขึ้นต้นด้วย <code>ssh-ed25519</code> ไปที่ GitHub → รูปโปรไฟล์ → <strong>Settings</strong> → <strong>SSH and GPG keys</strong> → <strong>New SSH key</strong> ตั้งชื่อ เช่น "WSL laptop" แล้ววาง การรัน <code>ssh -T git@github.com</code> ครั้งแรกจะถามว่าเชื่อถือ Server นี้หรือไม่ พร้อมแสดงลายนิ้วมือ (Fingerprint) ให้ตรวจว่าตรงกับค่าที่ GitHub ประกาศ คือ <code>SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU</code> (ED25519) ถ้าตรงให้พิมพ์ <code>yes</code> แล้วจะเห็นข้อความต้อนรับดังนี้ (ชื่อผู้ใช้เป็นของคุณ)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Hi somchai-dev! You've successfully authenticated, but GitHub does not provide shell access.</code></pre>
+    <p><strong>ส่วนที่รันได้จริงในเครื่อง</strong>: จำลอง GitHub ด้วย Bare repository แบบเดียวกับห้องทดลองในส่วนที่ 1 ให้สมชายและมาลีทำงาน Repository เดียวกัน (คำสั่งแรกลบห้องทดลองเดิม ถ้าเคยทำในส่วนที่ 1 แล้วก็สร้างใหม่ได้)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ลบของเก่า แล้วสร้าง "GitHub จำลอง" เป็น Bare repository
+rm -rf ~/projects/git-lab/c07-remote ~/projects/git-lab/remotes/hello-team.git
+mkdir -p ~/projects/git-lab/remotes ~/projects/git-lab/c07-remote
+git init --bare ~/projects/git-lab/remotes/hello-team.git
+
+# สมชาย Clone ลงมา สร้าง Commit แรก แล้ว Push พร้อมผูก main กับ origin/main
+cd ~/projects/git-lab/c07-remote
+git clone ~/projects/git-lab/remotes/hello-team.git hello-team
+cd hello-team
+echo "# Hello Team" &gt; README.md
+git add README.md
+git commit -q -m "docs: add README"
+git push -u origin main
+git remote -v
+git branch -vv</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Initialized empty Git repository in /home/somchai/projects/git-lab/remotes/hello-team.git/
+Cloning into 'hello-team'...
+warning: You appear to have cloned an empty repository.
+done.
+To /home/somchai/projects/git-lab/remotes/hello-team.git
+ * [new branch]      main -&gt; main
+branch 'main' set up to track 'origin/main'.
+origin	/home/somchai/projects/git-lab/remotes/hello-team.git (fetch)
+origin	/home/somchai/projects/git-lab/remotes/hello-team.git (push)
+* main 8b3307c [origin/main] docs: add README</code></pre>
+    <p>มาลี Clone อีกชุดและ Push ก่อน ระหว่างนั้นสมชายก็ Commit งานของตัวเองแล้วลอง Push</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># มาลี: Clone และตั้งชื่อเฉพาะ Repository นี้ด้วย --local
+cd ~/projects/git-lab/c07-remote
+git clone ~/projects/git-lab/remotes/hello-team.git malee-hello-team
+cd malee-hello-team
+git config --local user.name "Malee Srisuk"
+git config --local user.email "malee@example.com"
+echo "สวัสดีจากมาลี" &gt; malee.txt
+git add malee.txt
+git commit -q -m "feat: add greeting from Malee"
+git push
+
+# สมชาย: Commit งานตัวเองแล้ว Push (จะถูกปฏิเสธ)
+cd ~/projects/git-lab/c07-remote/hello-team
+echo "สวัสดีจากสมชาย" &gt; somchai.txt
+git add somchai.txt
+git commit -q -m "feat: add greeting from Somchai"
+git push</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Cloning into 'malee-hello-team'...
+done.
+To /home/somchai/projects/git-lab/remotes/hello-team.git
+   8b3307c..a080160  main -&gt; main
+To /home/somchai/projects/git-lab/remotes/hello-team.git
+ ! [rejected]        main -&gt; main (fetch first)
+error: failed to push some refs to '/home/somchai/projects/git-lab/remotes/hello-team.git'
+hint: Updates were rejected because the remote contains work that you do not
+hint: have locally. This is usually caused by another repository pushing to
+hint: the same ref. If you want to integrate the remote changes, use
+hint: 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.</code></pre>
+    <p>สมชาย <code>fetch</code> มาดูก่อน แล้ว <code>pull</code> เพื่อรวม และ Push ใหม่ สุดท้ายมาลี <code>pull</code> งานของสมชาย (ใส่ <code>--no-edit</code> เพื่อไม่ให้ nano เปิดถามข้อความ Merge)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สมชาย: ดึงประวัติใหม่มาดูโดยยังไม่รวม
+git fetch
+git branch -vv                     # ahead 1, behind 1
+git log --oneline --all
+
+# รวม (fetch + merge) แล้ว Push อีกครั้ง
+git pull --no-edit
+git push
+git log --oneline --graph
+
+# มาลี: ดึงงานล่าสุดลงมา
+cd ~/projects/git-lab/c07-remote/malee-hello-team
+git pull
+ls</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>From /home/somchai/projects/git-lab/remotes/hello-team
+   8b3307c..a080160  main       -&gt; origin/main
+* main 6c38828 [origin/main: ahead 1, behind 1] feat: add greeting from Somchai
+6c38828 feat: add greeting from Somchai
+a080160 feat: add greeting from Malee
+8b3307c docs: add README
+Merge made by the 'ort' strategy.
+ malee.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 malee.txt
+To /home/somchai/projects/git-lab/remotes/hello-team.git
+   a080160..f245476  main -&gt; main
+*   f245476 Merge branch 'main' of /home/somchai/projects/git-lab/remotes/hello-team
+|\  
+| * a080160 feat: add greeting from Malee
+* | 6c38828 feat: add greeting from Somchai
+|/  
+* 8b3307c docs: add README
+From /home/somchai/projects/git-lab/remotes/hello-team
+   a080160..f245476  main       -&gt; origin/main
+Updating a080160..f245476
+Fast-forward
+ somchai.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 somchai.txt
+README.md
+malee.txt
+somchai.txt</code></pre>
+    <p class="muted small">ใน Terminal จริง <code>git push</code> จะแสดงบรรทัดความคืบหน้าเพิ่ม เช่น <code>Enumerating objects</code> และ <code>Writing objects</code> พร้อมจำนวน Byte รหัส Commit ในเครื่องคุณจะต่างจากนี้ เมื่อใช้ GitHub จริง ข้อความ Merge จะเป็น <code>Merge branch 'main' of github.com:somchai-dev/...</code></p>
+    <p>บน GitHub จริง ขั้นตอนเริ่มโปรเจกต์มีเพียงสร้าง Repository เปล่าบนเว็บ (ไม่ต้องติ๊กสร้าง README) แล้วรันในโฟลเดอร์โปรเจกต์ที่มี Commit แล้ว:</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/learning-journal
+git remote add origin git@github.com:somchai-dev/learning-journal.git
+git push -u origin main
+# Clone Repository ของคนอื่นหรือของตัวเองลงเครื่องใหม่
+git clone git@github.com:somchai-dev/learning-journal.git</code></pre>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>ssh-keygen -t ed25519 -C "..."</code></td><td>สร้างกุญแจคู่ชนิด Ed25519 ได้ไฟล์ลับ <code>~/.ssh/id_ed25519</code> (ห้ามให้ใคร) และไฟล์สาธารณะ <code>~/.ssh/id_ed25519.pub</code> (ให้ GitHub)</td></tr>
+      <tr><td><code>git init --bare</code></td><td>สร้าง Repository ที่มีแต่ประวัติ ไม่มี Working Tree เหมือนที่ GitHub เก็บไว้บน Server</td></tr>
+      <tr><td><code>git push -u origin main</code></td><td>ส่ง Branch <code>main</code> ไปที่ <code>origin</code> และ <code>-u</code> จำคู่ <code>main</code> กับ <code>origin/main</code> ไว้ ครั้งต่อไปพิมพ์แค่ <code>git push</code> หรือ <code>git pull</code></td></tr>
+      <tr><td><code>git remote -v</code></td><td>แสดงชื่อและ URL ของ Remote ทั้งสำหรับ fetch และ push เปลี่ยนชื่อได้ด้วย <code>git remote rename origin team</code> ลบด้วย <code>git remote remove ชื่อ</code></td></tr>
+      <tr><td><code>! [rejected] main -&gt; main (fetch first)</code></td><td>บน Remote มี Commit ที่เราไม่มี (ของมาลี) Git จึงไม่ยอมให้ Push ทับ</td></tr>
+      <tr><td><code>git fetch</code> / <code>8b3307c..a080160 main -&gt; origin/main</code></td><td>ดึง Commit ใหม่มาอัปเดต <code>origin/main</code> ในเครื่อง ไฟล์งานยังไม่เปลี่ยน</td></tr>
+      <tr><td><code>[origin/main: ahead 1, behind 1]</code></td><td>เรามี 1 Commit ที่ Remote ไม่มี และ Remote มี 1 Commit ที่เรายังไม่ได้รวม แปลว่าประวัติแยกทางกัน (Diverged)</td></tr>
+      <tr><td><code>git pull --no-edit</code></td><td>fetch แล้ว merge <code>origin/main</code> เข้า <code>main</code> ได้ Merge commit เพราะทั้งสองฝั่งมีงานใหม่ ถ้าใช้ <code>git pull --rebase</code> จะได้ประวัติเส้นตรงแทน (แนวคิดที่ 9)</td></tr>
+      <tr><td>ฝั่งมาลี <code>Fast-forward</code></td><td>มาลีไม่มี Commit ใหม่ จึงแค่เลื่อน <code>main</code> ตาม Remote ได้ไฟล์ <code>somchai.txt</code> มาด้วย</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td><code>git@github.com: Permission denied (publickey).</code><br><code>fatal: Could not read from remote repository.</code></td><td>ยังไม่ได้เพิ่ม Public key ใน GitHub, คัดลอกกุญแจไม่ครบบรรทัด หรือ ssh-agent ไม่ได้ฝากกุญแจไว้</td><td>ตรวจด้วย <code>ssh -T git@github.com</code> ถ้ายังไม่ผ่าน ให้รัน <code>ssh-add ~/.ssh/id_ed25519</code> และเพิ่ม <code>id_ed25519.pub</code> ใน Settings → SSH and GPG keys ใหม่</td></tr>
+      <tr><td><code>! [rejected]        main -&gt; main (fetch first)</code><br><code>error: failed to push some refs to ...</code></td><td>มีคน Push Commit ใหม่ขึ้นไปก่อน</td><td><code>git pull</code> รวมงานก่อน แก้ Conflict ถ้ามี แล้ว <code>git push</code> อีกครั้ง ห้ามแก้ด้วย <code>--force</code> บน Branch ที่ใช้ร่วมกัน</td></tr>
+      <tr><td><code>hint: You have divergent branches and need to specify how to reconcile them.</code><br><code>fatal: Need to specify how to reconcile divergent branches.</code></td><td>ประวัติแยกทางกัน และยังไม่ได้ตั้ง <code>pull.rebase</code> Git จึงไม่รู้ว่าจะ Merge หรือ Rebase</td><td>ตั้งค่าครั้งเดียว <code>git config --global pull.rebase false</code> (ค่าของหลักสูตร) หรือระบุทุกครั้ง <code>git pull --no-rebase</code> / <code>git pull --rebase</code></td></tr>
+      <tr><td><code>remote: Support for password authentication was removed on August 13, 2021.</code></td><td>ใช้ URL แบบ HTTPS แล้วกรอกรหัสผ่านบัญชี GitHub ซึ่งไม่รองรับแล้ว</td><td>เปลี่ยนเป็น SSH ด้วย <code>git remote set-url origin git@github.com:somchai-dev/learning-journal.git</code> หรือใช้ Personal Access Token / <code>gh auth login</code> แทนรหัสผ่าน</td></tr>
+      <tr><td><code>error: src refspec main does not match any</code><br><code>error: failed to push some refs to ...</code></td><td>Push ทั้งที่ยังไม่มี Commit เลย หรือ Branch ในเครื่องชื่อ <code>master</code> ไม่ใช่ <code>main</code></td><td>สร้าง Commit แรกก่อน และตรวจชื่อ Branch ด้วย <code>git branch</code> ถ้าชื่อผิดเปลี่ยนด้วย <code>git branch -m master main</code></td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>เริ่มวันทำงานด้วย <code>git switch main</code> และ <code>git pull</code> ก่อนแตก Branch ใหม่เสมอ</li>
+      <li>ใช้ <code>git fetch</code> ตามด้วย <code>git log --oneline --all</code> ดูว่าเพื่อนเปลี่ยนอะไรก่อนรวม เมื่อไม่แน่ใจ</li>
+      <li>ตั้ง Passphrase ให้ SSH key และไม่คัดลอกไฟล์ <code>~/.ssh/id_ed25519</code> (ไฟล์ที่ไม่มี .pub) ไปที่ไหนเลย ถ้าเครื่องหาย ให้ลบกุญแจนั้นออกจาก GitHub ทันที</li>
+      <li>รัน <code>git fetch --prune</code> เป็นประจำ เพื่อลบ <code>origin/...</code> ของ Branch ที่ถูกลบบน GitHub แล้ว</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ทำต่อในห้องทดลอง <code>c07-remote</code></p><ol>
+      <li>ให้มาลีแก้ <code>README.md</code> และ Push จากนั้นให้สมชายแก้ <code>somchai.txt</code> แล้วใช้ <code>git pull --rebase</code> แทน ดูภาพด้วย <code>git log --oneline --graph</code> ว่าไม่มี Merge commit เพิ่ม</li>
+      <li>ให้มาลีสร้าง Branch บน Remote ด้วย <code>git push origin main:feature/old-idea</code> แล้วให้สมชายลบด้วย <code>git push origin --delete feature/old-idea</code> จากนั้นฝั่งมาลีรัน <code>git branch -r</code> ก่อนและหลัง <code>git fetch --prune</code></li>
+      <li>เปลี่ยนชื่อ Remote เป็น <code>team</code> ด้วย <code>git remote rename</code> แล้วเปลี่ยนกลับ</li>
+      <li>ทำส่วน GitHub จริง: สร้าง SSH key, ทดสอบ <code>ssh -T git@github.com</code> และ Push <code>learning-journal</code> ขึ้น GitHub</li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 8</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+    <h3 id="s17-2-c08">Pull Request, Fork, Code Review และ GitHub CLI</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p><strong>Pull Request (PR)</strong> คือคำขอบน GitHub ให้รวม Branch หนึ่งเข้าอีก Branch หนึ่ง พร้อมพื้นที่ให้ทีมอ่าน diff แสดงความเห็น และรอผลตรวจอัตโนมัติ (Checks) ก่อนกด Merge วงจรของ PR คือ: แตก Branch → Commit → <code>git push -u origin feature/...</code> → เปิด PR (<code>gh pr create</code>) → รอ Checks และ Code Review → แก้ตามความเห็นแล้ว Push เพิ่มเข้า Branch เดิม (PR อัปเดตเอง) → Merge → ลบ Branch → <code>git switch main</code> และ <code>git pull</code> ปุ่ม Merge บน GitHub มี 3 แบบ: <strong>Create a merge commit</strong> (เก็บทุก Commit และมี Merge commit), <strong>Squash and merge</strong> (รวมทุก Commit ของ PR เป็น Commit เดียว นิยมที่สุดสำหรับ PR เล็ก) และ <strong>Rebase and merge</strong> (นำ Commit ไปต่อท้ายเป็นเส้นตรง)</p>
+    <p>PR ที่ดีมีหัวเรื่องแบบ Conventional Commits และคำอธิบายที่ตอบ 4 ข้อ: ทำอะไร, ทำไม, ทดสอบอย่างไร และภาพหน้าจอ (ถ้าเปลี่ยนหน้าตา) ใส่ <code>Closes #1</code> หรือ <code>Fixes #1</code> เพื่อปิด <strong>Issue</strong> หมายเลข 1 อัตโนมัติเมื่อ Merge Issue ใช้บันทึกบั๊กและงานที่ต้องทำ ติด Label ได้ และจัดลงบอร์ด <strong>GitHub Projects</strong> ที่มีคอลัมน์ Todo, In Progress, Done</p>
+    <p><strong>Fork</strong> คือสำเนา Repository ของคนอื่นที่อยู่ในบัญชี GitHub ของเรา ใช้เมื่อไม่มีสิทธิ์ Push เข้า Repository ต้นฉบับ เช่น โปรเจกต์ Open Source เรา Clone Fork ของเราลงเครื่อง (<code>origin</code>) และเพิ่ม Remote ชื่อ <code>upstream</code> ชี้ไปที่ต้นฉบับ เพื่อดึงงานใหม่มาอัปเดต Fork ส่วน <strong>Code Review</strong> มีมารยาทสำคัญ: ติชมที่โค้ด ไม่ใช่ที่ตัวคน, ใช้คำถามแทนคำสั่ง ("ถ้าใช้ <code>const</code> ตรงนี้จะดีกว่าไหม"), ขึ้นต้นด้วย <code>nit:</code> สำหรับเรื่องเล็กที่ไม่บังคับแก้, ใช้ปุ่ม Suggestion เสนอโค้ดที่เจ้าของ PR กดรับได้ทันที และเลือก <strong>Approve</strong> หรือ <strong>Request changes</strong> ให้ชัดเจน</p>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>PR คือการส่งร่างบทความให้บรรณาธิการ คุณไม่ได้แก้หนังสือพิมพ์ฉบับจริงเอง แต่ส่งร่างพร้อมบันทึกว่าแก้อะไรเพราะอะไร บรรณาธิการขีดเขียนความเห็น คุณแก้แล้วส่งร่างเดิมกลับไป จนได้รับอนุมัติจึงตีพิมพ์ ส่วน Fork คือการถ่ายเอกสารหนังสือทั้งเล่มของสำนักพิมพ์อื่นมาเขียนในฉบับของเรา แล้วส่งหน้าที่แก้กลับไปเสนอเขา</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p><strong>ติดตั้ง GitHub CLI (<code>gh</code>)</strong> จาก apt repository ทางการของ GitHub (ห้ามใช้ <code>gh</code> 2.45.0 จาก Ubuntu archive เพราะเก่ามาก) ทำในเครื่องของคุณ เพราะต้องเชื่อมต่อ Internet ของ GitHub</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ติดตั้ง GitHub CLI ตามคู่มือทางการสำหรับ Debian/Ubuntu
+sudo apt update &amp;&amp; sudo apt install -y wget
+sudo mkdir -p -m 755 /etc/apt/keyrings
+out=$(mktemp) &amp;&amp; wget -nv -O"$out" https://cli.github.com/packages/githubcli-archive-keyring.gpg
+cat "$out" | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg &gt; /dev/null
+sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+sudo mkdir -p -m 755 /etc/apt/sources.list.d
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list &gt; /dev/null
+sudo apt update
+sudo apt install -y gh
+
+# ตรวจเวอร์ชัน แล้ว Login
+gh --version
+gh auth login
+gh auth status</code></pre>
+    <p><code>gh --version</code> จะแสดงเวอร์ชันล่าสุด ณ วันที่ติดตั้ง ตอน <code>gh auth login</code> โปรแกรมจะถามทีละข้อ เริ่มจาก <code>? Where do you use GitHub?</code> ให้เลือก <strong>GitHub.com</strong> → โปรโตคอล <strong>SSH</strong> → เลือก Public key ที่สร้างในแนวคิดที่ 7 → <strong>Login with a web browser</strong> จากนั้น <code>gh</code> แสดงรหัสครั้งเดียวให้นำไปกรอกที่ <code>https://github.com/login/device</code> เมื่อเสร็จ <code>gh auth status</code> จะบอกว่า Login ด้วยบัญชีของคุณแล้ว</p>
+    <p><strong>วงจร PR บน GitHub จริงด้วย <code>gh</code></strong> (รันใน Repository ที่อยู่บน GitHub แล้ว)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">gh repo create portfolio --public --source=. --remote=origin --push   # สร้าง Repo บน GitHub จากโฟลเดอร์นี้
+gh issue create --title "เพิ่มหน้า Contact" --body "ใส่อีเมลและลิงก์ GitHub"
+git switch -c feature/contact-section
+git add contact.html
+git commit -m "feat: add contact section"
+git push -u origin feature/contact-section
+gh pr create --fill                    # ใช้ข้อความ Commit เป็นหัวเรื่องและคำอธิบาย PR
+gh pr checks                           # ดูผล GitHub Actions ของ PR นี้
+gh pr merge --squash --delete-branch   # Squash merge แล้วลบ Branch ทั้งบน GitHub และในเครื่อง
+git switch main
+git pull</code></pre>
+    <p class="muted small">สิ่งที่จะเห็น: <code>gh issue create</code> และ <code>gh pr create</code> พิมพ์ URL ของ Issue และ PR ที่สร้าง เช่น <code>https://github.com/somchai-dev/portfolio/pull/2</code> คลิกเปิดดูได้ <code>gh pr checks</code> แสดงชื่อ Check แต่ละตัวพร้อมสถานะผ่านหรือไม่ผ่าน และ <code>gh pr merge</code> แจ้งว่า Merge และลบ Branch แล้ว ข้อความละเอียดขึ้นกับเวอร์ชันของ <code>gh</code></p>
+    <p><strong>ส่วนที่รันได้จริงในเครื่อง</strong>: จำลองการ Fork ด้วย Bare repository 2 ตัว ตัวแรกคือต้นฉบับของมาลี (<code>upstream-recipes.git</code>) ตัวที่สองคือ Fork ของสมชาย ซึ่งสร้างด้วย <code>git clone --bare</code> (บน GitHub คือการกดปุ่ม Fork)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># มาลีสร้าง Repository ต้นฉบับ (README มีคำพิมพ์ผิด "งายๆ")
+rm -rf ~/projects/git-lab/c08-fork
+mkdir -p ~/projects/git-lab/c08-fork/remotes &amp;&amp; cd ~/projects/git-lab/c08-fork
+git init -q --bare remotes/upstream-recipes.git
+git clone -q remotes/upstream-recipes.git malee-recipes
+cd malee-recipes
+git config --local user.name "Malee Srisuk"
+git config --local user.email "malee@example.com"
+echo "# สูตรอาหารไทยงายๆ" &gt; README.md
+git add README.md
+git commit -q -m "docs: add README"
+git push -q -u origin main
+cd ..
+
+# สมชาย Fork (จำลองปุ่ม Fork) แล้ว Clone Fork ของตัวเองลงเครื่อง
+git clone --bare remotes/upstream-recipes.git remotes/somchai-recipes.git
+git clone remotes/somchai-recipes.git somchai-recipes
+cd somchai-recipes
+git remote add upstream ~/projects/git-lab/c08-fork/remotes/upstream-recipes.git
+git remote -v
+
+# แก้คำผิดบน Branch ใหม่ แล้ว Push ขึ้น Fork (ขั้นต่อไปบน GitHub คือเปิด PR ไปที่ต้นฉบับ)
+git switch -c fix/typo-readme
+sed -i 's/งายๆ/ง่ายๆ/' README.md
+git commit -am "docs: fix typo in README"
+git push -u origin fix/typo-readme</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>warning: You appear to have cloned an empty repository.
+Cloning into bare repository 'remotes/somchai-recipes.git'...
+done.
+Cloning into 'somchai-recipes'...
+done.
+origin	/home/somchai/projects/git-lab/c08-fork/remotes/somchai-recipes.git (fetch)
+origin	/home/somchai/projects/git-lab/c08-fork/remotes/somchai-recipes.git (push)
+upstream	/home/somchai/projects/git-lab/c08-fork/remotes/upstream-recipes.git (fetch)
+upstream	/home/somchai/projects/git-lab/c08-fork/remotes/upstream-recipes.git (push)
+Switched to a new branch 'fix/typo-readme'
+[fix/typo-readme 23a8b17] docs: fix typo in README
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To /home/somchai/projects/git-lab/c08-fork/remotes/somchai-recipes.git
+ * [new branch]      fix/typo-readme -&gt; fix/typo-readme
+branch 'fix/typo-readme' set up to track 'origin/fix/typo-readme'.</code></pre>
+    <p>ระหว่างรอรีวิว มาลีเพิ่มสูตรใหม่เข้าต้นฉบับ สมชายจึงต้องอัปเดต <code>main</code> ของ Fork ให้ทันต้นฉบับ (Sync fork)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># มาลี Push Commit ใหม่เข้าต้นฉบับ
+cd ~/projects/git-lab/c08-fork/malee-recipes
+echo "ผัดไทย: เส้นจันท์ กุ้ง ไข่ ถั่วงอก" &gt; pad-thai.md
+git add pad-thai.md
+git commit -q -m "feat: add pad thai recipe"
+git push -q
+
+# สมชาย: ดึงจาก upstream รวมเข้า main แล้ว Push ขึ้น Fork ของตัวเอง
+cd ~/projects/git-lab/c08-fork/somchai-recipes
+git fetch upstream
+git switch main
+git merge upstream/main
+git push origin main
+git log --oneline --graph --all</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>From /home/somchai/projects/git-lab/c08-fork/remotes/upstream-recipes
+ * [new branch]      main       -&gt; upstream/main
+Switched to branch 'main'
+Your branch is up to date with 'origin/main'.
+Updating 052622f..d6b6317
+Fast-forward
+ pad-thai.md | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 pad-thai.md
+To /home/somchai/projects/git-lab/c08-fork/remotes/somchai-recipes.git
+   052622f..d6b6317  main -&gt; main
+* 23a8b17 docs: fix typo in README
+| * d6b6317 feat: add pad thai recipe
+|/  
+* 052622f docs: add README</code></pre>
+    <p class="muted small">ภาพสุดท้ายแสดงว่า <code>main</code> ของ Fork มีสูตรผัดไทยแล้ว ส่วน Branch <code>fix/typo-readme</code> ยังแยกจาก Commit แรก ซึ่งไม่เป็นปัญหาเพราะแก้คนละไฟล์ GitHub จะแสดงว่า PR รวมได้ (ไม่มี Conflict) รหัส Commit ในเครื่องคุณจะต่างจากนี้</p>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>gh auth login</code> / <code>gh auth status</code></td><td>เชื่อม <code>gh</code> กับบัญชี GitHub ครั้งเดียว และตรวจว่า Login อยู่ด้วยบัญชีไหน</td></tr>
+      <tr><td><code>gh pr create --fill</code></td><td>เปิด PR จาก Branch ปัจจุบันไปที่ Branch หลัก ใช้ข้อความ Commit เป็นหัวเรื่องและคำอธิบาย ถ้าไม่ใส่ <code>--fill</code> จะถามทีละข้อ</td></tr>
+      <tr><td><code>gh pr merge --squash --delete-branch</code></td><td>รวม PR แบบ Squash และลบ Branch ทั้งบน GitHub และในเครื่อง</td></tr>
+      <tr><td><code>git clone --bare ... somchai-recipes.git</code></td><td>จำลองปุ่ม Fork: สำเนาประวัติทั้งหมดของต้นฉบับไว้เป็น Repository ของสมชายเอง</td></tr>
+      <tr><td><code>git remote add upstream ...</code></td><td>ตั้งชื่อ <code>upstream</code> ให้ต้นฉบับ ตอนนี้มี 2 Remote: <code>origin</code> (Fork ของเรา Push ได้) และ <code>upstream</code> (ต้นฉบับ ใช้ดึงอย่างเดียว)</td></tr>
+      <tr><td><code>git push -u origin fix/typo-readme</code></td><td>Push Branch ขึ้น Fork ของเราเอง บน GitHub จะมีแถบ "Compare &amp; pull request" ให้เปิด PR ไปที่ต้นฉบับ</td></tr>
+      <tr><td><code>git fetch upstream</code> / <code>[new branch] main -&gt; upstream/main</code></td><td>ดึงงานใหม่ของต้นฉบับมาเก็บใน <code>upstream/main</code></td></tr>
+      <tr><td><code>git merge upstream/main</code> แล้ว <code>git push origin main</code></td><td>อัปเดต <code>main</code> ในเครื่องให้ทันต้นฉบับ (Fast-forward) แล้วส่งขึ้น Fork บน GitHub เทียบเท่าปุ่ม Sync fork หรือ <code>gh repo sync</code></td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td><code>gh: command not found</code> หรือ <code>gh --version</code> แสดง <code>2.45.0</code> ซึ่งไม่มีคำสั่งใหม่ที่คู่มือพูดถึง</td><td>ยังไม่ได้ติดตั้ง หรือติดตั้งจาก Ubuntu archive ที่เป็นรุ่นเก่า</td><td>ติดตั้งตามขั้นตอนด้านบนจาก <code>cli.github.com/packages</code> ถ้าเคยติดตั้งรุ่นเก่า ให้ <code>sudo apt remove gh</code> ก่อนแล้วติดตั้งใหม่</td></tr>
+      <tr><td><code>To get started with GitHub CLI, please run:  gh auth login</code></td><td>ใช้คำสั่ง <code>gh</code> ทั้งที่ยังไม่ได้ Login</td><td>รัน <code>gh auth login</code> ให้เสร็จ แล้วตรวจด้วย <code>gh auth status</code></td></tr>
+      <tr><td>PR มี Commit ที่ไม่เกี่ยวข้องติดมาหลายอัน หรือมี Conflict ตั้งแต่เปิด</td><td>แตก Branch จาก <code>main</code> ในเครื่องที่เก่า หรือจาก Branch อื่นที่ยังไม่ Merge</td><td>ก่อนแตก Branch ใหม่ให้ <code>git switch main</code> และ <code>git pull</code> (ใน Fork ให้ Sync กับ <code>upstream</code> ก่อน) ถ้าเกิดแล้ว ให้สร้าง Branch ใหม่จาก <code>main</code> ล่าสุดแล้ว <code>git cherry-pick</code> เฉพาะ Commit ที่ต้องการ (แนวคิดที่ 11)</td></tr>
+      <tr><td><code>remote: Permission to malee-dev/recipes.git denied to somchai-dev.</code><br><code>fatal: unable to access ...: The requested URL returned error: 403</code></td><td>Push ตรงเข้า Repository ของคนอื่นที่เราไม่มีสิทธิ์เขียน</td><td>Fork ก่อน แล้ว Push เข้า Fork ของตัวเอง (<code>origin</code>) จากนั้นเปิด PR ไปที่ต้นฉบับ</td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>หนึ่ง PR หนึ่งเรื่อง และให้มีขนาดเล็ก (ไม่เกินราว 200–400 บรรทัดที่เปลี่ยน) รีวิวได้เร็วและละเอียดกว่า</li>
+      <li>รีวิว PR ของตัวเองบนหน้า "Files changed" ก่อนขอให้คนอื่นรีวิว และตอบทุกความเห็นก่อน Merge</li>
+      <li>ก่อนส่ง PR ให้โปรเจกต์ Open Source อ่าน <code>CONTRIBUTING.md</code> และเริ่มจาก Issue ที่ติด Label <code>good first issue</code></li>
+      <li>ตั้ง Branch protection หรือ Ruleset ให้ <code>main</code> รับงานผ่าน PR เท่านั้น และต้องผ่าน Checks ก่อน Merge (ทำจริงใน Mini Project)</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ทำต่อใน <code>c08-fork</code> และบน GitHub</p><ol>
+      <li>ในฐานะมาลี (<code>malee-recipes</code>) รวม Branch ของสมชายด้วย <code>git fetch ~/projects/git-lab/c08-fork/remotes/somchai-recipes.git fix/typo-readme</code> แล้ว <code>git merge FETCH_HEAD</code> เพื่อจำลองการกด Merge PR</li>
+      <li>ให้สมชาย Sync Fork อีกครั้ง แล้วลบ Branch <code>fix/typo-readme</code> ทั้งในเครื่องและบน Fork</li>
+      <li>บน GitHub จริง: สร้าง Issue ใน <code>learning-journal</code> ด้วย <code>gh issue create</code> แก้งานบน Branch ใหม่ เปิด PR ที่มี <code>Closes #1</code> แล้ว Squash merge ดูว่า Issue ปิดเอง</li>
+      <li>เขียนความเห็นรีวิว 3 แบบให้ PR ของเพื่อน: คำถาม 1 ข้อ, <code>nit:</code> 1 ข้อ และ Suggestion 1 จุด</li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 9</span><span class="lvl" data-lvl="a">Advanced</span></div>
+    <h3 id="s17-2-c09">Rebase และ Interactive Rebase พร้อมกฎทอง</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p><strong>Rebase</strong> คือการนำ Commit ของ Branch เราไป "เล่นซ้ำ" (Replay) ต่อท้าย Commit ล่าสุดของอีก Branch ผลคือประวัติเป็นเส้นตรงเหมือนเราเพิ่งเริ่มงานจาก <code>main</code> ล่าสุด ไม่มี Merge commit แต่ Commit ที่ถูกเล่นซ้ำจะเป็น <strong>Commit ใหม่ที่มีรหัสใหม่</strong> เสมอ แม้เนื้อหาเหมือนเดิม ใช้เมื่อต้องการอัปเดต Feature branch ให้ทัน <code>main</code> ก่อนเปิดหรือก่อน Merge PR และใช้ <code>git pull --rebase</code> เมื่อไม่อยากได้ Merge commit จากการ Pull</p>
+    <p><strong>Interactive Rebase</strong> (<code>git rebase -i HEAD~3</code>) เปิดรายการ Commit ให้เราจัดการก่อนส่งให้คนอื่นดู คำสั่งในรายการมีดังนี้: <code>pick</code> เก็บไว้ตามเดิม, <code>reword</code> แก้ข้อความ, <code>squash</code> รวมกับ Commit ก่อนหน้าและรวมข้อความด้วย, <code>fixup</code> รวมกับ Commit ก่อนหน้าแต่ทิ้งข้อความของตัวเอง, <code>drop</code> ทิ้ง Commit และสลับบรรทัดเพื่อเรียงลำดับใหม่ได้ ทางลัดที่นิยมคือ <code>git commit --fixup &lt;commit&gt;</code> ตามด้วย <code>git rebase -i --autosquash</code> ซึ่งจัดบรรทัด fixup ให้อัตโนมัติ ถ้าระหว่าง Rebase เกิด Conflict ให้แก้ไฟล์ <code>git add</code> แล้ว <code>git rebase --continue</code> หรือข้ามด้วย <code>--skip</code> หรือยกเลิกทั้งหมดด้วย <code>--abort</code></p>
+    <div class="callout warn"><span class="c-label warn">ระวัง</span><p><strong>กฎทอง: ห้าม Rebase Commit ที่คนอื่นมีแล้ว</strong> (Commit ที่ Push ขึ้น Branch ที่ใช้ร่วมกัน เช่น <code>main</code>) เพราะ Rebase สร้าง Commit ใหม่แทนของเดิม ประวัติในเครื่องเพื่อนจะไม่ตรงกับ Remote เกิด Commit ซ้ำและ Conflict วุ่นวาย Rebase ได้เฉพาะ Commit ในเครื่องที่ยังไม่ Push หรือ Feature branch ที่เราทำคนเดียว และเมื่อต้อง Push ทับ Branch ของตัวเองหลัง Rebase ให้ใช้ <code>git push --force-with-lease</code> (ปลอดภัยกว่า <code>--force</code> เพราะจะไม่ทับถ้ามีคนอื่น Push เพิ่มเข้ามา) และห้ามใช้กับ <code>main</code> เด็ดขาด</p></div>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Merge เหมือนการเย็บสมุดสองเล่มติดกันพร้อมใบปะหน้าว่า "รวมเล่มวันนี้" ส่วน Rebase เหมือนการคัดลอกบันทึกของเราใหม่ทั้งหมดต่อท้ายสมุดเล่มหลักล่าสุด อ่านง่ายเป็นเรื่องเดียว แต่เป็นลายมือชุดใหม่ ถ้าเพื่อนถ่ายเอกสารฉบับเก่าไปแล้ว ฉบับของเพื่อนจะไม่ตรงกับของเรา Interactive Rebase คือการเรียบเรียงบันทึกก่อนส่งครู รวมหน้าที่เขียนว่า "แก้คำผิด" เข้ากับหน้าหลัก และฉีกหน้าที่ไม่ต้องการทิ้ง</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>สร้าง Branch <code>feature/about</code> ที่มี Commit รกๆ 3 อัน ขณะที่ <code>main</code> มี Commit ใหม่ แล้วใช้ Rebase จัดให้เป็นเส้นตรง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เตรียม Repository
+rm -rf ~/projects/git-lab/c09-rebase
+mkdir -p ~/projects/git-lab/c09-rebase &amp;&amp; cd ~/projects/git-lab/c09-rebase
+git init -q
+echo "# เว็บของสมชาย" &gt; README.md
+git add README.md
+git commit -q -m "docs: add README"
+
+# Feature branch ที่มี Commit รก 3 อัน
+git switch -q -c feature/about
+echo "&lt;h1&gt;เกี่ยวกับฉัน&lt;/h1&gt;" &gt; about.html
+git add about.html
+git commit -q -m "feat: add about page"
+echo "&lt;p&gt;ผมชอบเขียนโค้ดและชงกาแฟ&lt;/p&gt;" &gt;&gt; about.html
+git commit -q -am "wip"
+sed -i 's/ชงกาแฟ/ชงกาแฟดริป/' about.html
+git commit -q -am "fix typo"
+
+# ระหว่างนั้น main มี Commit ใหม่
+git switch -q main
+echo "แผน: เพิ่มหน้า about" &gt;&gt; README.md
+git commit -q -am "docs: add plan"
+git log --oneline --graph --all
+
+# Rebase feature/about ให้ต่อจาก main ล่าสุด
+git switch feature/about
+git rebase main
+git log --oneline --graph --all</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>* 56e4a6f fix typo
+* 6cff4e8 wip
+* 6cfb196 feat: add about page
+| * 3f83346 docs: add plan
+|/  
+* e47f636 docs: add README
+Switched to branch 'feature/about'
+Successfully rebased and updated refs/heads/feature/about.
+* 5940ea1 fix typo
+* dfab3d8 wip
+* 8e9a872 feat: add about page
+* 3f83346 docs: add plan
+* e47f636 docs: add README</code></pre>
+    <p>ปกติ <code>git rebase -i HEAD~3</code> จะเปิด nano พร้อมรายการด้านล่าง (นี่คือข้อความจริงที่ Git 2.43 สร้าง) เราจะแก้คำว่า <code>pick</code> ในบรรทัดที่ 2 และ 3 เป็น <code>fixup</code> แล้วบันทึก เพื่อรวม 3 Commit เป็นอันเดียว</p>
+<pre class="code" data-env="tpl" data-kind="tpl" data-label="Todo list · git rebase -i HEAD~3"><code class="language-plaintext">pick 8e9a872 feat: add about page
+pick dfab3d8 wip
+pick 5940ea1 fix typo
+
+# Rebase 3f83346..5940ea1 onto 3f83346 (3 commands)
+#
+# Commands:
+# p, pick &lt;commit&gt; = use commit
+# r, reword &lt;commit&gt; = use commit, but edit the commit message
+# e, edit &lt;commit&gt; = use commit, but stop for amending
+# s, squash &lt;commit&gt; = use commit, but meld into previous commit
+# f, fixup [-C | -c] &lt;commit&gt; = like "squash" but keep only the previous
+#                    commit's log message, unless -C is used, in which case
+#                    keep only this commit's message; -c is same as -C but
+#                    opens the editor
+# x, exec &lt;command&gt; = run command (the rest of the line) using shell
+# b, break = stop here (continue rebase later with 'git rebase --continue')
+# d, drop &lt;commit&gt; = remove commit
+# l, label &lt;label&gt; = label current HEAD with a name
+# t, reset &lt;label&gt; = reset HEAD to a label
+# m, merge [-C &lt;commit&gt; | -c &lt;commit&gt;] &lt;label&gt; [# &lt;oneline&gt;]
+#         create a merge commit using the original merge commit's
+#         message (or the oneline, if no original merge commit was
+#         specified); use -c &lt;commit&gt; to reword the commit message
+# u, update-ref &lt;ref&gt; = track a placeholder for the &lt;ref&gt; to be updated
+#                       to this position in the new commits. The &lt;ref&gt; is
+#                       updated at the end of the rebase
+#
+# These lines can be re-ordered; they are executed from top to bottom.
+#
+# If you remove a line here THAT COMMIT WILL BE LOST.
+#
+# However, if you remove everything, the rebase will be aborted.
+#</code></pre>
+    <p>เพื่อให้ได้ผลเหมือนกันทุกครั้งโดยไม่ต้องเปิด nano ตัวอย่างนี้ให้ <code>sed</code> ทำหน้าที่แก้รายการแทนเรา ผ่านตัวแปร <code>GIT_SEQUENCE_EDITOR</code> (ใช้งานจริงพิมพ์แค่ <code>git rebase -i HEAD~3</code> แล้วแก้ใน nano เอง)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เปลี่ยน pick เป็น fixup ในบรรทัดที่ 2-3 ของรายการ แล้ว Rebase
+GIT_SEQUENCE_EDITOR="sed -i -e '2,3s/^pick/fixup/'" git rebase -i HEAD~3
+git log --oneline
+git show --stat --format='%h %s' HEAD
+
+# Merge เข้า main (ได้ Fast-forward เพราะเป็นเส้นตรงแล้ว)
+git switch -q main
+git merge feature/about
+
+# ทางลัด fixup + autosquash (ทำกับ Commit ในเครื่องที่ยังไม่ Push)
+echo "&lt;footer&gt;ติดต่อ: somchai@example.com&lt;/footer&gt;" &gt;&gt; about.html
+git add about.html
+git commit -q -m "feat: add footer to about page"
+echo "&lt;footer&gt;อีเมล: somchai@example.com&lt;/footer&gt;" &gt;&gt; about.html
+git commit -q --fixup HEAD -a
+git log --oneline -3
+GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash HEAD~2
+git log --oneline -3</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Successfully rebased and updated refs/heads/feature/about.
+f2f2125 feat: add about page
+3f83346 docs: add plan
+e47f636 docs: add README
+f2f2125 feat: add about page
+
+ about.html | 2 ++
+ 1 file changed, 2 insertions(+)
+Updating 3f83346..f2f2125
+Fast-forward
+ about.html | 2 ++
+ 1 file changed, 2 insertions(+)
+ create mode 100644 about.html
+b360cf6 fixup! feat: add footer to about page
+2719a79 feat: add footer to about page
+f2f2125 feat: add about page
+Successfully rebased and updated refs/heads/main.
+4bbad1e feat: add footer to about page
+f2f2125 feat: add about page
+3f83346 docs: add plan</code></pre>
+    <p class="muted small">ใน Terminal จริงจะเห็นบรรทัด <code>Rebasing (1/3)</code> วิ่งแทนที่กันก่อนข้อความ <code>Successfully rebased</code> รหัส Commit ในเครื่องคุณจะต่างจากนี้ สังเกตว่าหลัง Rebase รหัสของทั้ง 3 Commit เปลี่ยนหมด (<code>6cfb196</code> กลายเป็น <code>8e9a872</code>)</p>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td>ภาพก่อน Rebase</td><td><code>feature/about</code> แยกจาก <code>e47f636</code> ส่วน <code>main</code> มี <code>3f83346</code> เพิ่ม ประวัติจึงแยกเป็นสองเส้น</td></tr>
+      <tr><td><code>git rebase main</code></td><td>นำ 3 Commit ของ feature ไปเล่นซ้ำต่อจาก <code>3f83346</code> ได้ Commit ใหม่ 3 อัน ประวัติเป็นเส้นตรง</td></tr>
+      <tr><td>รายการ <code>pick ...</code> (Todo list)</td><td>เรียงจาก Commit เก่าไปใหม่ (กลับด้านกับ <code>git log</code>) Git ทำตามจากบนลงล่าง ลบบรรทัด = ทิ้ง Commit นั้น</td></tr>
+      <tr><td><code>GIT_SEQUENCE_EDITOR="sed -i -e '2,3s/^pick/fixup/'"</code></td><td>ให้ <code>sed</code> เป็น Editor ของรายการ แก้บรรทัด 2–3 จาก <code>pick</code> เป็น <code>fixup</code> เท่ากับที่เราแก้ใน nano เอง</td></tr>
+      <tr><td><code>fixup</code></td><td>รวม Commit <code>wip</code> และ <code>fix typo</code> เข้ากับ <code>feat: add about page</code> และใช้ข้อความของ Commit แรกเท่านั้น ผลคือเหลือ <code>f2f2125</code> อันเดียวที่เพิ่ม 2 บรรทัด</td></tr>
+      <tr><td><code>git commit --fixup HEAD -a</code></td><td>สร้าง Commit ชื่อ <code>fixup! feat: add footer to about page</code> ที่ระบุว่าตั้งใจจะรวมเข้ากับ Commit นั้นภายหลัง</td></tr>
+      <tr><td><code>git rebase -i --autosquash HEAD~2</code></td><td>Git จัดบรรทัด <code>fixup!</code> ไปอยู่ใต้ Commit เป้าหมายและเปลี่ยนเป็น <code>fixup</code> ให้เอง (<code>GIT_SEQUENCE_EDITOR=true</code> คือยอมรับรายการโดยไม่เปิด Editor)</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td><code>CONFLICT (content): Merge conflict in about.html</code><br><code>error: could not apply 12681fe... feat: add about page</code><br><code>hint: Resolve all conflicts manually, mark them as resolved with</code><br><code>hint: "git add/rm &lt;conflicted_files&gt;", then run "git rebase --continue".</code></td><td>Commit ที่กำลังเล่นซ้ำแก้บรรทัดเดียวกับที่ <code>main</code> แก้ไปแล้ว</td><td>ดู <code>git status</code> แก้ไฟล์แบบเดียวกับแนวคิดที่ 6 แล้ว <code>git add about.html</code> และ <code>git rebase --continue</code> (ห้ามสั่ง <code>git commit</code> เอง) ถ้าสับสนใช้ <code>git rebase --abort</code></td></tr>
+      <tr><td><code>! [rejected]        feature/about -&gt; feature/about (non-fast-forward)</code><br><code>hint: Updates were rejected because the tip of your current branch is behind</code></td><td>Rebase Branch ที่เคย Push ไปแล้ว Commit ในเครื่องจึงเป็นชุดใหม่ที่ไม่ต่อจากของบน Remote</td><td>ถ้าเป็น Branch ของคุณคนเดียว ใช้ <code>git push --force-with-lease</code> ห้ามทำตาม hint ที่ให้ <code>git pull</code> เพราะจะได้ Commit ซ้ำสองชุด ถ้าเป็น Branch ที่ใช้ร่วมกัน อย่า Rebase ตั้งแต่แรก</td></tr>
+      <tr><td><code>fatal: It seems that there is already a rebase-merge directory, and</code><br><code>I wonder if you are in the middle of another rebase.</code></td><td>Rebase ครั้งก่อนยังค้างอยู่ (ยังไม่ continue หรือ abort) แล้วสั่ง Rebase ใหม่</td><td>ดู <code>git status</code> ว่าค้างตรงไหน แล้วเลือก <code>git rebase --continue</code> หรือ <code>git rebase --abort</code> ให้จบก่อน</td></tr>
+      <tr><td>เพื่อนร่วมทีม Pull แล้วเจอ Commit ซ้ำและ Conflict จำนวนมาก</td><td>มีคน Rebase แล้ว <code>git push --force</code> เข้า <code>main</code> ประวัติบน Remote ถูกเขียนใหม่</td><td>ป้องกันด้วย Ruleset ห้าม Force push บน <code>main</code> ถ้าเกิดแล้ว ให้คนที่ Force push หาประวัติเดิมด้วย <code>git reflog</code> (แนวคิดที่ 10) แล้วตกลงกันทั้งทีมก่อนกู้</td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>ก่อนเปิด PR ให้ใช้ <code>git rebase -i</code> จัด Commit ในเครื่องให้แต่ละอันมีความหมาย ลบ <code>wip</code> และ <code>fix typo</code> ออก</li>
+      <li>อัปเดต Feature branch ของตัวเองด้วย <code>git fetch</code> แล้ว <code>git rebase origin/main</code> ตามด้วย <code>git push --force-with-lease</code></li>
+      <li>ถ้าทีมใช้ Squash merge บน GitHub อยู่แล้ว ไม่จำเป็นต้อง Squash เองทุกครั้ง แต่ข้อความ Commit ก็ควรอ่านรู้เรื่อง</li>
+      <li>ไม่มั่นใจเมื่อไร ให้สร้าง Branch สำรองก่อน Rebase เช่น <code>git branch backup/about</code> ถ้าผิดพลาดก็กลับมาได้ทันที</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ทำต่อใน <code>c09-rebase</code></p><ol>
+      <li>สร้าง Branch <code>feature/skills</code> มี 3 Commit แล้วรัน <code>git rebase -i HEAD~3</code> ด้วย nano จริง ใช้ <code>reword</code> แก้ข้อความ Commit แรก และ <code>squash</code> สองอันที่เหลือ</li>
+      <li>สลับลำดับบรรทัดในรายการ แล้วดูผลด้วย <code>git log --oneline</code></li>
+      <li>สร้าง Conflict ระหว่าง Rebase โดยให้ <code>main</code> และ Branch แก้บรรทัดเดียวกัน ฝึก <code>git rebase --continue</code> และ <code>git rebase --abort</code></li>
+      <li>อธิบายเป็นคำพูดของคุณว่าทำไม <code>--force-with-lease</code> ปลอดภัยกว่า <code>--force</code></li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 10</span><span class="lvl" data-lvl="a">Advanced</span></div>
+    <h3 id="s17-2-c10">Reset, Reflog และการลบ Secret ออกจากประวัติ</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p><code>git reset &lt;commit&gt;</code> ย้ายป้าย Branch ปัจจุบันถอยกลับไปที่ Commit ที่ระบุ Commit ที่อยู่หลังจากนั้นจะหายไปจากประวัติของ Branch มี 3 โหมดที่ต่างกันตรงว่า "การเปลี่ยนแปลงของ Commit ที่ถอยออกมาไปอยู่ที่ไหน"</p>
+    <ul>
+      <li><code>--soft</code>: เก็บไว้ใน Staging Area พร้อม Commit ใหม่ทันที เหมาะกับการรวมหลาย Commit เป็นอันเดียว หรือเขียนข้อความใหม่</li>
+      <li><code>--mixed</code> (ค่าเริ่มต้นเมื่อไม่ใส่โหมด): เก็บไว้ใน Working Tree แต่ไม่ Staged เหมาะกับการเลือก add ใหม่เป็นหลาย Commit</li>
+      <li><code>--hard</code>: <strong>ทิ้งทั้ง Staging และ Working Tree</strong> ไฟล์กลับไปเหมือน Commit ปลายทางทุกตัวอักษร งานที่ยังไม่ Commit หายถาวร</li>
+    </ul>
+    <p>ใช้ <code>reset</code> กับ Commit ในเครื่องที่ยังไม่ Push เท่านั้น ถ้า Commit แชร์ไปแล้วให้ใช้ <code>git revert</code> (แนวคิดที่ 4) ตาข่ายนิรภัยของทุกอย่างคือ <strong>Reflog</strong> ซึ่งบันทึกทุกครั้งที่ HEAD ขยับในเครื่องเรา (Commit, reset, switch, rebase, merge) อ้างถึงด้วย <code>HEAD@{n}</code> ทำให้กู้ Commit ที่หายจาก <code>reset --hard</code> หรือจาก Branch ที่ลบไปได้ Reflog เก็บไว้ประมาณ 90 วันตามค่าเริ่มต้น อยู่ในเครื่องเราเท่านั้น และไม่มีงานที่ไม่เคย Commit</p>
+    <p>เรื่องที่ร้ายแรงที่สุดคือ <strong>Secret หลุดเข้าประวัติ</strong> เช่น Commit ไฟล์ <code>.env</code> การลบไฟล์ใน Commit ใหม่ไม่พอ เพราะค่ายังอยู่ใน Commit เก่า ลำดับการรับมือคือ (1) <strong>Revoke หรือ Rotate key ทันที</strong> ที่ผู้ให้บริการ ถือว่า key นั้นถูกขโมยไปแล้ว (2) ตรวจ Log การใช้งานว่ามีการใช้ผิดปกติหรือไม่ (3) ลบไฟล์ออกจากทุก Commit ด้วย <code>git filter-repo</code> (4) Force push และให้ทุกคนในทีม Clone ใหม่ (5) แจ้งทีมและผู้เกี่ยวข้อง GitHub ช่วยป้องกันด้วย <strong>Secret scanning</strong> (ตรวจหา key ที่รู้จักใน Repository) และ <strong>Push protection</strong> (บล็อกการ Push ที่มี key ตั้งแต่ต้น)</p>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p><code>reset</code> คือการย้อนเข็มนาฬิกาของสมุดบันทึก <code>--soft</code> ฉีกหน้าออกแต่เก็บเนื้อหาไว้ในแฟ้มพร้อมเย็บใหม่ <code>--mixed</code> ฉีกหน้าออกแล้ววางเนื้อหาไว้บนโต๊ะ <code>--hard</code> ฉีกแล้วเผาทิ้ง ส่วน Reflog คือกล้องวงจรปิดในห้องที่บันทึกว่าเคยมีหน้าไหนอยู่ตรงไหน ทำให้ตามหาหน้าที่ฉีกไปได้ ถ้าหน้านั้นเคยถูกเย็บเข้าเล่ม (Commit) มาก่อน</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>ส่วนที่ 1: ทดลอง reset ทั้ง 3 โหมด แล้วกู้คืนด้วย reflog</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เตรียม Repository ที่มี 3 Commit (a.txt, b.txt, c.txt)
+rm -rf ~/projects/git-lab/c10-reset
+mkdir -p ~/projects/git-lab/c10-reset &amp;&amp; cd ~/projects/git-lab/c10-reset
+git init -q
+for f in a b c; do
+  echo "ไฟล์ $f" &gt; $f.txt
+  git add $f.txt
+  git commit -q -m "feat: add $f.txt"
+done
+git log --oneline
+
+# --soft: ถอย 1 Commit แต่ c.txt ยัง Staged อยู่
+git reset --soft HEAD~1
+git status -s
+git log --oneline
+git commit -q -m "feat: add c.txt"
+
+# --mixed (ค่าเริ่มต้น): ถอย 1 Commit และ c.txt กลับเป็นไฟล์ที่ยังไม่ add
+git reset HEAD~1
+git status -s
+git add c.txt
+git commit -q -m "feat: add c.txt"
+
+# --hard: ระวัง! ทิ้งทุกอย่างของ Commit ล่าสุด c.txt หายจากโฟลเดอร์
+git reset --hard HEAD~1
+ls
+
+# กู้คืนด้วย reflog
+git reflog -n 5
+git reset --hard HEAD@{1}
+ls</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ddf178c feat: add c.txt
+acae2e9 feat: add b.txt
+053b9da feat: add a.txt
+A  c.txt
+acae2e9 feat: add b.txt
+053b9da feat: add a.txt
+?? c.txt
+HEAD is now at acae2e9 feat: add b.txt
+a.txt
+b.txt
+acae2e9 HEAD@{0}: reset: moving to HEAD~1
+ddf178c HEAD@{1}: commit: feat: add c.txt
+acae2e9 HEAD@{2}: reset: moving to HEAD~1
+ddf178c HEAD@{3}: commit: feat: add c.txt
+acae2e9 HEAD@{4}: reset: moving to HEAD~1
+HEAD is now at ddf178c feat: add c.txt
+a.txt
+b.txt
+c.txt</code></pre>
+    <p class="muted small">Commit <code>feat: add c.txt</code> ที่สร้างใหม่ได้รหัส <code>ddf178c</code> เหมือนเดิม เพราะเนื้อหา ผู้เขียน และเวลาตรงกันทุกอย่างภายในวินาทีเดียวกัน ในเครื่องคุณรหัสอาจต่างกันในแต่ละรอบ ให้ดูข้อความใน reflog แทน</p>
+    <p>ส่วนที่ 2: จำลองการ Commit ไฟล์ <code>.env</code> (ค่าปลอม) แล้วลบออกจากประวัติทั้งหมดด้วย <code>git filter-repo</code></p>
+    <div class="callout warn"><span class="c-label warn">ระวัง</span><p><code>git filter-repo</code> เขียนประวัติใหม่ทั้ง Repository รหัสของทุก Commit ตั้งแต่จุดที่แก้จะเปลี่ยน และโดยออกแบบ มันจะลบ Remote <code>origin</code> ออกเพื่อกันการ Push พลาด ใช้กับ Clone ใหม่ที่สำรองไว้แล้วเท่านั้น และทำหลังจาก Revoke key ไปแล้ว ตัวอย่างนี้ใช้ <code>--force</code> เพราะเป็น Repository ฝึกที่สร้างเองในเครื่อง ไม่ใช่ Clone ใหม่</p></div>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ติดตั้ง (ถ้ายังไม่ได้ติดตั้งในส่วนเตรียมเครื่อง)
+sudo apt install -y git-filter-repo</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เตรียม Repository ที่เผลอ Commit .env แล้วลบใน Commit ถัดมา
+rm -rf ~/projects/git-lab/c10-secret
+mkdir -p ~/projects/git-lab/c10-secret &amp;&amp; cd ~/projects/git-lab/c10-secret
+git init -q
+echo "# Weather App" &gt; README.md
+git add README.md
+git commit -q -m "docs: add README"
+echo "API_KEY=fake-key-for-lab-only" &gt; .env
+git add .env
+git commit -q -m "feat: add config"
+git rm -q .env
+echo ".env" &gt; .gitignore
+git add .gitignore
+git commit -q -m "chore: remove .env and ignore it"
+
+# ไฟล์ถูกลบแล้ว แต่ประวัติยังมี และยังเปิดอ่านค่าได้
+git log --oneline --all -- .env
+git show HEAD~1:.env
+
+# ลองรันแบบปกติ (ไม่ใช่ Clone ใหม่ จะถูกปฏิเสธ)
+git filter-repo --invert-paths --path .env
+
+# Repository ฝึกของเราเอง จึงใช้ --force
+git filter-repo --invert-paths --path .env --force
+
+# ตรวจผล: ไม่มี Commit ใดแตะ .env อีกแล้ว
+git log --oneline --all -- .env
+git log --oneline</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>cdc2c7d chore: remove .env and ignore it
+27aa042 feat: add config
+API_KEY=fake-key-for-lab-only
+Aborting: Refusing to destructively overwrite repo history since
+this does not look like a fresh clone.
+  (expected at most one entry in the reflog for HEAD)
+Please operate on a fresh clone instead.  If you want to proceed
+anyway, use --force.
+Parsed 3 commits
+HEAD is now at 80ff782 chore: remove .env and ignore it
+
+New history written in 0.02 seconds; now repacking/cleaning...
+Repacking your repo and cleaning out old unneeded objects
+Completely finished after 0.06 seconds.
+80ff782 chore: remove .env and ignore it
+d6bdea6 docs: add README</code></pre>
+    <p class="muted small">หลังกรอง Commit <code>feat: add config</code> หายไปทั้งอัน เพราะมีแต่การเพิ่ม <code>.env</code> และรหัสของ Commit ที่เหลือเปลี่ยนทั้งหมด เวลาที่ใช้ในเครื่องคุณจะต่างจากนี้ ใน Repository จริงขั้นต่อไปคือ <code>git remote add origin ...</code> แล้ว <code>git push --force --all</code> ตามด้วยแจ้งทุกคนให้ Clone ใหม่</p>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>git reset --soft HEAD~1</code> แล้ว <code>A  c.txt</code></td><td>ป้าย <code>main</code> ถอยไปที่ <code>acae2e9</code> แต่การเพิ่ม <code>c.txt</code> ยังรออยู่ใน Staging พร้อม Commit ใหม่</td></tr>
+      <tr><td><code>git reset HEAD~1</code> แล้ว <code>?? c.txt</code></td><td>โหมด mixed เอาออกจาก Staging ด้วย <code>c.txt</code> เป็นไฟล์ใหม่ จึงกลายเป็น Untracked ไฟล์ยังอยู่ครบ</td></tr>
+      <tr><td><code>git reset --hard HEAD~1</code></td><td>ย้ายป้ายและเขียนทับทั้ง Staging และ Working Tree <code>c.txt</code> หายจากโฟลเดอร์ (<code>ls</code> เหลือ 2 ไฟล์)</td></tr>
+      <tr><td><code>git reflog -n 5</code></td><td>แสดง 5 การเคลื่อนไหวล่าสุดของ HEAD <code>HEAD@{0}</code> คือตอนนี้ <code>HEAD@{1}</code> คือก่อนหน้า 1 ครั้ง ซึ่งคือ Commit ที่เพิ่งหายไป</td></tr>
+      <tr><td><code>git reset --hard HEAD@{1}</code></td><td>ย้ายป้ายกลับไปที่ Commit นั้น <code>c.txt</code> กลับมา ใช้รหัส <code>ddf178c</code> แทนก็ได้ หรือสร้าง Branch ใหม่ชี้ไปที่นั่นด้วย <code>git branch rescue HEAD@{1}</code></td></tr>
+      <tr><td><code>git log --oneline --all -- .env</code></td><td>หา Commit ทุกอันในทุก Branch ที่แตะไฟล์ <code>.env</code> ใช้ตรวจว่า Secret อยู่ในประวัติหรือไม่</td></tr>
+      <tr><td><code>git filter-repo --invert-paths --path .env</code></td><td><code>--path .env</code> เลือกไฟล์ <code>--invert-paths</code> กลับความหมายเป็น "เก็บทุกอย่างยกเว้นไฟล์นี้" แล้วเขียนทุก Commit ใหม่</td></tr>
+      <tr><td><code>Aborting: Refusing to destructively overwrite repo history ...</code></td><td>ด่านป้องกันของ filter-repo: ถ้า Repository ไม่ได้ดูเหมือน Clone ใหม่ (reflog มีหลายรายการ) จะไม่ยอมทำ เพื่อกันงานที่ยังไม่ Push หาย</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td>รัน <code>git reset --hard</code> แล้วงานที่แก้ทั้งวันหายไป <code>git reflog</code> ก็หาไม่เจอ</td><td>งานนั้นไม่เคยถูก Commit Reflog บันทึกเฉพาะ Commit จึงกู้ไม่ได้</td><td>ก่อนใช้ <code>--hard</code> ให้รัน <code>git status</code> และ <code>git stash push -m "backup"</code> เสมอ ถ้างานหายแล้ว ลองดู Local History ของ VS Code (Timeline) ซึ่งอยู่นอก Git</td></tr>
+      <tr><td><code>Aborting: Refusing to destructively overwrite repo history since</code><br><code>this does not look like a fresh clone.</code></td><td>รัน <code>git filter-repo</code> ใน Repository ที่ใช้ทำงานอยู่</td><td>วิธีที่แนะนำคือ Clone ใหม่ (<code>git clone --mirror</code> หรือ <code>git clone</code>) แล้วรันในนั้น ใช้ <code>--force</code> เฉพาะเมื่อมั่นใจว่าไม่มีงานที่ยังไม่ Push</td></tr>
+      <tr><td><code>fatal: log for 'HEAD' only has 9 entries</code></td><td>อ้าง <code>HEAD@{99}</code> เกินจำนวนรายการที่มีใน reflog</td><td>ดูรายการทั้งหมดด้วย <code>git reflog</code> ก่อน แล้วใช้หมายเลขหรือรหัส Commit ที่มีจริง</td></tr>
+      <tr><td>ลบ <code>.env</code> ใน Commit ใหม่แล้วคิดว่าปลอดภัย แต่ <code>git show HEAD~1:.env</code> ยังแสดง <code>API_KEY=...</code></td><td>Commit เก่ายังเก็บไฟล์ไว้ ใครก็ตามที่ Clone ไปเปิดอ่านได้</td><td>Revoke key ก่อนเป็นอันดับแรก แล้วลบออกจากประวัติด้วย <code>git filter-repo</code> และ Force push ตามขั้นตอนด้านบน</td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>ลำดับความปลอดภัยของการย้อน: <code>revert</code> (แชร์แล้ว) &gt; <code>reset --soft</code> / <code>--mixed</code> (ในเครื่อง) &gt; <code>reset --hard</code> (เมื่อแน่ใจว่าไม่มีอะไรต้องเก็บ)</li>
+      <li>ใช้ <code>git clean -n -d</code> ดูก่อนเสมอว่าจะลบไฟล์ Untracked อะไร แล้วจึง <code>git clean -fd</code> เพราะไฟล์ที่ไม่เคย add จะหายถาวร</li>
+      <li>เปิด Secret scanning และ Push protection ใน Settings → Code security ของ Repository และใช้ <code>.env</code> + <code>.gitignore</code> ตั้งแต่ Commit แรก</li>
+      <li>เมื่อ Secret หลุด ให้ Revoke ก่อนลบประวัติเสมอ เพราะคนอื่นอาจ Clone หรือบอตอาจเก็บค่าไปแล้วก่อนที่คุณจะลบ</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ทำต่อใน <code>c10-reset</code></p><ol>
+      <li>สร้าง Branch <code>tmp-branch</code> ที่มี Commit ใหม่ 1 อัน แล้วลบด้วย <code>git branch -D tmp-branch</code> จากนั้นกู้กลับด้วย <code>git reflog</code> และ <code>git branch rescue &lt;รหัส&gt;</code></li>
+      <li>ใช้ <code>git reset --soft HEAD~3</code> รวม 3 Commit เป็น Commit เดียวชื่อ <code>feat: add all files</code></li>
+      <li>สร้าง <code>draft.txt</code> และโฟลเดอร์ <code>tmp/</code> แล้วลองเปรียบเทียบผลของ <code>git clean -n -d</code> กับ <code>git clean -fd</code></li>
+      <li>ฝึกแบบที่ถูกวิธี: รันชุดคำสั่งสร้าง <code>c10-secret</code> ใหม่ (หยุดก่อนบรรทัด <code>git filter-repo</code>) แล้ว <code>cd ~/projects/git-lab</code> และ <code>git clone --no-local c10-secret c10-clean</code> จากนั้นรัน <code>git filter-repo --invert-paths --path .env</code> ใน <code>c10-clean</code> โดยไม่ใช้ <code>--force</code> และตรวจด้วย <code>git remote -v</code> ว่า <code>origin</code> ถูกลบออกแล้ว</li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 11</span><span class="lvl" data-lvl="a">Advanced</span></div>
+    <h3 id="s17-2-c11">สืบสวนและออก Release: bisect, cherry-pick, blame และ Tags</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p>เมื่อโปรเจกต์โตขึ้น คำถามที่เจอบ่อยคือ "บั๊กนี้เข้ามาตั้งแต่เมื่อไร" และ "บรรทัดนี้ใครเขียน เพราะอะไร" Git มีเครื่องมือสืบสวน 3 ตัว: <code>git blame -L 7,7 ไฟล์</code> บอกว่าบรรทัดที่ 7 มาจาก Commit ไหน ใครเขียน เมื่อไร, <code>git log -S 'ข้อความ'</code> หา Commit ที่เพิ่มหรือลบข้อความนั้น และ <code>git bisect</code> ค้นหาแบบแบ่งครึ่ง (Binary search) ว่า Commit ไหนเป็นตัวแรกที่ทำให้พัง เราบอกแค่ Commit ที่ดี 1 อันและที่เสีย 1 อัน Git จะพาไปทดสอบตรงกลางทีละครั้ง จาก 1,000 Commit ใช้ทดสอบเพียงราว 10 ครั้ง และถ้ามีสคริปต์ทดสอบ <code>git bisect run</code> จะทำให้อัตโนมัติทั้งหมด โดยดูจาก Exit code ของสคริปต์: <code>0</code> = ดี, <code>1</code>–<code>127</code> (ยกเว้น 125) = เสีย, <code>125</code> = ข้าม Commit นี้ (เช่น Build ไม่ได้)</p>
+    <p><code>git cherry-pick &lt;commit&gt;</code> คัดลอกการเปลี่ยนแปลงของ Commit เดียวไปสร้างเป็น Commit ใหม่บน Branch ปัจจุบัน ใช้บ่อยกับ <strong>Hotfix</strong> คือแก้บั๊กบน <code>main</code> แล้วนำการแก้นั้นไปใส่ Branch ของเวอร์ชันที่ปล่อยไปแล้ว ใส่ <code>-x</code> เพื่อให้ข้อความ Commit บันทึกว่าคัดลอกมาจาก Commit ไหน ส่วน <strong>Tag</strong> คือป้ายถาวรติด Commit ที่เป็นเวอร์ชันสำคัญ มี 2 แบบ: <strong>Lightweight</strong> (<code>git tag v1.0.0</code> มีแค่ชื่อ) และ <strong>Annotated</strong> (<code>git tag -a v1.0.0 -m "..."</code> เก็บผู้สร้าง วันที่ และข้อความ ใช้กับ Release เสมอ) ตั้งชื่อตาม <strong>Semantic Versioning 2.0.0</strong> คือ <code>MAJOR.MINOR.PATCH</code>: เพิ่ม MAJOR เมื่อเปลี่ยนแบบใช้ร่วมกับของเดิมไม่ได้, MINOR เมื่อเพิ่มฟีเจอร์, PATCH เมื่อแก้บั๊ก</p>
+    <p>Tag ไม่ขึ้น Remote กับ <code>git push</code> ธรรมดา ต้องสั่ง <code>git push origin v1.0.0</code> หรือ <code>git push origin --tags</code> บน GitHub นำ Tag ไปสร้าง <strong>Release</strong> ได้ ซึ่งเป็นหน้าประกาศเวอร์ชันพร้อม Release notes และไฟล์ดาวน์โหลด สร้างจาก Terminal ด้วย <code>gh release create v1.0.0 --generate-notes</code> (GitHub เขียน Release notes จากรายชื่อ PR ให้อัตโนมัติ คำสั่งนี้ต้องรันกับ Repository บน GitHub จริง) สุดท้าย <strong>Git LFS</strong> (Large File Storage) ใช้เก็บไฟล์ Binary ขนาดใหญ่ เช่น <code>.psd</code> ภาพ เสียง หรือโมเดล AI: รัน <code>git lfs install</code> ครั้งเดียวต่อเครื่อง แล้ว <code>git lfs track "*.psd"</code> ซึ่งเขียนกฎลงไฟล์ <code>.gitattributes</code> (ต้อง Commit ไฟล์นี้ด้วย) Git จะเก็บแค่ตัวชี้ ส่วนไฟล์จริงไปอยู่ที่ Server ของ LFS บน GitHub มีโควตาพื้นที่และปริมาณดาวน์โหลดจำกัด ให้ตรวจเงื่อนไขล่าสุดในเอกสารของ GitHub ก่อนใช้กับไฟล์จำนวนมาก</p>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p><code>git bisect</code> คือการหาหลอดไฟที่ขาดในสายไฟประดับ 100 ดวง แทนที่จะลองทีละดวง เราตัดครึ่งแล้วดูว่าครึ่งไหนไม่ติด แล้วตัดครึ่งต่อ ไม่กี่รอบก็เจอ <code>git blame</code> คือการดูลายเซ็นผู้แก้ข้างบรรทัดในเอกสาร <code>cherry-pick</code> คือการตัดหน้าแก้คำผิดจากฉบับใหม่ไปแปะในฉบับที่พิมพ์ขายแล้ว ส่วน Tag คือการพิมพ์เลขรุ่นบนปกหนังสือ "พิมพ์ครั้งที่ 1.0.1"</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>ส่วนที่ 1: สร้างประวัติ 10 Commit ที่ Commit ที่ 7 แอบใส่ราคาติดลบ แล้วให้ <code>git bisect run</code> หาให้อัตโนมัติ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เตรียม Repository แล้วสร้าง 10 Commit ด้วย Loop ของ Bash
+rm -rf ~/projects/git-lab/c11-bisect
+mkdir -p ~/projects/git-lab/c11-bisect &amp;&amp; cd ~/projects/git-lab/c11-bisect
+git init -q
+for i in $(seq 1 10); do
+  if [ "$i" -eq 7 ]; then
+    echo "ลาเต้ -5 บาท" &gt;&gt; prices.txt              # บั๊กแอบเข้ามาที่ Commit ที่ 7
+  else
+    echo "เมนูที่ $i $((i * 10 + 30)) บาท" &gt;&gt; prices.txt
+  fi
+  git add prices.txt
+  git commit -q -m "feat: add price $i"
+done
+git log --oneline</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>215ec5d feat: add price 10
+440c158 feat: add price 9
+c956655 feat: add price 8
+2713d2b feat: add price 7
+7dc86cf feat: add price 6
+fa365c2 feat: add price 5
+570d08a feat: add price 4
+71d9c39 feat: add price 3
+64eba81 feat: add price 2
+22a802f feat: add price 1</code></pre>
+    <p>สร้างสคริปต์ทดสอบด้วย <code>nano check.sh</code> (ไฟล์นี้ไม่ต้อง Commit)</p>
+<pre class="code" data-env="file" data-label="Bash · check.sh"><code class="language-bash">#!/usr/bin/env bash
+# ถ้าเจอราคาติดลบ ถือว่า Commit นี้เสีย (exit 1) ถ้าไม่เจอ ถือว่าดี (exit 0)
+if grep -qE -- '-[0-9]+ บาท' prices.txt; then
+  exit 1
+fi
+exit 0</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ให้สิทธิ์รัน แล้วทดสอบกับ Commit ปัจจุบัน (ควรได้ 1 เพราะมีบั๊ก)
+chmod +x check.sh
+./check.sh; echo "exit code = $?"
+
+# เริ่ม bisect: HEAD เสีย, Commit แรกดี แล้วให้สคริปต์ตัดสินทุกขั้น
+FIRST=$(git rev-list --max-parents=0 HEAD)
+git bisect start HEAD "$FIRST"
+git bisect run ./check.sh
+git bisect reset                 # กลับไป Branch เดิม (ห้ามลืม)
+
+# ดูว่าใครเขียนบรรทัดที่ 7 และ Commit ไหนเพิ่มข้อความนี้
+git blame -L 7,7 prices.txt
+git log -S 'ลาเต้ -5' --oneline</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>exit code = 1
+Bisecting: 4 revisions left to test after this (roughly 2 steps)
+[fa365c25b4ff478aa2972d24b9151eb79ab6e089] feat: add price 5
+running './check.sh'
+Bisecting: 2 revisions left to test after this (roughly 1 step)
+[2713d2bae261a66bfe7ddf240a2798c532e64ff1] feat: add price 7
+running './check.sh'
+Bisecting: 0 revisions left to test after this (roughly 0 steps)
+[7dc86cf60feb292bfb1af132bcb50b938e98eca1] feat: add price 6
+running './check.sh'
+2713d2bae261a66bfe7ddf240a2798c532e64ff1 is the first bad commit
+commit 2713d2bae261a66bfe7ddf240a2798c532e64ff1
+Author: Somchai Jaidee &lt;somchai@example.com&gt;
+Date:   Mon Oct 19 20:15:00 2026 +0700
+
+    feat: add price 7
+
+ prices.txt | 1 +
+ 1 file changed, 1 insertion(+)
+bisect found first bad commit
+Previous HEAD position was 7dc86cf feat: add price 6
+Switched to branch 'main'
+2713d2ba (Somchai Jaidee 2026-10-19 20:15:00 +0700 7) ลาเต้ -5 บาท
+2713d2b feat: add price 7</code></pre>
+    <p>ส่วนที่ 2: สมมติว่า Commit ที่ 10 ถูกปล่อยเป็น <code>v1.0.0</code> ไปแล้ว เราสร้าง Branch <code>release/1.0</code> ไว้ดูแลเวอร์ชันนี้ แก้บั๊กบน <code>main</code> แล้ว cherry-pick การแก้ไปที่ <code>release/1.0</code> และออก <code>v1.0.1</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ติด Annotated tag ให้เวอร์ชันที่ปล่อยไปแล้ว และแตก Branch ดูแลเวอร์ชัน
+git tag -a v1.0.0 -m "First release"
+git branch release/1.0
+
+# บน main: แก้บั๊ก แล้วเพิ่มฟีเจอร์ใหม่ต่อ
+sed -i 's/ลาเต้ -5 บาท/ลาเต้ 55 บาท/' prices.txt
+git commit -q -am "fix: correct latte price"
+echo "เมนูที่ 11 140 บาท" &gt;&gt; prices.txt
+git commit -q -am "feat: add price 11"
+git log --oneline -3
+
+# คัดลอกเฉพาะ Commit ที่แก้บั๊ก (HEAD~1) ไปที่ release/1.0
+FIX=$(git rev-parse HEAD~1)
+git switch release/1.0
+git cherry-pick -x "$FIX"
+git log -1 --format='%h %s%n%n%b'
+
+# ออกเวอร์ชัน PATCH ใหม่ แล้วดู Tag ทั้งหมดพร้อมข้อความ
+git tag -a v1.0.1 -m "Hotfix release"
+git tag -n
+git show v1.0.1 --stat</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>4bdf2a4 feat: add price 11
+7456290 fix: correct latte price
+215ec5d feat: add price 10
+Switched to branch 'release/1.0'
+[release/1.0 93e127e] fix: correct latte price
+ Date: Mon Oct 19 20:15:00 2026 +0700
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+93e127e fix: correct latte price
+
+(cherry picked from commit 74562906f01b555184d3a4f958ae25c1850b7a6b)
+
+v1.0.0          First release
+v1.0.1          Hotfix release
+tag v1.0.1
+Tagger: Somchai Jaidee &lt;somchai@example.com&gt;
+Date:   Mon Oct 19 20:15:00 2026 +0700
+
+Hotfix release
+
+commit 93e127e15353624b61cc638910a76a3a72b2e47b
+Author: Somchai Jaidee &lt;somchai@example.com&gt;
+Date:   Mon Oct 19 20:15:00 2026 +0700
+
+    fix: correct latte price
+    
+    (cherry picked from commit 74562906f01b555184d3a4f958ae25c1850b7a6b)
+
+ prices.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)</code></pre>
+    <p class="muted small">รหัส Commit และวันเวลาในเครื่องคุณจะต่างจากนี้ ลำดับ Commit ที่ bisect เลือกทดสอบอาจต่างได้ถ้าจำนวน Commit ไม่เท่ากัน แต่ผลสุดท้ายต้องชี้ไปที่ <code>feat: add price 7</code> เสมอ ใน Repository ที่อยู่บน GitHub ขั้นต่อไปคือ <code>git push origin release/1.0 v1.0.1</code> แล้ว <code>gh release create v1.0.1 --generate-notes</code></p>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>git rev-list --max-parents=0 HEAD</code></td><td>หารหัสของ Commit แรก (ไม่มี Parent) เก็บไว้ในตัวแปร <code>FIRST</code></td></tr>
+      <tr><td><code>git bisect start HEAD "$FIRST"</code></td><td>เริ่มสืบ: ตัวแรกคือ Commit ที่เสีย ตัวที่สองคือ Commit ที่ดี Git checkout Commit ตรงกลาง (<code>feat: add price 5</code>) ให้ทดสอบทันที</td></tr>
+      <tr><td><code>git bisect run ./check.sh</code></td><td>รันสคริปต์ในแต่ละ Commit ที่ Git เลือก ใช้ Exit code ตัดสินว่าดีหรือเสีย ทดสอบเพียง 3 ครั้งจาก 9 Commit ที่เป็นไปได้</td></tr>
+      <tr><td><code>... is the first bad commit</code></td><td>คำตอบ: Commit <code>2713d2b</code> (<code>feat: add price 7</code>) เป็นตัวแรกที่มีบั๊ก พร้อมรายละเอียดของ Commit</td></tr>
+      <tr><td><code>git bisect reset</code></td><td>จบการสืบ กลับไปที่ Branch และ Commit ที่อยู่ก่อนเริ่ม (<code>Switched to branch 'main'</code>)</td></tr>
+      <tr><td><code>git blame -L 7,7 prices.txt</code></td><td>แสดงรหัส Commit ผู้เขียน วันเวลา และเลขบรรทัด ของบรรทัดที่ 7</td></tr>
+      <tr><td><code>git log -S 'ลาเต้ -5' --oneline</code></td><td>Pickaxe search: หา Commit ที่ทำให้จำนวนครั้งที่ข้อความนี้ปรากฏเปลี่ยนไป ใช้ได้แม้บรรทัดนั้นถูกลบไปแล้ว</td></tr>
+      <tr><td><code>git cherry-pick -x "$FIX"</code></td><td>สร้าง Commit ใหม่ (<code>93e127e</code>) บน <code>release/1.0</code> ที่มีการเปลี่ยนแปลงเหมือน Commit แก้บั๊ก <code>-x</code> เติมบรรทัด <code>(cherry picked from commit ...)</code></td></tr>
+      <tr><td><code>git tag -a v1.0.1 -m "..."</code> / <code>git tag -n</code></td><td>สร้าง Annotated tag ที่ HEAD และแสดงรายการ Tag พร้อมบรรทัดแรกของข้อความ</td></tr>
+      <tr><td><code>git show v1.0.1 --stat</code></td><td>แสดงข้อมูลของ Tag (<code>Tagger</code>, วันที่, ข้อความ) ตามด้วย Commit ที่ Tag ชี้อยู่ Lightweight tag จะไม่มีส่วน <code>Tagger</code></td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td><code>You need to start by "git bisect start"</code></td><td>สั่ง <code>git bisect good</code> หรือ <code>bad</code> ก่อนเริ่ม bisect</td><td>รัน <code>git bisect start</code> ก่อน แล้วบอก <code>git bisect bad</code> และ <code>git bisect good &lt;commit&gt;</code> หรือใช้รูปแบบ <code>git bisect start &lt;bad&gt; &lt;good&gt;</code></td></tr>
+      <tr><td><code>git status</code> แสดง <code>HEAD detached at 71d9c39</code> และ <code>You are currently bisecting, started from branch 'main'.</code> แล้ว Commit ที่ทำหลังจากนั้นไม่อยู่บน Branch ไหนเลย</td><td>ลืม <code>git bisect reset</code> หลังสืบเสร็จ HEAD ยังชี้ไปที่ Commit กลางประวัติ</td><td>รัน <code>git bisect reset</code> ทุกครั้งที่จบ ถ้าเผลอ Commit ไปแล้ว ให้สร้าง Branch เก็บไว้ด้วย <code>git switch -c rescue</code> ก่อน reset</td></tr>
+      <tr><td><code>CONFLICT (content): Merge conflict in m.txt</code><br><code>error: could not apply 851fc6c... fix: latte price</code><br><code>hint: After resolving the conflicts, mark them with</code><br><code>hint: "git add/rm &lt;pathspec&gt;", then run</code><br><code>hint: "git cherry-pick --continue".</code></td><td>Branch ปลายทางแก้บรรทัดเดียวกันไปอีกแบบ</td><td>แก้ไฟล์ <code>git add</code> แล้ว <code>git cherry-pick --continue</code> หรือยกเลิกด้วย <code>git cherry-pick --abort</code></td></tr>
+      <tr><td><code>fatal: tag 'v1.0.0' already exists</code></td><td>สร้าง Tag ชื่อซ้ำ</td><td>ออกเวอร์ชันใหม่เป็น <code>v1.0.1</code> แทน อย่าย้าย Tag ที่ Push ไปแล้ว ถ้ายังไม่ Push และสร้างผิดจริง ลบด้วย <code>git tag -d v1.0.0</code></td></tr>
+      <tr><td>Push แล้วแต่หน้า Releases และ Tags บน GitHub ไม่มี <code>v1.0.0</code></td><td><code>git push</code> ธรรมดาไม่ส่ง Tag ขึ้นไป</td><td><code>git push origin v1.0.0</code> หรือ <code>git push origin --tags</code> แล้วสร้าง Release ด้วย <code>gh release create v1.0.0 --generate-notes</code></td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>เขียนสคริปต์ทดสอบให้ใช้กับ <code>git bisect run</code> ได้ ยิ่งมีเทสต์อัตโนมัติ ยิ่งหาบั๊กย้อนหลังได้เร็ว</li>
+      <li>ใช้ <code>git blame</code> เพื่อหาบริบท (อ่านข้อความ Commit และ PR) ไม่ใช่เพื่อหาคนผิด</li>
+      <li>ใช้ Annotated tag ตาม SemVer สำหรับทุก Release และสร้าง GitHub Release พร้อม Release notes ให้ผู้ใช้อ่าน</li>
+      <li>cherry-pick ใช้กับ Hotfix เป็นครั้งคราว ถ้าต้องย้ายหลาย Commit ระหว่าง Branch บ่อยๆ แปลว่าควรทบทวนการแตก Branch</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ทำต่อใน <code>c11-bisect</code></p><ol>
+      <li>ทำ bisect แบบตอบเอง: <code>git bisect start</code>, <code>git bisect bad</code>, <code>git bisect good &lt;รหัส Commit แรก&gt;</code> แล้วรัน <code>cat prices.txt</code> และตอบ <code>good</code> หรือ <code>bad</code> เองทีละขั้น อย่าลืม <code>git bisect reset</code></li>
+      <li>แก้ <code>check.sh</code> ให้ <code>exit 125</code> เมื่อไม่มีไฟล์ <code>prices.txt</code> แล้วอธิบายว่ามีประโยชน์อย่างไร</li>
+      <li>สร้าง Lightweight tag <code>try-light</code> แล้วเปรียบเทียบผลของ <code>git show try-light</code> กับ <code>git show v1.0.1</code></li>
+      <li>บน GitHub จริง: Push Tag ของ Mini Project แล้วสร้าง Release ด้วย <code>gh release create</code></li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 12</span><span class="lvl" data-lvl="a">Advanced</span></div>
+    <h3 id="s17-2-c12">GitHub Actions (CI) และ GitHub Pages (CD) สำหรับเว็บ Static</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p><strong>CI (Continuous Integration)</strong> คือการตรวจทุกการเปลี่ยนแปลงอัตโนมัติ เช่น Lint, Test หรือ Validate ทุกครั้งที่ Push หรือเปิด PR เพื่อจับข้อผิดพลาดก่อนเข้า <code>main</code> ส่วน <strong>CD (Continuous Delivery/Deployment)</strong> คือการนำงานที่ผ่านการตรวจขึ้นระบบจริงอัตโนมัติ <strong>GitHub Actions</strong> ทำทั้งสองอย่างจากไฟล์ YAML ในโฟลเดอร์ <code>.github/workflows/</code> โครงสร้างของ Workflow คือ <code>name</code> (ชื่อที่แสดงในแท็บ Actions), <code>on</code> (Trigger เช่น <code>push</code>, <code>pull_request</code> พร้อม <code>branches</code>, <code>workflow_dispatch</code> สำหรับปุ่มรันเอง และ <code>schedule</code> ที่ใช้ Cron ตามเวลา UTC), <code>permissions</code> (สิทธิ์ของ <code>GITHUB_TOKEN</code> ให้น้อยที่สุด เช่น <code>contents: read</code>), <code>jobs</code> แต่ละ Job รันบนเครื่อง <strong>Runner</strong> ตาม <code>runs-on</code> และมี <code>steps</code> ซึ่งแต่ละ Step จะ <code>uses</code> Action สำเร็จรูป (ส่งค่าด้วย <code>with:</code>) หรือ <code>run</code> คำสั่ง Shell ตั้งตัวแปรด้วย <code>env</code>, ให้ Job รอกันด้วย <code>needs</code> และอ่านค่าลับด้วย <code>${{ secrets.NAME }}</code> ซึ่งห้าม <code>echo</code> ออกมา</p>
+    <p><strong>GitHub Pages</strong> เผยแพร่เว็บ Static ฟรีสำหรับ Public repository ที่ URL <code>https://somchai-dev.github.io/portfolio/</code> เมื่อตั้ง Settings → Pages → Source เป็น <strong>GitHub Actions</strong> เราจะ Deploy ผ่าน Workflow ที่ใช้ <code>actions/configure-pages@v5</code>, <code>actions/upload-pages-artifact@v4</code> และ <code>actions/deploy-pages@v4</code> ซึ่งต้องการสิทธิ์ <code>pages: write</code> กับ <code>id-token: write</code> และ Environment ชื่อ <code>github-pages</code> เพราะเว็บอยู่ใต้ <code>/portfolio/</code> ลิงก์ทุกตัวต้องเป็นแบบ Relative (<code>css/style.css</code>) ไม่ใช่ขึ้นต้นด้วย <code>/</code> หลักการสำคัญคือ <strong>รันคำสั่งตรวจเดียวกับ CI ในเครื่องให้ผ่านก่อน Push</strong> ใช้แนวคิดนี้กับทุกโปรเจกต์ที่อยู่บน GitHub เริ่มจาก Mini Project ในส่วนที่ 4 และต่อยอดในหัวข้อ <a data-t="4"></a> และ <a data-t="12"></a></p>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>CI คือแผนกตรวจคุณภาพในโรงงาน สินค้าทุกชิ้นที่ออกจากสายพาน (ทุก PR) ต้องผ่านเครื่องตรวจอัตโนมัติ ชิ้นไหนไม่ผ่านจะถูกติดป้ายแดงและไม่ได้ไปต่อ ส่วน CD คือรถส่งของที่จะออกเดินทางทันทีเมื่อสินค้าผ่านการตรวจและเข้าคลังหลัก (<code>main</code>) ไฟล์ YAML คือคู่มือขั้นตอนที่แปะไว้ให้พนักงานทุกกะทำตามเหมือนกันทุกครั้ง</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p><strong>ไฟล์ Workflow ที่ 1: CI</strong> (เหมือนใน Step 12 ของส่วนที่ 1 ทุกบรรทัด) วางไว้ที่ <code>.github/workflows/ci.yml</code> ใน Repository</p>
+<pre class="code" data-env="file" data-label="YAML · .github/workflows/ci.yml"><code class="language-yaml"># ชื่อ Workflow ที่จะแสดงในแท็บ Actions
+name: CI
+
+# เหตุการณ์ที่ทำให้ Workflow ทำงาน
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# ให้ GITHUB_TOKEN มีสิทธิ์แค่อ่านโค้ด (ให้สิทธิ์น้อยที่สุดเท่าที่จำเป็น)
+permissions:
+  contents: read
+
+jobs:
+  check-site:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ดึงโค้ดของ Repository ลงเครื่อง Runner
+        uses: actions/checkout@v5
+
+      - name: ติดตั้ง Node.js เพื่อใช้ npx
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: ตรวจโครงสร้าง HTML
+        run: npx --yes html-validate@11.16.2 "**/*.html"
+
+      - name: ตรวจลิงก์และรูปภาพที่เสีย (เฉพาะไฟล์ในเว็บของเรา)
+        run: npx --yes linkinator@8.1.0 . --recurse --skip "^https://"</code></pre>
+    <p><strong>ไฟล์ Workflow ที่ 2: Deploy ขึ้น GitHub Pages</strong> เขียนตามโครงสร้างของ Starter workflow ทางการของ GitHub สำหรับเว็บ Static วางไว้ที่ <code>.github/workflows/pages.yml</code></p>
+<pre class="code" data-env="file" data-label="YAML · .github/workflows/pages.yml"><code class="language-yaml"># Deploy เว็บ Static ขึ้น GitHub Pages ทุกครั้งที่มีงานเข้า main
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# สิทธิ์ที่ Pages ต้องใช้: อ่านโค้ด เขียน Pages และขอ Token ยืนยันตัวตน
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# ให้ Deploy ทีละครั้ง ไม่ยกเลิกรอบที่กำลังทำอยู่
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: ดึงโค้ด
+        uses: actions/checkout@v5
+
+      - name: ตั้งค่า Pages
+        uses: actions/configure-pages@v5
+
+      - name: อัปโหลดไฟล์เว็บทั้งโฟลเดอร์เป็น Artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: '.'
+
+      - name: Deploy ขึ้น GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4</code></pre>
+    <p>ไฟล์ YAML ทั้งสองรันในเครื่องหรือใน Sandbox ไม่ได้ ต้อง Push ขึ้น GitHub ส่วนที่รันได้จริงคือ <strong>คำสั่งตรวจเว็บแบบเดียวกับ CI</strong> สร้างเว็บตัวอย่างที่มีข้อผิดพลาด 2 จุดโดยตั้งใจ คือรูปไม่มี <code>alt</code> และลิงก์ไปหน้า <code>projects.html</code> ที่ยังไม่มี (ต้องติดตั้ง Node.js ตามส่วนเตรียมเครื่องก่อน)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เตรียมโฟลเดอร์เว็บ
+rm -rf ~/projects/git-lab/c12-site
+mkdir -p ~/projects/git-lab/c12-site/css ~/projects/git-lab/c12-site/images
+cd ~/projects/git-lab/c12-site
+code .      # เปิด VS Code แล้วสร้างไฟล์ 3 ไฟล์ด้านล่าง (หรือใช้ nano)</code></pre>
+<pre class="code" data-env="file" data-label="HTML · index.html"><code class="language-xml">&lt;!DOCTYPE html&gt;
+&lt;html lang="th"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+  &lt;title&gt;สมชาย ใจดี | Portfolio&lt;/title&gt;
+  &lt;link rel="stylesheet" href="css/style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;สวัสดีครับ ผมสมชาย ใจดี&lt;/h1&gt;
+  &lt;img src="images/profile.svg" width="120" height="120"&gt;
+  &lt;p&gt;&lt;a href="projects.html"&gt;ดูผลงานของผม&lt;/a&gt;&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<pre class="code" data-env="file" data-label="CSS · css/style.css"><code class="language-css">body {
+  font-family: sans-serif;
+  margin: 0 auto;
+  max-width: 720px;
+  padding: 16px;
+}</code></pre>
+<pre class="code" data-env="file" data-label="SVG · images/profile.svg"><code class="language-xml">&lt;svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"&gt;&lt;circle cx="60" cy="60" r="60" fill="#4a90d9"/&gt;&lt;/svg&gt;</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ตรวจ HTML แล้วพิมพ์ Exit code (0 = ผ่าน, ไม่ใช่ 0 = ไม่ผ่าน)
+npx --yes html-validate@11.16.2 "**/*.html"
+echo "exit code = $?"
+
+# ตรวจลิงก์และรูปภาพที่เสีย ข้ามลิงก์ภายนอกที่ขึ้นต้นด้วย https://
+npx --yes linkinator@8.1.0 . --recurse --skip "^https://"
+echo "exit code = $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>
+/home/somchai/projects/git-lab/c12-site/index.html
+  11:4  error  &lt;img&gt; is missing required "alt" attribute  wcag/h37
+
+✖ 1 problem (1 error, 0 warnings)
+
+More information:
+  https://html-validate.org/rules/wcag/h37.html
+
+exit code = 1
+→ crawling .
+[200] .
+[404] projects.html
+[200] css/style.css
+[200] images/profile.svg
+
+  [200] .
+.
+  [404] projects.html
+  [200] css/style.css
+  [200] images/profile.svg
+ERROR: Detected 1 broken links. Scanned 4 links in 0.058 seconds.
+exit code = 1</code></pre>
+    <p>แก้ทั้งสองจุด: เพิ่ม <code>alt</code> ให้รูปในบรรทัดที่ 11 ของ <code>index.html</code> และสร้างหน้า <code>projects.html</code></p>
+<pre class="code" data-env="file" data-label="HTML · index.html (บรรทัดที่ 11 หลังแก้)"><code class="language-xml">  &lt;img src="images/profile.svg" width="120" height="120" alt="รูปโปรไฟล์ของสมชาย"&gt;</code></pre>
+<pre class="code" data-env="file" data-label="HTML · projects.html"><code class="language-xml">&lt;!DOCTYPE html&gt;
+&lt;html lang="th"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+  &lt;title&gt;ผลงาน | สมชาย ใจดี&lt;/title&gt;
+  &lt;link rel="stylesheet" href="css/style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;ผลงาน&lt;/h1&gt;
+  &lt;p&gt;&lt;a href="index.html"&gt;กลับหน้าแรก&lt;/a&gt;&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># รันคำสั่งตรวจชุดเดิมอีกครั้ง
+npx --yes html-validate@11.16.2 "**/*.html"
+echo "exit code = $?"
+npx --yes linkinator@8.1.0 . --recurse --skip "^https://"
+echo "exit code = $?"</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>exit code = 0
+→ crawling .
+[200] .
+[200] css/style.css
+[200] images/profile.svg
+[200] projects.html
+[200] index.html
+
+  [200] .
+.
+  [200] css/style.css
+  [200] images/profile.svg
+  [200] projects.html
+projects.html
+  [200] index.html
+✓ Successfully scanned 5 links in 0.062 seconds.
+exit code = 0</code></pre>
+    <p class="muted small">html-validate ไม่พิมพ์อะไรเมื่อผ่าน ครั้งแรกที่รัน <code>npx --yes</code> จะใช้เวลาดาวน์โหลดแพ็กเกจสักครู่ เวลาที่ใช้สแกนและรูปแบบการจัดบรรทัดของ linkinator อาจต่างจากนี้เล็กน้อย</p>
+    <p><strong>สิ่งที่จะเห็นบน GitHub</strong>: เมื่อ Push ไฟล์ทั้งหมดขึ้น Repository และตั้ง Settings → Pages → Source เป็น GitHub Actions แล้ว แท็บ <strong>Actions</strong> จะแสดง Workflow <code>CI</code> และ <code>Deploy to GitHub Pages</code> แต่ละรอบมีวงกลมสีเหลือง (กำลังรัน) แล้วเปลี่ยนเป็นเครื่องหมายถูกสีเขียวหรือกากบาทสีแดง คลิกเข้าไปจะเห็น Job <code>check-site</code> และ Log ของทุก Step ซึ่งจะมีข้อความเดียวกับที่เห็นในเครื่อง ในหน้า PR ส่วน Checks ด้านล่างจะแสดงผล <code>CI / check-site</code> ถ้าตั้ง Required status checks ไว้ ปุ่ม Merge จะกดไม่ได้จนกว่า Check จะผ่าน ส่วน Workflow Pages เมื่อสำเร็จจะแสดง URL ของเว็บในกล่องของ Job <code>deploy</code></p>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>on: pull_request / push: branches: [main]</code></td><td>รัน CI ทุกครั้งที่เปิดหรืออัปเดต PR ที่จะเข้า <code>main</code> และทุกครั้งที่มีงานเข้า <code>main</code> ส่วน <code>workflow_dispatch</code> เพิ่มปุ่ม Run workflow ในแท็บ Actions</td></tr>
+      <tr><td><code>permissions: contents: read</code></td><td>หลัก Least privilege: Token ของ Workflow อ่านโค้ดได้อย่างเดียว ถ้า Action ตัวใดถูกโจมตีก็แก้ Repository ไม่ได้</td></tr>
+      <tr><td><code>jobs: check-site: runs-on: ubuntu-latest</code></td><td>Job ชื่อ <code>check-site</code> (ชื่อนี้ใช้ตั้ง Required check) รันบน Runner Ubuntu ที่ GitHub เตรียมให้</td></tr>
+      <tr><td><code>uses: actions/checkout@v5</code> / <code>actions/setup-node@v5</code> + <code>with: node-version: 24</code></td><td>ดึงโค้ดลงเครื่อง Runner และติดตั้ง Node.js 24 เพื่อให้ใช้ <code>npx</code> ได้</td></tr>
+      <tr><td><code>run: npx --yes html-validate@11.16.2 "**/*.html"</code></td><td>ตรวจไวยากรณ์และการเข้าถึงได้ของทุกไฟล์ HTML ครอบ <code>"**/*.html"</code> ด้วยเครื่องหมายคำพูด เพราะ <code>*</code> มีความหมายพิเศษใน YAML</td></tr>
+      <tr><td><code>11:4  error  &lt;img&gt; is missing required "alt" attribute  wcag/h37</code></td><td>บรรทัด 11 คอลัมน์ 4 ผิดกฎ <code>wcag/h37</code> (รูปต้องมีข้อความแทนสำหรับผู้ใช้โปรแกรมอ่านหน้าจอ) Exit code 1 ทำให้ Step นี้ใน CI เป็นสีแดง</td></tr>
+      <tr><td><code>linkinator . --recurse --skip "^https://"</code> / <code>[404] projects.html</code></td><td>เปิด Server ชั่วคราว ไล่ตามลิงก์ทุกหน้า ข้ามลิงก์ภายนอก และรายงานลิงก์ที่ได้ 404</td></tr>
+      <tr><td><code>pages: write</code>, <code>id-token: write</code>, <code>environment: github-pages</code></td><td>สิทธิ์และ Environment ที่ <code>deploy-pages</code> ต้องใช้ ค่า <code>url</code> ดึง URL ของเว็บจาก Output ของ Step ที่มี <code>id: deployment</code></td></tr>
+      <tr><td><code>concurrency: group: "pages"</code></td><td>ถ้ามี Push ติดกันหลายครั้ง ให้ Deploy เรียงทีละรอบ ไม่ทับกัน</td></tr>
+      <tr><td><code>upload-pages-artifact@v4</code> + <code>path: '.'</code></td><td>แพ็กทั้งโฟลเดอร์เป็นไฟล์เว็บ (ไฟล์และโฟลเดอร์ที่ขึ้นต้นด้วยจุด เช่น <code>.github</code> ไม่ถูกรวมตามค่าเริ่มต้น) แล้ว <code>deploy-pages@v4</code> นำขึ้น Pages</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td><code>Invalid workflow file: .github/workflows/ci.yml#L5</code><br><code>You have an error in your yaml syntax</code></td><td>ย่อหน้าด้วย Tab, จำนวนช่องว่างไม่ตรงกัน หรือลืมช่องว่างหลัง <code>:</code></td><td>ใช้ช่องว่าง 2 ช่องต่อระดับเท่านั้น ใน VS Code ดูมุมขวาล่างว่าเป็น Spaces ไม่ใช่ Tab ตรวจบรรทัดที่ Error ระบุ และครอบข้อความที่มี <code>*</code> หรือ <code>:</code> ด้วยเครื่องหมายคำพูด</td></tr>
+      <tr><td>เว็บบน Pages ขึ้นแต่ตัวหนังสือ ไม่มี CSS และ Console แจ้ง 404 ที่ <code>https://somchai-dev.github.io/css/style.css</code></td><td>ใช้ลิงก์แบบ Absolute <code>/css/style.css</code> ซึ่งชี้ไปที่ราก Domain แต่เว็บอยู่ใต้ <code>/portfolio/</code></td><td>เปลี่ยนเป็น Relative <code>css/style.css</code> ทุกจุด แล้วรัน linkinator ในเครื่องก่อน Push</td></tr>
+      <tr><td><code>Error: Get Pages site failed. Please verify that the repository has Pages enabled and configured to build using GitHub Actions</code></td><td>ยังไม่ได้เปิด Pages หรือ Source ยังเป็น Deploy from a branch</td><td>ไปที่ Settings → Pages → Build and deployment → Source เลือก <strong>GitHub Actions</strong> แล้วกด Re-run jobs</td></tr>
+      <tr><td>Push แล้วแต่แท็บ Actions ว่างเปล่า Workflow ไม่เคยทำงาน</td><td>วางไฟล์ผิดโฟลเดอร์ เช่น <code>.github/workflow/</code> (ขาด s) หรือ <code>github/workflows/</code> (ขาดจุด) หรือ <code>branches</code> ไม่ตรงกับชื่อ Branch จริง</td><td>ตรวจด้วย <code>ls .github/workflows/</code> ต้องอยู่ที่ <code>.github/workflows/*.yml</code> พอดี และตรวจว่า Branch หลักชื่อ <code>main</code> ตรงกับใน <code>branches: [main]</code></td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>รันคำสั่งเดียวกับ CI ในเครื่องให้ผ่านก่อน Push ทุกครั้ง และระบุเวอร์ชันของเครื่องมือ (<code>html-validate@11.16.2</code>) เพื่อให้ผลเหมือนกันทุกที่</li>
+      <li>ระบุเวอร์ชันของ Action ทุกตัว (<code>@v5</code>) งานที่ต้องการความปลอดภัยสูงให้ปักเป็นรหัส Commit เต็มของ Action</li>
+      <li>ตั้ง <code>permissions</code> ให้น้อยที่สุดในทุก Workflow และเก็บค่าลับใน Settings → Secrets and variables → Actions เท่านั้น</li>
+      <li>ตั้ง Ruleset ให้ <code>main</code>: ต้องผ่าน PR, ต้องผ่าน Check <code>check-site</code> และห้าม Force push</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ทำต่อใน <code>c12-site</code></p><ol>
+      <li>เปลี่ยนลิงก์ CSS ใน <code>projects.html</code> เป็น <code>/css/style.css</code> แล้วรัน linkinator จะพบว่ายังผ่าน (exit code 0) เพราะ linkinator เปิด Server ที่มีโฟลเดอร์ <code>c12-site</code> เป็นราก แต่บน Pages รากของ Domain คือ <code>https://somchai-dev.github.io/</code> ไม่ใช่ <code>/portfolio/</code> ให้อธิบายด้วยคำพูดของคุณว่าทำไมลิงก์นี้จึงพังเฉพาะบน Pages แล้วแก้กลับเป็นแบบ Relative</li>
+      <li>ลบ <code>lang="th"</code> ออกจาก <code>index.html</code> แล้วรัน html-validate อ่านชื่อกฎที่แจ้งเตือน (จะได้ Error ของกฎ <code>element-required-attributes</code>) แล้วใส่กลับ</li>
+      <li>เพิ่ม Trigger <code>schedule</code> ให้ <code>ci.yml</code> รันทุกวันจันทร์ 08:00 น. เวลาประเทศไทย (เขียน Cron เป็นเวลา UTC)</li>
+      <li>บน GitHub จริง: Push เว็บนี้เป็น Repository ใหม่ เปิด PR ที่ตั้งใจลบ <code>alt</code> ดูว่า Check เป็นสีแดง แล้วแก้ให้เป็นสีเขียว</li>
+    </ol></div>
+  </article>
+</section>

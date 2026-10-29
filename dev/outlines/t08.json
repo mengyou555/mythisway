@@ -1,0 +1,172 @@
+{
+ "concepts": [
+  {
+   "id": "c01",
+   "level": "b",
+   "title": "API และ HTTP Request/Response: อ่านผลจาก curl -i และ curl -v",
+   "covers": "Matches Part 1 Step 1 and the start of Step 2. What an API is (contract between Client and Server), Web API vs library API, API styles at a glance (REST, GraphQL, gRPC, Webhook, WebSocket/SSE, SOAP). Anatomy of an HTTP request (method, path, query string, headers, body) and response (status line, headers, body). Runnable example: ~/projects/api-lab/c01-http/server.py, a ZERO-dependency server using only Python stdlib (http.server.ThreadingHTTPServer + BaseHTTPRequestHandler + json) bound to 127.0.0.1:8000 that serves GET /books (JSON list of the 3 canonical sample books, Content-Type: application/json; charset=utf-8), GET /books/bk_0001, and 404 JSON for unknown paths. Run with `python3 server.py` in one terminal; in a second terminal show REAL output of `curl -i http://127.0.0.1:8000/books`, `curl -s http://127.0.0.1:8000/books | jq '.data[0].title'`, `curl -i http://127.0.0.1:8000/books/bk_9999` (404) and `curl -v` (explain > and < lines). Date/Server headers vary by machine: say so. Mistakes with real messages: `curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Couldn't connect to server` (server not running), `OSError: [Errno 98] Address already in use` (port taken; find with `ss -ltnp | grep 8000`), `jq: parse error: Invalid numeric literal at line 1, column 9` (piping `curl -i` headers into jq).",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c02",
+   "level": "b",
+   "title": "HTTP Methods, Safe/Idempotent และ Status Codes ด้วย FastAPI",
+   "covers": "Matches Part 1 Step 2. GET/POST/PUT/PATCH/DELETE/HEAD/OPTIONS; safe vs idempotent table; status codes 200, 201 (+Location), 204, 400, 404, 405, 409, 415, 422 and when to use each; 401 vs 403 previewed. First FastAPI app: ~/projects/api-lab/c02-methods/main.py with an in-memory dict of books (canonical sample data) and endpoints GET /books, GET /books/{book_id}, POST /books (status_code=201, sets Location: /books/bk_0004), PUT /books/{book_id} (full replace, idempotent), PATCH /books/{book_id}, DELETE /books/{book_id} (204, no body). Run `uvicorn main:app --port 8000` (venv ~/projects/api-lab/.venv already created in setup). REAL `curl -i` outputs: POST twice creates bk_0004 and bk_0005 (not idempotent), PUT twice gives same state (idempotent), DELETE then DELETE again gives 204 then 404, `curl -i -X PATCH` on a collection path gives 405 Method Not Allowed with Allow header, POST with missing title gives 422 (FastAPI default error body for now; c06 replaces it with problem+json). Mistakes: `ModuleNotFoundError: No module named 'fastapi'` (venv not activated), `ERROR:    Error loading ASGI app. Could not import module \"main\".` (wrong folder), `{\"detail\":\"Method Not Allowed\"}` from using the wrong method, and returning 200 with an error body (anti-pattern).",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c03",
+   "level": "b",
+   "title": "ออกแบบ JSON: snake_case, วันที่ RFC 3339, เงินเป็นสตางค์ และ null กับฟิลด์ที่ไม่ได้ส่ง",
+   "covers": "Matches Part 1 Step 3. JSON types; naming convention (this curriculum uses snake_case everywhere); RFC 3339 datetimes with timezone (+07:00) and plain dates; money as integer satang (fine_satang) never float (show 0.1 + 0.2 in Python); opaque string IDs (bk_0001, mb_0001, ln_0001); enums as lowercase strings (available, on_loan, lost); collection envelope {\"data\": [...], \"next_cursor\": null}; null vs missing for PATCH. Runnable example (no server): ~/projects/api-lab/c03-json/json_design.py using Pydantic 2.14.1 models Book, Member, Loan with Literal/Enum status, datetime with ZoneInfo('Asia/Bangkok'), BookPatch where every field is Optional; prints model_dump_json(indent=2) of a Loan, shows that model_dump(exclude_unset=True) of BookPatch({'subtitle': None}) is {'subtitle': None} while BookPatch() is {} and explains the difference; prints a ValidationError for status='borrowed' and for fine_satang=25.5. Run with `python3 json_design.py`, paste REAL output. Mistakes: `pydantic_core._pydantic_core.ValidationError: 1 validation error for Loan` (wrong enum), naive datetime without tz, `TypeError: Object of type datetime is not JSON serializable` (json.dumps on raw datetime instead of model_dump_json), mixing camelCase and snake_case.",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c04",
+   "level": "b",
+   "title": "หลักการ REST และการตั้งชื่อ Resource: books, members และ loans",
+   "covers": "Matches Part 1 Step 4. REST constraints (client-server, stateless, cacheable, uniform interface, layered), plural nouns, nested resources max 2 levels, non-CRUD actions modelled as resources (POST /loans to borrow, POST /loans/{loan_id}/return to return), URL style rules (lowercase, hyphens in paths, no verbs, no trailing slash, no secrets in URL), HATEOAS and Richardson Maturity Model briefly. Runnable example: ~/projects/api-lab/c04-rest/main.py FastAPI app with in-memory books, members and loans: GET /books, GET /members/{member_id}, GET /members/{member_id}/loans, POST /loans (201 + Location: /loans/ln_0001, body {book_id, member_id}, due_date = today+14 days), POST /loans/{loan_id}/return (200, sets returned_at), 409 when the book is already on_loan, 404 for unknown member. Response of a loan includes a small `links` object (self, return, member) to illustrate HATEOAS. REAL curl -i outputs for a borrow, a second borrow of the same book (409) and a return. Since due_date depends on run date, show realistic dates and say they will differ. Include a before/after table of 6 badly named URLs fixed (/getAllBooks -> GET /books, /deleteMember?id=7 -> DELETE /members/mb_0007, /books/borrow/bk_0001 -> POST /loans, ...). Mistakes: 404 from trailing slash mismatch / route order (`/books/search` captured by `/books/{book_id}`), `{\"detail\":\"Not Found\"}` from wrong nesting, using GET to change state.",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c05",
+   "level": "i",
+   "title": "Query Parameters: Filtering, Sorting และ Pagination แบบ Offset กับ Cursor",
+   "covers": "Matches Part 1 Step 5. Path vs query params; filtering (?author=, ?status=, ?q=, ?published_after=), sorting (?sort=-published_year,title with an allow-list), offset pagination (?limit=&offset=, total), cursor pagination (opaque base64url-encoded JSON {\"after_id\": \"bk_0010\"}), next_cursor in body and RFC 8288 Link header with rel=\"next\", default limit 20, max 100 (Query(ge=1, le=100) -> 422), sparse fieldsets mentioned. Runnable example: ~/projects/api-lab/c05-pagination/main.py with 25 seeded books (bk_0001..bk_0025, generated deterministically in code: titles 'Book 01'..'Book 25' plus the 3 canonical books replacing 01-03, published_year cycling 2018-2025) exposing GET /books (offset) and GET /books/feed (cursor). REAL outputs: `curl -s 'http://127.0.0.1:8000/books?limit=5&offset=20' | jq`, `curl -si '...feed?limit=10' | grep -i '^link'`, a bash loop that follows next_cursor until null and counts 25 items, `?limit=500` -> 422, `?sort=-published_year&limit=3`. Explain the duplicate/skip problem of offset when an item is inserted between pages and show it with a demo endpoint POST /books then re-requesting page 2. Mistakes: `Input should be less than or equal to 100` 422 body, invalid cursor -> 400 (show the handler), `binascii.Error: Incorrect padding` when decoding base64 without padding fix, unstable sort without tiebreaker id.",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c06",
+   "level": "i",
+   "title": "Error Format มาตรฐานด้วย RFC 9457 Problem Details (application/problem+json)",
+   "covers": "Matches Part 1 Step 6. RFC 9457 (obsoletes RFC 7807): members type, title, status, detail, instance; extension members errors (list of {field, message}) and trace_id; media type application/problem+json; Error Catalog. Runnable example: ~/projects/api-lab/c06-errors/main.py plus problems.py: a ProblemError(Exception) class carrying type slug, title, status, detail; exception handlers for ProblemError, starlette HTTPException (404/405 -> problem+json) and RequestValidationError (422 with errors[] built from exc.errors(), field path joined with '.'), and a catch-all Exception handler returning a generic 500 problem with trace_id (uuid4 hex) while logging the traceback server-side. type URIs use https://example.com/problems/<slug> (slugs: validation-error, book-not-found, book-unavailable, loan-limit-reached, unauthorized, forbidden, rate-limited, internal-error). Endpoints reuse c04 books/loans. REAL `curl -i` outputs showing Content-Type: application/problem+json for 404, 409 book-unavailable, 422 with two field errors, and 500 from a /debug/crash endpoint (state it exists only for the lab). Include the Error Catalog table (8 rows). Mistakes: handler registered for fastapi.HTTPException only so 404 for unknown routes still returns {\"detail\":\"Not Found\"} (register starlette.exceptions.HTTPException), JSONResponse default media type application/json instead of problem+json, leaking str(exc) / stack traces in detail, status in body not matching HTTP status.",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c07",
+   "level": "i",
+   "title": "ทดสอบ API ด้วย pytest + TestClient และ curl Smoke Test Script",
+   "covers": "Matches Part 1 Step 7 (testing half). Test pyramid for APIs, what to assert (status code, headers such as Location and Content-Type, body schema, error type), FastAPI TestClient (requires httpx 0.28.1), pytest fixtures to reset in-memory state, parametrize for many invalid payloads. Runnable example: ~/projects/api-lab/c07-testing/ containing a copy of the c06 app as app.py, test_app.py with at least 10 tests (list books, get one, 404 problem+json, create 201 + Location, 422 with errors[], borrow 201, borrow again 409 book-unavailable, return 200, delete 204, parametrized invalid isbn), run with `python3 -m pytest -q` (REAL output with pass count and timing; say timing differs) and `python3 -m pytest -q -k borrow -v`. Also smoke.sh: bash script with `set -euo pipefail`, BASE_URL default http://127.0.0.1:8000, a check() function using `curl -s -o /dev/null -w '%{http_code}'` that prints PASS/FAIL lines and exits 1 on failure; run against uvicorn and paste REAL output. Mistakes: `RuntimeError: The starlette.testclient module requires the httpx package to be installed.`, tests depending on each other because of shared global state (fix with autouse fixture), `bash: ./smoke.sh: Permission denied` (chmod +x), comparing JSON as strings instead of dicts.",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c08",
+   "level": "i",
+   "title": "OpenAPI 3.1 ด้วย YAML: paths, components/schemas, examples และ securitySchemes",
+   "covers": "Matches Part 1 Step 8. YAML essentials (spaces not tabs, quoting '200', lists, |), top-level structure (openapi: 3.1.0, info, servers, tags, paths, components, security), operations (operationId, summary, parameters in path/query/header, requestBody, responses), components/schemas using JSON Schema 2020-12 (type, required, format, enum, pattern, readOnly, type: [string, 'null'] instead of nullable), $ref to components/parameters (BookId, Limit, Cursor) and components/responses (NotFound, ValidationError) and a Problem schema, example/examples with the canonical sample data, securitySchemes (bearerAuth http bearer bearerFormat JWT, apiKeyAuth in header X-API-Key) and global vs per-operation security (GET public, POST/PATCH/DELETE require bearerAuth). Runnable example: ~/projects/api-lab/contract/openapi.yaml (books + loans subset, about 200 lines) plus check_spec.py that loads it with PyYAML 6.0.3 and prints the operationIds, schema names and which operations require security (REAL output). Show how to view docs: Swagger UI and Redoc for the code-first spec at http://127.0.0.1:8000/docs and /redoc of the c06 app, and `curl -s http://127.0.0.1:8000/openapi.json | jq '.openapi, (.paths | keys)'` (REAL output; FastAPI 0.157.0 emits 3.1.0); optionally `npx @redocly/cli@2.67.1 build-docs openapi.yaml -o docs/index.html` (only paste output if actually run). Design-first vs code-first comparison. Mistakes: `yaml.scanner.ScannerError: while scanning for the next token found character '\\t' that cannot start any token`, unquoted 200 keys, $ref typo `Could not resolve reference` style errors, using nullable: true (3.0 only).",
+   "language": "yaml",
+   "env": "file"
+  },
+  {
+   "id": "c09",
+   "level": "i",
+   "title": "Contract-first: Lint ด้วย Spectral และ Mock Server ด้วย Prism",
+   "covers": "Matches Part 1 Step 9. Contract-first loop (design -> openapi.yaml -> lint -> review -> mock -> implement -> verify). In ~/projects/api-lab/contract: `npm init -y`, then `npm install --save-dev @stoplight/spectral-cli@6.17.0 @stoplight/prism-cli@5.16.0` (or npx with the pinned version). .spectral.yaml with extends: [\"spectral:oas\"] plus 2 custom rules: paths-kebab-case (given $.paths[*]~, function pattern match ^(/[a-z0-9-]+|/\\{[a-z_]+\\})+$) and properties-snake-case (given $..properties[*]~, casing snake). Show REAL lint output on a deliberately broken copy bad.yaml (missing operationId / info.contact, camelCase property, /getBooks path) with rule names, line:col, severities, and the summary line, then the clean spec giving `No results with a severity of 'error' found!`. Prism: `npx @stoplight/prism-cli@5.16.0 mock openapi.yaml -p 4010` (Prism 5.16.0 declares Node >=24.18.0; it was test-run on Node 22 in the sandbox but tell learners to use Node 24 LTS), REAL outputs of curl -i to the mock: example response 200, `-H 'Prefer: code=404'`, `-H 'Prefer: example=...'` with a named example, POST with invalid body producing Prism's 422 validation problem, and missing Authorization on a secured operation giving 401. Show Prism log lines briefly. Dynamic mocking `-d` mentioned. Breaking vs non-breaking change list. Mistakes: `npm error could not determine executable to run` (typo in package name), `Error: listen EADDRINUSE: address already in use 127.0.0.1:4010`, Spectral `oas3-schema` errors from wrong indentation, forgetting that Prism returns examples, not real data.",
+   "language": "yaml",
+   "env": "file"
+  },
+  {
+   "id": "c10",
+   "level": "a",
+   "title": "Authentication และ Authorization: API Key, OAuth 2.0/OIDC และ JWT ด้วย PyJWT",
+   "covers": "Matches Part 1 Step 10. AuthN vs AuthZ; 401 + WWW-Authenticate vs 403; API keys (header, hashed at rest with hashlib.sha256 + hmac.compare_digest, rotation); OAuth 2.0 roles and flows (Authorization Code + PKCE, Client Credentials) and OIDC ID Token vs Access Token as concepts with an ASCII sequence diagram (no real provider needed); JWT structure (decode header/payload with base64url in a 5-line script to show it is not encrypted), claims sub, exp, iat, iss, aud, scope; JWT pitfalls (alg none, not pinning algorithms, weak secret, no exp/aud check, secrets in payload, long-lived tokens, localStorage). Runnable example: ~/projects/api-lab/c10-auth/main.py FastAPI with dependency get_current_user using HTTPBearer, jwt.decode(token, SECRET, algorithms=['HS256'], audience='library-api', issuer='https://auth.example.com'); SECRET read from env JWT_SECRET (if missing, raise SystemExit with a Thai message telling the learner to `export JWT_SECRET=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')`); make_token.py CLI that prints a token for sub=mb_0001 with scope 'books:read loans:write' and exp in 15 minutes (and a --expired flag, --scope flag). Endpoints: GET /members/{member_id}/loans enforces BOLA (sub must equal member_id unless scope contains 'admin'), POST /loans needs scope loans:write else 403. REAL curl -i outputs: no token 401 with WWW-Authenticate: Bearer, expired token 401 (problem+json, detail 'token expired'), token with alg none rejected, member mb_0001 reading mb_0002 loans -> 403, wrong scope -> 403. All errors in problem+json. Mistakes: `jwt.exceptions.DecodeError: It is required that you pass in a value for the \"algorithms\" argument when calling decode().`, `jwt.exceptions.InvalidAudienceError: Audience doesn't match`, `jwt.exceptions.ExpiredSignatureError: Signature has expired`, `KeyError: 'JWT_SECRET'`, confusing PyJWT with the unrelated `jwt` package (`AttributeError: module 'jwt' has no attribute 'encode'`).",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c11",
+   "level": "a",
+   "title": "Versioning, Idempotency-Key และ Rate Limiting (429 + Retry-After)",
+   "covers": "Matches Part 1 Step 11 (first half). Versioning strategies (URL /v1, header, media type) with a comparison table, breaking vs non-breaking changes, Deprecation and Sunset headers (Sunset is RFC 8594; the Deprecation header is RFC 9745: if unsure of the exact format, show `Deprecation: @<unix-seconds>` only if verified, otherwise use Sunset + Link rel=\"deprecation\" and say to check the RFC). Idempotency-Key for POST /v1/loans: in-memory store keyed by (api client, key) holding a hash of the request body and the saved response; same key + same body -> replay the stored 201 with header Idempotent-Replayed: true; same key + different body -> 422 problem idempotency-key-reused; missing key on POST /v1/loans -> 400 problem. Retry on the client side with exponential backoff + jitter (client_retry.py using httpx 0.28.1 that honours Retry-After). Rate limiting: fixed-window limiter per X-API-Key (5 requests per 10 seconds for the lab) implemented as a FastAPI dependency, returning 429 problem rate-limited with Retry-After seconds; mention Token Bucket and that the IETF RateLimit header fields are still a draft (check status). Runnable example: ~/projects/api-lab/c11-reliability/main.py with APIRouter(prefix='/v1') and an old /v0/books route that adds Sunset + Deprecation headers. REAL outputs: two POSTs with the same Idempotency-Key giving the same loan_id, a third with a different body giving 422, a bash loop of 7 requests showing 200 x5 then 429 with Retry-After, `curl -sI` of /v0/books showing the deprecation headers. Mistakes: storing idempotency keys globally instead of per client, generating the key on the server, retrying POST without a key, returning 503 instead of 429 for client over-use, forgetting Retry-After.",
+   "language": "python",
+   "env": "file"
+  },
+  {
+   "id": "c12",
+   "level": "a",
+   "title": "HTTP Caching (ETag/304), CORS, Webhook ที่เซ็นด้วย HMAC และ OWASP API Top 10",
+   "covers": "Matches Part 1 Steps 11 (second half), 12 and 13. Caching: Cache-Control (max-age, no-store, private, public), ETag (sha256 of the canonical JSON, quoted) with If-None-Match -> 304 Not Modified, If-Match on PATCH -> 412 Precondition Failed when stale. CORS: same-origin policy, preflight OPTIONS, CORSMiddleware(allow_origins=['http://localhost:5500'], allow_methods, allow_headers=['Authorization','Content-Type','Idempotency-Key'], max_age=600), why '*' with credentials is invalid. Webhooks: event payload {id, type: 'loan.overdue', created_at, data}, HMAC-SHA256 over f'{timestamp}.{raw_body}' sent as X-Webhook-Timestamp and X-Webhook-Signature: sha256=<hex>, receiver verifies with hmac.compare_digest, rejects >300 s old timestamps and duplicate event ids, secret from env WEBHOOK_SECRET (if missing, exit with a Thai message). Runnable example: ~/projects/api-lab/c12-edge/main.py (GET/PATCH /books/{book_id} with ETag, CORS middleware, POST /webhooks/library receiver) plus send_webhook.py (httpx) that signs and sends an event, with a --tamper flag. REAL outputs: `curl -i` GET then GET with If-None-Match -> 304; PATCH with old If-Match -> 412; `curl -i -X OPTIONS` preflight with Origin http://localhost:5500 (allowed) and with Origin http://evil.example (no Access-Control-Allow-Origin, 400 'Disallowed CORS origin'); webhook valid -> 204, tampered -> 401, replayed -> 409 or 200 ignored (pick one and be consistent). End with the OWASP API Security Top 10 (2023) table API1..API10 mapping each item to the concept where the course defends against it (API1 BOLA -> c10, API4 -> c11 rate limit and c05 max limit, API3 mass assignment -> separate Pydantic in/out models c03/c07, API7 SSRF -> validate webhook callback URLs, API9 inventory -> versioning c11 and OpenAPI c08). GraphQL and gRPC are covered conceptually in Part 1 Step 13 and Part 4 interview; c12 includes a short REST vs GraphQL vs gRPC comparison table (no runnable GraphQL/gRPC code required). Mistakes: weak ETag compare / forgetting quotes, `Access to fetch at 'http://127.0.0.1:8000/books' from origin 'http://localhost:5500' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.` (browser console, explain), verifying the HMAC over re-serialized JSON instead of the raw body, comparing signatures with == (timing attack).",
+   "language": "python",
+   "env": "file"
+  }
+ ],
+ "mini_project": {
+  "name": "Library API Spec",
+  "summary": "Contract-first design of a library REST API (books, members, loans) in ~/projects/library-api-spec (GitHub repo library-api-spec): an OpenAPI 3.1.0 YAML spec with schemas, realistic examples, RFC 9457 problem details errors, cursor pagination and bearer-JWT auth; linted with Spectral 6.17.0 (spectral:oas + team rules), mocked with Prism 5.16.0 on port 4010, plus a small FastAPI 0.157.0 reference implementation on port 8000, pytest tests and a curl smoke-test script that runs against either the mock or the real server.",
+  "features": [
+   "openapi.yaml (openapi: 3.1.0) with tags books, members, loans; operations: listBooks GET /books (q, author, status, sort, limit, cursor; envelope {data, next_cursor}; Link rel=next), createBook POST /books (201 + Location, bearer + scope books:write), getBook GET /books/{book_id} (ETag), updateBook PATCH /books/{book_id} (If-Match -> 412), deleteBook DELETE /books/{book_id} (204), createMember POST /members, getMember GET /members/{member_id}, listMemberLoans GET /members/{member_id}/loans (BOLA rule documented), createLoan POST /loans (Idempotency-Key header required, 409 book-unavailable, 409 loan-limit-reached when a member has 3 active loans), returnLoan POST /loans/{loan_id}/return",
+   "components: schemas Book, BookCreate, BookPatch, Member, MemberCreate, Loan, LoanCreate, BookPage, Problem, ValidationProblem; parameters BookId, MemberId, LoanId, Limit (default 20, max 100), Cursor, IdempotencyKey; responses BadRequest, Unauthorized, Forbidden, NotFound, Conflict, ValidationError, TooManyRequests (Retry-After header); securitySchemes bearerAuth (http, bearer, JWT)",
+   "Every error documented as application/problem+json with type https://example.com/problems/<slug> using the c06 slugs plus idempotency-key-reused",
+   ".spectral.yaml extending spectral:oas with team rules: paths-kebab-case, properties-snake-case, operation-must-have-problem-4xx (every operation declares at least one 4xx response), info-contact required; `npm run lint` passes with no errors",
+   "`npm run mock` starts Prism on 127.0.0.1:4010; frontend-style checks with curl including Prefer: code=404",
+   "FastAPI reference implementation in app/ (in-memory store seeded with the canonical sample data) that matches the spec, with problem+json handlers, JWT auth (JWT_SECRET from env), cursor pagination, Idempotency-Key and ETag",
+   "tests/test_api.py (pytest + TestClient, at least 15 tests) and a test that loads openapi.yaml and asserts every operationId in the spec has a matching route in the FastAPI app",
+   "scripts/smoke.sh BASE_URL=http://127.0.0.1:4010 or :8000 prints PASS/FAIL per check and exits non-zero on failure",
+   "README.md with run instructions, endpoint table, error catalog and a link to generated Redoc HTML (docs/index.html via npx @redocly/cli@2.67.1 build-docs, optional)"
+  ],
+  "folder_structure": "library-api-spec/\n  openapi.yaml\n  .spectral.yaml\n  package.json (devDependencies: @stoplight/spectral-cli 6.17.0, @stoplight/prism-cli 5.16.0; scripts: lint, mock)\n  requirements.txt\n  app/__init__.py\n  app/main.py\n  app/models.py\n  app/problems.py\n  app/auth.py\n  app/store.py\n  tests/test_api.py\n  tests/test_contract.py\n  scripts/smoke.sh\n  scripts/make_token.py\n  docs/ (optional Redoc output)\n  README.md\n  .gitignore (.venv/, node_modules/, .env, __pycache__/, .pytest_cache/)",
+  "stack": {
+   "python": "3.12.3 (venv .venv)",
+   "fastapi": "0.157.0",
+   "uvicorn": "0.54.0",
+   "pydantic": "2.14.1 (installed by fastapi)",
+   "starlette": "1.8.0 (installed by fastapi)",
+   "pytest": "9.1.1",
+   "httpx": "0.28.1",
+   "pyjwt": "2.15.1",
+   "pyyaml": "6.0.3",
+   "node": "24.22.0 LTS via nvm v0.40.8",
+   "spectral-cli": "@stoplight/spectral-cli 6.17.0",
+   "prism-cli": "@stoplight/prism-cli 5.16.0 (Node >=24.18.0)",
+   "redocly-cli": "@redocly/cli 2.67.1 (optional)",
+   "openapi": "3.1.0",
+   "curl": "8.5.0",
+   "jq": "1.7.1",
+   "git": "2.43.0"
+  }
+ },
+ "versions": {
+  "ubuntu": "24.04 LTS on WSL2 (wsl --install -d Ubuntu-24.04)",
+  "python": "3.12.3 system python3; all code must run on 3.12+; packages only inside ~/projects/api-lab/.venv (python3 -m venv .venv; source .venv/bin/activate; python3 -m pip install ...)",
+  "apt_packages": "sudo apt install -y python3-venv python3-pip curl jq",
+  "fastapi": "0.157.0 (Requires-Python >=3.10; pulls starlette 1.8.0 and pydantic 2.14.1 / pydantic_core 2.50.1)",
+  "uvicorn": "0.54.0",
+  "pydantic": "2.14.1",
+  "starlette": "1.8.0",
+  "pytest": "9.1.1",
+  "httpx": "0.28.1 (needed by fastapi.testclient.TestClient and used for client scripts)",
+  "pyjwt": "2.15.1 (import jwt)",
+  "pyyaml": "6.0.3 (c08 check_spec.py, tests/test_contract.py)",
+  "single_install_line": "python3 -m pip install fastapi==0.157.0 uvicorn==0.54.0 pytest==9.1.1 httpx==0.28.1 pyjwt==2.15.1 pyyaml==6.0.3",
+  "node": "24.22.0 LTS via nvm v0.40.8 (curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh | bash; nvm install --lts); Node 26.12.0 becomes Active LTS 2026-10-28; sandbox has Node 22",
+  "spectral_cli": "@stoplight/spectral-cli 6.17.0 (engines node ^22 || >=24; verified in sandbox: `npx -y @stoplight/spectral-cli@6.17.0 lint openapi.yaml` prints `No results with a severity of 'error' found!` on a clean file)",
+  "prism_cli": "@stoplight/prism-cli 5.16.0 (released 2026-07-17; engines node >=24.18.0; verified in sandbox via npx on Node 22 despite the engines field: `mock openapi.yaml -p 4010` served examples; mock listens on http://127.0.0.1:4010 and adds Access-Control-Allow-Origin: * headers)",
+  "redocly_cli": "@redocly/cli 2.67.1 (optional; engines node >=22.12.0)",
+  "openapi": "3.1.0 (JSON Schema 2020-12)",
+  "curl": "8.5.0 (apt on Ubuntu 24.04)",
+  "jq": "1.7.1 (apt)",
+  "git": "2.43.0",
+  "docker_desktop": "4.95.0 optional, WSL 2 backend",
+  "ports": "FastAPI/uvicorn 127.0.0.1:8000, Prism mock 127.0.0.1:4010, static test page python3 -m http.server 5500 (origin http://localhost:5500)",
+  "certifications": "No main API Design certification. Related: AWS DVA-C02 (ends 2026-11-30) / DVA-C03 (from 2026-12-01); Python Institute PCAP-31-03 (PCAP-31-04 due 2026-10-31); GitHub GH-900, GH-200; CompTIA Security+ SY0-701 (SY0-801 around 2026-11-17)"
+ },
+ "notes": [
+  "Learner username somchai; show paths as /home/somchai/projects/... in outputs and error messages. All practice code lives in ~/projects/api-lab/<lab> with ONE shared venv at ~/projects/api-lab/.venv. Lab folders exactly: c01-http, c02-methods, c03-json, c04-rest, c05-pagination, c06-errors, c07-testing, contract (c08 and c09 share it: openapi.yaml, .spectral.yaml, bad.yaml, package.json, check_spec.py), c10-auth, c11-reliability, c12-edge. Part 1 also references ~/projects/api-lab/notes/*.md (step01.md, library-json.md, endpoints.md) and ~/projects/api-lab/reference/main.py as the learner's own Step 7 practice app. Mini Project lives in ~/projects/library-api-spec.",
+  "Part 2 setup section must: install apt packages, create ~/projects/api-lab, python3 -m venv .venv, activate, run the single_install_line, verify with python3 --version (3.12.3 target; sandbox shows 3.13, so present the 3.12.3 target output and say versions may differ), python3 -m pip list | grep -iE 'fastapi|uvicorn|pydantic|pytest|httpx|pyjwt|pyyaml', node -v (v24.22.0), npx -y @stoplight/spectral-cli@6.17.0 --version (prints 6.17.0), curl --version | head -1, jq --version (jq-1.7.1).",
+  "Canonical sample data (use everywhere, same ids and values): books bk_0001 {title: 'Python 101', author: 'Somchai Jaidee', isbn: '9786160000011', published_year: 2024, status: 'available'}, bk_0002 {title: 'API Design ฉบับเริ่มต้น', author: 'Suda Meesuk', isbn: '9786160000028', published_year: 2025, status: 'available'}, bk_0003 {title: 'SQL for Everyone', author: 'Anan Rakdee', isbn: '9786160000035', published_year: 2023, status: 'on_loan'}; members mb_0001 {name: 'Somchai Jaidee', email: 'somchai@example.com', max_active_loans: 3}, mb_0002 {name: 'Suda Meesuk', email: 'suda@example.com', max_active_loans: 3}; loan ln_0001 {book_id: 'bk_0003', member_id: 'mb_0002', borrowed_at: '2026-10-15T10:00:00+07:00', due_date: '2026-10-29', returned_at: null, fine_satang: 0}. Use example.com / example.org domains only. New ids continue the sequence (bk_0004, ln_0002).",
+  "Conventions: JSON fields snake_case; datetimes RFC 3339 with +07:00 (Asia/Bangkok) and fields ending _at; dates fields ending _date; money integer satang (fine_satang); enums lowercase snake_case (available, on_loan, lost); collections wrapped as {\"data\": [...], \"next_cursor\": <string|null>} (offset variant adds limit, offset, total); URL paths lowercase plural nouns, path params snake_case in braces ({book_id}); problem type URIs https://example.com/problems/<slug> with slugs validation-error, book-not-found, member-not-found, loan-not-found, book-unavailable, loan-limit-reached, unauthorized, forbidden, rate-limited, idempotency-key-reused, precondition-failed, internal-error.",
+  "Status code choices used consistently: 201 + Location for creates, 204 for DELETE, 409 for business-rule conflicts, 422 for body/query validation (FastAPI default), 400 for malformed cursor or missing Idempotency-Key, 401 + WWW-Authenticate: Bearer for missing/invalid/expired token, 403 for insufficient scope or BOLA, 412 for stale If-Match, 304 for matching If-None-Match, 429 + Retry-After for rate limits.",
+  "Secrets: never hard-code. JWT_SECRET and WEBHOOK_SECRET come from environment variables; when missing the program exits with a clear Thai message showing how to generate one with python3 -c 'import secrets; print(secrets.token_urlsafe(32))'. Tests set them with monkeypatch.setenv. .env goes into .gitignore. No paid services or API keys are needed anywhere in this topic.",
+  "Safety: any security testing (BOLA, forged JWT, rate-limit flooding, CORS probing) only against 127.0.0.1 / own containers; mention พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์ near such content.",
+  "Run servers with `uvicorn main:app --port 8000` (add --reload while developing) from inside the lab folder with the venv active; use a second WSL terminal for curl. Show curl -i output with real headers; date/server headers and generated ids/tokens/timestamps vary: say so in Thai. FastAPI/uvicorn response headers typically: date, server: uvicorn, content-length, content-type.",
+  "Terminology (keep in English inside Thai text): Endpoint, Resource, Request, Response, Status Code, Header, Body/Payload, Schema, Contract, Contract-first (Design-first) vs Code-first, Mock Server, Lint, Pagination (Offset / Cursor), Problem Details, Idempotent / Idempotency Key, Rate Limiting, Caching, Preflight, Webhook, Breaking Change, BOLA. Part 1 has 13 steps (b: 1-4, i: 5-9, a: 10-13) and 37-50 hours total; Part 2 concepts map to steps as written in each 'covers'.",
+  "Part 3 ideas: fill-in-the-blank on status codes / Problem Details fields / OpenAPI keys; MCQ on safe vs idempotent, 401 vs 403, offset vs cursor, ETag/304, CORS, JWT pitfalls, OWASP API1-API10; hands-on: (b) design endpoint table + curl against c04 app, (i) write an OpenAPI path for /members with Spectral passing and Prism mock checks, (a) add Idempotency-Key + rate limit to a POST endpoint with pytest proving it. Part 4 interview: REST vs GraphQL vs gRPC, idempotency of POST, pagination choice, JWT revocation, API versioning strategy. Resources: https://spec.openapis.org/oas/v3.1.0, https://www.rfc-editor.org/rfc/rfc9457, https://fastapi.tiangolo.com/, https://docs.stoplight.io/docs/spectral, https://docs.stoplight.io/docs/prism, https://owasp.org/API-Security/editions/2023/en/0x11-t10/, https://developer.mozilla.org/en-US/docs/Web/HTTP, https://oauth.net/2/."
+ ]
+}

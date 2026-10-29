@@ -1,0 +1,150 @@
+{
+ "concepts": [
+  {
+   "id": "c01",
+   "level": "b",
+   "title": "CIA Triad, Threat, Vulnerability และ Risk: คิดแบบผู้ป้องกัน",
+   "covers": "Matches Part 1 Steps 1-2. Open with a Security callout (ethics and law: own lab or legal platforms only, พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์). CIA triad (Confidentiality, Integrity, Availability) with one attack example each (data leak, tampered price, DDoS); Threat vs Vulnerability vs Risk vs Exploit; Risk = Likelihood x Impact (both 1-5, score 1-25; Low 1-6, Medium 7-14, High 15-19, Critical 20-25); Defense in Depth, Least Privilege, Zero Trust; AAA. Runnable example: ~/projects/sec-lab/code/c01/risk_score.py (stdlib only) that reads assets.csv (the 5 sample assets in notes) and prints a table sorted by risk score with level labels and which CIA side is hit; also prints a count per level. Mistakes: FileNotFoundError: [Errno 2] No such file or directory: 'assets.csv' (wrong working directory), ValueError: invalid literal for int() with base 10 (header row or blank line in CSV), confusing Threat with Vulnerability in the asset sheet.",
+   "language": "python",
+   "env": "file + wsl"
+  },
+  {
+   "id": "c02",
+   "level": "b",
+   "title": "เข้าใจผู้โจมตีเพื่อป้องกัน: Cyber Kill Chain และ MITRE ATT&CK",
+   "covers": "Matches Step 3, defender view only (no attack instructions). The 7 Lockheed Martin Kill Chain phases (Reconnaissance, Weaponization, Delivery, Exploitation, Installation, Command and Control, Actions on Objectives) and where a defender can break each; MITRE ATT&CK structure: Tactic (why) -> Technique (how) -> Sub-technique, IDs like TA0006 Credential Access, T1110 Brute Force, T1110.001 Password Guessing, T1078 Valid Accounts, T1046 Network Service Discovery, T1021.004 Remote Services: SSH, T1190 Exploit Public-Facing Application, T1566 Phishing; tell learners to verify IDs at attack.mitre.org because the framework is updated. Runnable example: ~/projects/sec-lab/code/c02/map_incident.py that loads a synthetic incident timeline incident_events.json (6 events from the shared scenario in notes: nmap-style scan from 203.0.113.45, many failed SSH logins, one successful login, new user created, outbound connection) and prints each event with its Kill Chain phase, ATT&CK technique ID and a recommended detection/mitigation, then a coverage summary. Mistakes: json.decoder.JSONDecodeError: Expecting ',' delimiter (broken JSON), KeyError: 'technique' (missing field), mapping a technique to the wrong tactic.",
+   "language": "python",
+   "env": "file + wsl"
+  },
+  {
+   "id": "c03",
+   "level": "b",
+   "title": "Hashing และ Integrity: sha256sum, hashlib และทำไมต้องมี Salt",
+   "covers": "Matches Step 4 (first half). Hash properties (one-way, fixed length, avalanche effect, collision resistance), MD5/SHA-1 are broken for security, SHA-256 for integrity; verify a downloaded file with sha256sum -c; hash vs encryption vs encoding (base64 is NOT security). Runnable examples: (1) bash: create ~/projects/sec-lab/code/c03/report.txt, sha256sum it, write SHA256SUMS, sha256sum -c SHA256SUMS -> 'report.txt: OK', modify one character and re-check -> 'report.txt: FAILED' plus 'sha256sum: WARNING: 1 computed checksum did NOT match'; (2) hash_demo.py with hashlib.sha256 showing avalanche effect between 'somchai' and 'Somchai', identical unsalted hashes for two users with the same password 'password123', and different hashes once a random salt from secrets.token_hex(16) is added; hashlib.file_digest for a file (3.11+). Explain why fast hashes (even salted) are still wrong for passwords -> c07. Mistakes: TypeError: Strings must be encoded before hashing, comparing hashes with different case/whitespace, trusting a checksum downloaded from the same compromised page.",
+   "language": "bash + python",
+   "env": "wsl + file"
+  },
+  {
+   "id": "c04",
+   "level": "b",
+   "title": "Symmetric vs Asymmetric Encryption, Digital Signature และ TLS Certificate ด้วย openssl",
+   "covers": "Matches Step 4 (second half). Symmetric (AES-256, one shared key, fast) vs asymmetric (RSA, Ed25519 key pair; encrypt with public, sign with private); key exchange idea; digital signatures; TLS handshake overview, CA, chain of trust, self-signed certs only for labs. Runnable bash example in ~/projects/sec-lab/code/c04 with OpenSSL 3.0.13: openssl rand -hex 32; openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -in secret.txt -out secret.enc -pass pass:LabOnly-ChangeMe then decrypt (note: -pass on the command line only for the lab, real work uses a prompt or key file); openssl genpkey -algorithm ed25519 -out signer.key, openssl pkey -pubout, openssl pkeyutl -sign/-verify -rawin with 'Signature Verified Successfully' and failure after tampering; openssl req -x509 -newkey rsa:3072 -nodes -days 30 -subj '/CN=localhost' -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1'; openssl x509 -noout -subject -issuer -dates -ext subjectAltName; openssl s_server -accept 127.0.0.1:8443 and openssl s_client -connect 127.0.0.1:8443 -servername localhost -brief showing Protocol version: TLSv1.3 and 'Verification error: self-signed certificate'. Mistakes: 'bad decrypt' (wrong password or missing -pbkdf2 on decrypt), 'Could not open file or uri for loading private key', confusing which key signs vs verifies.",
+   "language": "bash",
+   "env": "wsl"
+  },
+  {
+   "id": "c05",
+   "level": "i",
+   "title": "Linux Hardening: Users, sudo, File Permissions และ SSH Hardening",
+   "covers": "Matches Step 5. Accounts (adduser, usermod -aG sudo, passwd -l, /etc/passwd vs /etc/shadow perms), sudo and visudo, least privilege; chmod/chown, octal modes 600/640/644/700/750, umask 027, SUID/SGID awareness (find / -perm -4000 -type f to INVENTORY only, compare with a baseline), world-writable files. SSH hardening via drop-in /etc/ssh/sshd_config.d/99-hardening.conf (PermitRootLogin no, PasswordAuthentication no, KbdInteractiveAuthentication no, PubkeyAuthentication yes, MaxAuthTries 3, LoginGraceTime 30, AllowUsers somchai, X11Forwarding no, ClientAliveInterval 300, ClientAliveCountMax 2), ssh-keygen -t ed25519 -C 'somchai@lab', validate with sudo sshd -t and sudo sshd -T | grep -Ei 'permitrootlogin|passwordauthentication|maxauthtries', reload with sudo systemctl reload ssh (Ubuntu 24.04 uses ssh.socket activation; mention). Always keep a second session open before reloading. Lynis 3.0.9: sudo lynis audit system --quick and reading Hardening index. Runnable example: ~/projects/sec-lab/code/c05/perm_audit.sh (bash, read-only checks) that reports: files in a target folder with mode looser than expected, world-writable files, private keys not 600, and lists SUID binaries vs a saved baseline; run against a prepared demo folder lab-home/ with deliberately loose files, show output, then fix with chmod and re-run showing all PASS. Mistakes: 'Bad owner or permissions on /home/somchai/.ssh/config', 'sshd: no hostkeys available -- exiting' / '/etc/ssh/sshd_config.d/99-hardening.conf line 3: Bad configuration option', locking yourself out after PasswordAuthentication no without a working key.",
+   "language": "bash",
+   "env": "wsl + file"
+  },
+  {
+   "id": "c06",
+   "level": "i",
+   "title": "Firewall, fail2ban และ Patch อัตโนมัติ (รวม Windows Defender และ Windows Firewall)",
+   "covers": "Matches Step 6. ufw 0.36.2: default deny incoming / allow outgoing, ufw limit 22/tcp, allow from 192.0.2.0/24 to any port 22 proto tcp, ufw status verbose / numbered, delete rule; note WSL2 networking caveats (ufw inside WSL protects the WSL VM, Windows Firewall protects the host). fail2ban 1.0.2: /etc/fail2ban/jail.local with [sshd] enabled = true, backend = systemd, maxretry = 5, findtime = 10m, bantime = 1h, ignoreip = 127.0.0.1/8 ::1; fail2ban-client status sshd; runnable offline check: fail2ban-regex against the shared sample auth.log (sample/auth.log, see notes) with filter sshd showing matched lines count. unattended-upgrades 2.9.1: /etc/apt/apt.conf.d/20auto-upgrades, sudo unattended-upgrade --dry-run --debug. Windows counterpart (env win, PowerShell 5.1/7, run as Administrator, not run in sandbox, official syntax): Get-MpComputerStatus | Select-Object AMServiceEnabled,RealTimeProtectionEnabled,AntivirusSignatureLastUpdated; Update-MpSignature; Get-NetFirewallProfile | Select-Object Name,Enabled,DefaultInboundAction. Mistakes: 'ERROR: Couldn't determine iptables version' or ufw not active in WSL, fail2ban 'ERROR  Failed during configuration: ... have no section', locking out your own IP (use ignoreip), PowerShell 'Access is denied' when not elevated.",
+   "language": "bash + powershell",
+   "env": "wsl + file + win"
+  },
+  {
+   "id": "c07",
+   "level": "i",
+   "title": "Authentication: Password Hashing ด้วย Argon2/bcrypt, MFA (TOTP) และ Passkeys",
+   "covers": "Matches Step 7. Why sha256(password) is wrong (fast = cheap to guess offline); Argon2id (recommended, argon2-cffi 25.1.0 PasswordHasher defaults, encoded string $argon2id$v=19$m=65536,t=3,p=4$...), bcrypt 5.0.0 (cost 12, 72-byte limit: bcrypt 5 raises ValueError for longer passwords), check_needs_rehash; constant-time comparison with hmac.compare_digest; MFA factors (know/have/are), TOTP RFC 6238 with pyotp 2.10.0 (random_base32, now(), verify with valid_window=1, provisioning_uri for an authenticator app, issuer 'SecLab'); password managers; passkeys (WebAuthn/FIDO2: private key stays on device, phishing-resistant) concept only; RBAC vs ABAC tiny dict-based check. Runnable example: ~/projects/sec-lab/code/c07/auth_demo.py in a venv (pip install argon2-cffi==25.1.0 bcrypt==5.0.0 pyotp==2.10.0): register somchai and malee in an in-memory dict with Argon2id, verify correct/wrong password (VerifyMismatchError caught), time 1 Argon2 hash vs 100000 sha256 to show cost, bcrypt hash/checkpw, TOTP generate + verify (outputs that vary like hashes/codes must be described as machine-specific), RBAC can(user, action). Mistakes: argon2.exceptions.VerifyMismatchError uncaught, TypeError: Unicode-objects must be encoded before hashing / bcrypt expects bytes, TOTP always invalid because system clock is wrong (WSL clock drift: sudo hwclock -s).",
+   "language": "python",
+   "env": "file + wsl"
+  },
+  {
+   "id": "c08",
+   "level": "i",
+   "title": "Network Security ในแล็บตัวเอง: nmap, tcpdump บน Loopback และ IDS/IPS",
+   "covers": "Matches Step 8. Security callout: scan ONLY 127.0.0.1 or your own containers; scanning others without permission is illegal. Ports/services review, TCP 3-way handshake, attack surface = listening services; ss -tlnp to list listeners first. Start two local services: python3 -m http.server 8000 --bind 127.0.0.1 and the c04 openssl s_server on 127.0.0.1:8443. nmap 7.94: nmap -sT -p 1-10000 127.0.0.1, nmap -sV -p 8000,8443 127.0.0.1, -oN ~/projects/sec-lab/scans/nmap-localhost.txt; read states open/closed/filtered. tcpdump 4.99.4: sudo tcpdump -i lo -nn -A 'tcp port 8000' -c 12 while curl http://127.0.0.1:8000/ shows readable HTTP (GET / HTTP/1.1, User-Agent: curl/8.5.0), then the same on 8443 shows only encrypted bytes; save with -w lab.pcap and read with -r. IDS vs IPS, signature vs anomaly detection, network vs host-based (Suricata, Snort, Zeek, Wazuh named as concepts only), segmentation and firewalls. Runnable example: ~/projects/sec-lab/code/c08/diff_scans.py that parses two nmap -oG grepable files (before/after stopping the 8000 service) and reports newly opened/closed ports — the change-detection idea used in the Mini Project. Mistakes: 'tcpdump: lo: You don't have permission to capture on that device' (needs sudo), nmap showing 'All 1000 scanned ports on localhost (127.0.0.1) are in ignored states' because service was bound elsewhere/not started, 'Failed to resolve' typo in target.",
+   "language": "bash + python",
+   "env": "wsl + file"
+  },
+  {
+   "id": "c09",
+   "level": "a",
+   "title": "Web Security 1: OWASP Top 10 และการป้องกัน SQL Injection ด้วย Parameterized Query",
+   "covers": "Matches Step 9 (part 1). OWASP Top 10 overview (the 2025 edition named in Part 1; tell learners to confirm the current list at owasp.org/Top10 before citing it). Security callout: own lab on 127.0.0.1 only. Defensive focus: explain conceptually why building SQL by string concatenation lets input change the query's meaning, using the textbook single-quote example only as a short illustration; the page must center on the FIX. Runnable example in ~/projects/sec-lab/code/c09/ with Flask 3.1.3 + stdlib sqlite3: init_db.py creates shop.db (sample data in notes); app.py exposes GET /products?name=... implemented with a parameterized query (cursor.execute('SELECT ... WHERE name = ?', (name,))) and input length validation; test_app.py (pytest 9.1.1 + Flask test_client) proves that input containing quotes is treated as plain data (returns 0 rows, no error) and that a normal search works. Also show the safe-coding checklist: parameterized queries / ORM, least-privilege DB account, generic error messages (no stack traces to users, debug=False), input validation as a second layer. Mistakes: sqlite3.OperationalError: no such table: products (forgot init_db.py), sqlite3.ProgrammingError: Incorrect number of bindings supplied (passing a string instead of a 1-tuple), running Flask with debug=True and exposing the Werkzeug debugger.",
+   "language": "python",
+   "env": "file + wsl"
+  },
+  {
+   "id": "c10",
+   "level": "a",
+   "title": "Web Security 2: Output Encoding กัน XSS, CSRF, Secure Headers และ Secrets Management",
+   "covers": "Matches Step 9 (part 2). Concept of XSS (untrusted input rendered as HTML) explained without payload walkthroughs; the defence: Jinja2 autoescape (never mark user input |safe), markupsafe.escape, Content-Security-Policy. CSRF concept and defence (CSRF token, SameSite=Lax cookies, Flask session cookie flags SESSION_COOKIE_HTTPONLY/SECURE/SAMESITE). Secure headers added in an @app.after_request hook: Content-Security-Policy \"default-src 'self'\", X-Content-Type-Options nosniff, Referrer-Policy no-referrer, X-Frame-Options DENY, Strict-Transport-Security (only meaningful over HTTPS). Secrets: SECRET_KEY read from environment / .env (python-dotenv 1.2.1), .env in .gitignore, .env.example committed, generate with python3 -c 'import secrets;print(secrets.token_hex(32))'. Runnable example ~/projects/sec-lab/code/c10/: app.py with GET /hello?name=... rendered via render_template_string with autoescape, plus test_app.py that asserts angle brackets in input come back escaped (&lt;) and that all security headers are present; also curl -i http://127.0.0.1:5000/hello?name=somchai showing real headers. Mistakes: RuntimeError: The session is unavailable because no secret key was set, a .env file accidentally committed (git rm --cached .env and rotate the secret), CSP blocking your own inline script (move JS to a static file).",
+   "language": "python",
+   "env": "file + wsl"
+  },
+  {
+   "id": "c11",
+   "level": "a",
+   "title": "Logging, Monitoring และ Detection: วิเคราะห์ auth.log ด้วย Python และพื้นฐาน SOC",
+   "covers": "Matches Step 10. Where logs live on Ubuntu 24.04 (/var/log/auth.log via rsyslog, journalctl -u ssh --since '1 hour ago', journalctl _COMM=sshd -o short-iso); Ubuntu 24.04 rsyslog writes RFC 3339 timestamps (2026-10-20T02:14:07.512345+07:00), older systems write 'Oct 20 02:14:07'. Defender-side detection only: synthetic sample/auth.log (see notes) — never a password-guessing tool. Runnable example ~/projects/sec-lab/code/c11/ssh_detector.py (stdlib: re, collections, datetime, argparse, json): parse 'Failed password', 'Invalid user', 'Accepted publickey|password' lines; alert when one IP has >= 5 failures within 10 minutes (sliding window), and raise severity HIGH when that IP later logs in successfully; print a summary table and write alerts.json; --threshold and --window flags. SOC basics: SIEM concepts (collection, normalization, correlation, dashboards; Wazuh, Splunk, Elastic named), alert triage, True/False Positive, severity, escalation. Windows counterpart (env win, run as Administrator, not run in sandbox): Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4625} -MaxEvents 10 (4625 failed logon, 4624 success, 4720 user created) and Event Viewer path. Mistakes: PermissionError reading /var/log/auth.log (use sudo or the adm group), regex not matching the RFC 3339 timestamp format, timezone-naive vs aware datetime TypeError: can't compare offset-naive and offset-aware datetimes.",
+   "language": "python + powershell",
+   "env": "file + wsl + win"
+  },
+  {
+   "id": "c12",
+   "level": "a",
+   "title": "Vulnerability Management, Threat Modeling (STRIDE) และ Incident Response (NIST)",
+   "covers": "Matches Steps 11-12. CVE, CWE, CVSS v3.1/v4.0 severity bands (None 0, Low 0.1-3.9, Medium 4.0-6.9, High 7.0-8.9, Critical 9.0-10.0), patch prioritization (CVSS + exposure + exploitation known, e.g. CISA KEV), SBOM idea. Runnable: in a venv, requirements-old.txt pinning flask==2.2.0 then pip-audit 2.10.1 -r requirements-old.txt showing the known Flask advisory (paste the real output, IDs as printed), upgrade to flask==3.1.3 and re-run to 'No known vulnerabilities found'; npm audit mentioned for Node. STRIDE (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege) applied to the c09/c10 Flask app with a simple data flow (Browser -> Flask -> SQLite) and a threat table with mitigations; a small stride_table.py printing that table as Markdown for the report. Incident Response per NIST SP 800-61 (Preparation; Detection & Analysis; Containment, Eradication & Recovery; Post-Incident Activity; mention Rev. 3 aligns IR with CSF 2.0), evidence handling and chain of custody basics, writing an incident timeline from the c11 alerts. Mistakes: pip-audit 'ERROR: ... externally-managed-environment' (no venv), treating CVSS as the only priority signal, fixing before preserving evidence.",
+   "language": "bash + python",
+   "env": "wsl + file"
+  }
+ ],
+ "mini_project": {
+  "name": "Home Lab Security Assessment",
+  "summary": "A documented security assessment of the learner's OWN lab in ~/projects/home-lab-assessment: harden an Ubuntu 24.04 machine (WSL or a local container), scan it from localhost with nmap before and after hardening, run OWASP Juice Shop in Docker bound to 127.0.0.1:3000 and record findings mapped to the OWASP Top 10, write a Python log analyzer that detects SSH brute-force patterns in a synthetic auth.log, and write a professional findings report. Defensive, own-lab only.",
+  "features": [
+   "hardening/: 99-hardening.conf (sshd drop-in), jail.local (fail2ban), ufw-rules.sh, harden.sh (users/sudo/permissions/unattended-upgrades), validated with sshd -t and lynis audit system --quick (Hardening index before/after)",
+   "scans/: nmap-before.txt and nmap-after.txt from nmap -sT -sV against 127.0.0.1 only, plus diff_scans.py comparing them",
+   "webapp/: docker run -d --name juice-shop -p 127.0.0.1:3000:3000 bkimminich/juice-shop (pin the tag you used and record its digest); findings.md mapping observed issues to OWASP Top 10 categories without exploit walkthroughs",
+   "detector/: log_analyzer.py (threshold 5 failures / 10 minutes per IP, HIGH when followed by a success, JSON + Markdown output), sample/auth.log, tests/test_log_analyzer.py (pytest, at least 5 tests)",
+   "deps/: pip-audit report of the detector's requirements",
+   "report/findings-report.md: Executive Summary, Scope and Rules of Engagement (own lab, date, author somchai), Methodology, Findings table (ID, title, severity by CVSS band, evidence, recommendation, status), Timeline, Lessons learned",
+   "README.md with how to reproduce, plus GitHub push"
+  ],
+  "stack": "Ubuntu 24.04 LTS (WSL2), Python 3.12.3 venv, pytest==9.1.1, pip-audit==2.10.1, OpenSSH 9.6p1, ufw 0.36.2, fail2ban 1.0.2, unattended-upgrades 2.9.1, Lynis 3.0.9, nmap 7.94, tcpdump 4.99.4, OpenSSL 3.0.13, Docker Desktop 4.95.0 (WSL 2 backend) with bkimminich/juice-shop, Git 2.43.0 + GitHub"
+ },
+ "versions": {
+  "ubuntu": "24.04 LTS (WSL2)",
+  "python": "3.12.3 system python3, packages only in .venv",
+  "flask": "3.1.3",
+  "python-dotenv": "1.2.1",
+  "argon2-cffi": "25.1.0",
+  "bcrypt": "5.0.0",
+  "pyotp": "2.10.0",
+  "pytest": "9.1.1",
+  "pip-audit": "2.10.1",
+  "sqlite": "3.45.1 (stdlib sqlite3; apt sqlite3 CLI)",
+  "openssl": "3.0.13",
+  "openssh": "9.6p1",
+  "nmap": "7.94",
+  "tcpdump": "4.99.4",
+  "ufw": "0.36.2",
+  "fail2ban": "1.0.2",
+  "unattended-upgrades": "2.9.1",
+  "lynis": "3.0.9",
+  "docker_desktop": "4.95.0 (WSL 2 backend)",
+  "git": "2.43.0",
+  "powershell": "Windows PowerShell 5.1 or PowerShell 7, run as Administrator (not runnable in sandbox)"
+ },
+ "notes": [
+  "SAFETY SCOPE (mandatory for Parts 2-4): defensive, own-lab curriculum. Every attack topic is explained conceptually and paired with its fix or detection on the learner's own 127.0.0.1 lab. No exploit code, attack payload walkthroughs, brute-force or password-guessing tools, malware, persistence, privilege escalation, evasion, phishing material, or scanning of hosts the learner does not own. For hands-on offensive practice, point to TryHackMe, Hack The Box, OverTheWire Bandit and picoCTF. Put a Security callout (ethics + พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์) at the start of Part 2 and near c08, c09, c10.",
+  "Username somchai, home /home/somchai. Lab root ~/projects/sec-lab with notes/, scans/, logs/, reports/ (from Part 1) and code/cNN/ for each concept. Mini Project lives in ~/projects/home-lab-assessment.",
+  "Ports: Flask demo 127.0.0.1:5000, python http.server 127.0.0.1:8000, openssl s_server 127.0.0.1:8443, Juice Shop 127.0.0.1:3000, DVWA 127.0.0.1:8080. Always bind with 127.0.0.1 (docker -p 127.0.0.1:HOST:CONTAINER).",
+  "IPs: only 127.0.0.1 and documentation ranges. Suspicious sources 203.0.113.45 and 198.51.100.23; trusted admin network 192.0.2.0/24 with somchai's laptop 192.0.2.10. Lab hostname lab-ubuntu.",
+  "Sample assets.csv (c01) columns name,cia,likelihood,impact: laptop-somchai,C,3,4; ssh-server,CIA,4,5; customer-db,C,3,5; backup-drive,A,2,4; company-website,IA,4,3.",
+  "Incident scenario (c02, c11, c12, report): on 2026-10-20 from 02:10 to 02:40 +07:00, 203.0.113.45 probes ports, then generates many SSH 'Failed password'/'Invalid user' lines against users admin, root, test, then one 'Accepted password for test' at 02:31, then a new local user 'backup2' is created and an outbound connection to 198.51.100.23:4444 is seen. Legit activity: somchai logs in with publickey from 192.0.2.10. 198.51.100.23 has 3 failures only (below threshold).",
+  "sample/auth.log: synthetic, RFC 3339 timestamps like '2026-10-20T02:14:07.512345+07:00 lab-ubuntu sshd[2211]: Failed password for invalid user admin from 203.0.113.45 port 51234 ssh2'; around 30-40 lines; same file reused by c06 (fail2ban-regex), c11 and the Mini Project. Detector must also accept the classic 'Oct 20 02:14:07' format.",
+  "Flask demo DB shop.db: users(id, username, password_hash, role) with somchai/admin role 'admin', malee/'member', and products(id, name, price) with 3 rows: 'Notebook' 25000, 'Mouse' 590, 'Keyboard' 1290. password_hash values are Argon2id strings, never plaintext.",
+  "Terminology: keep English terms (Hardening, Firewall, Hash, Salt, Detection, Alert, Triage, Finding) in Thai sentences; Blue Team/Red Team/Purple Team/GRC; refer to the law as พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์ (พ.ร.บ.คอมพิวเตอร์).",
+  "Outputs that vary per machine (hashes, salts, TOTP codes, PIDs, timestamps, ports from ephemeral range) must be labelled in Thai as values that will differ on the learner's machine.",
+  "Certifications (spec section 2): ISC2 CC, CompTIA Security+ SY0-701 (SY0-801 ~2026-11-17), CySA+ CS0-004, eJPT, OSCP+."
+ ]
+}

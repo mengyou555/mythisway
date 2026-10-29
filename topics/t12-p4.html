@@ -1,0 +1,2389 @@
+<section class="part" data-part="4">
+<h2 id="s12-4"><span class="sec-no">12.4</span>ส่วนเสริม: Mini Project, Cheat Sheet, Interview</h2>
+<p>ส่วนนี้นำทุกอย่างจาก Part 1–3 มารวมเป็นงานชิ้นเดียวที่ใส่ใน Portfolio ได้จริง คุณจะสร้าง <strong>TaskFlow API</strong> ซึ่งเป็น REST API สำหรับจัดการงาน (Task Management) ที่มีครบทุกชิ้นส่วนที่ Backend ในบริษัทจริงต้องมี ได้แก่ Authentication, Authorization, Database พร้อม Migration, Cache, Log, Health Check, Rate Limit, Automated Test, Docker และ CI</p>
+<p>ท้ายส่วนมี Cheat Sheet สำหรับเปิดดูระหว่างทำงาน คำถามสัมภาษณ์งาน 5 ข้อพร้อมแนวคำตอบ และแหล่งเรียนต่อ</p>
+
+<h3 id="s12-4-project">Mini Project: TaskFlow API — Production-ready REST API</h3>
+<h4>เป้าหมายของโปรเจกต์</h4>
+<p>สร้าง API ที่โฟลเดอร์ <code>~/projects/taskflow-api</code> ด้วย FastAPI ผู้ใช้สมัครสมาชิกและเข้าสู่ระบบได้ (รหัสผ่านเก็บเป็น Argon2 Hash และได้ JWT กลับไป) จากนั้นจัดการงานของตัวเองได้ครบ CRUD พร้อมการแบ่งหน้าและกรองตามสถานะ ผู้ดูแลระบบ (admin) ดูรายชื่อผู้ใช้ทั้งหมดได้ ข้อมูลเก็บใน PostgreSQL 16 ผ่าน SQLAlchemy 2 และ Alembic ส่วน Test ใช้ SQLite ใน Memory จึงรันเร็วและไม่ต้องมี Database จริง</p>
+<p>เมื่อทำเสร็จ คุณจะมี Repository บน GitHub ที่ CI เป็นสีเขียว มี README อธิบายสถาปัตยกรรม และมีตาราง OWASP API Security Top 10 ที่บอกว่าโปรเจกต์ป้องกันแต่ละข้ออย่างไร นี่คือสิ่งที่ผู้สัมภาษณ์งานตำแหน่ง Backend อยากเห็น</p>
+
+<h4>ฟีเจอร์ทั้งหมด</h4>
+<ul>
+<li><strong>Auth:</strong> <code>POST /api/v1/auth/register</code> (201 หรือ 409 ถ้าอีเมลซ้ำ), <code>POST /api/v1/auth/login</code> (OAuth2 Form: <code>username</code> คืออีเมล และ <code>password</code> ได้ <code>{access_token, token_type: "bearer"}</code>), <code>GET /api/v1/auth/me</code></li>
+<li><strong>Tasks CRUD</strong> ที่ <code>/api/v1/tasks</code>: GET รายการ พร้อม <code>?status=todo|doing|done&amp;limit=20&amp;offset=0</code> (limit สูงสุด 100) ตอบเป็น <code>{items, total, limit, offset}</code>, POST (201), GET <code>/{task_id}</code>, PATCH <code>/{task_id}</code> (แก้บางส่วน), DELETE <code>/{task_id}</code> (204) งานของผู้ใช้อื่นตอบ 404</li>
+<li><strong>Stats + Cache:</strong> <code>GET /api/v1/tasks/stats</code> ตอบ <code>{todo, doing, done, cached}</code> เก็บใน Redis ที่ Key <code>stats:user:{id}</code> นาน 60 วินาที ลบทิ้งเมื่อสร้าง แก้ หรือลบงาน และยังทำงานได้ (อ่านจาก Database) เมื่อ Redis ล่ม</li>
+<li><strong>Admin:</strong> <code>GET /api/v1/admin/users</code> ป้องกันด้วย <code>require_role("admin")</code> สมาชิกธรรมดาได้ 403</li>
+<li><strong>Role:</strong> <code>member</code> (ค่าเริ่มต้น) และ <code>admin</code> JWT มี Claim <code>sub</code>, <code>role</code>, <code>iat</code>, <code>exp</code> อายุ 30 นาที</li>
+<li><strong>Error รูปแบบเดียวกันทั้งระบบ:</strong> <code>application/problem+json</code> ที่มี <code>type</code>, <code>title</code>, <code>status</code>, <code>detail</code>, <code>instance</code> และ 422 มีรายการ <code>errors</code> เพิ่ม</li>
+<li><strong>Middleware:</strong> ใส่ <code>request_id</code> (ส่งกลับใน Header <code>X-Request-ID</code>) และเขียน Access Log เป็น JSON หนึ่งบรรทัดต่อ Request พร้อม <code>duration_ms</code></li>
+<li><strong>Health Check:</strong> <code>GET /health</code> ตอบ <code>{"status": "ok", "database": "ok"}</code> หรือ 503</li>
+<li><strong>Rate Limit:</strong> Login ได้ 5 ครั้งต่อนาทีต่อ IP ด้วย Redis <code>INCR</code>/<code>EXPIRE</code> เกินแล้วได้ 429 พร้อม <code>Retry-After</code></li>
+<li><strong>CORS:</strong> อนุญาตเฉพาะ <code>http://localhost:5173</code></li>
+<li><strong>คุณภาพ:</strong> Alembic Migration, ชุด Test 15 ข้อด้วย SQLite + fakeredis, รายงาน Coverage</li>
+<li><strong>Deploy:</strong> Dockerfile, <code>.dockerignore</code>, <code>compose.yaml</code> (api, db, redis), <code>.github/workflows/ci.yml</code>, การรันหลัง nginx และ README ที่มีแผนภาพสถาปัตยกรรม</li>
+</ul>
+
+<h4>เครื่องมือและเวอร์ชันที่ใช้</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>ส่วน</th><th>เครื่องมือและเวอร์ชันที่ทดสอบแล้ว</th></tr></thead><tbody>
+<tr><td>ภาษา</td><td>Python 3.12.3 (<code>python3</code> ของ Ubuntu 24.04) ใช้งานใน venv</td></tr>
+<tr><td>Web Framework</td><td><code>fastapi==0.148.0</code> (ดึง Starlette 1.9.0 และ Pydantic 2.14.1 มาให้), <code>uvicorn[standard]==0.54.0</code></td></tr>
+<tr><td>Config / Validation</td><td><code>pydantic-settings==2.16.0</code>, <code>email-validator==2.3.0</code>, <code>python-multipart==0.0.32</code> (ใช้อ่าน Form ตอน Login)</td></tr>
+<tr><td>Database</td><td>PostgreSQL 16 (apt), <code>sqlalchemy==2.1.5</code>, <code>psycopg[binary]==3.3.6</code>, <code>alembic==1.20.0</code></td></tr>
+<tr><td>Security</td><td><code>pwdlib[argon2]==0.3.1</code> (ไม่ใช้ passlib เพราะไม่มีคนดูแลแล้ว), <code>pyjwt==2.15.1</code></td></tr>
+<tr><td>Cache</td><td>Redis 7.0.15 (apt <code>redis-server</code>), <code>redis==8.1.0</code></td></tr>
+<tr><td>Testing</td><td><code>pytest==9.1.1</code>, <code>pytest-cov==7.1.0</code>, <code>httpx2==2.14.0</code> (TestClient ของ Starlette 1.9 ต้องใช้ตัวนี้ ไม่ใช่ httpx), <code>fakeredis==2.40.0</code>, <code>pip-audit==2.10.1</code></td></tr>
+<tr><td>Deploy</td><td>nginx 1.24.0 (apt), Docker Desktop 4.95.0 (WSL 2 backend) กับ Image <code>python:3.12-slim</code>, <code>postgres:16</code>, <code>redis:7</code>, GitHub Actions runner <code>ubuntu-24.04</code></td></tr>
+</tbody></table></div>
+
+<h4>สถาปัตยกรรมและเส้นทางของหนึ่ง Request</h4>
+<p>โค้ดแบ่งเป็นสามชั้นตามที่เรียนใน Part 2 แนวคิดที่ 4 แต่ละชั้นมีหน้าที่เดียว ทำให้แก้และทดสอบได้ง่าย</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Diagram · Architecture"><code class="language-plaintext">Client (curl / Frontend :5173)
+   │  HTTP + Authorization: Bearer &lt;token&gt;
+   ▼
+nginx :80  (Reverse Proxy, จำกัดขนาด Body)
+   ▼
+Uvicorn :8000 (2 workers)
+   ▼
+FastAPI app/main.py
+   ├─ Middleware: CORS → request_id + JSON Access Log
+   ├─ Exception Handlers → application/problem+json
+   └─ routers/      รับ Request, ตรวจ Input ด้วย Pydantic, เรียก Dependency
+         ▼
+      services/     Business Rule: ตรวจเจ้าของงาน, Cache-aside, Rate Limit
+         ▼
+      repositories/ คำสั่ง SQL ผ่าน SQLAlchemy 2 (select())
+         ▼                         ▼
+   PostgreSQL 16 :5432        Redis 7 :6379
+   (users, tasks)             (stats:user:{id}, rl:login:{ip})</code></pre>
+
+<h4>โครงสร้างโฟลเดอร์สุดท้าย</h4>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Text · Folder Structure"><code class="language-plaintext">taskflow-api/
+├── app/
+│   ├── __init__.py
+│   ├── main.py              # สร้าง app, Middleware, Exception Handler, /health
+│   ├── config.py            # Settings จาก Environment Variable / .env
+│   ├── db.py                # Engine, SessionLocal, Base, get_db
+│   ├── models.py            # User, Task (SQLAlchemy 2)
+│   ├── schemas.py           # Pydantic: UserCreate, UserOut, Token, TaskCreate, TaskUpdate, TaskOut, TaskStats, Page[T]
+│   ├── security.py          # Argon2 Hash, สร้างและถอด JWT
+│   ├── deps.py              # DbSession, CacheDep, CurrentUser, require_role
+│   ├── cache.py             # Cache ที่ทนต่อ Redis ล่ม
+│   ├── logging_config.py    # JsonFormatter
+│   ├── services/
+│   │   ├── __init__.py
+│   │   ├── errors.py        # AppError, NotFoundError, ConflictError, TooManyRequestsError
+│   │   ├── auth_service.py  # สมัคร, ตรวจรหัสผ่าน, Rate Limit, อีเมลต้อนรับ
+│   │   └── task_service.py  # กฎของงาน, Cache-aside, Invalidation
+│   ├── repositories/
+│   │   ├── __init__.py
+│   │   ├── users.py
+│   │   └── tasks.py
+│   └── routers/
+│       ├── __init__.py
+│       ├── auth.py
+│       ├── tasks.py
+│       └── admin.py
+├── migrations/
+│   ├── env.py
+│   ├── script.py.mako
+│   ├── README
+│   └── versions/
+│       └── 4fa5c7c0473d_create_users_and_tasks.py
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py
+│   └── test_api.py
+├── .github/workflows/ci.yml
+├── .env                     # ห้าม commit
+├── .env.example
+├── .gitignore
+├── .dockerignore
+├── Dockerfile
+├── compose.yaml
+├── alembic.ini
+├── requirements.txt
+├── requirements-dev.txt
+└── README.md</code></pre>
+<p class="muted small">ชื่อไฟล์ Migration (<code>4fa5c7c0473d_...</code>) เป็นรหัสสุ่ม บนเครื่องของคุณจะได้รหัสอื่น</p>
+
+<h4>เชื่อมกับสิ่งที่เรียนมา</h4>
+<ul>
+<li><a data-t="9"></a> Python: Type Hint, Module, venv และ pytest</li>
+<li><a data-t="14"></a> SQL: ตาราง, Foreign Key, Index, <code>GROUP BY</code> ที่ใช้นับสถิติ</li>
+<li><a data-t="8"></a> API Design: ออกแบบ URL, Status Code, Pagination, Problem Details</li>
+<li><a data-t="1"></a> Network: Port, Reverse Proxy, HTTP Header</li>
+<li><a data-t="19"></a> Linux: <code>service</code>, สิทธิ์ไฟล์, Environment Variable</li>
+<li><a data-t="17"></a> Git และ GitHub: Commit, Push, GitHub Actions</li>
+</ul>
+
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>ผู้เขียนรันทุกขั้นตอนจริงบน Ubuntu 24.04 ด้วย Python 3.12.3, PostgreSQL 16, Redis 7.0.15 และ nginx 1.24.0 แล้วคัดลอกผลลัพธ์จริงมาแสดง ค่าที่ขึ้นกับเครื่องและเวลา เช่น วันที่, <code>request_id</code>, Token, Hash, รหัส Migration, PID และเวลาที่ใช้ บนเครื่องของคุณจะต่างออกไป ส่วน Docker ไม่มีในเครื่องทดสอบ ไฟล์ Docker จึงเขียนตามเอกสารทางการของแต่ละ Image และไม่แสดงผลลัพธ์ของคำสั่ง <code>docker</code></p></div>
+
+<h4>ขั้นตอนการสร้าง</h4>
+<ol class="proj-steps">
+
+<li>
+<h4>Step 1: เตรียม PostgreSQL, Redis, โฟลเดอร์โปรเจกต์ และ venv</h4>
+<p>เริ่มจากเปิดบริการที่โปรเจกต์ต้องใช้ แล้วสร้าง Role และ Database ชื่อ <code>taskflow</code> ถ้าคุณทำ Part 2 แนวคิดที่ 5 มาแล้ว Role <code>taskflow</code> มีอยู่แล้ว ให้ข้ามคำสั่ง <code>CREATE ROLE</code> ได้เลย (ถ้ารันซ้ำจะเห็น <code>ERROR:  role "taskflow" already exists</code> ซึ่งไม่เป็นอันตราย)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ติดตั้ง (ข้ามได้ถ้าติดตั้งไว้แล้วจาก Part 2)
+sudo apt update
+sudo apt install -y postgresql redis-server
+
+# เปิดบริการ (WSL ไม่เปิดให้อัตโนมัติหลังรีสตาร์ต ต้องสั่งทุกครั้งที่เปิดเครื่อง)
+sudo service postgresql start
+sudo service redis-server start
+
+# ตรวจว่าพร้อมรับการเชื่อมต่อ
+pg_isready
+redis-cli ping</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>/var/run/postgresql:5432 - accepting connections
+PONG</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้าง Role และ Database ของโปรเจกต์ (รหัสผ่านนี้ใช้บนเครื่องตัวเองเท่านั้น)
+sudo -u postgres psql -c "CREATE ROLE taskflow LOGIN PASSWORD 'taskflow_dev_pw';"
+sudo -u postgres psql -c "CREATE DATABASE taskflow OWNER taskflow;"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>CREATE ROLE
+CREATE DATABASE</code></pre>
+<p>ต่อไปสร้างโฟลเดอร์ทั้งหมด และ venv ของโปรเจกต์นี้เอง (แยกจาก <code>~/projects/backend-lab/.venv</code> ที่ใช้ฝึกใน Part 2)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/taskflow-api/app/{routers,services,repositories} \
+         ~/projects/taskflow-api/tests \
+         ~/projects/taskflow-api/.github/workflows
+cd ~/projects/taskflow-api
+
+# ไฟล์ __init__.py ว่าง ๆ ทำให้ Python มองโฟลเดอร์เป็น Package
+touch app/__init__.py app/routers/__init__.py app/services/__init__.py \
+      app/repositories/__init__.py tests/__init__.py
+
+python3 -m venv .venv
+source .venv/bin/activate</code></pre>
+<p>สร้างไฟล์ Dependency สองไฟล์ ไฟล์แรกคือของที่แอปต้องใช้ตอนรันจริง ไฟล์ที่สองคือเครื่องมือสำหรับนักพัฒนาและ CI ทุกบรรทัดระบุเวอร์ชันตายตัว (Pin) เพื่อให้ทุกเครื่องได้ผลเหมือนกัน</p>
+<pre class="code" data-env="file" data-label="Text · requirements.txt"><code class="language-plaintext">fastapi==0.148.0
+uvicorn[standard]==0.54.0
+pydantic-settings==2.16.0
+email-validator==2.3.0
+python-multipart==0.0.32
+sqlalchemy==2.1.5
+psycopg[binary]==3.3.6
+alembic==1.20.0
+pwdlib[argon2]==0.3.1
+pyjwt==2.15.1
+redis==8.1.0</code></pre>
+<pre class="code" data-env="file" data-label="Text · requirements-dev.txt"><code class="language-plaintext">-r requirements.txt
+pytest==9.1.1
+pytest-cov==7.1.0
+httpx2==2.14.0
+fakeredis==2.40.0
+pip-audit==2.10.1</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ติดตั้งใน venv (ต้องเห็น (.venv) หน้า Prompt)
+python3 -m pip install -r requirements-dev.txt
+
+# ตรวจเวอร์ชันที่ได้
+python -V
+python -c "import fastapi, sqlalchemy, pydantic, alembic, jwt, redis; print('fastapi', fastapi.__version__); print('sqlalchemy', sqlalchemy.__version__); print('pydantic', pydantic.VERSION); print('alembic', alembic.__version__); print('pyjwt', jwt.__version__); print('redis', redis.__version__)"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Python 3.12.3
+fastapi 0.148.0
+sqlalchemy 2.1.5
+pydantic 2.14.1
+alembic 1.20.0
+pyjwt 2.15.1
+redis 8.1.0</code></pre>
+<p>ไฟล์ <code>.env.example</code> คือแม่แบบที่ commit ขึ้น Git ได้ เพราะไม่มีความลับจริง ส่วน <code>.env</code> คือค่าจริงของเครื่องคุณ ห้าม commit เด็ดขาด</p>
+<pre class="code" data-env="file" data-label="ini · .env.example"><code class="language-ini"># คัดลอกไฟล์นี้เป็น .env แล้วแก้ค่าให้ตรงกับเครื่องของคุณ (.env ห้าม commit)
+APP_ENV=dev
+DATABASE_URL=postgresql+psycopg://taskflow:taskflow_dev_pw@localhost:5432/taskflow
+REDIS_URL=redis://localhost:6379/0
+# สร้างค่าใหม่ด้วย: python3 -c "import secrets; print(secrets.token_urlsafe(48))"
+JWT_SECRET=change-me-to-a-random-string-at-least-32-chars
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+CORS_ORIGINS=["http://localhost:5173"]
+LOGIN_RATE_LIMIT=5</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สุ่มค่า JWT_SECRET ใหม่ แล้วคัดลอกไปใส่ใน .env
+python3 -c "import secrets; print(secrets.token_urlsafe(48))"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ZJCunhGq-ZTOZHVdF1G2SM54ltLMzfRCXzSW30_q0cw6feR6rBdgyC3PzqDj0zZI</code></pre>
+<p class="muted small">ค่านี้สุ่มใหม่ทุกครั้ง ของคุณจะไม่เหมือนตัวอย่าง และห้ามใช้ค่าในหน้านี้กับงานจริง</p>
+<pre class="code" data-env="file" data-label="ini · .env"><code class="language-ini">APP_ENV=dev
+DATABASE_URL=postgresql+psycopg://taskflow:taskflow_dev_pw@localhost:5432/taskflow
+REDIS_URL=redis://localhost:6379/0
+JWT_SECRET=ZJCunhGq-ZTOZHVdF1G2SM54ltLMzfRCXzSW30_q0cw6feR6rBdgyC3PzqDj0zZI
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+CORS_ORIGINS=["http://localhost:5173"]
+LOGIN_RATE_LIMIT=5</code></pre>
+<pre class="code" data-env="file" data-label="Text · .gitignore"><code class="language-plaintext"># Python
+__pycache__/
+*.pyc
+.venv/
+# ความลับและไฟล์เฉพาะเครื่อง
+.env
+*.db
+# ผลจากการทดสอบ
+.pytest_cache/
+.coverage
+htmlcov/</code></pre>
+<div class="callout sec"><span class="c-label sec">Security</span><p>สร้าง <code>.gitignore</code> ก่อน <code>git add</code> ครั้งแรกเสมอ ถ้า <code>.env</code> เคยถูก commit ไปแล้ว การลบในภายหลังไม่พอ เพราะค่ายังอยู่ในประวัติของ Git ต้องเปลี่ยน <code>JWT_SECRET</code> และรหัสผ่าน Database ใหม่ทันที</p></div>
+</li>
+
+<li>
+<h4>Step 2: Configuration, Database Engine และ Model</h4>
+<p><strong>config.py</strong> อ่านค่าทั้งหมดผ่าน <code>pydantic-settings</code> ข้อดีคือได้ Type ที่ถูกต้อง (เช่น <code>access_token_expire_minutes</code> เป็น <code>int</code> จริง) และแอปจะไม่ยอมเริ่มทำงานถ้าขาดค่าที่จำเป็น <code>jwt_secret</code> ไม่มีค่า default และต้องยาวอย่างน้อย 32 ตัวอักษร</p>
+<pre class="code" data-env="file" data-label="Python · app/config.py"><code class="language-python">from functools import lru_cache
+from typing import Literal
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    # อ่านค่าจาก Environment Variable ก่อน ถ้าไม่มีจึงอ่านจากไฟล์ .env
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    app_name: str = "TaskFlow API"
+    app_env: Literal["dev", "test", "prod"] = "dev"
+    database_url: str = "postgresql+psycopg://taskflow:taskflow_dev_pw@localhost:5432/taskflow"
+    redis_url: str = "redis://localhost:6379/0"  # ค่าว่าง = ปิด Cache และ Rate Limit
+    jwt_secret: str = Field(min_length=32)  # ไม่มีค่า default จึงบังคับให้ตั้งเสมอ
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+    cache_ttl_seconds: int = 60
+    login_rate_limit: int = 5  # จำนวนครั้งที่ login ได้ต่อ IP ต่อ 1 นาที
+    cors_origins: list[str] = ["http://localhost:5173"]
+    log_level: str = "INFO"
+
+
+@lru_cache
+def get_settings() -&gt; Settings:
+    # สร้าง Settings ครั้งเดียวแล้วใช้ซ้ำทั้งแอป
+    return Settings()</code></pre>
+<p><strong>db.py</strong> สร้าง Engine ครั้งเดียวตอน import และให้ <code>get_db</code> เปิด Session ใหม่ต่อหนึ่ง Request <code>pool_pre_ping=True</code> ทำให้ SQLAlchemy ทดสอบการเชื่อมต่อก่อนใช้ จึงไม่พังเมื่อ PostgreSQL รีสตาร์ตแล้ว Connection เก่าใน Pool ตายไป</p>
+<pre class="code" data-env="file" data-label="Python · app/db.py"><code class="language-python">from collections.abc import Iterator
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+
+from app.config import get_settings
+
+
+class Base(DeclarativeBase):
+    # คลาสแม่ของทุก Model ใช้ Base.metadata สร้างตารางและทำ Migration
+    pass
+
+
+settings = get_settings()
+# SQLite ต้องปิด check_same_thread เพราะ FastAPI อาจเรียกจากหลาย Thread
+connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
+engine = create_engine(settings.database_url, pool_pre_ping=True, connect_args=connect_args)
+SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
+
+def get_db() -&gt; Iterator[Session]:
+    # Dependency: เปิด Session หนึ่งตัวต่อหนึ่ง Request แล้วปิดเสมอเมื่อจบ
+    with SessionLocal() as db:
+        yield db</code></pre>
+<p><strong>models.py</strong> ใช้รูปแบบ SQLAlchemy 2 (<code>Mapped</code> และ <code>mapped_column</code>) ค่า <code>default</code> ทำงานฝั่ง Python ส่วน <code>server_default</code> ใส่ลงในตารางจริงผ่าน Migration จึงมีค่าเริ่มต้นแม้จะ INSERT ด้วย SQL ตรง ๆ</p>
+<pre class="code" data-env="file" data-label="Python · app/models.py"><code class="language-python">from datetime import datetime, timezone
+
+from sqlalchemy import DateTime, ForeignKey, Index, String, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.db import Base
+
+
+def utcnow() -&gt; datetime:
+    return datetime.now(timezone.utc)
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    full_name: Mapped[str] = mapped_column(String(100))
+    hashed_password: Mapped[str] = mapped_column(String(255))
+    role: Mapped[str] = mapped_column(String(20), default="member", server_default="member")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, server_default=func.now()
+    )
+    # ลบ User แล้วให้ลบ Task ของเขาตามไปด้วย
+    tasks: Mapped[list["Task"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
+
+
+class Task(Base):
+    __tablename__ = "tasks"
+    # Index คู่ ช่วยคำสั่ง WHERE owner_id = ? AND status = ? ที่ใช้บ่อยที่สุด
+    __table_args__ = (Index("ix_tasks_owner_status", "owner_id", "status"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str | None] = mapped_column(String(2000))
+    status: Mapped[str] = mapped_column(String(10), default="todo", server_default="todo")
+    priority: Mapped[int] = mapped_column(default=2, server_default="2")
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, server_default=func.now()
+    )
+    owner: Mapped[User] = relationship(back_populates="tasks")</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>Field(min_length=32)</code></td><td>บังคับให้ตั้ง <code>JWT_SECRET</code> และยาวพอที่จะเดายาก ถ้าขาดหรือสั้นเกิน แอปจะหยุดตั้งแต่เริ่ม (ดีกว่ารันไปแล้วใช้ Secret อ่อน)</td></tr>
+<tr><td><code>@lru_cache</code> บน <code>get_settings</code></td><td>อ่าน <code>.env</code> ครั้งเดียว ทุกที่ที่เรียกได้ Object เดียวกัน</td></tr>
+<tr><td><code>expire_on_commit=False</code></td><td>หลัง commit แล้วยังอ่านค่าใน Object ได้ทันที ไม่ต้อง Query ซ้ำตอนแปลงเป็น Response</td></tr>
+<tr><td><code>with SessionLocal() as db: yield db</code></td><td>Dependency แบบ yield: โค้ดหลัง yield (ปิด Session) ทำงานเสมอแม้ Endpoint จะเกิด Error</td></tr>
+<tr><td><code>unique=True, index=True</code> ที่ email</td><td>สร้าง Unique Index <code>ix_users_email</code> ป้องกันอีเมลซ้ำในระดับ Database และค้นหาตอน Login ได้เร็ว</td></tr>
+<tr><td><code>cascade="all, delete-orphan"</code> และ <code>ondelete="CASCADE"</code></td><td>ลบ User แล้ว Task ของเขาถูกลบตาม ทั้งฝั่ง ORM และฝั่ง Database</td></tr>
+<tr><td><code>Index("ix_tasks_owner_status", ...)</code></td><td>Composite Index ที่ตรงกับ Query หลักของระบบ คือดึงงานของผู้ใช้คนหนึ่งตามสถานะ</td></tr>
+</tbody></table></div>
+</li>
+
+<li>
+<h4>Step 3: Pydantic Schema และ Security (Argon2 + JWT)</h4>
+<p><strong>schemas.py</strong> แยก Schema ขาเข้าและขาออก ขาเข้าใช้ <code>extra="forbid"</code> เพื่อปฏิเสธฟิลด์ที่ไม่รู้จัก เช่น <code>role</code> หรือ <code>owner_id</code> (กัน Mass Assignment) ขาออกใช้ <code>from_attributes=True</code> เพื่อแปลงจาก Model ของ SQLAlchemy ได้ตรง ๆ และไม่มีฟิลด์ <code>hashed_password</code> เลย</p>
+<p><code>TaskUpdate</code> ทุกฟิลด์เป็น Optional เพราะ PATCH ส่งมาแค่บางฟิลด์ได้ แต่คอลัมน์ <code>title</code>, <code>status</code> และ <code>priority</code> เป็น NOT NULL จึงมี <code>field_validator</code> กันไม่ให้ส่ง <code>null</code> มาตรง ๆ (ไม่อย่างนั้นจะได้ <code>IntegrityError</code> จาก Database แทน 422 ที่อ่านง่าย)</p>
+<pre class="code" data-env="file" data-label="Python · app/schemas.py"><code class="language-python">from datetime import datetime
+from typing import Generic, Literal, TypeVar
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+
+Status = Literal["todo", "doing", "done"]
+T = TypeVar("T")
+
+
+class UserCreate(BaseModel):
+    # extra="forbid" ป้องกัน Mass Assignment เช่น ส่ง "role": "admin" มาเอง
+    model_config = ConfigDict(extra="forbid")
+    email: EmailStr
+    full_name: str = Field(min_length=1, max_length=100)
+    password: str = Field(min_length=8, max_length=128)
+
+
+class UserOut(BaseModel):
+    # ไม่มี hashed_password อยู่ใน Schema นี้ จึงไม่มีทางหลุดออกไปใน Response
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    email: EmailStr
+    full_name: str
+    role: str
+    created_at: datetime
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class TaskCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    title: str = Field(min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=2000)
+    status: Status = "todo"
+    priority: int = Field(default=2, ge=1, le=3)
+
+
+class TaskUpdate(BaseModel):
+    # ทุกฟิลด์เป็น Optional เพราะ PATCH แก้เฉพาะบางฟิลด์
+    model_config = ConfigDict(extra="forbid")
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=2000)
+    status: Status | None = None
+    priority: int | None = Field(default=None, ge=1, le=3)
+
+    @field_validator("title", "status", "priority")
+    @classmethod
+    def not_null(cls, value):
+        # ไม่ส่งฟิลด์มาได้ แต่ถ้าส่งมาต้องไม่เป็น null เพราะคอลัมน์เป็น NOT NULL
+        if value is None:
+            raise ValueError("ห้ามเป็น null")
+        return value
+
+
+class TaskOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    title: str
+    description: str | None
+    status: Status
+    priority: int
+    owner_id: int
+    created_at: datetime
+
+
+class TaskStats(BaseModel):
+    todo: int
+    doing: int
+    done: int
+    cached: bool
+
+
+class Page(BaseModel, Generic[T]):
+    # รูปแบบ Response สำหรับรายการที่แบ่งหน้า
+    items: list[T]
+    total: int
+    limit: int
+    offset: int</code></pre>
+<p><strong>security.py</strong> รวมเรื่องรหัสผ่านและ Token ไว้ที่เดียว <code>PasswordHash.recommended()</code> ของ pwdlib ใช้ Argon2id พร้อมค่าพารามิเตอร์ที่เหมาะสม ส่วน JWT ใส่แค่ข้อมูลที่ไม่ลับ (<code>sub</code> และ <code>role</code>) เพราะใครก็ถอด Payload อ่านได้ด้วย Base64</p>
+<pre class="code" data-env="file" data-label="Python · app/security.py"><code class="language-python">from datetime import datetime, timedelta, timezone
+
+import jwt
+from pwdlib import PasswordHash
+
+from app.config import get_settings
+
+# recommended() ใช้ Argon2id ซึ่งเป็นอัลกอริทึมที่ OWASP แนะนำสำหรับรหัสผ่าน
+password_hash = PasswordHash.recommended()
+
+
+def hash_password(password: str) -&gt; str:
+    return password_hash.hash(password)
+
+
+def verify_password(password: str, hashed: str) -&gt; bool:
+    return password_hash.verify(password, hashed)
+
+
+def create_access_token(user_id: int, role: str) -&gt; str:
+    settings = get_settings()
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(user_id),  # JWT กำหนดให้ sub เป็น string
+        "role": role,
+        "iat": now,
+        "exp": now + timedelta(minutes=settings.access_token_expire_minutes),
+    }
+    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def decode_access_token(token: str) -&gt; dict:
+    # ถ้าลายเซ็นผิดหรือหมดอายุ จะโยน jwt.InvalidTokenError (หรือลูกของมัน)
+    settings = get_settings()
+    return jwt.decode(
+        token,
+        settings.jwt_secret,
+        algorithms=[settings.jwt_algorithm],  # ระบุอัลกอริทึมเสมอ ห้ามรับตามที่ Token บอก
+        options={"require": ["sub", "exp", "iat"]},
+    )</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>Status = Literal["todo", "doing", "done"]</code></td><td>ประกาศค่าที่อนุญาตครั้งเดียว ใช้ทั้งใน Body และ Query Parameter</td></tr>
+<tr><td><code>class Page(BaseModel, Generic[T])</code></td><td>Schema แบบ Generic ใช้ซ้ำได้ทั้ง <code>Page[TaskOut]</code> และ <code>Page[UserOut]</code></td></tr>
+<tr><td><code>"sub": str(user_id)</code></td><td>มาตรฐาน JWT (RFC 7519) กำหนดให้ <code>sub</code> เป็น String PyJWT รุ่นใหม่จะตรวจเรื่องนี้ด้วย</td></tr>
+<tr><td><code>algorithms=[settings.jwt_algorithm]</code></td><td>ระบุอัลกอริทึมที่ยอมรับเอง ไม่เชื่อค่า <code>alg</code> ใน Header ของ Token กันการโจมตีแบบเปลี่ยนอัลกอริทึม</td></tr>
+<tr><td><code>options={"require": [...]}</code></td><td>Token ที่ไม่มี <code>exp</code> หรือ <code>sub</code> ถือว่าไม่ถูกต้อง แม้ลายเซ็นจะถูก</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><p>ทดสอบ Settings ได้ทันทีโดยยังไม่ต้องมี API: รัน <code>python -c "from app.config import get_settings; print(get_settings().database_url)"</code> ถ้าเห็น URL ของคุณ แปลว่า <code>.env</code> ถูกอ่านแล้ว ถ้าเห็น <code>jwt_secret Field required</code> แปลว่ายังไม่ได้สร้าง <code>.env</code> หรือรันผิดโฟลเดอร์</p></div>
+</li>
+
+<li>
+<h4>Step 4: Cache ที่ทนต่อ Redis ล่ม และ JSON Logging</h4>
+<p>Cache เป็นของเสริมความเร็ว ไม่ใช่แหล่งข้อมูลหลัก ดังนั้นถ้า Redis ล่ม API ต้องยังตอบได้ (ช้าลงได้ แต่ห้ามพัง) คลาส <code>Cache</code> จึงห่อทุกคำสั่งด้วย <code>try/except redis.exceptions.RedisError</code> แล้วเขียน Log ระดับ WARNING แทนการโยน Error ออกไป เมธอด <code>incr_with_ttl</code> ใช้ทำ Rate Limit แบบ Fixed Window</p>
+<pre class="code" data-env="file" data-label="Python · app/cache.py"><code class="language-python">import json
+import logging
+from functools import lru_cache
+from typing import Any
+
+import redis
+
+from app.config import get_settings
+
+logger = logging.getLogger("taskflow")
+
+
+class Cache:
+    """ห่อ Redis ไว้ ถ้า Redis ล่ม ให้คืน None และเขียน Log เตือน แทนการทำให้ API พัง"""
+
+    def __init__(self, client: redis.Redis | None):
+        self.client = client
+
+    def _warn(self, op: str, key: str, exc: Exception) -&gt; None:
+        logger.warning("cache_unavailable", extra={"op": op, "key": key, "error": str(exc)})
+
+    def get_json(self, key: str) -&gt; Any | None:
+        if self.client is None:
+            return None
+        try:
+            raw = self.client.get(key)
+        except redis.exceptions.RedisError as exc:
+            self._warn("get", key, exc)
+            return None
+        return json.loads(raw) if raw is not None else None
+
+    def set_json(self, key: str, value: Any, ttl: int) -&gt; None:
+        if self.client is None:
+            return
+        try:
+            self.client.set(key, json.dumps(value), ex=ttl)  # ex = อายุของ Key เป็นวินาที
+        except redis.exceptions.RedisError as exc:
+            self._warn("set", key, exc)
+
+    def delete(self, key: str) -&gt; None:
+        if self.client is None:
+            return
+        try:
+            self.client.delete(key)
+        except redis.exceptions.RedisError as exc:
+            self._warn("delete", key, exc)
+
+    def incr_with_ttl(self, key: str, ttl: int) -&gt; int | None:
+        """เพิ่มตัวนับทีละ 1 ถ้าเป็นครั้งแรกให้ตั้งอายุ Key คืน None ถ้า Redis ใช้ไม่ได้"""
+        if self.client is None:
+            return None
+        try:
+            count = self.client.incr(key)
+            if count == 1:
+                self.client.expire(key, ttl)
+            return count
+        except redis.exceptions.RedisError as exc:
+            self._warn("incr", key, exc)
+            return None
+
+    def ttl(self, key: str) -&gt; int:
+        if self.client is None:
+            return -2
+        try:
+            return self.client.ttl(key)
+        except redis.exceptions.RedisError as exc:
+            self._warn("ttl", key, exc)
+            return -2
+
+
+@lru_cache
+def get_cache() -&gt; Cache:
+    # สร้าง Client ครั้งเดียว ตั้ง Timeout สั้น ๆ เพื่อไม่ให้ Request ค้างเมื่อ Redis ล่ม
+    url = get_settings().redis_url
+    if not url:
+        return Cache(None)
+    client = redis.Redis.from_url(
+        url, decode_responses=True, socket_connect_timeout=0.5, socket_timeout=0.5
+    )
+    return Cache(client)</code></pre>
+<p>Log แบบ JSON หนึ่งบรรทัดต่อหนึ่งเหตุการณ์ ทำให้เครื่องมืออย่าง Grafana Loki, Elasticsearch หรือ CloudWatch Logs ค้นหาด้วยฟิลด์ได้ เช่น หา Request ทั้งหมดที่ <code>status</code> เป็น 500 หรือหาทุกบรรทัดของ <code>request_id</code> เดียวกัน</p>
+<pre class="code" data-env="file" data-label="Python · app/logging_config.py"><code class="language-python">import json
+import logging
+import sys
+from datetime import datetime, timezone
+
+# ชื่อ Attribute มาตรฐานของ LogRecord ที่ไม่ต้องพิมพ์ซ้ำ
+_STANDARD_ATTRS = set(vars(logging.makeLogRecord({}))) | {"message", "asctime", "taskName"}
+
+
+class JsonFormatter(logging.Formatter):
+    """แปลง Log หนึ่งบรรทัดเป็น JSON หนึ่งบรรทัด ให้เครื่องมือค้นหา Log อ่านง่าย"""
+
+    def format(self, record: logging.LogRecord) -&gt; str:
+        data = {
+            "time": datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(timespec="milliseconds"),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        # ฟิลด์ที่ส่งมาทาง extra={...} จะถูกเพิ่มต่อท้าย
+        for key, value in record.__dict__.items():
+            if key not in _STANDARD_ATTRS:
+                data[key] = value
+        if record.exc_info:
+            data["exc_info"] = self.formatException(record.exc_info)
+        return json.dumps(data, ensure_ascii=False, default=str)
+
+
+def setup_logging(level: str = "INFO") -&gt; None:
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(JsonFormatter())
+    logger = logging.getLogger("taskflow")
+    logger.handlers[:] = [handler]  # กันไม่ให้ Handler ซ้ำเมื่อ --reload
+    logger.setLevel(level)
+    logger.propagate = False</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>socket_connect_timeout=0.5, socket_timeout=0.5</code></td><td>ถ้า Redis ไม่ตอบ ให้ยอมแพ้ภายในครึ่งวินาที Request จะไม่ค้างนาน</td></tr>
+<tr><td><code>@lru_cache</code> บน <code>get_cache</code></td><td>สร้าง Redis Client (ซึ่งมี Connection Pool ในตัว) ครั้งเดียว ใช้ร่วมกันทุก Request</td></tr>
+<tr><td><code>if count == 1: expire(key, ttl)</code></td><td>ตั้งอายุ Key ตอนนับครั้งแรกของแต่ละหน้าต่างเวลา พอครบ 60 วินาที Key หายไป ตัวนับจึงเริ่มใหม่</td></tr>
+<tr><td><code>json.dumps(value)</code> / <code>json.loads(raw)</code></td><td>Redis เก็บได้แค่ String จึงแปลง dict เป็น JSON ก่อนเก็บ และแปลงกลับตอนอ่าน</td></tr>
+<tr><td><code>_STANDARD_ATTRS</code></td><td>รายชื่อ Attribute ปกติของ <code>LogRecord</code> ที่เราไม่อยากพิมพ์ ที่เหลือคือฟิลด์จาก <code>extra={...}</code></td></tr>
+<tr><td><code>ensure_ascii=False</code></td><td>ให้ข้อความภาษาไทยใน Log อ่านออก ไม่กลายเป็น <code>ส...</code></td></tr>
+<tr><td><code>logger.propagate = False</code></td><td>ไม่ส่ง Log ต่อไปยัง Root Logger จึงไม่พิมพ์ซ้ำสองครั้ง</td></tr>
+</tbody></table></div>
+<div class="callout sec"><span class="c-label sec">Security</span><p>ห้ามใส่รหัสผ่าน, Token, Header <code>Authorization</code> หรือข้อมูลบัตรลงใน Log เด็ดขาด เพราะ Log มักถูกเก็บนานและคนเข้าถึงได้หลายคน ในโปรเจกต์นี้ Log ต้อนรับผู้ใช้ใหม่จึงเก็บแค่ <code>user_id</code> ไม่เก็บอีเมล</p></div>
+</li>
+
+<li>
+<h4>Step 5: Repository และ Service (Business Logic)</h4>
+<p><strong>Repository</strong> คือชั้นที่คุยกับ Database อย่างเดียว ไม่มีการตัดสินใจทางธุรกิจ สังเกตว่าทุกฟังก์ชันของ <code>tasks.py</code> รับ <code>owner_id</code> และใส่ <code>WHERE owner_id = ...</code> เสมอ นี่คือการป้องกัน BOLA (Broken Object Level Authorization) ซึ่งเป็นความเสี่ยงอันดับ 1 ของ OWASP API Security Top 10</p>
+<pre class="code" data-env="file" data-label="Python · app/repositories/users.py"><code class="language-python">from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from app.models import User
+
+# Repository: รวมคำสั่ง Query ของตาราง users ไว้ที่เดียว ไม่มี Business Rule
+
+
+def get_by_id(db: Session, user_id: int) -&gt; User | None:
+    return db.get(User, user_id)
+
+
+def get_by_email(db: Session, email: str) -&gt; User | None:
+    return db.scalar(select(User).where(User.email == email))
+
+
+def create(db: Session, *, email: str, full_name: str, hashed_password: str, role: str = "member") -&gt; User:
+    user = User(email=email, full_name=full_name, hashed_password=hashed_password, role=role)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def list_page(db: Session, limit: int, offset: int) -&gt; tuple[list[User], int]:
+    total = db.scalar(select(func.count()).select_from(User))
+    users = db.scalars(select(User).order_by(User.id).limit(limit).offset(offset)).all()
+    return list(users), total</code></pre>
+<pre class="code" data-env="file" data-label="Python · app/repositories/tasks.py"><code class="language-python">from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from app.models import Task
+
+# Repository: ทุก Query ของ Task กรองด้วย owner_id เสมอ (ป้องกัน BOLA)
+
+
+def list_for_owner(
+    db: Session, owner_id: int, status: str | None, limit: int, offset: int
+) -&gt; tuple[list[Task], int]:
+    query = select(Task).where(Task.owner_id == owner_id)
+    if status is not None:
+        query = query.where(Task.status == status)
+    # นับจำนวนทั้งหมดจาก Query เดียวกัน เพื่อให้ total ตรงกับตัวกรอง
+    total = db.scalar(select(func.count()).select_from(query.subquery()))
+    tasks = db.scalars(query.order_by(Task.id).limit(limit).offset(offset)).all()
+    return list(tasks), total
+
+
+def get_for_owner(db: Session, task_id: int, owner_id: int) -&gt; Task | None:
+    return db.scalar(select(Task).where(Task.id == task_id, Task.owner_id == owner_id))
+
+
+def create(db: Session, owner_id: int, data: dict) -&gt; Task:
+    task = Task(owner_id=owner_id, **data)
+    db.add(task)
+    db.commit()
+    db.refresh(task)
+    return task
+
+
+def update(db: Session, task: Task, changes: dict) -&gt; Task:
+    for field, value in changes.items():
+        setattr(task, field, value)
+    db.commit()
+    db.refresh(task)
+    return task
+
+
+def delete(db: Session, task: Task) -&gt; None:
+    db.delete(task)
+    db.commit()
+
+
+def count_by_status(db: Session, owner_id: int) -&gt; dict[str, int]:
+    # GROUP BY status ครั้งเดียว แทนการนับสามรอบ
+    rows = db.execute(
+        select(Task.status, func.count()).where(Task.owner_id == owner_id).group_by(Task.status)
+    ).all()
+    counts = {"todo": 0, "doing": 0, "done": 0}
+    for status, total in rows:
+        counts[status] = total
+    return counts</code></pre>
+<p><strong>Service</strong> คือชั้นที่ใส่กฎของระบบ เช่น อีเมลซ้ำต้องได้ 409, งานของคนอื่นต้องได้ 404, ข้อมูลเปลี่ยนต้องลบ Cache และ Login เกินกำหนดต้องได้ 429 Service ไม่รู้จัก FastAPI เลย จึงโยน Error ของเราเอง (<code>AppError</code>) แล้วให้ <code>main.py</code> แปลงเป็น HTTP Response อีกที ทำให้นำ Service ไปใช้ซ้ำในสคริปต์หรือ Worker ได้</p>
+<pre class="code" data-env="file" data-label="Python · app/services/errors.py"><code class="language-python">class AppError(Exception):
+    """Error ของฝั่ง Business ที่ main.py จะแปลงเป็น application/problem+json"""
+
+    status_code = 400
+    title = "Bad Request"
+
+    def __init__(self, detail: str, headers: dict[str, str] | None = None):
+        super().__init__(detail)
+        self.detail = detail
+        self.headers = headers
+
+
+class NotFoundError(AppError):
+    status_code = 404
+    title = "Not Found"
+
+
+class ConflictError(AppError):
+    status_code = 409
+    title = "Conflict"
+
+
+class TooManyRequestsError(AppError):
+    status_code = 429
+    title = "Too Many Requests"</code></pre>
+<pre class="code" data-env="file" data-label="Python · app/services/auth_service.py"><code class="language-python">import logging
+
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from app.cache import Cache
+from app.config import get_settings
+from app.models import User
+from app.repositories import users as user_repo
+from app.schemas import UserCreate
+from app.security import hash_password, verify_password
+from app.services.errors import ConflictError, TooManyRequestsError
+
+logger = logging.getLogger("taskflow")
+
+# Hash ปลอมสำหรับกรณีไม่พบอีเมล ให้เวลาตอบใกล้เคียงกัน ผู้โจมตีจึงเดาไม่ได้ว่าอีเมลมีอยู่จริงไหม
+_DUMMY_HASH = hash_password("dummy-password-for-timing")
+
+
+def register(db: Session, payload: UserCreate) -&gt; User:
+    if user_repo.get_by_email(db, payload.email) is not None:
+        raise ConflictError("อีเมลนี้ถูกใช้แล้ว")
+    try:
+        return user_repo.create(
+            db,
+            email=payload.email,
+            full_name=payload.full_name,
+            hashed_password=hash_password(payload.password),
+        )
+    except IntegrityError:
+        # กรณีสอง Request สมัครอีเมลเดียวกันพร้อมกัน Unique Constraint จะกันไว้
+        db.rollback()
+        raise ConflictError("อีเมลนี้ถูกใช้แล้ว")
+
+
+def authenticate(db: Session, email: str, password: str) -&gt; User | None:
+    user = user_repo.get_by_email(db, email)
+    if user is None:
+        verify_password(password, _DUMMY_HASH)
+        return None
+    return user if verify_password(password, user.hashed_password) else None
+
+
+def check_login_rate_limit(cache: Cache, client_ip: str) -&gt; None:
+    # Fixed Window: นับครั้งใน Key rl:login:{ip} ที่หมดอายุใน 60 วินาที
+    limit = get_settings().login_rate_limit
+    key = f"rl:login:{client_ip}"
+    count = cache.incr_with_ttl(key, 60)
+    if count is not None and count &gt; limit:
+        retry_after = max(cache.ttl(key), 1)
+        logger.warning("login_rate_limited", extra={"client_ip": client_ip, "count": count})
+        raise TooManyRequestsError(
+            "พยายามเข้าสู่ระบบบ่อยเกินไป กรุณารอสักครู่",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+
+def send_welcome_email(user_id: int) -&gt; None:
+    # จำลองการส่งอีเมลต้อนรับ งานจริงจะเรียกบริการอีเมล หรือส่งเข้าคิว RQ/Celery
+    logger.info("welcome_email_sent", extra={"user_id": user_id})</code></pre>
+<pre class="code" data-env="file" data-label="Python · app/services/task_service.py"><code class="language-python">from sqlalchemy.orm import Session
+
+from app.cache import Cache
+from app.config import get_settings
+from app.models import Task
+from app.repositories import tasks as task_repo
+from app.schemas import TaskCreate, TaskStats, TaskUpdate
+from app.services.errors import NotFoundError
+
+
+def stats_key(owner_id: int) -&gt; str:
+    # Key แยกตาม User เสมอ ห้ามใช้ Key รวม ไม่อย่างนั้นข้อมูลของคนหนึ่งจะไปโผล่ให้อีกคนเห็น
+    return f"stats:user:{owner_id}"
+
+
+def get_task(db: Session, owner_id: int, task_id: int) -&gt; Task:
+    task = task_repo.get_for_owner(db, task_id, owner_id)
+    if task is None:
+        # งานของคนอื่นก็ตอบ 404 เหมือนไม่มีอยู่ เพื่อไม่บอกว่ามี id นี้ในระบบ
+        raise NotFoundError("ไม่พบงานนี้")
+    return task
+
+
+def create_task(db: Session, cache: Cache, owner_id: int, payload: TaskCreate) -&gt; Task:
+    task = task_repo.create(db, owner_id, payload.model_dump())
+    cache.delete(stats_key(owner_id))  # Invalidation: ข้อมูลเปลี่ยน ลบ Cache ทิ้ง
+    return task
+
+
+def update_task(db: Session, cache: Cache, owner_id: int, task_id: int, payload: TaskUpdate) -&gt; Task:
+    task = get_task(db, owner_id, task_id)
+    changes = payload.model_dump(exclude_unset=True)  # เอาเฉพาะฟิลด์ที่ Client ส่งมาจริง
+    task = task_repo.update(db, task, changes)
+    cache.delete(stats_key(owner_id))
+    return task
+
+
+def delete_task(db: Session, cache: Cache, owner_id: int, task_id: int) -&gt; None:
+    task = get_task(db, owner_id, task_id)
+    task_repo.delete(db, task)
+    cache.delete(stats_key(owner_id))
+
+
+def get_stats(db: Session, cache: Cache, owner_id: int) -&gt; TaskStats:
+    # Cache-aside: ดูใน Cache ก่อน ถ้าไม่มีค่อยถาม Database แล้วเก็บลง Cache
+    key = stats_key(owner_id)
+    cached = cache.get_json(key)
+    if cached is not None:
+        return TaskStats(**cached, cached=True)
+    counts = task_repo.count_by_status(db, owner_id)
+    cache.set_json(key, counts, ttl=get_settings().cache_ttl_seconds)
+    return TaskStats(**counts, cached=False)</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>select(func.count()).select_from(query.subquery())</code></td><td>นับจำนวนแถวจาก Query ที่กรองแล้ว ทำให้ <code>total</code> ตรงกับ <code>?status=</code> ที่ส่งมา</td></tr>
+<tr><td><code>order_by(Task.id).limit(limit).offset(offset)</code></td><td>Pagination แบบ Offset ต้องมี <code>ORDER BY</code> เสมอ ไม่อย่างนั้นลำดับแถวอาจสลับระหว่างหน้า</td></tr>
+<tr><td><code>group_by(Task.status)</code></td><td>นับงานทุกสถานะใน Query เดียว ดีกว่ายิง <code>COUNT</code> สามครั้ง</td></tr>
+<tr><td><code>_DUMMY_HASH</code></td><td>ถ้าไม่พบอีเมล ก็ยังตรวจรหัสผ่านกับ Hash ปลอม เวลาตอบจึงใกล้เคียงกัน ผู้โจมตีใช้เวลาตอบเดาไม่ได้ว่าอีเมลไหนมีบัญชี</td></tr>
+<tr><td><code>except IntegrityError: db.rollback()</code></td><td>กันกรณีสอง Request สมัครอีเมลเดียวกันพร้อมกัน Unique Index จะกันไว้ และเรายังตอบ 409 ได้ถูกต้อง</td></tr>
+<tr><td><code>retry_after = max(cache.ttl(key), 1)</code></td><td>บอก Client ว่าต้องรออีกกี่วินาทีจึงลองใหม่ได้ ตามความหมายของ Header <code>Retry-After</code></td></tr>
+<tr><td><code>stats_key(owner_id)</code></td><td>Key ของ Cache แยกต่อผู้ใช้ ถ้าใช้ Key รวมคำเดียว คนที่สองจะเห็นสถิติของคนแรก ซึ่งเป็นข้อมูลรั่ว</td></tr>
+<tr><td><code>model_dump(exclude_unset=True)</code></td><td>คืนเฉพาะฟิลด์ที่ Client ส่งมาจริง PATCH จึงไม่ไปเขียนทับฟิลด์อื่นด้วยค่า default</td></tr>
+<tr><td><code>cache.delete(stats_key(owner_id))</code></td><td>Invalidation: ทุกครั้งที่สร้าง แก้ หรือลบงาน ให้ลบ Cache สถิติของเจ้าของ ครั้งถัดไปจะคำนวณใหม่จาก Database</td></tr>
+</tbody></table></div>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ร้านอาหารมีพนักงานหน้าร้าน (Router) รับออร์เดอร์และตรวจว่าเขียนครบ หัวหน้าครัว (Service) ตัดสินใจว่าทำได้ไหม วัตถุดิบพอไหม และคนเก็บของ (Repository) ไปหยิบของจากห้องเก็บ (Database) แต่ละคนทำงานของตัวเอง ถ้าเปลี่ยนห้องเก็บของ หัวหน้าครัวไม่ต้องเปลี่ยนสูตรอาหาร</p></div>
+</li>
+
+<li>
+<h4>Step 6: Dependency (Auth, Role) และ Router ทั้งสามไฟล์</h4>
+<p><strong>deps.py</strong> รวม Dependency ที่ใช้ซ้ำ <code>get_current_user</code> อ่าน Token จาก Header ถอดและตรวจลายเซ็น แล้วโหลด User จาก Database ทุกครั้ง (ถ้า User ถูกลบไปแล้ว Token เก่าก็ใช้ไม่ได้) ส่วน <code>require_role</code> เป็น Dependency Factory ที่คืน Dependency ตัวใหม่ตาม Role ที่ต้องการ</p>
+<pre class="code" data-env="file" data-label="Python · app/deps.py"><code class="language-python">from collections.abc import Callable
+from typing import Annotated
+
+import jwt
+from fastapi import Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
+
+from app.cache import Cache, get_cache
+from app.db import get_db
+from app.models import User
+from app.repositories import users as user_repo
+from app.security import decode_access_token
+
+# บอก FastAPI ว่า Token อยู่ใน Header "Authorization: Bearer ..." และ Login ได้ที่ URL นี้
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+
+# Type Alias ทำให้ Signature ของ Endpoint สั้นและอ่านง่าย
+DbSession = Annotated[Session, Depends(get_db)]
+CacheDep = Annotated[Cache, Depends(get_cache)]
+
+
+def get_current_user(db: DbSession, token: Annotated[str, Depends(oauth2_scheme)]) -&gt; User:
+    unauthorized = HTTPException(
+        status_code=401,
+        detail="Token ไม่ถูกต้องหรือหมดอายุ",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = decode_access_token(token)
+        user_id = int(payload["sub"])
+    except (jwt.InvalidTokenError, KeyError, ValueError):
+        raise unauthorized
+    user = user_repo.get_by_id(db, user_id)
+    if user is None:
+        raise unauthorized
+    return user
+
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def require_role(*roles: str) -&gt; Callable[[User], User]:
+    # Dependency Factory: สร้าง Dependency ที่ตรวจ Role จากฐานข้อมูล ไม่เชื่อค่าจาก Client
+    def checker(user: CurrentUser) -&gt; User:
+        if user.role not in roles:
+            raise HTTPException(status_code=403, detail="สิทธิ์ไม่เพียงพอ")
+        return user
+
+    return checker</code></pre>
+<p><strong>routers/auth.py</strong> Endpoint Login รับข้อมูลแบบ Form ตามมาตรฐาน OAuth2 Password Flow ปุ่ม Authorize ในหน้า <code>/docs</code> จึงใช้ได้ทันที การส่งอีเมลต้อนรับใช้ <code>BackgroundTasks</code> ซึ่งทำงานหลังส่ง Response แล้ว</p>
+<pre class="code" data-env="file" data-label="Python · app/routers/auth.py"><code class="language-python">from typing import Annotated
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
+from fastapi.security import OAuth2PasswordRequestForm
+
+from app.deps import CacheDep, CurrentUser, DbSession
+from app.models import User
+from app.schemas import Token, UserCreate, UserOut
+from app.security import create_access_token
+from app.services import auth_service
+
+router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.post("/register", response_model=UserOut, status_code=201)
+def register(payload: UserCreate, db: DbSession, background_tasks: BackgroundTasks) -&gt; User:
+    user = auth_service.register(db, payload)
+    # ส่งอีเมลหลังตอบ Response แล้ว ผู้ใช้จึงไม่ต้องรอ
+    background_tasks.add_task(auth_service.send_welcome_email, user.id)
+    return user
+
+
+@router.post("/login", response_model=Token)
+def login(
+    request: Request,
+    form: Annotated[OAuth2PasswordRequestForm, Depends()],
+    db: DbSession,
+    cache: CacheDep,
+) -&gt; Token:
+    client_ip = request.client.host if request.client else "unknown"
+    auth_service.check_login_rate_limit(cache, client_ip)
+    # ตามมาตรฐาน OAuth2 ฟิลด์ชื่อ username แต่เราใช้ใส่อีเมล
+    user = auth_service.authenticate(db, form.username, form.password)
+    if user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return Token(access_token=create_access_token(user.id, user.role))
+
+
+@router.get("/me", response_model=UserOut)
+def me(user: CurrentUser) -&gt; User:
+    return user</code></pre>
+<p><strong>routers/tasks.py</strong> สังเกตลำดับ: <code>/stats</code> ต้องอยู่ก่อน <code>/{task_id}</code> เพราะ FastAPI จับคู่ Route ตามลำดับที่ประกาศ</p>
+<pre class="code" data-env="file" data-label="Python · app/routers/tasks.py"><code class="language-python">from typing import Annotated
+
+from fastapi import APIRouter, Path, Query
+
+from app.deps import CacheDep, CurrentUser, DbSession
+from app.models import Task
+from app.repositories import tasks as task_repo
+from app.schemas import Page, Status, TaskCreate, TaskOut, TaskStats, TaskUpdate
+from app.services import task_service
+
+router = APIRouter(prefix="/tasks", tags=["tasks"])
+TaskId = Annotated[int, Path(gt=0)]
+
+
+@router.get("", response_model=Page[TaskOut])
+def list_tasks(
+    user: CurrentUser,
+    db: DbSession,
+    status: Status | None = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -&gt; Page[TaskOut]:
+    tasks, total = task_repo.list_for_owner(db, user.id, status, limit, offset)
+    items = [TaskOut.model_validate(task) for task in tasks]
+    return Page[TaskOut](items=items, total=total, limit=limit, offset=offset)
+
+
+# ต้องประกาศ /stats ก่อน /{task_id} ไม่อย่างนั้น "stats" จะถูกตีความเป็น task_id แล้วได้ 422
+@router.get("/stats", response_model=TaskStats)
+def task_stats(user: CurrentUser, db: DbSession, cache: CacheDep) -&gt; TaskStats:
+    return task_service.get_stats(db, cache, user.id)
+
+
+@router.post("", response_model=TaskOut, status_code=201)
+def create_task(payload: TaskCreate, user: CurrentUser, db: DbSession, cache: CacheDep) -&gt; Task:
+    return task_service.create_task(db, cache, user.id, payload)
+
+
+@router.get("/{task_id}", response_model=TaskOut)
+def get_task(task_id: TaskId, user: CurrentUser, db: DbSession) -&gt; Task:
+    return task_service.get_task(db, user.id, task_id)
+
+
+@router.patch("/{task_id}", response_model=TaskOut)
+def update_task(
+    task_id: TaskId, payload: TaskUpdate, user: CurrentUser, db: DbSession, cache: CacheDep
+) -&gt; Task:
+    return task_service.update_task(db, cache, user.id, task_id, payload)
+
+
+@router.delete("/{task_id}", status_code=204)
+def delete_task(task_id: TaskId, user: CurrentUser, db: DbSession, cache: CacheDep) -&gt; None:
+    task_service.delete_task(db, cache, user.id, task_id)</code></pre>
+<p><strong>routers/admin.py</strong> ใส่ <code>dependencies=[Depends(require_role("admin"))]</code> ที่ระดับ Router ทุก Endpoint ที่เพิ่มในไฟล์นี้ภายหลังจะถูกป้องกันอัตโนมัติ ลืมใส่ทีละ Endpoint ไม่ได้</p>
+<pre class="code" data-env="file" data-label="Python · app/routers/admin.py"><code class="language-python">from typing import Annotated
+
+from fastapi import APIRouter, Depends, Query
+
+from app.deps import DbSession, require_role
+from app.repositories import users as user_repo
+from app.schemas import Page, UserOut
+
+# ใส่ Dependency ระดับ Router: ทุก Endpoint ในไฟล์นี้ต้องเป็น admin
+router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_role("admin"))])
+
+
+@router.get("/users", response_model=Page[UserOut])
+def list_users(
+    db: DbSession,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -&gt; Page[UserOut]:
+    users, total = user_repo.list_page(db, limit, offset)
+    items = [UserOut.model_validate(user) for user in users]
+    return Page[UserOut](items=items, total=total, limit=limit, offset=offset)</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>OAuth2PasswordBearer(tokenUrl=...)</code></td><td>ดึงค่าจาก <code>Authorization: Bearer ...</code> ถ้าไม่มี Header นี้ FastAPI ตอบ 401 <code>Not authenticated</code> ให้เอง</td></tr>
+<tr><td><code>except (jwt.InvalidTokenError, KeyError, ValueError)</code></td><td><code>ExpiredSignatureError</code> เป็นลูกของ <code>InvalidTokenError</code> จึงจับได้ทั้ง Token หมดอายุ ลายเซ็นผิด และรูปแบบเสีย ทุกกรณีตอบ 401 พร้อม <code>WWW-Authenticate: Bearer</code></td></tr>
+<tr><td><code>if user.role not in roles</code></td><td>ตรวจ Role จาก User ที่โหลดจาก Database ไม่เชื่อค่าที่ Client ส่งมา</td></tr>
+<tr><td><code>Annotated[OAuth2PasswordRequestForm, Depends()]</code></td><td>อ่าน Form <code>username</code> และ <code>password</code> ต้องติดตั้ง <code>python-multipart</code> ไม่อย่างนั้นแอปจะ Error ตอนเริ่ม</td></tr>
+<tr><td><code>request.client.host</code></td><td>IP ของผู้เรียก ใช้เป็น Key ของ Rate Limit เมื่ออยู่หลัง nginx ต้องเปิด <code>--proxy-headers</code> ไม่อย่างนั้นทุกคนจะมี IP เป็น <code>127.0.0.1</code></td></tr>
+<tr><td><code>TaskId = Annotated[int, Path(gt=0)]</code></td><td>ตรวจว่า <code>task_id</code> เป็นจำนวนเต็มบวก ส่ง <code>/tasks/abc</code> หรือ <code>/tasks/0</code> จะได้ 422</td></tr>
+<tr><td><code>status_code=204</code> และ <code>-&gt; None</code></td><td>ลบสำเร็จตอบ 204 No Content โดยไม่มี Body</td></tr>
+</tbody></table></div>
+</li>
+
+<li>
+<h4>Step 7: ประกอบแอปใน main.py แล้วเปิด Server ครั้งแรก</h4>
+<p><strong>main.py</strong> คือจุดประกอบทุกชิ้นเข้าด้วยกัน: Settings, Logging, CORS, Middleware สำหรับ <code>request_id</code>, Exception Handler ที่แปลงทุก Error เป็น Problem Details (RFC 9457), Health Check และ Router ทั้งหมดภายใต้ <code>/api/v1</code></p>
+<pre class="code" data-env="file" data-label="Python · app/main.py"><code class="language-python">import logging
+import time
+import uuid
+from http import HTTPStatus
+
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from app.config import get_settings
+from app.deps import DbSession
+from app.logging_config import setup_logging
+from app.routers import admin, auth, tasks
+from app.services.errors import AppError
+
+settings = get_settings()
+setup_logging(settings.log_level)
+logger = logging.getLogger("taskflow")
+
+is_prod = settings.app_env == "prod"
+app = FastAPI(
+    title=settings.app_name,
+    version="1.0.0",
+    # ปิดหน้าเอกสาร API ใน Production เพื่อลดข้อมูลที่เปิดเผย
+    docs_url=None if is_prod else "/docs",
+    redoc_url=None,
+    openapi_url=None if is_prod else "/openapi.json",
+)
+
+# CORS: อนุญาตเฉพาะ Origin ของ Frontend ที่รู้จัก
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
+)
+
+
+@app.middleware("http")
+async def request_context(request: Request, call_next):
+    # รับ X-Request-ID จาก Proxy ถ้ามี ไม่อย่างนั้นสร้างใหม่ ใช้ตามรอย Request หนึ่งตัวใน Log
+    request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex[:12]
+    request.state.request_id = request_id
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration_ms = round((time.perf_counter() - start) * 1000, 1)
+    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    logger.info(
+        "request",
+        extra={
+            "request_id": request_id,
+            "method": request.method,
+            "path": request.url.path,
+            "status": response.status_code,
+            "duration_ms": duration_ms,
+        },
+    )
+    return response
+
+
+def problem(request: Request, status: int, title: str, detail: str, headers=None, **extra) -&gt; JSONResponse:
+    # รูปแบบ Error ตาม RFC 9457 (Problem Details for HTTP APIs)
+    body = {
+        "type": "about:blank",
+        "title": title,
+        "status": status,
+        "detail": detail,
+        "instance": request.url.path,
+        **extra,
+    }
+    return JSONResponse(body, status_code=status, headers=headers, media_type="application/problem+json")
+
+
+@app.exception_handler(AppError)
+async def app_error_handler(request: Request, exc: AppError):
+    return problem(request, exc.status_code, exc.title, exc.detail, exc.headers)
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_error_handler(request: Request, exc: StarletteHTTPException):
+    title = HTTPStatus(exc.status_code).phrase
+    return problem(request, exc.status_code, title, str(exc.detail), exc.headers)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exc: RequestValidationError):
+    errors = [{"loc": list(e["loc"]), "msg": e["msg"], "type": e["type"]} for e in exc.errors()]
+    return problem(request, 422, "Unprocessable Content", "ข้อมูลไม่ถูกต้อง", errors=errors)
+
+
+@app.exception_handler(Exception)
+async def unhandled_error_handler(request: Request, exc: Exception):
+    # ไม่ส่งรายละเอียด Exception ให้ Client แต่เก็บไว้ใน Log พร้อม request_id
+    logger.exception("unhandled_error", extra={"request_id": getattr(request.state, "request_id", None)})
+    return problem(request, 500, "Internal Server Error", "เกิดข้อผิดพลาดภายในระบบ")
+
+
+@app.get("/health", tags=["health"])
+def health(db: DbSession):
+    # Readiness Check: ตอบ ok เมื่อคุยกับ Database ได้จริงเท่านั้น
+    try:
+        db.execute(text("SELECT 1"))
+    except SQLAlchemyError as exc:
+        logger.error("health_check_failed", extra={"error": type(exc).__name__})
+        return JSONResponse({"status": "error", "database": "unavailable"}, status_code=503)
+    return {"status": "ok", "database": "ok"}
+
+
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(tasks.router, prefix="/api/v1")
+app.include_router(admin.router, prefix="/api/v1")</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>docs_url=None if is_prod else "/docs"</code></td><td>ปิดหน้า Swagger UI และ OpenAPI Schema เมื่อ <code>APP_ENV=prod</code></td></tr>
+<tr><td><code>@app.middleware("http")</code></td><td>Middleware ที่เพิ่มทีหลังจะอยู่ชั้นนอกกว่า จึงครอบ CORS ด้วย ทุก Request รวมถึง Preflight ถูกเขียน Log</td></tr>
+<tr><td><code>uuid.uuid4().hex[:12]</code></td><td>สร้าง <code>request_id</code> สั้น ๆ ถ้า nginx หรือ Client ส่ง <code>X-Request-ID</code> มา จะใช้ค่านั้นแทน เพื่อตามรอยข้ามระบบได้</td></tr>
+<tr><td><code>X-Content-Type-Options: nosniff</code></td><td>Security Header ที่สั่ง Browser ห้ามเดาชนิดไฟล์เอง</td></tr>
+<tr><td><code>StarletteHTTPException</code></td><td>จับทั้ง <code>HTTPException</code> ที่เราโยน และ 404/405 ของ Route ที่ไม่มีอยู่ ทุกกรณีจึงได้รูปแบบเดียวกัน</td></tr>
+<tr><td><code>RequestValidationError</code></td><td>แปลง Error ของ Pydantic เป็น 422 พร้อมรายการ <code>errors</code> ที่บอกฟิลด์ (<code>loc</code>) และสาเหตุ (<code>msg</code>)</td></tr>
+<tr><td><code>@app.exception_handler(Exception)</code></td><td>Error ที่ไม่คาดคิดได้ 500 พร้อมข้อความกลาง ๆ รายละเอียดเก็บใน Log พร้อม <code>request_id</code> ไม่ส่งให้ Client</td></tr>
+<tr><td><code>db.execute(text("SELECT 1"))</code></td><td>Readiness Check: ตอบ 200 เมื่อคุยกับ Database ได้จริง ถ้าไม่ได้ตอบ 503 เพื่อให้ Load Balancer หยุดส่งงานมา</td></tr>
+</tbody></table></div>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/taskflow-api
+source .venv/bin/activate
+uvicorn app.main:app --reload</code></pre>
+<p>เปิด Terminal ที่สอง แล้วเรียก Health Check</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">curl -s http://127.0.0.1:8000/health</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"status":"ok","database":"ok"}</code></pre>
+<p>Terminal แรก (ที่รัน Uvicorn) จะแสดงทั้ง Log ของ Uvicorn และ Log JSON ของเรา</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>INFO:     Will watch for changes in these directories: ['/home/somchai/projects/taskflow-api']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [19286] using WatchFiles
+INFO:     Started server process [19289]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+{"time": "2026-10-22T03:25:15.627+00:00", "level": "INFO", "logger": "taskflow", "message": "request", "request_id": "645713e310d4", "method": "GET", "path": "/health", "status": 200, "duration_ms": 22.9}
+INFO:     127.0.0.1:48620 - "GET /health HTTP/1.1" 200 OK</code></pre>
+<p>เปิด <code>http://127.0.0.1:8000/docs</code> ใน Browser ของ Windows (WSL ส่งต่อ localhost ให้อัตโนมัติ) จะเห็น Endpoint ทั้งหมดแบ่งตาม Tag <code>auth</code>, <code>tasks</code>, <code>admin</code> และ <code>health</code> ตอนนี้ยังสมัครสมาชิกไม่ได้ เพราะยังไม่มีตาราง ขั้นถัดไปจะสร้างตารางด้วย Migration</p>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ถ้าเห็น <code>pydantic_core._pydantic_core.ValidationError: 1 validation error for Settings</code> ตามด้วย <code>jwt_secret  Field required [type=missing, ...]</code> แปลว่าไม่มีไฟล์ <code>.env</code> หรือรัน <code>uvicorn</code> จากโฟลเดอร์อื่น ถ้าเห็น <code>String should have at least 32 characters</code> แปลว่า <code>JWT_SECRET</code> สั้นเกินไป</p></div>
+</li>
+
+<li>
+<h4>Step 8: สร้างตารางด้วย Alembic Migration</h4>
+<p>ใน Production เราไม่ใช้ <code>Base.metadata.create_all()</code> เพราะมันสร้างได้แต่ตารางใหม่ แก้ตารางเดิมไม่ได้ และไม่มีประวัติ Alembic เก็บการเปลี่ยนแปลงแต่ละครั้งเป็นไฟล์ที่ commit ได้ รันย้อนกลับได้ และทุกเครื่องได้โครงสร้างเหมือนกัน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">alembic init migrations</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Creating directory /home/somchai/projects/taskflow-api/migrations ...  done
+Creating directory /home/somchai/projects/taskflow-api/migrations/versions ...  done
+Generating /home/somchai/projects/taskflow-api/migrations/script.py.mako ...  done
+Generating /home/somchai/projects/taskflow-api/migrations/README ...  done
+Generating /home/somchai/projects/taskflow-api/migrations/env.py ...  done
+Generating /home/somchai/projects/taskflow-api/alembic.ini ...  done
+Please edit configuration/connection/logging settings in /home/somchai/projects/taskflow-api/alembic.ini before proceeding.</code></pre>
+<p><code>alembic.ini</code> ที่สร้างให้ใช้ได้เกือบทั้งไฟล์ ให้แก้แค่บรรทัด <code>sqlalchemy.url</code> (ประมาณบรรทัดที่ 89) ให้เป็นค่าว่าง เพราะเราจะอ่าน URL จาก <code>DATABASE_URL</code> แทน รหัสผ่านจึงไม่หลุดเข้า Git</p>
+<pre class="code" data-env="file" data-label="ini · alembic.ini (บรรทัดที่แก้)"><code class="language-ini"># ไม่ใส่ URL ที่นี่ เพราะ env.py อ่านจาก DATABASE_URL แทน (กันรหัสผ่านหลุดเข้า Git)
+sqlalchemy.url =</code></pre>
+<p>จากนั้นเขียน <code>migrations/env.py</code> ใหม่ทั้งไฟล์ ให้ใช้ Settings และ Metadata ของแอป</p>
+<pre class="code" data-env="file" data-label="Python · migrations/env.py"><code class="language-python">from logging.config import fileConfig
+
+from alembic import context
+from sqlalchemy import engine_from_config, pool
+
+from app import models  # noqa: F401  ต้อง import เพื่อให้ Model ลงทะเบียนใน Base.metadata
+from app.config import get_settings
+from app.db import Base
+
+config = context.config
+# ใช้ URL เดียวกับแอป จาก .env หรือ Environment Variable
+config.set_main_option("sqlalchemy.url", get_settings().database_url)
+
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+# Alembic เทียบ Metadata นี้กับ Database จริง เพื่อสร้าง Migration อัตโนมัติ
+target_metadata = Base.metadata
+
+
+def run_migrations_offline() -&gt; None:
+    # โหมด Offline: สร้างไฟล์ SQL โดยไม่ต่อ Database (alembic upgrade head --sql)
+    context.configure(
+        url=config.get_main_option("sqlalchemy.url"),
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def run_migrations_online() -&gt; None:
+    # โหมดปกติ: ต่อ Database แล้วรัน Migration ใน Transaction
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+    with connectable.connect() as connection:
+        context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
+        with context.begin_transaction():
+            context.run_migrations()
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">alembic revision --autogenerate -m "create users and tasks"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.schemas
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.tables
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.types
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.constraints
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.defaults
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.comments
+INFO  [alembic.autogenerate.compare.tables] Detected added table 'users'
+INFO  [alembic.autogenerate.compare.constraints] Detected added index 'ix_users_email' on '('email',)'
+INFO  [alembic.autogenerate.compare.tables] Detected added table 'tasks'
+INFO  [alembic.autogenerate.compare.constraints] Detected added index 'ix_tasks_owner_status' on '('owner_id', 'status')'
+Generating /home/somchai/projects/taskflow-api/migrations/versions/4fa5c7c0473d_create_users_and_tasks.py ...  done</code></pre>
+<p>เปิดไฟล์ที่ได้แล้ว <strong>อ่านทุกครั้งก่อนรัน</strong> Autogenerate เก่งแต่ไม่สมบูรณ์ เช่น มันมองการเปลี่ยนชื่อคอลัมน์เป็น "ลบคอลัมน์เก่า แล้วเพิ่มคอลัมน์ใหม่" ซึ่งทำให้ข้อมูลหาย ไฟล์ของเราเป็นแบบนี้ (ชื่อไฟล์และ Revision ID ของคุณจะต่างไป)</p>
+<pre class="code" data-env="file" data-label="Python · migrations/versions/4fa5c7c0473d_create_users_and_tasks.py"><code class="language-python">"""create users and tasks
+
+Revision ID: 4fa5c7c0473d
+Revises: 
+Create Date: 2026-10-22 03:20:09.033039
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision: str = '4fa5c7c0473d'
+down_revision: Union[str, Sequence[str], None] = None
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -&gt; None:
+    """Upgrade schema."""
+    # ### commands auto generated by Alembic - please adjust! ###
+    op.create_table('users',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('email', sa.String(length=255), nullable=False),
+    sa.Column('full_name', sa.String(length=100), nullable=False),
+    sa.Column('hashed_password', sa.String(length=255), nullable=False),
+    sa.Column('role', sa.String(length=20), server_default='member', nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
+    op.create_table('tasks',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('title', sa.String(length=200), nullable=False),
+    sa.Column('description', sa.String(length=2000), nullable=True),
+    sa.Column('status', sa.String(length=10), server_default='todo', nullable=False),
+    sa.Column('priority', sa.Integer(), server_default='2', nullable=False),
+    sa.Column('owner_id', sa.Integer(), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['owner_id'], ['users.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index('ix_tasks_owner_status', 'tasks', ['owner_id', 'status'], unique=False)
+    # ### end Alembic commands ###
+
+
+def downgrade() -&gt; None:
+    """Downgrade schema."""
+    # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_index('ix_tasks_owner_status', table_name='tasks')
+    op.drop_table('tasks')
+    op.drop_index(op.f('ix_users_email'), table_name='users')
+    op.drop_table('users')
+    # ### end Alembic commands ###</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">alembic upgrade head
+alembic current
+sudo -u postgres psql -d taskflow -c '\d tasks'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -&gt; 4fa5c7c0473d, create users and tasks
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+4fa5c7c0473d (head)
+                                       Table "public.tasks"
+   Column    |           Type           | Collation | Nullable |              Default
+-------------+--------------------------+-----------+----------+-----------------------------------
+ id          | integer                  |           | not null | nextval('tasks_id_seq'::regclass)
+ title       | character varying(200)   |           | not null |
+ description | character varying(2000)  |           |          |
+ status      | character varying(10)    |           | not null | 'todo'::character varying
+ priority    | integer                  |           | not null | 2
+ owner_id    | integer                  |           | not null |
+ created_at  | timestamp with time zone |           | not null | now()
+Indexes:
+    "tasks_pkey" PRIMARY KEY, btree (id)
+    "ix_tasks_owner_status" btree (owner_id, status)
+Foreign-key constraints:
+    "tasks_owner_id_fkey" FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE</code></pre>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>Migration ที่ commit และรันบนเครื่องอื่นไปแล้ว ห้ามแก้ไฟล์เดิม ให้สร้าง Revision ใหม่เสมอ</li>
+<li>ก่อน Deploy ให้ทดสอบทั้ง <code>alembic upgrade head</code> และ <code>alembic downgrade -1</code> บน Database ทดสอบ</li>
+<li>การเพิ่มคอลัมน์ NOT NULL ในตารางที่มีข้อมูลแล้ว ต้องใส่ <code>server_default</code> หรือแบ่งเป็นหลาย Migration (เพิ่มแบบ nullable, เติมข้อมูล, แล้วค่อยเปลี่ยนเป็น NOT NULL)</li>
+</ul></div>
+</li>
+
+<li>
+<h4>Step 9: เขียน Automated Test ด้วย pytest</h4>
+<p>Test ใช้ SQLite ใน Memory แทน PostgreSQL และ fakeredis แทน Redis จึงรันได้ในไม่กี่วินาที ไม่ต้องเปิดบริการใด ๆ และ CI ก็ไม่ต้องตั้ง Database จุดสำคัญของ <code>conftest.py</code> คือต้องตั้ง Environment Variable <strong>ก่อน</strong> import <code>app</code> เพราะ <code>app/db.py</code> อ่าน Settings และสร้าง Engine ตอน import</p>
+<pre class="code" data-env="file" data-label="Python · tests/conftest.py"><code class="language-python">import os
+
+# ต้องตั้ง Environment Variable ก่อน import app เพราะ app อ่าน Settings ตอน import
+os.environ["APP_ENV"] = "test"
+os.environ["DATABASE_URL"] = "sqlite://"
+os.environ["REDIS_URL"] = ""
+os.environ["JWT_SECRET"] = "test-only-secret-not-for-production-0123456789"
+
+import fakeredis  # noqa: E402
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+from sqlalchemy import create_engine  # noqa: E402
+from sqlalchemy.orm import sessionmaker  # noqa: E402
+from sqlalchemy.pool import StaticPool  # noqa: E402
+
+from app.cache import Cache, get_cache  # noqa: E402
+from app.db import Base, get_db  # noqa: E402
+from app.main import app  # noqa: E402
+from app.models import User  # noqa: E402
+from app.security import hash_password  # noqa: E402
+
+SOMCHAI = {"email": "somchai@example.com", "full_name": "Somchai Jaidee", "password": "S3cure-pass!"}
+SOMYING = {"email": "somying@example.com", "full_name": "Somying Rakdee", "password": "Somying-pass!"}
+
+
+@pytest.fixture()
+def db_session():
+    # SQLite ใน Memory + StaticPool = ทุกการเชื่อมต่อใช้ Database ก้อนเดียวกัน
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)()
+    yield session
+    session.close()
+    Base.metadata.drop_all(engine)
+    engine.dispose()
+
+
+@pytest.fixture()
+def cache():
+    # fakeredis ทำงานเหมือน Redis แต่อยู่ใน Memory ไม่ต้องเปิด Server จริง
+    return Cache(fakeredis.FakeRedis(decode_responses=True))
+
+
+@pytest.fixture()
+def client(db_session, cache):
+    app.dependency_overrides[get_db] = lambda: db_session
+    app.dependency_overrides[get_cache] = lambda: cache
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.clear()  # คืนค่าเดิม ไม่ให้ Test ถัดไปได้รับผลกระทบ
+
+
+def login(client, email: str, password: str) -&gt; dict[str, str]:
+    response = client.post("/api/v1/auth/login", data={"username": email, "password": password})
+    assert response.status_code == 200, response.text
+    return {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+
+@pytest.fixture()
+def user_token(client):
+    client.post("/api/v1/auth/register", json=SOMCHAI)
+    return login(client, SOMCHAI["email"], SOMCHAI["password"])
+
+
+@pytest.fixture()
+def other_token(client):
+    client.post("/api/v1/auth/register", json=SOMYING)
+    return login(client, SOMYING["email"], SOMYING["password"])
+
+
+@pytest.fixture()
+def admin_token(client, db_session):
+    db_session.add(
+        User(
+            email="admin@example.com",
+            full_name="Admin TaskFlow",
+            hashed_password=hash_password("Admin-pass!2026"),
+            role="admin",
+        )
+    )
+    db_session.commit()
+    return login(client, "admin@example.com", "Admin-pass!2026")</code></pre>
+<p>Test แต่ละข้อเขียนแบบ Arrange-Act-Assert (เตรียมข้อมูล, เรียก API, ตรวจผล) และครอบคลุมทุกกฎสำคัญ: 401, 403, 404 ของงานคนอื่น, 409, 422, Pagination, Cache Hit/Miss, Redis ล่ม, Database ล่ม และ Rate Limit</p>
+<pre class="code" data-env="file" data-label="Python · tests/test_api.py"><code class="language-python">import fakeredis
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from app.cache import Cache, get_cache
+from app.db import get_db
+from app.main import app
+from tests.conftest import SOMCHAI
+
+TASKS = "/api/v1/tasks"
+
+
+def test_health_ok(client):
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok", "database": "ok"}
+    assert "x-request-id" in response.headers
+
+
+def test_health_returns_503_when_database_is_down(client):
+    # Arrange: ชี้ไปที่ไฟล์ SQLite ในโฟลเดอร์ที่ไม่มีอยู่ จึงเชื่อมต่อไม่ได้
+    broken = sessionmaker(bind=create_engine("sqlite:////no/such/dir/x.db"))()
+    app.dependency_overrides[get_db] = lambda: broken
+    # Act
+    response = client.get("/health")
+    # Assert
+    assert response.status_code == 503
+    assert response.json()["database"] == "unavailable"
+
+
+def test_register_login_and_me(client):
+    response = client.post("/api/v1/auth/register", json=SOMCHAI)
+    assert response.status_code == 201
+    body = response.json()
+    assert body["role"] == "member"
+    assert "password" not in body and "hashed_password" not in body
+
+    token = client.post(
+        "/api/v1/auth/login", data={"username": SOMCHAI["email"], "password": SOMCHAI["password"]}
+    ).json()["access_token"]
+    me = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert me.status_code == 200
+    assert me.json()["email"] == SOMCHAI["email"]
+
+
+def test_register_duplicate_email_returns_409(client):
+    client.post("/api/v1/auth/register", json=SOMCHAI)
+    response = client.post("/api/v1/auth/register", json=SOMCHAI)
+    assert response.status_code == 409
+    assert response.headers["content-type"] == "application/problem+json"
+    assert response.json()["detail"] == "อีเมลนี้ถูกใช้แล้ว"
+
+
+def test_register_rejects_role_field(client):
+    # Mass Assignment: ส่ง role มาเองต้องถูกปฏิเสธ
+    response = client.post("/api/v1/auth/register", json={**SOMCHAI, "role": "admin"})
+    assert response.status_code == 422
+
+
+def test_tasks_require_token(client):
+    response = client.get(TASKS)
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
+
+
+def test_invalid_token_returns_401(client):
+    response = client.get(TASKS, headers={"Authorization": "Bearer not-a-real-token"})
+    assert response.status_code == 401
+
+
+def test_create_task_validation_errors(client, user_token):
+    response = client.post(TASKS, json={"title": "", "priority": 9, "owner_id": 99}, headers=user_token)
+    assert response.status_code == 422
+    fields = {tuple(error["loc"]) for error in response.json()["errors"]}
+    assert fields == {("body", "title"), ("body", "priority"), ("body", "owner_id")}
+
+
+def test_crud_flow(client, user_token):
+    created = client.post(TASKS, json={"title": "เขียน README"}, headers=user_token)
+    assert created.status_code == 201
+    task_id = created.json()["id"]
+
+    patched = client.patch(f"{TASKS}/{task_id}", json={"status": "doing"}, headers=user_token)
+    assert patched.status_code == 200
+    assert patched.json()["status"] == "doing"
+    assert patched.json()["title"] == "เขียน README"  # ฟิลด์ที่ไม่ได้ส่งต้องไม่เปลี่ยน
+
+    null_title = client.patch(f"{TASKS}/{task_id}", json={"title": None}, headers=user_token)
+    assert null_title.status_code == 422
+
+    assert client.delete(f"{TASKS}/{task_id}", headers=user_token).status_code == 204
+    assert client.get(f"{TASKS}/{task_id}", headers=user_token).status_code == 404
+
+
+def test_cannot_access_other_users_task(client, user_token, other_token):
+    task_id = client.post(TASKS, json={"title": "งานลับของสมชาย"}, headers=user_token).json()["id"]
+    assert client.get(f"{TASKS}/{task_id}", headers=other_token).status_code == 404
+    assert client.patch(f"{TASKS}/{task_id}", json={"status": "done"}, headers=other_token).status_code == 404
+    assert client.delete(f"{TASKS}/{task_id}", headers=other_token).status_code == 404
+
+
+def test_pagination_and_filter(client, user_token):
+    for i in range(5):
+        client.post(TASKS, json={"title": f"งาน {i}", "status": "done" if i &lt; 2 else "todo"}, headers=user_token)
+
+    page = client.get(f"{TASKS}?limit=2&amp;offset=2", headers=user_token).json()
+    assert page["total"] == 5
+    assert [item["title"] for item in page["items"]] == ["งาน 2", "งาน 3"]
+
+    done = client.get(f"{TASKS}?status=done", headers=user_token).json()
+    assert done["total"] == 2
+    assert client.get(f"{TASKS}?limit=101", headers=user_token).status_code == 422
+
+
+def test_stats_cache_hit_and_invalidation(client, user_token, cache):
+    client.post(TASKS, json={"title": "เขียน README"}, headers=user_token)
+    first = client.get(f"{TASKS}/stats", headers=user_token).json()
+    second = client.get(f"{TASKS}/stats", headers=user_token).json()
+    assert first == {"todo": 1, "doing": 0, "done": 0, "cached": False}
+    assert second["cached"] is True
+    assert 0 &lt; cache.ttl("stats:user:1") &lt;= 60
+
+    client.post(TASKS, json={"title": "ตั้งค่า CI", "status": "doing"}, headers=user_token)
+    third = client.get(f"{TASKS}/stats", headers=user_token).json()
+    assert third == {"todo": 1, "doing": 1, "done": 0, "cached": False}
+
+
+def test_stats_still_work_when_redis_is_down(client, user_token):
+    server = fakeredis.FakeServer()
+    server.connected = False  # จำลองว่า Redis ล่ม
+    app.dependency_overrides[get_cache] = lambda: Cache(fakeredis.FakeRedis(server=server))
+    response = client.get(f"{TASKS}/stats", headers=user_token)
+    assert response.status_code == 200
+    assert response.json()["cached"] is False
+
+
+def test_admin_route_requires_admin_role(client, user_token, admin_token):
+    assert client.get("/api/v1/admin/users", headers=user_token).status_code == 403
+    response = client.get("/api/v1/admin/users", headers=admin_token)
+    assert response.status_code == 200
+    assert response.json()["total"] == 2
+
+
+def test_login_rate_limit(client):
+    client.post("/api/v1/auth/register", json=SOMCHAI)
+    codes = [
+        client.post("/api/v1/auth/login", data={"username": SOMCHAI["email"], "password": "wrong-pass"}).status_code
+        for _ in range(7)
+    ]
+    assert codes == [401, 401, 401, 401, 401, 429, 429]
+    blocked = client.post("/api/v1/auth/login", data={"username": SOMCHAI["email"], "password": "wrong-pass"})
+    assert int(blocked.headers["retry-after"]) &gt; 0</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python -m pytest -v</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0 -- /home/somchai/projects/taskflow-api/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/somchai/projects/taskflow-api
+plugins: platformdirs-4.13.5, anyio-4.15.1, cov-7.1.0
+collecting ... collected 15 items
+
+tests/test_api.py::test_health_ok PASSED                                 [  6%]
+tests/test_api.py::test_health_returns_503_when_database_is_down PASSED  [ 13%]
+tests/test_api.py::test_register_login_and_me PASSED                     [ 20%]
+tests/test_api.py::test_register_duplicate_email_returns_409 PASSED      [ 26%]
+tests/test_api.py::test_register_rejects_role_field PASSED               [ 33%]
+tests/test_api.py::test_tasks_require_token PASSED                       [ 40%]
+tests/test_api.py::test_invalid_token_returns_401 PASSED                 [ 46%]
+tests/test_api.py::test_create_task_validation_errors PASSED             [ 53%]
+tests/test_api.py::test_crud_flow PASSED                                 [ 60%]
+tests/test_api.py::test_cannot_access_other_users_task PASSED            [ 66%]
+tests/test_api.py::test_pagination_and_filter PASSED                     [ 73%]
+tests/test_api.py::test_stats_cache_hit_and_invalidation PASSED          [ 80%]
+tests/test_api.py::test_stats_still_work_when_redis_is_down PASSED       [ 86%]
+tests/test_api.py::test_admin_route_requires_admin_role PASSED           [ 93%]
+tests/test_api.py::test_login_rate_limit PASSED                          [100%]
+
+============================== 15 passed in 2.10s ==============================</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python -m pytest -q --cov=app --cov-report=term-missing</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>...............                                                          [100%]
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.12.3-final-0 ________________
+
+Name                           Stmts   Miss  Cover   Missing
+------------------------------------------------------------
+app/__init__.py                    0      0   100%
+app/cache.py                      61     18    70%   24, 34, 42, 45-46, 51, 57-59, 63, 66-68, 74-80
+app/config.py                     20      0   100%
+app/db.py                         13      2    85%   23-24
+app/deps.py                       32      1    97%   36
+app/logging_config.py             21      1    95%   25
+app/main.py                       62      2    97%   99-100
+app/models.py                     26      0   100%
+app/repositories/__init__.py       0      0   100%
+app/repositories/tasks.py         33      0   100%
+app/repositories/users.py         17      0   100%
+app/routers/__init__.py            0      0   100%
+app/routers/admin.py              11      0   100%
+app/routers/auth.py               25      0   100%
+app/routers/tasks.py              29      0   100%
+app/schemas.py                    57      0   100%
+app/security.py                   17      0   100%
+app/services/__init__.py           0      0   100%
+app/services/auth_service.py      36      5    86%   30-33, 39-40
+app/services/errors.py            16      0   100%
+app/services/task_service.py      36      0   100%
+------------------------------------------------------------
+TOTAL                            512     29    94%
+15 passed in 2.80s</code></pre>
+<p>คอลัมน์ <code>Missing</code> บอกเลขบรรทัดที่ยังไม่มี Test วิ่งผ่าน เช่น <code>app/cache.py</code> บรรทัด 74-80 คือ <code>get_cache()</code> ตัวจริงที่ Test ไม่ได้ใช้ (เราแทนด้วย fakeredis) และ <code>app/db.py</code> บรรทัด 23-24 คือ <code>get_db()</code> ตัวจริงที่ถูก Override การไล่ให้ครบ 100% ไม่ใช่เป้าหมาย เป้าหมายคือทุกกฎทางธุรกิจและทุกเส้นทาง Error ต้องมี Test</p>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ถ้าไม่ใช้ <code>StaticPool</code> กับ <code>sqlite://</code> แต่ละ Connection จะได้ Database ใน Memory คนละก้อน ตารางที่สร้างไว้จะ "หายไป" และ Test จะพังด้วย <code>sqlite3.OperationalError: no such table: users</code> และถ้าลืม <code>app.dependency_overrides.clear()</code> Override ของ Test หนึ่งจะติดไปยัง Test ถัดไป ทำให้ผลไม่แน่นอน</p></div>
+</li>
+
+<li>
+<h4>Step 10: ทดสอบระบบจริงทั้งเส้นทางด้วย curl (Verification)</h4>
+<p>Test ผ่านแล้ว ต่อไปลองกับ PostgreSQL และ Redis ตัวจริง ให้ <code>uvicorn app.main:app --reload</code> ทำงานอยู่ใน Terminal แรก แล้วรันคำสั่งต่อไปนี้ใน Terminal ที่สองทีละกลุ่ม</p>
+<h5>10.1 สมัครสมาชิก และสมัครซ้ำ</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">curl -s -i -X POST http://127.0.0.1:8000/api/v1/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"somchai@example.com","full_name":"Somchai Jaidee","password":"S3cure-pass!"}'
+
+# สมัครซ้ำด้วยอีเมลเดิม
+curl -s -i -X POST http://127.0.0.1:8000/api/v1/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"somchai@example.com","full_name":"Somchai Jaidee","password":"S3cure-pass!"}'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>HTTP/1.1 201 Created
+date: Thu, 22 Oct 2026 03:21:22 GMT
+server: uvicorn
+content-length: 126
+content-type: application/json
+vary: Origin
+x-request-id: 302be783ab1f
+x-content-type-options: nosniff
+
+{"id":1,"email":"somchai@example.com","full_name":"Somchai Jaidee","role":"member","created_at":"2026-10-22T03:21:22.894132Z"}
+HTTP/1.1 409 Conflict
+date: Thu, 22 Oct 2026 03:21:22 GMT
+server: uvicorn
+content-length: 155
+content-type: application/problem+json
+vary: Origin
+x-request-id: 20f2ab796d5a
+x-content-type-options: nosniff
+
+{"type":"about:blank","title":"Conflict","status":409,"detail":"อีเมลนี้ถูกใช้แล้ว","instance":"/api/v1/auth/register"}</code></pre>
+<p>Response ไม่มีรหัสผ่านหรือ Hash เลย และ Error ใช้ <code>content-type: application/problem+json</code> ตามที่ออกแบบ</p>
+
+<h5>10.2 สร้างผู้ดูแลระบบ แล้ว Login เก็บ Token ไว้ในตัวแปร</h5>
+<p>API ไม่มี Endpoint ให้ตั้งตัวเองเป็น admin (ถ้ามีจะเป็นช่องโหว่) จึงสมัครแบบปกติก่อน แล้วเปลี่ยน Role ตรงที่ Database</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">curl -s -X POST http://127.0.0.1:8000/api/v1/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@example.com","full_name":"Admin TaskFlow","password":"Admin-pass!2026"}' &gt; /dev/null
+sudo -u postgres psql -d taskflow -c "UPDATE users SET role = 'admin' WHERE email = 'admin@example.com';"
+
+# Login เป็นสมชาย (OAuth2 Form: username คืออีเมล)
+curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login \
+  -d 'username=somchai@example.com&amp;password=S3cure-pass!'
+echo
+
+# เก็บ Token ไว้ใช้ต่อ
+TOKEN=$(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login \
+  -d 'username=somchai@example.com&amp;password=S3cure-pass!' \
+  | python3 -c 'import sys, json; print(json.load(sys.stdin)["access_token"])')
+curl -s http://127.0.0.1:8000/api/v1/auth/me -H "Authorization: Bearer $TOKEN"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>UPDATE 1
+{"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwicm9sZSI6Im1lbWJlciIsImlhdCI6MTc5MjYzOTI4MywiZXhwIjoxNzkyNjQxMDgzfQ.lV6mDvq_neLE3h-i3vozCeYVqKYoYtUj8ZDHiIgj500","token_type":"bearer"}
+{"id":1,"email":"somchai@example.com","full_name":"Somchai Jaidee","role":"member","created_at":"2026-10-22T03:21:22.894132Z"}</code></pre>
+
+<h5>10.3 CRUD, Filter และ Pagination</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">API=http://127.0.0.1:8000/api/v1
+H="Authorization: Bearer $TOKEN"
+curl -s -X POST $API/tasks -H "$H" -H 'Content-Type: application/json' -d '{"title":"เขียน README","priority":1}'; echo
+curl -s -X POST $API/tasks -H "$H" -H 'Content-Type: application/json' -d '{"title":"ตั้งค่า CI","status":"doing"}'; echo
+curl -s -X POST $API/tasks -H "$H" -H 'Content-Type: application/json' -d '{"title":"ออกแบบ Database","status":"done","priority":3}'; echo
+curl -s "$API/tasks?status=todo&amp;limit=20&amp;offset=0" -H "$H"; echo</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"id":1,"title":"เขียน README","description":null,"status":"todo","priority":1,"owner_id":1,"created_at":"2026-10-22T03:21:41.645780Z"}
+{"id":2,"title":"ตั้งค่า CI","description":null,"status":"doing","priority":2,"owner_id":1,"created_at":"2026-10-22T03:21:41.660698Z"}
+{"id":3,"title":"ออกแบบ Database","description":null,"status":"done","priority":3,"owner_id":1,"created_at":"2026-10-22T03:21:41.672505Z"}
+{"items":[{"id":1,"title":"เขียน README","description":null,"status":"todo","priority":1,"owner_id":1,"created_at":"2026-10-22T03:21:41.645780Z"}],"total":1,"limit":20,"offset":0}</code></pre>
+
+<h5>10.4 Cache-aside และ Invalidation</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">curl -s $API/tasks/stats -H "$H"; echo      # ครั้งแรก: MISS อ่านจาก Database
+curl -s $API/tasks/stats -H "$H"; echo      # ครั้งที่สอง: HIT อ่านจาก Redis
+redis-cli GET stats:user:1
+redis-cli TTL stats:user:1
+
+# แก้งาน 1 เป็น doing แล้วดูว่า Cache ถูกลบ
+curl -s -X PATCH $API/tasks/1 -H "$H" -H 'Content-Type: application/json' -d '{"status":"doing"}'; echo
+redis-cli EXISTS stats:user:1
+curl -s $API/tasks/stats -H "$H"; echo</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"todo":1,"doing":1,"done":1,"cached":false}
+{"todo":1,"doing":1,"done":1,"cached":true}
+{"todo": 1, "doing": 1, "done": 1}
+60
+{"id":1,"title":"เขียน README","description":null,"status":"doing","priority":1,"owner_id":1,"created_at":"2026-10-22T03:21:41.645780Z"}
+0
+{"todo":0,"doing":2,"done":1,"cached":false}</code></pre>
+
+<h5>10.5 Validation, 401, 403 และงานของคนอื่น</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ส่งข้อมูลผิดสามจุด: title ว่าง, priority เกิน 3, และแอบส่ง owner_id
+curl -s -i -X POST $API/tasks -H "$H" -H 'Content-Type: application/json' \
+  -d '{"title":"","priority":9,"owner_id":2}'; echo
+# ไม่ส่ง Token
+curl -s -i $API/tasks; echo
+# สมาชิกธรรมดาเรียก Endpoint ของ admin
+curl -s $API/admin/users -H "$H"; echo</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>HTTP/1.1 422 Unprocessable Entity
+date: Thu, 22 Oct 2026 03:21:41 GMT
+server: uvicorn
+content-length: 457
+content-type: application/problem+json
+vary: Origin
+x-request-id: 4849969ef7f0
+x-content-type-options: nosniff
+
+{"type":"about:blank","title":"Unprocessable Content","status":422,"detail":"ข้อมูลไม่ถูกต้อง","instance":"/api/v1/tasks","errors":[{"loc":["body","title"],"msg":"String should have at least 1 character","type":"string_too_short"},{"loc":["body","priority"],"msg":"Input should be less than or equal to 3","type":"less_than_equal"},{"loc":["body","owner_id"],"msg":"Extra inputs are not permitted","type":"extra_forbidden"}]}
+HTTP/1.1 401 Unauthorized
+date: Thu, 22 Oct 2026 03:21:41 GMT
+server: uvicorn
+www-authenticate: Bearer
+content-length: 114
+content-type: application/problem+json
+vary: Origin
+x-request-id: 57566e7ce73b
+x-content-type-options: nosniff
+
+{"type":"about:blank","title":"Unauthorized","status":401,"detail":"Not authenticated","instance":"/api/v1/tasks"}
+{"type":"about:blank","title":"Forbidden","status":403,"detail":"สิทธิ์ไม่เพียงพอ","instance":"/api/v1/admin/users"}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">ADMIN=$(curl -s -X POST $API/auth/login -d 'username=admin@example.com&amp;password=Admin-pass!2026' \
+  | python3 -c 'import sys, json; print(json.load(sys.stdin)["access_token"])')
+# admin ก็อ่านงานของสมชายไม่ได้ เพราะงานเป็นของเจ้าของเท่านั้น
+curl -s $API/tasks/1 -H "Authorization: Bearer $ADMIN"; echo
+curl -s "$API/admin/users?limit=10" -H "Authorization: Bearer $ADMIN"; echo
+# ลบงาน 3 แล้วลองอ่านอีกครั้ง
+curl -s -o /dev/null -w '%{http_code}\n' -X DELETE $API/tasks/3 -H "$H"
+curl -s -o /dev/null -w '%{http_code}\n' $API/tasks/3 -H "$H"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"type":"about:blank","title":"Not Found","status":404,"detail":"ไม่พบงานนี้","instance":"/api/v1/tasks/1"}
+{"items":[{"id":1,"email":"somchai@example.com","full_name":"Somchai Jaidee","role":"member","created_at":"2026-10-22T03:21:22.894132Z"},{"id":2,"email":"admin@example.com","full_name":"Admin TaskFlow","role":"admin","created_at":"2026-10-22T03:21:22.977379Z"}],"total":2,"limit":10,"offset":0}
+204
+404</code></pre>
+
+<h5>10.6 CORS และ Rate Limit</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Preflight จาก Frontend ที่อนุญาต
+curl -s -i -X OPTIONS $API/tasks -H 'Origin: http://localhost:5173' \
+  -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: authorization,content-type'
+echo
+# Preflight จากเว็บที่ไม่รู้จัก
+curl -s -i -X OPTIONS $API/tasks -H 'Origin: https://evil.example' -H 'Access-Control-Request-Method: POST'
+echo</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>HTTP/1.1 200 OK
+date: Thu, 22 Oct 2026 03:21:41 GMT
+server: uvicorn
+vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers, Access-Control-Request-Private-Network
+access-control-allow-methods: GET, POST, PATCH, DELETE
+access-control-max-age: 600
+access-control-allow-headers: Accept, Accept-Language, Authorization, Content-Language, Content-Type, X-Request-ID
+access-control-allow-origin: http://localhost:5173
+content-length: 2
+content-type: text/plain; charset=utf-8
+x-request-id: ec6145031052
+x-content-type-options: nosniff
+
+OK
+HTTP/1.1 400 Bad Request
+date: Thu, 22 Oct 2026 03:21:41 GMT
+server: uvicorn
+vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers, Access-Control-Request-Private-Network
+access-control-allow-methods: GET, POST, PATCH, DELETE
+access-control-max-age: 600
+access-control-allow-headers: Accept, Accept-Language, Authorization, Content-Language, Content-Type, X-Request-ID
+content-length: 22
+content-type: text/plain; charset=utf-8
+x-request-id: 5b1b6c27dad1
+x-content-type-options: nosniff
+
+Disallowed CORS origin</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ล้างตัวนับก่อน (เพราะ Login ด้านบนก็ถูกนับด้วย) แล้วลองรหัสผิด 7 ครั้งติดกัน
+redis-cli DEL rl:login:127.0.0.1 &gt; /dev/null
+for i in 1 2 3 4 5 6 7; do
+  curl -s -o /dev/null -w "ครั้งที่ $i -&gt; %{http_code}\n" -X POST $API/auth/login \
+    -d 'username=somchai@example.com&amp;password=wrong-pass'
+done
+curl -s -i -X POST $API/auth/login -d 'username=somchai@example.com&amp;password=wrong-pass'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ครั้งที่ 1 -&gt; 401
+ครั้งที่ 2 -&gt; 401
+ครั้งที่ 3 -&gt; 401
+ครั้งที่ 4 -&gt; 401
+ครั้งที่ 5 -&gt; 401
+ครั้งที่ 6 -&gt; 429
+ครั้งที่ 7 -&gt; 429
+HTTP/1.1 429 Too Many Requests
+date: Thu, 22 Oct 2026 03:21:41 GMT
+server: uvicorn
+retry-after: 60
+content-length: 231
+content-type: application/problem+json
+vary: Origin
+x-request-id: a069e8c4625f
+x-content-type-options: nosniff
+
+{"type":"about:blank","title":"Too Many Requests","status":429,"detail":"พยายามเข้าสู่ระบบบ่อยเกินไป กรุณารอสักครู่","instance":"/api/v1/auth/login"}</code></pre>
+
+<h5>10.7 ดู Log และทดสอบเมื่อ Redis ล่ม</h5>
+<p>ใน Terminal ของ Uvicorn จะเห็นบรรทัด JSON แบบนี้ (ตัดมาบางส่วน) สังเกตบรรทัด <code>welcome_email_sent</code> ที่ BackgroundTasks เขียนหลังตอบ 201 และ <code>login_rate_limited</code> ระดับ WARNING</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"time": "2026-10-22T03:21:22.900+00:00", "level": "INFO", "logger": "taskflow", "message": "request", "request_id": "302be783ab1f", "method": "POST", "path": "/api/v1/auth/register", "status": 201, "duration_ms": 86.1}
+{"time": "2026-10-22T03:21:22.901+00:00", "level": "INFO", "logger": "taskflow", "message": "welcome_email_sent", "user_id": 1}
+{"time": "2026-10-22T03:21:42.326+00:00", "level": "WARNING", "logger": "taskflow", "message": "login_rate_limited", "client_ip": "127.0.0.1", "count": 6}</code></pre>
+<p>ลองหยุด Uvicorn (<kbd>Ctrl</kbd>+<kbd>C</kbd>) แล้วเปิดใหม่โดยชี้ <code>REDIS_URL</code> ไปที่ Port ที่ไม่มี Redis (จำลอง Redis ล่มโดยไม่ต้องปิด Redis จริง) จากนั้น Login เป็น admin แล้วเรียก stats</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Terminal แรก
+REDIS_URL=redis://localhost:6390/0 uvicorn app.main:app
+
+# Terminal ที่สอง
+ADMIN=$(curl -s -X POST $API/auth/login -d 'username=admin@example.com&amp;password=Admin-pass!2026' \
+  | python3 -c 'import sys, json; print(json.load(sys.stdin)["access_token"])')
+curl -s -w ' (%{time_total}s)\n' $API/tasks/stats -H "Authorization: Bearer $ADMIN"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"todo":0,"doing":0,"done":0,"cached":false} (0.015419s)</code></pre>
+<p>API ยังตอบ 200 (admin ยังไม่มีงานจึงเป็น 0 ทั้งหมด) ส่วน Terminal แรกมี WARNING บอกว่า Cache ใช้ไม่ได้ ทีมดูแลระบบจึงรู้ทันทีว่า Redis มีปัญหา</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"time": "2026-10-22T03:21:53.489+00:00", "level": "WARNING", "logger": "taskflow", "message": "cache_unavailable", "op": "incr", "key": "rl:login:127.0.0.1", "error": "Error 111 connecting to localhost:6390. Connection refused."}
+{"time": "2026-10-22T03:21:53.591+00:00", "level": "WARNING", "logger": "taskflow", "message": "cache_unavailable", "op": "get", "key": "stats:user:2", "error": "Error 111 connecting to localhost:6390. Connection refused."}
+{"time": "2026-10-22T03:21:53.595+00:00", "level": "WARNING", "logger": "taskflow", "message": "cache_unavailable", "op": "set", "key": "stats:user:2", "error": "Error 111 connecting to localhost:6390. Connection refused."}</code></pre>
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>เมื่อ Redis ล่ม Rate Limit ก็หยุดทำงานด้วย (เรียกว่า Fail-open) เราเลือกแบบนี้เพื่อให้ผู้ใช้ยัง Login ได้ ระบบที่ต้องการความปลอดภัยสูงอาจเลือก Fail-closed คือปฏิเสธ Login ทั้งหมดจนกว่า Redis จะกลับมา หรือเพิ่ม <code>limit_req</code> ของ nginx เป็นด่านที่สอง ไม่มีคำตอบเดียวที่ถูก ต้องเลือกและเขียนเหตุผลไว้ใน README</p></div>
+</li>
+
+<li>
+<h4>Step 11: รันแบบ Production หลัง nginx</h4>
+<p>ในงานจริงเราไม่เปิด Uvicorn ให้คนภายนอกเรียกตรง ๆ แต่ให้ nginx เป็น Reverse Proxy ด้านหน้า nginx รับ Connection จำนวนมากได้ดี ทำ HTTPS, จำกัดขนาด Body และ Rate Limit ระดับ IP ได้ ส่วน Uvicorn รันหลาย Worker (Process) เพื่อใช้หลาย CPU และเปิดเฉพาะที่ <code>127.0.0.1</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">sudo apt install -y nginx
+nginx -v</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>nginx version: nginx/1.24.0 (Ubuntu)</code></pre>
+<p>สร้างไฟล์ Site ด้วย <code>sudo nano /etc/nginx/sites-available/taskflow</code></p>
+<pre class="code" data-env="file" data-label="nginx · /etc/nginx/sites-available/taskflow"><code class="language-plaintext"># /etc/nginx/sites-available/taskflow
+upstream taskflow_api {
+    server 127.0.0.1:8000;
+}
+
+server {
+    listen 80;
+    server_name localhost;
+
+    # จำกัดขนาด Body ไม่ให้ใครส่งข้อมูลก้อนใหญ่มาถล่ม API
+    client_max_body_size 1m;
+
+    location / {
+        proxy_pass http://taskflow_api;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+    }
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เปิดใช้ Site ของเรา และปิด Site ตัวอย่างที่ใช้ Port 80 อยู่
+sudo ln -s /etc/nginx/sites-available/taskflow /etc/nginx/sites-enabled/taskflow
+sudo rm /etc/nginx/sites-enabled/default
+
+# ตรวจ Syntax ก่อนทุกครั้ง แล้วค่อยเปิดหรือ Reload
+sudo nginx -t
+sudo service nginx start</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful</code></pre>
+<p>หยุด Uvicorn ตัว <code>--reload</code> แล้วเปิดแบบ Production: ไม่มี <code>--reload</code>, มี 2 Workers และเชื่อ Header <code>X-Forwarded-For</code> จาก nginx ที่ <code>127.0.0.1</code> เท่านั้น (Rate Limit จึงเห็น IP จริงของผู้ใช้)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2 \
+  --proxy-headers --forwarded-allow-ips 127.0.0.1</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started parent process [15579]
+INFO:     Started server process [15583]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Started server process [15582]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เรียกผ่าน nginx ที่ Port 80 (ไม่ต้องใส่ Port)
+curl -s -i http://127.0.0.1/health</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>HTTP/1.1 200 OK
+Server: nginx/1.24.0 (Ubuntu)
+Date: Thu, 22 Oct 2026 03:22:30 GMT
+Content-Type: application/json
+Content-Length: 31
+Connection: keep-alive
+vary: Origin
+x-request-id: 8aa9571548f6
+x-content-type-options: nosniff
+
+{"status":"ok","database":"ok"}</code></pre>
+<p>Header <code>Server: nginx/1.24.0 (Ubuntu)</code> ยืนยันว่า Request ผ่าน nginx จากนั้นลองหยุด Uvicorn (<kbd>Ctrl</kbd>+<kbd>C</kbd>) แล้วเรียกซ้ำ nginx จะตอบ 502 เพราะไม่มี Upstream ให้ส่งต่อ</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>HTTP/1.1 502 Bad Gateway
+Server: nginx/1.24.0 (Ubuntu)
+Date: Thu, 22 Oct 2026 03:22:33 GMT
+Content-Type: text/html
+Content-Length: 166
+Connection: keep-alive
+
+&lt;html&gt;
+&lt;head&gt;&lt;title&gt;502 Bad Gateway&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;
+&lt;center&gt;&lt;h1&gt;502 Bad Gateway&lt;/h1&gt;&lt;/center&gt;
+&lt;hr&gt;&lt;center&gt;nginx/1.24.0 (Ubuntu)&lt;/center&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p class="muted small">ในเครื่องทดสอบของผู้เขียน nginx รันด้วยไฟล์ Config แยกที่ Port อื่น เพื่อไม่ชนกับบริการอื่น เนื้อหา Site เหมือนด้านบนทุกบรรทัด ผลลัพธ์จึงตรงกัน ยกเว้นวันที่และ PID</p>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>จำนวน Worker เริ่มต้นที่ประมาณจำนวน CPU แล้วปรับตามผลวัดจริง</li>
+<li>ใน Server จริงให้ systemd หรือ Container Orchestrator เป็นผู้เปิด Uvicorn และเปิดใหม่อัตโนมัติเมื่อพัง</li>
+<li>ใส่ HTTPS ที่ nginx (เช่น ใบรับรองจาก Let's Encrypt) Uvicorn หลัง nginx ใช้ HTTP ธรรมดาได้เพราะอยู่ในเครื่องเดียวกัน</li>
+</ul></div>
+</li>
+
+<li>
+<h4>Step 12: Dockerfile และ docker compose</h4>
+<p>Container ทำให้ "รันได้บนเครื่องผม" กลายเป็น "รันได้ทุกที่" เพราะ Image รวม Python, Package และโค้ดไว้ด้วยกัน <code>compose.yaml</code> เปิดสาม Service พร้อมกัน: <code>api</code>, <code>db</code> (PostgreSQL 16) และ <code>redis</code> (Redis 7) ภายใน Compose แต่ละ Service เรียกกันด้วยชื่อ Service เป็น Hostname เช่น <code>db:5432</code></p>
+<pre class="code" data-env="file" data-label="Dockerfile · Dockerfile"><code class="language-dockerfile"># Image พื้นฐาน: Python 3.12 แบบ slim (ขนาดเล็ก มีแค่ของจำเป็น)
+FROM python:3.12-slim
+
+# ไม่สร้างไฟล์ .pyc และให้ Log ออกทันทีไม่ค้างใน Buffer
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# คัดลอก requirements.txt ก่อนโค้ด เพื่อให้ Docker ใช้ Layer Cache เมื่อแก้แค่โค้ด
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# คัดลอกโค้ดทั้งหมด (ไฟล์ใน .dockerignore จะไม่ถูกคัดลอก)
+COPY . .
+
+# รันด้วย User ธรรมดา ไม่ใช่ root เพื่อลดความเสียหายถ้าแอปถูกเจาะ
+RUN useradd --uid 10001 --no-create-home --shell /usr/sbin/nologin appuser
+USER appuser
+
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]</code></pre>
+<pre class="code" data-env="file" data-label="Text · .dockerignore"><code class="language-plaintext">.env
+.venv
+.git
+.github
+tests
+__pycache__
+*.pyc
+.pytest_cache
+.coverage
+htmlcov</code></pre>
+<pre class="code" data-env="file" data-label="YAML · compose.yaml"><code class="language-yaml">services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: ${APP_ENV:-prod}
+      # ใน Compose ใช้ชื่อ Service (db, redis) เป็น Hostname
+      DATABASE_URL: postgresql+psycopg://taskflow:${POSTGRES_PASSWORD:-taskflow_dev_pw}@db:5432/taskflow
+      REDIS_URL: redis://redis:6379/0
+      # ถ้าไม่ได้ตั้ง JWT_SECRET ใน .env คำสั่ง docker compose จะหยุดพร้อมข้อความนี้
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: taskflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_dev_pw}
+      POSTGRES_DB: taskflow
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskflow -d taskflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata:</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ต้องเปิด Docker Desktop บน Windows (WSL 2 backend) และเปิด WSL Integration ให้ Ubuntu-24.04 ก่อน
+# ปิด PostgreSQL, Redis และ Uvicorn ของเครื่องก่อน เพื่อไม่ให้ Port 8000 ชนกัน
+docker compose up -d --build
+docker compose run --rm api alembic upgrade head
+docker compose ps
+curl -s http://127.0.0.1:8000/health
+docker compose logs -f api
+
+# เลิกใช้: down เก็บข้อมูลไว้ใน Volume ส่วน down -v ลบ Volume pgdata ทิ้งด้วย
+docker compose down
+docker compose down -v</code></pre>
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>เครื่องทดสอบของผู้เขียนไม่มี Docker ไฟล์ทั้งสามจึงเขียนตามเอกสารทางการของ Image <code>python</code>, <code>postgres</code> และ <code>redis</code> บน Docker Hub (และตรวจ Syntax YAML แล้ว) แต่ไม่ได้รันจริง จึงไม่แสดงผลลัพธ์ของคำสั่ง <code>docker</code> เมื่อคุณรัน <code>docker compose ps</code> ควรเห็นทั้งสาม Service มีสถานะ <code>healthy</code> ภายในไม่กี่สิบวินาที ถ้า <code>api</code> ไม่ขึ้น ให้ดู <code>docker compose logs api</code> เป็นอย่างแรก</p></div>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>COPY requirements.txt .</code> ก่อน <code>COPY . .</code></td><td>Layer ติดตั้ง Package จะถูก Cache ไว้ แก้โค้ดแล้ว Build ใหม่จึงไม่ต้องติดตั้ง Package ซ้ำ</td></tr>
+<tr><td><code>useradd --uid 10001 ...</code> และ <code>USER appuser</code></td><td>Process ใน Container ไม่ใช่ root ถ้าแอปถูกเจาะ ผู้โจมตีได้สิทธิ์น้อยลง</td></tr>
+<tr><td><code>--host 0.0.0.0</code></td><td>ใน Container ต้องฟังทุก Interface ไม่อย่างนั้น Port ที่ Map ออกมาจะเรียกไม่ได้</td></tr>
+<tr><td><code>${JWT_SECRET:?set JWT_SECRET in .env}</code></td><td>Compose อ่านค่าจาก <code>.env</code> ข้างไฟล์ ถ้าไม่มีจะหยุดพร้อมข้อความนี้ แทนการรันด้วย Secret ว่าง</td></tr>
+<tr><td><code>condition: service_healthy</code></td><td>รอให้ Healthcheck ของ db และ redis ผ่านก่อนเปิด api ป้องกัน Error เชื่อมต่อตอนเริ่ม</td></tr>
+<tr><td><code>pg_isready</code>, <code>redis-cli ping</code>, <code>urllib.request.urlopen(.../health)</code></td><td>คำสั่งตรวจสุขภาพของแต่ละ Service ตัวของ api ใช้ Python เพราะ Image slim ไม่มี curl</td></tr>
+<tr><td><code>pgdata:/var/lib/postgresql/data</code></td><td>Named Volume เก็บข้อมูล Database ไว้นอก Container ลบ Container แล้วข้อมูลยังอยู่</td></tr>
+</tbody></table></div>
+</li>
+
+<li>
+<h4>Step 13: CI ด้วย GitHub Actions, README และ Push ขึ้น GitHub</h4>
+<p>CI รัน Test และตรวจช่องโหว่ของ Package ทุกครั้งที่ Push ขึ้น <code>main</code> และทุก Pull Request ถ้า Test พัง จะเห็นเครื่องหมายกากบาทสีแดงก่อน Merge</p>
+<pre class="code" data-env="file" data-label="YAML · .github/workflows/ci.yml"><code class="language-yaml">name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# ให้สิทธิ์ขั้นต่ำ: อ่านโค้ดได้อย่างเดียว
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    env:
+      # ค่าสำหรับ CI เท่านั้น ห้ามใช้ใน Production
+      JWT_SECRET: ci-only-secret-not-for-production-0123456789
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Run tests with coverage
+        run: python -m pytest -q --cov=app --cov-report=term-missing
+
+      - name: Audit dependencies for known vulnerabilities
+        run: pip-audit -r requirements.txt</code></pre>
+<p>ไฟล์ README คือหน้าแรกที่ผู้สัมภาษณ์เห็น สร้าง <code>README.md</code> จากแม่แบบนี้ แล้วเปลี่ยน <code>&lt;your-username&gt;</code> เป็นชื่อบัญชี GitHub ของคุณ และเขียนหัวข้อ "สิ่งที่ได้เรียนรู้" ด้วยประสบการณ์จริงของคุณ</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Markdown · README.md"><code class="language-markdown"># TaskFlow API
+
+![CI](https://github.com/&lt;your-username&gt;/taskflow-api/actions/workflows/ci.yml/badge.svg)
+
+REST API สำหรับจัดการงาน (Task Management) ที่ออกแบบให้พร้อมใช้งานจริง:
+Authentication ด้วย Argon2 + JWT, Role-based Authorization, PostgreSQL 16, Redis Cache,
+Structured Logging, Health Check, Rate Limit, Automated Tests และ CI
+
+## Tech Stack
+
+| ส่วน | เครื่องมือ |
+|---|---|
+| ภาษา / Framework | Python 3.12, FastAPI 0.148, Uvicorn 0.54 |
+| Database | PostgreSQL 16, SQLAlchemy 2.1, Alembic 1.20 |
+| Cache / Rate Limit | Redis 7 (redis-py 8.1) |
+| Security | pwdlib[argon2] 0.3.1, PyJWT 2.15 |
+| Testing | pytest 9.1, httpx2 2.14, fakeredis 2.40 |
+| Deploy | Docker, docker compose, nginx, GitHub Actions |
+
+## Architecture
+
+```
+Client ──HTTPS──▶ nginx (Reverse Proxy) ──▶ Uvicorn (2 workers) ──▶ FastAPI
+                                                                     │
+                       routers/ ──▶ services/ ──▶ repositories/ ─────┤
+                                        │                            ▼
+                                        └──── Redis (Cache, Rate Limit)   PostgreSQL 16
+```
+
+## Endpoints
+
+| Method | Path | Auth | คำอธิบาย |
+|---|---|---|---|
+| GET | `/health` | - | ตรวจว่า API และ Database พร้อม |
+| POST | `/api/v1/auth/register` | - | สมัครสมาชิก (201, 409 ถ้าอีเมลซ้ำ) |
+| POST | `/api/v1/auth/login` | - | รับ Access Token (จำกัด 5 ครั้ง/นาที/IP) |
+| GET | `/api/v1/auth/me` | Bearer | ข้อมูลผู้ใช้ปัจจุบัน |
+| GET | `/api/v1/tasks?status=&amp;limit=&amp;offset=` | Bearer | รายการงานของฉัน แบบแบ่งหน้า |
+| POST | `/api/v1/tasks` | Bearer | สร้างงาน |
+| GET | `/api/v1/tasks/stats` | Bearer | สรุปจำนวนงานตามสถานะ (Cache 60 วินาที) |
+| GET / PATCH / DELETE | `/api/v1/tasks/{task_id}` | Bearer | อ่าน / แก้บางส่วน / ลบงาน |
+| GET | `/api/v1/admin/users` | Bearer (admin) | รายชื่อผู้ใช้ทั้งหมด |
+
+## วิธีรันบนเครื่อง (Ubuntu / WSL)
+
+```bash
+python3 -m venv .venv &amp;&amp; source .venv/bin/activate
+python3 -m pip install -r requirements-dev.txt
+cp .env.example .env            # แล้วแก้ JWT_SECRET
+alembic upgrade head
+uvicorn app.main:app --reload   # เปิด http://127.0.0.1:8000/docs
+python -m pytest -q
+```
+
+## วิธีรันด้วย Docker
+
+```bash
+docker compose up -d --build
+docker compose run --rm api alembic upgrade head
+curl http://127.0.0.1:8000/health
+```
+
+## Security (OWASP API Security Top 10 2023)
+
+| ความเสี่ยง | วิธีป้องกันในโปรเจกต์นี้ |
+|---|---|
+| API1 Broken Object Level Authorization | ทุก Query กรองด้วย `owner_id` งานของคนอื่นตอบ 404 |
+| API2 Broken Authentication | Argon2id, JWT อายุ 30 นาที, Rate Limit ที่ Login |
+| API3 Broken Object Property Level Authorization | `extra="forbid"` และ Response Schema แยก ไม่มี `hashed_password` |
+| API4 Unrestricted Resource Consumption | `limit` สูงสุด 100, `client_max_body_size 1m`, Rate Limit |
+| API5 Broken Function Level Authorization | `require_role("admin")` ที่ระดับ Router |
+| API6 Unrestricted Access to Sensitive Business Flows | Rate Limit ที่ Login (ต่อยอดได้กับการสมัครสมาชิก) |
+| API7 Server Side Request Forgery | ไม่มี Endpoint ที่รับ URL จากผู้ใช้ไปเรียกต่อ |
+| API8 Security Misconfiguration | CORS เฉพาะ Origin ที่รู้จัก, ปิด `/docs` ใน prod, Container ไม่ใช้ root |
+| API9 Improper Inventory Management | Version ใน Path `/api/v1`, OpenAPI สร้างอัตโนมัติ |
+| API10 Unsafe Consumption of APIs | ยังไม่เรียก API ภายนอก ถ้าเพิ่มต้อง Validate ด้วย Pydantic และตั้ง Timeout |
+
+## สิ่งที่ได้เรียนรู้
+
+- (เขียนสิ่งที่คุณได้เรียนรู้จริง เช่น ปัญหา N+1 ที่เจอ และวิธีแก้)
+
+## License
+
+MIT</code></pre>
+<p>ก่อน Push ให้จำลองสิ่งที่ CI ทำบนเครื่องตัวเอง: Clone Repository ไปที่โฟลเดอร์ใหม่ (จะไม่มี <code>.env</code> และ <code>.venv</code> เหมือนเครื่อง CI) แล้วติดตั้งและรัน Test ถ้าผ่าน แปลว่าไม่ได้ลืม commit ไฟล์ไหน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/taskflow-api
+git init -b main
+git add .
+git status --short | grep '\.env'   # ต้องเห็น .env.example แต่ห้ามเห็น .env
+git commit -m "feat: TaskFlow API with auth, tasks, cache, tests and CI"
+
+# จำลอง CI
+git clone ~/projects/taskflow-api /tmp/ci-sim
+cd /tmp/ci-sim
+python3 -m venv .venv &amp;&amp; source .venv/bin/activate
+python3 -m pip install -q -r requirements-dev.txt
+JWT_SECRET=ci-only-secret-not-for-production-0123456789 python -m pytest -q
+pip-audit -r requirements.txt
+deactivate &amp;&amp; cd ~/projects/taskflow-api</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>A  .env.example
+[main (root-commit) a0114d8] feat: TaskFlow API with auth, tasks, cache, tests and CI
+ 38 files changed, 1595 insertions(+)
+Cloning into '/tmp/ci-sim'...
+done.
+...............                                                          [100%]
+15 passed in 2.51s
+No known vulnerabilities found</code></pre>
+<p class="muted small">ค่า Hash ของ Commit (<code>a0114d8</code>) และเวลาที่ใช้รัน Test บนเครื่องของคุณจะต่างไป ผลของ <code>pip-audit</code> ขึ้นกับฐานข้อมูลช่องโหว่ ณ วันที่รัน ถ้าในอนาคตพบช่องโหว่ใน Package ใด คำสั่งจะแสดงชื่อ Package และเวอร์ชันที่แก้แล้ว ให้อัปเดต Pin ใน <code>requirements.txt</code> แล้วรัน Test ใหม่</p>
+<p>Push ขึ้น GitHub ตามที่เรียนใน <a data-t="17"></a> สร้าง Repository เปล่าชื่อ <code>taskflow-api</code> บน github.com (ไม่ต้องติ๊กสร้าง README เพราะเรามีแล้ว) แล้วรัน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git remote add origin git@github.com:&lt;your-username&gt;/taskflow-api.git
+git push -u origin main</code></pre>
+<p>เปิดแท็บ <strong>Actions</strong> ของ Repository จะเห็น Workflow ชื่อ <code>CI</code> กำลังรัน เมื่อผ่านจะเป็นสีเขียวและ Badge ใน README จะแสดง <code>passing</code> จากนั้นไปที่ <strong>Settings → Branches</strong> เพิ่ม Branch Protection ให้ <code>main</code> บังคับให้ CI ผ่านก่อน Merge Pull Request</p>
+<div class="callout sec"><span class="c-label sec">Security</span><p>ค่า <code>JWT_SECRET</code> ใน <code>ci.yml</code> ใช้ได้เพราะเป็นค่าทดสอบที่ไม่มีความหมายนอก CI ถ้าวันหนึ่ง Workflow ต้องใช้ความลับจริง (เช่น Token สำหรับ Deploy) ให้เก็บใน <strong>Settings → Secrets and variables → Actions</strong> แล้วอ้างด้วย <code>${{ secrets.NAME }}</code> และเปิด Secret Scanning ของ GitHub ไว้ด้วย</p></div>
+</li>
+
+</ol>
+
+<h4>ปัญหาที่พบบ่อยในโปรเจกต์นี้</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>connection to server at "127.0.0.1", port 5432 failed: Connection refused</code></td><td>PostgreSQL ยังไม่ได้เปิด (WSL รีสตาร์ตแล้วบริการไม่เปิดเอง)</td><td><code>sudo service postgresql start</code> แล้วตรวจด้วย <code>pg_isready</code></td></tr>
+<tr><td><code>FATAL:  password authentication failed for user "taskflow"</code></td><td>รหัสผ่านใน <code>DATABASE_URL</code> ไม่ตรงกับที่ตั้งตอน <code>CREATE ROLE</code></td><td>แก้ <code>.env</code> หรือรีเซ็ตด้วย <code>sudo -u postgres psql -c "ALTER ROLE taskflow PASSWORD 'taskflow_dev_pw';"</code></td></tr>
+<tr><td><code>jwt_secret  Field required [type=missing, ...]</code></td><td>ไม่มี <code>.env</code> หรือรันจากโฟลเดอร์อื่น จึงหา <code>.env</code> ไม่เจอ</td><td><code>cd ~/projects/taskflow-api</code> แล้ว <code>cp .env.example .env</code> และตั้ง <code>JWT_SECRET</code></td></tr>
+<tr><td><code>relation "users" does not exist</code> ตอนสมัครสมาชิก</td><td>ยังไม่ได้รัน Migration</td><td><code>alembic upgrade head</code></td></tr>
+<tr><td>Autogenerate สร้าง Migration ว่าง ๆ (มีแค่ <code>pass</code>)</td><td><code>env.py</code> ไม่ได้ import <code>app.models</code> หรือ <code>target_metadata</code> ยังเป็น <code>None</code></td><td>ใช้ <code>env.py</code> ตาม Step 8 แล้วลบไฟล์ว่างทิ้งก่อนสร้างใหม่</td></tr>
+<tr><td>ทุกคนโดน 429 พร้อมกันหลังขึ้น nginx</td><td>ไม่ได้เปิด <code>--proxy-headers</code> แอปจึงเห็น IP ของทุกคนเป็น <code>127.0.0.1</code></td><td>เปิด Uvicorn ด้วย <code>--proxy-headers --forwarded-allow-ips 127.0.0.1</code></td></tr>
+<tr><td>Frontend เจอ <code>has been blocked by CORS policy</code></td><td>Origin ของ Frontend ไม่อยู่ใน <code>CORS_ORIGINS</code></td><td>เพิ่ม Origin ที่ถูกต้องใน <code>.env</code> เช่น <code>CORS_ORIGINS=["http://localhost:5173","https://app.example.com"]</code> ห้ามใช้ <code>["*"]</code> ใน Production</td></tr>
+<tr><td><code>sqlite3.OperationalError: no such table: users</code> ตอนรัน Test</td><td>สร้าง Engine ของ Test โดยไม่ใช้ <code>StaticPool</code></td><td>ใช้ Fixture <code>db_session</code> ตาม <code>tests/conftest.py</code></td></tr>
+</tbody></table></div>
+
+<h4>ไอเดียต่อยอด</h4>
+<ol>
+<li><strong>Refresh Token:</strong> เพิ่ม Refresh Token อายุ 7 วันที่เก็บ Hash ไว้ใน Database เพื่อให้ Access Token สั้นได้โดยผู้ใช้ไม่ต้อง Login บ่อย และเพิ่ม <code>POST /auth/logout</code> ที่เพิกถอน Refresh Token</li>
+<li><strong>Keyset Pagination:</strong> เพิ่ม <code>?after_id=</code> แทน <code>offset</code> สำหรับรายการยาวมาก แล้ววัดเวลาด้วย <code>EXPLAIN ANALYZE</code> เทียบกัน</li>
+<li><strong>Background Worker จริง:</strong> ย้ายการส่งอีเมลไปใช้คิว RQ หรือ Celery กับ Redis พร้อม Retry และ Worker แยก Process</li>
+<li><strong>Metrics:</strong> เพิ่ม Endpoint <code>/metrics</code> สำหรับ Prometheus (จำนวน Request, Error Rate, Latency p95/p99) แล้วสร้าง Dashboard ใน Grafana</li>
+<li><strong>Tracing:</strong> ใส่ OpenTelemetry ให้ FastAPI และ SQLAlchemy เพื่อดูว่าแต่ละ Request ใช้เวลาใน Database เท่าไร</li>
+<li><strong>Test กับ PostgreSQL ใน CI:</strong> เพิ่ม Job ที่ใช้ <code>services: postgres:16</code> ของ GitHub Actions แล้วรัน <code>alembic upgrade head</code> และ Test ชุดเดียวกัน เพื่อจับความต่างระหว่าง SQLite กับ PostgreSQL</li>
+<li><strong>Deploy จริง:</strong> Build Image ใน CI แล้ว Push ไปที่ GitHub Container Registry และ Deploy ขึ้น Cloud ที่มี Free Tier พร้อม HTTPS</li>
+<li><strong>Frontend:</strong> สร้างหน้าเว็บด้วย React + TypeScript ที่ <code>http://localhost:5173</code> เพื่อใช้ CORS ที่ตั้งไว้ และทำให้โปรเจกต์เป็น Full-stack</li>
+</ol>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>คุณทำ Mini Project สำเร็จเมื่อ: <code>python -m pytest -q</code> ผ่านทั้ง 15 ข้อ, curl ใน Step 10 ได้ผลตรงตามที่แสดงทุกกลุ่ม, <code>curl http://127.0.0.1/health</code> ผ่าน nginx ได้ 200, Repository บน GitHub มี CI สีเขียว และไม่มีไฟล์ <code>.env</code> อยู่ใน Repository</p></div>
+
+<h3 id="s12-4-cheat">Cheat Sheet</h3>
+<p>รวมคำสั่งและ Syntax ที่ใช้บ่อยที่สุดในหัวข้อ Backend แบ่งตามหมวด เวอร์ชันอ้างอิงตามที่ใช้ในหัวข้อนี้ (FastAPI 0.148, SQLAlchemy 2.1, Alembic 1.20, Redis 7)</p>
+
+<h4>สภาพแวดล้อมและการรัน Server</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>python3 -m venv .venv</code></td><td>สร้าง Virtual Environment ของโปรเจกต์</td><td><code>python3 -m venv .venv &amp;&amp; source .venv/bin/activate</code></td></tr>
+<tr><td><code>python3 -m pip install -r FILE</code></td><td>ติดตั้ง Package ตามไฟล์ที่ Pin เวอร์ชันไว้</td><td><code>python3 -m pip install -r requirements-dev.txt</code></td></tr>
+<tr><td><code>uvicorn MODULE:APP --reload</code></td><td>เปิด Server สำหรับพัฒนา โหลดใหม่เมื่อแก้ไฟล์</td><td><code>uvicorn app.main:app --reload</code></td></tr>
+<tr><td><code>uvicorn ... --workers N --proxy-headers</code></td><td>รันแบบ Production หลาย Process และเชื่อ Header จาก Proxy</td><td><code>uvicorn app.main:app --workers 2 --proxy-headers --forwarded-allow-ips 127.0.0.1</code></td></tr>
+<tr><td><code>sudo service NAME start</code></td><td>เปิดบริการใน WSL</td><td><code>sudo service postgresql start</code></td></tr>
+<tr><td><code>curl -i -X METHOD URL</code></td><td>เรียก API และดู Status Line กับ Header</td><td><code>curl -i -X DELETE http://127.0.0.1:8000/api/v1/tasks/3 -H "Authorization: Bearer $TOKEN"</code></td></tr>
+</tbody></table></div>
+
+<h4>FastAPI และ Pydantic</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>@router.get(path, response_model=...)</code></td><td>ประกาศ Endpoint และกรอง Response ด้วย Schema</td><td><code>@router.get("/{task_id}", response_model=TaskOut)</code></td></tr>
+<tr><td><code>status_code=201</code></td><td>กำหนด Status Code เมื่อสำเร็จ</td><td><code>@router.post("", status_code=201)</code></td></tr>
+<tr><td><code>Annotated[int, Query(ge=, le=)]</code></td><td>Query Parameter พร้อมเงื่อนไข</td><td><code>limit: Annotated[int, Query(ge=1, le=100)] = 20</code></td></tr>
+<tr><td><code>Annotated[int, Path(gt=0)]</code></td><td>Path Parameter พร้อมเงื่อนไข</td><td><code>task_id: Annotated[int, Path(gt=0)]</code></td></tr>
+<tr><td><code>Field(min_length=, max_length=, ge=, le=)</code></td><td>กฎ Validation ของฟิลด์ใน Model</td><td><code>title: str = Field(min_length=1, max_length=200)</code></td></tr>
+<tr><td><code>ConfigDict(extra="forbid")</code></td><td>ปฏิเสธฟิลด์ที่ไม่รู้จัก กัน Mass Assignment</td><td><code>model_config = ConfigDict(extra="forbid")</code></td></tr>
+<tr><td><code>ConfigDict(from_attributes=True)</code></td><td>แปลง Object ของ ORM เป็น Schema</td><td><code>TaskOut.model_validate(task)</code></td></tr>
+<tr><td><code>model_dump(exclude_unset=True)</code></td><td>เอาเฉพาะฟิลด์ที่ Client ส่งมา ใช้กับ PATCH</td><td><code>changes = payload.model_dump(exclude_unset=True)</code></td></tr>
+<tr><td><code>Depends(...)</code> + <code>Annotated</code></td><td>Dependency Injection และตั้งชื่อย่อให้ใช้ซ้ำ</td><td><code>DbSession = Annotated[Session, Depends(get_db)]</code></td></tr>
+<tr><td><code>APIRouter(prefix=, tags=, dependencies=)</code></td><td>แยก Endpoint เป็นกลุ่ม และใส่ Dependency ทั้งกลุ่ม</td><td><code>APIRouter(prefix="/admin", dependencies=[Depends(require_role("admin"))])</code></td></tr>
+<tr><td><code>@app.exception_handler(Exc)</code></td><td>แปลง Exception เป็น Response รูปแบบเดียวกัน</td><td><code>@app.exception_handler(RequestValidationError)</code></td></tr>
+<tr><td><code>BackgroundTasks.add_task(fn, *args)</code></td><td>ทำงานต่อหลังส่ง Response แล้ว</td><td><code>background_tasks.add_task(send_welcome_email, user.id)</code></td></tr>
+</tbody></table></div>
+
+<h4>SQLAlchemy 2 และ Alembic</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>Mapped[T] = mapped_column(...)</code></td><td>ประกาศคอลัมน์แบบ SQLAlchemy 2</td><td><code>email: Mapped[str] = mapped_column(String(255), unique=True)</code></td></tr>
+<tr><td><code>relationship(back_populates=)</code></td><td>เชื่อม Model สองฝั่ง</td><td><code>tasks: Mapped[list["Task"]] = relationship(back_populates="owner")</code></td></tr>
+<tr><td><code>db.scalars(select(M).where(...))</code></td><td>Query หลายแถวแบบ 2.0 Style</td><td><code>db.scalars(select(Task).where(Task.owner_id == 1)).all()</code></td></tr>
+<tr><td><code>db.scalar(...)</code> / <code>db.get(M, id)</code></td><td>ดึงค่าเดียว หรือดึงด้วย Primary Key</td><td><code>db.get(User, 1)</code></td></tr>
+<tr><td><code>selectinload(M.rel)</code></td><td>โหลด Relationship ล่วงหน้า แก้ปัญหา N+1</td><td><code>select(User).options(selectinload(User.tasks))</code></td></tr>
+<tr><td><code>with Session() as db, db.begin():</code></td><td>Transaction ที่ commit อัตโนมัติ หรือ rollback เมื่อ Error</td><td><code>with SessionLocal() as db, db.begin(): db.add(user)</code></td></tr>
+<tr><td><code>alembic revision --autogenerate -m MSG</code></td><td>สร้าง Migration จากความต่างของ Model กับ Database</td><td><code>alembic revision --autogenerate -m "add priority"</code></td></tr>
+<tr><td><code>alembic upgrade head</code> / <code>downgrade -1</code></td><td>อัปเกรดเป็นล่าสุด หรือย้อนหนึ่งขั้น</td><td><code>alembic downgrade -1</code></td></tr>
+<tr><td><code>alembic current</code> / <code>history</code></td><td>ดูเวอร์ชันปัจจุบันและประวัติ Migration</td><td><code>alembic history --verbose</code></td></tr>
+</tbody></table></div>
+
+<h4>Authentication และ Security</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>PasswordHash.recommended()</code></td><td>สร้างตัว Hash รหัสผ่านด้วย Argon2id (pwdlib)</td><td><code>password_hash.hash("S3cure-pass!")</code></td></tr>
+<tr><td><code>jwt.encode(payload, key, algorithm=)</code></td><td>สร้าง JWT</td><td><code>jwt.encode({"sub": "1", "exp": exp}, secret, algorithm="HS256")</code></td></tr>
+<tr><td><code>jwt.decode(token, key, algorithms=[...])</code></td><td>ตรวจลายเซ็นและวันหมดอายุ</td><td><code>jwt.decode(token, secret, algorithms=["HS256"])</code></td></tr>
+<tr><td><code>OAuth2PasswordBearer(tokenUrl=)</code></td><td>อ่าน Bearer Token จาก Header</td><td><code>OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")</code></td></tr>
+<tr><td><code>CORSMiddleware</code></td><td>อนุญาต Origin ของ Frontend</td><td><code>app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173"])</code></td></tr>
+<tr><td><code>pip-audit -r FILE</code></td><td>ตรวจ Package ที่มีช่องโหว่ที่รู้จักแล้ว</td><td><code>pip-audit -r requirements.txt</code></td></tr>
+<tr><td><code>secrets.token_urlsafe(n)</code></td><td>สุ่ม Secret ที่ปลอดภัย</td><td><code>python3 -c "import secrets; print(secrets.token_urlsafe(48))"</code></td></tr>
+</tbody></table></div>
+
+<h4>Redis</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>SET key value EX sec</code></td><td>เก็บค่าพร้อมอายุ (TTL)</td><td><code>redis-cli SET stats:user:1 '{"todo":1}' EX 60</code></td></tr>
+<tr><td><code>GET</code> / <code>DEL</code> / <code>EXISTS</code></td><td>อ่าน ลบ และตรวจว่ามี Key</td><td><code>redis-cli EXISTS stats:user:1</code></td></tr>
+<tr><td><code>TTL key</code></td><td>ดูอายุที่เหลือ (-1 ไม่มีอายุ, -2 ไม่มี Key)</td><td><code>redis-cli TTL stats:user:1</code></td></tr>
+<tr><td><code>INCR key</code> + <code>EXPIRE key sec</code></td><td>ตัวนับสำหรับ Rate Limit แบบ Fixed Window</td><td><code>redis-cli INCR rl:login:127.0.0.1</code></td></tr>
+<tr><td><code>SCAN 0 MATCH pattern</code></td><td>ค้น Key แบบไม่ Block Server (ใช้แทน <code>KEYS *</code>)</td><td><code>redis-cli --scan --pattern 'stats:user:*'</code></td></tr>
+<tr><td><code>Redis.from_url(url, decode_responses=True)</code></td><td>สร้าง Client ใน Python ที่คืนค่าเป็น str</td><td><code>redis.Redis.from_url("redis://localhost:6379/0", decode_responses=True)</code></td></tr>
+</tbody></table></div>
+
+<h4>Testing</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>python -m pytest -q</code></td><td>รัน Test ทั้งหมดแบบสรุปสั้น</td><td><code>python -m pytest -q</code></td></tr>
+<tr><td><code>pytest -k EXPR</code> / <code>-x</code></td><td>รันเฉพาะ Test ที่ชื่อตรง และหยุดที่ข้อแรกที่พัง</td><td><code>python -m pytest -k rate_limit -x</code></td></tr>
+<tr><td><code>--cov=PKG --cov-report=term-missing</code></td><td>วัด Coverage และบอกบรรทัดที่ยังไม่ทดสอบ</td><td><code>python -m pytest --cov=app --cov-report=term-missing</code></td></tr>
+<tr><td><code>@pytest.fixture()</code></td><td>เตรียมของที่ Test ใช้ร่วมกัน และเก็บกวาดหลัง yield</td><td><code>def client(db_session, cache): ...</code></td></tr>
+<tr><td><code>app.dependency_overrides[dep] = fn</code></td><td>สลับ Dependency จริงเป็นของทดสอบ</td><td><code>app.dependency_overrides[get_db] = lambda: db_session</code></td></tr>
+<tr><td><code>TestClient(app)</code></td><td>เรียก API ใน Process เดียวกันโดยไม่ต้องเปิด Server</td><td><code>client.post("/api/v1/auth/login", data={...})</code></td></tr>
+</tbody></table></div>
+
+<h4>Docker, CI และ nginx</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>docker compose up -d --build</code></td><td>Build Image แล้วเปิดทุก Service แบบเบื้องหลัง</td><td><code>docker compose up -d --build</code></td></tr>
+<tr><td><code>docker compose run --rm SERVICE CMD</code></td><td>รันคำสั่งครั้งเดียวใน Container ใหม่ แล้วลบทิ้ง</td><td><code>docker compose run --rm api alembic upgrade head</code></td></tr>
+<tr><td><code>docker compose ps</code> / <code>logs -f</code></td><td>ดูสถานะและ Log ของ Service</td><td><code>docker compose logs -f api</code></td></tr>
+<tr><td><code>docker compose down -v</code></td><td>ปิดทุก Service และลบ Volume (ข้อมูลหาย)</td><td><code>docker compose down -v</code></td></tr>
+<tr><td><code>on: push / pull_request</code></td><td>เงื่อนไขที่ทำให้ GitHub Actions ทำงาน</td><td><code>on: { push: { branches: [main] }, pull_request: {} }</code></td></tr>
+<tr><td><code>uses: actions/setup-python@v6</code></td><td>ติดตั้ง Python ใน Runner พร้อม Cache pip</td><td><code>with: { python-version: "3.12", cache: pip }</code></td></tr>
+<tr><td><code>sudo nginx -t</code> / <code>service nginx reload</code></td><td>ตรวจ Config แล้วโหลดใหม่โดยไม่ตัด Connection</td><td><code>sudo nginx -t &amp;&amp; sudo service nginx reload</code></td></tr>
+<tr><td><code>proxy_pass</code> + <code>proxy_set_header</code></td><td>ส่ง Request ต่อไปยัง Uvicorn พร้อม IP จริง</td><td><code>proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;</code></td></tr>
+</tbody></table></div>
+
+<h4>HTTP Status Code ที่ Backend ใช้บ่อย</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>200 OK</code> / <code>201 Created</code> / <code>204 No Content</code></td><td>สำเร็จ / สร้างใหม่สำเร็จ / สำเร็จแต่ไม่มี Body</td><td>GET งาน / POST งาน / DELETE งาน</td></tr>
+<tr><td><code>400</code> / <code>422</code></td><td>Request ผิดรูปแบบ / ข้อมูลไม่ผ่าน Validation</td><td><code>priority: 9</code> ได้ 422</td></tr>
+<tr><td><code>401</code> / <code>403</code></td><td>ไม่รู้ว่าเป็นใคร (ไม่มีหรือ Token เสีย) / รู้ว่าเป็นใครแต่ไม่มีสิทธิ์</td><td>ไม่ส่ง Token ได้ 401, member เรียก admin ได้ 403</td></tr>
+<tr><td><code>404</code> / <code>409</code></td><td>ไม่พบ (รวมถึงของคนอื่น) / ขัดแย้งกับข้อมูลที่มี</td><td>อ่านงานของคนอื่นได้ 404, อีเมลซ้ำได้ 409</td></tr>
+<tr><td><code>429</code></td><td>เรียกบ่อยเกินกำหนด พร้อม <code>Retry-After</code></td><td>Login ผิดครั้งที่ 6 ภายใน 1 นาที</td></tr>
+<tr><td><code>500</code> / <code>502</code> / <code>503</code></td><td>Bug ในแอป / Proxy ติดต่อแอปไม่ได้ / บริการยังไม่พร้อม</td><td>nginx ตอบ 502 เมื่อ Uvicorn ดับ, <code>/health</code> ตอบ 503 เมื่อ Database ดับ</td></tr>
+</tbody></table></div>
+
+<h3 id="s12-4-interview">Interview Questions</h3>
+<p>คำถามด้านล่างผสมระดับ Junior และ Mid-level ที่พบบ่อยในการสัมภาษณ์ตำแหน่ง Backend Developer ลองตอบออกเสียงก่อนเปิดดูแนวคำตอบ และพยายามยกตัวอย่างจาก TaskFlow API ที่คุณสร้างเอง ผู้สัมภาษณ์ให้คะแนนประสบการณ์จริงมากกว่าคำจำกัดความที่ท่องมา</p>
+
+<details class="iq"><summary>1. Authentication กับ Authorization ต่างกันอย่างไร และในโปรเจกต์ของคุณทำแต่ละอย่างที่ตรงไหน (Junior)</summary><div>
+<p><strong>แนวคำตอบ:</strong> Authentication คือการยืนยันว่า "คุณเป็นใคร" ส่วน Authorization คือการตัดสินว่า "คุณทำสิ่งนี้ได้ไหม" ถ้า Authentication ล้มเหลวตอบ 401 พร้อม Header <code>WWW-Authenticate: Bearer</code> ถ้ารู้ตัวตนแล้วแต่ไม่มีสิทธิ์ตอบ 403</p>
+<ul>
+<li><strong>Authentication:</strong> ตอน Login ตรวจรหัสผ่านกับ Argon2 Hash แล้วออก JWT อายุ 30 นาที ทุก Request ถัดไป Dependency <code>get_current_user</code> ตรวจลายเซ็นและ <code>exp</code> แล้วโหลด User จาก Database</li>
+<li><strong>Authorization ระดับ Function:</strong> <code>require_role("admin")</code> ที่ Router ของ admin สมาชิกธรรมดาได้ 403</li>
+<li><strong>Authorization ระดับ Object:</strong> ทุก Query ของงานมี <code>WHERE owner_id = :current_user</code> งานของคนอื่นตอบ 404 แทน 403 เพื่อไม่บอกว่ามี id นั้นอยู่จริง ข้อนี้คือการป้องกัน BOLA ซึ่งเป็นอันดับ 1 ของ OWASP API Security Top 10</li>
+</ul>
+<p>จุดที่ควรพูดเพิ่ม: Role ต้องอ่านจากข้อมูลฝั่ง Server เสมอ ไม่รับจาก Body ของ Request และ Schema ขาเข้าใช้ <code>extra="forbid"</code> จึงส่ง <code>"role": "admin"</code> มาตอนสมัครไม่ได้</p>
+</div></details>
+
+<details class="iq"><summary>2. ทำไมเก็บรหัสผ่านด้วย Argon2 ไม่ใช้ SHA-256 และ JWT มีข้อดีข้อเสียอย่างไร ถ้าต้องการให้ Logout ทันทีจะทำอย่างไร (Junior ถึง Mid)</summary><div>
+<p><strong>รหัสผ่าน:</strong> SHA-256 ออกแบบมาให้เร็ว GPU คำนวณได้หลายพันล้านครั้งต่อวินาที ถ้า Database หลุด ผู้โจมตีเดารหัสผ่านได้เร็วมาก Argon2id ออกแบบให้ช้าและใช้ Memory มาก (Memory-hard) การเดาแต่ละครั้งจึงแพง อีกทั้งใส่ Salt สุ่มให้ทุก Hash รหัสผ่านเดียวกันจึงได้ Hash ต่างกัน ในโปรเจกต์ใช้ <code>pwdlib</code> เพราะ <code>passlib</code> ไม่มีคนดูแลแล้ว</p>
+<p><strong>JWT:</strong> ข้อดีคือ Stateless ทุก Server ตรวจ Token เองได้ด้วย Secret ไม่ต้องถาม Session Store จึงขยายแนวนอนง่าย ข้อเสียคือ Payload แค่ Encode ด้วย Base64 ใครก็อ่านได้ จึงห้ามใส่ข้อมูลลับ และเพิกถอนก่อนหมดอายุไม่ได้โดยตรง</p>
+<p><strong>Logout ทันที:</strong> วิธีที่ใช้กันคือ (1) ให้ Access Token อายุสั้น เช่น 5–30 นาที คู่กับ Refresh Token ที่เก็บ Hash ไว้ใน Database และลบได้ (2) เก็บ Denylist ของ <code>jti</code> ใน Redis โดยตั้ง TTL เท่ากับอายุที่เหลือของ Token หรือ (3) เก็บ <code>token_version</code> ไว้ใน User แล้วเพิ่มค่าเมื่อ Logout ทุกเครื่อง Token เก่าที่มีเวอร์ชันต่ำกว่าจะใช้ไม่ได้ ทุกวิธีแลกความ Stateless บางส่วนกับการควบคุมที่มากขึ้น</p>
+</div></details>
+
+<details class="iq"><summary>3. ปัญหา N+1 Query คืออะไร ตรวจพบได้อย่างไร และแก้อย่างไร (Mid)</summary><div>
+<p><strong>แนวคำตอบ:</strong> N+1 เกิดเมื่อโค้ด Query รายการหลักหนึ่งครั้ง แล้วไปโหลด Relationship ของแต่ละแถวทีละครั้ง เช่น ดึง User 100 คนแล้ววนอ่าน <code>user.tasks</code> SQLAlchemy จะ Lazy Load ทำให้เกิด 1 + 100 Query แม้แต่ละ Query จะเร็ว แต่ Round-trip ไป Database รวมกันทำให้ช้ามากเมื่อข้อมูลโต</p>
+<ul>
+<li><strong>ตรวจพบ:</strong> เปิด <code>echo=True</code> ตอนพัฒนา, นับ Query ด้วย Event ของ SQLAlchemy ใน Test, หรือดู APM/Tracing ที่แสดงจำนวน Span ของ Database ต่อหนึ่ง Request</li>
+<li><strong>แก้:</strong> <code>selectinload(User.tasks)</code> ได้ 2 Query (ดึง User แล้วดึง Task ทั้งหมดด้วย <code>WHERE owner_id IN (...)</code>) เหมาะกับ One-to-Many ส่วน <code>joinedload</code> ได้ Query เดียวด้วย JOIN เหมาะกับ Many-to-One</li>
+<li><strong>ป้องกัน:</strong> ตั้ง <code>lazy="raise"</code> ใน Relationship เพื่อให้ Error ทันทีถ้าโค้ดเผลอ Lazy Load และเขียน Test ที่ตรวจจำนวน Query ของ Endpoint สำคัญ</li>
+</ul>
+<p>ควรพูดเรื่อง Index ต่อ: ใน TaskFlow มี Composite Index <code>(owner_id, status)</code> ตรงกับ Query หลัก ตรวจได้ด้วย <code>EXPLAIN</code> ว่า PostgreSQL ใช้ Index Scan แทน Seq Scan เมื่อข้อมูลมากพอ</p>
+</div></details>
+
+<details class="iq"><summary>4. อธิบาย Cache-aside และวิธีจัดการ Invalidation ถ้า Redis ล่มระบบควรทำอย่างไร (Mid)</summary><div>
+<p><strong>แนวคำตอบ:</strong> Cache-aside คือแอปเป็นผู้จัดการ Cache เอง เมื่ออ่าน ให้ดู Cache ก่อน ถ้าไม่มี (Miss) ให้อ่านจาก Database แล้วเขียนลง Cache พร้อม TTL ครั้งต่อไปจะ Hit ใน TaskFlow <code>GET /tasks/stats</code> ใช้ Key <code>stats:user:{id}</code> อายุ 60 วินาที และตอบฟิลด์ <code>cached</code> ให้เห็นผล</p>
+<ul>
+<li><strong>Invalidation:</strong> ลบ Key ทันทีเมื่อสร้าง แก้ หรือลบงาน และมี TTL เป็นตาข่ายรองรับกรณีลืมลบ ทำให้ข้อมูลเก่า (Stale) อยู่ได้นานสุด 60 วินาที</li>
+<li><strong>Key ต้องแยกตามผู้ใช้:</strong> ถ้าใช้ Key รวม ข้อมูลของคนหนึ่งจะรั่วไปให้อีกคน</li>
+<li><strong>Redis ล่ม:</strong> Cache เป็นแค่ตัวเร่ง จึงต้อง Fail gracefully คลาส <code>Cache</code> จับ <code>RedisError</code> แล้วอ่านจาก Database แทน พร้อม Log WARNING และตั้ง Timeout สั้นเพื่อไม่ให้ Request ค้าง</li>
+<li><strong>Cache Stampede:</strong> เมื่อ Key ยอดนิยมหมดอายุพร้อมกัน Request จำนวนมากจะไปถล่ม Database พร้อมกัน แก้ด้วยการสุ่ม TTL (Jitter), ใช้ Lock ให้มีคนคำนวณใหม่คนเดียว หรือ Refresh ล่วงหน้าก่อนหมดอายุ</li>
+</ul>
+<p>ควรบอกด้วยว่าไม่ควร Cache ทุกอย่าง เลือกเฉพาะข้อมูลที่อ่านบ่อย คำนวณแพง และยอมรับความล่าช้าได้ ส่วน HTTP Cache (<code>Cache-Control</code>, <code>ETag</code>) เป็นอีกชั้นที่ให้ Browser หรือ CDN ช่วย</p>
+</div></details>
+
+<details class="iq"><summary>5. ถ้า API ต้องรองรับผู้ใช้เพิ่มขึ้น 10 เท่า คุณจะ Deploy และ Scale อย่างไร (Mid)</summary><div>
+<p><strong>แนวคำตอบที่ดีเริ่มจากการวัดก่อน:</strong> ดู Metrics ว่าคอขวดอยู่ที่ไหน (CPU ของแอป, Database, หรือ Network) ด้วย Latency p95/p99, Error Rate และ Throughput แล้วจึงตัดสินใจ</p>
+<ol>
+<li><strong>แอปต้อง Stateless:</strong> ไม่เก็บ Session ใน Memory ใช้ JWT และเก็บ State ที่ใช้ร่วมกัน (Cache, Rate Limit) ใน Redis จึงเพิ่มจำนวน Instance ได้ทันที</li>
+<li><strong>Horizontal Scaling:</strong> รันหลาย Container หรือหลายเครื่อง หลัง Load Balancer ที่ใช้ <code>/health</code> ตัดสินใจว่าส่งงานให้ใคร ในแต่ละเครื่องใช้ Uvicorn หลาย Worker</li>
+<li><strong>Database:</strong> ใส่ Index ให้ Query ที่ช้า, ใช้ Connection Pooler อย่าง PgBouncer เพราะ Instance ที่เพิ่มขึ้นจะเปิด Connection มากจน PostgreSQL รับไม่ไหว, แยก Read Replica สำหรับงานอ่าน</li>
+<li><strong>Cache หลายชั้น:</strong> Redis สำหรับผลคำนวณ และ CDN สำหรับไฟล์ Static หรือ Response สาธารณะ</li>
+<li><strong>งานหนักแยกออกไป:</strong> อีเมล รายงาน หรือการประมวลผลไฟล์ ส่งเข้าคิว (RQ, Celery, RabbitMQ, SQS) ให้ Worker ทำ API จะตอบเร็วขึ้น</li>
+<li><strong>การ Deploy:</strong> Build Image ใน CI, รัน Migration แบบ Backward-compatible ก่อนเปลี่ยนโค้ด, ใช้ Rolling Deploy ที่รอ Health Check ผ่านก่อนตัด Instance เก่า และเก็บ Log แบบ JSON พร้อม <code>request_id</code> เพื่อไล่ปัญหาข้าม Instance</li>
+</ol>
+<p>แนวคิดเดียวกันใช้ได้กับ Node.js (Express 5 หรือ Fastify 5 กับ PM2 หรือ Container) และ Go (<code>net/http</code> ที่ใช้หลาย Core ได้ในหนึ่ง Process) ภาษาเปลี่ยน แต่หลัก Stateless, Health Check, Pooling, Cache และ Queue ยังเหมือนเดิม</p>
+</div></details>
+
+<h3 id="s12-4-resources">แหล่งเรียนต่อ</h3>
+<ul class="res">
+<li><a href="https://fastapi.tiangolo.com/" target="_blank" rel="noopener">FastAPI Documentation</a> – เอกสารทางการ มี Tutorial ทีละขั้นตั้งแต่ Path Parameter จนถึง Security, Dependency, Testing และ Deployment ควรอ่านส่วน Advanced User Guide ต่อหลังจบหัวข้อนี้ <span class="pill">ฟรี</span></li>
+<li><a href="https://docs.sqlalchemy.org/" target="_blank" rel="noopener">SQLAlchemy Documentation</a> – คู่มือ ORM และ Core แบบ 2.0 Style มีบท Unified Tutorial และเรื่อง Relationship Loading ที่ช่วยแก้ปัญหา N+1 <span class="pill">ฟรี</span></li>
+<li><a href="https://alembic.sqlalchemy.org/" target="_blank" rel="noopener">Alembic Documentation</a> – วิธีเขียนและตรวจ Migration รวมถึงข้อจำกัดของ Autogenerate ที่ต้องรู้ก่อนใช้กับ Production <span class="pill">ฟรี</span></li>
+<li><a href="https://www.postgresql.org/docs/16/" target="_blank" rel="noopener">PostgreSQL 16 Documentation</a> – เอกสารทางการของเวอร์ชันที่ใช้ บท Indexes และ Using EXPLAIN สำคัญมากสำหรับ Backend <span class="pill">ฟรี</span></li>
+<li><a href="https://redis.io/docs/latest/" target="_blank" rel="noopener">Redis Documentation</a> – คำสั่งทั้งหมดของ Redis พร้อมความซับซ้อนของแต่ละคำสั่ง และรูปแบบการใช้ทำ Cache กับ Rate Limit <span class="pill">ฟรี</span></li>
+<li><a href="https://docs.pytest.org/" target="_blank" rel="noopener">pytest Documentation</a> – Fixture, Parametrize และ Plugin ที่ช่วยเขียน Test ให้สั้นและอ่านง่าย <span class="pill">ฟรี</span></li>
+<li><a href="https://owasp.org/API-Security/" target="_blank" rel="noopener">OWASP API Security Project</a> – รายละเอียดของ API Security Top 10 (2023) แต่ละข้อมีตัวอย่างการโจมตีและวิธีป้องกัน ฝึกเฉพาะกับระบบของตัวเองตาม พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์ <span class="pill">ฟรี</span></li>
+<li><a href="https://docs.docker.com/compose/" target="_blank" rel="noopener">Docker Compose Documentation</a> – Syntax ของ <code>compose.yaml</code>, Healthcheck, Volume และ Network ระหว่าง Service <span class="pill">ฟรี</span></li>
+<li><a href="https://docs.github.com/en/actions" target="_blank" rel="noopener">GitHub Actions Documentation</a> – สร้าง Workflow, ใช้ Secrets, Service Container สำหรับ PostgreSQL ใน CI และเตรียมสอบ GH-200 <span class="pill">ฟรี</span></li>
+<li><a href="https://roadmap.sh/backend" target="_blank" rel="noopener">roadmap.sh Backend</a> – แผนที่ทักษะ Backend ทั้งหมด ใช้ตรวจว่าคุณยังขาดหัวข้อไหน เช่น Message Broker หรือ Search Engine <span class="pill">ฟรี</span></li>
+<li><a href="https://12factor.net/" target="_blank" rel="noopener">The Twelve-Factor App</a> – หลักการออกแบบแอปที่ Deploy ง่าย เช่น Config ใน Environment, Stateless Process และ Dev/Prod Parity ซึ่งโปรเจกต์นี้ใช้ทั้งหมด <span class="pill">ฟรี</span></li>
+<li><a href="https://aws.amazon.com/certification/" target="_blank" rel="noopener">AWS Certification</a> – ข้อมูลการสอบ AWS Certified Cloud Practitioner (CLF-C02) และ Developer Associate (DVA-C02 สอบได้ถึง 2026-11-30 จากนั้นเป็น DVA-C03 ตั้งแต่ 2026-12-01) ค่าสอบและวันที่อาจเปลี่ยน ตรวจที่หน้านี้ก่อนสมัคร <span class="pill">มีค่าใช้จ่าย</span></li>
+</ul>
+
+<div class="callout"><span class="c-label check">Checkpoint</span><p>คุณจบหัวข้อ Backend เมื่อทำสิ่งเหล่านี้ได้ด้วยตัวเอง: สร้าง REST API ด้วย FastAPI ที่มี Authentication ด้วย Argon2 + JWT และตรวจสิทธิ์ทั้งระดับ Role และระดับเจ้าของข้อมูล, เก็บข้อมูลใน PostgreSQL ผ่าน SQLAlchemy 2 และจัดการโครงสร้างด้วย Alembic, ใส่ Redis Cache ที่ทนต่อ Redis ล่ม, เขียน Test ด้วย pytest ที่ผ่านทั้งหมดใน CI, รันแอปหลัง nginx และอธิบายได้ว่าจะ Scale ระบบนี้อย่างไร</p></div>
+</section>

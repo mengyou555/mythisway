@@ -1,0 +1,1355 @@
+<section class="part" data-part="1">
+  <h2 id="s6-1"><span class="sec-no">6.1</span>Learning Roadmap</h2>
+
+  <h3 id="s6-1-overview">ภาพรวมเส้นทาง</h3>
+  <p>Go (หรือที่หลายคนเรียกว่า Golang) เป็นภาษาที่ Google ออกแบบให้ <strong>อ่านง่าย คอมไพล์เร็ว และรันเร็ว</strong> จุดเด่นที่สุดคือเรื่อง Concurrency คือการทำหลายงานพร้อมกันด้วย Goroutine และ Channel ทำให้ Go ถูกใช้มากในงาน Backend, Cloud, DevOps และเครื่องมือสาย Security กับ Network เครื่องมือดังอย่าง Docker, Kubernetes, Terraform และ Prometheus ก็เขียนด้วย Go</p>
+  <p>หัวข้อนี้เป็น <strong>ภาษาที่สองฝั่ง Backend</strong> ต่อจาก Node.js และ Python คุณเข้าใจ HTTP, REST, JSON และฐานข้อมูลมาแล้ว จึงโฟกัสที่ "วิธีคิดแบบ Go" ได้เต็มที่ เส้นทางนี้มี 13 ขั้น ใช้เวลาประมาณ <strong>60–90 ชั่วโมง</strong> (รวม Mini Project) ถ้าเรียนสัปดาห์ละ 7–8 ชั่วโมงจะจบในราว 10–12 สัปดาห์</p>
+  <ol class="rm-overview">
+    <li><span class="lvl" data-lvl="b">Beginner</span> Step 1 · ติดตั้ง Go 1.27.2, Go Modules และคำสั่ง <code>go</code></li>
+    <li><span class="lvl" data-lvl="b">Beginner</span> Step 2 · ตัวแปร, Type, Zero Value, Constant และ Control Flow</li>
+    <li><span class="lvl" data-lvl="b">Beginner</span> Step 3 · Function, Closure และการจัดการ Error แบบ Go</li>
+    <li><span class="lvl" data-lvl="b">Beginner</span> Step 4 · Array, Slice, Map และ String</li>
+    <li><span class="lvl" data-lvl="i">Intermediate</span> Step 5 · Struct, Method และ Pointer</li>
+    <li><span class="lvl" data-lvl="i">Intermediate</span> Step 6 · Interface, Package และการจัดโครงสร้างโปรเจกต์</li>
+    <li><span class="lvl" data-lvl="i">Intermediate</span> Step 7 · Generics (Type Parameters และ Constraints)</li>
+    <li><span class="lvl" data-lvl="i">Intermediate</span> Step 8 · Testing: Table-driven Test, Subtest, Benchmark และ Coverage</li>
+    <li><span class="lvl" data-lvl="i">Intermediate</span> Step 9 · สร้าง CLI: flag, File I/O, encoding/json และ log/slog</li>
+    <li><span class="lvl" data-lvl="a">Advanced</span> Step 10 · Goroutine, Channel และ select</li>
+    <li><span class="lvl" data-lvl="a">Advanced</span> Step 11 · sync, Data Race และ Worker Pool</li>
+    <li><span class="lvl" data-lvl="a">Advanced</span> Step 12 · context, HTTP Client, Timeout และ Retry</li>
+    <li><span class="lvl" data-lvl="a">Advanced</span> Step 13 · HTTP Server (Routing แบบ Go 1.22+), httptest, Build และ Cross-compile</li>
+  </ol>
+  <div class="callout note"><span class="c-label note">หมายเหตุ</span><p>ตัวอย่างโค้ดทุกชิ้นใน Part นี้ทดสอบจริงด้วย Go 1.27.2 บน Linux และผลลัพธ์ที่แสดงคือผลที่ได้จริง ค่าที่ขึ้นกับเครื่อง เช่น เวลา, path และตัวเลข Benchmark บนเครื่องของคุณจะต่างไป ซึ่งเป็นเรื่องปกติ</p></div>
+
+  <h3 id="s6-1-what">Go คืออะไร และเหมาะกับงานแบบไหน</h3>
+  <p>Go เปิดตัวเป็น Open Source ในปี 2009 ผู้ออกแบบต้องการภาษาที่ทีมใหญ่ใช้ร่วมกันได้ง่าย โค้ดของทุกคนหน้าตาเหมือนกัน (เพราะมี <code>gofmt</code> จัดรูปแบบให้) และได้โปรแกรมที่รันเร็วใกล้เคียงภาษาที่คอมไพล์เป็น Machine Code โดยตรง</p>
+  <div class="tbl wide"><table>
+    <thead><tr><th>คุณสมบัติ</th><th>Go</th><th>Python</th><th>Node.js (TypeScript)</th></tr></thead>
+    <tbody>
+      <tr><td>การรันโปรแกรม</td><td>คอมไพล์เป็นไฟล์ Binary ไฟล์เดียว ไม่ต้องติดตั้ง Runtime บนเครื่องปลายทาง</td><td>ต้องมี Python Interpreter และ Package บนเครื่อง</td><td>ต้องมี Node.js และ <code>node_modules</code></td></tr>
+      <tr><td>Type</td><td>Static Type ตรวจตอนคอมไพล์</td><td>Dynamic Type (มี Type Hint ช่วย)</td><td>TypeScript ตรวจตอนคอมไพล์ แต่ตอนรันเป็น JavaScript</td></tr>
+      <tr><td>Concurrency</td><td>Goroutine + Channel ใช้ได้ทุก CPU Core ในโปรเซสเดียว</td><td>asyncio, Thread (มีข้อจำกัด GIL ในเวอร์ชันมาตรฐาน)</td><td>Event Loop เธรดเดียว ใช้ Worker Thread เมื่อต้องการหลาย Core</td></tr>
+      <tr><td>Standard Library</td><td>ครบมาก มี HTTP Server, JSON, Testing, Crypto ในตัว</td><td>ครบมาก</td><td>ปานกลาง พึ่ง npm Package บ่อย</td></tr>
+      <tr><td>งานที่เด่น</td><td>Backend API, Microservice, CLI, DevOps Tool, Network/Security Tool</td><td>Data, AI, Scripting, Backend</td><td>Web Full-stack, Real-time, Backend</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ถ้า Python เหมือนรถเก๋งที่ขับง่ายและมีของแต่งเยอะ Go ก็เหมือนรถกระบะที่ออกแบบมาเพื่อทำงาน ปุ่มน้อย ใช้ง่าย บรรทุกงานหนักได้หลายอย่างพร้อมกัน และซ่อมบำรุงง่าย คนในทีมคนไหนมาขับก็ขับได้เหมือนกัน</p></div>
+  <p>สิ่งที่ Go <strong>ตั้งใจไม่มี</strong> ก็สำคัญพอกัน เช่น ไม่มี Class และ Inheritance (ใช้ Struct + Interface + Embedding แทน), ไม่มี Exception (Error เป็นค่าธรรมดาที่ฟังก์ชันคืนออกมา), ไม่มี <code>while</code> (ใช้ <code>for</code> อย่างเดียว) การรู้ข้อนี้ตั้งแต่ต้นช่วยให้ไม่พยายามเขียน Go ให้เหมือน Java หรือ Python</p>
+
+  <h3 id="s6-1-versions">เวอร์ชันของ Go ที่หลักสูตรนี้ใช้</h3>
+  <div class="tbl wide"><table>
+    <thead><tr><th>รายการ</th><th>ค่าที่ใช้</th><th>หมายเหตุ</th></tr></thead>
+    <tbody>
+      <tr><td>Go</td><td class="nw">1.27.2</td><td>เวอร์ชันล่าสุดของสาย 1.27 ออกเมื่อ 2026-10-08 ติดตั้งจาก Tarball ทางการที่ go.dev เพราะ Go ที่ได้จาก <code>apt</code> ของ Ubuntu 24.04 เก่ากว่ามาก</td></tr>
+      <tr><td>ระบบปฏิบัติการ</td><td class="nw">Ubuntu 24.04 LTS (WSL2)</td><td>ติดตั้งด้วย <code>wsl --install -d Ubuntu-24.04</code> ตามหัวข้อ Linux</td></tr>
+      <tr><td>บรรทัด <code>go</code> ใน <code>go.mod</code></td><td class="nw">go 1.27.2</td><td><code>go mod init</code> ของ Go 1.27.2 เขียนบรรทัดนี้ให้อัตโนมัติ</td></tr>
+      <tr><td>Editor</td><td class="nw">VS Code + Go extension</td><td>ใช้ gopls เป็น Language Server (ทดสอบกับ gopls v0.24.0)</td></tr>
+      <tr><td>Git</td><td class="nw">2.43.0</td><td>จาก <code>apt</code> ใช้เก็บโค้ดทุกขั้นขึ้น GitHub</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout warn"><span class="c-label warn">ระวัง</span><p>บทความและวิดีโอเก่าจำนวนมากยังใช้ <code>GOPATH</code> mode (เก็บโค้ดใน <code>~/go/src</code>) ซึ่งเลิกใช้ไปนานแล้ว หลักสูตรนี้ใช้ <strong>Go Modules</strong> ทั้งหมด คือมีไฟล์ <code>go.mod</code> ในทุกโปรเจกต์ และเก็บโปรเจกต์ไว้ที่ไหนก็ได้ เช่น <code>~/projects/go-lab</code></p></div>
+
+  <h3 id="s6-1-prereq">Prerequisites: ต้องรู้อะไรมาก่อน</h3>
+  <p>Go เรียนได้ตั้งแต่ศูนย์ก็จริง แต่หัวข้อนี้วางไว้ลำดับที่ 12 ของหลักสูตร เพื่อให้คุณมีพื้นที่ต่อยอดได้เร็ว ก่อนเริ่มควรผ่านหัวข้อเหล่านี้</p>
+  <div class="tbl wide"><table>
+    <thead><tr><th>หัวข้อ</th><th>สิ่งที่ต้องใช้ในหัวข้อ Go</th><th>ความจำเป็น</th></tr></thead>
+    <tbody>
+      <tr><td><a data-t="19"></a></td><td>ใช้ Terminal ใน WSL, <code>cd</code>, <code>ls</code>, <code>mkdir</code>, แก้ไฟล์ <code>~/.bashrc</code>, เข้าใจ <code>PATH</code>, ใช้ <code>sudo</code>, <code>tar</code>, <code>wget</code>, <code>curl</code> และ Exit Code</td><td>จำเป็น</td></tr>
+      <tr><td><a data-t="17"></a></td><td><code>git init</code>, <code>commit</code>, <code>push</code>, เขียน <code>.gitignore</code> และสร้าง Repository บน GitHub เพราะ Module Path ของ Go มักเป็นชื่อ Repository เช่น <code>github.com/somchai/gohealth</code></td><td>จำเป็น</td></tr>
+      <tr><td><a data-t="9"></a></td><td>ตัวแปร, เงื่อนไข, Loop, Function, List/Dict และการคิดแบบโปรแกรมเมอร์ ใช้เป็นจุดเทียบเวลาเรียน Syntax ของ Go</td><td>จำเป็น</td></tr>
+      <tr><td><a data-t="8"></a></td><td>HTTP Method, Status Code, JSON และการออกแบบ REST Endpoint ใช้ใน Step 12–13</td><td>ควรมี</td></tr>
+      <tr><td><a data-t="12"></a></td><td>แนวคิด Client-Server, Middleware, Logging, Timeout และ Health Check ทำให้เข้าใจว่าทำไม Go ออกแบบ <code>net/http</code> แบบนี้</td><td>ควรมี</td></tr>
+      <tr><td><a data-t="13"></a> และ <a data-t="15"></a></td><td>เคยเห็น Async/Await และ Static Type มาก่อน จะเทียบกับ Goroutine และ Type ของ Go ได้ง่ายขึ้น</td><td>ช่วยได้</td></tr>
+      <tr><td><a data-t="14"></a></td><td>ใช้เมื่อต่อยอดไปเชื่อมฐานข้อมูลด้วย <code>database/sql</code> หรือ pgx</td><td>ช่วยได้</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนเริ่ม คุณต้องทำสิ่งเหล่านี้ได้: เปิด Ubuntu 24.04 ใน WSL แล้วสร้างโฟลเดอร์ <code>~/projects</code>, แก้ไฟล์ <code>~/.bashrc</code> แล้วสั่ง <code>source ~/.bashrc</code>, อธิบายได้ว่า <code>PATH</code> คืออะไร, ใช้ <code>curl -i</code> เรียก URL แล้วอ่าน Status Code ได้ และ Push โปรเจกต์ขึ้น GitHub ได้เอง</p></div>
+
+  <h3 id="s6-1-method">วิธีเรียนหัวข้อนี้ให้ได้ผล</h3>
+  <ul>
+    <li><strong>ใช้โปรเจกต์ฝึกเดียวตลอดเส้นทาง</strong> สร้าง <code>~/projects/go-lab</code> เป็น Module ชื่อ <code>example.com/go-lab</code> แล้วเก็บตัวอย่างของแต่ละขั้นไว้ที่ <code>roadmap/step01/main.go</code>, <code>roadmap/step02/main.go</code> ไปเรื่อย ๆ รันด้วย <code>go run ./roadmap/step02</code></li>
+    <li><strong>พิมพ์โค้ดเอง อย่าคัดลอก</strong> Go เข้มงวดเรื่องตัวแปรที่ประกาศแล้วไม่ใช้ และ Import ที่ไม่ใช้ การเจอ Error เหล่านี้ด้วยตัวเองคือการเรียนรู้ที่ดีที่สุด</li>
+    <li><strong>รัน <code>gofmt</code> และ <code>go vet</code> ทุกครั้งก่อน Commit</strong> ให้เป็นนิสัยตั้งแต่ Step 1 เพราะในงานจริง CI จะตรวจสองคำสั่งนี้เสมอ</li>
+    <li><strong>อ่าน Error Message ให้จบ</strong> Error ของ Go บอกชื่อไฟล์และเลขบรรทัดชัดเจน เช่น <code>./main.go:9:2: declared and not used: x</code></li>
+    <li><strong>เขียน Test ตั้งแต่ Step 8 เป็นต้นไป</strong> ทุกฟังก์ชันที่มี Logic ควรมี Table-driven Test อย่างน้อยหนึ่งชุด</li>
+    <li><strong>ทำ Checkpoint ให้ผ่านจริง</strong> ก่อนขึ้นขั้นใหม่ ถ้ายังทำไม่ได้ ให้ย้อนกลับไปทำแบบฝึกหัดใน Part 3 ของหัวข้อนี้</li>
+  </ul>
+
+  <h3 id="s6-1-beginner"><span class="lvl" data-lvl="b">Beginner</span> ปูพื้นภาษา: เครื่องมือ, Syntax, Function, Error และ Collection</h3>
+  <p>ระดับ Beginner มี 4 ขั้น ใช้เวลารวมประมาณ 20–26 ชั่วโมง เป้าหมายคือเขียนโปรแกรม Go สั้น ๆ ที่อ่านง่าย จัดการ Error ถูกวิธี และใช้ Slice กับ Map ได้คล่อง โดยยังไม่ต้องแตะ Concurrency</p>
+
+  <article class="rm-step" data-lvl="b">
+    <header><span class="rm-no">STEP 1</span><h4>ติดตั้ง Go 1.27.2, Go Modules และคำสั่ง go</h4><span class="rm-time">สัปดาห์ที่ 1 · 4–5 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li>ตรวจสถาปัตยกรรม CPU ด้วย <code>uname -m</code> (<code>x86_64</code> ใช้ไฟล์ <code>linux-amd64</code>, <code>aarch64</code> ใช้ไฟล์ <code>linux-arm64</code>)</li>
+        <li>ดาวน์โหลด Tarball ทางการจาก go.dev แตกไฟล์ไว้ที่ <code>/usr/local/go</code> แล้วเพิ่ม <code>/usr/local/go/bin</code> และ <code>$HOME/go/bin</code> ลงใน <code>PATH</code></li>
+        <li>Go Module คืออะไร: <code>go mod init</code>, ไฟล์ <code>go.mod</code>, ไฟล์ <code>go.sum</code> และ Module Path</li>
+        <li>โครงสร้างไฟล์ <code>.go</code>: <code>package main</code>, <code>import</code>, <code>func main()</code></li>
+        <li>คำสั่งหลัก: <code>go run</code> (คอมไพล์แล้วรันทันที), <code>go build</code> (สร้าง Binary), <code>go install</code> (ติดตั้ง Binary ไปที่ <code>~/go/bin</code>)</li>
+        <li>เครื่องมือคุณภาพโค้ด: <code>gofmt -l .</code>, <code>gofmt -w .</code>, <code>go vet ./...</code> และ <code>go env</code></li>
+        <li>ติดตั้ง VS Code บน Windows ต่อเข้า WSL ด้วยส่วนขยาย WSL แล้วติดตั้ง Go extension ซึ่งจะติดตั้ง gopls ให้</li>
+        <li>อ่านเอกสารด้วย <code>go doc fmt.Println</code> และเว็บ pkg.go.dev</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>ทุกอย่างในหัวข้อนี้เริ่มจาก <code>go.mod</code> และคำสั่ง <code>go</code> ถ้าเข้าใจตั้งแต่แรกว่า Module คืออะไรและ <code>go run</code> ต่างจาก <code>go build</code> อย่างไร จะไม่ติดปัญหา "package not found" หรือ "command not found" ในขั้นถัดไป และ <code>gofmt</code>/<code>go vet</code> คือมาตรฐานที่ทีม Go ทุกทีมใช้</dd>
+      <dt>ใช้เวลา</dt>
+      <dd>4–5 ชั่วโมง: ติดตั้งและตั้งค่า 1.5 ชม., ทดลองคำสั่ง go 1.5 ชม., ตั้งค่า VS Code และอ่าน Tour of Go ส่วนแรก 1–2 ชม.</dd>
+    </dl>
+    <p>ติดตั้ง Go 1.27.2 จาก Tarball ทางการ (ตัวอย่างนี้สำหรับเครื่อง <code>x86_64</code> ถ้า <code>uname -m</code> ตอบ <code>aarch64</code> ให้เปลี่ยน <code>amd64</code> เป็น <code>arm64</code>)</p>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ตรวจสถาปัตยกรรมของเครื่อง
+uname -m
+
+# ดาวน์โหลด Go 1.27.2 แล้วแตกไฟล์ไว้ที่ /usr/local/go (ลบเวอร์ชันเก่าก่อนเสมอ)
+cd ~
+wget https://go.dev/dl/go1.27.2.linux-amd64.tar.gz
+sudo rm -rf /usr/local/go &amp;&amp; sudo tar -C /usr/local -xzf go1.27.2.linux-amd64.tar.gz
+
+# เพิ่ม PATH ถาวร แล้วโหลด .bashrc ใหม่
+echo 'export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin' &gt;&gt; ~/.bashrc
+source ~/.bashrc
+
+# ตรวจเวอร์ชัน
+go version</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>x86_64
+go version go1.27.2 linux/amd64</code></pre>
+    <div class="callout sec"><span class="c-label sec">Security</span><p>ดาวน์โหลด Go จาก <code>https://go.dev/dl/</code> เท่านั้น หน้านั้นแสดงค่า SHA256 ของแต่ละไฟล์ ตรวจได้ด้วย <code>sha256sum go1.27.2.linux-amd64.tar.gz</code> แล้วเทียบกับค่าบนเว็บ อย่าใช้ Go จาก <code>apt</code> ของ Ubuntu 24.04 ในหลักสูตรนี้ เพราะเป็นเวอร์ชันเก่าที่ไม่มีฟีเจอร์หลายอย่างที่เราใช้</p></div>
+    <p>สร้างโปรเจกต์ฝึกที่จะใช้ตลอดเส้นทาง แล้วเขียนโปรแกรมแรก</p>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/go-lab/roadmap/step01
+cd ~/projects/go-lab
+go mod init example.com/go-lab
+cat go.mod</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>go: creating new go.mod: module example.com/go-lab
+module example.com/go-lab
+
+go 1.27.2</code></pre>
+    <pre class="code" data-env="file" data-label="Go · roadmap/step01/main.go"><code class="language-go">package main
+
+import (
+	"fmt"
+	"runtime"
+)
+
+func main() {
+	// พิมพ์ข้อความทักทาย
+	fmt.Println("สวัสดี Go!")
+	// แสดงเวอร์ชันของ Go และระบบปฏิบัติการที่กำลังใช้
+	fmt.Println("Go version:", runtime.Version())
+	fmt.Println("OS/Arch:", runtime.GOOS+"/"+runtime.GOARCH)
+}</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+gofmt -l .                       # ไม่แสดงอะไร = จัดรูปแบบถูกต้องแล้ว
+go vet ./...                     # ไม่แสดงอะไร = ไม่พบจุดน่าสงสัย
+go run ./roadmap/step01          # คอมไพล์และรันทันที
+go build -o hello ./roadmap/step01 &amp;&amp; ./hello   # สร้างไฟล์ Binary ชื่อ hello แล้วรัน</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>สวัสดี Go!
+Go version: go1.27.2
+OS/Arch: linux/amd64
+สวัสดี Go!
+Go version: go1.27.2
+OS/Arch: linux/amd64</code></pre>
+    <div class="callout warn"><span class="c-label warn">ระวัง</span><p>ถ้าพิมพ์ <code>go version</code> แล้วได้ <code>Command 'go' not found</code> แปลว่ายังไม่ได้เพิ่ม <code>PATH</code> หรือยังไม่ได้สั่ง <code>source ~/.bashrc</code> ถ้าได้ <code>go: cannot find main module, but found .git/config</code> หรือ <code>go: go.mod file not found in current directory</code> แปลว่ายังไม่ได้ <code>cd</code> เข้าโฟลเดอร์ที่มี <code>go.mod</code> หรือยังไม่ได้สั่ง <code>go mod init</code></p></div>
+    <div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: <code>go version</code> แสดง <code>go1.27.2</code>, สร้าง Module ใหม่ด้วย <code>go mod init</code> และอธิบายได้ว่าแต่ละบรรทัดใน <code>go.mod</code> หมายถึงอะไร, รันโปรแกรมด้วย <code>go run</code> และสร้าง Binary ด้วย <code>go build -o</code>, บอกความต่างของ <code>go run</code>, <code>go build</code> และ <code>go install</code> และใช้ <code>gofmt -l .</code> กับ <code>go vet ./...</code> ตรวจโค้ดได้</p></div>
+  </article>
+
+  <article class="rm-step" data-lvl="b">
+    <header><span class="rm-no">STEP 2</span><h4>ตัวแปร, Type, Zero Value, Constant และ Control Flow</h4><span class="rm-time">สัปดาห์ที่ 1–2 · 5–7 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li>ประกาศตัวแปร 3 แบบ: <code>var x int</code>, <code>var x = 5</code> และ <code>x := 5</code> (แบบสุดท้ายใช้ได้เฉพาะในฟังก์ชัน)</li>
+        <li>Basic Types: <code>int</code>, <code>int64</code>, <code>float64</code>, <code>string</code>, <code>bool</code>, <code>byte</code>, <code>rune</code> และการแปลง Type แบบ Explicit เช่น <code>float64(n)</code></li>
+        <li>Zero Value: ตัวแปรที่ไม่กำหนดค่าจะได้ <code>0</code>, <code>""</code>, <code>false</code> หรือ <code>nil</code> เสมอ ไม่มีค่าขยะ</li>
+        <li>Constant และ <code>iota</code> สำหรับสร้างค่าที่เรียงกัน เช่น สถานะ Up/Down/Unknown</li>
+        <li><code>if</code> แบบมีคำสั่งเริ่มต้น เช่น <code>if v, ok := m[k]; ok { ... }</code></li>
+        <li><code>for</code> คือ Loop เดียวของ Go: แบบ 3 ส่วน, แบบเงื่อนไขอย่างเดียว (แทน while), แบบไม่สิ้นสุด และ <code>for i := range 3</code> (range over int ตั้งแต่ Go 1.22)</li>
+        <li><code>switch</code> ที่ไม่ต้องใส่ <code>break</code>, <code>switch</code> แบบไม่มีนิพจน์ (ใช้แทน if-else ยาว ๆ) และ <code>fallthrough</code></li>
+        <li>Error ที่มือใหม่เจอบ่อย: <code>declared and not used</code> และ <code>"os" imported and not used</code></li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>Syntax ของ Go มีน้อยแต่เข้มงวด ถ้าเข้าใจ Zero Value จะเขียนโค้ดสั้นลงมาก (ไม่ต้องตั้งค่าเริ่มต้นเอง) และถ้าคุ้นกับ <code>for</code> แบบต่าง ๆ จะอ่านโค้ด Go ของคนอื่นได้ทันที ทุกขั้นที่เหลือใช้เรื่องเหล่านี้ตลอด</dd>
+      <dt>ใช้เวลา</dt>
+      <dd>5–7 ชั่วโมง: อ่านและทดลอง Syntax 3 ชม., ทำแบบฝึกใน Tour of Go ส่วน Basics และ Flow control 2–3 ชม., เขียนโปรแกรมเล็กของตัวเอง 1 ชม.</dd>
+    </dl>
+    <pre class="code" data-env="file" data-label="Go · roadmap/step02/main.go"><code class="language-go">package main
+
+import "fmt"
+
+// ประกาศ constant กลุ่มสถานะด้วย iota (เริ่มที่ 0 แล้วเพิ่มทีละ 1)
+const (
+	StatusUp = iota
+	StatusDown
+	StatusUnknown
+)
+
+func main() {
+	// ตัวแปรที่ไม่กำหนดค่าจะได้ Zero Value
+	var count int
+	var name string
+	var ok bool
+	fmt.Printf("count=%d name=%q ok=%t\n", count, name, ok)
+
+	// := ประกาศพร้อมกำหนดค่า (ใช้ได้เฉพาะในฟังก์ชัน)
+	site := "example.com"
+	timeoutSec := 5
+	fmt.Println(site, "timeout", timeoutSec, "วินาที")
+
+	// for แบบ range over int (Go 1.22+)
+	for i := range 3 {
+		fmt.Println("รอบที่", i)
+	}
+
+	// switch ไม่ต้องเขียน break
+	for _, code := range []int{200, 404, 503} {
+		switch {
+		case code &gt;= 200 &amp;&amp; code &lt; 300:
+			fmt.Println(code, "=&gt; สำเร็จ")
+		case code &gt;= 500:
+			fmt.Println(code, "=&gt; Server มีปัญหา")
+		default:
+			fmt.Println(code, "=&gt; อื่น ๆ")
+		}
+	}
+	fmt.Println("StatusDown =", StatusDown)
+}</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./roadmap/step02</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>count=0 name="" ok=false
+example.com timeout 5 วินาที
+รอบที่ 0
+รอบที่ 1
+รอบที่ 2
+200 =&gt; สำเร็จ
+404 =&gt; อื่น ๆ
+503 =&gt; Server มีปัญหา
+StatusDown = 1</code></pre>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Zero Value เหมือนแบบฟอร์มราชการที่ทุกช่องพิมพ์ค่าเริ่มต้นไว้แล้ว ช่องตัวเลขเป็น 0 ช่องข้อความว่างเปล่า ช่องติ๊กยังไม่ติ๊ก คุณจึงไม่มีทางเจอช่องที่มีข้อมูลขยะที่ไม่รู้ที่มา</p></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>เพิ่มบรรทัด <code>unused := 1</code> ใน <code>main</code> แล้วรันใหม่ คุณจะเห็น Error <code>declared and not used: unused</code> และโปรแกรมจะไม่ถูกคอมไพล์เลย จากนั้นลบบรรทัดนั้นแล้วเปลี่ยน <code>switch</code> ให้แยกกรณี 4xx ออกมาเป็น "Client ส่งคำขอผิด"</p></div>
+    <div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: บอก Zero Value ของ <code>int</code>, <code>string</code>, <code>bool</code>, Pointer และ Slice ได้ถูกต้อง, เลือกใช้ <code>var</code> หรือ <code>:=</code> ได้ถูกที่, สร้าง Constant ด้วย <code>iota</code>, เขียน <code>for</code> ได้ครบทั้ง 4 รูปแบบ (3 ส่วน, เงื่อนไขอย่างเดียว, ไม่สิ้นสุดพร้อม <code>break</code>, <code>range</code>) และเขียนโปรแกรมแปลงคะแนน 0–100 เป็นเกรด A–F ด้วย <code>switch</code> แบบไม่มีนิพจน์ได้เอง</p></div>
+  </article>
+
+  <article class="rm-step" data-lvl="b">
+    <header><span class="rm-no">STEP 3</span><h4>Function, Closure และการจัดการ Error แบบ Go</h4><span class="rm-time">สัปดาห์ที่ 2–3 · 6–7 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li>ประกาศฟังก์ชัน, Parameter ที่ Type เดียวกันเขียนรวมได้ เช่น <code>func add(a, b int) int</code></li>
+        <li>Multiple Return Values และรูปแบบมาตรฐาน <code>(ผลลัพธ์, error)</code> พร้อมการเช็ค <code>if err != nil</code></li>
+        <li>Variadic Function (<code>nums ...int</code>) และการส่ง Slice เข้าไปด้วย <code>sum(list...)</code></li>
+        <li>Function เป็นค่า (First-class), Anonymous Function และ Closure ที่จำตัวแปรภายนอกไว้</li>
+        <li><code>defer</code> สำหรับเก็บกวาด เช่น ปิดไฟล์ และลำดับการทำงานแบบ LIFO</li>
+        <li>สร้าง Error: <code>errors.New</code>, <code>fmt.Errorf</code> และการห่อ Error ด้วย <code>%w</code></li>
+        <li>ตรวจ Error: <code>errors.Is</code> สำหรับ Sentinel Error และ <code>errors.As</code> สำหรับ Custom Error Type</li>
+        <li><code>panic</code> และ <code>recover</code>: มีไว้สำหรับความผิดพลาดที่ไม่ควรเกิดเท่านั้น ไม่ใช่ใช้แทน Exception</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>Go ไม่มี <code>try/catch</code> Error เป็นค่าธรรมดาที่ต้องตรวจเองทุกครั้ง โค้ด Go ในงานจริงจึงเต็มไปด้วย <code>if err != nil</code> การห่อ Error ให้มีบริบท (เช่น "findUser id=2: not found") ทำให้หาสาเหตุปัญหาใน Log ได้เร็ว และผู้สัมภาษณ์งาน Go มักถามเรื่อง <code>errors.Is</code> กับ <code>errors.As</code></dd>
+      <dt>ใช้เวลา</dt>
+      <dd>6–7 ชั่วโมง: Function และ Closure 2 ชม., Error Handling 3 ชม., ฝึกแปลงโค้ด Python ที่ใช้ try/except ให้เป็นแบบ Go 1–2 ชม.</dd>
+    </dl>
+    <pre class="code" data-env="file" data-label="Go · roadmap/step03/main.go"><code class="language-go">package main
+
+import (
+	"errors"
+	"fmt"
+)
+
+// ErrNotFound คือ sentinel error ที่ผู้เรียกตรวจได้ด้วย errors.Is
+var ErrNotFound = errors.New("not found")
+
+// HTTPError คือ custom error type ที่เก็บ status code
+type HTTPError struct {
+	Code int
+}
+
+func (e *HTTPError) Error() string {
+	return fmt.Sprintf("http status %d", e.Code)
+}
+
+// findUser คืนค่า 2 ค่า: ชื่อผู้ใช้ และ error
+func findUser(id int) (string, error) {
+	if id == 1 {
+		return "somchai", nil
+	}
+	// %w ห่อ error เดิมไว้ เพื่อให้ errors.Is ยังหาเจอ
+	return "", fmt.Errorf("findUser id=%d: %w", id, ErrNotFound)
+}
+
+func fetch(code int) error {
+	if code &gt;= 400 {
+		return fmt.Errorf("fetch: %w", &amp;HTTPError{Code: code})
+	}
+	return nil
+}
+
+// sum เป็น variadic function รับตัวเลขกี่ตัวก็ได้
+func sum(nums ...int) int {
+	total := 0
+	for _, n := range nums {
+		total += n
+	}
+	return total
+}
+
+// counter คืน closure ที่จำค่า n ไว้ระหว่างการเรียกแต่ละครั้ง
+func counter() func() int {
+	n := 0
+	return func() int {
+		n++
+		return n
+	}
+}
+
+func main() {
+	defer fmt.Println("defer: ทำงานเป็นบรรทัดสุดท้ายก่อน main จบ")
+
+	name, err := findUser(1)
+	fmt.Println(name, err)
+
+	_, err = findUser(2)
+	fmt.Println("error:", err)
+	fmt.Println("is ErrNotFound?", errors.Is(err, ErrNotFound))
+
+	err = fetch(503)
+	var he *HTTPError
+	if errors.As(err, &amp;he) {
+		fmt.Println("ได้ HTTPError code =", he.Code)
+	}
+
+	fmt.Println("sum =", sum(1, 2, 3, 4))
+	next := counter()
+	next()
+	next()
+	fmt.Println("counter =", next())
+}</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./roadmap/step03</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>somchai &lt;nil&gt;
+error: findUser id=2: not found
+is ErrNotFound? true
+ได้ HTTPError code = 503
+sum = 10
+counter = 3
+defer: ทำงานเป็นบรรทัดสุดท้ายก่อน main จบ</code></pre>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><p>ข้อความ Error ใน Go เขียนด้วยตัวพิมพ์เล็กและไม่ลงท้ายด้วยจุด (เช่น <code>"not found"</code>) เพราะมักถูกนำไปต่อกับข้อความอื่น ให้ห่อ Error ด้วย <code>%w</code> พร้อมบริบทว่าเกิดที่ไหน และตรวจ Error ด้วย <code>errors.Is</code>/<code>errors.As</code> แทนการเทียบข้อความด้วย <code>==</code> หรือ <code>strings.Contains</code></p></div>
+    <div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: เขียนฟังก์ชัน <code>parseAge(s string) (int, error)</code> ที่คืน Error เมื่ออายุติดลบหรือไม่ใช่ตัวเลข, ห่อ Error ด้วย <code>fmt.Errorf("...: %w", err)</code> แล้วพิสูจน์ด้วย <code>errors.Is</code> ว่ายังหา Error ต้นทางเจอ, สร้าง Custom Error Type ที่มีเมธอด <code>Error() string</code> แล้วดึงข้อมูลออกด้วย <code>errors.As</code>, เขียน Closure นับจำนวนครั้งได้ และอธิบายลำดับการทำงานของ <code>defer</code> หลายตัวได้</p></div>
+  </article>
+
+  <article class="rm-step" data-lvl="b">
+    <header><span class="rm-no">STEP 4</span><h4>Array, Slice, Map และ String</h4><span class="rm-time">สัปดาห์ที่ 3 · 5–7 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li>Array (ขนาดคงที่ เช่น <code>[3]int</code>) ต่างจาก Slice (ขนาดเปลี่ยนได้ เช่น <code>[]int</code>) อย่างไร</li>
+        <li>Slice มี 3 ส่วน: Pointer ไปยัง Backing Array, <code>len</code> และ <code>cap</code> พร้อม <code>make([]T, len, cap)</code></li>
+        <li><code>append</code> และกับดักที่พบบ่อย: Slice ย่อยใช้ Backing Array เดียวกับต้นฉบับ จึงเขียนทับข้อมูลกันได้ แก้ด้วย <code>slices.Clone</code> หรือ <code>copy</code></li>
+        <li>Package <code>slices</code>: <code>slices.Sort</code>, <code>slices.Contains</code>, <code>slices.Index</code>, <code>slices.Clone</code></li>
+        <li>Map: สร้างด้วย Literal หรือ <code>make</code>, เช็คการมี Key แบบ comma-ok, ลบด้วย <code>delete</code> และการเขียน nil map แล้ว panic</li>
+        <li>ลำดับการวน Map เป็นแบบสุ่ม ใช้ <code>slices.Sorted(maps.Keys(m))</code> เมื่ออยากได้ผลที่เรียงลำดับ</li>
+        <li>String เป็น Byte แบบ UTF-8 ที่แก้ไขไม่ได้ ภาษาไทย 1 ตัวใช้ 3 Byte ใช้ <code>utf8.RuneCountInString</code> นับตัวอักษร และ <code>for _, r := range s</code> วนทีละ Rune</li>
+        <li>Package <code>strings</code> และ <code>strconv</code>: <code>strings.Split</code>, <code>strings.TrimSpace</code>, <code>strings.Builder</code>, <code>strconv.Atoi</code></li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>Slice และ Map คือโครงสร้างข้อมูลที่ใช้มากที่สุดใน Go บัคแปลก ๆ หลายตัวในงานจริงมาจากการไม่เข้าใจ <code>len</code>/<code>cap</code> และ Backing Array และคำถามสัมภาษณ์งาน Go แทบทุกที่มีเรื่องนี้ การรู้ว่า String เป็น Byte ก็จำเป็นมากเมื่อต้องตัดข้อความภาษาไทย</dd>
+      <dt>ใช้เวลา</dt>
+      <dd>5–7 ชั่วโมง: Slice และกับดักของ append 2–3 ชม., Map 1–2 ชม., String, Rune, strings และ strconv 2 ชม.</dd>
+    </dl>
+    <pre class="code" data-env="file" data-label="Go · roadmap/step04/main.go"><code class="language-go">package main
+
+import (
+	"fmt"
+	"maps"
+	"slices"
+	"unicode/utf8"
+)
+
+func main() {
+	// make([]T, len, cap) สร้าง slice ที่จองความจุไว้ล่วงหน้า
+	s := make([]int, 0, 3)
+	for i := range 5 {
+		s = append(s, i)
+		fmt.Printf("len=%d cap=%d %v\n", len(s), cap(s), s)
+	}
+
+	// กับดัก: slice ย่อยใช้ backing array เดียวกับต้นฉบับ
+	a := []int{1, 2, 3, 4}
+	b := a[:2]
+	b = append(b, 99) // เขียนทับ a[2] เพราะยังมีความจุเหลือ
+	fmt.Println("a =", a, "b =", b)
+
+	// ทางแก้: คัดลอกก่อนด้วย slices.Clone
+	c := slices.Clone(a[:2])
+	c = append(c, 7)
+	fmt.Println("a =", a, "c =", c)
+
+	// map และการเช็คว่ามี key หรือไม่ (comma-ok)
+	status := map[string]int{"go.dev": 200, "example.com": 200, "bad.test": 0}
+	if code, ok := status["go.dev"]; ok {
+		fmt.Println("go.dev =", code)
+	}
+	_, ok := status["missing.test"]
+	fmt.Println("missing.test มีไหม:", ok)
+
+	// map ไม่เรียงลำดับ ต้องเรียง key เองถ้าอยากได้ผลคงที่
+	for _, k := range slices.Sorted(maps.Keys(status)) {
+		fmt.Println(k, status[k])
+	}
+
+	// string เก็บเป็น byte (UTF-8) ภาษาไทย 1 ตัวใช้ 3 byte
+	word := "สวัสดี"
+	fmt.Println("bytes:", len(word), "runes:", utf8.RuneCountInString(word))
+}</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./roadmap/step04</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>len=1 cap=3 [0]
+len=2 cap=3 [0 1]
+len=3 cap=3 [0 1 2]
+len=4 cap=6 [0 1 2 3]
+len=5 cap=6 [0 1 2 3 4]
+a = [1 2 99 4] b = [1 2 99]
+a = [1 2 99 4] c = [1 2 7]
+go.dev = 200
+missing.test มีไหม: false
+bad.test 0
+example.com 200
+go.dev 200
+bytes: 18 runes: 6</code></pre>
+    <p>สังเกตบรรทัด <code>a = [1 2 99 4]</code>: เราแก้แค่ <code>b</code> แต่ <code>a[2]</code> เปลี่ยนจาก 3 เป็น 99 ด้วย เพราะ <code>b</code> ยังมีความจุเหลือและชี้ไปที่ Backing Array เดียวกัน ส่วน <code>c</code> ที่ Clone มาก่อนไม่กระทบ <code>a</code> เลย และเมื่อ <code>cap</code> เต็ม (รอบที่ 4) <code>append</code> จะจอง Array ใหม่ที่ใหญ่ขึ้นให้อัตโนมัติ</p>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Backing Array เหมือนตู้ล็อกเกอร์แถวยาว Slice เป็นแค่ "บัตรที่บอกว่าใช้ล็อกเกอร์ช่องไหนถึงช่องไหน" ถ้าสองคนถือบัตรที่ครอบช่องเดียวกัน คนหนึ่งใส่ของ อีกคนก็เห็นของนั้นด้วย การ Clone คือการไปเช่าตู้แถวใหม่ของตัวเอง</p></div>
+    <div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: อธิบายด้วยคำพูดตัวเองว่าทำไม <code>a</code> ในตัวอย่างถูกเปลี่ยน, เขียนฟังก์ชันนับคำในประโยคด้วย <code>strings.Fields</code> และ <code>map[string]int</code> แล้วพิมพ์ผลเรียงตามคำ, เช็คการมี Key ด้วย comma-ok, บอกได้ว่าทำไม <code>len("สวัสดี")</code> ได้ 18 และนับตัวอักษรได้ถูกด้วย <code>utf8.RuneCountInString</code> และรู้ว่าการเขียนลง <code>var m map[string]int</code> ที่ยังไม่ <code>make</code> จะเกิด <code>panic: assignment to entry in nil map</code></p></div>
+  </article>
+
+  <h3 id="s6-1-intermediate"><span class="lvl" data-lvl="i">Intermediate</span> ออกแบบโค้ด: Struct, Interface, Generics, Testing และ CLI</h3>
+  <p>ระดับ Intermediate มี 5 ขั้น ใช้เวลารวมประมาณ 22–28 ชั่วโมง เป้าหมายคือออกแบบ Type ของตัวเอง แบ่งโค้ดเป็น Package เขียน Test ที่ครอบคลุม และสร้างโปรแกรม Command-line ที่อ่านไฟล์และพิมพ์ JSON ได้ ขั้นเหล่านี้คือพื้นฐานของ Mini Project โดยตรง</p>
+
+  <article class="rm-step" data-lvl="i">
+    <header><span class="rm-no">STEP 5</span><h4>Struct, Method และ Pointer</h4><span class="rm-time">สัปดาห์ที่ 4 · 4–5 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li>ประกาศ Struct, Struct Literal แบบระบุชื่อฟิลด์ และ Zero Value ของ Struct</li>
+        <li>Visibility: ชื่อที่ขึ้นต้นด้วยตัวพิมพ์ใหญ่ (เช่น <code>Owner</code>) Export ออกนอก Package ได้ ตัวพิมพ์เล็กใช้ได้แค่ใน Package เดียวกัน</li>
+        <li>Pointer: <code>&amp;x</code> เอา Address, <code>*p</code> อ่านค่าที่ชี้อยู่, ค่า <code>nil</code> และ <code>panic: runtime error: invalid memory address or nil pointer dereference</code></li>
+        <li>Method แบบ Value Receiver กับ Pointer Receiver และกฎว่าเมื่อไรต้องใช้ Pointer Receiver (ต้องแก้ค่า, Struct ใหญ่, มี Mutex อยู่ข้างใน)</li>
+        <li>Constructor Function ตามธรรมเนียม Go เช่น <code>func NewAccount(owner string) *Account</code></li>
+        <li>Struct Embedding (การฝัง Struct) เพื่อนำฟิลด์และเมธอดมาใช้ซ้ำแทน Inheritance</li>
+        <li>Struct Tag เช่น <code>`json:"url"`</code> ที่จะใช้ใน Step 9</li>
+        <li>เมธอด <code>String() string</code> ทำให้ <code>fmt</code> พิมพ์ค่าในรูปแบบที่เรากำหนด</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>Go ไม่มี Class แต่ใช้ Struct + Method แทน ข้อมูลทุกอย่างในงาน Backend เช่น User, Order, Request และ Result ของ Health Checker ล้วนเป็น Struct การเลือก Value หรือ Pointer Receiver ผิดเป็นสาเหตุของบัค "แก้ค่าแล้วค่าไม่เปลี่ยน" ที่เจอบ่อยมาก</dd>
+      <dt>ใช้เวลา</dt>
+      <dd>4–5 ชั่วโมง: Struct และ Method 2 ชม., Pointer 1–2 ชม., Embedding และ Struct Tag 1 ชม.</dd>
+    </dl>
+    <pre class="code" data-env="file" data-label="Go · roadmap/step05/main.go"><code class="language-go">package main
+
+import "fmt"
+
+// Account เก็บข้อมูลบัญชี ฟิลด์ตัวพิมพ์ใหญ่ = export ได้
+type Account struct {
+	Owner   string
+	Balance int
+}
+
+// Deposit ใช้ pointer receiver เพราะต้องแก้ค่าในตัว struct จริง
+func (a *Account) Deposit(amount int) {
+	a.Balance += amount
+}
+
+// DepositCopy ใช้ value receiver จึงแก้แค่สำเนา
+func (a Account) DepositCopy(amount int) {
+	a.Balance += amount
+}
+
+// String ทำให้ fmt พิมพ์ Account ในรูปแบบที่เรากำหนด
+func (a Account) String() string {
+	return fmt.Sprintf("%s: %d บาท", a.Owner, a.Balance)
+}
+
+func main() {
+	acc := Account{Owner: "somchai", Balance: 100}
+	acc.DepositCopy(50)
+	fmt.Println("หลัง DepositCopy:", acc)
+	acc.Deposit(50)
+	fmt.Println("หลัง Deposit:", acc)
+
+	// pointer: p เก็บ address ของ acc
+	p := &amp;acc
+	p.Balance = 1000
+	fmt.Println("แก้ผ่าน pointer:", acc)
+
+	// pointer ที่ยังไม่ชี้ไปไหนมีค่า nil
+	var q *Account
+	fmt.Println("q == nil:", q == nil)
+}</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./roadmap/step05</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>หลัง DepositCopy: somchai: 100 บาท
+หลัง Deposit: somchai: 150 บาท
+แก้ผ่าน pointer: somchai: 1000 บาท
+q == nil: true</code></pre>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Value Receiver เหมือนถ่ายเอกสารสมุดบัญชีแล้วเขียนยอดใหม่ลงบนสำเนา สมุดจริงไม่เปลี่ยน ส่วน Pointer Receiver คือการยื่นสมุดเล่มจริงให้ธนาคารลงยอด ยอดในสมุดจึงเปลี่ยนจริง</p></div>
+    <div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: อธิบายได้ว่าทำไม <code>DepositCopy</code> ไม่เปลี่ยนยอดเงิน, เขียน Struct <code>Product</code> พร้อม Constructor <code>NewProduct</code> และเมธอด <code>ApplyDiscount(percent int)</code> ที่แก้ราคาจริง, ใช้ Embedding ฝัง Struct <code>Timestamps</code> (มีฟิลด์ <code>CreatedAt</code>) ลงใน Struct อื่น และบอกได้ว่าการเรียกเมธอดบน Pointer ที่เป็น <code>nil</code> แล้วอ่านฟิลด์จะทำให้เกิด panic แบบไหน</p></div>
+  </article>
+
+  <article class="rm-step" data-lvl="i">
+    <header><span class="rm-no">STEP 6</span><h4>Interface, Package และการจัดโครงสร้างโปรเจกต์</h4><span class="rm-time">สัปดาห์ที่ 4–5 · 5–6 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li>Interface คือชุดเมธอด Type ใดมีเมธอดครบก็ใช้แทน Interface นั้นได้ทันที (Implicit Implementation ไม่ต้องเขียน <code>implements</code>)</li>
+        <li>Interface มาตรฐานที่ต้องรู้จัก: <code>error</code>, <code>fmt.Stringer</code>, <code>io.Reader</code>, <code>io.Writer</code> และ <code>http.Handler</code></li>
+        <li>Type Assertion <code>v, ok := x.(T)</code> และ Type Switch <code>switch v := x.(type)</code></li>
+        <li><code>any</code> (ชื่อย่อของ <code>interface{}</code>) และเหตุผลที่ควรใช้ให้น้อย</li>
+        <li>แนวคิด "Accept interfaces, return structs" และ Interface ขนาดเล็ก (1–3 เมธอด) ที่ประกาศฝั่งผู้ใช้</li>
+        <li>แบ่งโค้ดเป็นหลาย Package ใน Module เดียว, Import ด้วย Module Path เช่น <code>example.com/go-lab/internal/checker</code></li>
+        <li>โฟลเดอร์ <code>internal/</code> ป้องกันไม่ให้ Module อื่น Import และ <code>cmd/ชื่อโปรแกรม/</code> สำหรับโปรแกรมหลายตัว</li>
+        <li>เพิ่ม Dependency ภายนอกด้วย <code>go get</code>, เก็บกวาดด้วย <code>go mod tidy</code> และบทบาทของ <code>go.sum</code></li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>Interface คือหัวใจของการออกแบบโค้ด Go ที่ทดสอบง่ายและเปลี่ยนส่วนประกอบได้ เช่น เปลี่ยนจากตรวจเว็บจริงเป็นตัวจำลองตอนเขียน Test การแบ่ง Package ที่ดีทำให้โปรเจกต์โตได้โดยไม่วุ่นวาย และ <code>net/http</code> ทั้งหมดถูกสร้างบน Interface <code>http.Handler</code></dd>
+      <dt>ใช้เวลา</dt>
+      <dd>5–6 ชั่วโมง: Interface และ Type Switch 2–3 ชม., Package และโครงสร้างโปรเจกต์ 2 ชม., ทดลอง <code>go get</code> และ <code>go mod tidy</code> 1 ชม.</dd>
+    </dl>
+    <pre class="code" data-env="file" data-label="Go · roadmap/step06/main.go"><code class="language-go">package main
+
+import (
+	"fmt"
+	"strings"
+)
+
+// Checker คือ interface: ใครมีเมธอด Check() error ก็นับว่าเป็น Checker
+type Checker interface {
+	Name() string
+	Check() error
+}
+
+// HTTPCheck ไม่ต้องประกาศว่า implements Checker (implicit)
+type HTTPCheck struct{ URL string }
+
+func (h HTTPCheck) Name() string { return "http " + h.URL }
+func (h HTTPCheck) Check() error {
+	if strings.HasSuffix(h.URL, ".invalid") {
+		return fmt.Errorf("dns lookup failed")
+	}
+	return nil
+}
+
+// DiskCheck เป็นอีก type หนึ่งที่ใช้แทน Checker ได้เหมือนกัน
+type DiskCheck struct{ FreePercent int }
+
+func (d DiskCheck) Name() string { return "disk" }
+func (d DiskCheck) Check() error {
+	if d.FreePercent &lt; 10 {
+		return fmt.Errorf("free space %d%%", d.FreePercent)
+	}
+	return nil
+}
+
+func main() {
+	checks := []Checker{
+		HTTPCheck{URL: "https://go.dev"},
+		HTTPCheck{URL: "https://down.invalid"},
+		DiskCheck{FreePercent: 5},
+	}
+	for _, c := range checks {
+		if err := c.Check(); err != nil {
+			fmt.Printf("%-26s FAIL (%v)\n", c.Name(), err)
+			continue
+		}
+		fmt.Printf("%-26s OK\n", c.Name())
+	}
+
+	// type switch ใช้แยกว่าค่าใน interface เป็น type อะไรจริง ๆ
+	for _, c := range checks {
+		switch v := c.(type) {
+		case HTTPCheck:
+			fmt.Println("HTTP -&gt;", v.URL)
+		case DiskCheck:
+			fmt.Println("Disk -&gt;", v.FreePercent, "%")
+		}
+	}
+}</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./roadmap/step06</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>http https://go.dev        OK
+http https://down.invalid  FAIL (dns lookup failed)
+disk                       FAIL (free space 5%)
+HTTP -&gt; https://go.dev
+HTTP -&gt; https://down.invalid
+Disk -&gt; 5 %</code></pre>
+    <p>ตัวอย่างนี้ไม่ได้ต่อเน็ตจริง <code>HTTPCheck</code> แค่ดูว่า URL ลงท้ายด้วย <code>.invalid</code> หรือไม่ เพื่อให้เห็นแนวคิด Interface ชัด ๆ การเรียกเว็บจริงจะทำใน Step 12 เมื่อโปรเจกต์โตขึ้น โครงสร้างโฟลเดอร์ที่นิยมในงานจริงมีหน้าตาแบบนี้</p>
+    <pre class="code" data-kind="tpl" data-env="tpl" data-label="โครงสร้างโปรเจกต์ Go ที่นิยม"><code class="language-plaintext">gohealth/
+├── go.mod                 # module github.com/somchai/gohealth
+├── go.sum                 # checksum ของ dependency (สร้างอัตโนมัติ)
+├── main.go                # package main: อ่าน flag แล้วเรียก internal/*
+├── internal/
+│   ├── checker/           # package checker: logic การตรวจ URL
+│   │   ├── checker.go
+│   │   └── checker_test.go
+│   └── report/            # package report: แสดงผลเป็น table/json/csv
+│       ├── report.go
+│       └── report_test.go
+└── README.md</code></pre>
+    <div class="callout warn"><span class="c-label warn">ระวัง</span><p>Import วนกันไม่ได้ ถ้า Package <code>checker</code> Import <code>report</code> และ <code>report</code> Import <code>checker</code> กลับ คอมไพเลอร์จะแจ้ง <code>import cycle not allowed</code> ให้ย้าย Type ที่ใช้ร่วมกันไปไว้ใน Package ที่อยู่ล่างสุด หรือให้ Package หนึ่งรู้จักอีกฝั่งผ่าน Interface</p></div>
+    <div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: สร้าง Interface <code>Notifier</code> ที่มีเมธอด <code>Notify(msg string) error</code> และเขียน Type 2 แบบ (<code>ConsoleNotifier</code>, <code>FileNotifier</code>) ที่ใช้แทนกันได้, ใช้ Type Switch แยก Type ได้, ย้ายโค้ดไปไว้ใน <code>internal/notify</code> แล้ว Import จาก <code>main.go</code> ได้, อธิบายได้ว่าทำไมฟังก์ชันชื่อ <code>helper</code> (ตัวเล็ก) เรียกจาก Package อื่นไม่ได้ และใช้ <code>go mod tidy</code> เก็บกวาด <code>go.mod</code> ได้</p></div>
+  </article>
+
+  <article class="rm-step" data-lvl="i">
+    <header><span class="rm-no">STEP 7</span><h4>Generics: Type Parameters และ Constraints</h4><span class="rm-time">สัปดาห์ที่ 5 · 3–5 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li>Generic Function: <code>func Max[T cmp.Ordered](values ...T) T</code> และการให้คอมไพเลอร์อนุมาน Type เอง</li>
+        <li>Constraint: <code>any</code>, <code>comparable</code>, <code>cmp.Ordered</code> และการเขียน Constraint เองด้วย Type Set เช่น <code>~int | ~float64</code></li>
+        <li>Generic Type: <code>type Stack[T any] struct{ ... }</code> พร้อมเมธอด</li>
+        <li>การคืน Zero Value ของ <code>T</code> ด้วย <code>var zero T</code></li>
+        <li>Generic ใน Standard Library: Package <code>slices</code>, <code>maps</code> และ <code>cmp</code></li>
+        <li>เมื่อไรควรใช้ Generics (โครงสร้างข้อมูลและฟังก์ชันที่ทำงานเหมือนกันกับหลาย Type) และเมื่อไรใช้ Interface ดีกว่า (เมื่อพฤติกรรมต่างกัน)</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>Generics เข้ามาใน Go 1.18 และตอนนี้ Standard Library ใช้อย่างแพร่หลาย เช่น <code>slices.Sort</code> และ <code>slices.Sorted(maps.Keys(m))</code> ที่คุณใช้ไปแล้วใน Step 4 การเข้าใจ Generics ช่วยให้อ่าน Library สมัยใหม่ได้และลดโค้ดซ้ำ แต่ต้องรู้จักพอดี ไม่ใช้จนโค้ดอ่านยาก</dd>
+      <dt>ใช้เวลา</dt>
+      <dd>3–5 ชั่วโมง: Generic Function และ Constraint 2 ชม., Generic Type 1–2 ชม., อ่านซอร์สของ Package <code>slices</code> 1 ชม.</dd>
+    </dl>
+    <pre class="code" data-env="file" data-label="Go · roadmap/step07/main.go"><code class="language-go">package main
+
+import (
+	"cmp"
+	"fmt"
+)
+
+// Max ใช้ได้กับทุก type ที่เปรียบเทียบด้วย &lt; ได้ (cmp.Ordered)
+func Max[T cmp.Ordered](values ...T) T {
+	m := values[0]
+	for _, v := range values[1:] {
+		if v &gt; m {
+			m = v
+		}
+	}
+	return m
+}
+
+// Filter เลือกเฉพาะสมาชิกที่ฟังก์ชัน keep ตอบ true
+func Filter[T any](items []T, keep func(T) bool) []T {
+	var out []T
+	for _, it := range items {
+		if keep(it) {
+			out = append(out, it)
+		}
+	}
+	return out
+}
+
+// Stack แบบ generic เก็บข้อมูล type ใดก็ได้
+type Stack[T any] struct{ items []T }
+
+func (s *Stack[T]) Push(v T) { s.items = append(s.items, v) }
+func (s *Stack[T]) Pop() (T, bool) {
+	var zero T
+	if len(s.items) == 0 {
+		return zero, false
+	}
+	v := s.items[len(s.items)-1]
+	s.items = s.items[:len(s.items)-1]
+	return v, true
+}
+
+func main() {
+	fmt.Println(Max(3, 9, 4))
+	fmt.Println(Max("apple", "mango", "banana"))
+	fmt.Println(Max(1.5, 0.2))
+
+	ms := []int{120, 45, 900, 30}
+	slow := Filter(ms, func(v int) bool { return v &gt; 100 })
+	fmt.Println("slow (ms):", slow)
+
+	var st Stack[string]
+	st.Push("a")
+	st.Push("b")
+	v, _ := st.Pop()
+	fmt.Println("pop:", v)
+}</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./roadmap/step07</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>9
+mango
+1.5
+slow (ms): [120 900]
+pop: b</code></pre>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><p>เริ่มจากเขียนโค้ดแบบธรรมดาก่อน แล้วค่อยเปลี่ยนเป็น Generic เมื่อพบว่าเขียนฟังก์ชันเดียวกันซ้ำสำหรับ Type ที่ 2 หรือ 3 แล้ว ก่อนเขียนเองให้ตรวจ Package <code>slices</code> และ <code>maps</code> ก่อนเสมอ เพราะฟังก์ชันพื้นฐานอย่าง <code>slices.Max</code>, <code>slices.IndexFunc</code> มีให้อยู่แล้ว</p></div>
+    <div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: เขียน Generic Function <code>Map[T, U any](items []T, f func(T) U) []U</code> และ <code>Sum[T ~int | ~float64](xs []T) T</code> ที่ใช้ได้ทั้งกับ <code>[]int</code> และ <code>[]float64</code>, สร้าง <code>Queue[T]</code> ที่มีเมธอด <code>Enqueue</code>/<code>Dequeue</code>, อธิบายความต่างของ <code>any</code>, <code>comparable</code> และ <code>cmp.Ordered</code> และบอกได้หนึ่งกรณีที่ควรใช้ Interface แทน Generics</p></div>
+  </article>
+
+  <article class="rm-step" data-lvl="i">
+    <header><span class="rm-no">STEP 8</span><h4>Testing: Table-driven Test, Subtest, Benchmark และ Coverage</h4><span class="rm-time">สัปดาห์ที่ 6 · 5–6 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li>ไฟล์ทดสอบชื่อ <code>xxx_test.go</code> อยู่ Package เดียวกับโค้ด ฟังก์ชันทดสอบชื่อ <code>TestXxx(t *testing.T)</code></li>
+        <li><code>t.Errorf</code> (บันทึกว่าพลาดแล้วทำต่อ) กับ <code>t.Fatalf</code> (หยุด Test นั้นทันที) และ <code>t.Helper()</code></li>
+        <li>Table-driven Test: รวมกรณีทดสอบเป็น Slice ของ Struct แล้ววนทดสอบ ซึ่งเป็นรูปแบบมาตรฐานของ Go</li>
+        <li>Subtest ด้วย <code>t.Run(name, ...)</code> และการรันเฉพาะบางกรณีด้วย <code>go test -run 'TestPercent/half'</code></li>
+        <li>คำสั่ง <code>go test ./...</code>, <code>go test -v</code>, <code>go test -cover</code> และ <code>go test -coverprofile=cover.out</code> ตามด้วย <code>go tool cover -html=cover.out</code></li>
+        <li>Benchmark ด้วย <code>func BenchmarkXxx(b *testing.B)</code> และลูป <code>for b.Loop()</code> (Go 1.24+) รันด้วย <code>go test -bench=. -benchmem</code></li>
+        <li>Example Test (<code>func ExampleXxx()</code> พร้อมคอมเมนต์ <code>// Output:</code>) ที่เป็นทั้งเอกสารและ Test</li>
+        <li>แนะนำ <code>net/http/httptest</code> ซึ่งจะใช้จริงใน Step 12–13 และ Mini Project</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>Go มีเครื่องมือทดสอบมาในตัว ไม่ต้องติดตั้ง Framework เพิ่ม ทีมที่ใช้ Go ส่วนใหญ่ไม่รับ Pull Request ที่ไม่มี Test และ Table-driven Test เป็นสิ่งที่ผู้สัมภาษณ์คาดหวังให้เขียนเป็น Mini Project ของหัวข้อนี้ก็ต้องมี Test ที่ใช้ <code>httptest</code> ด้วย</dd>
+      <dt>ใช้เวลา</dt>
+      <dd>5–6 ชั่วโมง: Test พื้นฐานและ Table-driven 2–3 ชม., Coverage และ Benchmark 1–2 ชม., ย้อนกลับไปเขียน Test ให้ฟังก์ชันใน Step 3–7 อีก 1 ชม.</dd>
+    </dl>
+    <pre class="code" data-env="file" data-label="Go · roadmap/step08/mathx/mathx.go"><code class="language-go">// Package mathx มีฟังก์ชันคำนวณเล็ก ๆ สำหรับฝึกเขียน test
+package mathx
+
+// Percent คืนเปอร์เซ็นต์ของ part จาก total (ปัดลง) ถ้า total เป็น 0 คืน 0
+func Percent(part, total int) int {
+	if total == 0 {
+		return 0
+	}
+	return part * 100 / total
+}</code></pre>
+    <pre class="code" data-env="file" data-label="Go · roadmap/step08/mathx/mathx_test.go"><code class="language-go">package mathx
+
+import "testing"
+
+// table-driven test: รวมกรณีทดสอบไว้ใน slice แล้ววนทดสอบทีละกรณี
+func TestPercent(t *testing.T) {
+	tests := []struct {
+		name        string
+		part, total int
+		want        int
+	}{
+		{"half", 5, 10, 50},
+		{"all", 7, 7, 100},
+		{"zero total", 3, 0, 0},
+		{"round down", 1, 3, 33},
+	}
+	for _, tt := range tests {
+		// t.Run สร้าง subtest แยกชื่อแต่ละกรณี
+		t.Run(tt.name, func(t *testing.T) {
+			got := Percent(tt.part, tt.total)
+			if got != tt.want {
+				t.Errorf("Percent(%d, %d) = %d, want %d", tt.part, tt.total, got, tt.want)
+			}
+		})
+	}
+}
+
+// Benchmark วัดความเร็ว ใช้ b.Loop() (Go 1.24+)
+func BenchmarkPercent(b *testing.B) {
+	for b.Loop() {
+		Percent(42, 100)
+	}
+}</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab/roadmap/step08/mathx
+go test -v .
+go test -cover .
+go test -bench=. -run='^$' .     # -run='^$' = ไม่รัน Test ปกติ รันแค่ Benchmark</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>=== RUN   TestPercent
+=== RUN   TestPercent/half
+=== RUN   TestPercent/all
+=== RUN   TestPercent/zero_total
+=== RUN   TestPercent/round_down
+--- PASS: TestPercent (0.00s)
+    --- PASS: TestPercent/half (0.00s)
+    --- PASS: TestPercent/all (0.00s)
+    --- PASS: TestPercent/zero_total (0.00s)
+    --- PASS: TestPercent/round_down (0.00s)
+PASS
+ok  	example.com/go-lab/roadmap/step08/mathx	0.003s
+ok  	example.com/go-lab/roadmap/step08/mathx	0.003s	coverage: 100.0% of statements
+goos: linux
+goarch: amd64
+pkg: example.com/go-lab/roadmap/step08/mathx
+cpu: Intel(R) Xeon(R) Processor @ 2.10GHz
+BenchmarkPercent-4   	992987042	         1.134 ns/op
+PASS
+ok  	example.com/go-lab/roadmap/step08/mathx	1.130s</code></pre>
+    <p>เวลาที่ใช้, ชื่อ CPU, ตัวเลขหลัง <code>BenchmarkPercent-</code> (จำนวน CPU) และค่า <code>ns/op</code> บนเครื่องของคุณจะต่างจากนี้ ส่วนชื่อ Subtest สังเกตว่าช่องว่างใน <code>"zero total"</code> ถูกแปลงเป็น <code>zero_total</code> ให้อัตโนมัติ</p>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><p>ข้อความ Error ใน Test ควรบอกทั้ง Input, ค่าที่ได้ และค่าที่ต้องการ ในรูปแบบ <code>Percent(1, 3) = 34, want 33</code> ตามธรรมเนียมของ Go เพื่อให้อ่าน Log ของ CI แล้วรู้ทันทีว่ากรณีไหนพัง โดยไม่ต้องเปิดโค้ด Test</p></div>
+    <div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: เขียน Table-driven Test ที่มีอย่างน้อย 5 กรณีให้ฟังก์ชัน <code>parseAge</code> จาก Step 3 (รวมกรณีที่ต้องได้ Error), รันเฉพาะ Subtest เดียวด้วย <code>-run</code>, ทำ Coverage ของ Package ให้ได้อย่างน้อย 80% และเปิดรายงาน HTML ด้วย <code>go tool cover -html</code>, เขียน Benchmark ด้วย <code>b.Loop()</code> และอ่านค่า <code>ns/op</code> ได้ และจงใจทำให้ Test พังหนึ่งกรณีแล้วอ่านข้อความ <code>--- FAIL</code> ออก</p></div>
+  </article>
+
+  <article class="rm-step" data-lvl="i">
+    <header><span class="rm-no">STEP 9</span><h4>สร้าง CLI: flag, File I/O, encoding/json และ log/slog</h4><span class="rm-time">สัปดาห์ที่ 6–7 · 5–6 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li>Package <code>flag</code>: <code>flag.String</code>, <code>flag.Int</code>, <code>flag.Duration</code>, <code>flag.Parse()</code>, <code>flag.Args()</code> และข้อความ <code>-h</code> ที่สร้างให้อัตโนมัติ</li>
+        <li>อ่านไฟล์ทีละบรรทัดด้วย <code>os.Open</code> + <code>bufio.Scanner</code>, อ่านทั้งไฟล์ด้วย <code>os.ReadFile</code> และเขียนด้วย <code>os.WriteFile</code> พร้อม <code>defer f.Close()</code></li>
+        <li>Interface <code>io.Reader</code>/<code>io.Writer</code> ทำให้ฟังก์ชันเดียวเขียนลง <code>os.Stdout</code>, ไฟล์ หรือ <code>bytes.Buffer</code> (ตอน Test) ได้</li>
+        <li><code>encoding/json</code>: <code>json.Marshal</code>, <code>json.MarshalIndent</code>, <code>json.Unmarshal</code>, <code>json.NewEncoder</code> และ Struct Tag เช่น <code>`json:"url"`</code>, <code>`json:"error,omitempty"`</code></li>
+        <li><code>encoding/csv</code> สำหรับส่งออกเป็น CSV และ <code>text/tabwriter</code> สำหรับพิมพ์ตารางให้คอลัมน์ตรงกัน</li>
+        <li>Structured Logging ด้วย <code>log/slog</code>: <code>slog.NewTextHandler</code>, <code>slog.NewJSONHandler</code>, Level (Debug/Info/Warn/Error) และคู่ Key-Value</li>
+        <li>แยกผลลัพธ์ (stdout) ออกจาก Log (stderr) เพื่อให้ใช้ Pipe ต่อได้ เช่น <code>./tool | jq</code></li>
+        <li>Exit Code ด้วย <code>os.Exit</code>: 0 = สำเร็จ, 1 = พบปัญหา, 2 = ใช้งานผิด ซึ่ง CI และ Shell Script ใช้ตัดสินผล</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>Go เป็นภาษายอดนิยมสำหรับเขียน CLI เพราะได้ไฟล์ Binary ไฟล์เดียวที่แจกจ่ายง่าย เครื่องมือ DevOps, Security และ Network ส่วนใหญ่เป็น CLI ที่รับ Flag อ่านไฟล์ และพิมพ์ JSON ทั้ง Mini Project ของหัวข้อนี้ก็คือ CLI ที่ใช้ทุกเรื่องใน Step นี้</dd>
+      <dt>ใช้เวลา</dt>
+      <dd>5–6 ชั่วโมง: flag และ File I/O 2 ชม., JSON และ CSV 2 ชม., slog และ Exit Code 1–2 ชม.</dd>
+    </dl>
+    <p>เตรียมไฟล์ข้อมูลตัวอย่างไว้ข้างโปรแกรม</p>
+    <pre class="code" data-env="file" data-label="Text · roadmap/step09/urls.txt"><code class="language-plaintext"># รายการเว็บที่จะตรวจ
+https://go.dev
+
+https://example.com</code></pre>
+    <pre class="code" data-env="file" data-label="Go · roadmap/step09/main.go"><code class="language-go">package main
+
+import (
+	"bufio"
+	"encoding/json"
+	"flag"
+	"fmt"
+	"log/slog"
+	"os"
+	"strings"
+)
+
+// Target คือข้อมูล 1 รายการที่จะเขียนออกเป็น JSON
+type Target struct {
+	URL     string `json:"url"`
+	Enabled bool   `json:"enabled"`
+}
+
+func main() {
+	// flag: อ่านค่าจาก command line เช่น -file urls.txt
+	file := flag.String("file", "urls.txt", "ไฟล์รายการ URL")
+	flag.Parse()
+
+	// logger แบบ structured เขียนไปที่ stderr ไม่ปนกับผลลัพธ์จริง
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
+	f, err := os.Open(*file)
+	if err != nil {
+		logger.Error("open file failed", "file", *file, "err", err)
+		os.Exit(2) // exit code 2 = ใช้งานผิด/ไฟล์ไม่มี
+	}
+	defer f.Close()
+
+	var targets []Target
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue // ข้ามบรรทัดว่างและ comment
+		}
+		targets = append(targets, Target{URL: line, Enabled: true})
+	}
+	logger.Info("loaded", "count", len(targets))
+
+	// แปลง struct เป็น JSON แบบจัดย่อหน้า
+	out, _ := json.MarshalIndent(targets, "", "  ")
+	fmt.Println(string(out))
+}</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab/roadmap/step09
+go run .
+
+# สร้าง Binary แล้วทดสอบกรณีไฟล์ไม่มี และดู exit code
+go build -o urls2json .
+./urls2json -file nope.txt; echo "exit code: $?"
+./urls2json -h</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>time=2026-10-19T10:15:37.648+07:00 level=INFO msg=loaded count=2
+[
+  {
+    "url": "https://go.dev",
+    "enabled": true
+  },
+  {
+    "url": "https://example.com",
+    "enabled": true
+  }
+]
+time=2026-10-19T10:15:38.102+07:00 level=ERROR msg="open file failed" file=nope.txt err="open nope.txt: no such file or directory"
+exit code: 2
+Usage of ./urls2json:
+  -file string
+    	ไฟล์รายการ URL (default "urls.txt")</code></pre>
+    <p>ค่า <code>time=</code> บนเครื่องของคุณจะเป็นวันเวลาจริงขณะรัน สังเกตว่าบรรทัด Log ขึ้นต้นด้วย <code>time=... level=...</code> เพราะเขียนลง stderr ส่วน JSON ออกทาง stdout ถ้าสั่ง <code>go run . 2&gt;/dev/null</code> จะเหลือแค่ JSON</p>
+    <div class="callout warn"><span class="c-label warn">ระวัง</span><p>ถ้าทดสอบ Exit Code ผ่าน <code>go run</code> คุณจะเห็นบรรทัด <code>exit status 2</code> และ <code>$?</code> จะเป็น <code>1</code> เพราะนั่นคือ Exit Code ของคำสั่ง <code>go</code> เอง ไม่ใช่ของโปรแกรมคุณ เวลาทดสอบ Exit Code ให้ <code>go build</code> แล้วรัน Binary โดยตรงเสมอ</p></div>
+    <div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: เพิ่ม Flag <code>-format</code> ที่รับค่า <code>json</code> หรือ <code>csv</code> และส่งออกตามนั้น (ค่าอื่นให้ออกด้วย Exit Code 2), อ่าน JSON กลับเข้า Struct ด้วย <code>json.Unmarshal</code> ได้, เปลี่ยน Logger เป็น <code>slog.NewJSONHandler</code> แล้วอธิบายได้ว่า Log แบบ JSON ดีกับระบบเก็บ Log อย่างไร, แยก stdout กับ stderr ได้ด้วย <code>2&gt;/dev/null</code> และเขียนฟังก์ชันที่รับ <code>io.Writer</code> แล้วทดสอบด้วย <code>bytes.Buffer</code> ได้</p></div>
+  </article>
+
+  <h3 id="s6-1-advanced"><span class="lvl" data-lvl="a">Advanced</span> Concurrency, context, HTTP และการส่งงานขึ้นใช้จริง</h3>
+  <p>ระดับ Advanced มี 4 ขั้น ใช้เวลารวมประมาณ 20–29 ชั่วโมง เป็นส่วนที่ทำให้ Go โดดเด่นที่สุด คุณจะสั่งงานหลายอย่างพร้อมกันอย่างปลอดภัย ตั้ง Timeout ให้ทุก Request เขียน HTTP Server และ Client ที่ทดสอบได้ และสร้างไฟล์ Binary สำหรับหลายระบบปฏิบัติการ เมื่อจบระดับนี้คุณจะมีทุกชิ้นส่วนที่ต้องใช้ใน Mini Project <strong>Concurrent Website Health Checker</strong></p>
+
+  <article class="rm-step" data-lvl="a">
+    <header><span class="rm-no">STEP 10</span><h4>Goroutine, Channel และ select</h4><span class="rm-time">สัปดาห์ที่ 7–8 · 5–7 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li>Goroutine คืออะไร: <code>go f()</code> เริ่มงานใหม่ที่ทำพร้อมกัน ใช้หน่วยความจำเริ่มต้นเพียงไม่กี่ KB จึงสร้างได้นับหมื่นตัว</li>
+        <li>Concurrency (จัดการหลายงานสลับกัน) ต่างจาก Parallelism (ทำพร้อมกันจริงบนหลาย CPU Core) อย่างไร และบทบาทของ Go Scheduler</li>
+        <li>Channel: <code>make(chan T)</code>, ส่งด้วย <code>ch &lt;- v</code>, รับด้วย <code>v := &lt;-ch</code> และ Channel ทิศทางเดียว <code>&lt;-chan T</code> / <code>chan&lt;- T</code></li>
+        <li>Unbuffered Channel (ผู้ส่งรอจนกว่าผู้รับพร้อม) กับ Buffered Channel (<code>make(chan T, n)</code> ส่งได้ n ค่าก่อนต้องรอ)</li>
+        <li>ปิด Channel ด้วย <code>close(ch)</code>, วนรับด้วย <code>for v := range ch</code> และกฎว่า "ผู้ส่งเป็นคนปิด"</li>
+        <li><code>select</code> รอหลาย Channel พร้อมกัน, ใช้ร่วมกับ <code>time.After</code> ทำ Timeout และ <code>default</code> สำหรับไม่ต้องรอ</li>
+        <li>Deadlock: <code>fatal error: all goroutines are asleep - deadlock!</code> และ Goroutine Leak (Goroutine ค้างตลอดไปเพราะไม่มีใครรับค่า)</li>
+        <li>รูปแบบพื้นฐาน: Generator, Fan-out/Fan-in และ Pipeline</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>นี่คือเหตุผลหลักที่บริษัทเลือก Go งาน Backend และ Network ส่วนใหญ่คือ "รอ" เช่น รอฐานข้อมูล รอเว็บอื่นตอบ การตรวจ 100 URL ทีละตัวอาจใช้เวลาหลายนาที แต่ถ้าใช้ Goroutine ตรวจพร้อมกันจะเสร็จในเวลาใกล้เคียงกับ URL ที่ช้าที่สุดเพียงตัวเดียว</dd>
+      <dt>ใช้เวลา</dt>
+      <dd>5–7 ชั่วโมง: Goroutine และ Channel 2–3 ชม., select และ Timeout 1–2 ชม., ทดลองทำให้เกิด Deadlock แล้วแก้ 1 ชม., อ่านบทความ "Go Concurrency Patterns: Pipelines" บน go.dev/blog 1 ชม.</dd>
+    </dl>
+    <pre class="code" data-env="file" data-label="Go · roadmap/step10/main.go"><code class="language-go">package main
+
+import (
+	"fmt"
+	"time"
+)
+
+// worker รับงานจาก jobs แล้วส่งผลกลับทาง results
+func worker(id int, jobs &lt;-chan int, results chan&lt;- string) {
+	for n := range jobs {
+		time.Sleep(10 * time.Millisecond) // จำลองงานที่ใช้เวลา
+		results &lt;- fmt.Sprintf("worker %d ทำงาน %d เสร็จ", id, n)
+	}
+}
+
+func main() {
+	// unbuffered channel: ผู้ส่งจะรอจนกว่าผู้รับพร้อม
+	done := make(chan string)
+	go func() { done &lt;- "goroutine ทักทาย" }()
+	fmt.Println(&lt;-done)
+
+	// buffered channel: ส่งได้ 2 ค่าโดยยังไม่มีคนรับ
+	buf := make(chan int, 2)
+	buf &lt;- 1
+	buf &lt;- 2
+	fmt.Println("len(buf) =", len(buf), "cap(buf) =", cap(buf))
+
+	jobs := make(chan int, 3)
+	results := make(chan string, 3)
+	go worker(1, jobs, results)
+	for i := 1; i &lt;= 3; i++ {
+		jobs &lt;- i
+	}
+	close(jobs) // บอก worker ว่าไม่มีงานเพิ่มแล้ว
+	for range 3 {
+		fmt.Println(&lt;-results)
+	}
+
+	// select: รอหลาย channel พร้อมกัน พร้อม timeout
+	slow := make(chan string)
+	go func() {
+		time.Sleep(200 * time.Millisecond)
+		slow &lt;- "ตอบช้า"
+	}()
+	select {
+	case msg := &lt;-slow:
+		fmt.Println(msg)
+	case &lt;-time.After(50 * time.Millisecond):
+		fmt.Println("timeout หลัง 50ms")
+	}
+}</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./roadmap/step10</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>goroutine ทักทาย
+len(buf) = 2 cap(buf) = 2
+worker 1 ทำงาน 1 เสร็จ
+worker 1 ทำงาน 2 เสร็จ
+worker 1 ทำงาน 3 เสร็จ
+timeout หลัง 50ms</code></pre>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Unbuffered Channel เหมือนการยื่นของให้กันมือต่อมือ ผู้ให้ต้องยืนรอจนผู้รับมารับ ส่วน Buffered Channel เหมือนกล่องรับพัสดุหน้าบ้านที่ใส่ได้ 2 ชิ้น คนส่งวางแล้วไปได้เลยจนกว่ากล่องจะเต็ม และ <code>select</code> คือพนักงานที่เฝ้าหลายช่องพร้อมกัน ช่องไหนมีของมาก่อนก็รับช่องนั้น</p></div>
+    <div class="callout warn"><span class="c-label warn">ระวัง</span><p>ใน Goroutine ตัวอย่างข้างบนที่ส่ง "ตอบช้า" จะค้างตลอดไปหลัง Timeout เพราะไม่มีใครรับค่าจาก <code>slow</code> แล้ว ในโปรแกรมสั้น ๆ ไม่เป็นปัญหาเพราะ <code>main</code> จบ แต่ใน Server ที่รันนาน ๆ นี่คือ Goroutine Leak ที่กินหน่วยความจำเรื่อย ๆ วิธีแก้คือใช้ Buffered Channel ขนาด 1 หรือใช้ <code>context</code> ใน Step 12</p></div>
+    <div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: เขียนโปรแกรมที่สร้าง Goroutine 5 ตัวคำนวณผลรวมของตัวเลขคนละช่วงแล้วรวมผลผ่าน Channel, จงใจทำให้เกิด <code>all goroutines are asleep - deadlock!</code> แล้วอธิบายสาเหตุและแก้ได้, ใช้ <code>select</code> กับ <code>time.After</code> ทำ Timeout ได้, บอกได้ว่าการส่งค่าลง Channel ที่ปิดแล้วจะเกิด <code>panic: send on closed channel</code> และอธิบายความต่างของ Buffered กับ Unbuffered Channel ด้วยคำพูดตัวเอง</p></div>
+  </article>
+
+  <article class="rm-step" data-lvl="a">
+    <header><span class="rm-no">STEP 11</span><h4>sync, Data Race และ Worker Pool</h4><span class="rm-time">สัปดาห์ที่ 8–9 · 5–7 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li><code>sync.WaitGroup</code>: รอให้ Goroutine ทุกตัวจบ ใช้ <code>wg.Go(func() { ... })</code> (Go 1.25+) หรือแบบเดิม <code>wg.Add(1)</code> + <code>defer wg.Done()</code></li>
+        <li>Data Race คืออะไร: หลาย Goroutine อ่านและเขียนตัวแปรเดียวกันพร้อมกันโดยไม่มีการป้องกัน ผลลัพธ์จึงผิดแบบสุ่ม</li>
+        <li>Race Detector: <code>go run -race</code> และ <code>go test -race</code> (ต้องมี <code>gcc</code> เพราะใช้ cgo ติดตั้งด้วย <code>sudo apt install -y gcc</code>)</li>
+        <li><code>sync.Mutex</code> และ <code>sync.RWMutex</code> สำหรับป้องกันข้อมูลที่ใช้ร่วมกัน และ <code>sync/atomic</code> สำหรับตัวนับง่าย ๆ เช่น <code>atomic.Int64</code></li>
+        <li><code>sync.Once</code> สำหรับงานที่ต้องทำครั้งเดียว เช่น โหลด Config</li>
+        <li>Worker Pool: จำกัดจำนวน Goroutine ที่ทำงานพร้อมกัน (เช่น 3 หรือ 10 ตัว) ด้วย Channel ของงาน + WaitGroup + ปิด Channel ผลลัพธ์เมื่อทุกตัวจบ</li>
+        <li>เก็บผลให้อยู่ในลำดับเดิมโดยส่ง Index ไปพร้อมงาน หรือเรียงผลภายหลัง</li>
+        <li>รู้จัก <code>golang.org/x/sync/errgroup</code> (v0.24.0) สำหรับรอหลายงานพร้อมรับ Error ตัวแรก</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>การปล่อย Goroutine ไม่จำกัดจำนวนอาจยิง Request ไปหาเว็บปลายทางหลายพันครั้งพร้อมกัน ซึ่งทั้งเปลืองทรัพยากรและอาจโดนบล็อก Worker Pool คือรูปแบบมาตรฐานในงานจริง และ Data Race เป็นบัคที่หายากที่สุดบัคหนึ่ง ทีม Go จึงรัน <code>go test -race</code> ใน CI เสมอ</dd>
+      <dt>ใช้เวลา</dt>
+      <dd>5–7 ชั่วโมง: WaitGroup และ Mutex 2 ชม., Race Detector 1 ชม., Worker Pool และการเก็บผลตามลำดับ 2–3 ชม., อ่าน errgroup 1 ชม.</dd>
+    </dl>
+    <p>เริ่มจากดู Data Race ด้วยตาตัวเอง โปรแกรมนี้ให้ Goroutine 1,000 ตัวบวกตัวแปรเดียวกัน</p>
+    <pre class="code" data-env="file" data-label="Go · roadmap/race/main.go"><code class="language-go">package main
+
+import (
+	"fmt"
+	"sync"
+)
+
+func main() {
+	total := 0
+	var wg sync.WaitGroup
+	for range 1000 {
+		wg.Go(func() {
+			total++ // หลาย goroutine เขียนตัวแปรเดียวกันโดยไม่มี lock = data race
+		})
+	}
+	wg.Wait()
+	fmt.Println("total =", total)
+}</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+sudo apt install -y gcc          # Race Detector ต้องใช้ gcc (ติดตั้งครั้งเดียว)
+go run -race ./roadmap/race</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output (ตัดตอนบางส่วน)"><code>==================
+WARNING: DATA RACE
+Read at 0x00c000018118 by goroutine 9:
+  main.main.func1()
+      /home/somchai/projects/go-lab/roadmap/race/main.go:13 +0x2e
+
+Previous write at 0x00c000018118 by goroutine 8:
+  main.main.func1()
+      /home/somchai/projects/go-lab/roadmap/race/main.go:13 +0x44
+
+Goroutine 9 (running) created at:
+  sync.(*WaitGroup).Go()
+...
+total = 818
+Found 2 data race(s)
+exit status 66</code></pre>
+    <p>ค่า <code>total</code> ควรเป็น 1000 แต่ได้ 818 และบนเครื่องคุณจะได้ตัวเลขอื่น (รวมถึง Address และหมายเลข Goroutine) ทุกครั้งที่รัน นี่คืออาการของ Data Race ส่วนบรรทัด <code>main.go:13</code> บอกจุดที่ต้องแก้ทันที ต่อไปคือ Worker Pool ที่ถูกต้อง ใช้ Mutex ป้องกันตัวนับ</p>
+    <pre class="code" data-env="file" data-label="Go · roadmap/step11/main.go"><code class="language-go">package main
+
+import (
+	"fmt"
+	"slices"
+	"sync"
+)
+
+// SafeCounter ใช้ Mutex ป้องกันการเขียน map พร้อมกันจากหลาย goroutine
+type SafeCounter struct {
+	mu     sync.Mutex
+	counts map[string]int
+}
+
+func (c *SafeCounter) Inc(key string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.counts[key]++
+}
+
+func main() {
+	urls := []string{"a.test", "b.test", "c.test", "d.test", "e.test", "f.test"}
+	jobs := make(chan string)
+	results := make(chan string)
+	counter := &amp;SafeCounter{counts: map[string]int{}}
+
+	// worker pool: 3 workers ช่วยกันดึงงานจาก channel เดียวกัน
+	var wg sync.WaitGroup
+	for id := range 3 {
+		wg.Go(func() { // wg.Go มีตั้งแต่ Go 1.25
+			for u := range jobs {
+				counter.Inc("checked")
+				results &lt;- fmt.Sprintf("%s by worker-%d", u, id)
+			}
+		})
+	}
+
+	// ส่งงานใน goroutine แยก แล้วปิด channel เมื่อส่งครบ
+	go func() {
+		for _, u := range urls {
+			jobs &lt;- u
+		}
+		close(jobs)
+	}()
+	// ปิด results เมื่อ worker ทุกตัวจบ
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	var got []string
+	for r := range results {
+		got = append(got, r[:6]) // เก็บเฉพาะชื่อ URL เพื่อเรียงผล
+	}
+	slices.Sort(got)
+	fmt.Println(got)
+	fmt.Println("checked =", counter.counts["checked"])
+}</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run -race ./roadmap/step11</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[a.test b.test c.test d.test e.test f.test]
+checked = 6</code></pre>
+    <p>คราวนี้ <code>-race</code> ไม่รายงานอะไรเลย และ <code>checked</code> ได้ 6 ทุกครั้ง worker ตัวไหนได้งานไหนจะสุ่มต่างกันในแต่ละรอบ เราจึงตัดเหลือแค่ชื่อ URL แล้วเรียงก่อนพิมพ์ เพื่อให้ผลคงที่</p>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><p>จำหลัก "Don't communicate by sharing memory; share memory by communicating." ถ้าส่งข้อมูลผ่าน Channel ได้ให้ทำแบบนั้นก่อน ใช้ Mutex เมื่อต้องป้องกันสถานะที่ใช้ร่วมกันจริง ๆ เช่น Cache หรือตัวนับ และใส่ <code>go test -race ./...</code> ไว้ใน CI ของทุกโปรเจกต์</p></div>
+    <div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: แก้โปรแกรม <code>roadmap/race</code> ให้ได้ <code>total = 1000</code> ทุกครั้งด้วย 2 วิธี (<code>sync.Mutex</code> และ <code>atomic.Int64</code>) และ <code>go run -race</code> ไม่รายงานอะไร, เขียน Worker Pool ที่รับจำนวน Worker เป็นพารามิเตอร์และคืนผลตามลำดับ Input เดิม, อธิบายได้ว่าทำไมต้องมี Goroutine แยกสำหรับ <code>wg.Wait()</code> แล้ว <code>close(results)</code> และเขียนแบบเดิมด้วย <code>wg.Add(1)</code>/<code>defer wg.Done()</code> ได้เพื่ออ่านโค้ดเก่าออก</p></div>
+  </article>
+
+  <article class="rm-step" data-lvl="a">
+    <header><span class="rm-no">STEP 12</span><h4>context, HTTP Client, Timeout และ Retry</h4><span class="rm-time">สัปดาห์ที่ 9–10 · 4–6 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li>Package <code>context</code>: <code>context.Background()</code>, <code>context.WithTimeout</code>, <code>context.WithCancel</code> และการเรียก <code>defer cancel()</code> ทุกครั้ง</li>
+        <li>ส่ง <code>ctx</code> เป็นพารามิเตอร์ตัวแรกของฟังก์ชันที่ทำ I/O ตามธรรมเนียม <code>func Check(ctx context.Context, url string) Result</code></li>
+        <li>ตรวจการยกเลิกด้วย <code>&lt;-ctx.Done()</code> ใน <code>select</code> และแยกสาเหตุด้วย <code>errors.Is(err, context.DeadlineExceeded)</code> หรือ <code>context.Canceled</code></li>
+        <li><code>http.Client</code> ที่กำหนด <code>Timeout</code> เสมอ (ค่าเริ่มต้นของ <code>http.DefaultClient</code> คือรอไม่จำกัด) และ <code>http.NewRequestWithContext</code> สำหรับ Timeout ราย Request</li>
+        <li>ปิด <code>resp.Body</code> ทุกครั้งด้วย <code>defer resp.Body.Close()</code> เพื่อคืน Connection ให้ระบบใช้ซ้ำ</li>
+        <li>Retry แบบมีขอบเขต: ลองใหม่เฉพาะ Network Error และ Status 5xx, จำกัดจำนวนครั้ง, รอเพิ่มขึ้นทีละขั้น (Backoff) และหยุดทันทีเมื่อ <code>ctx</code> ถูกยกเลิก</li>
+        <li>วัด Latency ด้วย <code>time.Now()</code> และ <code>time.Since(start)</code></li>
+        <li>จำลอง Server ใน Test ด้วย <code>httptest.NewServer</code> เพื่อไม่ต้องพึ่งอินเทอร์เน็ต</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>ระบบที่ไม่มี Timeout คือระบบที่รอค้างได้ตลอดไป ถ้าเว็บปลายทางเดียวไม่ตอบ ทั้งโปรแกรมอาจหยุดนิ่ง <code>context</code> คือวิธีมาตรฐานของ Go ในการส่งสัญญาณ "หยุดได้แล้ว" ข้ามทุกฟังก์ชันและทุก Goroutine Library ทุกตัวในงานจริง เช่น Driver ฐานข้อมูลและ gRPC ก็รับ <code>ctx</code> เป็นพารามิเตอร์แรก</dd>
+      <dt>ใช้เวลา</dt>
+      <dd>4–6 ชั่วโมง: context 2 ชม., HTTP Client และการปิด Body 1–2 ชม., เขียน Retry พร้อม Backoff และทดสอบกับ httptest 1–2 ชม.</dd>
+    </dl>
+    <p>ตัวอย่างนี้สร้าง Server จำลองที่ตอบช้า 300 ms ไว้ในโปรแกรมเลย จึงรันได้โดยไม่ต้องต่ออินเทอร์เน็ต แล้วตั้ง Timeout ของ Request ไว้แค่ 100 ms</p>
+    <pre class="code" data-env="file" data-label="Go · roadmap/step12/main.go"><code class="language-go">package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"time"
+)
+
+func main() {
+	// สร้าง server จำลองในเครื่อง ที่ตอบช้า 300ms
+	slow := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case &lt;-time.After(300 * time.Millisecond):
+			fmt.Fprintln(w, "ok")
+		case &lt;-r.Context().Done(): // client ยกเลิกแล้ว ก็หยุดทำงาน
+		}
+	}))
+	defer slow.Close()
+
+	// http.Client ควรกำหนด Timeout เสมอ (ค่าเริ่มต้นคือรอไม่จำกัด)
+	client := &amp;http.Client{Timeout: 5 * time.Second}
+
+	// context กำหนดเวลาให้ request นี้แค่ 100ms
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, slow.URL, nil)
+	start := time.Now()
+	_, err := client.Do(req)
+	fmt.Println("error:", err != nil)
+	fmt.Println("is DeadlineExceeded:", errors.Is(err, context.DeadlineExceeded))
+	fmt.Println("ใช้เวลาน้อยกว่า 200ms:", time.Since(start) &lt; 200*time.Millisecond)
+}</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./roadmap/step12</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>error: true
+is DeadlineExceeded: true
+ใช้เวลาน้อยกว่า 200ms: true</code></pre>
+    <p>โปรแกรมไม่ต้องรอ 300 ms จน Server ตอบ แต่ยกเลิก Request ทันทีที่ครบ 100 ms และ Error ที่ได้ห่อ <code>context.DeadlineExceeded</code> ไว้ ทำให้ตรวจด้วย <code>errors.Is</code> ได้ ฝั่ง Server เองก็รู้ผ่าน <code>r.Context().Done()</code> ว่า Client เลิกรอแล้ว จึงหยุดทำงานไม่เปลืองทรัพยากร</p>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p><code>context</code> เหมือนนาฬิกาจับเวลาที่หัวหน้าทีมยื่นให้ลูกทีมทุกคนก่อนออกไปทำงาน เมื่อนาฬิกาดัง (Timeout) หรือหัวหน้าโทรสั่งยกเลิก (Cancel) ทุกคนที่ถือนาฬิกาเรือนนั้นต้องหยุดงานและกลับมาพร้อมกัน ไม่มีใครค้างอยู่ข้างนอก</p></div>
+    <div class="callout sec"><span class="c-label sec">Security</span><p>เครื่องมือที่ยิง Request ไปหาหลายเว็บพร้อมกันต้องใช้อย่างรับผิดชอบ ทดสอบกับ <code>httptest</code>, <code>127.0.0.1</code> หรือ Server ของคุณเองเท่านั้น จำกัดจำนวน Worker และจำนวน Retry เสมอ การยิง Request ถี่ ๆ ใส่ระบบของผู้อื่นโดยไม่ได้รับอนุญาตอาจผิด พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์ และถูกมองว่าเป็นการโจมตีแบบ DoS</p></div>
+    <div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: เขียนฟังก์ชัน <code>Check(ctx context.Context, client *http.Client, url string) (int, time.Duration, error)</code> ที่คืน Status Code และ Latency พร้อม <code>defer resp.Body.Close()</code>, เพิ่ม Retry สูงสุด 2 ครั้งเมื่อได้ 5xx โดยรอ 100 ms และ 200 ms ระหว่างครั้ง แล้วพิสูจน์ด้วย <code>httptest</code> Server ที่ตอบ 503 สองครั้งก่อนตอบ 200, ใช้ <code>context.WithCancel</code> หยุด Goroutine หลายตัวพร้อมกันได้ และอธิบายได้ว่า <code>Client.Timeout</code> ต่างจาก Timeout ใน <code>ctx</code> อย่างไร</p></div>
+  </article>
+
+  <article class="rm-step" data-lvl="a">
+    <header><span class="rm-no">STEP 13</span><h4>HTTP Server (Routing แบบ Go 1.22+), httptest, Build และ Cross-compile</h4><span class="rm-time">สัปดาห์ที่ 10–11 · 6–9 ชม.</span></header>
+    <dl>
+      <dt>หัวข้อย่อย</dt>
+      <dd><ul>
+        <li><code>http.NewServeMux</code> กับ Routing Pattern แบบใหม่ตั้งแต่ Go 1.22: ระบุ Method และ Path Variable ได้ เช่น <code>mux.HandleFunc("GET /items/{id}", h)</code> แล้วอ่านค่าด้วย <code>r.PathValue("id")</code></li>
+        <li>Mux ตอบ <code>405 Method Not Allowed</code> ให้อัตโนมัติเมื่อ Path ตรงแต่ Method ไม่ตรง</li>
+        <li>ส่ง JSON ด้วย <code>json.NewEncoder(w).Encode(v)</code> พร้อม Header <code>Content-Type: application/json</code> และ Status Code ที่ถูกต้อง</li>
+        <li>Middleware แบบ Go: ฟังก์ชันที่รับ <code>http.Handler</code> และคืน <code>http.Handler</code> สำหรับ Log, Request ID และ Recover</li>
+        <li><code>http.Server</code> ที่ตั้ง <code>ReadHeaderTimeout</code>, <code>ReadTimeout</code>, <code>WriteTimeout</code> และ Graceful Shutdown ด้วย <code>srv.Shutdown(ctx)</code> เมื่อได้รับสัญญาณ <kbd>Ctrl</kbd>+<kbd>C</kbd></li>
+        <li>ทดสอบ Handler ด้วย <code>httptest.NewRecorder()</code> และ <code>httptest.NewRequest()</code> โดยไม่ต้องเปิด Port จริง</li>
+        <li>Build: <code>go build -o</code>, ลดขนาดด้วย <code>-ldflags="-s -w"</code>, ฝังเวอร์ชันด้วย <code>-ldflags="-X main.version=v1.0.0"</code> และ Static Binary ด้วย <code>CGO_ENABLED=0</code></li>
+        <li>Cross-compile ด้วย <code>GOOS=windows GOARCH=amd64</code>, <code>GOOS=darwin GOARCH=arm64</code>, <code>GOOS=linux GOARCH=arm64</code> และดูรายการทั้งหมดด้วย <code>go tool dist list</code></li>
+        <li>Docker Image แบบ Multi-stage (Build ด้วย Image <code>golang</code> แล้วคัดลอก Binary ไปไว้ใน Image เล็ก ๆ) บน Docker Desktop 4.95.0</li>
+      </ul></dd>
+      <dt>ทำไมต้องเรียน</dt>
+      <dd>Standard Library ของ Go ทำ HTTP Server ระดับ Production ได้โดยไม่ต้องใช้ Framework และหลัง Go 1.22 Routing ก็สะดวกพอสำหรับ API ส่วนใหญ่ ทักษะ Build และ Cross-compile ทำให้คุณแจก CLI ให้เพื่อนที่ใช้ Windows, macOS หรือ Linux ได้จากเครื่องเดียว ซึ่งเป็นจุดขายใหญ่ของ Go ในงาน DevOps และ Security</dd>
+      <dt>ใช้เวลา</dt>
+      <dd>6–9 ชั่วโมง: Routing และ JSON Handler 2–3 ชม., Middleware และ Graceful Shutdown 2 ชม., httptest 1–2 ชม., Build, Cross-compile และ Dockerfile 1–2 ชม.</dd>
+    </dl>
+    <pre class="code" data-env="file" data-label="Go · roadmap/step13/main.go"><code class="language-go">package main
+
+import (
+	"encoding/json"
+	"log/slog"
+	"net/http"
+	"os"
+	"strconv"
+)
+
+// Item คือข้อมูลสินค้าที่ API ส่งออก
+type Item struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+var items = map[int]Item{1: {1, "keyboard"}, 2: {2, "mouse"}}
+
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(v)
+}
+
+func main() {
+	mux := http.NewServeMux()
+	// routing pattern แบบใหม่ของ Go 1.22+: ระบุ method และ path variable ได้
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	})
+	mux.HandleFunc("GET /items/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id")) // อ่านค่า {id} จาก path
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "id must be a number"})
+			return
+		}
+		item, ok := items[id]
+		if !ok {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "item not found"})
+			return
+		}
+		writeJSON(w, http.StatusOK, item)
+	})
+
+	addr := "127.0.0.1:8080"
+	slog.Info("server started", "addr", addr)
+	if err := http.ListenAndServe(addr, mux); err != nil {
+		slog.Error("server stopped", "err", err)
+		os.Exit(1)
+	}
+}</code></pre>
+    <p>เปิด Terminal แรกรัน Server ไว้</p>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 1"><code class="language-bash">cd ~/projects/go-lab
+go run ./roadmap/step13</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>2026/10/19 10:20:01 INFO server started addr=127.0.0.1:8080</code></pre>
+    <p>เปิด Terminal ที่สองแล้วเรียก API ด้วย <code>curl</code> (กด <kbd>Ctrl</kbd>+<kbd>C</kbd> ที่ Terminal แรกเมื่อทดสอบเสร็จ)</p>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 2"><code class="language-bash">curl -s http://127.0.0.1:8080/health
+curl -i -s http://127.0.0.1:8080/items/1
+curl -s http://127.0.0.1:8080/items/9
+curl -s http://127.0.0.1:8080/items/abc
+curl -s -i -X POST http://127.0.0.1:8080/items/1 | head -1</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"status":"ok"}
+HTTP/1.1 200 OK
+Content-Type: application/json
+Date: Mon, 19 Oct 2026 03:20:05 GMT
+Content-Length: 27
+
+{"id":1,"name":"keyboard"}
+{"error":"item not found"}
+{"error":"id must be a number"}
+HTTP/1.1 405 Method Not Allowed</code></pre>
+    <p>วันเวลาในบรรทัด Log และ Header <code>Date</code> บนเครื่องคุณจะต่างไป สังเกตบรรทัดสุดท้าย: เราไม่ได้เขียน Handler สำหรับ <code>POST</code> เลย แต่ Mux รู้จาก Pattern <code>"GET /items/{id}"</code> และตอบ 405 ให้เอง จากนั้นลอง Cross-compile เป็นโปรแกรม Windows</p>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab/roadmap/step13
+GOOS=windows GOARCH=amd64 go build -o itemsapi.exe .
+file itemsapi.exe
+ls -la itemsapi.exe</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>itemsapi.exe: PE32+ executable (console) x86-64, for MS Windows, 16 sections
+-rwxr-xr-x 1 somchai somchai 10039808 Oct 19 10:22 itemsapi.exe</code></pre>
+    <p>ขนาดไฟล์และเวลาอาจต่างเล็กน้อยตามเครื่อง ไฟล์ <code>itemsapi.exe</code> นี้คัดลอกไปรันบน Windows ได้ทันที เช่น <code>cp itemsapi.exe /mnt/c/Users/somchai/Desktop/</code> แล้วดับเบิลคลิกหรือรันใน PowerShell (ชื่อผู้ใช้ Windows ของคุณอาจไม่ใช่ <code>somchai</code>)</p>
+    <div class="callout warn"><span class="c-label warn">ระวัง</span><p><code>http.ListenAndServe</code> ที่ใช้ในตัวอย่างนี้ไม่มี Timeout เลย เหมาะกับการเรียนรู้เท่านั้น สำหรับ Server จริงให้สร้าง <code>&amp;http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: 5 * time.Second}</code> และเพิ่ม Graceful Shutdown เสมอ <code>go vet</code> ไม่เตือนเรื่องนี้ แต่ golangci-lint จะเตือนเมื่อเปิดใช้ Linter gosec (กฎ G114)</p></div>
+    <div class="callout"><span class="c-label check">Checkpoint</span><p>คุณจบเส้นทางเมื่อทำสิ่งเหล่านี้ได้: เพิ่ม Endpoint <code>POST /items</code> ที่รับ JSON แล้วตอบ <code>201 Created</code> (และ <code>400</code> เมื่อ JSON ผิด), เขียน Middleware ที่ Log Method, Path, Status และเวลาที่ใช้ด้วย <code>slog</code>, เขียน Test ของ Handler ด้วย <code>httptest.NewRecorder</code> อย่างน้อย 4 กรณี (200, 400, 404, 405), เปลี่ยนไปใช้ <code>http.Server</code> ที่มี Timeout และ Graceful Shutdown, Cross-compile ได้ทั้ง Windows, macOS (arm64) และ Linux และสร้าง Docker Image แบบ Multi-stage ที่รัน Server นี้ได้</p></div>
+  </article>
+
+  <h3 id="s6-1-plan">ตารางเรียนแนะนำ 12 สัปดาห์</h3>
+  <p>ตารางนี้คิดจากการเรียนสัปดาห์ละ 6–8 ชั่วโมง ถ้ามีเวลามากกว่านี้ให้รวบสัปดาห์ได้ แต่อย่าข้าม Checkpoint</p>
+  <div class="tbl wide"><table>
+    <thead><tr><th>สัปดาห์</th><th>ขั้น</th><th>งานหลัก</th><th class="num">ชั่วโมงโดยประมาณ</th></tr></thead>
+    <tbody>
+      <tr><td class="nw">1</td><td>Step 1–2</td><td>ติดตั้ง Go 1.27.2, สร้าง <code>~/projects/go-lab</code>, เรียน Syntax พื้นฐานและ Control Flow</td><td class="num">7–9</td></tr>
+      <tr><td class="nw">2</td><td>Step 2–3</td><td>จบ Control Flow, เรียน Function, Closure และ <code>defer</code></td><td class="num">6–7</td></tr>
+      <tr><td class="nw">3</td><td>Step 3–4</td><td>Error Handling (<code>%w</code>, <code>errors.Is</code>/<code>As</code>), Slice, Map และ String</td><td class="num">7–8</td></tr>
+      <tr><td class="nw">4</td><td>Step 5–6</td><td>Struct, Method, Pointer และเริ่ม Interface</td><td class="num">6–8</td></tr>
+      <tr><td class="nw">5</td><td>Step 6–7</td><td>Package, <code>internal/</code>, <code>go mod tidy</code> และ Generics</td><td class="num">6–8</td></tr>
+      <tr><td class="nw">6</td><td>Step 8–9</td><td>Testing ครบชุด และเริ่ม CLI ด้วย <code>flag</code> และ File I/O</td><td class="num">7–8</td></tr>
+      <tr><td class="nw">7</td><td>Step 9–10</td><td>JSON, CSV, <code>slog</code>, Exit Code และเริ่ม Goroutine/Channel</td><td class="num">6–8</td></tr>
+      <tr><td class="nw">8</td><td>Step 10–11</td><td><code>select</code>, Deadlock, WaitGroup, Mutex และ Race Detector</td><td class="num">6–8</td></tr>
+      <tr><td class="nw">9</td><td>Step 11–12</td><td>Worker Pool, <code>context</code> และ HTTP Client ที่มี Timeout</td><td class="num">6–7</td></tr>
+      <tr><td class="nw">10</td><td>Step 12–13</td><td>Retry พร้อม Backoff และ HTTP Server แบบ Go 1.22+</td><td class="num">5–7</td></tr>
+      <tr><td class="nw">11</td><td>Step 13</td><td>Middleware, Graceful Shutdown, httptest, Cross-compile และ Docker</td><td class="num">4–6</td></tr>
+      <tr><td class="nw">12</td><td>Mini Project</td><td>สร้าง Concurrent Website Health Checker พร้อม Test, README และ Push ขึ้น GitHub</td><td class="num">6–8</td></tr>
+    </tbody>
+  </table></div>
+  <p>รวมทั้งหมดประมาณ 72–92 ชั่วโมง ถ้าคุณคล่อง Python และ Node.js มาแล้วจริง ๆ ระดับ Beginner อาจใช้เวลาน้อยกว่าที่ระบุ ทำให้รวมแล้วอยู่ในช่วง 60–90 ชั่วโมงตามที่ประเมินไว้</p>
+
+  <h3 id="s6-1-skills">Must-know Skills</h3>
+  <ol class="skills">
+    <li><strong>จัดการ Error แบบ Go (<code>if err != nil</code>, <code>%w</code>, <code>errors.Is</code>/<code>errors.As</code>)</strong> เพราะ Error เป็นค่าธรรมดาที่ต้องจัดการเองทุกจุด และการห่อ Error พร้อมบริบทคือสิ่งที่ทำให้หาสาเหตุปัญหาใน Production ได้</li>
+    <li><strong>เข้าใจ Slice (<code>len</code>, <code>cap</code>, Backing Array) และ Map</strong> เพราะเป็นโครงสร้างข้อมูลที่ใช้ทุกวัน และเป็นต้นเหตุของบัคที่หาไม่เจอเมื่อเข้าใจผิด</li>
+    <li><strong>ออกแบบด้วย Struct, Method และ Interface ขนาดเล็ก</strong> เพราะ Go ไม่มี Class การแยกส่วนด้วย Interface ทำให้โค้ดเปลี่ยนส่วนประกอบได้และเขียน Test ง่าย</li>
+    <li><strong>เลือก Value หรือ Pointer Receiver ให้ถูก</strong> เพราะเลือกผิดแล้วค่าที่แก้จะไม่เปลี่ยน หรือเกิด Copy ของ Mutex ที่ทำให้ Lock ไม่ทำงาน</li>
+    <li><strong>เขียน Table-driven Test, Subtest และใช้ httptest</strong> เพราะเป็นมาตรฐานของทุกทีม Go และเป็นสิ่งที่ผู้สัมภาษณ์ดูใน Portfolio</li>
+    <li><strong>ใช้ Goroutine, Channel และ <code>select</code> อย่างปลอดภัย</strong> เพราะ Concurrency คือเหตุผลหลักที่เลือก Go และต้องรู้วิธีป้องกัน Deadlock กับ Goroutine Leak</li>
+    <li><strong>ใช้ <code>sync.WaitGroup</code>, <code>sync.Mutex</code> และ Race Detector (<code>-race</code>)</strong> เพราะ Data Race เป็นบัคที่ทดสอบปกติจับไม่ได้ ต้องใช้เครื่องมือช่วยตรวจ</li>
+    <li><strong>ออกแบบ Worker Pool ที่จำกัดจำนวนงานพร้อมกัน</strong> เพราะงานจริงต้องควบคุมไม่ให้ใช้ทรัพยากรเกินและไม่ยิงระบบปลายทางหนักเกินไป</li>
+    <li><strong>ใช้ <code>context</code> ส่ง Timeout และการยกเลิก</strong> เพราะทุก Library ด้าน I/O ของ Go รับ <code>ctx</code> และระบบที่ไม่มี Timeout จะค้างได้ตลอดไป</li>
+    <li><strong>เขียน HTTP Server และ Client ด้วย <code>net/http</code></strong> เพราะเป็นงานหลักของ Backend Go และ Standard Library ทำได้ครบโดยไม่ต้องพึ่ง Framework</li>
+    <li><strong>ใช้เครื่องมือมาตรฐาน <code>gofmt</code>, <code>go vet</code>, <code>go mod tidy</code></strong> เพราะ CI ของทีม Go ตรวจสิ่งเหล่านี้ทุก Pull Request</li>
+    <li><strong>Build, Cross-compile และส่งเป็น Docker Image</strong> เพราะจุดแข็งของ Go คือได้ Binary ไฟล์เดียวที่ Deploy ได้ทุกที่</li>
+  </ol>
+
+  <h3 id="s6-1-tools">Tools &amp; Frameworks</h3>
+  <p>เวอร์ชันของ Module ด้านล่างตรวจจาก Go Module Proxy ในเดือนตุลาคม 2026 เครื่องมือเหล่านี้ออกเวอร์ชันใหม่บ่อย ให้ตรวจเวอร์ชันล่าสุดที่ pkg.go.dev หรือหน้า GitHub ของแต่ละโปรเจกต์ก่อนติดตั้ง</p>
+  <div class="tbl wide"><table class="tools">
+    <thead><tr><th>ชื่อ</th><th>ใช้ทำอะไร</th><th>ควรเริ่มใช้ในขั้นไหน</th></tr></thead>
+    <tbody>
+      <tr><td class="nw">Go 1.27.2</td><td>Compiler และคำสั่ง <code>go</code> (run, build, test, mod, vet, doc) ติดตั้งจาก go.dev/dl</td><td>Step 1</td></tr>
+      <tr><td class="nw">VS Code + Go extension</td><td>Editor ที่ต่อกับ WSL ได้ ส่วนขยาย Go ให้ Autocomplete, ไปยังนิยาม, Format ตอนบันทึก และรัน Test จาก Editor</td><td>Step 1</td></tr>
+      <tr><td class="nw">gopls v0.24.0</td><td>Language Server ทางการของ Go ที่ VS Code ใช้ ติดตั้งให้อัตโนมัติผ่าน Go extension</td><td>Step 1</td></tr>
+      <tr><td class="nw">gofmt / go vet</td><td>จัดรูปแบบโค้ดให้เป็นมาตรฐานเดียวกัน และตรวจจุดน่าสงสัย เช่น Printf ที่ใส่ Argument ไม่ตรง มากับ Go</td><td>Step 1</td></tr>
+      <tr><td class="nw">pkg.go.dev</td><td>เว็บค้นเอกสารของ Standard Library และ Module ทั้งหมด ใช้คู่กับคำสั่ง <code>go doc</code></td><td>Step 1</td></tr>
+      <tr><td class="nw">Delve (dlv) v1.27.2</td><td>Debugger ของ Go ตั้ง Breakpoint และดูค่าตัวแปรได้ ติดตั้งด้วย <code>go install github.com/go-delve/delve/cmd/dlv@v1.27.2</code></td><td>Step 3</td></tr>
+      <tr><td class="nw">go test + testing</td><td>Testing, Benchmark, Coverage และ Fuzzing ที่มากับ Go</td><td>Step 8</td></tr>
+      <tr><td class="nw">testify v1.12.1</td><td>Library Assertion ยอดนิยม (<code>assert.Equal</code>, <code>require.NoError</code>) ใช้ได้แต่ไม่จำเป็น หลักสูตรนี้เน้น <code>testing</code> มาตรฐานก่อน</td><td>Step 8 (ทางเลือก)</td></tr>
+      <tr><td class="nw">staticcheck v0.8.2</td><td>Linter คุณภาพสูงที่จับบัคและโค้ดที่ล้าสมัยได้มากกว่า <code>go vet</code> ติดตั้งด้วย <code>go install honnef.co/go/tools/cmd/staticcheck@v0.8.2</code></td><td>Step 8</td></tr>
+      <tr><td class="nw">golangci-lint v2.15.0</td><td>รวม Linter หลายสิบตัว (รวม staticcheck, gosec) ไว้ในคำสั่งเดียว นิยมใช้ใน CI ให้ติดตั้งตามวิธีในเว็บทางการของโปรเจกต์</td><td>Step 9</td></tr>
+      <tr><td class="nw">Race Detector (<code>-race</code>)</td><td>ตรวจ Data Race ขณะรัน ต้องมี <code>gcc</code> (<code>sudo apt install -y gcc</code>)</td><td>Step 11</td></tr>
+      <tr><td class="nw">golang.org/x/sync v0.24.0</td><td>Package <code>errgroup</code> และ <code>semaphore</code> สำหรับงาน Concurrency ที่ซับซ้อนขึ้น</td><td>Step 11</td></tr>
+      <tr><td class="nw">curl</td><td>ทดสอบ HTTP API จาก Terminal (<code>curl -i</code> ดู Header และ Status)</td><td>Step 12</td></tr>
+      <tr><td class="nw">govulncheck v1.9.0</td><td>ตรวจว่าโค้ดเรียกใช้ฟังก์ชันที่มีช่องโหว่ที่รู้จักหรือไม่ ติดตั้งด้วย <code>go install golang.org/x/vuln/cmd/govulncheck@v1.9.0</code></td><td>Step 13</td></tr>
+      <tr><td class="nw">chi v5.5.0 / Gin v1.12.0</td><td>Router และ Web Framework ยอดนิยม (<code>github.com/go-chi/chi/v5</code>, <code>github.com/gin-gonic/gin</code>) เรียนหลังจากเข้าใจ <code>net/http</code> แล้ว เพราะทั้งคู่สร้างบนแนวคิดเดียวกัน</td><td>หลัง Step 13</td></tr>
+      <tr><td class="nw">pgx v5.11.0</td><td>Driver PostgreSQL ที่นิยมที่สุดของ Go (<code>github.com/jackc/pgx/v5</code>) ใช้ต่อยอดกับความรู้จากหัวข้อ SQL</td><td>หลัง Step 13</td></tr>
+      <tr><td class="nw">cobra v1.10.2</td><td>Library สร้าง CLI ที่มีคำสั่งย่อย (เช่น <code>tool check</code>, <code>tool report</code>) ใช้ใน kubectl และ Hugo</td><td>หลัง Mini Project</td></tr>
+      <tr><td class="nw">Docker Desktop 4.95.0</td><td>สร้างและรัน Container ของ Go Service ผ่าน WSL 2 Backend ฟรีสำหรับใช้ส่วนตัว การศึกษา และธุรกิจขนาดเล็ก</td><td>Step 13</td></tr>
+      <tr><td class="nw">Git 2.43.0 + GitHub Actions</td><td>เก็บโค้ดและตั้ง CI ที่รัน <code>gofmt</code>, <code>go vet</code>, <code>go test -race</code> ทุกครั้งที่ Push</td><td>Step 1 (Git), Step 8 (CI)</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="s6-1-career">เส้นทางอาชีพ ตำแหน่งงาน และใบรับรอง</h3>
+  <p>Go ไม่ค่อยเป็น "ภาษาแรก" ที่บริษัทจ้าง แต่เป็นทักษะที่ทำให้ Resume สาย Backend, Cloud, DevOps, Security และ Network โดดเด่นขึ้นมาก ประกาศงานหลายตำแหน่งระบุ Go เป็นภาษาหลักของทีม Platform หรือ Infrastructure</p>
+  <div class="tbl wide"><table class="careers">
+    <thead><tr><th>ตำแหน่ง</th><th>ทำอะไร</th><th>ระดับ</th><th>ทักษะที่ต้องมี</th></tr></thead>
+    <tbody>
+      <tr><td>Junior Backend Developer (Go)</td><td>เขียนและดูแล REST API, เชื่อมฐานข้อมูล, เขียน Test ให้ Service ของทีม</td><td class="nw">Junior</td><td><code>net/http</code> หรือ chi/Gin, JSON, SQL กับ pgx, Table-driven Test, Git</td></tr>
+      <tr><td>Backend / Microservices Engineer</td><td>ออกแบบ Service ที่รองรับผู้ใช้จำนวนมาก, ทำ Concurrency, Caching และ Message Queue</td><td class="nw">Mid–Senior</td><td>Goroutine, <code>context</code>, gRPC, PostgreSQL, Redis, Docker, Observability</td></tr>
+      <tr><td>Platform / DevOps Engineer</td><td>สร้างเครื่องมือภายในและ CLI สำหรับ Deploy, เขียน Automation และดูแล CI/CD</td><td class="nw">Mid</td><td>Go CLI, Cross-compile, Docker, Kubernetes, GitHub Actions, Linux</td></tr>
+      <tr><td>Site Reliability Engineer (SRE)</td><td>ดูแลให้ระบบพร้อมใช้งาน, เขียน Health Check, Exporter และเครื่องมือตรวจสอบระบบ</td><td class="nw">Mid–Senior</td><td>Go, Prometheus, Logging ด้วย <code>slog</code>, Timeout/Retry, Incident Response</td></tr>
+      <tr><td>Cloud Native / Kubernetes Developer</td><td>เขียน Operator, Controller และส่วนขยายของ Kubernetes ซึ่งเขียนด้วย Go เป็นหลัก</td><td class="nw">Senior</td><td>Go ขั้นสูง, Kubernetes API, Interface Design, Concurrency</td></tr>
+      <tr><td>Security Tooling Engineer</td><td>สร้างเครื่องมือ Scan, ตรวจ Config และวิเคราะห์ Log สำหรับทีม Security (ในระบบที่ได้รับอนุญาตเท่านั้น)</td><td class="nw">Mid</td><td>Go, HTTP/TLS, Worker Pool, JSON, ความรู้ OWASP และ Network</td></tr>
+      <tr><td>Network Automation Engineer</td><td>เขียนโปรแกรมตรวจสถานะและตั้งค่าอุปกรณ์เครือข่ายจำนวนมากพร้อมกัน</td><td class="nw">Mid</td><td>Go, Concurrency, SSH/API ของอุปกรณ์, TCP/IP, YAML/JSON</td></tr>
+    </tbody>
+  </table></div>
+  <h4>ใบรับรอง (Certification)</h4>
+  <ul>
+    <li><strong>Go: ไม่มีใบรับรองหลัก</strong> ทีม Go และ Google ไม่มีการสอบรับรองทางการสำหรับภาษา Go สิ่งที่ผู้จ้างดูคือ Portfolio บน GitHub ที่มี Test และ README ดี, การมีส่วนร่วมใน Open Source ที่เขียนด้วย Go และผลงานจริง เช่น Mini Project ของหัวข้อนี้</li>
+    <li><strong>GitHub Actions (GH-200)</strong> สถานะ Active ช่วยยืนยันทักษะการตั้ง CI ที่รัน <code>go test -race</code> และ Build Binary อัตโนมัติ</li>
+    <li><strong>GitHub Foundations (GH-900)</strong> สถานะ Active เหมาะถ้ายังไม่เคยมีใบรับรองด้าน Git/GitHub</li>
+    <li><strong>AWS Certified Developer – Associate</strong> สอบรหัส DVA-C02 ได้ถึง 2026-11-30 และเปลี่ยนเป็น DVA-C03 ตั้งแต่ 2026-12-01 เหมาะกับสาย Backend ที่ Deploy Go Service บน AWS</li>
+    <li><strong>LFCS (Linux Foundation Certified System Administrator)</strong> สถานะ Active เหมาะกับสาย Platform/SRE ที่รัน Go Service บน Linux</li>
+    <li>ใบรับรองด้าน Kubernetes ของ Linux Foundation (เช่น CKAD) เป็นที่ยอมรับในสาย Cloud Native แต่หลักสูตรนี้ไม่ได้ตรวจสอบรายละเอียดล่าสุด ให้ตรวจสอบเงื่อนไข ราคา และเวอร์ชันข้อสอบที่ training.linuxfoundation.org ก่อนสมัคร</li>
+  </ul>
+  <div class="callout note"><span class="c-label note">หมายเหตุ</span><p>เงินเดือนของตำแหน่งที่ใช้ Go แตกต่างกันมากตามประสบการณ์ ขนาดบริษัท อุตสาหกรรม และเมือง หลักสูตรนี้จึงไม่ระบุตัวเลข วิธีหาข้อมูลจริง: ค้นใน JobsDB และ LinkedIn Jobs ด้วยคำว่า "Golang", "Go Developer" และ "Backend Go" แล้วกรองตามประเทศไทยและระดับประสบการณ์ ดูช่วงเงินเดือนที่ประกาศระบุไว้ อ่านรายงานเงินเดือนประจำปีของบริษัทจัดหางาน และสอบถามจากคนที่ทำงานในตำแหน่งนั้นผ่าน LinkedIn หรือชุมชน Go ในไทย</p></div>
+
+  <h3 id="s6-1-next">จบหัวข้อนี้แล้วไปต่อที่ไหน</h3>
+  <p>เมื่อผ่าน Checkpoint ของ Step 13 แล้ว ให้ทำ Mini Project <strong>Concurrent Website Health Checker</strong> ใน Part 4 ของหัวข้อนี้ เป็น CLI ชื่อ <code>gohealth</code> ที่ตรวจ URL จำนวนมากพร้อมกันด้วย Worker Pool ตั้ง Timeout ราย Request ด้วย <code>context</code> มี Retry แสดงผลเป็นตาราง JSON หรือ CSV คืน Exit Code ที่ CI ใช้ได้ และมี Table-driven Test ที่ใช้ <code>httptest</code> Server ทุกขั้นที่คุณเรียนมาจะถูกใช้ครบในโปรเจกต์นี้</p>
+  <ul>
+    <li><strong>สาย Backend:</strong> นำ Go ไปทำ REST API ที่เชื่อม PostgreSQL ด้วย pgx เทียบกับ API ที่เคยทำใน <a data-t="12"></a> และ <a data-t="13"></a></li>
+    <li><strong>สาย Cyber Security:</strong> เขียนเครื่องมือตรวจ Header ความปลอดภัยของเว็บที่คุณเป็นเจ้าของ ต่อยอดใน <a data-t="5"></a></li>
+    <li><strong>สาย Network:</strong> เขียนโปรแกรมตรวจ Port และ Latency ของเครื่องใน Lab ตัวเอง ต่อยอดจาก <a data-t="1"></a></li>
+    <li><strong>DevOps:</strong> ใส่ Go Service ลง Container และตั้ง CI บน GitHub Actions ตามแนวทางใน <a data-t="17"></a></li>
+  </ul>
+  <div class="callout ok"><span class="c-label ok">Best Practice</span><p>Push ทุกขั้นของ <code>~/projects/go-lab</code> และ Mini Project ขึ้น GitHub พร้อม README ที่บอกวิธีรันและวิธีรัน Test ผู้สัมภาษณ์งาน Go มักเปิด Repository ดูว่ามีไฟล์ <code>_test.go</code>, โค้ดผ่าน <code>gofmt</code> และจัดการ Error ครบหรือไม่ ก่อนจะดูอย่างอื่น</p></div>
+</section>

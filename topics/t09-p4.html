@@ -1,0 +1,1682 @@
+<section class="part" data-part="4">
+  <h2 id="s9-4"><span class="sec-no">9.4</span>ส่วนเสริม: Mini Project, Cheat Sheet, Interview</h2>
+  <p>ส่วนนี้คือจุดที่ทุกอย่างที่เรียนมาในหัวข้อ Python มารวมกันเป็นงานชิ้นเดียว คุณจะสร้างโปรแกรม Command line ที่ใช้งานได้จริง มีชุดทดสอบอัตโนมัติ ผ่าน Linter และ Formatter และพร้อมขึ้น GitHub เพื่อใส่ใน Portfolio จากนั้นเป็น Cheat Sheet ที่จัดกลุ่มตามเรื่อง คำถามสัมภาษณ์งาน 5 ข้อพร้อมคำตอบตัวอย่าง และแหล่งเรียนต่อ</p>
+  <p>ก่อนเริ่ม ควรทำ Part 2 และ Part 3 ให้ครบ โดยเฉพาะแนวคิดเรื่อง Files (c07), Exceptions (c08), argparse (c09), Dataclass (c10) และ pytest กับ ruff (c12) เพราะโปรเจกต์นี้ใช้ทุกเรื่องพร้อมกัน ถ้ายังไม่คล่องคำสั่ง Terminal ให้ทบทวน <a data-t="19"></a> และถ้ายังไม่เคย Push งานขึ้น GitHub ให้ทบทวน <a data-t="17"></a></p>
+
+  <h3 id="s9-4-project">Mini Project: Expense Tracker CLI</h3>
+
+  <h4>เป้าหมาย</h4>
+  <p>สร้างโปรแกรมบันทึกค่าใช้จ่ายส่วนตัวชื่อ <strong>Expense Tracker CLI</strong> ที่รันด้วยคำสั่ง <code>python3 -m expense_tracker</code> บน Ubuntu 24.04 (WSL2) โปรแกรมเก็บข้อมูลในไฟล์ <code>data/expenses.csv</code> ซึ่งเปิดดูด้วย Excel หรือ Text editor ได้ทันที รองรับ 6 Subcommand คือ <code>add</code>, <code>list</code>, <code>edit</code>, <code>delete</code>, <code>summary</code> และ <code>export</code></p>
+  <p>โปรเจกต์นี้ตั้งใจให้หน้าตาเหมือนงานจริงในบริษัท ไม่ใช่สคริปต์ไฟล์เดียว คือแยกโค้ดเป็น Package หลาย Module ตามหน้าที่ ตรวจ Input ทุกช่องแล้วแสดงข้อความภาษาไทยที่เข้าใจง่ายแทน Traceback คืน Exit code ที่ถูกต้องเพื่อให้สคริปต์อื่นเรียกใช้ต่อได้ ใช้ <code>Decimal</code> แทน <code>float</code> เพื่อให้ยอดเงินไม่คลาดเคลื่อน มีชุดทดสอบ pytest 27 กรณีที่รันจบในเสี้ยววินาที และผ่าน <code>ruff check</code> กับ <code>ruff format --check</code> ทั้งหมด</p>
+  <p>เมื่อทำเสร็จ คุณจะมี Repository บน GitHub ที่แสดงให้ผู้สัมภาษณ์เห็นว่าคุณออกแบบโครงสร้างโปรแกรมได้ เขียน Test ได้ จัดการไฟล์และข้อผิดพลาดเป็น และใช้เครื่องมือมาตรฐานของวงการ Python ได้ ซึ่งเป็นทักษะพื้นฐานของทุกสายที่ใช้ Python ตั้งแต่ Backend, Data ไปจนถึง Automation</p>
+
+  <h4>Features</h4>
+  <ul>
+    <li><strong><code>add</code></strong> เพิ่มรายการด้วย <code>--date YYYY-MM-DD</code> (ไม่ใส่จะใช้วันนี้), <code>--category</code> (เลือกได้เฉพาะ 7 หมวด), <code>--amount</code> (ต้องมากกว่า 0 และมีทศนิยมไม่เกิน 2 ตำแหน่ง) และ <code>--note</code> (ไม่บังคับ) id ใหม่คือ id มากที่สุดที่มีอยู่บวก 1</li>
+    <li><strong><code>list</code></strong> แสดงตารางที่จัดคอลัมน์ตรงกัน (id, date, category, amount, note) กรองด้วย <code>--month YYYY-MM</code> และ <code>--category</code> ได้ พร้อมบรรทัดยอดรวมท้ายตาราง</li>
+    <li><strong><code>edit ID</code></strong> แก้เฉพาะช่องที่ระบุ ช่องที่ไม่ระบุคงค่าเดิม ถ้าไม่พบ id จะแสดง <code>ไม่พบรายการ id 99</code> และจบด้วย Exit code 1</li>
+    <li><strong><code>delete ID</code></strong> ลบรายการเดียว ถ้าไม่พบ id จบด้วย Exit code 1</li>
+    <li><strong><code>summary --month YYYY-MM</code></strong> สรุปยอดรายหมวด เรียงจากมากไปน้อย พร้อมยอดรวมของเดือน ข้อมูลตัวอย่างเดือน 2026-10 ให้ผล bills 1,250.50 / shopping 299.00 / food 185.00 / transport 184.00 / health 85.00 / รวม 2,003.50 บาท</li>
+    <li><strong><code>export --output FILE</code></strong> ส่งออกเป็น JSON ที่อ่านภาษาไทยออก (<code>ensure_ascii=False</code>, <code>indent=2</code>) เก็บจำนวนเงินเป็นข้อความ เช่น <code>"1250.50"</code> เพื่อไม่ให้เสียความแม่นยำ และสร้างโฟลเดอร์ปลายทางให้เอง</li>
+    <li><strong>Validation:</strong> วันที่ผิดรูปแบบ จำนวนเงินติดลบหรือทศนิยมเกิน เดือนผิดรูปแบบ แถวเสียในไฟล์ CSV ทุกกรณีแสดงข้อความภาษาไทยทาง stderr และจบด้วย Exit code 1 ส่วนหมวดหมู่ที่ไม่มีในระบบให้ argparse จัดการ (Exit code 2) ผู้ใช้ไม่เห็น Traceback เลย</li>
+    <li><strong>ตั้งค่าไฟล์ข้อมูลได้ 3 ระดับ:</strong> Option <code>--file</code> มาก่อน ถัดมาคือ Environment Variable <code>EXPENSES_FILE</code> และค่าเริ่มต้นคือ <code>data/expenses.csv</code></li>
+    <li><strong>Test และ Tooling:</strong> pytest 27 กรณีใน 4 ไฟล์ ใช้ <code>tmp_path</code> จึงไม่แตะข้อมูลจริง ตั้งค่า pytest กับ ruff ใน <code>pyproject.toml</code> และติดตั้งเครื่องมือจาก <code>requirements.txt</code> ที่ Pin เวอร์ชันไว้ทุกตัว</li>
+  </ul>
+
+  <h4>เทคโนโลยีและเวอร์ชันที่ใช้</h4>
+  <div class="tbl mid"><table class="explain"><thead><tr><th>ส่วน</th><th>เวอร์ชัน / รายละเอียด</th></tr></thead><tbody>
+    <tr><td>Python</td><td>3.12.3 (<code>python3</code> ที่มากับ Ubuntu 24.04) โค้ดทดสอบแล้วว่ารันได้ทั้ง 3.12 และ 3.13</td></tr>
+    <tr><td>Runtime</td><td>Standard library ล้วน: <code>argparse</code>, <code>csv</code>, <code>json</code>, <code>pathlib</code>, <code>dataclasses</code>, <code>datetime</code>, <code>decimal</code>, <code>collections</code>, <code>sys</code>, <code>os</code> ผู้ใช้จึงไม่ต้องติดตั้งอะไรเพิ่มเพื่อใช้งาน</td></tr>
+    <tr><td>เครื่องมือพัฒนา (ใน <code>.venv</code>)</td><td>pip 24.0, pytest 9.1.1 (pluggy 1.7.0), ruff 0.17.1</td></tr>
+    <tr><td>Version control</td><td>Git 2.43.0 และ GitHub (Repository ชื่อ <code>somchai/expense-tracker</code>)</td></tr>
+    <tr><td>Editor</td><td>VS Code พร้อม Extension WSL, Python และ Ruff (ไม่บังคับ ใช้ Editor อื่นได้)</td></tr>
+  </tbody></table></div>
+
+  <h4>แนวคิดจาก Part 2 ที่ใช้ในแต่ละไฟล์</h4>
+  <div class="tbl mid"><table class="explain"><thead><tr><th>ไฟล์</th><th>แนวคิดที่ใช้</th></tr></thead><tbody>
+    <tr><td><code>models.py</code></td><td>Dataclass แบบ <code>frozen=True</code> และ <code>__post_init__</code> (c10), Custom Exception และ <code>raise ... from None</code> (c08), <code>Decimal</code> และ <code>date.fromisoformat</code> (c09), <code>@classmethod</code> เป็น Alternate constructor (c10)</td></tr>
+    <tr><td><code>storage.py</code></td><td><code>pathlib</code>, <code>csv.DictReader</code>/<code>DictWriter</code>, <code>encoding="utf-8"</code>, <code>newline=""</code> (c07), Environment Variable ผ่าน <code>os.environ</code></td></tr>
+    <tr><td><code>report.py</code></td><td>List comprehension (c04), <code>defaultdict</code> และ <code>sorted(key=...)</code> (c09), f-string format spec <code>{x:,.2f}</code> (c02), <code>json.dump</code> (c07)</td></tr>
+    <tr><td><code>cli.py</code></td><td><code>argparse</code> แบบ Subcommand (c09), Dict ของ Function เป็นตาราง Dispatch (c05), การจับ Exception เฉพาะชนิด (c08)</td></tr>
+    <tr><td><code>__main__.py</code></td><td>Package และการรันด้วย <code>python3 -m</code> (c06)</td></tr>
+    <tr><td><code>tests/</code></td><td>pytest, Fixture, <code>tmp_path</code>, <code>parametrize</code>, <code>pytest.raises</code>, <code>capsys</code>, <code>monkeypatch</code> (c12)</td></tr>
+  </tbody></table></div>
+
+  <h4>โครงสร้างโฟลเดอร์สุดท้าย</h4>
+  <pre class="code" data-env="file" data-label="Plaintext · โครงสร้างโปรเจกต์"><code class="language-plaintext">~/projects/expense-tracker/
+├── .gitignore              # บอก Git ว่าไม่ต้องเก็บไฟล์ไหน
+├── README.md               # หน้าแรกของ Repository บน GitHub
+├── pyproject.toml          # ข้อมูลโปรเจกต์ + ตั้งค่า pytest และ ruff
+├── requirements.txt        # เครื่องมือพัฒนาที่ Pin เวอร์ชันแล้ว
+├── data/
+│   └── expenses.csv        # ข้อมูลตัวอย่าง 8 แถว
+├── exports/                # สร้างอัตโนมัติตอน export (ไม่ขึ้น Git)
+├── expense_tracker/        # Package หลัก (ชื่อ snake_case)
+│   ├── __init__.py         # เก็บ __version__
+│   ├── __main__.py         # ทำให้รัน python3 -m expense_tracker ได้
+│   ├── cli.py              # argparse และ Subcommand ทั้ง 6
+│   ├── models.py           # CATEGORIES, การตรวจ Input, Dataclass Expense
+│   ├── report.py           # กรอง สรุป จัดตาราง ส่งออก JSON
+│   └── storage.py          # อ่าน/เขียน CSV
+├── tests/
+│   ├── conftest.py         # Fixture sample_csv ที่ทุกไฟล์ใช้ร่วมกัน
+│   ├── test_cli.py
+│   ├── test_models.py
+│   ├── test_report.py
+│   └── test_storage.py
+└── .venv/                  # Virtual Environment (ไม่ขึ้น Git)</code></pre>
+
+  <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ลองนึกถึงร้านอาหาร <code>cli.py</code> คือพนักงานหน้าร้านที่รับออร์เดอร์และตอบลูกค้า <code>models.py</code> คือมาตรฐานวัตถุดิบที่ตรวจของทุกชิ้นก่อนเข้าครัว <code>storage.py</code> คือห้องเก็บของ และ <code>report.py</code> คือฝ่ายบัญชีที่สรุปยอดขาย แต่ละฝ่ายทำงานของตัวเองและคุยกันผ่านช่องทางที่ชัดเจน ถ้าวันหนึ่งเปลี่ยนห้องเก็บของจาก CSV เป็นฐานข้อมูล SQLite ก็แก้แค่ <code>storage.py</code> ฝ่ายอื่นไม่ต้องรู้เรื่อง</p></div>
+
+  <div class="callout note"><span class="c-label note">หมายเหตุ</span><p>ตัวอย่างทั้งหมดใช้ชื่อผู้ใช้ <code>somchai</code> และโฟลเดอร์ <code>/home/somchai/projects/expense-tracker</code> บนเครื่องของคุณ ชื่อผู้ใช้ Path เวลาที่ Test ใช้ และ Commit hash จะต่างออกไป ส่วนผลลัพธ์อื่น ๆ (ตาราง ยอดเงิน ข้อความ Error) จะตรงกันทุกตัวอักษร เพราะคัดลอกมาจากการรันจริงด้วย Python 3.12.3</p></div>
+
+  <h4>ขั้นตอนการสร้าง</h4>
+  <ol class="proj-steps">
+    <li>
+      <h4>Step 1: สร้างโฟลเดอร์ Virtual Environment และไฟล์ตั้งค่าโปรเจกต์</h4>
+      <p>เริ่มจากสร้างโฟลเดอร์โปรเจกต์และโฟลเดอร์ย่อยทั้งหมดในคำสั่งเดียว แล้วสร้าง Virtual Environment ไว้ใน <code>.venv</code> ภายในโปรเจกต์ ถ้ายังไม่เคยติดตั้ง <code>python3-venv</code> ให้รันบรรทัดแรกก่อน (ทำครั้งเดียวต่อเครื่อง)</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ติดตั้งครั้งเดียวต่อเครื่อง (ข้ามได้ถ้าทำใน Part 2 แล้ว)
+sudo apt update &amp;&amp; sudo apt install -y python3-venv python3-pip
+
+# สร้างโฟลเดอร์โปรเจกต์และโฟลเดอร์ย่อย แล้วเข้าไปข้างใน
+mkdir -p ~/projects/expense-tracker/{expense_tracker,tests,data}
+cd ~/projects/expense-tracker
+
+# สร้างและเปิดใช้ Virtual Environment
+python3 -m venv .venv
+source .venv/bin/activate
+python3 --version
+python3 -m pip --version</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Python 3.12.3
+pip 24.0 from /home/somchai/projects/expense-tracker/.venv/lib/python3.12/site-packages/pip (python 3.12)</code></pre>
+      <p>สังเกตว่า Path ของ pip อยู่ใน <code>.venv</code> ของโปรเจกต์ แปลว่า Virtual Environment ทำงานแล้ว และ Prompt จะขึ้นต้นด้วย <code>(.venv)</code> ต่อไปติดตั้งเครื่องมือพัฒนาสองตัวโดยระบุเวอร์ชันชัดเจน แล้วบันทึกรายการทั้งหมดลง <code>requirements.txt</code> ด้วย <code>pip freeze</code></p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ติดตั้งเครื่องมือพัฒนาใน .venv เท่านั้น
+python3 -m pip install "pytest==9.1.1" "ruff==0.17.1"
+
+# บันทึกเวอร์ชันของทุก Package (รวม Dependency) ลงไฟล์
+python3 -m pip freeze &gt; requirements.txt
+cat requirements.txt</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>iniconfig==2.3.1
+packaging==26.3
+pluggy==1.7.0
+Pygments==2.21.0
+pytest==9.1.1
+ruff==0.17.1</code></pre>
+      <p>ถัดไปสร้างไฟล์ <code>pyproject.toml</code> ซึ่งเป็นไฟล์มาตรฐานของโปรเจกต์ Python สมัยใหม่ ใช้เก็บทั้งข้อมูลโปรเจกต์และการตั้งค่าเครื่องมือ ทำให้ไม่ต้องมีไฟล์ Config กระจายหลายไฟล์</p>
+      <pre class="code" data-env="file" data-label="TOML · pyproject.toml"><code class="language-ini">[project]
+name = "expense-tracker"
+version = "1.0.0"
+description = "Expense Tracker CLI: บันทึกและสรุปค่าใช้จ่ายส่วนตัวจาก Terminal"
+requires-python = "&gt;=3.12"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]</code></pre>
+      <div class="tbl mid"><table class="explain"><thead><tr><th>ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+        <tr><td><code>[project]</code></td><td>ชื่อ เวอร์ชัน คำอธิบาย และ <code>requires-python = "&gt;=3.12"</code> บอกว่าโค้ดนี้ต้องใช้ Python 3.12 ขึ้นไป</td></tr>
+        <tr><td><code>pythonpath = ["."]</code></td><td>ให้ pytest เพิ่มโฟลเดอร์โปรเจกต์เข้า <code>sys.path</code> ไฟล์ Test จึง <code>import expense_tracker</code> ได้โดยไม่ต้องติดตั้ง Package</td></tr>
+        <tr><td><code>testpaths = ["tests"]</code></td><td>ให้ pytest หา Test ในโฟลเดอร์ <code>tests</code> อย่างเดียว เร็วขึ้นและไม่ไปเจอไฟล์ใน <code>.venv</code></td></tr>
+        <tr><td><code>target-version = "py312"</code></td><td>บอก ruff ว่าโค้ดต้องรันได้บน 3.12 กฎ <code>UP</code> จะแนะนำ Syntax ใหม่เท่าที่ 3.12 รองรับเท่านั้น</td></tr>
+        <tr><td><code>select = ["E", "F", "I", "B", "UP"]</code></td><td>E = รูปแบบโค้ดตาม PEP 8, F = Pyflakes (ตัวแปรไม่ได้ใช้ ชื่อไม่มีอยู่จริง), I = เรียง import, B = Bugbear (รูปแบบที่มักเป็น Bug), UP = ใช้ Syntax สมัยใหม่</td></tr>
+      </tbody></table></div>
+      <p>สร้าง <code>.gitignore</code> เพื่อไม่ให้ Virtual Environment, Cache และไฟล์ที่สร้างขึ้นอัตโนมัติหลุดขึ้น GitHub</p>
+      <pre class="code" data-env="file" data-label="Gitignore · .gitignore"><code class="language-plaintext">.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+exports/
+*.tmp</code></pre>
+      <p>สุดท้ายของขั้นนี้ สร้างไฟล์ข้อมูลตัวอย่าง 8 แถวชุดเดียวกับที่ใช้ใน Part 2 และ Part 3 ไฟล์ต้องบันทึกเป็น UTF-8 และบรรทัดแรกต้องเป็นหัวตาราง <code>id,date,category,amount,note</code> พอดี</p>
+      <pre class="code" data-env="file" data-label="CSV · data/expenses.csv"><code class="language-plaintext">id,date,category,amount,note
+1,2026-09-28,food,50.00,ข้าวมันไก่
+2,2026-09-30,transport,47.00,BTS ไปทำงาน
+3,2026-10-01,bills,1250.50,ค่าไฟฟ้า
+4,2026-10-02,food,65.00,กาแฟเย็น
+5,2026-10-03,shopping,299.00,เสื้อยืด
+6,2026-10-05,transport,184.00,Grab กลับบ้าน
+7,2026-10-07,food,120.00,ส้มตำไก่ย่าง
+8,2026-10-10,health,85.00,ยาแก้แพ้</code></pre>
+      <div class="callout warn"><span class="c-label warn">ระวัง</span><p>ถ้าแก้ไฟล์ CSV ด้วย Excel บน Windows แล้วกดบันทึก Excel อาจบันทึกเป็น <code>cp874</code> หรือ <code>utf-8-sig</code> (มี BOM นำหน้า) ทำให้หัวตารางกลายเป็น <code>﻿id</code> และโปรแกรมจะแจ้งว่าหัวตารางไม่ถูกต้อง ให้แก้ไฟล์ด้วย VS Code แล้วเลือก Encoding เป็น UTF-8 ที่มุมขวาล่างของหน้าต่างแทน</p></div>
+    </li>
+
+    <li>
+      <h4>Step 2: เขียน Model และการตรวจ Input ใน models.py</h4>
+      <p>เริ่มจากส่วนที่สำคัญที่สุด คือคำตอบของคำถามว่า "ค่าใช้จ่าย 1 รายการหน้าตาเป็นอย่างไร และค่าแบบไหนถือว่าถูกต้อง" ถ้าตอบตรงนี้ให้ชัดในที่เดียว ไฟล์อื่นทั้งหมดก็ไม่ต้องตรวจซ้ำ ใช้ Dataclass ชื่อ <code>Expense</code> ตัวเดียวกับใน c10 และเพิ่มฟังก์ชันแปลงข้อความเป็นวันที่ เดือน และจำนวนเงิน ทุกฟังก์ชัน <code>raise ValidationError</code> พร้อมข้อความภาษาไทยที่แสดงให้ผู้ใช้เห็นได้ทันที</p>
+      <pre class="code" data-env="file" data-label="Python · expense_tracker/models.py"><code class="language-python">"""Model ของข้อมูล: หมวดหมู่ การตรวจสอบ Input และ Dataclass Expense"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import date
+from decimal import Decimal, InvalidOperation
+
+# หมวดหมู่ที่อนุญาต (เรียงตามลำดับนี้เสมอ)
+CATEGORIES = (
+    "food",
+    "transport",
+    "bills",
+    "shopping",
+    "health",
+    "entertainment",
+    "other",
+)
+
+# ชื่อภาษาไทยสำหรับแสดงผล
+CATEGORY_TH = {
+    "food": "อาหาร",
+    "transport": "เดินทาง",
+    "bills": "ค่าบริการ/บิล",
+    "shopping": "ช้อปปิ้ง",
+    "health": "สุขภาพ",
+    "entertainment": "บันเทิง",
+    "other": "อื่นๆ",
+}
+
+
+class ValidationError(ValueError):
+    """ข้อมูลไม่ถูกต้อง ข้อความใน Exception นี้แสดงให้ผู้ใช้เห็นได้โดยตรง"""
+
+
+def parse_date(text: str) -&gt; date:
+    """แปลงข้อความ YYYY-MM-DD เป็น date ถ้าผิดรูปแบบให้ raise ValidationError"""
+    try:
+        return date.fromisoformat(text.strip())
+    except ValueError:
+        raise ValidationError(f"วันที่ต้องอยู่ในรูปแบบ YYYY-MM-DD (ได้รับ '{text}')") from None
+
+
+def parse_month(text: str) -&gt; str:
+    """ตรวจว่าเดือนอยู่ในรูปแบบ YYYY-MM แล้วคืนค่าเดิมกลับไป"""
+    try:
+        date.fromisoformat(f"{text.strip()}-01")
+    except ValueError:
+        raise ValidationError(
+            f"เดือนต้องอยู่ในรูปแบบ YYYY-MM เช่น 2026-10 (ได้รับ '{text}')"
+        ) from None
+    return text.strip()
+
+
+def parse_amount(text: str) -&gt; Decimal:
+    """แปลงข้อความเป็น Decimal ที่มากกว่า 0 และมีทศนิยมไม่เกิน 2 ตำแหน่ง"""
+    try:
+        amount = Decimal(text.strip())
+    except InvalidOperation:
+        raise ValidationError(
+            f"จำนวนเงินต้องเป็นตัวเลข เช่น 89.50 (ได้รับ '{text}')"
+        ) from None
+    if not amount.is_finite():
+        raise ValidationError(f"จำนวนเงินต้องเป็นตัวเลขจริง (ได้รับ '{text}')")
+    if amount &lt;= 0:
+        raise ValidationError(f"จำนวนเงินต้องมากกว่า 0 (ได้รับ '{text}')")
+    if amount.as_tuple().exponent &lt; -2:
+        raise ValidationError(f"จำนวนเงินมีทศนิยมได้ไม่เกิน 2 ตำแหน่ง (ได้รับ '{text}')")
+    # ปัดให้มีทศนิยม 2 ตำแหน่งเสมอ เช่น 89.5 -&gt; 89.50
+    return amount.quantize(Decimal("0.01"))
+
+
+@dataclass(frozen=True)
+class Expense:
+    """ค่าใช้จ่าย 1 รายการ (frozen=True จึงแก้ไขค่าตรง ๆ ไม่ได้)"""
+
+    id: int
+    date: date
+    category: str
+    amount: Decimal
+    note: str = ""
+
+    def __post_init__(self) -&gt; None:
+        # ตรวจข้อมูลทุกครั้งที่สร้าง Object ทำให้ไม่มีรายการผิดหลุดเข้าระบบ
+        if self.id &lt; 1:
+            raise ValidationError(f"id ต้องเป็นจำนวนเต็มบวก (ได้รับ {self.id})")
+        if self.category not in CATEGORIES:
+            raise ValidationError(
+                f"หมวดหมู่ '{self.category}' ไม่มีในระบบ เลือกได้: {', '.join(CATEGORIES)}"
+            )
+        if self.amount &lt;= 0:
+            raise ValidationError("จำนวนเงินต้องมากกว่า 0")
+        if self.amount.as_tuple().exponent &lt; -2:
+            raise ValidationError("จำนวนเงินมีทศนิยมได้ไม่เกิน 2 ตำแหน่ง")
+
+    @classmethod
+    def from_row(cls, row: dict[str, str]) -&gt; Expense:
+        """สร้าง Expense จากแถวของ csv.DictReader (ทุกค่าเป็น str)"""
+        try:
+            expense_id = int(row["id"])
+        except (KeyError, TypeError, ValueError):
+            raise ValidationError(f"id ไม่ถูกต้อง: {row.get('id')!r}") from None
+        return cls(
+            id=expense_id,
+            date=parse_date(row["date"]),
+            category=row["category"].strip(),
+            amount=parse_amount(row["amount"]),
+            note=(row.get("note") or "").strip(),
+        )
+
+    def to_row(self) -&gt; dict[str, str]:
+        """แปลงกลับเป็น dict ของ str สำหรับเขียนลง CSV"""
+        return {
+            "id": str(self.id),
+            "date": self.date.isoformat(),
+            "category": self.category,
+            "amount": f"{self.amount:.2f}",
+            "note": self.note,
+        }
+
+    def to_dict(self) -&gt; dict[str, object]:
+        """แปลงเป็น dict สำหรับ JSON (amount เป็น str เพื่อรักษาความแม่นยำ)"""
+        return {
+            "id": self.id,
+            "date": self.date.isoformat(),
+            "category": self.category,
+            "amount": f"{self.amount:.2f}",
+            "note": self.note,
+        }</code></pre>
+      <h5>อธิบายการออกแบบ</h5>
+      <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+        <tr><td><code>from __future__ import annotations</code></td><td>ทำให้ Type hint ถูกเก็บเป็นข้อความ จึงเขียน <code>-&gt; Expense</code> ภายใน Class ตัวเองได้ และไม่มีผลต่อการรันโปรแกรม</td></tr>
+        <tr><td><code>CATEGORIES</code> เป็น tuple</td><td>Tuple แก้ไขไม่ได้ จึงไม่มีโค้ดส่วนไหนเผลอเพิ่มหมวดหมู่ระหว่างรัน และส่งให้ <code>choices=</code> ของ argparse ได้ตรง ๆ</td></tr>
+        <tr><td><code>class ValidationError(ValueError)</code></td><td>Custom Exception ที่สืบทอดจาก <code>ValueError</code> ทำให้ <code>cli.py</code> จับเฉพาะ Error ที่ "ผู้ใช้กรอกผิด" ได้ ส่วน Bug จริงจะยังแสดง Traceback ให้นักพัฒนาเห็น</td></tr>
+        <tr><td><code>raise ... from None</code></td><td>ซ่อน Exception ต้นทาง (เช่น <code>InvalidOperation</code>) เพราะผู้ใช้ต้องการแค่ข้อความที่อ่านเข้าใจ ไม่ต้องการรายละเอียดภายใน</td></tr>
+        <tr><td><code>parse_month</code></td><td>เติม <code>-01</code> ต่อท้ายแล้วให้ <code>date.fromisoformat</code> ตรวจ จึงจับได้ทั้งรูปแบบผิดอย่าง <code>10-2026</code> และเดือนที่ไม่มีจริงอย่าง <code>2026-13</code></td></tr>
+        <tr><td><code>Decimal(text.strip())</code></td><td>สร้าง Decimal จากข้อความ ไม่ใช่จาก float จึงได้ค่าตรงตามที่พิมพ์ (<code>Decimal("89.50")</code>) ไม่มีเศษแบบ <code>0.1 + 0.2</code></td></tr>
+        <tr><td><code>amount.is_finite()</code></td><td><code>Decimal("NaN")</code> และ <code>Decimal("Infinity")</code> สร้างได้โดยไม่ Error จึงต้องตรวจแยก</td></tr>
+        <tr><td><code>as_tuple().exponent &lt; -2</code></td><td>Exponent บอกจำนวนทศนิยม เช่น <code>120.555</code> มี Exponent เป็น <code>-3</code> จึงถูกปฏิเสธ</td></tr>
+        <tr><td><code>quantize(Decimal("0.01"))</code></td><td>ทำให้ทุกจำนวนมีทศนิยม 2 ตำแหน่งเสมอ <code>89.5</code> กลายเป็น <code>89.50</code> และ <code>120</code> กลายเป็น <code>120.00</code></td></tr>
+        <tr><td><code>@dataclass(frozen=True)</code></td><td>Object แก้ไขไม่ได้หลังสร้าง ถ้าต้องการเปลี่ยนต้องสร้างตัวใหม่ด้วย <code>dataclasses.replace</code> ซึ่งเรียก <code>__post_init__</code> ตรวจซ้ำให้อัตโนมัติ จึงไม่มีทางมี Expense ที่ข้อมูลผิดอยู่ในระบบ</td></tr>
+        <tr><td><code>__post_init__</code></td><td>ทำงานทันทีหลัง <code>__init__</code> ที่ Dataclass สร้างให้ เป็นจุดตรวจหมวดหมู่และจำนวนเงิน</td></tr>
+        <tr><td><code>from_row</code> (<code>@classmethod</code>)</td><td>Alternate constructor ที่รับ dict ของ str จาก CSV แล้วแปลงทุกช่องให้เป็นชนิดที่ถูกต้อง</td></tr>
+        <tr><td><code>to_row</code> และ <code>to_dict</code></td><td>แปลงกลับเป็นข้อมูลสำหรับ CSV และ JSON จำนวนเงินจัดรูปแบบด้วย <code>f"{self.amount:.2f}"</code> จึงได้ <code>"1250.50"</code> ไม่ใช่ <code>"1250.5"</code></td></tr>
+      </tbody></table></div>
+      <p>ทดสอบเร็ว ๆ ก่อนไปต่อ โดยส่งโค้ดสั้น ๆ เข้า <code>python3 -</code> ผ่าน Heredoc ต้องรันจากโฟลเดอร์โปรเจกต์ เพื่อให้ Python หา Package <code>expense_tracker</code> เจอ</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/expense-tracker
+python3 - &lt;&lt;'EOF'
+from expense_tracker.models import Expense, ValidationError, parse_amount
+
+# สร้างจากแถว CSV (ทุกค่าเป็น str)
+row = {
+    "id": "9",
+    "date": "2026-10-12",
+    "category": "food",
+    "amount": "89.5",
+    "note": "ข้าวกะเพราไก่",
+}
+e = Expense.from_row(row)
+print(repr(e))
+print(e.to_row())
+print(parse_amount("120"))
+
+# ค่าที่ผิดต้องได้ข้อความภาษาไทย
+for bad in ["abc", "-20", "120.555"]:
+    try:
+        parse_amount(bad)
+    except ValidationError as err:
+        print("ผิด:", err)
+try:
+    Expense(1, e.date, "coffee", e.amount)
+except ValidationError as err:
+    print("ผิด:", err)
+EOF</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Expense(id=9, date=datetime.date(2026, 10, 12), category='food', amount=Decimal('89.50'), note='ข้าวกะเพราไก่')
+{'id': '9', 'date': '2026-10-12', 'category': 'food', 'amount': '89.50', 'note': 'ข้าวกะเพราไก่'}
+120.00
+ผิด: จำนวนเงินต้องเป็นตัวเลข เช่น 89.50 (ได้รับ 'abc')
+ผิด: จำนวนเงินต้องมากกว่า 0 (ได้รับ '-20')
+ผิด: จำนวนเงินมีทศนิยมได้ไม่เกิน 2 ตำแหน่ง (ได้รับ '120.555')
+ผิด: หมวดหมู่ 'coffee' ไม่มีในระบบ เลือกได้: food, transport, bills, shopping, health, entertainment, other</code></pre>
+      <div class="callout ok"><span class="c-label ok">Best Practice</span><p>หลักที่ใช้ในงานจริงเรียกว่า "Parse, don't validate" คือแปลงข้อมูลดิบ (ข้อความ) เป็นชนิดที่ถูกต้อง (<code>date</code>, <code>Decimal</code>) ครั้งเดียวที่ขอบของระบบ หลังจากนั้นโค้ดภายในทำงานกับ Object ที่รับประกันว่าถูกต้องแล้ว ไม่ต้องเขียน <code>if</code> ตรวจซ้ำในทุกฟังก์ชัน</p></div>
+    </li>
+    <li>
+      <h4>Step 3: อ่านและเขียนไฟล์ CSV อย่างปลอดภัยใน storage.py</h4>
+      <p>ไฟล์นี้มีหน้าที่เดียว คือแปลงระหว่างไฟล์ CSV บนดิสก์กับ list ของ <code>Expense</code> ทุกฟังก์ชันรับ <code>Path</code> เป็น Parameter แทนการเขียน Path ตายตัวไว้ข้างใน ข้อดีคือใน Test เราส่ง Path ของโฟลเดอร์ชั่วคราว (<code>tmp_path</code>) เข้าไปได้ ข้อมูลจริงของผู้ใช้จึงไม่ถูกแตะเลยระหว่างทดสอบ</p>
+      <p>จุดที่ต้องระวังที่สุดของโปรแกรมที่เขียนไฟล์คือ "ถ้าโปรแกรมพังกลางทางขณะเขียน ไฟล์เดิมจะเสียไหม" ถ้าเปิดไฟล์จริงด้วยโหมด <code>"w"</code> ไฟล์จะถูกล้างทันทีที่เปิด ถ้าไฟดับตรงนั้นข้อมูลหายทั้งหมด วิธีที่ใช้กันในงานจริงคือเขียนลงไฟล์ชั่วคราวให้เสร็จก่อน แล้วค่อยเปลี่ยนชื่อทับไฟล์จริงในขั้นเดียว</p>
+      <pre class="code" data-env="file" data-label="Python · expense_tracker/storage.py"><code class="language-python">"""อ่านและเขียนไฟล์ CSV ทุกฟังก์ชันรับ Path เข้ามา จึงทดสอบด้วย tmp_path ได้"""
+
+from __future__ import annotations
+
+import csv
+import os
+from pathlib import Path
+
+from expense_tracker.models import Expense, ValidationError
+
+FIELDNAMES = ["id", "date", "category", "amount", "note"]
+DEFAULT_FILE = Path("data") / "expenses.csv"
+
+
+def default_path() -&gt; Path:
+    """ใช้ค่าจาก Environment Variable EXPENSES_FILE ถ้ามี ไม่อย่างนั้นใช้ค่าเริ่มต้น"""
+    return Path(os.environ.get("EXPENSES_FILE", DEFAULT_FILE))
+
+
+def load_expenses(path: Path) -&gt; list[Expense]:
+    """อ่านทุกรายการจาก CSV ถ้ายังไม่มีไฟล์ให้คืน list ว่าง"""
+    if not path.exists():
+        return []
+    expenses: list[Expense] = []
+    with path.open("r", encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        if reader.fieldnames != FIELDNAMES:
+            raise ValidationError(f"หัวตารางของ {path} ต้องเป็น {','.join(FIELDNAMES)}")
+        # start=2 เพราะบรรทัดที่ 1 คือหัวตาราง
+        for line_no, row in enumerate(reader, start=2):
+            try:
+                expenses.append(Expense.from_row(row))
+            except ValidationError as e:
+                raise ValidationError(f"{path} บรรทัด {line_no}: {e}") from e
+    return expenses
+
+
+def save_expenses(path: Path, expenses: list[Expense]) -&gt; None:
+    """เขียนทุกรายการลงไฟล์ชั่วคราวก่อน แล้วค่อยแทนที่ไฟล์จริง"""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_name(path.name + ".tmp")
+    with tmp_path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
+        writer.writeheader()
+        for expense in sorted(expenses, key=lambda e: e.id):
+            writer.writerow(expense.to_row())
+    # replace() เป็น Atomic บน Linux ถ้าโปรแกรมพังกลางทาง ไฟล์เดิมยังอยู่ครบ
+    tmp_path.replace(path)
+
+
+def next_id(expenses: list[Expense]) -&gt; int:
+    """id ใหม่ = id มากที่สุดที่มีอยู่ + 1 (ถ้ายังไม่มีรายการเลยให้เริ่มที่ 1)"""
+    return max((e.id for e in expenses), default=0) + 1</code></pre>
+      <h5>อธิบายการออกแบบ</h5>
+      <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+        <tr><td><code>FIELDNAMES</code></td><td>ลำดับคอลัมน์ที่ตกลงกันไว้ ใช้ทั้งตอนตรวจหัวตารางและตอนเขียน จึงไม่มีทางสะกดผิดคนละที่</td></tr>
+        <tr><td><code>default_path()</code></td><td>อ่าน <code>os.environ.get("EXPENSES_FILE", DEFAULT_FILE)</code> ถ้าตั้ง Environment Variable ไว้จะใช้ไฟล์นั้น ไม่อย่างนั้นใช้ <code>data/expenses.csv</code> เป็นวิธีมาตรฐานที่โปรแกรมบน Linux ใช้รับค่าตั้งต้น</td></tr>
+        <tr><td><code>if not path.exists(): return []</code></td><td>ผู้ใช้ใหม่ที่ยังไม่มีไฟล์ใช้ <code>add</code> ได้ทันที ไม่เจอ <code>FileNotFoundError</code></td></tr>
+        <tr><td><code>encoding="utf-8", newline=""</code></td><td><code>utf-8</code> ทำให้ภาษาไทยอ่านถูก <code>newline=""</code> ให้โมดูล <code>csv</code> จัดการตัวขึ้นบรรทัดเอง ไม่เกิดบรรทัดว่างแทรกและไม่ตัดข้อความที่มีการขึ้นบรรทัดในช่อง note</td></tr>
+        <tr><td><code>reader.fieldnames != FIELDNAMES</code></td><td>ตรวจหัวตารางก่อนอ่าน ถ้าผู้ใช้เปิดไฟล์ผิดหรือไฟล์ถูกแก้จนคอลัมน์สลับ จะได้ข้อความชัดเจนแทน <code>KeyError</code></td></tr>
+        <tr><td><code>enumerate(reader, start=2)</code></td><td>นับเลขบรรทัดให้ตรงกับที่เห็นใน Editor (บรรทัด 1 คือหัวตาราง) ข้อความ Error จึงบอกได้ว่าแถวไหนเสีย</td></tr>
+        <tr><td><code>raise ValidationError(...) from e</code></td><td>ห่อ Error เดิมด้วยข้อมูลเพิ่ม (ชื่อไฟล์และเลขบรรทัด) โดยยังเก็บสาเหตุเดิมไว้ใน <code>__cause__</code> สำหรับการ Debug</td></tr>
+        <tr><td><code>path.parent.mkdir(parents=True, exist_ok=True)</code></td><td>สร้างโฟลเดอร์ <code>data/</code> ให้อัตโนมัติถ้ายังไม่มี และไม่ Error ถ้ามีอยู่แล้ว</td></tr>
+        <tr><td><code>tmp_path.replace(path)</code></td><td>เปลี่ยนชื่อไฟล์ชั่วคราวทับไฟล์จริง บน Linux การเปลี่ยนชื่อในโฟลเดอร์เดียวกันเป็น Atomic คือเกิดครบหรือไม่เกิดเลย ไม่มีสถานะครึ่ง ๆ กลาง ๆ</td></tr>
+        <tr><td><code>max(..., default=0) + 1</code></td><td><code>default=0</code> ทำให้ list ว่างไม่ Error (<code>ValueError: max() arg is an empty sequence</code>) และได้ id แรกเป็น 1</td></tr>
+      </tbody></table></div>
+      <p>ทดสอบว่าอ่านข้อมูลตัวอย่างได้ครบ 8 แถว และไฟล์ที่ไม่มีอยู่ได้ list ว่าง</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/expense-tracker
+python3 - &lt;&lt;'EOF'
+from pathlib import Path
+
+from expense_tracker.storage import load_expenses, next_id
+
+items = load_expenses(Path("data/expenses.csv"))
+print(len(items), "รายการ")
+print(items[0])
+print("id ถัดไป:", next_id(items))
+# ไฟล์ที่ยังไม่มีต้องได้ list ว่าง ไม่ใช่ Error
+print(load_expenses(Path("data/nope.csv")))
+EOF</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>8 รายการ
+Expense(id=1, date=datetime.date(2026, 9, 28), category='food', amount=Decimal('50.00'), note='ข้าวมันไก่')
+id ถัดไป: 9
+[]</code></pre>
+      <div class="callout warn"><span class="c-label warn">ระวัง</span><p>อย่าใช้ <code>len(expenses) + 1</code> เป็น id ใหม่ ถ้าเคยลบรายการ id 3 ออกจาก 8 รายการ จะเหลือ 7 รายการ แล้ว id ใหม่จะเป็น 8 ซ้ำกับรายการที่มีอยู่ การใช้ <code>max(id) + 1</code> ป้องกันปัญหานี้</p></div>
+    </li>
+
+    <li>
+      <h4>Step 4: กรอง สรุปยอด และส่งออก JSON ใน report.py</h4>
+      <p>ไฟล์นี้รับ list ของ <code>Expense</code> แล้วคืนผลลัพธ์เป็นข้อมูลหรือข้อความ ไม่มีฟังก์ชันไหนอ่านไฟล์ CSV เองหรือเรียก <code>print</code> เอง ฟังก์ชันแบบนี้เรียกว่า Pure function คือใส่ข้อมูลเดิมได้ผลเดิมเสมอ จึงเขียน Test ง่ายที่สุด ส่วนการแสดงผลจริงเป็นหน้าที่ของ <code>cli.py</code></p>
+      <pre class="code" data-env="file" data-label="Python · expense_tracker/report.py"><code class="language-python">"""กรองข้อมูล สรุปยอด จัดรูปแบบตาราง และส่งออก JSON"""
+
+from __future__ import annotations
+
+import json
+from collections import defaultdict
+from decimal import Decimal
+from pathlib import Path
+
+from expense_tracker.models import CATEGORY_TH, Expense
+
+
+def filter_expenses(
+    expenses: list[Expense],
+    month: str | None = None,
+    category: str | None = None,
+) -&gt; list[Expense]:
+    """คืนเฉพาะรายการที่ตรงเดือน (YYYY-MM) และหมวดหมู่ที่ระบุ"""
+    result = expenses
+    if month is not None:
+        result = [e for e in result if e.date.isoformat().startswith(month)]
+    if category is not None:
+        result = [e for e in result if e.category == category]
+    return sorted(result, key=lambda e: (e.date, e.id))
+
+
+def total(expenses: list[Expense]) -&gt; Decimal:
+    """รวมยอดเงิน เริ่มจาก Decimal('0.00') เพื่อให้ผลเป็น Decimal เสมอ"""
+    return sum((e.amount for e in expenses), Decimal("0.00"))
+
+
+def summarize(expenses: list[Expense]) -&gt; list[tuple[str, Decimal]]:
+    """รวมยอดตามหมวดหมู่ เรียงจากยอดมากไปน้อย (ยอดเท่ากันเรียงตามชื่อ)"""
+    totals: defaultdict[str, Decimal] = defaultdict(lambda: Decimal("0.00"))
+    for e in expenses:
+        totals[e.category] += e.amount
+    return sorted(totals.items(), key=lambda item: (-item[1], item[0]))
+
+
+def format_table(expenses: list[Expense]) -&gt; str:
+    """สร้างตารางที่จัดคอลัมน์ตรงกัน พร้อมบรรทัดรวมท้ายตาราง"""
+    lines = [
+        f"{'id':&gt;3}  {'date':&lt;10}  {'category':&lt;13}  {'amount':&gt;10}  note",
+        f"{'-' * 3}  {'-' * 10}  {'-' * 13}  {'-' * 10}  {'-' * 4}",
+    ]
+    for e in expenses:
+        lines.append(
+            f"{e.id:&gt;3}  {e.date.isoformat():&lt;10}  {e.category:&lt;13}  "
+            f"{e.amount:&gt;10,.2f}  {e.note}"
+        )
+    lines.append(f"รวม {len(expenses)} รายการ: {total(expenses):,.2f} บาท")
+    return "\n".join(lines)
+
+
+def format_summary(expenses: list[Expense], month: str) -&gt; str:
+    """สรุปยอดรายหมวดของเดือนที่เลือก"""
+    lines = [f"สรุปค่าใช้จ่ายเดือน {month}"]
+    for category, amount in summarize(expenses):
+        lines.append(f"{category:&lt;13}  {amount:&gt;10,.2f} บาท  ({CATEGORY_TH[category]})")
+    lines.append(f"{'รวม':&lt;13}  {total(expenses):&gt;10,.2f} บาท")
+    return "\n".join(lines)
+
+
+def export_json(expenses: list[Expense], output: Path) -&gt; None:
+    """เขียนรายการเป็น JSON ภาษาไทยอ่านออก และสร้างโฟลเดอร์ปลายทางให้อัตโนมัติ"""
+    output.parent.mkdir(parents=True, exist_ok=True)
+    data = [e.to_dict() for e in expenses]
+    with output.open("w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        f.write("\n")</code></pre>
+      <h5>อธิบายการออกแบบ</h5>
+      <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+        <tr><td><code>filter_expenses(..., month=None, category=None)</code></td><td>ใช้ <code>None</code> แทนความหมาย "ไม่กรอง" แต่ละเงื่อนไขกรองต่อจากผลก่อนหน้า แล้วเรียงตามวันที่และ id เพื่อให้ผลคงที่ทุกครั้ง</td></tr>
+        <tr><td><code>e.date.isoformat().startswith(month)</code></td><td>วันที่ <code>2026-10-05</code> ขึ้นต้นด้วย <code>2026-10</code> จึงเป็นการกรองเดือนที่อ่านง่ายและถูกต้อง เพราะ <code>parse_month</code> ตรวจรูปแบบมาแล้ว</td></tr>
+        <tr><td><code>sum(..., Decimal("0.00"))</code></td><td>ค่าเริ่มต้นของ <code>sum()</code> คือ <code>0</code> แบบ int ถ้า list ว่างจะได้ <code>0</code> ซึ่งจัดรูปแบบออกมาเป็น <code>0.00</code> เหมือนกัน แต่การให้ค่าเริ่มเป็น Decimal ทำให้ชนิดผลลัพธ์แน่นอนทุกกรณี</td></tr>
+        <tr><td><code>defaultdict(lambda: Decimal("0.00"))</code></td><td>หมวดที่ยังไม่เคยเจอจะเริ่มที่ 0.00 อัตโนมัติ ไม่ต้องเขียน <code>if category not in totals</code></td></tr>
+        <tr><td><code>key=lambda item: (-item[1], item[0])</code></td><td>เรียงยอดจากมากไปน้อยด้วยการกลับเครื่องหมาย ถ้ายอดเท่ากันเรียงตามชื่อหมวด ผลจึงไม่สลับไปมา</td></tr>
+        <tr><td><code>{e.amount:&gt;10,.2f}</code></td><td>ชิดขวากว้าง 10 ตัวอักษร คั่นหลักพันด้วยจุลภาค และทศนิยม 2 ตำแหน่ง ตัวเลขทุกแถวจึงตรงหลักกัน</td></tr>
+        <tr><td>note อยู่คอลัมน์สุดท้าย</td><td>สระและวรรณยุกต์ไทยบางตัวไม่กินความกว้าง ทำให้ <code>:&lt;13</code> นับความกว้างของข้อความไทยไม่ตรงกับที่ตาเห็น การวางข้อความไทยไว้ท้ายสุดจึงไม่ทำให้คอลัมน์อื่นเบี้ยว</td></tr>
+        <tr><td><code>json.dump(..., ensure_ascii=False, indent=2)</code></td><td>เก็บภาษาไทยเป็นตัวอักษรจริงแทน <code>ค</code> และจัดย่อหน้าให้อ่านง่าย</td></tr>
+        <tr><td><code>f.write("\n")</code></td><td>ปิดท้ายไฟล์ด้วยการขึ้นบรรทัดใหม่ตามธรรมเนียมของไฟล์ข้อความบน Linux และ Git จะไม่แสดงคำเตือน <code>No newline at end of file</code></td></tr>
+      </tbody></table></div>
+      <p>ทดสอบการสรุปยอดเดือนตุลาคม ผลต้องตรงกับตัวเลขที่คำนวณไว้ใน Part 2 คือรวม 2,003.50 บาท</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/expense-tracker
+python3 - &lt;&lt;'EOF'
+from pathlib import Path
+
+from expense_tracker.report import filter_expenses, format_summary, summarize
+from expense_tracker.storage import load_expenses
+
+october = filter_expenses(load_expenses(Path("data/expenses.csv")), month="2026-10")
+print(summarize(october))
+print(format_summary(october, "2026-10"))
+EOF</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[('bills', Decimal('1250.50')), ('shopping', Decimal('299.00')), ('food', Decimal('185.00')), ('transport', Decimal('184.00')), ('health', Decimal('85.00'))]
+สรุปค่าใช้จ่ายเดือน 2026-10
+bills            1,250.50 บาท  (ค่าบริการ/บิล)
+shopping           299.00 บาท  (ช้อปปิ้ง)
+food               185.00 บาท  (อาหาร)
+transport          184.00 บาท  (เดินทาง)
+health              85.00 บาท  (สุขภาพ)
+รวม              2,003.50 บาท</code></pre>
+      <div class="callout ok"><span class="c-label ok">Best Practice</span><p>แยก "คำนวณ" (<code>summarize</code> คืนข้อมูล) ออกจาก "แสดงผล" (<code>format_summary</code> คืนข้อความ) และแยกทั้งสองออกจาก "Input/Output" (<code>print</code>, การเขียนไฟล์) เมื่อวันหนึ่งต้องทำหน้าเว็บหรือ API จากโปรเจกต์นี้ ก็เรียก <code>summarize</code> ซ้ำได้ทันทีโดยไม่ต้องแก้</p></div>
+    </li>
+    <li>
+      <h4>Step 5: เชื่อมทุกส่วนเข้าด้วยกันด้วย argparse ใน cli.py และ __main__.py</h4>
+      <p>ตอนนี้เรามี "ฝ่ายตรวจของ" (<code>models.py</code>) "ห้องเก็บของ" (<code>storage.py</code>) และ "ฝ่ายบัญชี" (<code>report.py</code>) ครบแล้ว ขั้นนี้คือการสร้าง "พนักงานหน้าร้าน" ที่รับคำสั่งจาก Terminal แล้วส่งงานต่อให้ฝ่ายที่ถูกต้อง เราใช้ Module <code>argparse</code> ใน Standard Library จึงไม่ต้องติดตั้งอะไรเพิ่ม</p>
+      <h5>อธิบายการออกแบบ</h5>
+      <ul>
+        <li><strong>Subcommand:</strong> ใช้ <code>add_subparsers()</code> ทำให้พิมพ์ <code>python3 -m expense_tracker add ...</code> หรือ <code>list ...</code> ได้เหมือนคำสั่ง <code>git commit</code> หรือ <code>git log</code> ที่คุณใช้มาแล้วใน <a data-t="17"></a></li>
+        <li><strong><code>main(argv)</code> คืนค่า Exit code เป็น <code>int</code>:</strong> ไม่เรียก <code>sys.exit()</code> ข้างใน ทำให้ Test เรียก <code>main(["list"])</code> แล้วตรวจค่าที่คืนมาได้ทันที ส่วนการออกจากโปรแกรมจริงให้ <code>__main__.py</code> เป็นคนทำ</li>
+        <li><strong>Dispatch dict:</strong> <code>COMMANDS = {"add": cmd_add, ...}</code> เก็บ Function ไว้ใน Dict แทนการเขียน <code>if/elif</code> หกชั้น เพิ่ม Subcommand ใหม่ได้โดยเพิ่มหนึ่งบรรทัด</li>
+        <li><strong>จับ Exception ที่จุดเดียว:</strong> ทุก <code>cmd_*</code> ปล่อย <code>ValidationError</code> ออกมาได้เลย แล้ว <code>main()</code> จับไว้ที่เดียว พิมพ์ข้อความภาษาไทยไปที่ <code>stderr</code> และคืน Exit code 1 ผู้ใช้จึงไม่เห็น Traceback</li>
+        <li><strong>Exit code ตามธรรมเนียม:</strong> 0 = สำเร็จ, 1 = ข้อมูลผิดหรือหาไม่พบ, 2 = พิมพ์คำสั่งผิดรูปแบบ (argparse ทำให้เองอัตโนมัติ) Script อื่นหรือ CI จึงรู้ได้ว่าคำสั่งสำเร็จหรือไม่</li>
+        <li><strong>เลือกไฟล์ได้ 3 ทาง:</strong> <code>--file</code> มาก่อน ถ้าไม่ระบุจะดู Environment Variable <code>EXPENSES_FILE</code> และถ้าไม่มีอีกจึงใช้ <code>data/expenses.csv</code> (ฟังก์ชัน <code>default_path()</code> ที่เขียนไว้ใน Step 3)</li>
+      </ul>
+      <p>เริ่มจากไฟล์เล็กที่สุดก่อน <code>__main__.py</code> คือไฟล์ที่ Python รันเมื่อเราสั่ง <code>python3 -m expense_tracker</code> (รัน Package เหมือนเป็นโปรแกรม)</p>
+      <pre class="code" data-env="file" data-label="Python · expense_tracker/__main__.py"><code class="language-python">"""ทำให้รันได้ด้วยคำสั่ง python3 -m expense_tracker"""
+
+from expense_tracker.cli import main
+
+raise SystemExit(main())</code></pre>
+      <p>จากนั้นสร้างไฟล์ <code>cli.py</code> ซึ่งเป็นไฟล์ที่ยาวที่สุดของโปรเจกต์ อ่านทีละ Function ตามตารางอธิบายด้านล่าง</p>
+      <pre class="code" data-env="file" data-label="Python · expense_tracker/cli.py"><code class="language-python">"""Command line interface: แปลงคำสั่งจากผู้ใช้เป็นการเรียกฟังก์ชันใน storage/report"""
+
+from __future__ import annotations
+
+import argparse
+import dataclasses
+import sys
+from datetime import date
+from pathlib import Path
+
+from expense_tracker import __version__
+from expense_tracker.models import (
+    CATEGORIES,
+    Expense,
+    ValidationError,
+    parse_amount,
+    parse_date,
+    parse_month,
+)
+from expense_tracker.report import (
+    export_json,
+    filter_expenses,
+    format_summary,
+    format_table,
+)
+from expense_tracker.storage import (
+    default_path,
+    load_expenses,
+    next_id,
+    save_expenses,
+)
+
+# Exit code ตามธรรมเนียมของโปรแกรม CLI (argparse ใช้ 2 เมื่อพิมพ์คำสั่งผิดรูปแบบ)
+EXIT_OK = 0
+EXIT_ERROR = 1
+
+
+def build_parser() -&gt; argparse.ArgumentParser:
+    """สร้าง Parser หลักและ Subcommand ทั้ง 6 ตัว"""
+    parser = argparse.ArgumentParser(
+        prog="python3 -m expense_tracker",
+        description="บันทึกและสรุปค่าใช้จ่ายส่วนตัว เก็บข้อมูลเป็นไฟล์ CSV",
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
+    )
+    parser.add_argument(
+        "--file",
+        type=Path,
+        default=None,
+        help="ไฟล์ CSV ที่ใช้ (ค่าเริ่มต้น: $EXPENSES_FILE หรือ data/expenses.csv)",
+    )
+    sub = parser.add_subparsers(dest="command", required=True, metavar="COMMAND")
+
+    p_add = sub.add_parser("add", help="เพิ่มรายการใหม่")
+    p_add.add_argument("--date", default=None, help="YYYY-MM-DD (ค่าเริ่มต้น: วันนี้)")
+    p_add.add_argument("--category", required=True, choices=CATEGORIES)
+    p_add.add_argument("--amount", required=True, help="จำนวนเงิน เช่น 89.50")
+    p_add.add_argument("--note", default="", help="บันทึกสั้น ๆ")
+
+    p_list = sub.add_parser("list", help="แสดงรายการเป็นตาราง")
+    p_list.add_argument("--month", default=None, help="YYYY-MM")
+    p_list.add_argument("--category", default=None, choices=CATEGORIES)
+
+    p_edit = sub.add_parser("edit", help="แก้ไขเฉพาะช่องที่ระบุ")
+    p_edit.add_argument("id", type=int, help="id ของรายการที่จะแก้")
+    p_edit.add_argument("--date", default=None)
+    p_edit.add_argument("--category", default=None, choices=CATEGORIES)
+    p_edit.add_argument("--amount", default=None)
+    p_edit.add_argument("--note", default=None)
+
+    p_delete = sub.add_parser("delete", help="ลบรายการตาม id")
+    p_delete.add_argument("id", type=int, help="id ของรายการที่จะลบ")
+
+    p_summary = sub.add_parser("summary", help="สรุปยอดรายหมวดของเดือน")
+    p_summary.add_argument("--month", required=True, help="YYYY-MM")
+
+    p_export = sub.add_parser("export", help="ส่งออกเป็น JSON")
+    p_export.add_argument("--month", default=None, help="YYYY-MM")
+    p_export.add_argument("--output", required=True, type=Path)
+    return parser
+
+
+def find_index(expenses: list[Expense], expense_id: int) -&gt; int:
+    """หาตำแหน่งของรายการใน list ถ้าไม่พบให้ raise ValidationError"""
+    for index, expense in enumerate(expenses):
+        if expense.id == expense_id:
+            return index
+    raise ValidationError(f"ไม่พบรายการ id {expense_id}")
+
+
+def cmd_add(args: argparse.Namespace, path: Path) -&gt; None:
+    expenses = load_expenses(path)
+    expense = Expense(
+        id=next_id(expenses),
+        date=parse_date(args.date) if args.date else date.today(),
+        category=args.category,
+        amount=parse_amount(args.amount),
+        note=args.note.strip(),
+    )
+    expenses.append(expense)
+    save_expenses(path, expenses)
+    print(
+        f"เพิ่มรายการ id {expense.id}: {expense.date} {expense.category} "
+        f"{expense.amount:,.2f} บาท {expense.note}".rstrip()
+    )
+
+
+def cmd_list(args: argparse.Namespace, path: Path) -&gt; None:
+    month = parse_month(args.month) if args.month else None
+    rows = filter_expenses(load_expenses(path), month, args.category)
+    print(format_table(rows))
+
+
+def cmd_edit(args: argparse.Namespace, path: Path) -&gt; None:
+    # เก็บเฉพาะช่องที่ผู้ใช้ส่งมาจริง (ค่า None แปลว่าไม่ต้องแก้)
+    changes: dict[str, object] = {}
+    if args.date is not None:
+        changes["date"] = parse_date(args.date)
+    if args.category is not None:
+        changes["category"] = args.category
+    if args.amount is not None:
+        changes["amount"] = parse_amount(args.amount)
+    if args.note is not None:
+        changes["note"] = args.note.strip()
+    if not changes:
+        raise ValidationError("ต้องระบุอย่างน้อยหนึ่งช่อง: --date --category --amount --note")
+    expenses = load_expenses(path)
+    index = find_index(expenses, args.id)
+    # dataclasses.replace สร้าง Object ใหม่และเรียก __post_init__ ตรวจซ้ำให้
+    expenses[index] = dataclasses.replace(expenses[index], **changes)
+    save_expenses(path, expenses)
+    e = expenses[index]
+    print(f"แก้ไข id {e.id} แล้ว: {e.date} {e.category} {e.amount:,.2f} บาท {e.note}")
+
+
+def cmd_delete(args: argparse.Namespace, path: Path) -&gt; None:
+    expenses = load_expenses(path)
+    removed = expenses.pop(find_index(expenses, args.id))
+    save_expenses(path, expenses)
+    print(f"ลบรายการ id {removed.id} ({removed.note or removed.category}) แล้ว")
+
+
+def cmd_summary(args: argparse.Namespace, path: Path) -&gt; None:
+    month = parse_month(args.month)
+    rows = filter_expenses(load_expenses(path), month)
+    if not rows:
+        print(f"ไม่มีรายการในเดือน {month}")
+        return
+    print(format_summary(rows, month))
+
+
+def cmd_export(args: argparse.Namespace, path: Path) -&gt; None:
+    month = parse_month(args.month) if args.month else None
+    rows = filter_expenses(load_expenses(path), month)
+    export_json(rows, args.output)
+    print(f"ส่งออก {len(rows)} รายการไปที่ {args.output}")
+
+
+COMMANDS = {
+    "add": cmd_add,
+    "list": cmd_list,
+    "edit": cmd_edit,
+    "delete": cmd_delete,
+    "summary": cmd_summary,
+    "export": cmd_export,
+}
+
+
+def main(argv: list[str] | None = None) -&gt; int:
+    """จุดเริ่มโปรแกรม คืน Exit code (argparse จะ raise SystemExit(2) เอง)"""
+    args = build_parser().parse_args(argv)
+    path = args.file if args.file is not None else default_path()
+    try:
+        COMMANDS[args.command](args, path)
+    except ValidationError as e:
+        # ข้อความผิดพลาดไปที่ stderr ผู้ใช้ไม่ต้องเห็น Traceback
+        print(f"ข้อผิดพลาด: {e}", file=sys.stderr)
+        return EXIT_ERROR
+    except OSError as e:
+        print(f"อ่านหรือเขียนไฟล์ไม่ได้: {e}", file=sys.stderr)
+        return EXIT_ERROR
+    return EXIT_OK</code></pre>
+      <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+        <tr><td><code>from __future__ import annotations</code></td><td>ให้ Python เก็บ Type hint เป็นข้อความ ไม่ประเมินตอน import ช่วยให้เขียน Type hint ได้อิสระและโหลดเร็วขึ้นเล็กน้อย</td></tr>
+        <tr><td><code>EXIT_OK = 0</code>, <code>EXIT_ERROR = 1</code></td><td>ตั้งชื่อให้ตัวเลข Exit code แทนการเขียนเลขลอย ๆ ในโค้ด อ่านแล้วเข้าใจทันทีว่าหมายถึงอะไร</td></tr>
+        <tr><td><code>build_parser()</code></td><td>สร้าง <code>ArgumentParser</code> หลักพร้อม <code>--version</code> และ <code>--file</code> แล้วเพิ่ม Subparser ทีละตัว แยกเป็น Function เพื่อให้ Test หรือโค้ดอื่นนำ Parser ไปใช้ได้</td></tr>
+        <tr><td><code>add_subparsers(dest="command", required=True, metavar="COMMAND")</code></td><td>ชื่อ Subcommand ที่ผู้ใช้พิมพ์จะถูกเก็บใน <code>args.command</code> และ <code>required=True</code> ทำให้ถ้าไม่พิมพ์ Subcommand เลย argparse จะแจ้ง Error พร้อม Exit code 2</td></tr>
+        <tr><td><code>choices=CATEGORIES</code></td><td>ให้ argparse ตรวจหมวดหมู่ให้ ถ้าพิมพ์หมวดที่ไม่มี จะได้ข้อความ <code>invalid choice</code> และรายชื่อหมวดที่ถูกต้อง</td></tr>
+        <tr><td><code>p_edit.add_argument("id", type=int)</code></td><td>Positional argument ที่ต้องเป็นตัวเลข ถ้าพิมพ์ <code>edit abc</code> argparse จะแจ้ง <code>invalid int value</code> ให้เอง</td></tr>
+        <tr><td><code>--amount</code> ไม่มี <code>type=</code></td><td>ตั้งใจรับเป็นข้อความ แล้วส่งให้ <code>parse_amount()</code> แปลงเป็น <code>Decimal</code> เพราะต้องการตรวจทศนิยมสองตำแหน่งและส่งข้อความ Error ภาษาไทยเอง</td></tr>
+        <tr><td><code>find_index()</code></td><td>วนหา id ด้วย <code>enumerate</code> คืนตำแหน่งใน List ถ้าไม่พบ <code>raise ValidationError</code> ใช้ร่วมกันทั้ง <code>edit</code> และ <code>delete</code></td></tr>
+        <tr><td><code>cmd_add()</code></td><td>โหลดข้อมูล สร้าง <code>Expense</code> ใหม่ด้วย id จาก <code>next_id()</code> ถ้าไม่ระบุ <code>--date</code> ใช้ <code>date.today()</code> แล้วบันทึกกลับและพิมพ์ยืนยัน</td></tr>
+        <tr><td><code>changes: dict[str, object] = {}</code> ใน <code>cmd_edit()</code></td><td>เก็บเฉพาะช่องที่ผู้ใช้ระบุจริง (ช่องที่ไม่ได้ระบุมีค่า <code>None</code>) ถ้าไม่ระบุสักช่องให้แจ้ง Error แทนการบันทึกไฟล์เปล่า ๆ</td></tr>
+        <tr><td><code>dataclasses.replace(expenses[index], **changes)</code></td><td>สร้าง <code>Expense</code> ตัวใหม่ที่คัดลอกค่าเดิมแล้วเปลี่ยนเฉพาะช่องใน <code>changes</code> และเรียก <code>__post_init__</code> ตรวจความถูกต้องซ้ำให้อัตโนมัติ</td></tr>
+        <tr><td><code>expenses.pop(find_index(...))</code></td><td>ดึงรายการออกจาก List และได้รายการนั้นกลับมาเพื่อพิมพ์ข้อความยืนยันว่าลบอะไรไป</td></tr>
+        <tr><td><code>cmd_summary()</code></td><td>ถ้าเดือนนั้นไม่มีข้อมูล พิมพ์ข้อความบอกแทนการพิมพ์ตารางว่าง ถือว่าไม่ใช่ Error จึงคืน 0</td></tr>
+        <tr><td><code>COMMANDS = {...}</code></td><td>Dispatch dict: Key คือชื่อ Subcommand ส่วน Value คือ Function (Function ใน Python เป็น Object จึงเก็บใน Dict ได้)</td></tr>
+        <tr><td><code>def main(argv: list[str] | None = None) -&gt; int</code></td><td>ถ้า <code>argv</code> เป็น <code>None</code> argparse จะอ่านจาก <code>sys.argv</code> (การรันจริง) ถ้าส่ง List มา (ใน Test) จะใช้ List นั้นแทน</td></tr>
+        <tr><td><code>except ValidationError</code> / <code>except OSError</code></td><td>จับเฉพาะ Exception ที่เราคาดไว้ พิมพ์ไปที่ <code>sys.stderr</code> แล้วคืน 1 Exception อื่นที่ไม่คาดคิด (Bug จริง) จะยังแสดง Traceback ให้เราเห็นและแก้ได้</td></tr>
+        <tr><td><code>raise SystemExit(main())</code> ใน <code>__main__.py</code></td><td>ส่งค่าที่ <code>main()</code> คืนมาเป็น Exit code ของ Process ให้ Bash อ่านได้ด้วย <code>$?</code></td></tr>
+      </tbody></table></div>
+      <p>ทดลองรันครั้งแรก ดูหน้า Help ทั้งของโปรแกรมหลักและของ Subcommand <code>add</code> แล้วแสดงรายการเดือนตุลาคม (ต้องอยู่ในโฟลเดอร์โปรเจกต์และเปิด <code>.venv</code> อยู่)</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/expense-tracker
+source .venv/bin/activate
+python3 -m expense_tracker --help
+python3 -m expense_tracker add --help
+python3 -m expense_tracker --version
+python3 -m expense_tracker list --month 2026-10</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>usage: python3 -m expense_tracker [-h] [--version] [--file FILE] COMMAND ...
+
+บันทึกและสรุปค่าใช้จ่ายส่วนตัว เก็บข้อมูลเป็นไฟล์ CSV
+
+positional arguments:
+  COMMAND
+    add        เพิ่มรายการใหม่
+    list       แสดงรายการเป็นตาราง
+    edit       แก้ไขเฉพาะช่องที่ระบุ
+    delete     ลบรายการตาม id
+    summary    สรุปยอดรายหมวดของเดือน
+    export     ส่งออกเป็น JSON
+
+options:
+  -h, --help   show this help message and exit
+  --version    show program's version number and exit
+  --file FILE  ไฟล์ CSV ที่ใช้ (ค่าเริ่มต้น: $EXPENSES_FILE หรือ
+               data/expenses.csv)
+usage: python3 -m expense_tracker add [-h] [--date DATE] --category
+                                      {food,transport,bills,shopping,health,entertainment,other}
+                                      --amount AMOUNT [--note NOTE]
+
+options:
+  -h, --help            show this help message and exit
+  --date DATE           YYYY-MM-DD (ค่าเริ่มต้น: วันนี้)
+  --category {food,transport,bills,shopping,health,entertainment,other}
+  --amount AMOUNT       จำนวนเงิน เช่น 89.50
+  --note NOTE           บันทึกสั้น ๆ
+python3 -m expense_tracker 1.0.0
+ id  date        category           amount  note
+---  ----------  -------------  ----------  ----
+  3  2026-10-01  bills            1,250.50  ค่าไฟฟ้า
+  4  2026-10-02  food                65.00  กาแฟเย็น
+  5  2026-10-03  shopping           299.00  เสื้อยืด
+  6  2026-10-05  transport          184.00  Grab กลับบ้าน
+  7  2026-10-07  food               120.00  ส้มตำไก่ย่าง
+  8  2026-10-10  health              85.00  ยาแก้แพ้
+รวม 6 รายการ: 2,003.50 บาท</code></pre>
+      <div class="callout"><span class="c-label tip">Tip</span><p>หน้า Help ทั้งหมดนี้ argparse สร้างให้จากข้อความ <code>help=</code> ที่เราใส่ไว้ เราไม่ได้เขียนเองแม้แต่บรรทัดเดียว เขียน <code>help=</code> ให้ชัดทุก Argument แล้วผู้ใช้ (รวมถึงตัวคุณเองในอีกสามเดือน) จะไม่ต้องเปิดโค้ดอ่าน</p></div>
+      <h5>ข้อผิดพลาดที่มักเจอในขั้นนี้</h5>
+      <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+        <tr><td><code>/home/somchai/projects/expense-tracker/.venv/bin/python3: No module named expense_tracker</code></td><td>รันคำสั่งจากโฟลเดอร์อื่น เช่น <code>~</code> Python จึงหา Package ไม่เจอ</td><td><code>cd ~/projects/expense-tracker</code> ก่อน แล้วตรวจด้วย <code>pwd</code></td></tr>
+        <tr><td><code>No module named expense_tracker.__main__; 'expense_tracker' is a package and cannot be directly executed</code></td><td>ลืมสร้างไฟล์ <code>__main__.py</code> หรือตั้งชื่อผิด เช่น <code>main.py</code></td><td>สร้างไฟล์ <code>expense_tracker/__main__.py</code> ให้ชื่อมีขีดล่างสองตัวทั้งหน้าและหลัง</td></tr>
+        <tr><td><code>KeyError: 'export'</code> ตอนรัน Subcommand ใหม่</td><td>เพิ่ม Subparser ใน <code>build_parser()</code> แล้วแต่ลืมเพิ่มชื่อนั้นใน <code>COMMANDS</code></td><td>เพิ่ม <code>"export": cmd_export</code> ใน Dict และเขียน Test ที่เรียกทุก Subcommand อย่างน้อยหนึ่งครั้ง</td></tr>
+        <tr><td><code>error: the following arguments are required: COMMAND</code></td><td>พิมพ์ <code>python3 -m expense_tracker</code> เฉย ๆ โดยไม่มี Subcommand</td><td>ตามด้วย Subcommand เช่น <code>list</code> หรือดูรายการด้วย <code>--help</code></td></tr>
+      </tbody></table></div>
+    </li>
+    <li>
+      <h4>Step 6: ทดลองใช้งานจริงครบทุก Subcommand และตรวจ Exit code</h4>
+      <p>ก่อนเขียน Test อัตโนมัติ ให้ลองใช้โปรแกรมด้วยมือเหมือนผู้ใช้จริงก่อน ขั้นนี้เราจะเพิ่มรายการ id 9 (ข้าวกะเพราไก่ 89.50 บาท) แก้ราคาเป็น 95 บาท ดูสรุปยอด แล้วลบทิ้ง ไฟล์ข้อมูลจะกลับมามี 8 แถวเหมือนเดิม</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 -m expense_tracker add --date 2026-10-12 --category food --amount 89.50 --note "ข้าวกะเพราไก่"
+python3 -m expense_tracker list --category food
+python3 -m expense_tracker edit 9 --amount 95
+python3 -m expense_tracker summary --month 2026-10
+python3 -m expense_tracker delete 9
+python3 -m expense_tracker summary --month 2026-10
+python3 -m expense_tracker summary --month 2026-09</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>เพิ่มรายการ id 9: 2026-10-12 food 89.50 บาท ข้าวกะเพราไก่
+ id  date        category           amount  note
+---  ----------  -------------  ----------  ----
+  1  2026-09-28  food                50.00  ข้าวมันไก่
+  4  2026-10-02  food                65.00  กาแฟเย็น
+  7  2026-10-07  food               120.00  ส้มตำไก่ย่าง
+  9  2026-10-12  food                89.50  ข้าวกะเพราไก่
+รวม 4 รายการ: 324.50 บาท
+แก้ไข id 9 แล้ว: 2026-10-12 food 95.00 บาท ข้าวกะเพราไก่
+สรุปค่าใช้จ่ายเดือน 2026-10
+bills            1,250.50 บาท  (ค่าบริการ/บิล)
+shopping           299.00 บาท  (ช้อปปิ้ง)
+food               280.00 บาท  (อาหาร)
+transport          184.00 บาท  (เดินทาง)
+health              85.00 บาท  (สุขภาพ)
+รวม              2,098.50 บาท
+ลบรายการ id 9 (ข้าวกะเพราไก่) แล้ว
+สรุปค่าใช้จ่ายเดือน 2026-10
+bills            1,250.50 บาท  (ค่าบริการ/บิล)
+shopping           299.00 บาท  (ช้อปปิ้ง)
+food               185.00 บาท  (อาหาร)
+transport          184.00 บาท  (เดินทาง)
+health              85.00 บาท  (สุขภาพ)
+รวม              2,003.50 บาท
+สรุปค่าใช้จ่ายเดือน 2026-09
+food                50.00 บาท  (อาหาร)
+transport           47.00 บาท  (เดินทาง)
+รวม                 97.00 บาท</code></pre>
+      <p>สังเกตว่าหลังแก้ id 9 เป็น 95 บาท ยอด <code>food</code> เดือนตุลาคมเพิ่มจาก 185.00 เป็น 280.00 (185 + 95) และเมื่อลบ id 9 ยอดก็กลับมาเป็น 2,003.50 บาทเท่าเดิม นี่คือการตรวจด้วยตาว่าตัวเลขสอดคล้องกัน</p>
+      <p>ต่อไปส่งออกข้อมูลเดือนตุลาคมเป็น JSON โฟลเดอร์ <code>exports/</code> ยังไม่มีอยู่ แต่ <code>export_json()</code> สร้างให้ด้วย <code>mkdir(parents=True, exist_ok=True)</code></p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 -m expense_tracker export --month 2026-10 --output exports/expenses-2026-10.json
+cat exports/expenses-2026-10.json</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ส่งออก 6 รายการไปที่ exports/expenses-2026-10.json
+[
+  {
+    "id": 3,
+    "date": "2026-10-01",
+    "category": "bills",
+    "amount": "1250.50",
+    "note": "ค่าไฟฟ้า"
+  },
+  {
+    "id": 4,
+    "date": "2026-10-02",
+    "category": "food",
+    "amount": "65.00",
+    "note": "กาแฟเย็น"
+  },
+  {
+    "id": 5,
+    "date": "2026-10-03",
+    "category": "shopping",
+    "amount": "299.00",
+    "note": "เสื้อยืด"
+  },
+  {
+    "id": 6,
+    "date": "2026-10-05",
+    "category": "transport",
+    "amount": "184.00",
+    "note": "Grab กลับบ้าน"
+  },
+  {
+    "id": 7,
+    "date": "2026-10-07",
+    "category": "food",
+    "amount": "120.00",
+    "note": "ส้มตำไก่ย่าง"
+  },
+  {
+    "id": 8,
+    "date": "2026-10-10",
+    "category": "health",
+    "amount": "85.00",
+    "note": "ยาแก้แพ้"
+  }
+]</code></pre>
+      <p>ภาษาไทยอ่านออกตรง ๆ เพราะใช้ <code>ensure_ascii=False</code> และจำนวนเงินเป็นข้อความ <code>"1250.50"</code> ไม่ใช่ตัวเลข <code>1250.5</code> โปรแกรมที่อ่าน JSON นี้ต่อจึงได้ค่าที่แม่นยำครบสองตำแหน่ง</p>
+      <h5>ตรวจการจัดการ Input ที่ผิดและ Exit code</h5>
+      <p>โปรแกรมที่ดีต้องรับมือกับผู้ใช้ที่พิมพ์ผิดได้ คำสั่ง <code>echo "exit code: $?"</code> พิมพ์ Exit code ของคำสั่งก่อนหน้า (<code>$?</code> คือตัวแปรพิเศษของ Bash ที่คุณรู้จักจาก <a data-t="19"></a>)</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 -m expense_tracker delete 99; echo "exit code: $?"
+python3 -m expense_tracker edit 3; echo "exit code: $?"
+python3 -m expense_tracker add --date 19/10/2026 --category food --amount 50; echo "exit code: $?"
+python3 -m expense_tracker add --category food --amount 0; echo "exit code: $?"
+python3 -m expense_tracker add --category food --amount 1.999; echo "exit code: $?"
+python3 -m expense_tracker summary --month 2026-12; echo "exit code: $?"
+python3 -m expense_tracker add --category coffee --amount 50; echo "exit code: $?"</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ข้อผิดพลาด: ไม่พบรายการ id 99
+exit code: 1
+ข้อผิดพลาด: ต้องระบุอย่างน้อยหนึ่งช่อง: --date --category --amount --note
+exit code: 1
+ข้อผิดพลาด: วันที่ต้องอยู่ในรูปแบบ YYYY-MM-DD (ได้รับ '19/10/2026')
+exit code: 1
+ข้อผิดพลาด: จำนวนเงินต้องมากกว่า 0 (ได้รับ '0')
+exit code: 1
+ข้อผิดพลาด: จำนวนเงินมีทศนิยมได้ไม่เกิน 2 ตำแหน่ง (ได้รับ '1.999')
+exit code: 1
+ไม่มีรายการในเดือน 2026-12
+exit code: 0
+usage: python3 -m expense_tracker add [-h] [--date DATE] --category
+                                      {food,transport,bills,shopping,health,entertainment,other}
+                                      --amount AMOUNT [--note NOTE]
+python3 -m expense_tracker add: error: argument --category: invalid choice: 'coffee' (choose from 'food', 'transport', 'bills', 'shopping', 'health', 'entertainment', 'other')
+exit code: 2</code></pre>
+      <div class="tbl mid"><table class="explain"><thead><tr><th>กรณี</th><th>สิ่งที่เกิดขึ้น</th></tr></thead><tbody>
+        <tr><td>id ที่ไม่มีอยู่</td><td><code>find_index()</code> raise <code>ValidationError</code> และ <code>main()</code> คืน 1 ไฟล์ข้อมูลไม่ถูกแก้</td></tr>
+        <tr><td><code>edit</code> โดยไม่ระบุช่องใด</td><td>หยุดก่อนโหลดไฟล์ เพราะไม่มีอะไรให้แก้</td></tr>
+        <tr><td>วันที่ผิดรูปแบบ, จำนวนเงิน 0 หรือทศนิยมสามตำแหน่ง</td><td><code>parse_date()</code> และ <code>parse_amount()</code> จาก Step 2 ส่งข้อความที่บอกทั้งกฎและค่าที่ผู้ใช้พิมพ์มา</td></tr>
+        <tr><td>เดือนที่ไม่มีข้อมูล</td><td>ไม่ใช่ความผิดพลาด จึงแจ้งข้อความและคืน 0</td></tr>
+        <tr><td>หมวดหมู่ <code>coffee</code></td><td>argparse ตรวจ <code>choices</code> เอง พิมพ์วิธีใช้และคืน 2 ซึ่งเป็นรหัสมาตรฐานของ "พิมพ์คำสั่งผิดรูปแบบ"</td></tr>
+      </tbody></table></div>
+      <p>สุดท้าย ลองเลือกไฟล์ข้อมูลอื่นด้วย Environment Variable <code>EXPENSES_FILE</code> ถ้าไฟล์ยังไม่มีอยู่ <code>load_expenses()</code> คืน List ว่าง โปรแกรมจึงแสดงตารางเปล่าโดยไม่ Error (ไฟล์จะถูกสร้างเมื่อสั่ง <code>add</code> ครั้งแรก)</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">EXPENSES_FILE=data/trip-chiangmai.csv python3 -m expense_tracker list</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code> id  date        category           amount  note
+---  ----------  -------------  ----------  ----
+รวม 0 รายการ: 0.00 บาท</code></pre>
+      <div class="callout note"><span class="c-label note">หมายเหตุ</span><p>ถ้าสั่ง <code>add</code> โดยไม่ใส่ <code>--date</code> โปรแกรมจะใช้วันที่ของเครื่องคุณ (<code>date.today()</code>) ผลลัพธ์จึงต่างจากตัวอย่างในหน้านี้ และโมดูล <code>csv</code> เขียนท้ายบรรทัดเป็น <code>\r\n</code> ตามมาตรฐาน CSV ถ้าเปิดด้วย <code>cat -A data/expenses.csv</code> จะเห็น <code>^M$</code> ท้ายบรรทัด เป็นเรื่องปกติ และ Python, Excel และ Google Sheets อ่านได้ทั้งหมด</p></div>
+      <div class="callout note"><span class="c-label try">ลองเอง</span><p>ทดสอบกรณีขอบด้วยตัวเอง แล้วจดว่า Exit code ที่ได้ตรงกับที่คาดไว้หรือไม่</p><ol><li>พิมพ์ <code>python3 -m expense_tracker edit abc --amount 10</code> แล้วดูว่า Exit code เป็น 1 หรือ 2 เพราะอะไร</li><li>ใช้ <code>--file /tmp/test.csv</code> เพิ่มรายการสองรายการ แล้วดูว่า id เริ่มที่ 1 และต่อด้วย 2</li><li>ลอง <code>--amount 1,250.50</code> (มีจุลภาค) และอธิบายว่าทำไมโปรแกรมไม่รับ</li></ol></div>
+    </li>
+    <li>
+      <h4>Step 7: เขียน Test อัตโนมัติด้วย pytest (27 Test ใน 4 ไฟล์)</h4>
+      <p>การทดลองด้วยมือใน Step 6 ใช้เวลาหลายนาทีและต้องตาดีทุกครั้ง Test อัตโนมัติทำสิ่งเดียวกันได้ในไม่ถึงหนึ่งวินาที และรันซ้ำได้ทุกครั้งที่แก้โค้ด ถ้าวันหนึ่งคุณแก้ <code>report.py</code> แล้วเผลอทำให้ยอดรวมผิด Test จะเตือนทันทีก่อนผู้ใช้จะเจอ</p>
+      <h5>อธิบายการออกแบบ</h5>
+      <ul>
+        <li><strong>แยกไฟล์ Test ตาม Module:</strong> <code>test_models.py</code> ทดสอบ <code>models.py</code> และไฟล์อื่นในแบบเดียวกัน เมื่อ Test พังจะรู้ทันทีว่าต้องไปดูไฟล์ไหน</li>
+        <li><strong>Fixture <code>sample_csv</code> ใน <code>conftest.py</code>:</strong> pytest โหลด <code>conftest.py</code> ให้อัตโนมัติ ทุก Test ที่ขอ Parameter ชื่อ <code>sample_csv</code> จะได้ไฟล์ CSV 8 แถวใหม่เอี่ยมใน <code>tmp_path</code> ของตัวเอง Test จึงไม่แตะไฟล์ <code>data/expenses.csv</code> จริง และไม่กระทบกันเอง</li>
+        <li><strong><code>@pytest.mark.parametrize</code>:</strong> เขียน Function เดียวแต่ทดสอบหลาย Input เช่นจำนวนเงินผิด 6 แบบ และใส่ <code>ids=</code> ให้ชื่อ Test อ่านรู้เรื่อง</li>
+        <li><strong>ทดสอบ CLI ผ่าน <code>main(argv)</code>:</strong> เรียก Function ตรง ๆ แทนการเปิด Process ใหม่ แล้วใช้ Fixture <code>capsys</code> จับข้อความที่ถูกพิมพ์ไป <code>stdout</code>/<code>stderr</code> เร็วกว่าและตรวจได้ละเอียดกว่า</li>
+        <li><strong><code>monkeypatch.setenv</code>:</strong> ตั้ง Environment Variable เฉพาะใน Test นั้น และคืนค่าเดิมให้อัตโนมัติเมื่อ Test จบ</li>
+      </ul>
+      <p>เริ่มจาก Fixture ที่ใช้ร่วมกัน สร้างโฟลเดอร์ <code>tests/</code> แล้วสร้างไฟล์ต่อไปนี้</p>
+      <pre class="code" data-env="file" data-label="Python · tests/conftest.py"><code class="language-python">"""Fixture ที่ใช้ร่วมกันทุกไฟล์ทดสอบ"""
+
+from pathlib import Path
+
+import pytest
+
+SAMPLE_CSV = """\
+id,date,category,amount,note
+1,2026-09-28,food,50.00,ข้าวมันไก่
+2,2026-09-30,transport,47.00,BTS ไปทำงาน
+3,2026-10-01,bills,1250.50,ค่าไฟฟ้า
+4,2026-10-02,food,65.00,กาแฟเย็น
+5,2026-10-03,shopping,299.00,เสื้อยืด
+6,2026-10-05,transport,184.00,Grab กลับบ้าน
+7,2026-10-07,food,120.00,ส้มตำไก่ย่าง
+8,2026-10-10,health,85.00,ยาแก้แพ้
+"""
+
+
+@pytest.fixture
+def sample_csv(tmp_path: Path) -&gt; Path:
+    """สร้างไฟล์ CSV ตัวอย่าง 8 แถวในโฟลเดอร์ชั่วคราวของแต่ละ Test"""
+    path = tmp_path / "expenses.csv"
+    path.write_text(SAMPLE_CSV, encoding="utf-8")
+    return path</code></pre>
+      <p>Test ของ <code>models.py</code> ตรวจการแปลงจำนวนเงิน วันที่ เดือน หมวดหมู่ และการแปลงแถว CSV ไปกลับ</p>
+      <pre class="code" data-env="file" data-label="Python · tests/test_models.py"><code class="language-python">from datetime import date
+from decimal import Decimal
+
+import pytest
+
+from expense_tracker.models import (
+    Expense,
+    ValidationError,
+    parse_amount,
+    parse_date,
+    parse_month,
+)
+
+
+def test_parse_amount_pads_to_two_decimals() -&gt; None:
+    assert parse_amount("89.5") == Decimal("89.50")
+    assert str(parse_amount(" 120 ")) == "120.00"
+
+
+@pytest.mark.parametrize("text", ["0", "-20", "abc", "120.555", "NaN", "1,250.50"])
+def test_parse_amount_rejects_bad_values(text: str) -&gt; None:
+    with pytest.raises(ValidationError):
+        parse_amount(text)
+
+
+def test_parse_date_and_month() -&gt; None:
+    assert parse_date("2026-10-19") == date(2026, 10, 19)
+    assert parse_month("2026-10") == "2026-10"
+    with pytest.raises(ValidationError, match="YYYY-MM-DD"):
+        parse_date("19/10/2026")
+    with pytest.raises(ValidationError, match="YYYY-MM"):
+        parse_month("2026-13")
+
+
+def test_expense_rejects_unknown_category() -&gt; None:
+    with pytest.raises(ValidationError, match="coffee"):
+        Expense(1, date(2026, 10, 1), "coffee", Decimal("10.00"))
+
+
+def test_row_round_trip() -&gt; None:
+    row = {
+        "id": "9",
+        "date": "2026-10-12",
+        "category": "food",
+        "amount": "89.5",
+        "note": " ข้าวกะเพราไก่ ",
+    }
+    expense = Expense.from_row(row)
+    assert expense.amount == Decimal("89.50")
+    assert expense.to_row() == {
+        "id": "9",
+        "date": "2026-10-12",
+        "category": "food",
+        "amount": "89.50",
+        "note": "ข้าวกะเพราไก่",
+    }</code></pre>
+      <p>Test ของ <code>storage.py</code> ตรวจกรณีไฟล์ไม่มีอยู่ การอ่านไฟล์ตัวอย่าง การเขียนแล้วอ่านกลับ (Round trip) การหา id ถัดไป และการแจ้งเลขบรรทัดเมื่อเจอแถวเสีย</p>
+      <pre class="code" data-env="file" data-label="Python · tests/test_storage.py"><code class="language-python">from datetime import date
+from decimal import Decimal
+from pathlib import Path
+
+import pytest
+
+from expense_tracker.models import Expense, ValidationError
+from expense_tracker.storage import load_expenses, next_id, save_expenses
+
+
+def test_missing_file_gives_empty_list(tmp_path: Path) -&gt; None:
+    assert load_expenses(tmp_path / "nope.csv") == []
+
+
+def test_load_sample(sample_csv: Path) -&gt; None:
+    expenses = load_expenses(sample_csv)
+    assert len(expenses) == 8
+    assert expenses[2].note == "ค่าไฟฟ้า"
+    assert expenses[2].amount == Decimal("1250.50")
+
+
+def test_save_then_load_round_trip(tmp_path: Path) -&gt; None:
+    path = tmp_path / "sub" / "expenses.csv"
+    items = [Expense(1, date(2026, 10, 12), "food", Decimal("89.50"), "กะเพรา")]
+    save_expenses(path, items)
+    assert load_expenses(path) == items
+    assert path.read_text(encoding="utf-8").splitlines()[1] == (
+        "1,2026-10-12,food,89.50,กะเพรา"
+    )
+
+
+def test_next_id() -&gt; None:
+    assert next_id([]) == 1
+    items = [
+        Expense(3, date(2026, 10, 1), "bills", Decimal("1.00")),
+        Expense(7, date(2026, 10, 2), "food", Decimal("2.00")),
+    ]
+    assert next_id(items) == 8
+
+
+def test_bad_row_reports_line_number(tmp_path: Path) -&gt; None:
+    path = tmp_path / "bad.csv"
+    path.write_text(
+        "id,date,category,amount,note\n1,2026-10-01,food,abc,x\n", encoding="utf-8"
+    )
+    with pytest.raises(ValidationError, match="บรรทัด 2"):
+        load_expenses(path)</code></pre>
+      <p>Test ของ <code>report.py</code> ตรวจตัวเลขเดียวกับที่เราเห็นด้วยตาใน Step 6 และตรวจว่า JSON เก็บภาษาไทยกับทศนิยมครบ</p>
+      <pre class="code" data-env="file" data-label="Python · tests/test_report.py"><code class="language-python">import json
+from decimal import Decimal
+from pathlib import Path
+
+from expense_tracker.report import export_json, filter_expenses, summarize, total
+from expense_tracker.storage import load_expenses
+
+
+def test_filter_by_month_and_category(sample_csv: Path) -&gt; None:
+    expenses = load_expenses(sample_csv)
+    october = filter_expenses(expenses, month="2026-10")
+    assert [e.id for e in october] == [3, 4, 5, 6, 7, 8]
+    food = filter_expenses(expenses, month="2026-10", category="food")
+    assert [e.id for e in food] == [4, 7]
+
+
+def test_summarize_october(sample_csv: Path) -&gt; None:
+    october = filter_expenses(load_expenses(sample_csv), month="2026-10")
+    assert summarize(october) == [
+        ("bills", Decimal("1250.50")),
+        ("shopping", Decimal("299.00")),
+        ("food", Decimal("185.00")),
+        ("transport", Decimal("184.00")),
+        ("health", Decimal("85.00")),
+    ]
+    assert total(october) == Decimal("2003.50")
+
+
+def test_export_json_keeps_thai_and_precision(sample_csv: Path, tmp_path: Path) -&gt; None:
+    output = tmp_path / "exports" / "expenses-2026-10.json"
+    rows = filter_expenses(load_expenses(sample_csv), month="2026-10")
+    export_json(rows, output)
+    text = output.read_text(encoding="utf-8")
+    assert "ค่าไฟฟ้า" in text
+    data = json.loads(text)
+    assert data[0] == {
+        "id": 3,
+        "date": "2026-10-01",
+        "category": "bills",
+        "amount": "1250.50",
+        "note": "ค่าไฟฟ้า",
+    }</code></pre>
+      <p>Test ของ <code>cli.py</code> จำลองการพิมพ์คำสั่งจริงทั้งเส้นทาง add, edit, delete รวมถึงข้อความ Error และ Exit code</p>
+      <pre class="code" data-env="file" data-label="Python · tests/test_cli.py"><code class="language-python">from pathlib import Path
+
+import pytest
+
+from expense_tracker.cli import main
+
+
+def run(path: Path, *args: str) -&gt; int:
+    """เรียก main() เหมือนพิมพ์คำสั่งจริง แต่ชี้ไปที่ไฟล์ทดสอบ"""
+    return main(["--file", str(path), *args])
+
+
+ADD_9 = ["add", "--date", "2026-10-12", "--category", "food", "--amount", "89.50"]
+
+
+def test_add_edit_delete_flow(
+    sample_csv: Path, capsys: pytest.CaptureFixture[str]
+) -&gt; None:
+    assert run(sample_csv, *ADD_9, "--note", "ข้าวกะเพราไก่") == 0
+    assert "เพิ่มรายการ id 9" in capsys.readouterr().out
+    assert run(sample_csv, "edit", "9", "--amount", "95") == 0
+    assert "95.00 บาท" in capsys.readouterr().out
+    assert run(sample_csv, "delete", "9") == 0
+    assert run(sample_csv, "delete", "9") == 1
+    assert "ไม่พบรายการ id 9" in capsys.readouterr().err
+
+
+def test_summary_output(sample_csv: Path, capsys: pytest.CaptureFixture[str]) -&gt; None:
+    assert run(sample_csv, "summary", "--month", "2026-10") == 0
+    out = capsys.readouterr().out
+    assert "bills" in out.splitlines()[1]
+    assert "2,003.50 บาท" in out.splitlines()[-1]
+
+
+@pytest.mark.parametrize(
+    ("args", "message"),
+    [
+        (
+            ["add", "--date", "19/10/2026", "--category", "food", "--amount", "50"],
+            "YYYY-MM-DD",
+        ),
+        (["add", "--category", "food", "--amount", "0"], "มากกว่า 0"),
+        (["add", "--category", "food", "--amount", "1.999"], "2 ตำแหน่ง"),
+        (["edit", "3"], "อย่างน้อยหนึ่งช่อง"),
+        (["list", "--month", "10-2026"], "YYYY-MM"),
+    ],
+    ids=["bad-date", "zero-amount", "three-decimals", "edit-nothing", "bad-month"],
+)
+def test_validation_errors_exit_1(
+    sample_csv: Path, capsys: pytest.CaptureFixture[str], args: list[str], message: str
+) -&gt; None:
+    assert run(sample_csv, *args) == 1
+    err = capsys.readouterr().err
+    assert message in err
+    assert "Traceback" not in err
+
+
+def test_unknown_category_is_usage_error(
+    sample_csv: Path, capsys: pytest.CaptureFixture[str]
+) -&gt; None:
+    with pytest.raises(SystemExit) as exc_info:
+        run(sample_csv, "add", "--category", "coffee", "--amount", "50")
+    assert exc_info.value.code == 2
+    assert "invalid choice: 'coffee'" in capsys.readouterr().err
+
+
+def test_env_var_selects_file(
+    sample_csv: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -&gt; None:
+    monkeypatch.setenv("EXPENSES_FILE", str(sample_csv))
+    assert main(["list", "--category", "health"]) == 0
+    assert "ยาแก้แพ้" in capsys.readouterr().out</code></pre>
+      <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+        <tr><td><code>@pytest.fixture</code> + <code>tmp_path: Path</code></td><td>pytest สร้างโฟลเดอร์ชั่วคราวใหม่ให้ทุก Test แล้วส่งเข้ามาเป็น <code>tmp_path</code> Fixture ของเราเขียนไฟล์ตัวอย่างลงไปแล้วคืน Path</td></tr>
+        <tr><td><code>with pytest.raises(ValidationError, match="YYYY-MM-DD")</code></td><td>Test ผ่านเมื่อโค้ดข้างใน raise Exception ชนิดนั้นและข้อความตรงกับ Regular expression ใน <code>match</code> ถ้าไม่ raise เลย Test จะพัง</td></tr>
+        <tr><td><code>Expense(1, date(2026, 10, 1), "coffee", ...)</code></td><td>สร้าง Object ด้วยหมวดที่ไม่มีอยู่ เพื่อยืนยันว่า <code>__post_init__</code> ทำงานจริง</td></tr>
+        <tr><td><code>assert load_expenses(path) == items</code></td><td>Dataclass มี <code>__eq__</code> ให้อัตโนมัติ จึงเทียบ List ของ <code>Expense</code> ได้ตรง ๆ</td></tr>
+        <tr><td><code>match="บรรทัด 2"</code></td><td>ยืนยันว่าข้อความ Error บอกเลขบรรทัดในไฟล์ CSV ช่วยผู้ใช้หาแถวที่เสียได้เร็ว</td></tr>
+        <tr><td><code>run(path, *args)</code></td><td>Helper เล็ก ๆ ที่เติม <code>--file</code> ให้ทุกครั้ง ทำให้ทุก Test ใน <code>test_cli.py</code> ใช้ไฟล์ชั่วคราว</td></tr>
+        <tr><td><code>capsys.readouterr().out</code> / <code>.err</code></td><td>อ่านข้อความที่ถูกพิมพ์ตั้งแต่ครั้งก่อนที่อ่าน แยก <code>stdout</code> และ <code>stderr</code> จึงตรวจได้ว่าข้อความ Error ไปถูกช่องทาง</td></tr>
+        <tr><td><code>assert "Traceback" not in err</code></td><td>ยืนยัน Feature สำคัญ: ผู้ใช้ต้องไม่เห็น Traceback เมื่อพิมพ์ข้อมูลผิด</td></tr>
+        <tr><td><code>with pytest.raises(SystemExit) as exc_info</code></td><td>argparse เรียก <code>sys.exit(2)</code> ซึ่งก็คือการ raise <code>SystemExit</code> เราจับไว้แล้วตรวจ <code>exc_info.value.code == 2</code></td></tr>
+        <tr><td><code>monkeypatch.setenv("EXPENSES_FILE", ...)</code></td><td>ทดสอบทางเลือกไฟล์ผ่าน Environment Variable โดยไม่ต้องส่ง <code>--file</code></td></tr>
+      </tbody></table></div>
+      <p>รัน Test ทั้งหมดแบบละเอียด (<code>-v</code>) pytest อ่านค่า <code>testpaths</code> และ <code>pythonpath</code> จาก <code>pyproject.toml</code> ที่สร้างไว้ใน Step 1 จึงไม่ต้องระบุอะไรเพิ่ม</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 -m pytest -v</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0 -- /home/somchai/projects/expense-tracker/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/somchai/projects/expense-tracker
+configfile: pyproject.toml
+testpaths: tests
+collecting ... collected 27 items
+
+tests/test_cli.py::test_add_edit_delete_flow PASSED                      [  3%]
+tests/test_cli.py::test_summary_output PASSED                            [  7%]
+tests/test_cli.py::test_validation_errors_exit_1[bad-date] PASSED        [ 11%]
+tests/test_cli.py::test_validation_errors_exit_1[zero-amount] PASSED     [ 14%]
+tests/test_cli.py::test_validation_errors_exit_1[three-decimals] PASSED  [ 18%]
+tests/test_cli.py::test_validation_errors_exit_1[edit-nothing] PASSED    [ 22%]
+tests/test_cli.py::test_validation_errors_exit_1[bad-month] PASSED       [ 25%]
+tests/test_cli.py::test_unknown_category_is_usage_error PASSED           [ 29%]
+tests/test_cli.py::test_env_var_selects_file PASSED                      [ 33%]
+tests/test_models.py::test_parse_amount_pads_to_two_decimals PASSED      [ 37%]
+tests/test_models.py::test_parse_amount_rejects_bad_values[0] PASSED     [ 40%]
+tests/test_models.py::test_parse_amount_rejects_bad_values[-20] PASSED   [ 44%]
+tests/test_models.py::test_parse_amount_rejects_bad_values[abc] PASSED   [ 48%]
+tests/test_models.py::test_parse_amount_rejects_bad_values[120.555] PASSED [ 51%]
+tests/test_models.py::test_parse_amount_rejects_bad_values[NaN] PASSED   [ 55%]
+tests/test_models.py::test_parse_amount_rejects_bad_values[1,250.50] PASSED [ 59%]
+tests/test_models.py::test_parse_date_and_month PASSED                   [ 62%]
+tests/test_models.py::test_expense_rejects_unknown_category PASSED       [ 66%]
+tests/test_models.py::test_row_round_trip PASSED                         [ 70%]
+tests/test_report.py::test_filter_by_month_and_category PASSED           [ 74%]
+tests/test_report.py::test_summarize_october PASSED                      [ 77%]
+tests/test_report.py::test_export_json_keeps_thai_and_precision PASSED   [ 81%]
+tests/test_storage.py::test_missing_file_gives_empty_list PASSED         [ 85%]
+tests/test_storage.py::test_load_sample PASSED                           [ 88%]
+tests/test_storage.py::test_save_then_load_round_trip PASSED             [ 92%]
+tests/test_storage.py::test_next_id PASSED                               [ 96%]
+tests/test_storage.py::test_bad_row_reports_line_number PASSED           [100%]
+
+============================== 27 passed in 0.58s ==============================</code></pre>
+      <p class="muted small">Path ในบรรทัด <code>platform</code> และ <code>rootdir</code> รวมถึงเวลา <code>in 0.58s</code> บนเครื่องของคุณจะต่างออกไป ส่วนชื่อและจำนวน Test ต้องตรงกันทั้ง 27 รายการ</p>
+      <h5>ลองทำให้ Test พังโดยตั้งใจ</h5>
+      <p>Test ที่ไม่เคยพังเลยอาจเป็น Test ที่ไม่ได้ตรวจอะไรจริง ให้ลองแก้บรรทัดสุดท้ายของ <code>test_summarize_october</code> ใน <code>tests/test_report.py</code> เป็น <code>Decimal("2003.00")</code> ชั่วคราว แล้วรันเฉพาะไฟล์นั้น</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 -m pytest tests/test_report.py</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: /home/somchai/projects/expense-tracker
+configfile: pyproject.toml
+collected 3 items
+
+tests/test_report.py .F.                                                 [100%]
+
+=================================== FAILURES ===================================
+____________________________ test_summarize_october ____________________________
+
+sample_csv = PosixPath('/tmp/pytest-of-somchai/pytest-3/test_summarize_october0/expenses.csv')
+
+    def test_summarize_october(sample_csv: Path) -&gt; None:
+        october = filter_expenses(load_expenses(sample_csv), month="2026-10")
+        assert summarize(october) == [
+            ("bills", Decimal("1250.50")),
+            ("shopping", Decimal("299.00")),
+            ("food", Decimal("185.00")),
+            ("transport", Decimal("184.00")),
+            ("health", Decimal("85.00")),
+        ]
+&gt;       assert total(october) == Decimal("2003.00")
+E       AssertionError: assert Decimal('2003.50') == Decimal('2003.00')
+E        +  where Decimal('2003.50') = total([Expense(id=3, date=datetime.date(2026, 10, 1), category='bills', amount=Decimal('1250.50'), note='ค่าไฟฟ้า'), Expense...ก่ย่าง'), Expense(id=8, date=datetime.date(2026, 10, 10), category='health', amount=Decimal('85.00'), note='ยาแก้แพ้')])
+E        +  and   Decimal('2003.00') = Decimal('2003.00')
+
+tests/test_report.py:26: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_report.py::test_summarize_october - AssertionError: assert ...
+========================= 1 failed, 2 passed in 0.04s ==========================</code></pre>
+      <p>อ่านรายงานจากล่างขึ้นบน: บรรทัด <code>FAILED</code> บอกชื่อ Test ที่พัง เครื่องหมาย <code>&gt;</code> ชี้บรรทัดที่ <code>assert</code> ไม่ผ่าน และบรรทัดที่ขึ้นต้นด้วย <code>E</code> บอกว่าค่าจริงคือ <code>2003.50</code> แต่ Test คาดว่า <code>2003.00</code> อ่านเสร็จแล้วอย่าลืมแก้กลับเป็น <code>Decimal("2003.50")</code> และรันใหม่ให้ผ่านทั้ง 27 Test</p>
+      <h5>ข้อผิดพลาดที่มักเจอในขั้นนี้</h5>
+      <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+        <tr><td><code>ModuleNotFoundError: No module named 'expense_tracker'</code> ตอนเก็บ Test</td><td>ไม่ได้ตั้ง <code>pythonpath = ["."]</code> ใน <code>pyproject.toml</code> หรือรัน pytest จากโฟลเดอร์อื่น</td><td>ตรวจ <code>[tool.pytest.ini_options]</code> และรันจากโฟลเดอร์ราก <code>~/projects/expense-tracker</code></td></tr>
+        <tr><td><code>collected 0 items</code></td><td>ชื่อไฟล์หรือชื่อ Function ไม่ขึ้นต้นด้วย <code>test_</code></td><td>เปลี่ยนชื่อให้ตรงกฎ เช่น <code>tests/test_cli.py</code> และ <code>def test_summary_output()</code></td></tr>
+        <tr><td><code>fixture 'sample_csv' not found</code></td><td>วาง <code>conftest.py</code> ไว้นอกโฟลเดอร์ <code>tests/</code> หรือสะกดชื่อ Fixture ผิด</td><td>ย้ายไฟล์ไปไว้ที่ <code>tests/conftest.py</code> และใช้ชื่อ Parameter ให้ตรงกับชื่อ Function ของ Fixture</td></tr>
+        <tr><td>Test ผ่านเครื่องตัวเองแต่ไฟล์ <code>data/expenses.csv</code> มีแถวแปลก ๆ เพิ่มขึ้น</td><td>Test เรียก <code>main([...])</code> โดยไม่ส่ง <code>--file</code> จึงเขียนลงไฟล์จริง</td><td>ใช้ Helper <code>run(sample_csv, ...)</code> หรือ <code>monkeypatch.setenv</code> ทุกครั้ง</td></tr>
+      </tbody></table></div>
+    </li>
+    <li>
+      <h4>Step 8: ตรวจคุณภาพโค้ดด้วย ruff และตรวจครั้งสุดท้ายก่อน Commit</h4>
+      <p>ruff ทำสองหน้าที่: <strong>Linter</strong> (<code>ruff check</code>) หาโค้ดที่น่าจะเป็น Bug หรือผิดธรรมเนียม เช่น import ที่ไม่ได้ใช้ และ <strong>Formatter</strong> (<code>ruff format</code>) จัดช่องว่าง เครื่องหมายคำพูด และการขึ้นบรรทัดให้เป็นแบบเดียวกันทั้งโปรเจกต์ กฎที่เลือกไว้ใน <code>pyproject.toml</code> คือ <code>E</code> (pycodestyle), <code>F</code> (Pyflakes), <code>I</code> (เรียง import), <code>B</code> (flake8-bugbear) และ <code>UP</code> (ใช้ Syntax ใหม่ตาม <code>py312</code>)</p>
+      <p>ลองดูว่า ruff จับอะไรได้ เพิ่มบรรทัด <code>import os</code> ไว้เหนือ <code>import argparse</code> ใน <code>cli.py</code> ชั่วคราว แล้วรัน</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">ruff check --output-format concise
+ruff check --fix --output-format concise</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>expense_tracker/cli.py:3:1: I001 [*] Import block is un-sorted or un-formatted
+expense_tracker/cli.py:5:8: F401 [*] `os` imported but unused
+Found 2 errors.
+[*] 2 fixable with `--fix`.
+Found 2 errors (2 fixed, 0 remaining).</code></pre>
+      <p>เครื่องหมาย <code>[*]</code> แปลว่า ruff แก้ให้อัตโนมัติได้ คำสั่งที่สองจึงลบ <code>import os</code> และเรียง import ให้เรียบร้อย (ถ้ารัน <code>ruff check</code> โดยไม่ใส่ <code>--output-format concise</code> จะได้รายงานยาวที่แสดงโค้ดรอบ ๆ และวิธีแก้ด้วย)</p>
+      <p>ตอนนี้ตรวจทุกอย่างพร้อมกันด้วยคำสั่งเดียว เครื่องหมาย <code>&amp;&amp;</code> ทำให้คำสั่งถัดไปรันเฉพาะเมื่อคำสั่งก่อนหน้าสำเร็จ (Exit code 0) ถ้า Lint ไม่ผ่านก็จะหยุดทันที</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">ruff check &amp;&amp; ruff format --check &amp;&amp; python3 -m pytest -q
+echo "exit code: $?"</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>All checks passed!
+11 files already formatted
+...........................                                              [100%]
+27 passed in 0.27s
+exit code: 0</code></pre>
+      <p><code>11 files</code> คือไฟล์ <code>.py</code> ทั้งหมดในโปรเจกต์: หกไฟล์ใน <code>expense_tracker/</code> และห้าไฟล์ใน <code>tests/</code> (ruff ข้าม <code>.venv</code> ให้เอง) ส่วนจุด 27 จุดคือ Test ที่ผ่านทีละตัวในโหมด <code>-q</code></p>
+      <h5>Checklist ก่อนถือว่าเสร็จ</h5>
+      <ul>
+        <li><code>python3 -m expense_tracker summary --month 2026-10</code> ได้ยอดรวม <code>2,003.50 บาท</code> และ <code>--month 2026-09</code> ได้ <code>97.00 บาท</code></li>
+        <li>Input ผิดทุกแบบใน Step 6 ได้ข้อความภาษาไทย ไม่มี Traceback และ Exit code ตรงตามตาราง (0, 1, 2)</li>
+        <li><code>exports/expenses-2026-10.json</code> อ่านภาษาไทยได้ และจำนวนเงินเป็นข้อความทศนิยมสองตำแหน่ง</li>
+        <li><code>ruff check</code>, <code>ruff format --check</code> และ <code>pytest</code> ผ่านทั้งหมด (27 passed)</li>
+        <li><code>data/expenses.csv</code> กลับมามี 8 แถวหลังทดลอง (ตรวจด้วย <code>python3 -m expense_tracker list</code> ต้องได้ <code>รวม 8 รายการ: 2,100.50 บาท</code>)</li>
+      </ul>
+      <div class="callout"><span class="c-label tip">Tip</span><p>ตั้งค่า VS Code ให้ ruff จัด Format ทุกครั้งที่กด Save: ติดตั้ง Extension <strong>Ruff</strong> (ของ Astral) แล้วเลือก Ruff เป็น Default Formatter ของไฟล์ Python และเปิด Format On Save คุณจะไม่ต้องรัน <code>ruff format</code> เองอีก</p></div>
+    </li>
+    <li>
+      <h4>Step 9: เขียน README.md ให้คนอื่นเข้าใจโปรเจกต์ใน 1 นาที</h4>
+      <p>README คือหน้าแรกที่ผู้สัมภาษณ์หรือ Recruiter เห็นเมื่อเปิด Repository ของคุณ ต้องตอบให้ได้ภายในหนึ่งนาทีว่า โปรเจกต์นี้ทำอะไร ติดตั้งอย่างไร ใช้อย่างไร และทดสอบอย่างไร สร้างไฟล์ <code>README.md</code> ที่โฟลเดอร์รากโดยใช้ Template นี้ แล้วปรับชื่อ GitHub และหัวข้อ "สิ่งที่ได้เรียนรู้" ให้เป็นของคุณ</p>
+      <pre class="code" data-kind="tpl" data-env="tpl" data-label="Markdown · README.md"><code class="language-markdown"># Expense Tracker CLI
+
+โปรแกรม Command Line สำหรับบันทึกและสรุปค่าใช้จ่ายส่วนตัว เขียนด้วย Python 3.12
+ใช้เฉพาะ Standard Library ตอนรันจริง เก็บข้อมูลเป็นไฟล์ CSV และส่งออก JSON ได้
+
+## Features
+
+- `add` / `list` / `edit` / `delete` จัดการรายการค่าใช้จ่ายพร้อมหมวดหมู่และวันที่
+- `summary` สรุปยอดรายหมวดของเดือน เรียงจากมากไปน้อย
+- `export` ส่งออก JSON ที่อ่านภาษาไทยได้ และเก็บจำนวนเงินแบบ Decimal ไม่ปัดเศษ
+- ตรวจ Input ทุกช่อง แจ้ง Error เป็นภาษาไทย และคืน Exit code ที่ถูกต้อง
+- Test ด้วย pytest 27 กรณี และผ่าน ruff check / ruff format
+
+## ติดตั้ง
+
+ต้องมี Python 3.12 ขึ้นไป (ทดสอบบน Ubuntu 24.04 LTS ผ่าน WSL2)
+
+```bash
+git clone https://github.com/somchai/expense-tracker.git
+cd expense-tracker
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+```
+
+## วิธีใช้
+
+```bash
+python3 -m expense_tracker add --date 2026-10-12 --category food --amount 89.50 --note "ข้าวกะเพราไก่"
+python3 -m expense_tracker list --month 2026-10
+python3 -m expense_tracker edit 9 --amount 95
+python3 -m expense_tracker delete 9
+python3 -m expense_tracker summary --month 2026-10
+python3 -m expense_tracker export --month 2026-10 --output exports/expenses-2026-10.json
+```
+
+ตัวอย่างผลลัพธ์ของ `summary --month 2026-10`
+
+```text
+สรุปค่าใช้จ่ายเดือน 2026-10
+bills            1,250.50 บาท  (ค่าบริการ/บิล)
+shopping           299.00 บาท  (ช้อปปิ้ง)
+food               185.00 บาท  (อาหาร)
+transport          184.00 บาท  (เดินทาง)
+health              85.00 บาท  (สุขภาพ)
+รวม              2,003.50 บาท
+```
+
+หมวดหมู่ที่รองรับ: `food`, `transport`, `bills`, `shopping`, `health`, `entertainment`, `other`
+
+## ไฟล์ข้อมูล
+
+ลำดับการเลือกไฟล์ CSV: `--file PATH` &gt; Environment Variable `EXPENSES_FILE` &gt; `data/expenses.csv`
+
+## Exit codes
+
+| Code | ความหมาย |
+|------|----------|
+| 0 | สำเร็จ |
+| 1 | ข้อมูลไม่ถูกต้อง หรือไม่พบ id |
+| 2 | พิมพ์คำสั่งผิดรูปแบบ (argparse) |
+
+## พัฒนาและทดสอบ
+
+```bash
+ruff check
+ruff format --check
+python3 -m pytest -v
+```
+
+## สิ่งที่ได้เรียนรู้
+
+- ออกแบบ Package แยกหน้าที่ cli / models / storage / report
+- ใช้ dataclass และ Decimal กับข้อมูลเงิน
+- เขียน Test ด้วย fixture, tmp_path, parametrize และ capsys
+
+## License
+
+MIT</code></pre>
+      <div class="callout ok"><span class="c-label ok">Best Practice</span><ul><li>ใส่ตัวอย่างผลลัพธ์จริงไว้ใน README เพื่อให้คนอ่านเห็นภาพโดยไม่ต้อง Clone</li><li>บอกเวอร์ชัน Python ที่ทดสอบแล้วและคำสั่งรัน Test ให้ครบ ผู้สัมภาษณ์มักลอง Clone มารัน Test จริง</li><li>เขียนหัวข้อ "สิ่งที่ได้เรียนรู้" สั้น ๆ ช่วยให้ผู้อ่านรู้ว่าคุณเข้าใจสิ่งที่ทำ ไม่ได้แค่คัดลอกมา</li><li>ถ้าบันทึกหน้าจอ Terminal เป็นรูป GIF สั้น ๆ แล้วใส่ไว้ใต้หัวข้อวิธีใช้ จะช่วยให้ README น่าสนใจขึ้นมาก</li></ul></div>
+    </li>
+    <li>
+      <h4>Step 10: Commit และ Push ขึ้น GitHub</h4>
+      <p>ขั้นสุดท้ายคือนำโปรเจกต์ขึ้น GitHub เพื่อใช้เป็น Portfolio ทวนคำสั่ง Git และการตั้งค่า SSH key ได้ที่ <a data-t="17"></a> ก่อนเริ่ม ตรวจว่าไฟล์ <code>.gitignore</code> จาก Step 1 มีอยู่ เพื่อไม่ให้ <code>.venv/</code>, <code>__pycache__/</code>, <code>.pytest_cache/</code>, <code>.ruff_cache/</code> และ <code>exports/</code> หลุดขึ้นไป</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/expense-tracker
+git init -b main
+git add .
+git status --short
+git commit -m "feat: Expense Tracker CLI with tests and ruff"</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Initialized empty Git repository in /home/somchai/projects/expense-tracker/.git/
+A  .gitignore
+A  README.md
+A  data/expenses.csv
+A  expense_tracker/__init__.py
+A  expense_tracker/__main__.py
+A  expense_tracker/cli.py
+A  expense_tracker/models.py
+A  expense_tracker/report.py
+A  expense_tracker/storage.py
+A  pyproject.toml
+A  requirements.txt
+A  tests/conftest.py
+A  tests/test_cli.py
+A  tests/test_models.py
+A  tests/test_report.py
+A  tests/test_storage.py
+[main (root-commit) 9758a8e] feat: Expense Tracker CLI with tests and ruff
+ 16 files changed, 803 insertions(+)
+ create mode 100644 .gitignore
+ create mode 100644 README.md
+ create mode 100644 data/expenses.csv
+ create mode 100644 expense_tracker/__init__.py
+ create mode 100644 expense_tracker/__main__.py
+ create mode 100644 expense_tracker/cli.py
+ create mode 100644 expense_tracker/models.py
+ create mode 100644 expense_tracker/report.py
+ create mode 100644 expense_tracker/storage.py
+ create mode 100644 pyproject.toml
+ create mode 100644 requirements.txt
+ create mode 100644 tests/conftest.py
+ create mode 100644 tests/test_cli.py
+ create mode 100644 tests/test_models.py
+ create mode 100644 tests/test_report.py
+ create mode 100644 tests/test_storage.py</code></pre>
+      <p>ตรวจรายการให้ดี: ต้องมี 16 ไฟล์ และ<strong>ต้องไม่มี</strong> <code>.venv/</code>, <code>exports/</code> หรือ <code>__pycache__/</code> ในรายการ Commit hash (<code>9758a8e</code>) บนเครื่องคุณจะต่างออกไป ถ้าคุณแก้ README จาก Template จำนวน <code>insertions</code> ก็จะต่างไปด้วย</p>
+      <p>จากนั้นเปิด <a href="https://github.com/new" target="_blank" rel="noopener">github.com/new</a> สร้าง Repository ชื่อ <code>expense-tracker</code> แบบ Public <strong>ไม่ติ๊ก</strong> "Add a README file" (เพราะเรามี README แล้ว) แล้วเชื่อมและ Push</p>
+      <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git remote add origin git@github.com:somchai/expense-tracker.git
+git remote -v
+git push -u origin main</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>origin	git@github.com:somchai/expense-tracker.git (fetch)
+origin	git@github.com:somchai/expense-tracker.git (push)
+Enumerating objects: 21, done.
+Counting objects: 100% (21/21), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (19/19), done.
+Writing objects: 100% (21/21), 10.12 KiB | 2.02 MiB/s, done.
+Total 21 (delta 0), reused 0 (delta 0), pack-reused 0
+To github.com:somchai/expense-tracker.git
+ * [new branch]      main -&gt; main
+branch 'main' set up to track 'origin/main'.</code></pre>
+      <p class="muted small">ผลลัพธ์ของ <code>git push</code> ขึ้นกับเครื่องและเครือข่าย (จำนวน Thread ขนาดและความเร็ว) ตัวเลขบนเครื่องของคุณจึงต่างออกไป ส่วนบรรทัด <code>* [new branch] main -&gt; main</code> คือสัญญาณว่า Push สำเร็จ</p>
+      <div class="callout note"><span class="c-label note">หมายเหตุ</span><p>ถ้าคุณยังไม่ได้ตั้ง SSH key ให้ใช้ URL แบบ HTTPS แทน: <code>git remote add origin https://github.com/somchai/expense-tracker.git</code> แล้วล็อกอินด้วย <code>gh auth login</code> ก่อน Push หรือถ้าติดตั้ง GitHub CLI (<code>gh</code>) แล้ว สามารถสร้าง Repository และ Push ในคำสั่งเดียวได้ด้วย <code>gh repo create expense-tracker --public --source=. --push</code></p></div>
+      <div class="callout sec"><span class="c-label sec">Security</span><p>ก่อน Push ทุกครั้งให้ดู <code>git status --short</code> ว่าไม่มีไฟล์ข้อมูลส่วนตัว ถ้าคุณเริ่มใช้โปรแกรมนี้บันทึกค่าใช้จ่ายจริง ให้เก็บไฟล์จริงไว้นอก Repository แล้วชี้ด้วย <code>EXPENSES_FILE=~/private/expenses.csv</code> ส่วน <code>data/expenses.csv</code> ใน Repository ให้เป็นข้อมูลตัวอย่างเท่านั้น</p></div>
+      <div class="callout"><span class="c-label check">Checkpoint</span><p>เปิด <code>https://github.com/somchai/expense-tracker</code> (เปลี่ยนเป็นชื่อบัญชีของคุณ) ต้องเห็น README แสดงผลสวยงาม มีโฟลเดอร์ <code>expense_tracker/</code>, <code>tests/</code>, <code>data/</code> และไม่มี <code>.venv/</code> จากนั้นลอง Clone ไปอีกโฟลเดอร์ ทำตามขั้น "ติดตั้ง" ใน README แล้วรัน <code>python3 -m pytest -q</code> ต้องได้ <code>27 passed</code></p></div>
+    </li>
+  </ol>
+
+  <h4>ไอเดียต่อยอด</h4>
+  <p>เมื่อโปรเจกต์หลักเสร็จแล้ว เลือกต่อยอดทีละข้อ แต่ละข้อทำให้ Portfolio ของคุณแข็งแรงขึ้นและฝึกทักษะใหม่ที่ใช้ในงานจริง</p>
+  <ol>
+    <li><strong>GitHub Actions CI:</strong> สร้างไฟล์ <code>.github/workflows/ci.yml</code> ที่ติดตั้ง <code>requirements.txt</code> แล้วรัน <code>ruff check</code>, <code>ruff format --check</code> และ <code>pytest</code> ทุกครั้งที่ Push จะได้ป้าย "passing" สีเขียวมาติดใน README</li>
+    <li><strong>วัด Test Coverage:</strong> ติดตั้ง <code>pytest-cov==7.1.0</code> ใน <code>.venv</code> แล้วรัน <code>python3 -m pytest --cov=expense_tracker --cov-report=term-missing</code> เพื่อดูว่าบรรทัดไหนยังไม่มี Test และเพิ่ม Test จนครอบคลุมเกิน 90%</li>
+    <li><strong>เปลี่ยน Storage เป็น SQLite:</strong> เขียน <code>storage_sqlite.py</code> ด้วย Module <code>sqlite3</code> ใน Standard Library ที่มี Function ชื่อเดียวกับ <code>storage.py</code> แล้วให้เลือกด้วย <code>--backend csv|sqlite</code> จะเห็นประโยชน์ของการแยกหน้าที่ชัดเจน</li>
+    <li><strong>งบประมาณรายหมวด:</strong> เพิ่มไฟล์ <code>budget.json</code> และ Subcommand <code>budget --month 2026-10</code> ที่แสดงว่าแต่ละหมวดใช้ไปกี่เปอร์เซ็นต์ของงบ และเตือนเมื่อเกิน</li>
+    <li><strong>นำเข้าจาก CSV ของธนาคาร:</strong> Subcommand <code>import bank.csv</code> ที่แปลงคอลัมน์ของธนาคารเป็นรูปแบบของเรา จัดการไฟล์ที่บันทึกจาก Excel ด้วย <code>encoding="utf-8-sig"</code> หรือ <code>cp874</code></li>
+    <li><strong>กราฟสรุปรายเดือน:</strong> ใช้ <code>matplotlib</code> (ติดตั้งใน <code>.venv</code> และ Pin เวอร์ชัน) สร้างกราฟแท่งยอดรายหมวดเป็นไฟล์ PNG ด้วย Subcommand <code>chart --month 2026-10 --output chart.png</code></li>
+    <li><strong>ติดตั้งเป็นคำสั่งของระบบ:</strong> เพิ่ม <code>[project.scripts]</code> และ <code>[build-system]</code> ใน <code>pyproject.toml</code> แล้วติดตั้งด้วย <code>pipx install .</code> เพื่อพิมพ์ <code>expense add ...</code> ได้จากทุกโฟลเดอร์</li>
+    <li><strong>ตรวจ Type ด้วย mypy:</strong> ติดตั้ง <code>mypy==2.4.0</code> ใน <code>.venv</code> แล้วรัน <code>mypy expense_tracker</code> เพื่อให้ Type hint ที่เขียนไว้ทุก Function ถูกตรวจจริง</li>
+  </ol>
+
+  <h3 id="s9-4-cheat">Cheat Sheet</h3>
+  <p>สรุปคำสั่งและ Syntax ที่ใช้บ่อยที่สุดของหัวข้อนี้ แบ่งตามหมวด ทุกตัวอย่างใช้ได้กับ Python 3.12 ขึ้นไป</p>
+
+  <h4>รันโปรแกรม, venv และ pip</h4>
+  <div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>python3 file.py</code></td><td>รัน Script</td><td><code>python3 types_demo.py</code></td></tr>
+    <tr><td><code>python3 -m package</code></td><td>รัน Module หรือ Package เป็นโปรแกรม</td><td><code>python3 -m expense_tracker list</code></td></tr>
+    <tr><td><code>python3 -m venv .venv</code></td><td>สร้าง Virtual Environment ในโฟลเดอร์โปรเจกต์</td><td><code>python3 -m venv .venv &amp;&amp; source .venv/bin/activate</code></td></tr>
+    <tr><td><code>python3 -m pip install "pkg==x.y.z"</code></td><td>ติดตั้ง Package แบบ Pin เวอร์ชัน (ใน venv เท่านั้น)</td><td><code>python3 -m pip install "pytest==9.1.1"</code></td></tr>
+    <tr><td><code>pip freeze</code> / <code>-r</code></td><td>บันทึกและติดตั้ง Dependency จากไฟล์</td><td><code>python3 -m pip freeze &gt; requirements.txt</code></td></tr>
+  </tbody></table></div>
+
+  <h4>ชนิดข้อมูลและ String</h4>
+  <div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>type()</code>, <code>int()</code>, <code>float()</code>, <code>str()</code></td><td>ดูและแปลงชนิดข้อมูล</td><td><code>int("45") + 5</code> ได้ <code>50</code></td></tr>
+    <tr><td><code>//</code>, <code>%</code>, <code>**</code></td><td>หารปัดเศษทิ้ง, เศษ, ยกกำลัง</td><td><code>98765 // 3600</code> ได้ <code>27</code></td></tr>
+    <tr><td><code>s[start:stop:step]</code></td><td>ตัด String หรือ List</td><td><code>"Python"[:3]</code> ได้ <code>'Pyt'</code></td></tr>
+    <tr><td><code>split()</code> / <code>join()</code></td><td>แยกเป็น List และรวมกลับเป็น String</td><td><code>" ".join("  a   b ".split())</code> ได้ <code>'a b'</code></td></tr>
+    <tr><td><code>f"{x:,.2f}"</code></td><td>จัดรูปแบบตัวเลขใน f-string</td><td><code>f"{1234567.891:,.2f}"</code> ได้ <code>'1,234,567.89'</code></td></tr>
+    <tr><td><code>f"{x=}"</code></td><td>พิมพ์ชื่อตัวแปรพร้อมค่า (ช่วย Debug)</td><td><code>total = 135; print(f"{total=}")</code> ได้ <code>total=135</code></td></tr>
+  </tbody></table></div>
+
+  <h4>Control Flow</h4>
+  <div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>if / elif / else</code></td><td>เลือกทำตามเงื่อนไข (ตรวจจากบนลงล่าง)</td><td><code>if score &gt;= 80: grade = "A"</code></td></tr>
+    <tr><td><code>0 &lt;= x &lt;= 100</code></td><td>เปรียบเทียบแบบต่อกัน</td><td><code>if 0 &lt;= score &lt;= 100: ...</code></td></tr>
+    <tr><td><code>for i, x in enumerate(xs, start=1)</code></td><td>วนพร้อมเลขลำดับ</td><td><code>for no, s in enumerate(scores, start=1): ...</code></td></tr>
+    <tr><td><code>range(start, stop, step)</code></td><td>สร้างลำดับตัวเลข (ไม่รวม stop)</td><td><code>list(range(0, 10, 3))</code> ได้ <code>[0, 3, 6, 9]</code></td></tr>
+    <tr><td><code>break</code> / <code>continue</code></td><td>ออกจาก Loop / ข้ามไปรอบถัดไป</td><td><code>if score &gt; 100: continue</code></td></tr>
+  </tbody></table></div>
+
+  <h4>Collections</h4>
+  <div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>list.append()</code>, <code>sorted(key=)</code></td><td>เพิ่มสมาชิก และเรียงโดยไม่แก้ List เดิม</td><td><code>sorted(cart, key=lambda i: i["price"], reverse=True)</code></td></tr>
+    <tr><td><code>dict.get(key, default)</code></td><td>อ่านค่าโดยไม่เกิด <code>KeyError</code></td><td><code>phonebook.get("สมชาย", "ไม่พบ")</code></td></tr>
+    <tr><td><code>dict.items()</code></td><td>วนทั้ง Key และ Value</td><td><code>for cat, amt in totals.items(): ...</code></td></tr>
+    <tr><td><code>set(xs)</code>, <code>a &amp; b</code>, <code>a | b</code></td><td>ตัดค่าซ้ำ, ส่วนร่วม, ส่วนรวม</td><td><code>{1, 2, 3} &amp; {2, 3, 4}</code> ได้ <code>{2, 3}</code></td></tr>
+    <tr><td><code>[expr for x in xs if cond]</code></td><td>List / Dict comprehension</td><td><code>{i["name"]: i["price"] * i["qty"] for i in cart}</code></td></tr>
+  </tbody></table></div>
+
+  <h4>Functions</h4>
+  <div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>def f(a: int, b: float = 0.07) -&gt; float:</code></td><td>Function พร้อม Type hint และค่า Default</td><td><code>def vat(amount: float, rate: float = 0.07) -&gt; float:</code></td></tr>
+    <tr><td><code>*args</code>, <code>**kwargs</code></td><td>รับ Argument ได้ไม่จำกัดจำนวน</td><td><code>def average(*numbers: float) -&gt; float:</code></td></tr>
+    <tr><td><code>*,</code> ใน Parameter</td><td>บังคับให้ส่งแบบ Keyword</td><td><code>split_bill(1000, 4, tip=0.1)</code></td></tr>
+    <tr><td><code>def f(items: list | None = None)</code></td><td>แก้ปัญหา Mutable default</td><td><code>if items is None: items = []</code></td></tr>
+  </tbody></table></div>
+
+  <h4>ไฟล์, CSV และ JSON</h4>
+  <div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>Path(__file__).parent / "data"</code></td><td>สร้าง Path ที่ไม่ขึ้นกับโฟลเดอร์ที่รันคำสั่ง</td><td><code>DATA = Path(__file__).parent / "data" / "expenses.csv"</code></td></tr>
+    <tr><td><code>path.mkdir(parents=True, exist_ok=True)</code></td><td>สร้างโฟลเดอร์ (รวมโฟลเดอร์แม่) โดยไม่ Error ถ้ามีอยู่แล้ว</td><td><code>Path("exports").mkdir(parents=True, exist_ok=True)</code></td></tr>
+    <tr><td><code>open(p, encoding="utf-8", newline="")</code></td><td>เปิดไฟล์ CSV ภาษาไทยอย่างปลอดภัย</td><td><code>with open(p, encoding="utf-8", newline="") as f:</code></td></tr>
+    <tr><td><code>csv.DictReader</code> / <code>DictWriter</code></td><td>อ่านและเขียน CSV เป็น Dict ตามชื่อคอลัมน์</td><td><code>rows = list(csv.DictReader(f))</code></td></tr>
+    <tr><td><code>json.dump(..., ensure_ascii=False, indent=2)</code></td><td>เขียน JSON ที่อ่านภาษาไทยได้</td><td><code>json.dump(data, f, ensure_ascii=False, indent=2)</code></td></tr>
+  </tbody></table></div>
+
+  <h4>Exceptions และ Debug</h4>
+  <div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>try / except / else / finally</code></td><td>จัดการ Error เฉพาะชนิดที่คาดไว้</td><td><code>except ValueError as e: print(e)</code></td></tr>
+    <tr><td><code>class XError(ValueError): pass</code></td><td>สร้าง Custom exception</td><td><code>raise InvalidAmountError("จำนวนเงินต้องมากกว่า 0")</code></td></tr>
+    <tr><td><code>raise ... from e</code></td><td>ส่งต่อ Exception โดยเก็บสาเหตุเดิมไว้</td><td><code>raise ValidationError("วันที่ผิด") from e</code></td></tr>
+    <tr><td><code>breakpoint()</code></td><td>หยุดโปรแกรมและเปิด pdb (<code>n</code>, <code>s</code>, <code>c</code>, <code>p var</code>, <code>q</code>)</td><td><code>PYTHONBREAKPOINT=0 python3 app.py</code> ปิด breakpoint ทั้งหมด</td></tr>
+  </tbody></table></div>
+
+  <h4>OOP และ Dataclass</h4>
+  <div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>class A(B): super().__init__(...)</code></td><td>Inheritance และเรียก Constructor ของคลาสแม่</td><td><code>class SavingsAccount(Account): ...</code></td></tr>
+    <tr><td><code>@property</code></td><td>Attribute แบบอ่านอย่างเดียวหรือมีการตรวจค่า</td><td><code>@property def balance(self) -&gt; Decimal: return self._balance</code></td></tr>
+    <tr><td><code>@dataclass</code> + <code>__post_init__</code></td><td>สร้าง <code>__init__</code>, <code>__repr__</code>, <code>__eq__</code> ให้อัตโนมัติ และตรวจค่าหลังสร้าง</td><td><code>@dataclass(frozen=True) class Point: x: int; y: int</code></td></tr>
+    <tr><td><code>@classmethod</code></td><td>Constructor ทางเลือก</td><td><code>Expense.from_row({"id": "9", ...})</code></td></tr>
+    <tr><td><code>dataclasses.replace(obj, **changes)</code></td><td>สร้าง Object ใหม่ที่เปลี่ยนเฉพาะบางช่อง</td><td><code>replace(e, amount=Decimal("95.00"))</code></td></tr>
+  </tbody></table></div>
+
+  <h4>Advanced: Generator, Decorator, Context Manager</h4>
+  <div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>yield</code></td><td>Generator function ส่งค่าทีละตัวแบบ Lazy</td><td><code>def read_lines(p): for line in open(p): yield line.strip()</code></td></tr>
+    <tr><td><code>sum(x for x in xs)</code></td><td>Generator expression ไม่สร้าง List ทั้งก้อน</td><td><code>sum(e.amount for e in october)</code></td></tr>
+    <tr><td><code>@functools.wraps(func)</code></td><td>ใช้ใน Decorator เพื่อเก็บชื่อและ Docstring เดิม</td><td><code>def timer(func): @wraps(func) def wrapper(*a, **k): ...</code></td></tr>
+    <tr><td><code>@functools.cache</code></td><td>จำผลลัพธ์ของ Function ที่เรียกด้วย Argument เดิม</td><td><code>fib(80)</code> ได้ <code>23416728348467685</code> ทันที</td></tr>
+    <tr><td><code>@contextlib.contextmanager</code></td><td>สร้าง Context Manager จาก Generator</td><td><code>with section("โหลดข้อมูล"): ...</code></td></tr>
+  </tbody></table></div>
+
+  <h4>Testing และ ruff</h4>
+  <div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>python3 -m pytest -v</code> / <code>-q</code> / <code>-k</code></td><td>รัน Test แบบละเอียด / แบบย่อ / เลือกตามชื่อ</td><td><code>python3 -m pytest -k summary</code></td></tr>
+    <tr><td><code>pytest.raises(E, match=...)</code></td><td>ตรวจว่าโค้ด raise Exception ที่ถูกต้อง</td><td><code>with pytest.raises(ValidationError, match="YYYY-MM"): ...</code></td></tr>
+    <tr><td><code>@pytest.mark.parametrize</code></td><td>ทดสอบหลาย Input ด้วย Function เดียว</td><td><code>@pytest.mark.parametrize("text", ["0", "-20", "abc"])</code></td></tr>
+    <tr><td><code>tmp_path</code>, <code>capsys</code>, <code>monkeypatch</code></td><td>Fixture สำเร็จรูป: โฟลเดอร์ชั่วคราว, จับ Output, ตั้ง Env var</td><td><code>monkeypatch.setenv("EXPENSES_FILE", str(p))</code></td></tr>
+    <tr><td><code>pytest.approx()</code></td><td>เทียบเลขทศนิยมแบบ float</td><td><code>assert 0.1 + 0.2 == pytest.approx(0.3)</code></td></tr>
+    <tr><td><code>ruff check --fix</code></td><td>หาและแก้ปัญหา Lint ที่แก้อัตโนมัติได้</td><td><code>ruff check --fix --output-format concise</code></td></tr>
+    <tr><td><code>ruff format</code> / <code>--check</code></td><td>จัด Format โค้ด / ตรวจอย่างเดียว (ใช้ใน CI)</td><td><code>ruff check &amp;&amp; ruff format --check &amp;&amp; python3 -m pytest -q</code></td></tr>
+  </tbody></table></div>
+
+  <h3 id="s9-4-interview">Interview Questions</h3>
+  <p>คำถามสัมภาษณ์ที่พบบ่อยในตำแหน่ง Junior ถึง Mid-level ที่ใช้ Python ลองตอบด้วยคำพูดของตัวเองก่อนเปิดดูคำตอบตัวอย่าง และพยายามยกตัวอย่างจาก Mini Project ของคุณประกอบ</p>
+
+  <details class="iq"><summary>1. list, tuple, set และ dict ต่างกันอย่างไร และเลือกใช้แต่ละแบบเมื่อไร (Junior)</summary><div>
+    <p><strong>คำตอบที่ดี:</strong> อธิบายทั้งคุณสมบัติและเหตุผลด้านประสิทธิภาพ</p>
+    <ul>
+      <li><strong>list</strong> เรียงลำดับ แก้ไขได้ (Mutable) มีค่าซ้ำได้ ใช้กับข้อมูลหลายรายการที่ต้องเพิ่ม ลบ หรือเรียง เช่นรายการค่าใช้จ่ายทั้งหมด</li>
+      <li><strong>tuple</strong> เรียงลำดับแต่แก้ไขไม่ได้ (Immutable) ใช้กับข้อมูลชุดที่ขนาดคงที่ เช่นพิกัด <code>(13.7563, 100.5018)</code> หรือค่าคืนหลายค่าจาก Function และใช้เป็น Key ของ dict ได้เพราะ Hash ได้</li>
+      <li><strong>set</strong> ไม่มีค่าซ้ำและไม่สนลำดับ ใช้ตัดค่าซ้ำ หาส่วนร่วมหรือผลต่าง และตรวจ <code>x in s</code> ได้เร็วเฉลี่ย O(1)</li>
+      <li><strong>dict</strong> เก็บคู่ Key-Value ค้นด้วย Key ได้เฉลี่ย O(1) เพราะใช้ Hash table ใช้เมื่อต้องค้นหาด้วยชื่อหรือ id เช่นยอดรวมรายหมวด <code>{"food": Decimal("185.00")}</code> และตั้งแต่ Python 3.7 dict รักษาลำดับการใส่ข้อมูล</li>
+    </ul>
+    <p>จุดที่ทำให้คำตอบโดดเด่นคือพูดถึง Big-O: <code>x in list</code> ต้องไล่ทีละตัว O(n) ส่วน <code>x in set</code> หรือ <code>key in dict</code> เฉลี่ย O(1) ถ้าต้องค้นซ้ำหลายพันครั้ง การแปลง list เป็น set ก่อนจะเร็วกว่ามาก ซึ่งวัดได้จริงด้วย <code>timeit</code> (ตัวเลขเวลาต่างกันตามเครื่อง)</p>
+  </div></details>
+
+  <details class="iq"><summary>2. Mutable default argument คืออะไร ทำไมเป็น Bug และแก้อย่างไร (Junior–Mid)</summary><div>
+    <p><strong>คำตอบที่ดี:</strong> ค่า Default ของ Parameter ถูกสร้าง<strong>ครั้งเดียว</strong>ตอนที่ Python รันคำสั่ง <code>def</code> ไม่ใช่ทุกครั้งที่เรียก Function ถ้าค่า Default เป็น Object ที่แก้ไขได้ เช่น list หรือ dict ทุกการเรียกที่ไม่ส่งค่ามาจะใช้ Object ตัวเดียวกัน ข้อมูลจึงสะสมข้ามการเรียก</p>
+    <pre class="code" data-env="file" data-label="Python · default_bug.py"><code class="language-python">def add_item_bad(item, basket=[]):
+    # basket ตัวเดียวกันถูกใช้ซ้ำทุกครั้งที่ไม่ส่ง basket มา
+    basket.append(item)
+    return basket
+
+
+print(add_item_bad("ชาไทย"))
+print(add_item_bad("กาแฟ"))</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 default_bug.py</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>['ชาไทย']
+['ชาไทย', 'กาแฟ']</code></pre>
+    <p>วิธีแก้มาตรฐานคือใช้ <code>None</code> เป็นค่า Default แล้วสร้าง Object ใหม่ข้างใน Function:</p>
+    <pre class="code" data-env="file" data-label="Python · default_fix.py"><code class="language-python">def add_item(item: str, basket: list[str] | None = None) -&gt; list[str]:
+    # สร้าง list ใหม่ทุกครั้งที่ผู้เรียกไม่ได้ส่ง basket มา
+    if basket is None:
+        basket = []
+    basket.append(item)
+    return basket</code></pre>
+    <p>ควรเสริมว่า ruff ตรวจจับปัญหานี้ได้ด้วยกฎ <code>B006</code> (กลุ่ม flake8-bugbear ที่เปิดไว้ในโปรเจกต์) และใน Dataclass ต้องใช้ <code>field(default_factory=list)</code> ด้วยเหตุผลเดียวกัน</p>
+  </div></details>
+
+  <details class="iq"><summary>3. ทำไมต้องใช้ Virtual Environment และ requirements.txt และ error externally-managed-environment คืออะไร (Junior)</summary><div>
+    <p><strong>คำตอบที่ดี:</strong></p>
+    <ul>
+      <li><strong>Virtual Environment</strong> คือโฟลเดอร์ที่มี Python และ Package แยกเฉพาะโปรเจกต์ โปรเจกต์ A ใช้ pytest เวอร์ชันหนึ่ง และโปรเจกต์ B ใช้อีกเวอร์ชันได้โดยไม่ชนกัน และไม่ไปทำให้ Python ของระบบเสีย</li>
+      <li><strong>requirements.txt ที่ Pin เวอร์ชัน</strong> (เช่น <code>pytest==9.1.1</code>) ทำให้เพื่อนร่วมทีม เครื่อง CI และ Server ติดตั้ง Package ชุดเดียวกันทุกครั้ง ปัญหา "เครื่องผมรันได้" จึงลดลง</li>
+      <li><strong><code>error: externally-managed-environment</code></strong> เกิดบน Ubuntu 24.04 เมื่อรัน <code>pip install</code> นอก venv เพราะระบบประกาศตามมาตรฐาน PEP 668 ว่า Python ของระบบถูกจัดการด้วย apt การติดตั้งทับอาจทำให้เครื่องมือของระบบพัง วิธีที่ถูกคือ <code>python3 -m venv .venv</code>, <code>source .venv/bin/activate</code> แล้วจึงติดตั้ง ไม่ควรแก้ด้วย <code>--break-system-packages</code></li>
+    </ul>
+    <p>ควรบอกด้วยว่าโฟลเดอร์ <code>.venv/</code> ต้องอยู่ใน <code>.gitignore</code> เพราะสร้างใหม่ได้จาก <code>requirements.txt</code> เสมอ และควรใช้ <code>python3 -m pip</code> เพื่อให้แน่ใจว่า pip ตรงกับ Python ตัวที่กำลังใช้</p>
+  </div></details>
+
+  <details class="iq"><summary>4. Generator ต่างจาก List อย่างไร และควรใช้เมื่อไร (Mid)</summary><div>
+    <p><strong>คำตอบที่ดี:</strong> List เก็บทุกค่าไว้ในหน่วยความจำพร้อมกัน ส่วน Generator สร้างค่าทีละตัวเมื่อถูกขอ (Lazy evaluation) ผ่าน <code>yield</code> หรือ Generator expression ทำให้ใช้หน่วยความจำคงที่ไม่ว่าข้อมูลจะมากแค่ไหน</p>
+    <pre class="code" data-env="file" data-label="Python · gen_size.py"><code class="language-python">import sys
+
+# List เก็บผลลัพธ์ทั้งหนึ่งล้านค่า ส่วน Generator เก็บแค่สถานะการวน
+nums = [x * x for x in range(1_000_000)]
+gen = (x * x for x in range(1_000_000))
+print(sys.getsizeof(nums), sys.getsizeof(gen))</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 gen_size.py</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>8448728 200</code></pre>
+    <p class="muted small">ผลนี้ได้จาก Python 3.12.3 ตัวเลขอาจต่างเล็กน้อยใน Python เวอร์ชันอื่น แต่ List จะใหญ่กว่า Generator หลายหมื่นเท่าเสมอ</p>
+    <ul>
+      <li><strong>ใช้ Generator เมื่อ:</strong> อ่านไฟล์ใหญ่ทีละบรรทัด ต่อ Pipeline หลายขั้น (กรอง แปลง รวม) หรือต้องการแค่ผลรวมเช่น <code>sum(e.amount for e in october)</code></li>
+      <li><strong>ใช้ List เมื่อ:</strong> ต้องเข้าถึงด้วย Index, วนซ้ำหลายรอบ, หาความยาวด้วย <code>len()</code> หรือเรียงลำดับ</li>
+      <li><strong>ข้อควรระวัง:</strong> Generator ใช้ได้รอบเดียว วนครั้งที่สองจะได้ผลว่าง และ <code>gen[0]</code> จะได้ <code>TypeError: 'generator' object is not subscriptable</code></li>
+    </ul>
+  </div></details>
+
+  <details class="iq"><summary>5. ทำไมโปรเจกต์ Expense Tracker ใช้ Decimal แทน float และออกแบบให้ทดสอบได้อย่างไร (Mid)</summary><div>
+    <p><strong>คำตอบที่ดี (แบ่งเป็นสองส่วน):</strong></p>
+    <p><strong>เรื่องเงิน:</strong> float เก็บเลขฐานสองซึ่งแทนทศนิยมบางค่าได้ไม่ตรง จึงเกิดเศษเล็ก ๆ ที่สะสมจนยอดเงินผิดได้ ส่วน <code>Decimal</code> เก็บเลขฐานสิบตามที่มนุษย์เขียน และต้องสร้างจาก String เสมอ ไม่ใช่จาก float</p>
+    <pre class="code" data-env="file" data-label="Python · money.py"><code class="language-python">from decimal import Decimal
+
+# float บวกแล้วได้เศษ ส่วน Decimal ที่สร้างจาก String ได้ค่าตรง
+print(0.1 + 0.2)
+print(Decimal("0.1") + Decimal("0.2"))
+# สร้าง Decimal จาก float จะติดความคลาดเคลื่อนของ float มาด้วย
+print(Decimal(0.1))</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 money.py</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>0.30000000000000004
+0.3
+0.1000000000000000055511151231257827021181583404541015625</code></pre>
+    <p>ในโปรเจกต์จึงแปลงจำนวนเงินด้วย <code>parse_amount()</code> เป็น <code>Decimal</code> ทศนิยมสองตำแหน่ง และส่งออก JSON เป็น String <code>"1250.50"</code> เพื่อไม่ให้ความแม่นยำหายไประหว่างทาง</p>
+    <p><strong>เรื่องการทดสอบ:</strong></p>
+    <ul>
+      <li>แยกหน้าที่เป็น <code>models</code> (ตรวจข้อมูล), <code>storage</code> (I/O), <code>report</code> (คำนวณ, ไม่ <code>print</code>) และ <code>cli</code> (รับคำสั่ง) ส่วนที่คำนวณจึงทดสอบได้โดยไม่ต้องมีไฟล์หรือ Terminal</li>
+      <li>Function ใน <code>storage</code> รับ <code>Path</code> เป็น Argument ทำให้ Test ส่ง <code>tmp_path</code> เข้าไปได้ ไม่แตะไฟล์จริง (Dependency injection แบบง่าย)</li>
+      <li><code>main(argv)</code> รับ List และคืน Exit code แทนการเรียก <code>sys.exit()</code> ข้างใน Test จึงเรียกได้ตรง ๆ แล้วตรวจข้อความด้วย <code>capsys</code></li>
+      <li>ใช้ Custom exception <code>ValidationError</code> และจับที่ <code>main()</code> จุดเดียว ผู้ใช้ได้ข้อความภาษาไทยกับ Exit code 1 ส่วน Bug ที่ไม่คาดคิดยังแสดง Traceback ให้นักพัฒนาเห็น</li>
+      <li>ผลลัพธ์: 27 Test รันเสร็จในเวลาไม่ถึงหนึ่งวินาที และตรวจซ้ำด้วย <code>ruff check</code> กับ <code>ruff format --check</code> ก่อน Commit ทุกครั้ง</li>
+    </ul>
+  </div></details>
+
+  <h3 id="s9-4-resources">แหล่งเรียนต่อ</h3>
+  <ul class="res">
+    <li><a href="https://docs.python.org/3/" target="_blank" rel="noopener">Python Documentation</a> — เอกสารทางการของ Python ทุกเวอร์ชัน มีคู่มือ Standard Library ครบทุก Module ที่ใช้ในหัวข้อนี้ เช่น <code>argparse</code>, <code>csv</code>, <code>decimal</code> และ <code>dataclasses</code> <span class="pill">ฟรี</span></li>
+    <li><a href="https://docs.python.org/3/tutorial/" target="_blank" rel="noopener">The Python Tutorial</a> — บทเรียนทางการที่เรียงจากพื้นฐานถึง Class และ Virtual Environment เหมาะใช้ทบทวนคู่กับ Part 2 <span class="pill">ฟรี</span></li>
+    <li><a href="https://cs50.harvard.edu/python/" target="_blank" rel="noopener">CS50's Introduction to Programming with Python</a> — คอร์สจาก Harvard มีวิดีโอ แบบฝึกหัด และระบบตรวจงาน ครอบคลุม Function, Exception, Library, Unit test, File I/O และ OOP <span class="pill">ฟรี</span></li>
+    <li><a href="https://docs.pytest.org/" target="_blank" rel="noopener">pytest Documentation</a> — คู่มือทางการของ pytest อธิบาย Fixture, parametrize, <code>tmp_path</code>, <code>capsys</code> และ <code>monkeypatch</code> อย่างละเอียด <span class="pill">ฟรี</span></li>
+    <li><a href="https://docs.astral.sh/ruff/" target="_blank" rel="noopener">Ruff Documentation</a> — คู่มือของ ruff มีรายการกฎทุกข้อ (เช่น F401, I001, B006) พร้อมคำอธิบายว่าทำไมโค้ดแบบนั้นจึงเป็นปัญหา <span class="pill">ฟรี</span></li>
+    <li><a href="https://packaging.python.org/" target="_blank" rel="noopener">Python Packaging User Guide</a> — คู่มือทางการเรื่อง venv, pip, <code>pyproject.toml</code> และการแจกจ่าย Package ใช้ต่อยอดเมื่อต้องการติดตั้งโปรเจกต์เป็นคำสั่งของระบบ <span class="pill">ฟรี</span></li>
+    <li><a href="https://realpython.com/" target="_blank" rel="noopener">Real Python</a> — บทความและ Tutorial เชิงลึกเกือบทุกเรื่องของ Python บทความส่วนใหญ่อ่านฟรี ส่วนคอร์สวิดีโอบางส่วนต้องสมัครสมาชิก <span class="pill">มีค่าใช้จ่าย</span></li>
+    <li><a href="https://www.w3schools.com/python/" target="_blank" rel="noopener">W3Schools Python Tutorial</a> — สรุป Syntax สั้น ๆ พร้อมช่องให้ลองรันโค้ดในเบราว์เซอร์ เหมาะเปิดดูเร็ว ๆ เมื่อจำ Syntax ไม่ได้ <span class="pill">ฟรี</span></li>
+    <li><a href="https://pythoninstitute.org/" target="_blank" rel="noopener">Python Institute (PCEP / PCAP)</a> — ผู้จัดสอบใบรับรอง PCEP-30-02 และ PCAP-31-03 (เวอร์ชันใหม่ PCEP-30-03 และ PCAP-31-04 กำหนดเปิดวันที่ 2026-10-31) มีคอร์สเตรียมสอบให้เรียนฟรี แต่ค่าสอบต้องจ่ายเอง <span class="pill">มีค่าใช้จ่าย</span></li>
+  </ul>
+</section>

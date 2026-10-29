@@ -1,0 +1,1855 @@
+<section class="part" data-part="2">
+  <h2 id="s19-2"><span class="sec-no">19.2</span>Core Concept &amp; Quick Guide</h2>
+  <p>ส่วนนี้คือคู่มือใช้งานจริงของหัวข้อ Linux แบ่งเป็น 12 แนวคิด เรียงจากง่ายไปยาก แนวคิดที่ 1–3 เป็นระดับ Beginner (เดินในระบบไฟล์ จัดการไฟล์ อ่านไฟล์และหาความช่วยเหลือ) แนวคิดที่ 4–8 เป็นระดับ Intermediate (Permission, apt, Pipe และ Redirection, Text Processing, Environment Variables) และแนวคิดที่ 9–12 เป็นระดับ Advanced (Process, systemd, Network และ SSH, Bash Script กับ cron) ทุกแนวคิดมีคำอธิบาย ตัวอย่างที่รันได้จริง ผลลัพธ์ที่ได้จริง ตารางอธิบายทีละบรรทัด ข้อผิดพลาดที่พบบ่อย และแบบฝึก "ลองเอง"</p>
+  <p>ให้พิมพ์ตามทุกตัวอย่างด้วยมือตัวเองใน Terminal ของ Ubuntu ไม่ใช่แค่อ่าน ผลลัพธ์ทั้งหมดในหน้านี้ได้จากการรันจริงบน Ubuntu 24.04 LTS ด้วยผู้ใช้ชื่อ <code>somchai</code> ค่าที่ขึ้นกับเครื่อง เช่น วันเวลา PID, IP Address, ชื่อเครื่อง และขนาดไฟล์ จะต่างจากเครื่องของคุณ จุดไหนที่ค่าต่างกันจะมีหมายเหตุบอกไว้เสมอ</p>
+
+  <h3 id="s19-2-setup">เตรียมเครื่องสำหรับหัวข้อนี้</h3>
+  <p>ก่อนเริ่มแนวคิดที่ 1 ให้ตรวจว่าเครื่องพร้อม 4 ข้อ: (1) Ubuntu เป็นเวอร์ชัน 24.04 (2) ติดตั้งชุดเครื่องมือของหัวข้อครบ (3) เวอร์ชันของเครื่องมือตรงกับหลักสูตร และ (4) มีโฟลเดอร์ฝึก <code>~/projects/linux-lab</code> ถ้าคุณทำ Step 6 ใน Part 1 ไปแล้ว ขั้นที่ 2 จะขึ้นว่าทุกแพ็กเกจติดตั้งไว้แล้ว ซึ่งถูกต้อง</p>
+  <div class="callout note"><span class="c-label note">หมายเหตุ</span><p>วิธีอ่านตัวอย่างในหน้านี้: บล็อก <strong>Bash · Ubuntu (WSL)</strong> คือคำสั่งที่พิมพ์ใน Terminal โดยไม่ต้องพิมพ์ Prompt <code>somchai@DESKTOP-K7Q2M4P:~$</code> นำหน้า บรรทัดที่ขึ้นต้นด้วย <code>#</code> เป็นคำอธิบาย (Comment) ซึ่ง Shell จะข้ามไป พิมพ์หรือไม่พิมพ์ก็ได้ บล็อก <strong>Output</strong> คือสิ่งที่ Terminal แสดงกลับมา และบล็อกที่มีชื่อไฟล์ เช่น <strong>Bash · hello.sh</strong> คือเนื้อหาของไฟล์ที่ต้องสร้าง</p></div>
+
+  <h4>ขั้นที่ 1: ตรวจเวอร์ชันของ Ubuntu, Kernel และ Bash</h4>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ดูชื่อและเวอร์ชันของ Ubuntu
+lsb_release -d
+# ดูเวอร์ชันของ Kernel ที่ WSL2 ใช้
+uname -r
+# ดูเวอร์ชันของ Bash
+bash --version | head -n 1</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Description:	Ubuntu 24.04.5 LTS
+6.6.87.2-microsoft-standard-WSL2
+GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)</code></pre>
+  <p class="muted small">ตัวเลข Kernel บรรทัดที่ 2 จะต่างกันตามเวอร์ชันของ WSL ที่ติดตั้ง ขอให้ลงท้ายด้วย <code>microsoft-standard-WSL2</code> ก็ถูกต้อง ส่วนเลข 24.04 จุดย่อย (เช่น 24.04.3 หรือ 24.04.5) ขึ้นกับว่าอัปเดตล่าสุดเมื่อไร ใช้ได้ทั้งหมด</p>
+
+  <h4>ขั้นที่ 2: ติดตั้งชุดเครื่องมือของหัวข้อ Linux</h4>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ดาวน์โหลดรายการแพ็กเกจล่าสุด แล้วติดตั้งเครื่องมือที่ใช้ตลอดหัวข้อนี้
+sudo apt update &amp;&amp; sudo apt install -y tree htop tldr shellcheck cron logrotate bind9-dnsutils zip unzip ncdu</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+tree is already the newest version (2.1.1-2ubuntu3.24.04.2).
+htop is already the newest version (3.3.0-4build1).
+tldr is already the newest version (0.9.2-5).
+shellcheck is already the newest version (0.9.0-1).
+cron is already the newest version (3.0pl1-184ubuntu2).
+logrotate is already the newest version (3.21.0-2build1).
+bind9-dnsutils is already the newest version (1:9.18.39-0ubuntu0.24.04.8).
+zip is already the newest version (3.0-13ubuntu0.2).
+unzip is already the newest version (6.0-28ubuntu4.1).
+ncdu is already the newest version (1.19-0.1).
+0 upgraded, 0 newly installed, 0 to remove and 71 not upgraded.</code></pre>
+  <p class="muted small">ผลลัพธ์ข้างบนตัดส่วนของ <code>apt update</code> ออก และเป็นกรณีที่ติดตั้งไว้แล้วจาก Part 1 ถ้าเพิ่งติดตั้งครั้งแรก จะเห็นรายการ <code>The following NEW packages will be installed:</code> ตามด้วยบรรทัด <code>Get:</code>, <code>Unpacking</code> และ <code>Setting up</code> ของแต่ละแพ็กเกจแทน ตัวเลข <code>not upgraded</code> และเลขท้ายเวอร์ชัน (เช่น <code>ubuntu0.24.04.8</code>) จะเปลี่ยนไปตามการอัปเดตความปลอดภัยของ Ubuntu</p>
+
+  <h4>ขั้นที่ 3: ตรวจเวอร์ชันของเครื่องมือ</h4>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">tree --version
+htop --version
+tldr --version
+shellcheck --version | head -n 2
+nano --version | head -n 1
+logrotate --version | head -n 1
+dig -v
+# ดูเวอร์ชันของแพ็กเกจที่ไม่มีตัวเลือก --version
+dpkg-query -W cron zip unzip ncdu</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>tree v2.1.1 (c) 1996 - 2023 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro
+htop 3.3.0
+0.9.2
+ShellCheck - shell script analysis tool
+version: 0.9.0
+ GNU nano, version 7.2
+logrotate 3.21.0
+DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu
+cron	3.0pl1-184ubuntu2
+ncdu	1.19-0.1
+unzip	6.0-28ubuntu4.1
+zip	3.0-13ubuntu0.2</code></pre>
+
+  <h4>ขั้นที่ 4: สร้างโฟลเดอร์ฝึก และดูว่า WSL เปิด systemd หรือยัง</h4>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># โฟลเดอร์ฝึกของหัวข้อนี้ แต่ละแนวคิดจะมีโฟลเดอร์ย่อย c01 ถึง c12
+mkdir -p ~/projects/linux-lab
+cd ~/projects/linux-lab
+pwd
+# ดูชื่อโปรแกรมที่เป็น Process หมายเลข 1 (ใช้ในแนวคิดที่ 10)
+ps -p 1 -o comm=</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>/home/somchai/projects/linux-lab
+systemd</code></pre>
+  <p>ถ้าบรรทัดที่ 2 เป็น <code>systemd</code> แปลว่า WSL เปิด systemd แล้ว (ค่าเริ่มต้นของ Ubuntu 24.04 บน WSL) ถ้าเป็น <code>init</code> ให้ดูวิธีเปิดในแนวคิดที่ 10 ส่วน Path บรรทัดแรกจะเป็นชื่อผู้ใช้ของคุณแทน <code>somchai</code></p>
+
+  <div class="tbl wide"><table>
+    <thead><tr><th>เครื่องมือ</th><th>เวอร์ชันที่หลักสูตรใช้</th><th>ใช้ในแนวคิด</th><th>หมายเหตุ</th></tr></thead>
+    <tbody>
+      <tr><td class="nw">Bash</td><td class="nw">5.2.21</td><td>ทุกแนวคิด</td><td>Shell เริ่มต้นของ Ubuntu 24.04</td></tr>
+      <tr><td class="nw">GNU coreutils</td><td class="nw">9.4</td><td>1, 2, 3, 6, 7</td><td>มีคำสั่งพื้นฐาน เช่น <code>ls</code>, <code>cp</code>, <code>mv</code>, <code>rm</code>, <code>sort</code>, <code>cut</code>, <code>tr</code>, <code>wc</code>, <code>df</code>, <code>du</code></td></tr>
+      <tr><td class="nw">tree</td><td class="nw">2.1.1</td><td>2</td><td>แสดงโครงสร้างโฟลเดอร์เป็นรูปต้นไม้</td></tr>
+      <tr><td class="nw">nano / vim / less</td><td class="nw">7.2 / 9.1.0016 / 590</td><td>3</td><td>แก้ไขและอ่านไฟล์ใน Terminal</td></tr>
+      <tr><td class="nw">tldr</td><td class="nw">0.9.2</td><td>3</td><td>สรุปวิธีใช้คำสั่งแบบสั้น ครั้งแรกต้องดาวน์โหลดคู่มือจากอินเทอร์เน็ต</td></tr>
+      <tr><td class="nw">adduser / sudo</td><td class="nw">3.137ubuntu1 / 1.9.15p5</td><td>4</td><td>จัดการผู้ใช้และสิทธิ์ผู้ดูแลระบบ</td></tr>
+      <tr><td class="nw">apt / dpkg</td><td class="nw">2.8.3 / 1.22.6</td><td>5</td><td>ติดตั้งและจัดการแพ็กเกจ</td></tr>
+      <tr><td class="nw">grep / sed / awk (mawk) / findutils</td><td class="nw">3.11 / 4.9 / 1.3.4 / 4.9.0</td><td>6, 7</td><td><code>awk</code> บน Ubuntu 24.04 คือ mawk ให้เขียนแบบ POSIX awk</td></tr>
+      <tr><td class="nw">procps / htop</td><td class="nw">4.0.4 / 3.3.0</td><td>9</td><td><code>ps</code>, <code>top</code>, <code>free</code>, <code>uptime</code>, <code>pgrep</code></td></tr>
+      <tr><td class="nw">systemd / cron</td><td class="nw">255.4 / 3.0pl1-184ubuntu2</td><td>10, 12</td><td>จัดการ Service และตั้งเวลางาน</td></tr>
+      <tr><td class="nw">iproute2 / curl / bind9-dnsutils</td><td class="nw">6.1.0 / 8.5.0 / 9.18.39</td><td>11</td><td><code>ip</code>, <code>ss</code>, <code>curl</code>, <code>dig</code>, <code>nslookup</code></td></tr>
+      <tr><td class="nw">OpenSSH</td><td class="nw">9.6p1</td><td>11</td><td><code>ssh</code>, <code>ssh-keygen</code>, <code>ssh-copy-id</code> และ <code>sshd</code></td></tr>
+      <tr><td class="nw">ShellCheck / tar</td><td class="nw">0.9.0 / 1.35</td><td>12</td><td>ตรวจ Bash Script และสร้างไฟล์ Archive</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout warn"><span class="c-label warn">ระวัง</span><p>ทำแบบฝึกทุกอย่างในโฟลเดอร์ <code>~/projects/linux-lab</code> เท่านั้น โดยเฉพาะคำสั่งที่ลบไฟล์ อย่าฝึกใน <code>/mnt/c</code> (ไดรฟ์ C: ของ Windows) เพราะช้ากว่ามาก Permission แสดงเป็น <code>rwxrwxrwx</code> ทุกไฟล์ และถ้าลบผิดจะลบไฟล์จริงของ Windows ด้วย</p></div>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 1</span><span class="lvl" data-lvl="b">Beginner</span></div>
+    <h3 id="s19-2-c01">Terminal, Shell และการเดินทางในระบบไฟล์ (pwd, ls, cd)</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p><strong>Operating System (OS)</strong> คือซอฟต์แวร์หลักที่ดูแลฮาร์ดแวร์ทั้งหมดของเครื่อง แกนกลางของ OS เรียกว่า <strong>Kernel</strong> ซึ่งคุยกับ CPU, RAM และ Disk โดยตรง เราไม่ได้สั่ง Kernel เอง แต่สั่งผ่าน <strong>Shell</strong> (บน Ubuntu คือ Bash) ซึ่งรับคำสั่งที่เราพิมพ์ แปลความหมาย แล้วเรียกโปรแกรมให้ทำงาน ส่วน <strong>Terminal</strong> คือหน้าต่างที่ใช้พิมพ์และแสดงผล เช่น Windows Terminal หรือ Terminal ใน VS Code เมื่อเปิด Ubuntu จะเห็นบรรทัดรอรับคำสั่งที่เรียกว่า <strong>Prompt</strong> แบบนี้ <code>somchai@DESKTOP-K7Q2M4P:~$</code> อ่านได้ว่า ผู้ใช้ <code>somchai</code> อยู่บนเครื่องชื่อ <code>DESKTOP-K7Q2M4P</code> ตอนนี้อยู่ที่โฟลเดอร์ <code>~</code> (Home ของตัวเอง) และเครื่องหมาย <code>$</code> บอกว่าเป็นผู้ใช้ทั่วไป ถ้าเป็นผู้ใช้ root (ผู้ดูแลสูงสุด) จะเห็น <code>#</code> แทน</p>
+    <p>ระบบไฟล์ของ Linux เป็นต้นไม้ต้นเดียว เริ่มที่ <code>/</code> (Root Directory) ไม่มีไดรฟ์ C: หรือ D: แบบ Windows ทุกไฟล์มีที่อยู่ที่เรียกว่า <strong>Path</strong> ซึ่งเขียนได้ 2 แบบ <strong>Absolute Path</strong> ขึ้นต้นด้วย <code>/</code> เสมอและบอกทางจากรากต้นไม้ เช่น <code>/home/somchai/projects</code> ใช้ได้จากทุกที่ ส่วน <strong>Relative Path</strong> ไม่ขึ้นต้นด้วย <code>/</code> และนับจากโฟลเดอร์ที่อยู่ตอนนี้ เช่น <code>projects/linux-lab</code> ชื่อพิเศษที่ต้องจำคือ <code>.</code> (โฟลเดอร์ปัจจุบัน), <code>..</code> (โฟลเดอร์แม่ หรือขึ้นไป 1 ชั้น), <code>~</code> (Home ของเรา) และ <code>-</code> (โฟลเดอร์ก่อนหน้า ใช้กับ <code>cd</code>) ไฟล์ที่ชื่อขึ้นต้นด้วยจุด เช่น <code>.bashrc</code>, <code>.profile</code> และ <code>.bash_logout</code> เป็น <strong>Hidden File</strong> (Dotfile) ซึ่ง <code>ls</code> ธรรมดาจะไม่แสดง ต้องใช้ <code>ls -a</code></p>
+    <div class="tbl wide"><table>
+      <thead><tr><th>Directory</th><th>เก็บอะไร</th><th>ตัวอย่างที่จะได้ใช้</th></tr></thead>
+      <tbody>
+        <tr><td class="nw"><code>/</code></td><td>รากของระบบไฟล์ ทุก Path เริ่มจากที่นี่</td><td><code>cd /</code> แล้ว <code>ls</code> เพื่อดูโฟลเดอร์หลักทั้งหมด</td></tr>
+        <tr><td class="nw"><code>/home/somchai</code></td><td>Home ของผู้ใช้ เก็บงานและการตั้งค่าส่วนตัว ใช้แทนด้วย <code>~</code> ได้</td><td><code>~/projects/linux-lab</code></td></tr>
+        <tr><td class="nw"><code>/root</code></td><td>Home ของผู้ใช้ root ผู้ใช้ทั่วไปเข้าไม่ได้</td><td><code>sudo ls /root</code></td></tr>
+        <tr><td class="nw"><code>/etc</code></td><td>ไฟล์ตั้งค่าของระบบและโปรแกรม (ส่วนใหญ่เป็น Text)</td><td><code>/etc/hostname</code>, <code>/etc/passwd</code>, <code>/etc/wsl.conf</code></td></tr>
+        <tr><td class="nw"><code>/var/log</code></td><td>ไฟล์ Log ของระบบและโปรแกรม</td><td><code>/var/log/apt/history.log</code></td></tr>
+        <tr><td class="nw"><code>/usr/bin</code></td><td>โปรแกรมของระบบที่ติดตั้งผ่าน apt</td><td><code>/usr/bin/ls</code>, <code>/usr/bin/python3</code></td></tr>
+        <tr><td class="nw"><code>/usr/local</code></td><td>โปรแกรมที่ผู้ดูแลติดตั้งเอง ไม่ผ่าน apt</td><td><code>/usr/local/bin</code>, <code>/usr/local/go</code></td></tr>
+        <tr><td class="nw"><code>/tmp</code></td><td>ไฟล์ชั่วคราว อาจถูกลบเมื่อรีสตาร์ต ทุกคนเขียนได้</td><td>ไฟล์ทดสอบที่ไม่ต้องเก็บ</td></tr>
+        <tr><td class="nw"><code>/opt</code></td><td>โปรแกรมขนาดใหญ่ที่มาเป็นก้อนเดียว</td><td>โปรแกรมของบริษัทภายนอก</td></tr>
+        <tr><td class="nw"><code>/dev</code></td><td>ไฟล์ที่เป็นตัวแทนอุปกรณ์</td><td><code>/dev/null</code> (ถังขยะของข้อมูล)</td></tr>
+        <tr><td class="nw"><code>/proc</code></td><td>ไฟล์เสมือนที่ Kernel สร้างขึ้นเพื่อบอกสถานะระบบ</td><td><code>/proc/cpuinfo</code>, <code>/proc/loadavg</code></td></tr>
+        <tr><td class="nw"><code>/mnt/c</code></td><td>(เฉพาะ WSL) ไดรฟ์ C: ของ Windows</td><td><code>/mnt/c/Users/ชื่อผู้ใช้Windows/Downloads</code></td></tr>
+      </tbody>
+    </table></div>
+    <p>ทักษะแป้นพิมพ์ที่ทำให้พิมพ์เร็วขึ้นหลายเท่า:</p>
+    <ul>
+      <li><kbd>Tab</kbd> เติมชื่อคำสั่ง ไฟล์ หรือโฟลเดอร์ให้อัตโนมัติ ถ้ามีหลายตัวเลือกให้กด <kbd>Tab</kbd> 2 ครั้งเพื่อดูทั้งหมด</li>
+      <li><kbd>↑</kbd> และ <kbd>↓</kbd> เลื่อนดูคำสั่งที่เคยพิมพ์ คำสั่ง <code>history</code> แสดงประวัติทั้งหมดพร้อมหมายเลข และ <code>!!</code> คือรันคำสั่งล่าสุดซ้ำ (เช่น <code>sudo !!</code> เมื่อลืมใส่ sudo)</li>
+      <li><kbd>Ctrl</kbd>+<kbd>R</kbd> ค้นหาคำสั่งเก่าด้วยคำบางส่วน กดซ้ำเพื่อหาย้อนไปอีก กด <kbd>Enter</kbd> เพื่อรัน หรือ <kbd>Esc</kbd> เพื่อนำมาแก้ก่อน</li>
+      <li><kbd>Ctrl</kbd>+<kbd>C</kbd> ยกเลิกคำสั่งที่กำลังทำงาน (ใน Terminal ไม่ใช่การคัดลอก) และ <kbd>Ctrl</kbd>+<kbd>L</kbd> หรือ <code>clear</code> ล้างหน้าจอ</li>
+      <li>Linux แยกตัวพิมพ์เล็กและใหญ่ (Case Sensitive): <code>docs</code>, <code>Docs</code> และ <code>DOCS</code> เป็น 3 ชื่อที่ต่างกัน</li>
+      <li>ชื่อที่มีช่องว่างต้องครอบด้วยเครื่องหมายคำพูด <code>"my notes"</code> หรือใส่ <code>\</code> หน้าช่องว่าง <code>my\ notes</code> ไม่เช่นนั้น Shell จะเข้าใจว่าเป็น 2 คำ</li>
+    </ul>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ระบบไฟล์เหมือนอาคารสำนักงานหลังใหญ่ <code>/</code> คือล็อบบี้ชั้นล่าง ทุกห้องในอาคารเดินไปถึงได้จากล็อบบี้ <code>pwd</code> คือการดูป้ายบอกว่า "ตอนนี้ฉันยืนอยู่ห้องไหน" <code>ls</code> คือการมองว่าในห้องนี้มีอะไรบ้าง ส่วน <code>cd</code> คือการเดินไปห้องอื่น Absolute Path เหมือนบอกทางว่า "จากล็อบบี้ ขึ้นชั้น home ไปห้อง somchai" ซึ่งใช้ได้ไม่ว่าคุณยืนอยู่ตรงไหน ส่วน Relative Path เหมือนบอกว่า "จากตรงนี้ เดินเข้าห้องถัดไป" ซึ่งใช้ได้เฉพาะเมื่อรู้ว่าตอนนี้ยืนอยู่ที่ไหน</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>ตัวอย่างนี้ไม่ต้องติดตั้งอะไรเพิ่ม เปิด Terminal ของ Ubuntu แล้วพิมพ์ทีละบรรทัด สังเกตผลของ <code>pwd</code> หลัง <code>cd</code> ทุกครั้ง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างโฟลเดอร์ฝึก 3 โฟลเดอร์ในคำสั่งเดียว (โฟลเดอร์ที่ 3 มีช่องว่างในชื่อ)
+mkdir -p ~/projects/linux-lab/c01/{docs,images,'my notes'}
+# กลับ Home แล้วดูว่าอยู่ที่ไหน
+cd ~ &amp;&amp; pwd
+# เข้าโฟลเดอร์ด้วย Relative Path (นับจาก Home ที่อยู่ตอนนี้)
+cd projects/linux-lab/c01 &amp;&amp; pwd
+# เข้าโฟลเดอร์ด้วย Absolute Path (ขึ้นต้นด้วย /)
+cd /home/somchai/projects/linux-lab/c01/docs &amp;&amp; pwd
+# ขึ้นไป 1 ชั้น
+cd .. &amp;&amp; pwd
+# กลับไปโฟลเดอร์ก่อนหน้า (cd - จะพิมพ์ Path ให้เอง)
+cd -
+# ขึ้นไป 1 ชั้นแล้วเข้า "my notes" ต้องใส่เครื่องหมายคำพูดเพราะมีช่องว่าง
+cd ../"my notes" &amp;&amp; pwd
+# ดูรายละเอียดของทุกอย่างใน c01 รวมถึง . และ ..
+ls -la ~/projects/linux-lab/c01</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>/home/somchai
+/home/somchai/projects/linux-lab/c01
+/home/somchai/projects/linux-lab/c01/docs
+/home/somchai/projects/linux-lab/c01
+/home/somchai/projects/linux-lab/c01/docs
+/home/somchai/projects/linux-lab/c01/my notes
+total 20
+drwxrwxr-x 5 somchai somchai 4096 Oct 19 14:55 .
+drwxrwxr-x 3 somchai somchai 4096 Oct 19 14:55 ..
+drwxrwxr-x 2 somchai somchai 4096 Oct 19 14:55 docs
+drwxrwxr-x 2 somchai somchai 4096 Oct 19 14:55 images
+drwxrwxr-x 2 somchai somchai 4096 Oct 19 14:55 my notes</code></pre>
+    <p class="muted small">ชื่อผู้ใช้และวันเวลาในคอลัมน์ของ <code>ls -la</code> จะเป็นของเครื่องคุณ บน Terminal จริง <code>ls</code> จะแสดงสีด้วย เช่น โฟลเดอร์เป็นสีน้ำเงิน และ <code>ls</code> แบบไม่ใช้ <code>-l</code> จะแสดงชื่อที่มีช่องว่างในเครื่องหมายคำพูดเป็น <code>'my notes'</code></p>
+    <p>ต่อไปดูโฟลเดอร์หลักของระบบ และ Hidden File ใน Home</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ดูโฟลเดอร์ชั้นบนสุดของระบบไฟล์
+ls /
+# ดู Dotfile 3 ไฟล์ที่ Ubuntu สร้างให้ทุกผู้ใช้
+ls -l ~/.bashrc ~/.profile ~/.bash_logout</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>bin                etc   lib.usr-is-merged  mnt   run                 srv  var
+bin.usr-is-merged  home  lib64              opt   sbin                sys
+boot               init  lost+found         proc  sbin.usr-is-merged  tmp
+dev                lib   media              root  snap                usr
+-rw-r--r-- 1 somchai somchai  220 Mar 31  2024 /home/somchai/.bash_logout
+-rw-r--r-- 1 somchai somchai 3771 Mar 31  2024 /home/somchai/.bashrc
+-rw-r--r-- 1 somchai somchai  807 Mar 31  2024 /home/somchai/.profile</code></pre>
+    <p class="muted small">ผลของ <code>ls /</code> ข้างบนเป็นของ Ubuntu 24.04 บน WSL ที่หน้าต่างกว้าง 80 ตัวอักษร จำนวนคอลัมน์จะเปลี่ยนตามความกว้างหน้าต่าง รายการ <code>init</code> (โปรแกรมเริ่มต้นของ WSL), <code>snap</code>, <code>lost+found</code> และโฟลเดอร์ที่ลงท้าย <code>.usr-is-merged</code> เป็นของปกติบน WSL แต่ใน Container หรือเครื่องอื่นอาจไม่มีหรือมีรายการอื่นเพิ่ม ถ้าคุณแก้ <code>.bashrc</code> ไปแล้ว ขนาดและวันที่จะต่างจากนี้</p>
+    <p>ตั้งค่าเสริมให้ <kbd>Tab</kbd> และ <kbd>↑</kbd> ฉลาดขึ้น โดยสร้างไฟล์ <code>~/.inputrc</code> ด้วย <code>nano ~/.inputrc</code> แล้วใส่เนื้อหานี้ (Readline คือไลบรารีที่ Bash ใช้รับการพิมพ์ ในไฟล์นี้ใช้ <code>#</code> เป็น Comment ได้เฉพาะต้นบรรทัด)</p>
+<pre class="code" data-env="file" data-label="Readline · ~/.inputrc"><code class="language-plaintext"># อ่านค่าตั้งต้นของระบบก่อน แล้วค่อยเพิ่มของเราเอง
+$include /etc/inputrc
+# กด Tab ครั้งเดียวก็แสดงตัวเลือกทั้งหมด เมื่อมีหลายชื่อที่ขึ้นต้นเหมือนกัน
+set show-all-if-ambiguous on
+# พิมพ์ต้นคำสั่ง เช่น cd แล้วกดลูกศรขึ้น/ลง จะค้นเฉพาะคำสั่งเก่าที่ขึ้นต้นด้วย cd
+"\e[A": history-search-backward
+"\e[B": history-search-forward</code></pre>
+    <p>บันทึกไฟล์ ปิด Terminal แล้วเปิดใหม่ จากนั้นตรวจว่าค่าทำงานแล้ว</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ดูว่าเปิด show-all-if-ambiguous แล้วหรือยัง
+bind -v | grep show-all-if-ambiguous
+# ดูว่าปุ่มลูกศรขึ้น (\e[A) และลง (\e[B) ผูกกับการค้น history แล้ว
+bind -p | grep -E '\[(A|B)"'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>set show-all-if-ambiguous on
+"\e[A": history-search-backward
+"\e[B": history-search-forward</code></pre>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>mkdir -p ~/projects/linux-lab/c01/{docs,images,'my notes'}</code></td><td><code>mkdir</code> สร้างโฟลเดอร์ <code>-p</code> สร้างโฟลเดอร์แม่ที่ยังไม่มีให้ด้วยและไม่ฟ้อง Error ถ้ามีอยู่แล้ว วงเล็บปีกกา <code>{...}</code> ให้ Bash ขยายเป็น 3 Path ส่วน <code>'my notes'</code> ครอบด้วยเครื่องหมายคำพูดเพื่อให้ช่องว่างเป็นส่วนหนึ่งของชื่อ</td></tr>
+      <tr><td><code>cd ~ &amp;&amp; pwd</code></td><td><code>cd ~</code> กลับ Home (พิมพ์แค่ <code>cd</code> เฉยๆ ก็ได้ผลเหมือนกัน) <code>&amp;&amp;</code> แปลว่า "ถ้าคำสั่งซ้ายสำเร็จ ให้ทำคำสั่งขวาต่อ" <code>pwd</code> (Print Working Directory) พิมพ์ Absolute Path ของโฟลเดอร์ปัจจุบัน</td></tr>
+      <tr><td><code>cd projects/linux-lab/c01</code></td><td>Relative Path ไม่มี <code>/</code> นำหน้า Shell จึงนับต่อจาก <code>/home/somchai</code> ที่อยู่ตอนนี้ ถ้าพิมพ์คำสั่งนี้ตอนอยู่ที่อื่นจะ Error</td></tr>
+      <tr><td><code>cd /home/somchai/projects/linux-lab/c01/docs</code></td><td>Absolute Path เริ่มจาก <code>/</code> ใช้ได้เสมอไม่ว่าอยู่ที่ไหน เหมาะกับ Script และ cron ซึ่งไม่รู้ว่าโฟลเดอร์ปัจจุบันคืออะไร</td></tr>
+      <tr><td><code>cd ..</code></td><td><code>..</code> คือโฟลเดอร์แม่ จึงขึ้นจาก <code>docs</code> ไป <code>c01</code> ใช้ต่อกันได้ เช่น <code>cd ../..</code> ขึ้น 2 ชั้น</td></tr>
+      <tr><td><code>cd -</code></td><td>สลับกลับไปโฟลเดอร์ที่อยู่ก่อนหน้า (Bash เก็บไว้ในตัวแปร <code>OLDPWD</code>) และพิมพ์ Path ให้เห็น ผลจึงกลับมาที่ <code>docs</code></td></tr>
+      <tr><td><code>cd ../"my notes"</code></td><td>ขึ้นไป <code>c01</code> แล้วเข้า <code>my notes</code> เครื่องหมายคำพูดครอบเฉพาะส่วนที่มีช่องว่างก็พอ ผล <code>pwd</code> จึงเป็น <code>.../c01/my notes</code></td></tr>
+      <tr><td><code>ls -la</code></td><td><code>-l</code> แสดงแบบยาว (Permission, จำนวนลิงก์, เจ้าของ, กลุ่ม, ขนาด, วันที่แก้ไข, ชื่อ) <code>-a</code> แสดงทุกชื่อรวม Hidden File และ <code>.</code> กับ <code>..</code> ตัวเลือกอื่นที่ใช้บ่อย: <code>-h</code> แสดงขนาดเป็น K, M, G และ <code>-t</code> เรียงตามเวลาแก้ไขล่าสุดก่อน</td></tr>
+      <tr><td><code>total 20</code> และตัวอักษร <code>d</code> หน้าบรรทัด</td><td><code>total</code> คือพื้นที่ Disk ที่ใช้ (หน่วย 1K Block) ตัวอักษรแรก <code>d</code> แปลว่า Directory ถ้าเป็น <code>-</code> คือไฟล์ปกติ และ <code>l</code> คือ Symbolic Link (จะอ่าน Permission ละเอียดในแนวคิดที่ 4)</td></tr>
+      <tr><td><code>ls /</code></td><td>ดูโฟลเดอร์ชั้นบนสุด จะเห็นโฟลเดอร์ตามมาตรฐาน FHS (Filesystem Hierarchy Standard) เช่น <code>etc</code>, <code>home</code>, <code>usr</code>, <code>var</code> ซึ่งเหมือนกันบน Linux แทบทุก Distro</td></tr>
+      <tr><td><code>ls -l ~/.bashrc ~/.profile ~/.bash_logout</code></td><td>ระบุชื่อ Hidden File ตรงๆ จึงแสดงได้โดยไม่ต้องใช้ <code>-a</code> ไฟล์ <code>.bashrc</code> ถูกอ่านทุกครั้งที่เปิด Terminal ใหม่ <code>.profile</code> ถูกอ่านตอน Login และ <code>.bash_logout</code> ทำงานตอนออกจาก Login Shell</td></tr>
+      <tr><td><code>$include /etc/inputrc</code></td><td>ดึงค่าตั้งต้นของระบบมาก่อน เพราะเมื่อมี <code>~/.inputrc</code> แล้ว Readline จะไม่อ่าน <code>/etc/inputrc</code> เองอีก</td></tr>
+      <tr><td><code>set show-all-if-ambiguous on</code></td><td>ปกติต้องกด <kbd>Tab</kbd> 2 ครั้งจึงเห็นตัวเลือก ค่านี้ทำให้กดครั้งเดียวก็เห็น</td></tr>
+      <tr><td><code>"\e[A": history-search-backward</code></td><td><code>\e[A</code> คือรหัสของปุ่มลูกศรขึ้น ผูกให้ค้นคำสั่งเก่าที่ขึ้นต้นเหมือนสิ่งที่พิมพ์ไว้แล้ว บรรทัด <code>\e[B</code> คือปุ่มลูกศรลง</td></tr>
+      <tr><td><code>bind -v</code> และ <code>bind -p</code></td><td>คำสั่ง Builtin ของ Bash ที่แสดงค่าตั้ง (<code>-v</code>) และการผูกปุ่ม (<code>-p</code>) ที่ใช้อยู่ ส่งต่อให้ <code>grep</code> กรองเฉพาะบรรทัดที่สนใจ</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td><code>bash: cd: Docs: No such file or directory</code></td><td>พิมพ์ตัวพิมพ์ใหญ่ผิด โฟลเดอร์จริงชื่อ <code>docs</code> Linux ถือว่าเป็นคนละชื่อ</td><td>พิมพ์ตัวอักษรแรกแล้วกด <kbd>Tab</kbd> ให้ Shell เติมชื่อที่ถูกต้อง หรือ <code>ls</code> ดูชื่อจริงก่อน</td></tr>
+      <tr><td><code>bash: cd: Documents: No such file or directory</code></td><td>ติดนิสัยจาก Windows Home ของ Linux ไม่มีโฟลเดอร์ <code>Documents</code> ให้ (ไฟล์ของ Windows อยู่อีกระบบไฟล์หนึ่ง)</td><td>สร้างโฟลเดอร์งานเองใน <code>~/projects</code> ถ้าต้องการไฟล์จาก Windows ให้ใช้ <code>cd /mnt/c/Users/ชื่อผู้ใช้Windows/Documents</code></td></tr>
+      <tr><td><code>bash: cd: too many arguments</code></td><td>พิมพ์ <code>cd my notes</code> โดยไม่ใส่เครื่องหมายคำพูด Shell จึงแยกเป็น 2 คำ (<code>my</code> และ <code>notes</code>) แต่ <code>cd</code> รับได้ชื่อเดียว</td><td>ใช้ <code>cd "my notes"</code> หรือ <code>cd my\ notes</code> และตั้งชื่อใหม่โดยไม่ใช้ช่องว่าง เช่น <code>my-notes</code></td></tr>
+      <tr><td><code>bash: cd: /etc/hostname: Not a directory</code></td><td>สั่ง <code>cd</code> เข้าไปในไฟล์ <code>cd</code> ใช้ได้กับ Directory เท่านั้น</td><td>ถ้าต้องการดูเนื้อหาไฟล์ให้ใช้ <code>cat /etc/hostname</code> (แนวคิดที่ 3) ตรวจชนิดด้วย <code>ls -ld</code> ถ้าขึ้นต้นด้วย <code>d</code> จึง <code>cd</code> ได้</td></tr>
+      <tr><td><code>ls-la: command not found</code></td><td>ลืมเว้นวรรคระหว่างคำสั่งกับตัวเลือก Shell จึงหาโปรแกรมชื่อ <code>ls-la</code> ซึ่งไม่มี</td><td>เว้นวรรค 1 ครั้งเสมอ: <code>ls -la</code></td></tr>
+      <tr><td>กด <kbd>Ctrl</kbd>+<kbd>C</kbd> เพื่อคัดลอกข้อความ แต่เห็น <code>^C</code> และคำสั่งถูกยกเลิก</td><td>ใน Terminal ปุ่มนี้คือส่งสัญญาณยกเลิก (SIGINT) ไม่ใช่การคัดลอก</td><td>ใน Windows Terminal ใช้ <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> เพื่อคัดลอก และ <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> หรือคลิกขวาเพื่อวาง</td></tr>
+    </tbody></table></div>
+    <p class="muted small">ใน Terminal ของ WSL ข้อความ Error อาจขึ้นต้นด้วย <code>-bash:</code> แทน <code>bash:</code> เครื่องหมายลบแปลว่าเป็น Login Shell ความหมายของ Error เหมือนกันทุกประการ</p>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>ตั้งชื่อไฟล์และโฟลเดอร์ด้วยตัวพิมพ์เล็ก ไม่มีช่องว่าง ใช้ <code>-</code> หรือ <code>_</code> แทน เช่น <code>my-notes</code> ทำให้พิมพ์ง่ายและไม่พังใน Script</li>
+      <li>ใน Script และ cron ใช้ Absolute Path เสมอ เพราะโฟลเดอร์ปัจจุบันตอนที่ Script รันอาจไม่ใช่ที่ที่คุณคิด</li>
+      <li>กด <kbd>Tab</kbd> ทุกครั้งที่พิมพ์ชื่อไฟล์ ถ้า Tab ไม่เติมให้ แปลว่าชื่อผิดหรือไฟล์ไม่มี จะรู้ก่อนกด Enter</li>
+      <li>เก็บงานไว้ใน Home ของ Linux (<code>~/projects</code>) ไม่ใช่ใน <code>/mnt/c</code> จะเร็วกว่าและ Permission ถูกต้อง</li>
+      <li>ก่อนรันคำสั่งที่เปลี่ยนแปลงไฟล์ ให้ดู Prompt หรือพิมพ์ <code>pwd</code> เพื่อยืนยันว่าอยู่ในโฟลเดอร์ที่ถูกต้อง</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ฝึกเดินในระบบไฟล์ให้คล่องโดยไม่ใช้เมาส์</p><ol>
+      <li>สร้างโฟลเดอร์ <code>~/projects/linux-lab/c01/images/2026/10</code> ในคำสั่งเดียว แล้วเข้าไปด้วย Absolute Path</li>
+      <li>จากโฟลเดอร์นั้น กลับไปที่ <code>c01/docs</code> ด้วย Relative Path ที่ใช้ <code>..</code> (คำตอบคือ <code>cd ../../../docs</code>) แล้วตรวจด้วย <code>pwd</code></li>
+      <li>ใช้ <code>ls -lt ~/projects/linux-lab/c01</code> แล้วอธิบายว่าทำไมลำดับต่างจาก <code>ls -l</code></li>
+      <li>ใช้ <code>ls -a ~</code> นับว่า Home ของคุณมี Hidden File กี่ไฟล์ และใช้ <kbd>Ctrl</kbd>+<kbd>R</kbd> พิมพ์ <code>mkdir</code> เพื่อเรียกคำสั่งสร้างโฟลเดอร์กลับมาโดยไม่พิมพ์ใหม่</li>
+      <li>ดูไฟล์ใน Downloads ของ Windows ด้วย <code>ls /mnt/c/Users/</code> แล้วกด <kbd>Tab</kbd> เพื่อหาชื่อผู้ใช้ Windows ของคุณ</li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 2</span><span class="lvl" data-lvl="b">Beginner</span></div>
+    <h3 id="s19-2-c02">จัดการไฟล์และโฟลเดอร์ด้วย touch, mkdir, cp, mv, rm และ Wildcards</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p>งานประจำวันบน Linux คือการสร้าง คัดลอก ย้าย เปลี่ยนชื่อ และลบไฟล์ ใน Windows เราลากไฟล์ด้วยเมาส์ แต่บน Server ไม่มีหน้าจอให้ลาก ทุกอย่างทำผ่านคำสั่งไม่กี่ตัว ข้อดีคือทำกับไฟล์ร้อยไฟล์ได้ในคำสั่งเดียว ด้วย <strong>Wildcards</strong> (เรียกอีกชื่อว่า Globbing) และ <strong>Brace Expansion</strong></p>
+    <ul>
+      <li><code>touch file</code> สร้างไฟล์เปล่า (ถ้ามีไฟล์อยู่แล้วจะแค่อัปเดตเวลาแก้ไข) <code>mkdir dir</code> สร้างโฟลเดอร์ และ <code>mkdir -p a/b/c</code> สร้างทุกชั้นที่ยังไม่มีโดยไม่ Error ถ้ามีอยู่แล้ว</li>
+      <li><code>cp</code> คัดลอก ต้องใส่ <code>-r</code> เมื่อคัดลอกโฟลเดอร์ <code>-i</code> ถามก่อนเขียนทับ และ <code>-v</code> บอกว่าทำอะไรไปบ้าง</li>
+      <li><code>mv</code> ใช้ได้ทั้ง <strong>ย้าย</strong> และ <strong>เปลี่ยนชื่อ</strong> เพราะการเปลี่ยนชื่อก็คือการย้ายไปชื่อใหม่ในที่เดิม ใส่ <code>-i</code> เพื่อกันเขียนทับไฟล์ปลายทาง</li>
+      <li><code>rm</code> ลบไฟล์ <code>rm -r</code> ลบโฟลเดอร์พร้อมของข้างใน <code>rm -i</code> ถามก่อนลบ ส่วน <code>rmdir</code> ลบได้เฉพาะโฟลเดอร์ว่าง <strong>Linux ไม่มีถังขยะใน Terminal</strong> ลบแล้วหายทันที</li>
+      <li>Wildcards: <code>*</code> แทนตัวอักษรกี่ตัวก็ได้ <code>?</code> แทน 1 ตัว <code>[0-9]</code> แทน 1 ตัวที่เป็นตัวเลข <code>[abc]</code> แทน 1 ตัวที่เป็น a, b หรือ c โดย Shell จะแทนที่ด้วย <strong>ชื่อไฟล์ที่มีอยู่จริง</strong> เท่านั้น</li>
+      <li>Brace Expansion: <code>{a,b}</code> และ <code>{001..005}</code> สร้างข้อความตามที่เขียน <strong>ไม่สนว่ามีไฟล์อยู่หรือไม่</strong> จึงใช้สร้างไฟล์ใหม่จำนวนมากได้ แต่ Wildcard ใช้ได้เฉพาะกับไฟล์ที่มีแล้ว</li>
+      <li><code>file</code> บอกชนิดของไฟล์จากเนื้อหา <code>stat</code> แสดงข้อมูลละเอียด (ขนาด สิทธิ์ เวลา) และ <code>ln -s target link</code> สร้าง Symbolic Link หรือทางลัดไปยังไฟล์อื่น</li>
+    </ul>
+    <p>ใช้แนวคิดนี้ทุกครั้งที่จัดโครงสร้างโปรเจกต์ ย้ายไฟล์ Log เก่าไปเก็บ สำรองไฟล์ Config ก่อนแก้ หรือล้างไฟล์ชั่วคราว ตั้งชื่อไฟล์ให้ดีตั้งแต่แรกจะทำให้ Wildcard ทำงานง่าย: ใช้ตัวพิมพ์เล็ก ไม่มีช่องว่าง (ใช้ <code>-</code> หรือ <code>_</code> แทน) และใช้วันที่แบบ ISO <code>2026-10-19</code> ซึ่งเรียงตามตัวอักษรแล้วตรงกับลำดับเวลาพอดี</p>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p><code>cp</code> เหมือนถ่ายเอกสารแล้ววางสำเนาไว้อีกลิ้นชัก ต้นฉบับยังอยู่ <code>mv</code> เหมือนหยิบแฟ้มไปใส่ลิ้นชักอื่นหรือเปลี่ยนป้ายชื่อแฟ้ม <code>rm</code> คือเครื่องทำลายเอกสาร ใส่เข้าไปแล้วเอาคืนไม่ได้ ส่วน Wildcard <code>order-*.txt</code> เหมือนบอกพนักงานว่า "หยิบทุกแฟ้มที่ป้ายขึ้นต้นด้วย order และลงท้ายด้วย .txt" พนักงานจะหยิบเฉพาะแฟ้มที่มีอยู่จริงบนชั้น</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>ตัวอย่างนี้จำลองโฟลเดอร์ของร้านค้าออนไลน์เล็ก ๆ ที่มีโฟลเดอร์คำสั่งซื้อ รายงาน และที่เก็บไฟล์เก่า ใช้ <code>tree</code> ที่ติดตั้งไว้ในขั้นเตรียมเครื่องเพื่อดูผลรวม</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เตรียมโฟลเดอร์ของแนวคิดนี้
+mkdir -p ~/projects/linux-lab/c02
+cd ~/projects/linux-lab/c02
+
+# 1) สร้างโฟลเดอร์ 3 ตัวและไฟล์จำนวนมากด้วย Brace Expansion
+mkdir -p shop/{orders,reports,archive}
+touch shop/orders/order-{001..005}.txt
+touch shop/reports/sales-2026-10-{17,18,19}.csv
+
+# 2) Wildcard: ดูเฉพาะ order-001 ถึง order-003
+ls shop/orders/order-00[1-3].txt
+
+# 3) คัดลอกรายงานทุกไฟล์ .csv ไปเก็บใน archive พร้อมบอกว่าทำอะไร
+cp -v shop/reports/*.csv shop/archive/
+
+# 4) เปลี่ยนชื่อไฟล์ด้วย mv
+mv -v shop/orders/order-005.txt shop/orders/order-005-cancelled.txt
+
+# 5) สร้างไฟล์ชั่วคราว ดูด้วย ls ก่อน แล้วค่อยลบด้วย Wildcard เดียวกัน
+touch shop/tmp-{1..3}.tmp
+ls shop/*.tmp
+rm -v shop/*.tmp
+
+# 6) ใส่ข้อความลงไฟล์ แล้วตรวจชนิดและขนาดของไฟล์
+echo "order 001: 2 x coffee" &gt; shop/orders/order-001.txt
+file shop/orders/order-001.txt shop/orders/order-002.txt shop/reports
+stat -c '%n %s bytes %F' shop/orders/order-001.txt
+
+# 7) สร้างทางลัด latest.csv ชี้ไปที่รายงานล่าสุด
+ln -s reports/sales-2026-10-19.csv shop/latest.csv
+ls -l shop/latest.csv
+
+# 8) ดูโครงสร้างทั้งหมด
+tree shop</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>shop/orders/order-001.txt
+shop/orders/order-002.txt
+shop/orders/order-003.txt
+'shop/reports/sales-2026-10-17.csv' -&gt; 'shop/archive/sales-2026-10-17.csv'
+'shop/reports/sales-2026-10-18.csv' -&gt; 'shop/archive/sales-2026-10-18.csv'
+'shop/reports/sales-2026-10-19.csv' -&gt; 'shop/archive/sales-2026-10-19.csv'
+renamed 'shop/orders/order-005.txt' -&gt; 'shop/orders/order-005-cancelled.txt'
+shop/tmp-1.tmp
+shop/tmp-2.tmp
+shop/tmp-3.tmp
+removed 'shop/tmp-1.tmp'
+removed 'shop/tmp-2.tmp'
+removed 'shop/tmp-3.tmp'
+shop/orders/order-001.txt: ASCII text
+shop/orders/order-002.txt: empty
+shop/reports:              directory
+shop/orders/order-001.txt 22 bytes regular file
+lrwxrwxrwx 1 somchai somchai 28 Oct 19 22:27 shop/latest.csv -&gt; reports/sales-2026-10-19.csv
+shop
+├── archive
+│   ├── sales-2026-10-17.csv
+│   ├── sales-2026-10-18.csv
+│   └── sales-2026-10-19.csv
+├── latest.csv -&gt; reports/sales-2026-10-19.csv
+├── orders
+│   ├── order-001.txt
+│   ├── order-002.txt
+│   ├── order-003.txt
+│   ├── order-004.txt
+│   └── order-005-cancelled.txt
+└── reports
+    ├── sales-2026-10-17.csv
+    ├── sales-2026-10-18.csv
+    └── sales-2026-10-19.csv
+
+4 directories, 12 files</code></pre>
+    <p class="muted small">วันเวลาในบรรทัด <code>ls -l</code> จะเป็นเวลาที่คุณรันจริง ถ้า Terminal ตั้งภาษาไม่ใช่ UTF-8 คำสั่ง <code>tree</code> จะวาดเส้นด้วยตัวอักษร <code>|--</code> และ <code>`--</code> แทนเส้นสวย ๆ ด้านบน ซึ่งมีความหมายเหมือนกัน</p>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>mkdir -p shop/{orders,reports,archive}</code></td><td>Shell ขยาย <code>{...}</code> เป็น 3 Path ก่อนส่งให้ <code>mkdir</code> จึงเท่ากับพิมพ์ <code>mkdir -p shop/orders shop/reports shop/archive</code> ส่วน <code>-p</code> สร้าง <code>shop</code> ให้ด้วยเพราะยังไม่มี</td></tr>
+      <tr><td><code>touch shop/orders/order-{001..005}.txt</code></td><td><code>{001..005}</code> คือลำดับเลข 001 ถึง 005 โดยคงเลข 0 ข้างหน้าไว้ ได้ไฟล์เปล่า 5 ไฟล์ ชื่อเรียงสวยเมื่อใช้ <code>ls</code></td></tr>
+      <tr><td><code>sales-2026-10-{17,18,19}.csv</code></td><td>Brace แบบรายการ ได้ 3 ชื่อตามที่เขียน ใช้วันที่แบบ ISO เพื่อให้เรียงตามเวลาได้</td></tr>
+      <tr><td><code>ls shop/orders/order-00[1-3].txt</code></td><td><code>[1-3]</code> แทนตัวอักษร 1 ตัวที่เป็นเลข 1, 2 หรือ 3 จึงได้ 3 ไฟล์ ไม่รวม 004 และ 005</td></tr>
+      <tr><td><code>cp -v shop/reports/*.csv shop/archive/</code></td><td><code>*.csv</code> ถูกแทนด้วยชื่อไฟล์ .csv ทุกไฟล์ใน reports แล้วคัดลอกเข้า archive ส่วน <code>-v</code> พิมพ์บรรทัด <code>'ต้นทาง' -&gt; 'ปลายทาง'</code> ทุกไฟล์</td></tr>
+      <tr><td><code>mv -v ... order-005-cancelled.txt</code></td><td>ต้นทางและปลายทางอยู่ในโฟลเดอร์เดียวกัน จึงเป็นการเปลี่ยนชื่อ ผลขึ้นว่า <code>renamed</code></td></tr>
+      <tr><td><code>ls shop/*.tmp</code> แล้ว <code>rm -v shop/*.tmp</code></td><td>นิสัยที่ปลอดภัย: ใช้ <code>ls</code> กับ Wildcard เดียวกันก่อน เห็นแล้วว่าจะโดนแค่ 3 ไฟล์ จึงค่อยเปลี่ยน <code>ls</code> เป็น <code>rm</code></td></tr>
+      <tr><td><code>echo "..." &gt; shop/orders/order-001.txt</code></td><td>เขียนข้อความลงไฟล์ (เครื่องหมาย <code>&gt;</code> จะเรียนละเอียดในแนวคิดที่ 6)</td></tr>
+      <tr><td><code>file ...</code></td><td>ดูชนิดจากเนื้อหาจริง ไม่ได้ดูจากนามสกุล ไฟล์ที่มีข้อความเป็น <code>ASCII text</code> ไฟล์เปล่าเป็น <code>empty</code> และโฟลเดอร์เป็น <code>directory</code></td></tr>
+      <tr><td><code>stat -c '%n %s bytes %F'</code></td><td><code>-c</code> กำหนดรูปแบบเอง <code>%n</code> ชื่อ <code>%s</code> ขนาดเป็นไบต์ (22 คือจำนวนตัวอักษรรวมขึ้นบรรทัดใหม่) <code>%F</code> ชนิดไฟล์</td></tr>
+      <tr><td><code>ln -s reports/sales-2026-10-19.csv shop/latest.csv</code></td><td>สร้าง Symbolic Link Path ของเป้าหมายนับจากโฟลเดอร์ที่ Link อยู่ (<code>shop</code>) ใน <code>ls -l</code> ขึ้นต้นด้วย <code>l</code> และมีลูกศรบอกปลายทาง</td></tr>
+      <tr><td><code>tree shop</code></td><td>แสดงโครงสร้างเป็นต้นไม้ และสรุปท้ายว่ามี 4 โฟลเดอร์ (รวม shop) และ 12 ไฟล์ (รวม Link)</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td><code>cp: -r not specified; omitting directory 'shop/orders'</code></td><td>ใช้ <code>cp</code> กับโฟลเดอร์โดยไม่ใส่ <code>-r</code> (recursive)</td><td><code>cp -r shop/orders shop/orders-copy</code></td></tr>
+      <tr><td><code>rm: cannot remove 'shop/orders': Is a directory</code></td><td><code>rm</code> เฉย ๆ ลบโฟลเดอร์ไม่ได้</td><td>ดูข้างในก่อนด้วย <code>ls shop/orders</code> แล้วใช้ <code>rm -r shop/orders</code> หรือ <code>rm -ri</code> ให้ถามทีละไฟล์</td></tr>
+      <tr><td><code>rmdir: failed to remove 'shop/orders': Directory not empty</code></td><td><code>rmdir</code> ลบได้เฉพาะโฟลเดอร์ว่าง ซึ่งเป็นการป้องกันที่ดี</td><td>ย้ายหรือลบไฟล์ข้างในก่อน หรือใช้ <code>rm -r</code> หลังตรวจแล้วว่าไม่ต้องการจริง</td></tr>
+      <tr><td><code>mv: cannot stat 'order-9.txt': No such file or directory</code></td><td>พิมพ์ชื่อผิด หรืออยู่คนละโฟลเดอร์กับไฟล์ (ไฟล์จริงอยู่ใน <code>shop/orders</code>)</td><td>ใช้ <code>pwd</code> และ <code>ls</code> ตรวจตำแหน่ง แล้วกด <kbd>Tab</kbd> ให้ Shell เติมชื่อไฟล์ให้</td></tr>
+      <tr><td>คำสั่ง <code>ls shop/orders/order-00[7-9].txt</code> ขึ้น <code>ls: cannot access 'shop/orders/order-00[7-9].txt': No such file or directory</code></td><td>ไม่มีไฟล์ไหนตรง Wildcard Bash จึงส่งข้อความ <code>order-00[7-9].txt</code> ไปตรง ๆ</td><td>เข้าใจว่า Wildcard จับเฉพาะไฟล์ที่มีจริง ถ้าต้องการสร้างไฟล์ใหม่ให้ใช้ Brace <code>{007..009}</code> แทน</td></tr>
+      <tr><td>พิมพ์ <code>rm -rf / tmp/old</code> (มีช่องว่างเกินหลัง <code>/</code>)</td><td>ช่องว่างทำให้กลายเป็น 2 Argument คือ <code>/</code> กับ <code>tmp/old</code> เป็นคำสั่งที่อันตรายมาก (Ubuntu มี <code>--preserve-root</code> กัน <code>/</code> ไว้ แต่ไม่ได้กันโฟลเดอร์อื่น)</td><td>ไม่ใช้ <code>-f</code> ถ้าไม่จำเป็น อ่านคำสั่งซ้ำก่อนกด <kbd>Enter</kbd> และฝึกเฉพาะใน <code>~/projects/linux-lab</code></td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>ก่อนใช้ <code>rm</code> กับ Wildcard ให้รัน <code>ls</code> ด้วย Pattern เดียวกันก่อนเสมอ แล้วค่อยกดลูกศรขึ้นเพื่อแก้คำว่า <code>ls</code> เป็น <code>rm</code></li>
+      <li>สำรองไฟล์ Config ก่อนแก้ทุกครั้งด้วย <code>cp -v app.conf app.conf.bak-2026-10-19</code> เป็นนิสัยของผู้ดูแลระบบมืออาชีพ</li>
+      <li>ใช้ <code>cp -i</code> และ <code>mv -i</code> เมื่อปลายทางอาจมีไฟล์ชื่อซ้ำ เพราะค่าเริ่มต้นของทั้งสองคำสั่งคือเขียนทับเงียบ ๆ</li>
+      <li>ตั้งชื่อไฟล์ด้วยตัวพิมพ์เล็ก ไม่มีช่องว่าง และใช้วันที่ ISO เช่น <code>sales-2026-10-19.csv</code></li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ต่อยอดโฟลเดอร์ <code>shop</code> จากตัวอย่าง</p><ol>
+      <li>สร้างไฟล์ <code>order-006.txt</code> ถึง <code>order-010.txt</code> ใน <code>shop/orders</code> ด้วยคำสั่งเดียว</li>
+      <li>ใช้ <code>ls</code> กับ Wildcard แสดงเฉพาะ <code>order-006</code> ถึง <code>order-009</code> (ใบ้: <code>order-00[6-9].txt</code>)</li>
+      <li>สร้างโฟลเดอร์ <code>shop/archive/2026-10</code> แล้วย้ายไฟล์ .csv ทั้งหมดใน <code>shop/archive</code> เข้าไป</li>
+      <li>เปลี่ยน Link <code>shop/latest.csv</code> ให้ชี้ไป <code>sales-2026-10-18.csv</code> ด้วย <code>ln -sf</code> แล้วตรวจด้วย <code>ls -l</code></li>
+      <li>รัน <code>tree shop</code> แล้วนับว่าตอนนี้มีกี่โฟลเดอร์และกี่ไฟล์</li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 3</span><span class="lvl" data-lvl="b">Beginner</span></div>
+    <h3 id="s19-2-c03">ดูเนื้อหาไฟล์ แก้ไขด้วย nano และหาความช่วยเหลือ (cat, less, head, tail, man)</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p>เกือบทุกอย่างใน Linux เป็นไฟล์ข้อความ ทั้งไฟล์ Config ใน <code>/etc</code> และไฟล์ Log ใน <code>/var/log</code> การอ่านไฟล์ให้เร็วและเลือกดูเฉพาะส่วนที่ต้องการจึงเป็นทักษะที่ใช้ทุกวัน แต่ละคำสั่งเหมาะกับงานต่างกัน:</p>
+    <ul>
+      <li><code>cat file</code> พิมพ์ทั้งไฟล์ออกมา เหมาะกับไฟล์สั้น <code>cat -n</code> ใส่เลขบรรทัดให้</li>
+      <li><code>less file</code> เปิดไฟล์ยาวทีละหน้า กด <kbd>Space</kbd> ไปหน้าถัดไป ลูกศรเลื่อนทีละบรรทัด <kbd>/</kbd> แล้วพิมพ์คำเพื่อค้นหา <kbd>n</kbd> ไปคำที่พบถัดไป <kbd>g</kbd> ไปต้นไฟล์ <kbd>G</kbd> ไปท้ายไฟล์ และ <kbd>q</kbd> ออก</li>
+      <li><code>head -n 5</code> ดู 5 บรรทัดแรก <code>tail -n 5</code> ดู 5 บรรทัดสุดท้าย และ <code>tail -f</code> เฝ้าดูบรรทัดใหม่ที่ถูกเขียนต่อท้ายแบบสด ๆ (กด <kbd>Ctrl</kbd>+<kbd>C</kbd> เพื่อหยุด) ซึ่งใช้ดู Log ตอนแก้ปัญหา</li>
+      <li><code>wc -l -w -c</code> นับบรรทัด คำ และไบต์</li>
+      <li><strong>nano 7.2</strong> คือ Text Editor ที่ง่ายที่สุด เมนูอยู่ด้านล่างจอ <code>^</code> หมายถึง <kbd>Ctrl</kbd>: <kbd>Ctrl</kbd>+<kbd>O</kbd> แล้ว <kbd>Enter</kbd> บันทึก <kbd>Ctrl</kbd>+<kbd>X</kbd> ออก <kbd>Ctrl</kbd>+<kbd>W</kbd> ค้นหา <kbd>Ctrl</kbd>+<kbd>K</kbd> ตัดบรรทัด <kbd>Ctrl</kbd>+<kbd>U</kbd> วาง <kbd>Ctrl</kbd>+<kbd>G</kbd> ดูคู่มือ</li>
+      <li><strong>Vim</strong> มีในทุก Server และบางโปรแกรมเปิดให้อัตโนมัติ ให้รู้วิธีเอาตัวรอด: กด <kbd>i</kbd> เพื่อพิมพ์ <kbd>Esc</kbd> เพื่อหยุดพิมพ์ <code>:w</code> บันทึก <code>:wq</code> บันทึกแล้วออก <code>:q!</code> ออกโดยไม่บันทึก ถ้าอยากเก่ง Vim ให้รัน <code>vimtutor</code> ใช้เวลาประมาณ 30 นาที</li>
+    </ul>
+    <p>เมื่อไม่รู้วิธีใช้คำสั่ง ให้หาคำตอบในเครื่องก่อนค้นเว็บ: <code>man ls</code> เปิดคู่มือเต็ม (อ่านด้วยปุ่มเดียวกับ <code>less</code>) โดย Section 1 คือคำสั่งทั่วไป Section 5 คือรูปแบบไฟล์ Config และ Section 8 คือคำสั่งของผู้ดูแลระบบ <code>ls --help</code> ดูตัวเลือกแบบสั้น <code>help cd</code> ใช้กับคำสั่งที่อยู่ใน Bash เอง (Builtin) <code>type</code> และ <code>which</code> บอกว่าคำสั่งมาจากไหน <code>whatis</code> บอกหน้าที่ใน 1 บรรทัด <code>apropos</code> หรือ <code>man -k</code> ค้นหาคำสั่งจากคำอธิบาย และ <code>tldr</code> แสดงตัวอย่างใช้งานจริงแบบสั้น (ครั้งแรกจะดาวน์โหลดคู่มือจาก tldr.sh อัปเดตด้วย <code>tldr --update</code>)</p>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p><code>cat</code> เหมือนเทกระดาษทั้งปึกลงบนโต๊ะ <code>less</code> เหมือนเปิดหนังสือทีละหน้า <code>head</code> คืออ่านแค่หน้าปก <code>tail</code> คืออ่านหน้าสุดท้าย และ <code>tail -f</code> เหมือนยืนดูเครื่องพิมพ์ใบเสร็จที่พิมพ์รายการใหม่ออกมาเรื่อย ๆ ส่วน <code>man</code> คือคู่มือเล่มหนาที่แถมมากับเครื่อง และ <code>tldr</code> คือกระดาษโน้ตสรุปที่เพื่อนเขียนให้</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>สร้างไฟล์บันทึกของ Server 12 บรรทัดด้วย Heredoc (<code>cat &gt; file &lt;&lt;'NOTES'</code> คือพิมพ์ทุกบรรทัดจนถึงคำว่า NOTES ลงไฟล์) แล้วลองอ่านหลายแบบ ต่อด้วยการจำลอง Log ที่ถูกเขียนสด และคำสั่งหาความช่วยเหลือ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/linux-lab/c03
+cd ~/projects/linux-lab/c03
+
+# 1) สร้างไฟล์ตัวอย่าง 12 บรรทัด
+cat &gt; server-notes.txt &lt;&lt;'NOTES'
+01 2026-10-19 09:00 boot ok
+02 2026-10-19 09:01 network ok
+03 2026-10-19 09:02 disk / 23% used
+04 2026-10-19 09:03 cron started
+05 2026-10-19 09:05 backup job ok
+06 2026-10-19 09:10 user somchai login
+07 2026-10-19 09:15 web server started on port 8080
+08 2026-10-19 09:20 warning: disk /var 81% used
+09 2026-10-19 09:25 apt update done
+10 2026-10-19 09:30 user somchai logout
+11 2026-10-19 09:35 backup job ok
+12 2026-10-19 09:40 all checks passed
+NOTES
+
+# 2) อ่านแบบต่าง ๆ
+cat -n server-notes.txt | head -n 5
+head -n 3 server-notes.txt
+tail -n 3 server-notes.txt
+wc -l -w -c server-notes.txt
+
+# 3) จำลองโปรแกรมที่เขียน Log ทุก 1 วินาทีอยู่เบื้องหลัง แล้วเฝ้าดูด้วย tail -f
+#    timeout 5 ช่วยหยุด tail -f ให้อัตโนมัติหลัง 5 วินาที (ปกติต้องกด Ctrl+C เอง)
+( for i in 1 2 3; do echo "event $i" &gt;&gt; app.log; sleep 1; done ) &amp;
+timeout 5 tail -f app.log
+
+# 4) หาความช่วยเหลือ
+type cd
+type -a ls
+whatis ls
+ls --help | head -n 3
+help cd | head -n 1</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>     1	01 2026-10-19 09:00 boot ok
+     2	02 2026-10-19 09:01 network ok
+     3	03 2026-10-19 09:02 disk / 23% used
+     4	04 2026-10-19 09:03 cron started
+     5	05 2026-10-19 09:05 backup job ok
+01 2026-10-19 09:00 boot ok
+02 2026-10-19 09:01 network ok
+03 2026-10-19 09:02 disk / 23% used
+10 2026-10-19 09:30 user somchai logout
+11 2026-10-19 09:35 backup job ok
+12 2026-10-19 09:40 all checks passed
+ 12  75 449 server-notes.txt
+[1] 2481
+event 1
+event 2
+event 3
+[1]+  Done                    ( for i in 1 2 3;
+do
+    echo "event $i" &gt;&gt; app.log; sleep 1;
+done )
+cd is a shell builtin
+ls is aliased to `ls --color=auto'
+ls is /usr/bin/ls
+ls is /bin/ls
+ls (1)               - list directory contents
+Usage: ls [OPTION]... [FILE]...
+List information about the FILEs (the current directory by default).
+Sort entries alphabetically if none of -cftuvSUX nor --sort is specified.
+cd: cd [-L|[-P [-e]] [-@]] [dir]</code></pre>
+    <p class="muted small">บรรทัด <code>[1] 2481</code> คือหมายเลข Job และ PID ของงานเบื้องหลัง ตัวเลขจะต่างกันทุกครั้ง และ Bash จะแจ้ง <code>Done</code> เมื่องานจบ (Bash จัดรูปแบบคำสั่งในข้อความ Done ใหม่เป็นหลายบรรทัด และบางครั้งข้อความนี้ขึ้นหลังคำสั่งถัดไป) บรรทัด <code>ls is aliased to ...</code> ขึ้นเฉพาะใน Terminal แบบโต้ตอบของ Ubuntu เพราะ <code>~/.bashrc</code> สร้าง Alias นี้ไว้ ถ้ารันใน Script จะไม่มีบรรทัดนี้</p>
+    <p>ทดลอง nano และ less ต่อจากตัวอย่าง (ทั้งสองเป็นโปรแกรมเต็มจอ จึงไม่มีผลลัพธ์ให้คัดลอก):</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เปิดไฟล์ด้วย less แล้วกด /warning ตามด้วย Enter เพื่อค้นหา กด q เพื่อออก
+less server-notes.txt
+# เปิดไฟล์ด้วย nano เพิ่มบรรทัด "13 2026-10-19 09:45 shift end" ท้ายไฟล์
+# กด Ctrl+O แล้ว Enter เพื่อบันทึก จากนั้น Ctrl+X เพื่อออก
+nano server-notes.txt
+# ตรวจว่าบันทึกสำเร็จ
+tail -n 1 server-notes.txt
+# ตั้ง nano เป็น Editor หลักของคำสั่งอื่น ๆ เช่น crontab -e และ git commit
+export EDITOR=nano</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>13 2026-10-19 09:45 shift end</code></pre>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>cat &gt; server-notes.txt &lt;&lt;'NOTES'</code> ... <code>NOTES</code></td><td>Heredoc: ส่งทุกบรรทัดระหว่างสองคำว่า NOTES ให้ <code>cat</code> แล้วเขียนลงไฟล์ ใส่ <code>'NOTES'</code> ในเครื่องหมายคำพูดเพื่อให้ Shell ไม่แปลความหมายของ <code>$</code> ข้างใน</td></tr>
+      <tr><td><code>cat -n server-notes.txt | head -n 5</code></td><td><code>cat -n</code> ใส่เลขบรรทัด แล้ว <code>|</code> ส่งต่อให้ <code>head</code> ตัดเหลือ 5 บรรทัดแรก</td></tr>
+      <tr><td><code>head -n 3</code> / <code>tail -n 3</code></td><td>ดู 3 บรรทัดแรก และ 3 บรรทัดสุดท้าย ถ้าไม่ใส่ <code>-n</code> ค่าเริ่มต้นคือ 10 บรรทัด</td></tr>
+      <tr><td><code>wc -l -w -c</code></td><td>ได้ <code>12  75 449</code> คือ 12 บรรทัด 75 คำ (นับตามช่องว่าง) และ 449 ไบต์</td></tr>
+      <tr><td><code>( for ... ) &amp;</code></td><td>วงเล็บรันคำสั่งชุดหนึ่งเป็นกลุ่ม <code>&amp;</code> ส่งไปทำงานเบื้องหลัง Terminal จึงว่างให้พิมพ์คำสั่งถัดไปทันที</td></tr>
+      <tr><td><code>timeout 5 tail -f app.log</code></td><td><code>tail -f</code> ไม่จบเอง มันรอบรรทัดใหม่ตลอด <code>timeout 5</code> หยุดมันหลัง 5 วินาที ในงานจริงให้กด <kbd>Ctrl</kbd>+<kbd>C</kbd></td></tr>
+      <tr><td><code>type cd</code> / <code>type -a ls</code></td><td><code>cd</code> เป็นคำสั่งในตัว Bash จึงไม่มีไฟล์โปรแกรม ส่วน <code>ls</code> มีทั้ง Alias และไฟล์โปรแกรม (<code>-a</code> แสดงทุกที่ที่พบ) <code>/bin</code> เป็น Link ไป <code>/usr/bin</code> จึงเห็นสองบรรทัด</td></tr>
+      <tr><td><code>whatis ls</code></td><td>อ่านบรรทัดชื่อจากคู่มือ <code>(1)</code> คือ Section 1 คำสั่งทั่วไป</td></tr>
+      <tr><td><code>ls --help | head -n 3</code> / <code>help cd</code></td><td>วิธีใช้แบบย่อ บรรทัดแรกบอกรูปแบบคำสั่ง ส่วนในวงเล็บเหลี่ยม <code>[ ]</code> คือส่วนที่ไม่ใส่ก็ได้</td></tr>
+      <tr><td><code>export EDITOR=nano</code></td><td>บอกโปรแกรมอื่นว่าให้เปิด nano เมื่อต้องแก้ข้อความ ใส่บรรทัดนี้ใน <code>~/.bashrc</code> เพื่อให้มีผลถาวร (แนวคิดที่ 8)</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td>ติดอยู่ใน Vim พิมพ์อะไรก็ไม่ออก มีตัวอักษรแปลก ๆ โผล่</td><td>โปรแกรมอย่าง <code>git commit</code> หรือ <code>crontab -e</code> เปิด Vim ให้ และ Vim มีหลายโหมด</td><td>กด <kbd>Esc</kbd> 2 ครั้ง พิมพ์ <code>:q!</code> แล้ว <kbd>Enter</kbd> จากนั้นตั้ง <code>export EDITOR=nano</code></td></tr>
+      <tr><td><code>E37: No write since last change (add ! to override)</code></td><td>พิมพ์ <code>:q</code> ใน Vim ทั้งที่แก้ไฟล์แล้วแต่ยังไม่บันทึก</td><td><code>:wq</code> เพื่อบันทึกแล้วออก หรือ <code>:q!</code> เพื่อทิ้งการแก้ไข</td></tr>
+      <tr><td>nano ถาม <code>Save modified buffer?</code> ตอนกด <kbd>Ctrl</kbd>+<kbd>X</kbd></td><td>มีการแก้ไขที่ยังไม่บันทึก</td><td>กด <kbd>Y</kbd> แล้ว <kbd>Enter</kbd> เพื่อยืนยันชื่อไฟล์ หรือกด <kbd>N</kbd> เพื่อทิ้ง</td></tr>
+      <tr><td><code>No manual entry for xyz</code></td><td>ไม่มีคำสั่งหรือคู่มือชื่อนี้ หรือแพ็กเกจไม่ได้ติดตั้งคู่มือ</td><td>ลอง <code>xyz --help</code>, <code>apropos คำค้น</code> หรือ <code>tldr xyz</code></td></tr>
+      <tr><td><code>This system has been minimized by removing packages and content that are not required on a system that users do not log into.</code></td><td>Ubuntu แบบ Minimal (เช่น Container) ตัดคู่มือออก ปกติ Ubuntu บน WSL จะไม่เจอ</td><td>ถ้าเจอข้อความนี้เท่านั้น ให้รัน <code>sudo unminimize</code> แล้วตอบ <kbd>y</kbd></td></tr>
+      <tr><td><code>tail -f</code> ค้างอยู่ พิมพ์คำสั่งอื่นไม่ได้</td><td><code>tail -f</code> ตั้งใจรอบรรทัดใหม่ไปเรื่อย ๆ</td><td>กด <kbd>Ctrl</kbd>+<kbd>C</kbd> เพื่อหยุด</td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>ไฟล์ที่ไม่รู้ขนาด ให้เปิดด้วย <code>less</code> หรือดู <code>wc -l</code> ก่อน อย่า <code>cat</code> ไฟล์ Log ขนาดใหญ่ เพราะจะท่วมหน้าจอ</li>
+      <li>ตอนแก้ปัญหา Service ให้เปิด Terminal 2 หน้าต่าง หน้าต่างหนึ่งรัน <code>tail -f</code> ดู Log อีกหน้าต่างหนึ่งลองสั่งงาน จะเห็นสาเหตุทันที</li>
+      <li>สำรองไฟล์ Config ก่อนเปิดด้วย Editor เช่น <code>cp app.conf app.conf.bak</code> และแก้ไฟล์ระบบด้วย <code>sudoedit /etc/ไฟล์</code> ซึ่งปลอดภัยกว่ารัน Editor ทั้งโปรแกรมด้วย <code>sudo</code></li>
+      <li>อ่าน <code>tldr</code> เพื่อดูตัวอย่างเร็ว ๆ แต่ใช้ <code>man</code> เมื่อต้องการความถูกต้องของตัวเลือก</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ฝึกอ่านไฟล์ Log จริงของระบบ</p><ol>
+      <li>ดู 5 บรรทัดสุดท้ายของ <code>/var/log/apt/history.log</code> ด้วย <code>tail</code> แล้วบอกว่าติดตั้งแพ็กเกจอะไรล่าสุด</li>
+      <li>เปิด <code>/etc/os-release</code> ด้วย <code>less</code> ค้นคำว่า <code>VERSION</code> ด้วย <kbd>/</kbd> แล้วกด <kbd>n</kbd> ดูคำที่พบถัดไป</li>
+      <li>ใช้ <code>head -n 7 server-notes.txt | tail -n 3</code> แล้วอธิบายว่าทำไมได้บรรทัดที่ 5 ถึง 7</li>
+      <li>รัน <code>tldr tar</code> ครั้งแรก (ต้องต่ออินเทอร์เน็ต) และเทียบกับ <code>man tar</code> ว่าแบบไหนอ่านง่ายกว่าสำหรับงานไหน</li>
+      <li>ใช้ <code>apropos copy</code> หาคำสั่งที่เกี่ยวกับการคัดลอก แล้วเลือกมา 2 คำสั่งเพื่ออ่าน <code>whatis</code></li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 4</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+    <h3 id="s19-2-c04">Permissions, Ownership, Users และ sudo (chmod, chown, umask)</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p>Linux ออกแบบมาให้หลายคนใช้เครื่องเดียวกันได้ ทุกไฟล์จึงมี <strong>เจ้าของ (Owner)</strong> มี <strong>กลุ่ม (Group)</strong> และมี <strong>Permission</strong> 3 ชุด สำหรับ 3 กลุ่มคน คือ u = เจ้าของ (user), g = สมาชิกในกลุ่ม (group) และ o = คนอื่นทั้งหมด (others) แต่ละชุดมี 3 สิทธิ์ อ่านจากผล <code>ls -l</code> เช่น <code>-rwxr-x---</code> ได้ว่า ตัวแรกคือชนิด (<code>-</code> ไฟล์, <code>d</code> โฟลเดอร์, <code>l</code> Link) ตามด้วย <code>rwx</code> ของเจ้าของ <code>r-x</code> ของกลุ่ม และ <code>---</code> ของคนอื่น</p>
+    <div class="tbl mid"><table><thead><tr><th>สิทธิ์ (ตัวเลข)</th><th>กับไฟล์</th><th>กับโฟลเดอร์</th></tr></thead><tbody>
+      <tr><td><code>r</code> (4)</td><td>อ่านเนื้อหาได้</td><td>ดูรายชื่อไฟล์ข้างในด้วย <code>ls</code> ได้</td></tr>
+      <tr><td><code>w</code> (2)</td><td>แก้ไขเนื้อหาได้</td><td>สร้าง ลบ หรือเปลี่ยนชื่อไฟล์ข้างในได้</td></tr>
+      <tr><td><code>x</code> (1)</td><td>รันเป็นโปรแกรมได้</td><td>เข้าไปข้างในด้วย <code>cd</code> และเข้าถึงไฟล์ข้างในได้</td></tr>
+    </tbody></table></div>
+    <p>เลขของแต่ละชุดคือผลบวก เช่น rwx = 4+2+1 = 7 และ r-x = 4+1 = 5 ค่าที่เจอบ่อย: <code>755</code> โปรแกรมหรือโฟลเดอร์ที่ทุกคนใช้ได้แต่แก้ได้แค่เจ้าของ <code>644</code> ไฟล์ทั่วไป <code>700</code> โฟลเดอร์ส่วนตัว <code>600</code> ไฟล์ลับ เช่น SSH Key และ <code>750</code> แชร์ให้กลุ่มทีม ส่วนแบบตัวอักษร (Symbolic) เช่น <code>u+x</code> เพิ่ม x ให้เจ้าของ <code>g-w</code> เอา w ออกจากกลุ่ม <code>o-r</code> เอา r ออกจากคนอื่น <code>a+r</code> ให้ทุกคนอ่านได้ <strong>umask</strong> คือค่าที่ "หักสิทธิ์ออก" ตอนสร้างไฟล์ใหม่ ผู้ใช้ทั่วไปบน Ubuntu มักเป็น <code>0002</code> ไฟล์ใหม่จึงเป็น 664 และโฟลเดอร์ใหม่เป็น 775 แต่บางระบบเป็น <code>0022</code> (ได้ 644/755) ให้ตรวจเครื่องตัวเองด้วย <code>umask</code></p>
+    <p>ผู้ใช้และกลุ่มเก็บอยู่ใน <code>/etc/passwd</code> และ <code>/etc/group</code> (ทุกคนอ่านได้) ส่วนรหัสผ่านที่ Hash แล้วอยู่ใน <code>/etc/shadow</code> ซึ่งอ่านได้เฉพาะ root คำสั่ง <code>id</code> และ <code>groups</code> บอกว่าเราเป็นใครและอยู่กลุ่มไหน งานที่กระทบทั้งระบบต้องใช้สิทธิ์ root ผ่าน <code>sudo</code> ซึ่งให้สิทธิ์ทีละคำสั่งและบันทึกไว้ว่าใครสั่งอะไร ปลอดภัยกว่าเข้าเป็น root ตลอดเวลา (Prompt ของ root ลงท้ายด้วย <code>#</code>) ใช้แนวคิดนี้เมื่อรัน Script ไม่ได้ ต้องปกป้องไฟล์ที่มี Password หรือ API Key แชร์โฟลเดอร์ให้ทีม หรือตั้งค่า Server ให้แต่ละ Service ทำงานด้วยผู้ใช้ของตัวเอง</p>
+    <ul>
+      <li><code>sudo chown user:group file</code> เปลี่ยนเจ้าของและกลุ่ม <code>sudo chgrp group file</code> เปลี่ยนเฉพาะกลุ่ม</li>
+      <li><code>sudo adduser ชื่อ</code> สร้างผู้ใช้ <code>sudo groupadd ชื่อ</code> สร้างกลุ่ม <code>sudo usermod -aG กลุ่ม ผู้ใช้</code> เพิ่มเข้ากลุ่ม (ต้องมี <code>-a</code>) <code>sudo deluser --remove-home ชื่อ</code> ลบผู้ใช้พร้อม Home และ <code>su - ชื่อ</code> สลับเป็นผู้ใช้อื่น</li>
+      <li><code>sudo -l</code> ดูว่าเราใช้ sudo ทำอะไรได้บ้าง และแก้ไฟล์สิทธิ์ sudo ด้วย <code>sudo visudo</code> เท่านั้น เพราะมันตรวจ Syntax ก่อนบันทึก</li>
+      <li>สิทธิ์พิเศษที่ควรรู้จัก: <code>/tmp</code> เป็น <code>drwxrwxrwt</code> ตัว <code>t</code> คือ Sticky Bit ทุกคนเขียนได้แต่ลบได้เฉพาะไฟล์ของตัวเอง และ <code>/usr/bin/passwd</code> เป็น <code>-rwsr-xr-x</code> ตัว <code>s</code> คือ setuid ทำให้ผู้ใช้ทั่วไปเปลี่ยนรหัสผ่านตัวเองใน <code>/etc/shadow</code> ได้</li>
+      <li>ไฟล์ใน <code>/mnt/c</code> แสดงเป็น <code>rwxrwxrwx</code> ทุกไฟล์ เพราะ Windows ใช้ระบบสิทธิ์ต่างจาก Linux อีกเหตุผลที่ควรทำงานใน <code>~</code></li>
+    </ul>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ไฟล์เหมือนห้องในหอพัก เจ้าของห้อง (u) มีกุญแจเต็มชุด เพื่อนร่วมชั้น (g) อาจได้กุญแจเข้าห้องนั่งเล่นอย่างเดียว คนนอก (o) ไม่ได้อะไรเลย <code>chmod</code> คือการเปลี่ยนกุญแจ <code>chown</code> คือการโอนห้องให้คนอื่น ซึ่งต้องให้นิติบุคคล (root ผ่าน <code>sudo</code>) ทำให้ และ <code>sudo</code> เหมือนการยืมกุญแจผีจากนิติบุคคลมาใช้ครั้งเดียว โดยมีสมุดบันทึกว่าใครยืมไปเมื่อไร</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>ส่วนที่ 1 ทดลองกับไฟล์ของตัวเอง ไม่ต้องใช้ sudo</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/linux-lab/c04
+cd ~/projects/linux-lab/c04
+
+# สร้าง Script เล็ก ๆ 1 ไฟล์
+cat &gt; hello.sh &lt;&lt;'SH'
+#!/usr/bin/env bash
+echo "Hello from somchai"
+SH
+
+ls -l hello.sh
+# ลองรัน จะไม่ได้เพราะยังไม่มีสิทธิ์ x
+./hello.sh
+# เพิ่มสิทธิ์รันให้เจ้าของ แล้วรันใหม่
+chmod u+x hello.sh
+ls -l hello.sh
+./hello.sh
+
+# ไฟล์ลับ: ให้เจ้าของอ่านเขียนได้คนเดียว (600)
+echo 'API_TOKEN=fake-123' &gt; secret.txt
+chmod 600 secret.txt
+stat -c '%A %a %U:%G %n' hello.sh secret.txt
+
+# โฟลเดอร์ทีม 750 และลองแบบ Symbolic
+mkdir shared
+chmod 750 shared
+chmod g-w,o-r hello.sh
+stat -c '%A %a %n' shared hello.sh
+
+# ดู umask และตัวตนของเรา
+umask
+id</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>-rw-rw-r-- 1 somchai somchai 46 Oct 19 22:28 hello.sh
+bash: ./hello.sh: Permission denied
+-rwxrw-r-- 1 somchai somchai 46 Oct 19 22:28 hello.sh
+Hello from somchai
+-rwxrw-r-- 764 somchai:somchai hello.sh
+-rw------- 600 somchai:somchai secret.txt
+drwxr-x--- 750 shared
+-rwxr----- 740 hello.sh
+0002
+uid=1000(somchai) gid=1000(somchai) groups=1000(somchai),4(adm),20(dialout),24(cdrom),25(floppy),27(sudo),29(audio),30(dip),44(video),46(plugdev),100(users)</code></pre>
+    <p class="muted small">ถ้า <code>umask</code> ของคุณเป็น <code>0022</code> ไฟล์ใหม่จะเป็น <code>-rw-r--r--</code> (644) แทน 664 ซึ่งปกติ รายชื่อกลุ่มในบรรทัด <code>id</code> อาจต่างไปตามเครื่อง ที่สำคัญคือต้องมี <code>27(sudo)</code> จึงจะใช้ sudo ได้ วันเวลาจะเป็นเวลาที่คุณรัน</p>
+    <p>ส่วนที่ 2 จัดการผู้ใช้และกลุ่มด้วย sudo (ระบบจะถามรหัสผ่านของ somchai ครั้งแรก) ทำต่อในโฟลเดอร์ <code>c04</code> เดิม และลบทุกอย่างทิ้งตอนท้าย</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างกลุ่ม developers และผู้ใช้ทดลอง labuser ที่ไม่มีรหัสผ่าน
+sudo groupadd developers
+sudo adduser --disabled-password --gecos "" labuser
+# เพิ่ม labuser เข้ากลุ่ม developers (-a = ต่อท้าย ไม่ลบกลุ่มเดิม)
+sudo usermod -aG developers labuser
+id labuser
+# ให้ labuser ลองอ่านไฟล์ลับของ somchai
+sudo -u labuser cat secret.txt
+# ลบผู้ใช้และกลุ่มทดลอง
+sudo deluser --remove-home labuser
+sudo groupdel developers</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>info: Adding user `labuser' ...
+info: Selecting UID/GID from range 1000 to 59999 ...
+info: Adding new group `labuser' (1001) ...
+info: Adding new user `labuser' (1001) with group `labuser (1001)' ...
+info: Creating home directory `/home/labuser' ...
+info: Copying files from `/etc/skel' ...
+info: Adding new user `labuser' to supplemental / extra groups `users' ...
+info: Adding user `labuser' to group `users' ...
+uid=1001(labuser) gid=1001(labuser) groups=1001(labuser),100(users),30034(developers)
+cat: secret.txt: Permission denied
+info: Looking for files to backup/remove ...
+info: Removing files ...
+info: Removing crontab ...
+info: Removing user `labuser' ...</code></pre>
+    <p class="muted small">ตัวเลข UID และ GID ขึ้นกับว่าเครื่องมีผู้ใช้และกลุ่มอะไรอยู่แล้ว ผลลัพธ์นี้มาจากเครื่องทดสอบ กลุ่ม developers จึงได้เลข 30034 ในเครื่องคุณจะเป็นเลขอื่น เช่น 1001 หรือ 1002 และ labuser อาจได้เลขต่างไป</p>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>-rw-rw-r-- 1 somchai somchai 46</code></td><td>ไฟล์ธรรมดา เจ้าของ rw กลุ่ม rw คนอื่น r (664 จาก umask 0002) เจ้าของคือ somchai กลุ่มคือ somchai ขนาด 46 ไบต์</td></tr>
+      <tr><td><code>./hello.sh</code> แล้วได้ <code>Permission denied</code></td><td><code>./</code> คือ "ไฟล์นี้ในโฟลเดอร์ปัจจุบัน" ไฟล์ยังไม่มี x จึงรันเป็นโปรแกรมไม่ได้ (แต่ <code>bash hello.sh</code> รันได้ เพราะเป็นการให้ bash อ่านไฟล์)</td></tr>
+      <tr><td><code>chmod u+x hello.sh</code></td><td>เพิ่ม x ให้เจ้าของเท่านั้น ได้ <code>-rwxrw-r--</code> หรือ 764</td></tr>
+      <tr><td><code>chmod 600 secret.txt</code></td><td>6 = rw ของเจ้าของ 0 = กลุ่มไม่มีสิทธิ์ 0 = คนอื่นไม่มีสิทธิ์ เหมาะกับไฟล์ที่มี Token หรือ Password</td></tr>
+      <tr><td><code>stat -c '%A %a %U:%G %n'</code></td><td>แสดงสิทธิ์แบบตัวอักษร (<code>%A</code>) แบบตัวเลข (<code>%a</code>) เจ้าของและกลุ่ม และชื่อไฟล์ ใช้ตรวจผลของ chmod ได้ชัดกว่า <code>ls -l</code></td></tr>
+      <tr><td><code>chmod 750 shared</code></td><td>โฟลเดอร์: เจ้าของทำได้ทุกอย่าง กลุ่มเข้าและดูรายชื่อได้แต่สร้างไฟล์ไม่ได้ คนอื่นเข้าไม่ได้เลย</td></tr>
+      <tr><td><code>chmod g-w,o-r hello.sh</code></td><td>แก้หลายชุดในคำสั่งเดียวด้วยจุลภาค จาก 764 เหลือ 740</td></tr>
+      <tr><td><code>umask</code> / <code>id</code></td><td>umask 0002 หักสิทธิ์ w ของคนอื่นออก <code>id</code> แสดง uid, gid หลัก และทุกกลุ่มที่เราอยู่</td></tr>
+      <tr><td><code>sudo groupadd developers</code></td><td>สร้างกลุ่มใหม่ ต้องใช้ sudo เพราะแก้ <code>/etc/group</code> ซึ่งเป็นไฟล์ของระบบ</td></tr>
+      <tr><td><code>sudo adduser --disabled-password --gecos "" labuser</code></td><td>สร้างผู้ใช้แบบไม่ถามคำถาม ไม่มีรหัสผ่าน (Login ด้วยรหัสผ่านไม่ได้) สร้าง Home และเพิ่มเข้ากลุ่ม users ให้อัตโนมัติ</td></tr>
+      <tr><td><code>sudo usermod -aG developers labuser</code></td><td><code>-G</code> กำหนดกลุ่มเสริม <code>-a</code> ทำให้เป็นการเพิ่มต่อท้าย ผลใน <code>id labuser</code> จึงมีทั้ง users และ developers</td></tr>
+      <tr><td><code>sudo -u labuser cat secret.txt</code></td><td>รันคำสั่งในนามของ labuser ได้ <code>Permission denied</code> เพราะ secret.txt เป็น 600 แสดงว่าการป้องกันใช้งานได้จริง</td></tr>
+      <tr><td><code>sudo deluser --remove-home labuser</code> / <code>sudo groupdel developers</code></td><td>ลบผู้ใช้พร้อม Home และ Crontab ของเขา แล้วลบกลุ่ม คืนเครื่องให้สะอาด</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td><code>bash: ./hello.sh: Permission denied</code></td><td>ไฟล์ Script ไม่มีสิทธิ์ x</td><td><code>chmod u+x hello.sh</code> (ไม่ต้องใช้ 777)</td></tr>
+      <tr><td><code>chmod: changing permissions of '/etc/hostname': Operation not permitted</code></td><td>เราไม่ใช่เจ้าของไฟล์ (เจ้าของคือ root)</td><td>ถามตัวเองก่อนว่าควรแก้ไฟล์ระบบจริงไหม ถ้าจำเป็นใช้ <code>sudo chmod ...</code></td></tr>
+      <tr><td>หลังรัน <code>sudo usermod -G docker somchai</code> แล้ว somchai หลุดจากกลุ่ม sudo ใช้ sudo ไม่ได้อีก</td><td>ลืม <code>-a</code> ทำให้รายการกลุ่มเสริมถูกแทนที่ทั้งหมด</td><td>ใช้ <code>usermod -aG</code> เสมอ ถ้าพลาดแล้วบน WSL ให้เปิด PowerShell รัน <code>wsl -u root</code> แล้วเพิ่มกลับด้วย <code>usermod -aG sudo somchai</code></td></tr>
+      <tr><td><code>labuser is not in the sudoers file.</code></td><td>ผู้ใช้นั้นไม่อยู่ในกลุ่ม sudo</td><td>ให้ผู้ที่มีสิทธิ์รัน <code>sudo usermod -aG sudo labuser</code> แล้วให้ labuser Logout และ Login ใหม่</td></tr>
+      <tr><td>เพิ่มกลุ่มแล้ว แต่ <code>groups</code> ยังไม่เห็นกลุ่มใหม่</td><td>กลุ่มถูกอ่านตอน Login เท่านั้น</td><td>Logout แล้วเข้าใหม่ บน WSL ปิดหน้าต่าง Terminal แล้วเปิดใหม่ หรือใช้ <code>newgrp ชื่อกลุ่ม</code> ชั่วคราว</td></tr>
+      <tr><td>แก้ปัญหาด้วย <code>chmod -R 777</code> แล้ว "ใช้ได้"</td><td>เปิดให้ทุกคนแก้และรันไฟล์ได้ เป็นช่องโหว่ร้ายแรง และโปรแกรมอย่าง SSH จะปฏิเสธ Key ที่สิทธิ์กว้างเกินไป</td><td>หาว่าใครต้องการสิทธิ์อะไร แล้วให้เท่าที่จำเป็น เช่น 755 สำหรับ Script และ 640 สำหรับ Config</td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>ใช้หลัก Least Privilege: ให้สิทธิ์น้อยที่สุดที่ยังทำงานได้ ห้ามใช้ <code>chmod 777</code></li>
+      <li>ไฟล์ลับ (<code>.env</code>, Private Key) ต้องเป็น 600 และโฟลเดอร์ <code>~/.ssh</code> ต้องเป็น 700</li>
+      <li>ใช้ <code>sudo</code> ทีละคำสั่ง อย่าเปิด Shell ของ root ทิ้งไว้ และแก้สิทธิ์ sudo ด้วย <code>sudo visudo</code> เท่านั้น</li>
+      <li>ในงานจริง แต่ละ Service ทำงานด้วยผู้ใช้ของตัวเอง (เช่น <code>www-data</code>, <code>postgres</code>) เพื่อให้ถ้า Service หนึ่งถูกเจาะ ความเสียหายจะไม่ลามไปทั้งเครื่อง</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ฝึกคำนวณและตั้ง Permission</p><ol>
+      <li>สร้างไฟล์ <code>report.txt</code> แล้วตั้งให้เจ้าของอ่านเขียนได้ กลุ่มอ่านได้ คนอื่นไม่มีสิทธิ์ (ตัวเลขคืออะไร) ตรวจด้วย <code>stat -c '%A %a'</code></li>
+      <li>ใช้ <code>chmod a-x hello.sh</code> แล้วลองรัน <code>./hello.sh</code> และ <code>bash hello.sh</code> อธิบายว่าทำไมผลต่างกัน</li>
+      <li>สร้างโฟลเดอร์ <code>box</code> ใส่ไฟล์ 1 ไฟล์ แล้ว <code>chmod 600 box</code> (เอา x ออก) ลอง <code>ls box</code> และ <code>cd box</code> แล้วจดว่าเกิดอะไรขึ้น จากนั้นคืนค่าเป็น 700</li>
+      <li>รัน <code>grep somchai /etc/passwd</code> และ <code>grep sudo /etc/group</code> แล้วอธิบายแต่ละช่องที่คั่นด้วย <code>:</code></li>
+      <li>ลอง <code>cat /etc/shadow</code> (ไม่ใช้ sudo) แล้วอธิบายข้อความ Error ที่ได้</li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 5</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+    <h3 id="s19-2-c05">จัดการแพ็กเกจด้วย apt (update, install, remove, search)</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p>บน Windows เราดาวน์โหลดไฟล์ .exe จากเว็บมาติดตั้งเอง บน Ubuntu เราติดตั้งโปรแกรมจาก <strong>Repository</strong> ซึ่งเป็นคลังโปรแกรมที่ Ubuntu ตรวจและเซ็นรับรองแล้ว โปรแกรมแต่ละตัวมาในรูป <strong>แพ็กเกจ (.deb)</strong> และอาจต้องใช้แพ็กเกจอื่นด้วย เรียกว่า <strong>Dependency</strong> เครื่องมือ <code>apt</code> จะคำนวณและติดตั้ง Dependency ให้อัตโนมัติ ส่วน <code>dpkg</code> คือเครื่องมือระดับล่างที่ติดตั้งไฟล์ .deb ทีละไฟล์และบอกได้ว่าแพ็กเกจไหนวางไฟล์ไว้ที่ใด</p>
+    <ul>
+      <li><code>sudo apt update</code> ดาวน์โหลด <strong>รายชื่อ</strong> แพ็กเกจล่าสุด ไม่ได้อัปเกรดอะไร ต้องรันก่อนติดตั้งทุกครั้ง</li>
+      <li><code>sudo apt upgrade</code> อัปเกรดแพ็กเกจที่มีอยู่ โดยไม่ลบแพ็กเกจใด ส่วน <code>sudo apt full-upgrade</code> ยอมลบหรือเพิ่มแพ็กเกจเพื่อให้อัปเกรดได้ครบ</li>
+      <li><code>apt search คำ</code> ค้นหา <code>apt show ชื่อ</code> ดูรายละเอียด <code>apt policy ชื่อ</code> ดูว่าติดตั้งเวอร์ชันไหนอยู่ และเวอร์ชันไหนจะได้ถ้าติดตั้ง</li>
+      <li><code>sudo apt install -y ชื่อ</code> ติดตั้งโดยตอบ yes ให้อัตโนมัติ <code>sudo apt remove</code> ลบโปรแกรมแต่เก็บไฟล์ Config ไว้ <code>sudo apt purge</code> ลบพร้อม Config และ <code>sudo apt autoremove</code> ลบ Dependency ที่ไม่มีใครใช้แล้ว</li>
+      <li><code>apt list --installed</code> และ <code>apt list --upgradable</code> ดูรายการ <code>dpkg -l ชื่อ</code> ดูสถานะ <code>dpkg -L ชื่อ</code> ดูว่าแพ็กเกจวางไฟล์ไว้ที่ไหน และ <code>dpkg -S /path/file</code> ถามกลับว่าไฟล์นี้มาจากแพ็กเกจไหน</li>
+      <li>รายชื่อ Repository บน Ubuntu 24.04 อยู่ในไฟล์ <code>/etc/apt/sources.list.d/ubuntu.sources</code> ซึ่งใช้รูปแบบใหม่ที่เรียกว่า deb822 (บรรทัด <code>Types:</code>, <code>URIs:</code>, <code>Suites:</code>, <code>Components:</code>)</li>
+    </ul>
+    <p><code>apt</code> ออกแบบมาให้คนพิมพ์ มีแถบความคืบหน้าและสีสัน ถ้าส่งผลลัพธ์ของ <code>apt</code> ต่อให้คำสั่งอื่นจะเห็นคำเตือน <code>WARNING: apt does not have a stable CLI interface. Use with caution in scripts.</code> ใน Script จึงควรใช้ <code>apt-get</code> และ <code>apt-cache</code> ซึ่งรูปแบบผลลัพธ์คงที่ ส่วนช่องทางอื่น เช่น Snap, PPA หรือไฟล์ .deb จากเว็บ ใช้ได้เมื่อจำเป็น แต่ต้องเชื่อถือผู้ทำ เพราะไม่ได้ผ่านการตรวจของ Ubuntu และอาจทำให้ Dependency ขัดกัน ใช้แนวคิดนี้ทุกครั้งที่ต้องการเครื่องมือใหม่ และอัปเดตความปลอดภัยของเครื่องอย่างน้อยสัปดาห์ละครั้ง</p>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p><code>apt</code> เหมือนแอป App Store ในมือถือ <code>apt update</code> คือการโหลดหน้าร้านใหม่ให้เห็นราคาและเวอร์ชันล่าสุด (ยังไม่ได้ซื้ออะไร) <code>apt upgrade</code> คือกด "อัปเดตทั้งหมด" ส่วน Dependency เหมือนสั่งเครื่องชงกาแฟแล้วร้านแถมปลั๊กแปลงที่จำเป็นต้องใช้มาให้ด้วย และ <code>autoremove</code> คือการเก็บปลั๊กแปลงที่ไม่มีเครื่องไหนใช้แล้วทิ้งไป</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>ทดลองวงจรชีวิตของแพ็กเกจครบรอบด้วย <code>cowsay</code> โปรแกรมเล็ก ๆ ที่ให้วัวพูดข้อความ: ตรวจ ติดตั้ง ใช้งาน ดูไฟล์ แล้วลบทิ้ง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># 1) อัปเดตรายชื่อแพ็กเกจ
+sudo apt update
+# 2) ดูก่อนติดตั้ง: เวอร์ชันที่จะได้ และรายละเอียด 5 บรรทัดแรก
+apt policy cowsay
+apt show cowsay 2&gt;/dev/null | head -n 5
+# 3) ติดตั้ง
+sudo apt install -y cowsay
+# 4) ใช้งาน
+cowsay "Hello somchai"
+# 5) ดูว่าแพ็กเกจวางไฟล์โปรแกรมไว้ที่ไหน และถามกลับว่าไฟล์มาจากแพ็กเกจไหน
+dpkg -L cowsay | grep '^/usr/games'
+dpkg -S /usr/games/cowsay
+apt list --installed 2&gt;/dev/null | grep cowsay
+# 6) ลบพร้อมไฟล์ Config แล้วลบ Dependency ที่ไม่มีใครใช้
+sudo apt purge -y cowsay
+sudo apt autoremove -y</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Hit:1 http://archive.ubuntu.com/ubuntu noble InRelease
+Hit:2 http://archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:3 http://archive.ubuntu.com/ubuntu noble-backports InRelease
+Hit:4 http://security.ubuntu.com/ubuntu noble-security InRelease
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+76 packages can be upgraded. Run 'apt list --upgradable' to see them.
+cowsay:
+  Installed: (none)
+  Candidate: 3.03+dfsg2-8
+  Version table:
+     3.03+dfsg2-8 500
+        500 http://archive.ubuntu.com/ubuntu noble/universe amd64 Packages
+Package: cowsay
+Version: 3.03+dfsg2-8
+Priority: optional
+Section: universe/games
+Origin: Ubuntu
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+  libtext-charwidth-perl
+Suggested packages:
+  filters cowsay-off
+The following NEW packages will be installed:
+  cowsay libtext-charwidth-perl
+0 upgraded, 2 newly installed, 0 to remove and 76 not upgraded.
+Need to get 27.9 kB of archives.
+After this operation, 135 kB of additional disk space will be used.
+Get:1 http://archive.ubuntu.com/ubuntu noble/main amd64 libtext-charwidth-perl amd64 0.04-11build3 [9358 B]
+Get:2 http://archive.ubuntu.com/ubuntu noble/universe amd64 cowsay all 3.03+dfsg2-8 [18.6 kB]
+Fetched 27.9 kB in 0s (84.3 kB/s)
+Selecting previously unselected package libtext-charwidth-perl:amd64.
+Preparing to unpack .../libtext-charwidth-perl_0.04-11build3_amd64.deb ...
+Unpacking libtext-charwidth-perl:amd64 (0.04-11build3) ...
+Selecting previously unselected package cowsay.
+Preparing to unpack .../cowsay_3.03+dfsg2-8_all.deb ...
+Unpacking cowsay (3.03+dfsg2-8) ...
+Setting up libtext-charwidth-perl:amd64 (0.04-11build3) ...
+Setting up cowsay (3.03+dfsg2-8) ...
+Processing triggers for man-db (2.12.0-4build2) ...
+ _______________
+&lt; Hello somchai &gt;
+ ---------------
+        \   ^__^
+         \  (oo)\_______
+            (__)\       )\/\
+                ||----w |
+                ||     ||
+/usr/games
+/usr/games/cowsay
+/usr/games/cowthink
+cowsay: /usr/games/cowsay
+cowsay/noble,now 3.03+dfsg2-8 all [installed]
+The following packages will be REMOVED:
+  cowsay*
+0 upgraded, 0 newly installed, 1 to remove and 76 not upgraded.
+After this operation, 93.2 kB disk space will be freed.
+Removing cowsay (3.03+dfsg2-8) ...
+Processing triggers for man-db (2.12.0-4build2) ...
+The following packages will be REMOVED:
+  libtext-charwidth-perl
+0 upgraded, 0 newly installed, 1 to remove and 76 not upgraded.
+After this operation, 42.0 kB disk space will be freed.
+Removing libtext-charwidth-perl:amd64 (0.04-11build3) ...
+Processing triggers for man-db (2.12.0-4build2) ...</code></pre>
+    <p class="muted small">ผลลัพธ์นี้ตัดบรรทัดซ้ำของ <code>Reading database ...</code> และบรรทัด <code>Reading package lists</code> ของคำสั่ง purge และ autoremove ออก ส่วนของ <code>apt update</code> ถ้ามีรายชื่อใหม่จะขึ้นเป็น <code>Get:</code> พร้อมขนาดไฟล์แทน <code>Hit:</code> (ซึ่งแปลว่ารายชื่อไม่เปลี่ยน) ขนาดไฟล์ ความเร็ว และจำนวนแพ็กเกจที่อัปเกรดได้ (<code>76</code>) จะต่างกันตามวันที่รันและ Mirror ที่ใช้</p>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>sudo apt update</code></td><td>ดาวน์โหลดรายชื่อจาก Repository ทั้ง 4 ช่อง: <code>noble</code> (ชุดตอนออก 24.04) <code>noble-updates</code> (แก้บั๊ก) <code>noble-security</code> (แพตช์ความปลอดภัย) และ <code>noble-backports</code></td></tr>
+      <tr><td><code>apt policy cowsay</code></td><td><code>Installed: (none)</code> แปลว่ายังไม่ติดตั้ง <code>Candidate</code> คือเวอร์ชันที่จะได้ <code>500</code> คือลำดับความสำคัญ และบอกว่ามาจากส่วน <code>universe</code> (แพ็กเกจที่ชุมชนดูแล)</td></tr>
+      <tr><td><code>apt show cowsay 2&gt;/dev/null | head -n 5</code></td><td><code>2&gt;/dev/null</code> ทิ้งคำเตือน CLI ของ apt ไป แล้วตัดเหลือ 5 บรรทัดแรกของรายละเอียด</td></tr>
+      <tr><td><code>sudo apt install -y cowsay</code></td><td>apt พบว่าต้องใช้ <code>libtext-charwidth-perl</code> ด้วย จึงติดตั้งทั้ง 2 แพ็กเกจ <code>Suggested packages</code> คือแพ็กเกจที่แนะนำแต่ไม่ติดตั้งให้</td></tr>
+      <tr><td><code>Get</code> / <code>Unpacking</code> / <code>Setting up</code></td><td>3 ขั้นของการติดตั้ง: ดาวน์โหลด แตกไฟล์ และตั้งค่า <code>Processing triggers for man-db</code> คืออัปเดตดัชนีคู่มือ</td></tr>
+      <tr><td><code>cowsay "Hello somchai"</code></td><td>โปรแกรมอยู่ที่ <code>/usr/games/cowsay</code> ซึ่งอยู่ใน PATH ของผู้ใช้ทั่วไปบน Ubuntu จึงพิมพ์ชื่อเฉย ๆ ได้</td></tr>
+      <tr><td><code>dpkg -L cowsay | grep '^/usr/games'</code></td><td>แสดงทุกไฟล์ที่แพ็กเกจติดตั้ง แล้วกรองเฉพาะที่ขึ้นต้นด้วย <code>/usr/games</code> จึงเห็นว่ามีโปรแกรม <code>cowthink</code> แถมมาด้วย</td></tr>
+      <tr><td><code>dpkg -S /usr/games/cowsay</code></td><td>ถามกลับว่าไฟล์นี้เป็นของแพ็กเกจไหน มีประโยชน์มากเวลาเจอไฟล์แปลก ๆ ในระบบ</td></tr>
+      <tr><td><code>apt list --installed 2&gt;/dev/null | grep cowsay</code></td><td>ยืนยันว่าติดตั้งแล้ว <code>[installed]</code> และมาจาก <code>noble</code></td></tr>
+      <tr><td><code>sudo apt purge -y cowsay</code></td><td>ลบแพ็กเกจพร้อม Config เครื่องหมาย <code>*</code> หลังชื่อแปลว่า purge แต่ apt ไม่ลบ Dependency ให้เอง</td></tr>
+      <tr><td><code>sudo apt autoremove -y</code></td><td>ลบ <code>libtext-charwidth-perl</code> ที่ถูกติดตั้งมาเป็น Dependency และตอนนี้ไม่มีใครใช้แล้ว</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td><code>E: Unable to locate package cowsy</code></td><td>สะกดชื่อผิด หรือยังไม่ได้รัน <code>sudo apt update</code> บนเครื่องที่เพิ่งติดตั้ง</td><td>รัน <code>sudo apt update</code> แล้วค้นชื่อที่ถูกด้วย <code>apt search cowsay</code></td></tr>
+      <tr><td><code>E: Could not open lock file /var/lib/dpkg/lock-frontend - open (13: Permission denied)</code></td><td>ลืมใส่ <code>sudo</code> การติดตั้งแก้ไฟล์ระบบจึงต้องใช้สิทธิ์ root</td><td>กด <kbd>↑</kbd> แล้วเติม <code>sudo</code> หน้าคำสั่ง หรือพิมพ์ <code>sudo !!</code></td></tr>
+      <tr><td><code>E: Could not get lock /var/lib/dpkg/lock-frontend. It is held by process 1234 (apt)</code></td><td>มี apt อีกตัวทำงานอยู่ เช่น เปิด 2 Terminal หรือระบบกำลังอัปเดตอัตโนมัติ</td><td>รอให้ตัวนั้นเสร็จ (ดูด้วย <code>ps -p 1234 -o cmd</code>) <strong>ห้ามลบไฟล์ lock เอง</strong> เพราะฐานข้อมูลแพ็กเกจอาจเสีย</td></tr>
+      <tr><td><code>cowsay: command not found</code> หลังติดตั้งสำเร็จ</td><td><code>/usr/games</code> ไม่อยู่ใน PATH เช่น ใน Script ของ cron หรือ Shell ของ root</td><td>เรียกด้วย Path เต็ม <code>/usr/games/cowsay</code> หรือตรวจ PATH ด้วย <code>echo "$PATH"</code> (แนวคิดที่ 8)</td></tr>
+      <tr><td><code>WARNING: apt does not have a stable CLI interface. Use with caution in scripts.</code></td><td>ใช้ <code>apt</code> ใน Pipe หรือ Script</td><td>ใน Script ใช้ <code>apt-get</code> หรือ <code>apt-cache</code> แทน เช่น <code>apt-cache policy cowsay</code></td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>รัน <code>sudo apt update &amp;&amp; sudo apt upgrade -y</code> เป็นประจำ เพื่อรับแพตช์ความปลอดภัย</li>
+      <li>ดู <code>apt policy</code> หรือ <code>apt show</code> ก่อนติดตั้งเสมอ เพื่อรู้ว่ามาจาก Repository ไหนและเวอร์ชันอะไร</li>
+      <li>เลือกแหล่งตามลำดับ: Repository ของ Ubuntu ก่อน แล้วจึง Repository ทางการของผู้ผลิต (เช่น Docker, GitHub CLI) ส่วน PPA และไฟล์ .deb จากเว็บให้ใช้เมื่อจำเป็นและเชื่อถือผู้ทำ</li>
+      <li>ใน Script อัตโนมัติใช้ <code>apt-get install -y</code> และบันทึกรายการแพ็กเกจที่ติดตั้งไว้ในไฟล์ เพื่อสร้างเครื่องใหม่ให้เหมือนเดิมได้</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ฝึกวงจรชีวิตแพ็กเกจกับโปรแกรมอื่น</p><ol>
+      <li>ใช้ <code>apt search</code> หาแพ็กเกจ <code>sl</code> (รถไฟวิ่งผ่านจอ) แล้วดู <code>apt policy sl</code></li>
+      <li>ติดตั้ง <code>sl</code> รัน <code>sl</code> แล้วใช้ <code>dpkg -L sl</code> หาว่าไฟล์โปรแกรมอยู่ที่ไหน</li>
+      <li>ใช้ <code>dpkg -S /usr/bin/ls</code> หาว่า <code>ls</code> มาจากแพ็กเกจอะไร (ตอบให้ตรงกับตารางในขั้นเตรียมเครื่อง)</li>
+      <li>ดู <code>apt list --upgradable</code> แล้วนับจำนวนด้วย <code>| wc -l</code> (สังเกตว่าบรรทัดแรกคือ <code>Listing...</code>)</li>
+      <li>ลบ <code>sl</code> ด้วย <code>sudo apt purge -y sl</code> ตามด้วย <code>sudo apt autoremove -y</code> แล้วยืนยันด้วย <code>dpkg -l sl</code></li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 6</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+    <h3 id="s19-2-c06">Pipes และ Redirection (&gt;, &gt;&gt;, 2&gt;, 2&gt;&amp;1, tee, /dev/null)</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p>ทุกโปรแกรมใน Linux มีช่องทางข้อมูลมาตรฐาน 3 ช่อง แต่ละช่องมีหมายเลข (File Descriptor): <strong>stdin (0)</strong> ข้อมูลเข้า ปกติมาจากคีย์บอร์ด <strong>stdout (1)</strong> ผลลัพธ์ปกติ และ <strong>stderr (2)</strong> ข้อความ Error ทั้ง stdout และ stderr ออกหน้าจอเหมือนกัน เราจึงมองไม่เห็นว่าเป็นคนละช่อง จนกว่าจะเริ่มเปลี่ยนทิศทาง <strong>Redirection</strong> คือการเปลี่ยนว่าช่องเหล่านี้ไปที่ไหน และ <strong>Pipe</strong> (<code>|</code>) คือการต่อ stdout ของคำสั่งหนึ่งเข้า stdin ของคำสั่งถัดไป ซึ่งเป็นหัวใจของปรัชญา Unix: เครื่องมือเล็ก ๆ ที่ทำงานเดียวให้ดี แล้วนำมาต่อกัน</p>
+    <div class="tbl mid"><table><thead><tr><th>รูปแบบ</th><th>ความหมาย</th><th>ตัวอย่าง</th></tr></thead><tbody>
+      <tr><td><code>&gt;</code></td><td>ส่ง stdout ลงไฟล์ เขียนทับของเดิม</td><td><code>ls &gt; list.txt</code></td></tr>
+      <tr><td><code>&gt;&gt;</code></td><td>ส่ง stdout ต่อท้ายไฟล์</td><td><code>echo "run 2" &gt;&gt; run.log</code></td></tr>
+      <tr><td><code>&lt;</code></td><td>อ่าน stdin จากไฟล์</td><td><code>sort &lt; members.csv</code></td></tr>
+      <tr><td><code>2&gt;</code></td><td>ส่ง stderr ลงไฟล์</td><td><code>find / -name x 2&gt; err.txt</code></td></tr>
+      <tr><td><code>&gt; file 2&gt;&amp;1</code></td><td>ส่ง stdout ลงไฟล์ แล้วให้ stderr ไปที่เดียวกับ stdout</td><td><code>./job.sh &gt; job.log 2&gt;&amp;1</code></td></tr>
+      <tr><td><code>&amp;&gt; file</code></td><td>ทางลัดของ Bash มีความหมายเหมือนบรรทัดบน</td><td><code>./job.sh &amp;&gt; job.log</code></td></tr>
+      <tr><td><code>/dev/null</code></td><td>หลุมดำ เขียนอะไรลงไปก็หายไป</td><td><code>cmd 2&gt;/dev/null</code></td></tr>
+      <tr><td><code>|</code></td><td>Pipe: stdout ของซ้ายเป็น stdin ของขวา</td><td><code>ls | wc -l</code></td></tr>
+      <tr><td><code>tee</code> / <code>tee -a</code></td><td>แสดงบนจอและเขียนลงไฟล์พร้อมกัน (-a ต่อท้าย)</td><td><code>cmd | tee out.txt</code></td></tr>
+      <tr><td><code>&lt;&lt;&lt;</code></td><td>Here-string: ส่งข้อความสั้น ๆ เป็น stdin</td><td><code>wc -w &lt;&lt;&lt; "hello linux world"</code></td></tr>
+    </tbody></table></div>
+    <p><strong>ลำดับของ <code>2&gt;&amp;1</code> มีผล</strong> เพราะ Bash ทำ Redirection จากซ้ายไปขวา <code>&gt; file 2&gt;&amp;1</code> แปลว่า "ย้าย stdout ไปไฟล์ก่อน แล้วให้ stderr ตาม stdout ไป" ทั้งสองช่องจึงลงไฟล์ ส่วน <code>2&gt;&amp;1 &gt; file</code> แปลว่า "ให้ stderr ไปที่ที่ stdout อยู่ตอนนี้ (คือหน้าจอ) แล้วค่อยย้าย stdout ไปไฟล์" Error จึงยังขึ้นจอ ใช้แนวคิดนี้เมื่อต้องเก็บผลลัพธ์ลงไฟล์ แยก Error ออกจากผลปกติ ปิดข้อความที่ไม่ต้องการ ต่อคำสั่งเป็นสายเพื่อวิเคราะห์ข้อมูล และเขียน Log ของ cron job (แนวคิดที่ 12)</p>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>นึกถึงท่อประปาในบ้าน stdout คือท่อน้ำดี stderr คือท่อน้ำทิ้ง ปกติทั้งสองท่อไหลลงอ่างเดียวกัน (หน้าจอ) <code>&gt;</code> คือการต่อท่อน้ำดีไปลงถังใหม่ (เททิ้งของเก่า) <code>&gt;&gt;</code> คือเติมลงถังเดิม <code>2&gt;</code> คือแยกท่อน้ำทิ้งไปอีกถัง <code>/dev/null</code> คือท่อระบายลงดิน และ <code>|</code> คือการต่อท่อจากเครื่องกรองหนึ่งไปเข้าอีกเครื่องหนึ่งเป็นสายพาน</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>ใช้ไฟล์สมาชิก <code>members.csv</code> ที่สร้างในตัวอย่าง และคำสั่ง <code>ls</code> กับไฟล์ที่มีจริง (<code>/etc/hostname</code>) คู่กับไฟล์ที่ไม่มี (<code>/nope</code>) เพื่อให้เกิดทั้ง stdout และ stderr ในคำสั่งเดียว</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/linux-lab/c06
+cd ~/projects/linux-lab/c06
+
+# ข้อมูลตัวอย่าง
+cat &gt; members.csv &lt;&lt;'CSV'
+id,name,city,score
+1,somchai,Bangkok,85
+2,somsri,Chiang Mai,92
+3,mana,Khon Kaen,78
+4,manee,Bangkok,88
+5,piti,Phuket,70
+6,chujai,Chiang Mai,95
+CSV
+
+# 1) แยก stdout กับ stderr ลงคนละไฟล์ (หน้าจอจะว่าง)
+ls /etc/hostname /nope &gt; out.txt 2&gt; err.txt
+cat out.txt
+cat err.txt
+
+# 2) รวมทั้งสองช่องลงไฟล์เดียว
+ls /etc/hostname /nope &gt; all.txt 2&gt;&amp;1
+cat all.txt
+
+# 3) เขียนทับ แล้วต่อท้าย
+echo "run 1" &gt; run.log
+echo "run 2" &gt;&gt; run.log
+cat run.log
+
+# 4) ทิ้ง Error ที่ไม่สนใจ แล้วนับผลลัพธ์
+find /etc -name '*.conf' 2&gt;/dev/null | wc -l
+
+# 5) Pipe หลายชั้น: ข้ามหัวตาราง เรียงคะแนนมากไปน้อย เอา 3 คนแรก แสดงบนจอและเก็บลงไฟล์
+tail -n +2 members.csv | sort -t, -k4 -nr | head -n 3 | tee top3.txt
+
+# 6) อ่าน stdin จากไฟล์ และ Here-string
+sort &lt; members.csv | head -n 2
+wc -w &lt;&lt;&lt; "hello linux world"</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>/etc/hostname
+ls: cannot access '/nope': No such file or directory
+ls: cannot access '/nope': No such file or directory
+/etc/hostname
+run 1
+run 2
+311
+6,chujai,Chiang Mai,95
+2,somsri,Chiang Mai,92
+4,manee,Bangkok,88
+1,somchai,Bangkok,85
+2,somsri,Chiang Mai,92
+3</code></pre>
+    <p class="muted small">จำนวนไฟล์ <code>.conf</code> ใน <code>/etc</code> (311) ขึ้นกับแพ็กเกจที่ติดตั้งในเครื่อง ตัวเลขของคุณจะต่างไป ส่วนผลลัพธ์อื่นจะตรงกันทุกเครื่อง</p>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>ls /etc/hostname /nope &gt; out.txt 2&gt; err.txt</code></td><td>ชื่อไฟล์ที่มีจริงไป stdout จึงลง <code>out.txt</code> ข้อความ Error ไป stderr จึงลง <code>err.txt</code> หน้าจอไม่มีอะไรขึ้นเลย</td></tr>
+      <tr><td><code>cat out.txt</code> / <code>cat err.txt</code></td><td>พิสูจน์ว่าข้อมูลถูกแยกคนละไฟล์จริง</td></tr>
+      <tr><td><code>&gt; all.txt 2&gt;&amp;1</code></td><td>ทั้งสองช่องลงไฟล์เดียว ในไฟล์ Error มาก่อนเพราะ <code>ls</code> ตรวจไฟล์ที่ไม่มีก่อนพิมพ์รายชื่อ</td></tr>
+      <tr><td><code>&gt;</code> แล้ว <code>&gt;&gt;</code></td><td>บรรทัดแรกสร้างไฟล์ใหม่ (หรือล้างของเดิม) บรรทัดที่สองต่อท้าย จึงได้ 2 บรรทัด</td></tr>
+      <tr><td><code>find /etc -name '*.conf' 2&gt;/dev/null | wc -l</code></td><td><code>find</code> จะบ่นว่าเข้าบางโฟลเดอร์ไม่ได้ (<code>Permission denied</code>) เราทิ้งข้อความเหล่านั้นไป และนับเฉพาะบรรทัดผลลัพธ์ที่ส่งมาทาง Pipe</td></tr>
+      <tr><td><code>tail -n +2 members.csv</code></td><td>เริ่มอ่านตั้งแต่บรรทัดที่ 2 คือข้ามหัวตาราง</td></tr>
+      <tr><td><code>sort -t, -k4 -nr</code></td><td><code>-t,</code> ใช้จุลภาคแบ่งช่อง <code>-k4</code> เรียงตามช่องที่ 4 (score) <code>-n</code> เรียงแบบตัวเลข <code>-r</code> จากมากไปน้อย</td></tr>
+      <tr><td><code>head -n 3 | tee top3.txt</code></td><td>เก็บ 3 คนแรก <code>tee</code> พิมพ์ขึ้นจอและเขียนลง <code>top3.txt</code> ในเวลาเดียวกัน</td></tr>
+      <tr><td><code>sort &lt; members.csv | head -n 2</code></td><td><code>sort</code> อ่านไฟล์ทาง stdin เรียงตามตัวอักษร ตัวเลขมาก่อนตัวอักษร หัวตาราง <code>id,...</code> จึงไปอยู่ท้ายสุด นี่คือเหตุผลที่ต้องตัดหัวตารางก่อนเรียง</td></tr>
+      <tr><td><code>wc -w &lt;&lt;&lt; "hello linux world"</code></td><td>ส่งข้อความเป็น stdin ให้ <code>wc -w</code> นับคำ ได้ 3</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td>รัน <code>sort data.txt &gt; data.txt</code> แล้ว <code>wc -c data.txt</code> ได้ <code>0 data.txt</code> ข้อมูลหายหมด</td><td>Shell ล้างไฟล์ปลายทางของ <code>&gt;</code> <strong>ก่อน</strong> เริ่มรัน <code>sort</code> sort จึงอ่านไฟล์ว่าง</td><td>เขียนลงไฟล์ใหม่แล้วค่อยย้าย: <code>sort data.txt &gt; data.sorted &amp;&amp; mv data.sorted data.txt</code> หรือใช้ <code>sort -o data.txt data.txt</code></td></tr>
+      <tr><td>ใช้ <code>./job.sh &gt; job.log</code> แต่ Error ยังขึ้นจอ และไม่อยู่ในไฟล์</td><td><code>&gt;</code> เปลี่ยนเฉพาะ stdout (1) ไม่รวม stderr (2)</td><td>ใช้ <code>&gt; job.log 2&gt;&amp;1</code> (ลำดับนี้เท่านั้น) หรือ <code>&amp;&gt; job.log</code></td></tr>
+      <tr><td><code>bash: out.txt: cannot overwrite existing file</code></td><td>เปิดตัวเลือก <code>set -o noclobber</code> ไว้ ซึ่งห้าม <code>&gt;</code> เขียนทับไฟล์ที่มีอยู่</td><td>ถ้าตั้งใจทับจริงใช้ <code>&gt;|</code> หรือปิดด้วย <code>set +o noclobber</code></td></tr>
+      <tr><td><code>tee: /etc/x: Permission denied</code> ทั้งที่รัน <code>sudo echo "x" &gt; /etc/x</code> หรือ <code>echo x | tee /etc/x</code></td><td><code>sudo</code> ให้สิทธิ์เฉพาะคำสั่ง ส่วน Redirection ทำโดย Shell ของเราซึ่งไม่มีสิทธิ์ และ <code>tee</code> ที่ไม่ได้ใส่ sudo ก็เขียนไม่ได้</td><td><code>echo "x" | sudo tee /etc/x</code> (ต่อท้ายด้วย <code>sudo tee -a</code>) ถ้าไม่อยากเห็นผลบนจอให้เติม <code>&gt; /dev/null</code></td></tr>
+      <tr><td>เขียน <code>2&gt;&amp;1 &gt; all.txt</code> แล้ว Error ยังขึ้นจอ</td><td>ลำดับผิด stderr ถูกผูกกับหน้าจอก่อนที่ stdout จะย้ายไปไฟล์</td><td>สลับเป็น <code>&gt; all.txt 2&gt;&amp;1</code></td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>งานอัตโนมัติ (cron, Script) ให้เก็บ Log ครบทั้งสองช่องด้วย <code>&gt;&gt; job.log 2&gt;&amp;1</code> เพื่อย้อนดูได้เมื่อมีปัญหา</li>
+      <li>ใช้ <code>2&gt;/dev/null</code> เฉพาะเมื่อแน่ใจว่า Error นั้นไม่สำคัญ การทิ้ง Error ทุกครั้งทำให้หาสาเหตุปัญหาไม่เจอ</li>
+      <li>ใน Script ของตัวเอง ส่งข้อความ Error ไป stderr ด้วย <code>echo "ERROR: ..." &gt;&amp;2</code> เพื่อให้ผู้ใช้แยกผลลัพธ์กับ Error ได้</li>
+      <li>สร้าง Pipe ทีละชั้น: รันชั้นแรกดูผล แล้วค่อยเพิ่ม <code>| ...</code> ทีละตัว จะหาจุดผิดง่ายกว่าเขียนยาวทีเดียว</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ดัดแปลงตัวอย่าง members.csv</p><ol>
+      <li>หา 2 คนที่คะแนน <strong>น้อยที่สุด</strong> (ใบ้: เอา <code>-r</code> ออก) แล้วเก็บลง <code>bottom2.txt</code> ด้วย <code>tee</code></li>
+      <li>รัน <code>ls /etc/hostname /nope /tmp</code> โดยให้หน้าจอแสดงเฉพาะ Error และเก็บผลปกติลง <code>ok.txt</code></li>
+      <li>รันคำสั่งเดิมอีก 2 ครั้งโดยเก็บทั้งสองช่องต่อท้ายใน <code>history.log</code> แล้วนับบรรทัดด้วย <code>wc -l</code></li>
+      <li>ใช้ <code>tee -a</code> เพิ่มบรรทัด <code>7,wichai,Bangkok,81</code> ต่อท้าย members.csv แล้วรันคำสั่งหา Top 3 ใหม่</li>
+      <li>นับว่าใน <code>/usr/bin</code> มีไฟล์กี่ไฟล์ด้วย <code>ls /usr/bin | wc -l</code></li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 7</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+    <h3 id="s19-2-c07">Text Processing: grep, find, sort, uniq, cut, tr, sed, awk และ xargs</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p>Log, CSV และไฟล์ Config เป็นข้อความทั้งหมด เครื่องมือกลุ่มนี้ทำให้ตอบคำถามจากไฟล์ขนาดหลายล้านบรรทัดได้ในไม่กี่วินาที โดยไม่ต้องเปิด Excel หรือเขียนโปรแกรม เช่น "IP ไหนเข้าเว็บบ่อยที่สุด" หรือ "มี Error 404 กี่ครั้ง" แต่ละตัวทำงานเดียวแล้วต่อกันด้วย Pipe จากแนวคิดที่ 6</p>
+    <ul>
+      <li><strong>grep</strong> กรองบรรทัดที่ตรง Pattern: <code>-i</code> ไม่สนตัวพิมพ์เล็กใหญ่ <code>-n</code> แสดงเลขบรรทัด <code>-v</code> กลับด้าน (บรรทัดที่ไม่ตรง) <code>-c</code> นับ <code>-r</code> ค้นทั้งโฟลเดอร์ <code>-l</code> แสดงแค่ชื่อไฟล์ <code>-w</code> ตรงทั้งคำ <code>-o</code> แสดงเฉพาะส่วนที่ตรง และ <code>-E</code> ใช้ Regex แบบขยาย</li>
+      <li><strong>Regex พื้นฐาน</strong>: <code>^</code> ต้นบรรทัด <code>$</code> ท้ายบรรทัด <code>.</code> ตัวอักษรใดก็ได้ 1 ตัว <code>*</code> ซ้ำ 0 ครั้งขึ้นไป <code>+</code> ซ้ำ 1 ครั้งขึ้นไป <code>?</code> มีหรือไม่มีก็ได้ <code>[0-9]</code> ตัวเลข 1 ตัว และ <code>(a|b)</code> a หรือ b (สามตัวหลังต้องใช้ <code>grep -E</code>)</li>
+      <li><strong>sort</strong> เรียง: <code>-n</code> ตัวเลข <code>-r</code> กลับด้าน <code>-k</code> เลือกช่อง <code>-t</code> ตัวแบ่งช่อง <code>-u</code> ตัดซ้ำ <code>-h</code> ขนาดแบบ 1K 2M <strong>uniq</strong> ตัดบรรทัดซ้ำ <strong>ที่อยู่ติดกัน</strong> จึงต้อง <code>sort</code> ก่อนเสมอ <code>-c</code> นับจำนวน <code>-d</code> แสดงเฉพาะที่ซ้ำ</li>
+      <li><strong>cut</strong> ตัดช่อง (<code>-d,</code> ตัวแบ่ง <code>-f3</code> ช่องที่ 3) <strong>tr</strong> แปลงหรือลบตัวอักษร (<code>tr 'a-z' 'A-Z'</code>, <code>-d</code> ลบ, <code>-s</code> บีบตัวซ้ำ)</li>
+      <li><strong>sed</strong> แก้ข้อความแบบสตรีม: <code>s/เก่า/ใหม่/</code> แทนที่ครั้งแรกของบรรทัด <code>/g</code> ทุกครั้ง <code>/pattern/d</code> ลบบรรทัด <code>-n '2,4p'</code> พิมพ์บรรทัด 2 ถึง 4 และ <code>-i.bak</code> แก้ไฟล์จริงพร้อมสำรองไฟล์เดิม</li>
+      <li><strong>awk</strong> ภาษาเล็ก ๆ สำหรับข้อมูลเป็นคอลัมน์: <code>$1</code> ช่องแรก <code>-F','</code> ตัวแบ่ง <code>NR</code> เลขบรรทัด <code>NR&gt;1</code> ข้ามหัวตาราง และบล็อก <code>END</code> ทำงานตอนจบ ใช้หาผลรวมและค่าเฉลี่ย บน Ubuntu 24.04 คำสั่ง <code>awk</code> คือ <strong>mawk 1.3.4</strong> ให้เขียนแบบ POSIX awk ไม่ใช้ความสามารถเฉพาะของ gawk</li>
+      <li><strong>find</strong> ค้นหาไฟล์ตามเงื่อนไข: <code>-name</code> / <code>-iname</code> ชื่อ <code>-type f</code> ไฟล์ <code>-type d</code> โฟลเดอร์ <code>-size +10M</code> ขนาด <code>-mtime -7</code> แก้ไขภายใน 7 วัน <code>-exec cmd {} \;</code> รันคำสั่งกับทุกไฟล์ที่พบ และ <code>-delete</code> ลบ (ต้องรันแบบไม่มี <code>-delete</code> ดูผลก่อนเสมอ)</li>
+      <li><strong>xargs</strong> แปลงรายการจาก stdin เป็น Argument ของคำสั่ง ใช้คู่ <code>find -print0 | xargs -0</code> เพื่อให้ชื่อไฟล์ที่มีช่องว่างปลอดภัย</li>
+    </ul>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>นึกถึงสายพานคัดแยกผลไม้ <code>grep</code> คือคนงานที่หยิบเฉพาะส้มออกจากสายพาน <code>cut</code> และ <code>awk '{print $1}'</code> คือการปอกเอาแค่ส่วนที่ต้องการ <code>sort</code> คือจัดเรียงตามขนาด <code>uniq -c</code> คือนับว่าแต่ละขนาดมีกี่ลูก (ต้องเรียงก่อน ไม่อย่างนั้นนับซ้ำ) <code>sed</code> คือติดสติกเกอร์ใหม่ทับฉลากเดิม และ <code>find</code> คือคนเดินหาลังในโกดังตามเงื่อนไขที่สั่ง</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>ใช้ไฟล์ Log ของเว็บ (<code>access.log</code> 10 บรรทัด IP เป็นช่วงสำหรับเอกสาร ไม่ใช่เครื่องจริง) และ <code>members.csv</code> ช่องของ access.log ที่ awk มองเห็น (แบ่งด้วยช่องว่าง): <code>$1</code> IP, <code>$4</code> เวลา, <code>$6</code> Method (มีเครื่องหมายคำพูดติดมา), <code>$7</code> Path, <code>$9</code> Status Code และ <code>$10</code> จำนวนไบต์</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/linux-lab/c07
+cd ~/projects/linux-lab/c07
+
+# ข้อมูลตัวอย่าง 1: Log ของเว็บ
+cat &gt; access.log &lt;&lt;'LOG'
+192.0.2.10 - - [19/Oct/2026:09:15:01 +0700] "GET / HTTP/1.1" 200 5120 "-" "Mozilla/5.0"
+198.51.100.23 - - [19/Oct/2026:09:15:07 +0700] "GET /products HTTP/1.1" 200 8432 "-" "Mozilla/5.0"
+203.0.113.5 - - [19/Oct/2026:09:16:12 +0700] "GET /admin HTTP/1.1" 404 512 "-" "curl/8.5.0"
+192.0.2.10 - - [19/Oct/2026:09:16:40 +0700] "POST /login HTTP/1.1" 302 0 "-" "Mozilla/5.0"
+203.0.113.5 - - [19/Oct/2026:09:17:02 +0700] "GET /wp-login.php HTTP/1.1" 404 512 "-" "curl/8.5.0"
+198.51.100.23 - - [19/Oct/2026:09:18:30 +0700] "GET /cart HTTP/1.1" 500 128 "-" "Mozilla/5.0"
+192.0.2.10 - - [19/Oct/2026:09:19:45 +0700] "GET /products HTTP/1.1" 200 8432 "-" "Mozilla/5.0"
+203.0.113.5 - - [19/Oct/2026:09:20:01 +0700] "GET /.env HTTP/1.1" 404 512 "-" "curl/8.5.0"
+192.0.2.44 - - [19/Oct/2026:09:21:10 +0700] "GET / HTTP/1.1" 200 5120 "-" "Mozilla/5.0"
+192.0.2.10 - - [19/Oct/2026:09:22:33 +0700] "GET /logout HTTP/1.1" 200 256 "-" "Mozilla/5.0"
+LOG
+
+# ข้อมูลตัวอย่าง 2: รายชื่อสมาชิก
+cat &gt; members.csv &lt;&lt;'CSV'
+id,name,city,score
+1,somchai,Bangkok,85
+2,somsri,Chiang Mai,92
+3,mana,Khon Kaen,78
+4,manee,Bangkok,88
+5,piti,Phuket,70
+6,chujai,Chiang Mai,95
+CSV
+
+echo "== 1) Top 3 IP ที่เข้าเว็บบ่อยที่สุด"
+awk '{print $1}' access.log | sort | uniq -c | sort -rn | head -n 3
+echo "== 2) จำนวน 404"
+grep -c '" 404 ' access.log
+echo "== 3) รายการที่ Error (404 หรือ 500): IP Path Status"
+grep -E '" (404|500) ' access.log | awk '{print $1, $7, $9}'
+echo "== 4) นับแต่ละ Status Code"
+awk '{print $9}' access.log | sort | uniq -c | sort -rn
+echo "== 5) สมาชิกแต่ละเมือง"
+tail -n +2 members.csv | cut -d, -f3 | sort | uniq -c
+echo "== 6) คะแนนเฉลี่ย"
+awk -F, 'NR&gt;1 {s+=$4; n++} END {printf "avg=%.2f\n", s/n}' members.csv
+echo "== 7) ชื่อเป็นตัวพิมพ์ใหญ่"
+tail -n +2 members.csv | cut -d, -f2 | tr 'a-z' 'A-Z'
+echo "== 8) เปลี่ยน Bangkok เป็น BKK (แสดงผล ไม่แก้ไฟล์)"
+sed 's/Bangkok/BKK/' members.csv
+echo "== 9) grep -n -i และ -o"
+grep -n -i 'post' access.log
+grep -o -E '/[a-z.-]+\.php' access.log
+echo "== 10) หาไฟล์ .tmp แล้วลบอย่างปลอดภัย"
+touch a.tmp b.tmp 'c d.tmp'
+find . -name '*.tmp'
+find . -name '*.tmp' -print0 | xargs -0 rm -v</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>== 1) Top 3 IP ที่เข้าเว็บบ่อยที่สุด
+      4 192.0.2.10
+      3 203.0.113.5
+      2 198.51.100.23
+== 2) จำนวน 404
+3
+== 3) รายการที่ Error (404 หรือ 500): IP Path Status
+203.0.113.5 /admin 404
+203.0.113.5 /wp-login.php 404
+198.51.100.23 /cart 500
+203.0.113.5 /.env 404
+== 4) นับแต่ละ Status Code
+      5 200
+      3 404
+      1 500
+      1 302
+== 5) สมาชิกแต่ละเมือง
+      2 Bangkok
+      2 Chiang Mai
+      1 Khon Kaen
+      1 Phuket
+== 6) คะแนนเฉลี่ย
+avg=84.67
+== 7) ชื่อเป็นตัวพิมพ์ใหญ่
+SOMCHAI
+SOMSRI
+MANA
+MANEE
+PITI
+CHUJAI
+== 8) เปลี่ยน Bangkok เป็น BKK (แสดงผล ไม่แก้ไฟล์)
+id,name,city,score
+1,somchai,BKK,85
+2,somsri,Chiang Mai,92
+3,mana,Khon Kaen,78
+4,manee,BKK,88
+5,piti,Phuket,70
+6,chujai,Chiang Mai,95
+== 9) grep -n -i และ -o
+4:192.0.2.10 - - [19/Oct/2026:09:16:40 +0700] "POST /login HTTP/1.1" 302 0 "-" "Mozilla/5.0"
+/wp-login.php
+== 10) หาไฟล์ .tmp แล้วลบอย่างปลอดภัย
+./c d.tmp
+./a.tmp
+./b.tmp
+removed './c d.tmp'
+removed './a.tmp'
+removed './b.tmp'</code></pre>
+    <p class="muted small">ลำดับไฟล์ที่ <code>find</code> พบขึ้นกับระบบไฟล์ ไม่ได้เรียงตามชื่อ ลำดับในข้อ 10 ของคุณอาจต่างไป ผลลัพธ์อื่นจะตรงกันทุกเครื่อง</p>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>awk '{print $1}' access.log | sort | uniq -c | sort -rn | head -n 3</code></td><td>สูตรคลาสสิก "นับแล้วจัดอันดับ": ดึง IP, เรียงให้ IP เดียวกันอยู่ติดกัน, นับด้วย <code>uniq -c</code>, เรียงตามจำนวนจากมากไปน้อย, เอา 3 อันดับแรก</td></tr>
+      <tr><td><code>grep -c '" 404 '</code></td><td>ใส่ <code>"</code> และช่องว่างรอบ 404 เพื่อให้ตรงเฉพาะช่อง Status ไม่ไปตรงกับเลข 404 ที่อาจอยู่ในขนาดไฟล์หรือ Path</td></tr>
+      <tr><td><code>grep -E '" (404|500) ' | awk '{print $1, $7, $9}'</code></td><td><code>-E</code> ทำให้ใช้ <code>(404|500)</code> ได้ แล้ว awk เลือกพิมพ์เฉพาะช่องที่ต้องการ จุลภาคใน <code>print</code> ใส่ช่องว่างคั่นให้</td></tr>
+      <tr><td><code>awk '{print $9}' | sort | uniq -c | sort -rn</code></td><td>นับจำนวนแต่ละ Status Code: 200 ห้าครั้ง 404 สามครั้ง 500 และ 302 อย่างละครั้ง</td></tr>
+      <tr><td><code>cut -d, -f3 | sort | uniq -c</code></td><td>ตัดช่องที่ 3 (city) ด้วยตัวแบ่งจุลภาค ชื่อเมืองที่มีช่องว่างอย่าง <code>Chiang Mai</code> ไม่มีปัญหา เพราะตัวแบ่งคือจุลภาค</td></tr>
+      <tr><td><code>awk -F, 'NR&gt;1 {s+=$4; n++} END {printf ...}'</code></td><td>ข้ามบรรทัดที่ 1 สะสมผลรวมคะแนนใน <code>s</code> และนับคนใน <code>n</code> ตอนจบพิมพ์ค่าเฉลี่ย 2 ตำแหน่ง: 508 / 6 = 84.67</td></tr>
+      <tr><td><code>tr 'a-z' 'A-Z'</code></td><td>แปลงตัวพิมพ์เล็กทุกตัวเป็นตัวพิมพ์ใหญ่ ทีละตัวอักษร</td></tr>
+      <tr><td><code>sed 's/Bangkok/BKK/'</code></td><td>แทนที่แล้วพิมพ์ออกจอ ไฟล์เดิมไม่เปลี่ยน ถ้าต้องการแก้ไฟล์จริงใช้ <code>sed -i.bak 's/Bangkok/BKK/' members.csv</code> ซึ่งเก็บต้นฉบับไว้ใน <code>members.csv.bak</code></td></tr>
+      <tr><td><code>grep -n -i 'post'</code> / <code>grep -o -E '/[a-z.-]+\.php'</code></td><td>บรรทัดแรกหา "post" แบบไม่สนตัวพิมพ์ พบที่บรรทัด 4 บรรทัดที่สองดึงเฉพาะ Path ที่ลงท้าย <code>.php</code> (<code>\.</code> คือจุดจริง ไม่ใช่ "ตัวอักษรใดก็ได้")</td></tr>
+      <tr><td><code>find . -name '*.tmp' -print0 | xargs -0 rm -v</code></td><td><code>-print0</code> คั่นชื่อไฟล์ด้วยอักขระ NUL แทนการขึ้นบรรทัดใหม่ <code>xargs -0</code> อ่านแบบเดียวกัน ไฟล์ <code>c d.tmp</code> ที่มีช่องว่างจึงถูกลบถูกต้อง ใส่ <code>'*.tmp'</code> ในเครื่องหมายคำพูดเพื่อให้ find เป็นผู้ขยาย Wildcard ไม่ใช่ Shell</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td><code>rm: cannot remove './c': No such file or directory</code> และ <code>rm: cannot remove 'd.tmp': No such file or directory</code></td><td>ใช้ <code>find ... | xargs rm</code> แบบไม่มี <code>-print0</code> / <code>-0</code> xargs จึงแยกชื่อ <code>c d.tmp</code> ที่ช่องว่าง</td><td>ใช้ <code>find ... -print0 | xargs -0 rm</code> หรือ <code>find ... -delete</code></td></tr>
+      <tr><td><code>rm: missing operand</code> ตามด้วย <code>Try 'rm --help' for more information.</code></td><td><code>find</code> ไม่พบไฟล์เลย xargs จึงเรียก <code>rm</code> โดยไม่มี Argument</td><td>เพิ่ม <code>xargs -r</code> (ไม่รันถ้าไม่มีข้อมูล) หรือใช้ <code>find -delete</code></td></tr>
+      <tr><td><code>grep '(404|500)' access.log | wc -l</code> ได้ <code>0</code></td><td>grep ธรรมดา (BRE) มองวงเล็บและ <code>|</code> เป็นตัวอักษรปกติ</td><td>ใส่ <code>-E</code>: <code>grep -E '(404|500)'</code></td></tr>
+      <tr><td><code>uniq -c</code> นับได้ <code>1</code> ทุกบรรทัด เช่น <code>1 192.0.2.10</code> ซ้ำหลายครั้ง</td><td>ไม่ได้ <code>sort</code> ก่อน <code>uniq</code> จึงนับเฉพาะบรรทัดที่ซ้ำติดกัน</td><td>ใส่ <code>sort |</code> ก่อน <code>uniq -c</code> เสมอ</td></tr>
+      <tr><td>ค่าเฉลี่ยออกมา <code>72.5714</code> แทน 84.67</td><td><code>awk -F, '{s+=$4} END {print s/NR}'</code> นับหัวตารางเป็น 1 บรรทัดด้วย (หาร 7 แทน 6)</td><td>ใช้ <code>NR&gt;1</code> และตัวนับของตัวเอง <code>n++</code> แล้วหารด้วย <code>n</code></td></tr>
+      <tr><td><code>sed -i</code> แก้ไฟล์ผิดแล้วกู้คืนไม่ได้</td><td><code>-i</code> เขียนทับไฟล์จริงทันที</td><td>รันแบบไม่มี <code>-i</code> ดูผลก่อน แล้วใช้ <code>-i.bak</code> เพื่อเก็บไฟล์สำรอง</td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>ห่อ Pattern และโปรแกรม awk ด้วยเครื่องหมายคำพูดเดี่ยว <code>'...'</code> เสมอ เพื่อไม่ให้ Shell แปลความหมายของ <code>$</code> และ <code>*</code> ก่อน</li>
+      <li>ทดสอบ <code>find</code> โดยไม่มี <code>-delete</code> หรือ <code>-exec rm</code> ก่อนทุกครั้ง แล้วค่อยเติมคำสั่งลบเมื่อรายการถูกต้อง</li>
+      <li>เขียน awk แบบ POSIX ให้รันได้ทั้ง mawk และ gawk ถ้างานเริ่มซับซ้อนเกิน 1 บรรทัด ให้ย้ายไปเขียนเป็น Python (<a data-t="9"></a>)</li>
+      <li>ในงาน Security การนับ IP และ Path ที่ได้ 404 จาก Log แบบนี้คือการตรวจจับการสแกนเบื้องต้น เช่น <code>203.0.113.5</code> ที่ลองเข้า <code>/admin</code>, <code>/wp-login.php</code> และ <code>/.env</code> (<a data-t="5"></a>)</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ตอบคำถามจาก access.log และ members.csv ด้วย Pipe ของคุณเอง</p><ol>
+      <li>หาผลรวมไบต์ทั้งหมดที่เว็บส่งออกไป (ช่อง <code>$10</code>) ด้วย awk (คำตอบที่ถูกคือ 29024 ไบต์)</li>
+      <li>แสดง Path ที่ถูกเรียกบ่อยที่สุด 2 อันดับแรกพร้อมจำนวน</li>
+      <li>แสดงเฉพาะบรรทัดที่ <strong>ไม่ใช่</strong> <code>Mozilla</code> ด้วย <code>grep -v</code> แล้วนับว่าเป็นของ IP อะไรบ้าง</li>
+      <li>หาสมาชิกที่คะแนนตั้งแต่ 85 ขึ้นไป พิมพ์เฉพาะชื่อและคะแนนด้วย awk</li>
+      <li>ใช้ <code>sed -n '2,4p' members.csv</code> แล้วอธิบายผล จากนั้นใช้ <code>sed '/Phuket/d'</code> ลบบรรทัดของ Phuket ออกจากผลลัพธ์</li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 8</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+    <h3 id="s19-2-c08">Environment Variables, PATH, ~/.bashrc และ alias</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p>ตัวแปรใน Shell มี 2 แบบ <strong>Shell Variable</strong> (<code>CITY=Bangkok</code>) อยู่เฉพาะใน Shell ปัจจุบัน ส่วน <strong>Environment Variable</strong> คือตัวแปรที่ถูก <code>export</code> แล้ว โปรแกรมลูก (Child Process) ทุกตัวที่ Shell เปิดจะได้รับสำเนาไปด้วย โปรแกรมจำนวนมากอ่านการตั้งค่าจาก Environment Variable เช่น <code>EDITOR</code> บอกว่าใช้ Editor ตัวไหน <code>LANG</code> บอกภาษาและ Encoding และแอปของเราอ่าน API Key จาก Environment Variable แทนการเขียนลงในโค้ด ดูทั้งหมดด้วย <code>env</code> หรือ <code>printenv</code> ตัวแปรที่ควรรู้จัก: <code>$HOME</code>, <code>$USER</code>, <code>$SHELL</code>, <code>$PWD</code>, <code>$LANG</code> และรูปแบบ <code>${VAR:-default}</code> ซึ่งใช้ค่า default เมื่อ VAR ว่างหรือไม่มี</p>
+    <p><strong>PATH</strong> คือรายการโฟลเดอร์คั่นด้วย <code>:</code> เมื่อพิมพ์ <code>ls</code> Bash จะไล่หาไฟล์ชื่อ <code>ls</code> ในแต่ละโฟลเดอร์จาก <strong>ซ้ายไปขวา</strong> เจอที่แรกก็ใช้ตัวนั้น ถ้าไม่เจอเลยจะขึ้น <code>command not found</code> (ตรวจด้วย <code>which</code> หรือ <code>type -a</code>) โปรแกรมส่วนตัวควรอยู่ใน <code>~/.local/bin</code> ซึ่ง <code>~/.profile</code> ของ Ubuntu เพิ่มเข้า PATH ให้ตอน Login ถ้าโฟลเดอร์นั้นมีอยู่แล้ว ถ้าเพิ่งสร้างให้ใช้ <code>export PATH="$HOME/.local/bin:$PATH"</code></p>
+    <ul>
+      <li><code>~/.bashrc</code> ทำงานทุกครั้งที่เปิด Terminal แบบโต้ตอบ เป็นที่ใส่ alias, function, <code>PS1</code> (หน้าตา Prompt) และ <code>HISTCONTROL</code> / <code>HISTTIMEFORMAT</code> (การเก็บประวัติคำสั่ง)</li>
+      <li><code>~/.profile</code> ทำงานตอน Login เหมาะกับ <code>export</code> ค่า PATH และ <code>/etc/environment</code> เป็นค่าของทั้งระบบทุกผู้ใช้ (ต้องใช้ sudo)</li>
+      <li><code>source ~/.bashrc</code> โหลดไฟล์ใหม่ใน Shell ปัจจุบันโดยไม่ต้องเปิด Terminal ใหม่ <code>alias ชื่อ='คำสั่ง'</code> ตั้งชื่อย่อ <code>unalias</code> ลบ และ function ใช้เมื่อต้องรับ Argument</li>
+      <li>WSL เชื่อม Windows ให้: <code>code .</code> เปิด VS Code <code>explorer.exe .</code> เปิดโฟลเดอร์ใน File Explorer <code>clip.exe</code> คัดลอกลง Clipboard <code>wslpath -w</code> แปลง Path เป็นแบบ Windows และ WSL ต่อ PATH ของ Windows (เช่น <code>/mnt/c/Windows/system32</code>) ไว้ท้าย PATH ของ Linux</li>
+      <li>ไฟล์ที่สร้างด้วย Notepad บน Windows ใช้ตัวขึ้นบรรทัดแบบ CRLF (<code>\r\n</code>) ถ้านำมาเป็น Script ใน Linux จะเจอ <code>$'\r': command not found</code></li>
+    </ul>
+    <p>ใช้แนวคิดนี้เมื่อติดตั้งเครื่องมือแล้วเรียกไม่เจอ ต้องการทำให้คำสั่งยาว ๆ สั้นลง เก็บค่าลับไว้นอกโค้ด (ใส่ในไฟล์ <code>.env</code> และเพิ่ม <code>.env</code> ใน <code>.gitignore</code> ตามที่จะเรียนใน <a data-t="17"></a>) หรือแก้ปัญหา "บนเครื่องเรารันได้ แต่ใน cron รันไม่ได้" ซึ่งเกือบทุกครั้งเกิดจาก PATH ต่างกัน</p>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Environment Variable เหมือนกระดาษโน้ตที่พ่อแม่ (Shell) แนบให้ลูกทุกคนตอนออกจากบ้าน ส่วน Shell Variable เหมือนโน้ตที่แปะไว้บนตู้เย็น ลูกที่ออกไปแล้วไม่เห็น ส่วน PATH เหมือนลำดับร้านที่คุณจะเดินไปหาของ: ไปร้านแรกก่อน ไม่มีค่อยไปร้านถัดไป ถ้าทุกร้านไม่มีก็กลับบ้านมือเปล่า (<code>command not found</code>) และ <code>~/.bashrc</code> คือกิจวัตรตอนเช้าที่ทำทุกวันโดยอัตโนมัติ</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>ส่วนที่ 1 ทดลองความต่างระหว่าง Shell Variable กับ Environment Variable และดู PATH</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/linux-lab/c08
+cd ~/projects/linux-lab/c08
+
+# Shell Variable: โปรแกรมลูก (bash -c) มองไม่เห็น
+CITY=Bangkok
+echo "parent sees: $CITY"
+bash -c 'echo "child sees: ${CITY:-&lt;empty&gt;}"'
+# export แล้วโปรแกรมลูกเห็น
+export CITY
+bash -c 'echo "child sees: ${CITY:-&lt;empty&gt;}"'
+
+# ตัวแปรสำคัญ และค่าเริ่มต้นเมื่อไม่มีตัวแปร
+echo "HOME=$HOME USER=$USER SHELL=$SHELL"
+echo "LANG=$LANG"
+echo "editor: ${EDITOR:-nano (ค่าเริ่มต้น)}"
+printenv CITY
+
+# PATH: แสดงทีละบรรทัด 5 โฟลเดอร์แรก
+echo "$PATH" | tr ':' '\n' | head -n 5</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>parent sees: Bangkok
+child sees: &lt;empty&gt;
+child sees: Bangkok
+HOME=/home/somchai USER=somchai SHELL=/bin/bash
+LANG=C.UTF-8
+editor: nano (ค่าเริ่มต้น)
+Bangkok
+/usr/local/sbin
+/usr/local/bin
+/usr/sbin
+/usr/bin
+/sbin</code></pre>
+    <p class="muted small">ถ้ามีโฟลเดอร์ <code>~/.local/bin</code> อยู่ก่อนเปิด Terminal บรรทัดแรกของ PATH จะเป็น <code>/home/somchai/.local/bin</code> และ PATH ของแต่ละเครื่องต่างกันได้ ส่วนผลบรรทัดอื่นจะเหมือนกัน (ถ้าคุณเคยตั้ง <code>EDITOR</code> ไว้แล้ว บรรทัด editor จะแสดงค่านั้นแทน)</p>
+    <p>ส่วนที่ 2 สร้างคำสั่งของตัวเองชื่อ <code>sysinfo</code> ใน <code>~/.local/bin</code> (สร้างโฟลเดอร์ก่อนด้วย <code>mkdir -p ~/.local/bin</code> แล้วเปิด <code>nano ~/.local/bin/sysinfo</code>)</p>
+<pre class="code" data-env="file" data-label="Bash · ~/.local/bin/sysinfo"><code class="language-bash">#!/usr/bin/env bash
+# แสดงข้อมูลสั้น ๆ ของเครื่อง
+echo "user   : $(whoami)"
+echo "host   : $(hostname)"
+echo "kernel : $(uname -r)"
+echo "date   : $(date +%F)"</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ให้สิทธิ์รัน แล้วเพิ่มโฟลเดอร์เข้า PATH (ไว้หน้าสุด)
+chmod +x ~/.local/bin/sysinfo
+export PATH="$HOME/.local/bin:$PATH"
+which sysinfo
+sysinfo</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>/home/somchai/.local/bin/sysinfo
+user   : somchai
+host   : DESKTOP-K7Q2M4P
+kernel : 6.6.87.2-microsoft-standard-WSL2
+date   : 2026-10-19</code></pre>
+    <p class="muted small">ชื่อเครื่อง เวอร์ชัน Kernel และวันที่ จะเป็นของเครื่องคุณ</p>
+    <p>ส่วนที่ 3 ทำให้ alias และ function อยู่ถาวรโดยต่อท้าย <code>~/.bashrc</code> (ใช้ <code>&gt;&gt;</code> สองตัวเสมอ ถ้าใช้ <code>&gt;</code> ตัวเดียวไฟล์เดิมจะหายทั้งไฟล์)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สำรองไฟล์เดิมก่อนแก้
+cp ~/.bashrc ~/.bashrc.bak
+cat &gt;&gt; ~/.bashrc &lt;&lt;'RC'
+
+# ---- linux-lab: เพิ่มเองเมื่อ 2026-10-19 ----
+export EDITOR=nano
+alias lab='cd ~/projects/linux-lab &amp;&amp; pwd'
+# mkcd: สร้างโฟลเดอร์แล้วเข้าไปในคำสั่งเดียว
+mkcd() {
+    mkdir -p -- "$1" &amp;&amp; cd -- "$1" || return
+}
+RC
+
+# โหลดไฟล์ใหม่ใน Shell ปัจจุบัน แล้วทดสอบ
+source ~/.bashrc
+type lab
+lab
+mkcd ~/projects/linux-lab/c08/demo
+pwd
+echo "EDITOR=$EDITOR"
+type mkcd | head -n 1</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>lab is aliased to `cd ~/projects/linux-lab &amp;&amp; pwd'
+/home/somchai/projects/linux-lab
+/home/somchai/projects/linux-lab/c08/demo
+EDITOR=nano
+mkcd is a function</code></pre>
+    <p>ส่วนที่ 4 คำสั่งเชื่อม WSL กับ Windows (รันได้เฉพาะใน WSL ผลลัพธ์ด้านล่างเป็นรูปแบบที่ WSL แสดงสำหรับ Distro ชื่อ <code>Ubuntu-24.04</code> ไม่ได้มาจากเครื่องทดสอบ เพราะเครื่องทดสอบไม่ใช่ WSL)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># แปลง Path ของ Linux เป็น Path ที่ Windows เปิดได้
+wslpath -w ~/projects
+# เปิดโฟลเดอร์ปัจจุบันใน File Explorer (ไม่มีผลลัพธ์ในจอ หน้าต่างจะเปิดขึ้นมา)
+explorer.exe .
+# คัดลอกข้อความลง Clipboard ของ Windows แล้วไปกด Ctrl+V ในโปรแกรมไหนก็ได้
+pwd | clip.exe</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>\\wsl.localhost\Ubuntu-24.04\home\somchai\projects</code></pre>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>CITY=Bangkok</code></td><td>สร้าง Shell Variable ห้ามมีช่องว่างรอบ <code>=</code></td></tr>
+      <tr><td><code>bash -c '...${CITY:-&lt;empty&gt;}...'</code></td><td>เปิด bash ตัวใหม่เป็นโปรแกรมลูก ใช้เครื่องหมายคำพูดเดี่ยวเพื่อให้ตัวลูกเป็นผู้แปลค่า <code>$CITY</code> ครั้งแรกตัวลูกไม่เห็นจึงแสดง <code>&lt;empty&gt;</code></td></tr>
+      <tr><td><code>export CITY</code></td><td>เปลี่ยนเป็น Environment Variable ครั้งที่สองตัวลูกจึงเห็น <code>Bangkok</code></td></tr>
+      <tr><td><code>${EDITOR:-nano (ค่าเริ่มต้น)}</code></td><td>ยังไม่มี EDITOR จึงได้ข้อความหลัง <code>:-</code> ใช้บ่อยใน Script เพื่อกำหนดค่าเริ่มต้น</td></tr>
+      <tr><td><code>printenv CITY</code></td><td>แสดงค่าของ Environment Variable ตัวเดียว ใช้ตรวจว่า export สำเร็จ</td></tr>
+      <tr><td><code>echo "$PATH" | tr ':' '\n'</code></td><td>เปลี่ยน <code>:</code> เป็นขึ้นบรรทัดใหม่ อ่านลำดับการค้นหาง่ายขึ้น</td></tr>
+      <tr><td>ไฟล์ <code>sysinfo</code></td><td><code>$(คำสั่ง)</code> คือ Command Substitution นำผลของคำสั่งมาแทนที่ในข้อความ <code>date +%F</code> ให้วันที่แบบ YYYY-MM-DD</td></tr>
+      <tr><td><code>export PATH="$HOME/.local/bin:$PATH"</code></td><td>ต่อโฟลเดอร์ของเราไว้ <strong>หน้า</strong> PATH เดิม (ต้องมี <code>:$PATH</code> ไม่อย่างนั้น PATH เดิมหายทั้งหมด)</td></tr>
+      <tr><td><code>which sysinfo</code></td><td>ยืนยันว่า Bash หาโปรแกรมเจอที่ไหน</td></tr>
+      <tr><td><code>cp ~/.bashrc ~/.bashrc.bak</code></td><td>สำรองก่อนแก้ ถ้า Terminal พังให้คืนด้วย <code>cp ~/.bashrc.bak ~/.bashrc</code></td></tr>
+      <tr><td><code>cat &gt;&gt; ~/.bashrc &lt;&lt;'RC'</code></td><td>ต่อท้ายไฟล์ด้วย Heredoc <code>'RC'</code> มีเครื่องหมายคำพูด ข้อความ <code>$1</code> จึงถูกเขียนลงไฟล์ตรง ๆ ไม่ถูกแปลค่าตอนนี้</td></tr>
+      <tr><td><code>mkcd() { ... }</code></td><td>Function รับ Argument <code>$1</code> ได้ (alias ทำไม่ได้) <code>--</code> กันชื่อโฟลเดอร์ที่ขึ้นต้นด้วย <code>-</code> และ <code>|| return</code> หยุดถ้า cd ไม่สำเร็จ</td></tr>
+      <tr><td><code>source ~/.bashrc</code></td><td>รันไฟล์ใน Shell ปัจจุบัน alias และ function จึงใช้ได้ทันที</td></tr>
+      <tr><td><code>wslpath -w</code> / <code>explorer.exe .</code> / <code>clip.exe</code></td><td>โปรแกรมของ Windows เรียกจาก WSL ได้เพราะ PATH ของ Windows ถูกต่อไว้ท้าย PATH ของ Linux</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td><code>sysinfo: command not found</code></td><td>โฟลเดอร์ของโปรแกรมไม่อยู่ใน PATH หรือไฟล์ยังไม่มีสิทธิ์ x</td><td><code>echo "$PATH"</code> ตรวจ แล้ว <code>export PATH="$HOME/.local/bin:$PATH"</code> และ <code>chmod +x</code></td></tr>
+      <tr><td><code>CITY: command not found</code> หลังพิมพ์ <code>CITY = Bangkok</code></td><td>มีช่องว่างรอบ <code>=</code> Bash จึงคิดว่า <code>CITY</code> เป็นชื่อคำสั่ง</td><td>เขียนติดกัน <code>CITY=Bangkok</code></td></tr>
+      <tr><td><code>deploy.sh: line 2: $'\r': command not found</code> และ <code>cd: $'/tmp\r': No such file or directory</code></td><td>ไฟล์ถูกเขียนบน Windows ใช้ตัวขึ้นบรรทัด CRLF (<code>file deploy.sh</code> จะบอก <code>with CRLF line terminators</code>)</td><td>แปลงด้วย <code>sed -i 's/\r$//' deploy.sh</code> และตั้ง VS Code ให้ใช้ LF</td></tr>
+      <tr><td><code>bash: ./deploy.sh: cannot execute: required file not found</code></td><td>บรรทัด Shebang มี <code>\r</code> ต่อท้าย ระบบจึงหาโปรแกรม <code>bash\r</code> ไม่เจอ</td><td>แปลง CRLF เป็น LF เหมือนข้อบน</td></tr>
+      <tr><td>หลัง <code>export PATH=~/bin</code> คำสั่ง <code>ls</code> ก็หายไป: <code>Command 'ls' is available in the following places</code></td><td>เขียนทับ PATH ทั้งหมดโดยไม่ต่อ <code>:$PATH</code></td><td>ปิด Terminal แล้วเปิดใหม่ (PATH กลับมาจากไฟล์ตั้งค่า) แล้วแก้บรรทัดใน <code>~/.bashrc</code> ให้มี <code>:$PATH</code></td></tr>
+      <tr><td>แก้ <code>~/.bashrc</code> แล้วไม่มีผล</td><td>ยังไม่ได้โหลดใหม่ หรือรันจาก Script ที่ไม่ใช่ Shell แบบโต้ตอบ (Ubuntu ให้ <code>.bashrc</code> หยุดทำงานทันทีถ้าไม่ใช่ Interactive Shell)</td><td><code>source ~/.bashrc</code> หรือเปิด Terminal ใหม่ ส่วนค่าที่ Script ต้องใช้ให้กำหนดใน Script เอง</td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>ห้ามเขียน Password หรือ API Key ลงในโค้ด ให้อ่านจาก Environment Variable เช่น <code>export API_TOKEN=...</code> หรือไฟล์ <code>.env</code> ที่อยู่ใน <code>.gitignore</code> และตั้งสิทธิ์ 600</li>
+      <li>สำรอง <code>~/.bashrc</code> ก่อนแก้ทุกครั้ง และใส่หัวข้อ Comment บอกว่าส่วนไหนเพิ่มเองเมื่อไร</li>
+      <li>เก็บโปรแกรมส่วนตัวใน <code>~/.local/bin</code> ไม่ใช่ <code>/usr/bin</code> ซึ่งเป็นพื้นที่ของ apt</li>
+      <li>ใน Script ที่รันอัตโนมัติ (cron, systemd) อย่าพึ่ง alias หรือ PATH จาก <code>.bashrc</code> ให้ใช้ Path เต็มหรือตั้ง PATH ในตัว Script</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ปรับแต่ง Shell ของคุณเอง</p><ol>
+      <li>เพิ่ม alias <code>ll='ls -lah'</code> ใน <code>~/.bashrc</code> (Ubuntu มี <code>ll</code> อยู่แล้ว ให้ตรวจด้วย <code>type ll</code> ก่อน แล้วเลือกชื่ออื่นถ้าซ้ำ)</li>
+      <li>เพิ่ม <code>export HISTTIMEFORMAT='%F %T '</code> ใน <code>~/.bashrc</code> แล้ว <code>source</code> และดู <code>history | tail -n 3</code> ว่ามีวันเวลาไหม</li>
+      <li>แก้ <code>sysinfo</code> ให้แสดง <code>uptime -p</code> และจำนวน CPU จาก <code>nproc</code> เพิ่มอีก 2 บรรทัด</li>
+      <li>รัน <code>DEBUG=1 bash -c 'echo "debug=${DEBUG:-0}"'</code> และ <code>bash -c 'echo "debug=${DEBUG:-0}"'</code> แล้วอธิบายว่าการใส่ตัวแปรหน้าคำสั่งทำอะไร</li>
+      <li>รัน <code>echo "$PATH" | tr ':' '\n' | grep -c '^/mnt/c'</code> นับว่า WSL ต่อโฟลเดอร์ของ Windows เข้ามากี่โฟลเดอร์</li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 9</span><span class="lvl" data-lvl="a">Advanced</span></div>
+    <h3 id="s19-2-c09">Processes, Signals และ Job Control (ps, top, kill, jobs, nohup)</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p><strong>Process</strong> คือโปรแกรมที่กำลังทำงาน แต่ละตัวมีหมายเลขประจำตัว <strong>PID</strong> และรู้ว่าใครเปิดมันขึ้นมาผ่าน <strong>PPID</strong> (PID ของพ่อแม่) Process มีสถานะ (STAT) เช่น <code>R</code> กำลังใช้ CPU, <code>S</code> หลับรอเหตุการณ์ (สถานะที่พบบ่อยที่สุด), <code>T</code> ถูกหยุดชั่วคราว, <code>Z</code> Zombie (จบแล้วแต่พ่อแม่ยังไม่เก็บกวาด) และ <code>D</code> รอ Disk ที่ขัดจังหวะไม่ได้ เมื่อเว็บช้า เครื่องร้อน หรือโปรแกรมค้าง ผู้ดูแลระบบต้องหาให้เจอว่า Process ไหนเป็นต้นเหตุ แล้วสั่งให้หยุดอย่างถูกวิธี</p>
+    <ul>
+      <li>ดู Process: <code>ps aux</code> (ทุกตัว พร้อม %CPU %MEM) <code>ps -ef</code> (มี PPID) <code>ps -o pid,ppid,stat,etime,cmd -p PID</code> (เลือกคอลัมน์เอง) <code>pgrep -a ชื่อ</code> หา PID จากชื่อ และ <code>pkill ชื่อ</code> ส่ง Signal ตามชื่อ</li>
+      <li>ดูแบบสด: <code>top</code> (กด <kbd>P</kbd> เรียงตาม CPU, <kbd>M</kbd> เรียงตาม Memory, <kbd>q</kbd> ออก) และ <code>htop 3.3.0</code> ที่ใช้ง่ายกว่า (<kbd>F3</kbd> ค้นหา, <kbd>F6</kbd> เลือกการเรียง, <kbd>F9</kbd> ส่ง Signal)</li>
+      <li><strong>Signal</strong> คือข้อความสั้นที่ส่งถึง Process: <code>SIGINT</code> (2) เกิดจาก <kbd>Ctrl</kbd>+<kbd>C</kbd>, <code>SIGTERM</code> (15) ค่าเริ่มต้นของ <code>kill</code> ขอให้ปิดอย่างเรียบร้อย, <code>SIGKILL</code> (9) บังคับตายทันที โปรแกรมดักไม่ได้และไม่มีโอกาสเก็บกวาด จึงใช้เป็นทางสุดท้าย, <code>SIGHUP</code> (1) ส่งเมื่อปิด Terminal และ <code>SIGTSTP</code> เกิดจาก <kbd>Ctrl</kbd>+<kbd>Z</kbd> หยุดชั่วคราว ดูรายการทั้งหมดด้วย <code>kill -l</code></li>
+      <li><strong>Job Control</strong>: ใส่ <code>&amp;</code> ท้ายคำสั่งให้ทำงานเบื้องหลัง <code>jobs</code> ดูงานของ Terminal นี้ <code>fg %1</code> ดึงงานที่ 1 กลับมาข้างหน้า <code>bg %1</code> ให้งานที่หยุดอยู่ทำต่อเบื้องหลัง <code>nohup</code> ทำให้งานไม่ตายเมื่อปิด Terminal และ <code>disown</code> ปล่อยงานที่รันอยู่ให้เป็นอิสระจาก Shell สำหรับงานยาวที่ต้องกลับมาดูภายหลัง <code>tmux 3.4</code> สะดวกที่สุด</li>
+      <li>ใน Script ใช้ <code>trap</code> ดัก Signal เพื่อเก็บกวาด (ลบไฟล์ชั่วคราว ปิดการเชื่อมต่อ) ก่อนจบ</li>
+      <li>สุขภาพเครื่อง: <code>free -h</code> ดู RAM <code>uptime</code> ดู Load Average ของ 1, 5, 15 นาที (เทียบกับจำนวน CPU จาก <code>nproc</code> ถ้า Load สูงกว่าจำนวน CPU นาน ๆ แปลว่างานล้น) และข้อมูลดิบอยู่ใน <code>/proc/loadavg</code></li>
+    </ul>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Process เหมือนพนักงานในร้านอาหาร PID คือเลขบัตรพนักงาน PPID คือเลขของหัวหน้าที่จ้างมา Signal คือวิธีสื่อสาร: <code>SIGTERM</code> คือบอกว่า "ช่วยเก็บโต๊ะแล้วเลิกงานได้" พนักงานเก็บของให้เรียบร้อยก่อนกลับ <code>SIGKILL</code> คือเรียก รปภ. ลากออกจากร้านทันที จานยังวางค้างอยู่บนโต๊ะ และ <code>nohup</code> คือบอกพนักงานว่า "ถึงผู้จัดการกะกลับบ้านแล้วก็ทำงานต่อไป"</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>สร้างงานจำลอง <code>worker.sh</code> ที่เขียน heartbeat ลง Log ทุกวินาที และปิดตัวอย่างเรียบร้อยเมื่อได้รับ SIGTERM หรือ SIGINT</p>
+<pre class="code" data-env="file" data-label="Bash · ~/projects/linux-lab/c09/worker.sh"><code class="language-bash">#!/usr/bin/env bash
+# worker.sh: งานจำลองที่ทำงานไปเรื่อย ๆ และปิดตัวอย่างปลอดภัยเมื่อได้รับสัญญาณ
+set -euo pipefail
+
+LOG_FILE="worker.log"
+TMP_FILE="/tmp/worker-$$.tmp"
+
+cleanup() {
+    rm -f -- "$TMP_FILE"
+    echo "$(date +%T) ลบไฟล์ชั่วคราวแล้ว" &gt;&gt; "$LOG_FILE"
+}
+
+trap 'echo "$(date +%T) ได้รับสัญญาณ TERM กำลังปิดอย่างปลอดภัย" &gt;&gt; "$LOG_FILE"; cleanup; exit 0' TERM
+trap 'echo "$(date +%T) ได้รับสัญญาณ INT (Ctrl+C) กำลังปิด" &gt;&gt; "$LOG_FILE"; cleanup; exit 130' INT
+
+echo "$(date +%T) เริ่มทำงาน PID=$$" &gt;&gt; "$LOG_FILE"
+touch "$TMP_FILE"
+count=0
+while true; do
+    count=$((count + 1))
+    echo "$(date +%T) heartbeat $count" &gt;&gt; "$LOG_FILE"
+    sleep 1
+done</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/linux-lab/c09
+chmod +x worker.sh
+
+# รันเบื้องหลังด้วย nohup เก็บ stdout และ stderr ไว้ใน worker.out
+nohup ./worker.sh &gt; worker.out 2&gt;&amp;1 &amp;
+# $! คือ PID ของงานเบื้องหลังล่าสุด เก็บไว้ในตัวแปร
+PID=$!
+echo "PID=$PID"
+sleep 3
+
+# ดูรายละเอียด Process และหาด้วยชื่อ
+ps -o pid,ppid,stat,etime,cmd -p "$PID"
+pgrep -af worker.sh
+
+# ส่ง SIGTERM (ค่าเริ่มต้นของ kill) แล้วรอให้ปิดตัว
+kill "$PID"
+sleep 1.5
+tail -n 3 worker.log
+ps -p "$PID" &gt; /dev/null || echo "process $PID จบแล้ว"</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[1] 3146
+PID=3146
+  PID  PPID STAT     ELAPSED CMD
+ 3146  3141 S          00:03 bash ./worker.sh
+3146 bash ./worker.sh
+[1]+  Done                    nohup ./worker.sh &gt; worker.out 2&gt;&amp;1
+22:30:01 heartbeat 3
+22:30:02 ได้รับสัญญาณ TERM กำลังปิดอย่างปลอดภัย
+22:30:02 ลบไฟล์ชั่วคราวแล้ว
+process 3146 จบแล้ว</code></pre>
+    <p class="muted small">PID, PPID และเวลาจะต่างกันทุกครั้งที่รัน PPID คือ PID ของ Terminal ที่คุณใช้อยู่ บรรทัด <code>[1] ...</code> และ <code>[1]+  Done</code> คือข้อความ Job Control ที่ Bash แสดงใน Terminal แบบโต้ตอบ โดย <code>Done</code> ขึ้นก่อนผลของ <code>tail</code> เพราะ Bash แจ้งสถานะงานตอนจะแสดง Prompt ถัดไป ซึ่งเกิดหลัง <code>sleep 1.5</code> จบ ส่วนไฟล์ <code>worker.out</code> จะมีข้อความ <code>nohup: ignoring input</code> 1 บรรทัด</p>
+    <p>ต่อด้วยการฝึก Job Control กับคำสั่ง <code>sleep</code> ใน Terminal เดียวกัน:</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เปิดงานเบื้องหลัง 2 งาน แล้วดูรายการ
+sleep 300 &amp;
+sleep 400 &amp;
+jobs
+# ส่ง SIGTERM ให้ทั้งสองงานด้วยหมายเลข Job
+kill %1 %2
+sleep 0.3
+jobs
+# ลองดึงงานกลับมาข้างหน้า และ kill ซ้ำ ทั้งที่ไม่มีงานเหลือแล้ว
+fg
+kill %1</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[1] 3195
+[2] 3196
+[1]-  Running                 sleep 300 &amp;
+[2]+  Running                 sleep 400 &amp;
+[1]-  Terminated              sleep 300
+[2]+  Terminated              sleep 400
+bash: fg: current: no such job
+bash: kill: %1: no such job</code></pre>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>set -euo pipefail</code></td><td>Strict Mode: หยุดเมื่อคำสั่งล้มเหลว ห้ามใช้ตัวแปรที่ไม่ได้กำหนด และให้ Pipe ล้มเหลวถ้าคำสั่งใดในสายล้มเหลว (อธิบายเต็มในแนวคิดที่ 12)</td></tr>
+      <tr><td><code>TMP_FILE="/tmp/worker-$$.tmp"</code></td><td><code>$$</code> คือ PID ของ Script เอง ใช้ตั้งชื่อไฟล์ชั่วคราวไม่ให้ซ้ำกับตัวอื่น</td></tr>
+      <tr><td><code>trap '...' TERM</code> / <code>trap '...' INT</code></td><td>กำหนดสิ่งที่ต้องทำเมื่อได้รับ Signal: เขียน Log, เรียก <code>cleanup</code> ลบไฟล์ชั่วคราว แล้ว <code>exit</code> (130 = 128 + 2 คือรหัสมาตรฐานของการจบด้วย SIGINT)</td></tr>
+      <tr><td><code>while true; do ... sleep 1; done</code></td><td>ลูปไม่รู้จบ จำลองโปรแกรมที่ทำงานตลอด เช่น Server หรือ Worker ของคิวงาน</td></tr>
+      <tr><td><code>nohup ./worker.sh &gt; worker.out 2&gt;&amp;1 &amp;</code></td><td><code>nohup</code> ทำให้ไม่สนใจ SIGHUP เมื่อปิด Terminal ผลลัพธ์ลงไฟล์ และ <code>&amp;</code> ส่งไปเบื้องหลัง</td></tr>
+      <tr><td><code>PID=$!</code></td><td><code>$!</code> เก็บ PID ของงานเบื้องหลังตัวล่าสุด เก็บไว้ในตัวแปรเพื่อใช้ภายหลัง</td></tr>
+      <tr><td><code>ps -o pid,ppid,stat,etime,cmd -p "$PID"</code></td><td>STAT <code>S</code> คือหลับอยู่ (ส่วนใหญ่รอ <code>sleep</code>) ETIME คือเวลาที่ทำงานมาแล้ว <code>00:03</code> วินาที</td></tr>
+      <tr><td><code>pgrep -af worker.sh</code></td><td><code>-f</code> ค้นทั้ง Command Line ไม่ใช่แค่ชื่อโปรแกรม <code>-a</code> แสดง Command Line ด้วย</td></tr>
+      <tr><td><code>kill "$PID"</code></td><td>ส่ง SIGTERM Bash จะรัน trap หลัง <code>sleep 1</code> ที่ทำอยู่จบ จึงเห็นข้อความ TERM ตามด้วยการลบไฟล์ชั่วคราว</td></tr>
+      <tr><td><code>ps -p "$PID" &gt; /dev/null || echo ...</code></td><td><code>ps -p</code> คืน Exit code ไม่เป็น 0 เมื่อไม่พบ Process <code>||</code> จึงพิมพ์ว่าจบแล้ว</td></tr>
+      <tr><td><code>jobs</code> / <code>kill %1 %2</code></td><td><code>%1</code> คือหมายเลข Job ของ Terminal นี้ (ไม่ใช่ PID) <code>+</code> คืองานปัจจุบัน และ <code>-</code> คืองานก่อนหน้า</td></tr>
+      <tr><td><code>fg</code> / <code>kill %1</code> หลังงานจบ</td><td>ไม่มีงานเหลือแล้วจึงได้ <code>no such job</code> เป็นตัวอย่างข้อความ Error ที่ควรอ่านออก</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td><code>bash: kill: (3146) - No such process</code></td><td>Process จบไปแล้ว หรือพิมพ์ PID ผิด (PID เปลี่ยนทุกครั้งที่รันใหม่)</td><td>หา PID ปัจจุบันด้วย <code>pgrep -af ชื่อ</code> ก่อนสั่ง kill</td></tr>
+      <tr><td><code>bash: kill: %1: no such job</code></td><td>หมายเลข Job ใช้ได้เฉพาะใน Terminal ที่เปิดงานนั้น เปิด Terminal ใหม่ก็มองไม่เห็น</td><td>ใช้ PID แทน หรือรัน <code>jobs</code> ใน Terminal เดิม</td></tr>
+      <tr><td><code>bash: fg: current: no such job</code></td><td>ไม่มีงานเบื้องหลังหรืองานที่หยุดไว้ใน Terminal นี้</td><td>ตรวจด้วย <code>jobs</code> ก่อน</td></tr>
+      <tr><td>ใช้ <code>kill -9</code> ทันที แล้วพบไฟล์ <code>/tmp/worker-*.tmp</code> ค้างอยู่และ Log ไม่มีบรรทัดปิดงาน</td><td>SIGKILL ดักไม่ได้ trap จึงไม่ทำงาน ไม่มีการเก็บกวาด และอาจทำให้ข้อมูลเขียนไม่ครบ</td><td>ส่ง <code>kill PID</code> (SIGTERM) ก่อน รอ 5 ถึง 10 วินาที ถ้ายังไม่จบจึงใช้ <code>kill -9 PID</code></td></tr>
+      <tr><td>ปิดหน้าต่าง Terminal แล้วงานที่รันด้วย <code>./job.sh &amp;</code> หายไป</td><td>เมื่อ Terminal ปิด Shell ส่ง SIGHUP ให้งานลูก</td><td>ใช้ <code>nohup ./job.sh &gt; job.out 2&gt;&amp;1 &amp;</code> หรือรันใน <code>tmux</code> และสำหรับงานถาวรให้ทำเป็น Service (แนวคิดที่ 10)</td></tr>
+      <tr><td>กด <kbd>Ctrl</kbd>+<kbd>Z</kbd> แล้วเห็น <code>[1]+  Stopped</code> และคิดว่าโปรแกรมปิดแล้ว</td><td>Ctrl+Z แค่หยุดชั่วคราว Process ยังอยู่และยังจองหน่วยความจำ</td><td>ใช้ <code>fg</code> เพื่อกลับไปทำต่อ หรือ <code>kill %1</code> เพื่อปิดจริง</td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>ลำดับการหยุดโปรแกรม: <kbd>Ctrl</kbd>+<kbd>C</kbd> หรือ <code>kill</code> (SIGTERM) ก่อน แล้วจึง <code>kill -9</code> เมื่อจำเป็นจริง ๆ</li>
+      <li>Script ที่สร้างไฟล์ชั่วคราวหรือ Lock ต้องมี <code>trap</code> สำหรับ TERM, INT และ EXIT เพื่อเก็บกวาดเสมอ</li>
+      <li>เก็บ PID ด้วย <code>$!</code> หรือ <code>pgrep</code> แทนการคัดลอกตัวเลขด้วยตา และระวัง <code>pkill -f</code> ที่อาจจับ Process อื่นที่มีคำเดียวกันใน Command Line</li>
+      <li>งานที่ต้องรันตลอดและเริ่มใหม่เองเมื่อพัง ไม่ควรใช้ <code>nohup</code> ให้ทำเป็น systemd Service ซึ่งมี Log และ Restart ในตัว</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ฝึกส่ง Signal แบบต่าง ๆ ให้ worker.sh</p><ol>
+      <li>รัน <code>./worker.sh</code> แบบปกติ (ไม่มี <code>&amp;</code>) รอ 3 วินาทีแล้วกด <kbd>Ctrl</kbd>+<kbd>C</kbd> จากนั้นดู <code>tail -n 3 worker.log</code> และ <code>echo $?</code> (ควรได้ 130)</li>
+      <li>รันเบื้องหลังอีกครั้ง แล้วส่ง <code>kill -9 PID</code> ดูว่า Log ไม่มีบรรทัดปิดงาน และตรวจไฟล์ค้างด้วย <code>ls /tmp/worker-*.tmp</code> แล้วลบทิ้งเอง</li>
+      <li>รัน <code>sleep 500</code> กด <kbd>Ctrl</kbd>+<kbd>Z</kbd> ใช้ <code>jobs</code> ดูสถานะ <code>bg %1</code> ให้ทำต่อเบื้องหลัง แล้ว <code>kill %1</code></li>
+      <li>เปิด <code>htop</code> กด <kbd>F3</kbd> ค้น <code>sleep</code> แล้วใช้ <kbd>F9</kbd> ส่ง SIGTERM</li>
+      <li>รัน <code>nproc</code>, <code>uptime</code> และ <code>free -h</code> แล้วสรุปว่าเครื่องของคุณ Load เทียบกับจำนวน CPU เป็นอย่างไร</li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 10</span><span class="lvl" data-lvl="a">Advanced</span></div>
+    <h3 id="s19-2-c10">Services ด้วย systemd: systemctl, journalctl และ Log ใน /var/log</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p><strong>Service</strong> (หรือ Daemon) คือโปรแกรมที่ทำงานเบื้องหลังตลอดเวลา เช่น Web Server, ฐานข้อมูล, SSH Server และ cron บน Ubuntu ผู้จัดการ Service คือ <strong>systemd</strong> ซึ่งเป็น Process หมายเลข 1 (PID 1) ตัวแรกที่เริ่มเมื่อเปิดเครื่อง หน้าที่ของ systemd คือเปิด Service ตามลำดับที่ถูกต้อง เริ่มใหม่ให้เมื่อพัง และเก็บ Log ของทุก Service ไว้ในที่เดียวเรียกว่า Journal Service แต่ละตัวอธิบายด้วยไฟล์ <strong>Unit</strong> นามสกุล <code>.service</code> ไฟล์ของแพ็กเกจอยู่ใน <code>/usr/lib/systemd/system/</code> และไฟล์ที่เราเขียนเองอยู่ใน <code>/etc/systemd/system/</code></p>
+    <ul>
+      <li><strong>WSL</strong>: Ubuntu 24.04 บน WSL เปิด systemd ให้เป็นค่าเริ่มต้นผ่านไฟล์ <code>/etc/wsl.conf</code> ส่วน <code>[boot]</code> บรรทัด <code>systemd=true</code> ตรวจด้วย <code>ps -p 1 -o comm=</code> ถ้าได้ <code>systemd</code> ก็พร้อม ถ้าได้ <code>init</code> ให้เพิ่มบรรทัดนั้นด้วย <code>sudo nano /etc/wsl.conf</code> แล้วรัน <code>wsl --shutdown</code> ใน PowerShell และเปิด Ubuntu ใหม่</li>
+      <li><code>systemctl status</code> ดูสถานะ <code>start</code> / <code>stop</code> / <code>restart</code> เปิด ปิด เริ่มใหม่ <code>reload</code> ให้อ่าน Config ใหม่โดยไม่หยุด (ถ้า Service รองรับ) <code>enable</code> / <code>disable</code> ให้เปิดหรือไม่เปิดเองตอนบูต (<code>enable --now</code> ทำทั้ง enable และ start) <code>is-active</code> / <code>is-enabled</code> ตอบคำเดียวเหมาะกับ Script <code>--failed</code> ดู Service ที่พัง <code>list-units --type=service --state=running</code> ดูที่กำลังทำงาน และ <code>daemon-reload</code> ให้ systemd อ่านไฟล์ Unit ใหม่หลังแก้</li>
+      <li><code>journalctl -u ชื่อ</code> ดู Log ของ Service <code>-n 20</code> 20 บรรทัดล่าสุด <code>-f</code> ดูสด <code>--since "10 min ago"</code> ตามเวลา <code>-p err</code> เฉพาะระดับ Error ขึ้นไป <code>-b</code> ตั้งแต่บูตครั้งนี้ และ <code>--no-pager</code> พิมพ์ออกมาตรง ๆ ไม่เปิด less</li>
+      <li><code>/var/log</code> ยังมีไฟล์ Log แบบข้อความ เช่น <code>apt/history.log</code> (ประวัติการติดตั้ง) และ <code>dpkg.log</code> ส่วน <code>syslog</code> และ <code>auth.log</code> จะมีเฉพาะเมื่อติดตั้ง rsyslog ข้อความของ Kernel ดูด้วย <code>sudo dmesg</code></li>
+      <li>ถ้าไม่มี systemd จะใช้คำสั่งรุ่นเก่า <code>sudo service cron status</code> / <code>start</code> / <code>stop</code> แทนได้</li>
+    </ul>
+    <p>ใช้แนวคิดนี้เมื่อติดตั้งโปรแกรมแบบ Server แล้วต้องตรวจว่าทำงานไหม ต้องการให้แอปของตัวเองทำงานตลอดและเริ่มใหม่เองเมื่อพัง หรือตามหาสาเหตุที่ Service เปิดไม่ขึ้น ซึ่งคำตอบเกือบทุกครั้งอยู่ใน <code>journalctl -u</code></p>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>systemd เหมือนผู้จัดการอาคาร Service คือร้านค้าในอาคาร ไฟล์ Unit คือสัญญาเช่าที่ระบุว่าร้านเปิดกี่โมง ต้องรอร้านไหนเปิดก่อน และถ้าร้านปิดกะทันหันให้เปิดใหม่ไหม <code>enable</code> คือการลงชื่อให้เปิดร้านอัตโนมัติทุกเช้า <code>start</code> คือสั่งเปิดตอนนี้เลย และ <code>journalctl</code> คือสมุดบันทึกเหตุการณ์ของ รปภ. ที่จดทุกอย่างของทุกร้านไว้เล่มเดียว</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>ส่วนที่ 1 ตรวจว่า WSL เปิด systemd แล้ว และจัดการ Service <code>cron</code> ที่ติดตั้งไว้ในขั้นเตรียมเครื่อง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Process หมายเลข 1 คืออะไร และ WSL ตั้งค่าไว้อย่างไร
+ps -p 1 -o comm=
+cat /etc/wsl.conf
+
+# ดูสถานะ cron หยุด ตรวจ แล้วเปิดใหม่
+systemctl status cron --no-pager
+sudo systemctl stop cron
+systemctl is-active cron
+sudo systemctl start cron
+systemctl is-active cron
+systemctl is-enabled cron
+journalctl -u cron -n 5 --no-pager</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>systemd
+[boot]
+systemd=true
+
+[user]
+default=somchai
+● cron.service - Regular background program processing daemon
+     Loaded: loaded (/usr/lib/systemd/system/cron.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-10-19 08:58:12 +07; 5h 21min ago
+       Docs: man:cron(8)
+   Main PID: 182 (cron)
+      Tasks: 1 (limit: 9387)
+     Memory: 1.1M (peak: 1.6M)
+        CPU: 45ms
+     CGroup: /system.slice/cron.service
+             └─182 /usr/sbin/cron -f -P
+
+Oct 19 08:58:12 DESKTOP-K7Q2M4P systemd[1]: Started cron.service - Regular background program processing daemon.
+Oct 19 08:58:12 DESKTOP-K7Q2M4P cron[182]: (CRON) INFO (pidfile fd = 3)
+Oct 19 08:58:12 DESKTOP-K7Q2M4P cron[182]: (CRON) INFO (Running @reboot jobs)
+inactive
+active
+enabled
+Oct 19 14:19:30 DESKTOP-K7Q2M4P systemd[1]: cron.service: Deactivated successfully.
+Oct 19 14:19:30 DESKTOP-K7Q2M4P systemd[1]: Stopped cron.service - Regular background program processing daemon.
+Oct 19 14:19:31 DESKTOP-K7Q2M4P systemd[1]: Started cron.service - Regular background program processing daemon.
+Oct 19 14:19:31 DESKTOP-K7Q2M4P cron[2311]: (CRON) INFO (pidfile fd = 3)
+Oct 19 14:19:31 DESKTOP-K7Q2M4P cron[2311]: (CRON) INFO (Skipping @reboot jobs -- not system startup)</code></pre>
+    <div class="callout note"><span class="c-label note">หมายเหตุ</span><p>เครื่องทดสอบของหลักสูตรเป็น Container ที่ไม่มี systemd เป็น PID 1 ผลลัพธ์ของ <code>systemctl</code> และ <code>journalctl</code> ในแนวคิดนี้จึงเป็นรูปแบบที่ systemd 255 บน Ubuntu 24.04 แสดง โดยวันเวลา PID, Memory, CPU, ระยะเวลาที่ทำงานมา และ <code>limit</code> ของ Tasks บนเครื่องคุณจะต่างไป ส่วน <code>/etc/wsl.conf</code> อาจไม่มีส่วน <code>[user]</code> ถ้าคุณตั้งผู้ใช้ด้วยวิธีอื่น</p></div>
+    <p>ส่วนที่ 2 ทำ Service ของตัวเองชื่อ <code>hello-web</code> ที่เสิร์ฟหน้าเว็บด้วย Python เตรียมหน้าเว็บก่อน:</p>
+<pre class="code" data-env="file" data-label="HTML · ~/projects/linux-lab/c10/site/index.html"><code class="language-xml">&lt;!DOCTYPE html&gt;
+&lt;html lang="th"&gt;
+&lt;head&gt;&lt;meta charset="utf-8"&gt;&lt;title&gt;hello-web&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;&lt;h1&gt;สวัสดีจาก hello-web บน Ubuntu&lt;/h1&gt;&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+    <p>สร้างไฟล์ Unit ด้วย <code>sudo nano /etc/systemd/system/hello-web.service</code> (ต้องใช้ sudo เพราะอยู่ใน <code>/etc</code>)</p>
+<pre class="code" data-env="file" data-label="INI · /etc/systemd/system/hello-web.service"><code class="language-ini">[Unit]
+Description=Hello Web (python http.server)
+# รอให้ระบบเครือข่ายพร้อมก่อน
+After=network.target
+
+[Service]
+Type=simple
+# รันด้วยผู้ใช้ทั่วไป ไม่ใช่ root
+User=somchai
+WorkingDirectory=/home/somchai/projects/linux-lab/c10/site
+# ให้ Python เขียน Log ออกทันที ไม่พักไว้ใน Buffer
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -m http.server 8080
+# ถ้าโปรแกรมพัง ให้เริ่มใหม่หลัง 3 วินาที
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ตรวจ Syntax ของไฟล์ Unit (ไม่มีผลลัพธ์ = ผ่าน)
+systemd-analyze verify /etc/systemd/system/hello-web.service
+# ให้ systemd อ่านไฟล์ใหม่ แล้วเปิดพร้อมตั้งให้เปิดเองตอนบูต
+sudo systemctl daemon-reload
+sudo systemctl enable --now hello-web
+systemctl status hello-web --no-pager
+# ทดสอบเรียกหน้าเว็บ แล้วดู Log
+curl -s localhost:8080
+journalctl -u hello-web -n 5 --no-pager
+# เลิกทดลอง: ปิดและยกเลิกการเปิดอัตโนมัติ
+sudo systemctl disable --now hello-web</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Created symlink /etc/systemd/system/multi-user.target.wants/hello-web.service → /etc/systemd/system/hello-web.service.
+● hello-web.service - Hello Web (python http.server)
+     Loaded: loaded (/etc/systemd/system/hello-web.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-10-19 14:20:05 +07; 2s ago
+   Main PID: 2345 (python3)
+      Tasks: 1 (limit: 9387)
+     Memory: 9.8M (peak: 10.1M)
+        CPU: 61ms
+     CGroup: /system.slice/hello-web.service
+             └─2345 /usr/bin/python3 -m http.server 8080
+
+Oct 19 14:20:05 DESKTOP-K7Q2M4P systemd[1]: Started hello-web.service - Hello Web (python http.server).
+&lt;!DOCTYPE html&gt;
+&lt;html lang="th"&gt;
+&lt;head&gt;&lt;meta charset="utf-8"&gt;&lt;title&gt;hello-web&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;&lt;h1&gt;สวัสดีจาก hello-web บน Ubuntu&lt;/h1&gt;&lt;/body&gt;
+&lt;/html&gt;
+Oct 19 14:20:05 DESKTOP-K7Q2M4P systemd[1]: Started hello-web.service - Hello Web (python http.server).
+Oct 19 14:20:05 DESKTOP-K7Q2M4P python3[2345]: Serving HTTP on 0.0.0.0 port 8080 (http://0.0.0.0:8080/) ...
+Oct 19 14:20:07 DESKTOP-K7Q2M4P python3[2345]: 127.0.0.1 - - [19/Oct/2026 14:20:07] "GET / HTTP/1.1" 200 -
+Removed "/etc/systemd/system/multi-user.target.wants/hello-web.service".</code></pre>
+    <p class="muted small">ผลของ <code>curl</code> (หน้า HTML) และรูปแบบบรรทัด Log ของ Python ได้จากการรันจริงบนเครื่องทดสอบ ส่วนบรรทัดของ systemd เป็นรูปแบบของ systemd 255 ค่าเวลา PID และ Memory จะต่างกัน</p>
+    <p>ส่วนที่ 3 ทางสำรองเมื่อ systemd ไม่ทำงาน (ผลลัพธ์นี้ได้จากเครื่องทดสอบจริง ซึ่งไม่มี systemd)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">systemctl status cron --no-pager
+sudo service cron status
+sudo service cron start
+sudo service cron status</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>System has not been booted with systemd as init system (PID 1). Can't operate.
+Failed to connect to bus: Host is down
+ * cron is not running
+ * Starting periodic command scheduler cron
+   ...done.
+ * cron is running</code></pre>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>ps -p 1 -o comm=</code></td><td>แสดงชื่อของ PID 1 <code>comm=</code> คือไม่ต้องพิมพ์หัวคอลัมน์ ได้ <code>systemd</code> แปลว่าใช้ systemctl ได้</td></tr>
+      <tr><td><code>Loaded: ... enabled; preset: enabled</code></td><td>ไฟล์ Unit อยู่ที่ไหน และตั้งให้เปิดเองตอนบูตหรือไม่</td></tr>
+      <tr><td><code>Active: active (running) since ...</code></td><td>สถานะตอนนี้ และเริ่มทำงานมาตั้งแต่เมื่อไร ถ้าพังจะเป็น <code>failed</code> สีแดง</td></tr>
+      <tr><td><code>Main PID</code> / <code>CGroup</code></td><td>PID ของโปรแกรมหลัก และ Process ทั้งหมดที่ Service นี้เปิด (systemd ติดตามได้แม้ Process แตกลูก)</td></tr>
+      <tr><td><code>systemctl is-active</code> / <code>is-enabled</code></td><td>ตอบคำเดียว (<code>active</code> / <code>inactive</code>, <code>enabled</code> / <code>disabled</code>) และคืน Exit code ใช้ใน Script ได้ เช่น <code>systemctl is-active --quiet cron || echo "cron down"</code></td></tr>
+      <tr><td><code>journalctl -u cron -n 5 --no-pager</code></td><td>5 บรรทัดล่าสุดของ cron เห็นลำดับ Stopped แล้ว Started ตามที่เราสั่ง และ cron บอกว่าข้ามงาน <code>@reboot</code> เพราะไม่ใช่การบูตเครื่อง</td></tr>
+      <tr><td><code>[Unit]</code> <code>Description</code> / <code>After</code></td><td>ชื่อที่แสดงใน status และลำดับการเริ่ม (หลังเครือข่าย)</td></tr>
+      <tr><td><code>[Service]</code> <code>User</code> / <code>WorkingDirectory</code> / <code>ExecStart</code></td><td>รันด้วยผู้ใช้ไหน ในโฟลเดอร์ไหน และคำสั่งอะไร <code>ExecStart</code> ต้องเป็น Path เต็ม</td></tr>
+      <tr><td><code>Environment=PYTHONUNBUFFERED=1</code></td><td>ถ้าไม่ใส่ บรรทัด <code>Serving HTTP ...</code> จะค้างใน Buffer ไม่ขึ้นใน journal ทันที เพราะ stdout ไม่ได้ต่อกับ Terminal</td></tr>
+      <tr><td><code>Restart=on-failure</code> / <code>RestartSec=3</code></td><td>เริ่มใหม่อัตโนมัติเมื่อโปรแกรมจบแบบผิดปกติ รอ 3 วินาทีก่อนเริ่ม</td></tr>
+      <tr><td><code>[Install]</code> <code>WantedBy=multi-user.target</code></td><td>บอกว่า <code>enable</code> แล้วให้เปิดพร้อมระบบในโหมดปกติ (ผลคือ Symlink ที่เห็นในบรรทัด <code>Created symlink</code>)</td></tr>
+      <tr><td><code>systemd-analyze verify</code></td><td>ตรวจไฟล์ Unit ก่อนใช้งานจริง ถ้าพิมพ์ชื่อ Key ผิดจะบอก</td></tr>
+      <tr><td><code>daemon-reload</code> แล้ว <code>enable --now</code></td><td>ทุกครั้งที่สร้างหรือแก้ไฟล์ Unit ต้อง daemon-reload ก่อน จากนั้นเปิดและตั้งให้เปิดเองในคำสั่งเดียว</td></tr>
+      <tr><td><code>disable --now</code></td><td>ลบ Symlink (บรรทัด <code>Removed</code>) และหยุด Service ทันที</td></tr>
+      <tr><td><code>sudo service cron start</code></td><td>คำสั่งแบบเก่าที่เรียกสคริปต์ใน <code>/etc/init.d</code> ใช้ได้เมื่อไม่มี systemd</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td><code>System has not been booted with systemd as init system (PID 1). Can't operate.</code> ตามด้วย <code>Failed to connect to bus: Host is down</code></td><td>WSL ยังไม่ได้เปิด systemd</td><td>เพิ่ม <code>[boot]</code> และ <code>systemd=true</code> ใน <code>/etc/wsl.conf</code> แล้วรัน <code>wsl --shutdown</code> ใน PowerShell เปิด Ubuntu ใหม่ ระหว่างนี้ใช้ <code>sudo service ...</code></td></tr>
+      <tr><td><code>Warning: The unit file, source configuration file or drop-ins of hello-web.service changed on disk. Run 'systemctl daemon-reload' to reload units.</code></td><td>แก้ไฟล์ Unit แล้วยังไม่ได้ให้ systemd อ่านใหม่</td><td><code>sudo systemctl daemon-reload</code> แล้ว <code>sudo systemctl restart hello-web</code></td></tr>
+      <tr><td><code>Failed to start hello-web.service: Unit hello-web.service not found.</code></td><td>ชื่อไฟล์ผิด หรือวางไฟล์ผิดโฟลเดอร์ หรือยังไม่ได้ daemon-reload</td><td>ตรวจ <code>ls /etc/systemd/system/hello-web.service</code> แล้ว daemon-reload</td></tr>
+      <tr><td>status เป็น <code>Active: failed (Result: exit-code)</code> และ journal มี <code>OSError: [Errno 98] Address already in use</code></td><td>มีโปรแกรมอื่นใช้ Port 8080 อยู่</td><td>หาด้วย <code>sudo ss -tlnp | grep 8080</code> แล้วปิดโปรแกรมนั้นหรือเปลี่ยน Port</td></tr>
+      <tr><td>journal มี <code>Changing to the requested working directory failed: No such file or directory</code></td><td>Path ใน <code>WorkingDirectory</code> ไม่มีจริงหรือสะกดผิด</td><td>สร้างโฟลเดอร์หรือแก้ Path ให้เป็น Path เต็มที่ถูกต้อง</td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>อ่าน <code>systemctl status</code> และ <code>journalctl -u ชื่อ -n 50 --no-pager</code> ก่อนแก้อะไรทุกครั้งที่ Service มีปัญหา</li>
+      <li>เขียนไฟล์ Unit ให้ Service รันด้วยผู้ใช้ที่ไม่ใช่ root ใช้ Path เต็ม และมี <code>Restart=on-failure</code></li>
+      <li>หลังแก้ Config ของ Service ให้ทดสอบ Syntax ก่อน (เช่น <code>sudo nginx -t</code>, <code>sudo sshd -t</code>) แล้วใช้ <code>reload</code> ถ้า Service รองรับ เพื่อไม่ตัดผู้ใช้ที่เชื่อมต่ออยู่</li>
+      <li>บน WSL ทุก Service หยุดเมื่อ WSL ปิด (เช่นหลัง <code>wsl --shutdown</code> หรือ Windows รีสตาร์ต) งานที่ต้องทำงานตลอดจริงควรอยู่บน Server หรือ Cloud</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ปรับ Service hello-web</p><ol>
+      <li>เปลี่ยน Port ในไฟล์ Unit เป็น 8081 รัน daemon-reload แล้ว restart และทดสอบด้วย <code>curl -s localhost:8081</code></li>
+      <li>เปิดหน้าเว็บ <code>http://localhost:8081</code> ในเบราว์เซอร์ของ Windows (WSL ส่งต่อ localhost ให้) แล้วดูบรรทัดใหม่ใน <code>journalctl -u hello-web -f</code></li>
+      <li>ทดสอบ Restart: หา Main PID แล้วส่ง <code>sudo kill -9 PID</code> รอ 3 วินาที ดู <code>systemctl status</code> ว่า PID ใหม่ขึ้นมาเองหรือไม่</li>
+      <li>รัน <code>systemctl list-units --type=service --state=running --no-pager</code> แล้วเลือก Service 3 ตัวที่ไม่รู้จักมาอ่าน Description</li>
+      <li>รัน <code>journalctl -p err -b --no-pager | tail -n 10</code> ดู Error ตั้งแต่บูตครั้งนี้ แล้วปิดงานด้วย <code>sudo systemctl disable --now hello-web</code> และ <code>sudo rm /etc/systemd/system/hello-web.service</code> ตามด้วย <code>sudo systemctl daemon-reload</code></li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 11</span><span class="lvl" data-lvl="a">Advanced</span></div>
+    <h3 id="s19-2-c11">Networking พื้นฐานและ SSH Keys (ip, ss, curl, dig, ssh-keygen)</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p>งานเกือบทุกสายต้องสื่อสารผ่านเครือข่าย <strong>IP Address</strong> คือที่อยู่ของเครื่อง <strong>Port</strong> คือหมายเลขช่องทางของแต่ละโปรแกรมในเครื่องเดียวกัน (เว็บ 80/443, SSH 22, PostgreSQL 5432) <strong>DNS</strong> แปลงชื่ออย่าง <code>ubuntu.com</code> เป็น IP และ <strong>localhost</strong> (<code>127.0.0.1</code>) คือเครื่องตัวเอง คำสั่งที่ใช้ตรวจเครือข่ายบน Ubuntu:</p>
+    <ul>
+      <li><code>ip -br a</code> ดู IP ของแต่ละการ์ดแบบสั้น (<code>ip a</code> แบบละเอียด) <code>ip route</code> ดูเส้นทาง โดย <code>default via</code> คือ Gateway และ <code>hostname -I</code> แสดงเฉพาะ IP</li>
+      <li><code>ping -c 3 host</code> ทดสอบว่าติดต่อถึงไหม <code>curl -I</code> ดูเฉพาะ Header ของเว็บ <code>curl -s</code> ไม่แสดงแถบความคืบหน้า <code>curl -o file</code> บันทึกลงไฟล์ และ <code>wget</code> ดาวน์โหลดไฟล์</li>
+      <li><code>ss -tulpn</code> ดูว่าโปรแกรมไหนรอรับการเชื่อมต่อ (Listen) ที่ Port ใด (<code>t</code> TCP, <code>u</code> UDP, <code>l</code> Listen, <code>p</code> ชื่อโปรแกรม ต้องใช้ sudo จึงจะเห็นของผู้ใช้อื่น, <code>n</code> แสดงเป็นตัวเลข)</li>
+      <li><code>dig ubuntu.com</code>, <code>dig +short ubuntu.com</code> และ <code>nslookup</code> (จาก bind9-dnsutils 9.18) ถาม DNS ส่วน <code>/etc/hosts</code> กำหนดชื่อเองในเครื่อง และ <code>/etc/resolv.conf</code> บอกว่าใช้ DNS Server ไหน (บน WSL ไฟล์นี้ถูกสร้างอัตโนมัติ มักเป็น <code>nameserver 10.255.255.254</code> เมื่อเปิด DNS Tunneling ค่าต่างกันได้)</li>
+      <li><strong>เครือข่ายของ WSL2</strong>: ค่าเริ่มต้นเป็นแบบ NAT การ์ด <code>eth0</code> ได้ IP วง <code>172.x.x.x/20</code> ซึ่งต่างจาก IP ของ Windows แต่ WSL ส่งต่อ localhost ให้ เปิดเว็บใน WSL ที่ Port 8000 แล้วเข้า <code>http://localhost:8000</code> จากเบราว์เซอร์ Windows ได้ทันที บน Windows 11 เลือกโหมด Mirrored ได้ด้วย <code>networkingMode=mirrored</code> ใต้ <code>[wsl2]</code> ในไฟล์ <code>%UserProfile%\.wslconfig</code></li>
+    </ul>
+    <p><strong>SSH</strong> คือการเข้าใช้ Terminal ของเครื่องอื่นอย่างปลอดภัยผ่านการเข้ารหัส เป็นวิธีหลักที่ใช้ดูแล Server และใช้ส่งโค้ดขึ้น GitHub แทนการพิมพ์รหัสผ่าน เราใช้ <strong>SSH Key</strong> ซึ่งมี 2 ไฟล์: Private Key (เก็บไว้กับตัว ห้ามให้ใคร) และ Public Key (นามสกุล <code>.pub</code> นำไปวางในไฟล์ <code>~/.ssh/authorized_keys</code> ของเครื่องปลายทาง) คำสั่งที่เกี่ยวข้อง: <code>ssh-keygen -t ed25519</code> สร้าง Key, <code>ssh-copy-id</code> ส่ง Public Key ไปปลายทาง, <code>ssh-agent</code> / <code>ssh-add</code> จำ Passphrase ไว้ระหว่างใช้งาน, <code>~/.ssh/config</code> ตั้งชื่อย่อให้ Server, <code>scp</code> คัดลอกไฟล์ และ <code>rsync -avz</code> ซิงก์โฟลเดอร์ ฝั่ง Server บน Ubuntu 24.04 ใช้ openssh-server 9.6p1 ซึ่งเปิดรับการเชื่อมต่อผ่าน <code>ssh.socket</code> (Socket Activation)</p>
+    <div class="callout sec"><span class="c-label sec">Security</span><p>ฝึก SSH, การสแกน Port และคำสั่งเครือข่ายทั้งหมด <strong>เฉพาะกับ localhost หรือเครื่องที่คุณเป็นเจ้าของ</strong> การเข้าถึงหรือทดลองกับระบบของผู้อื่นโดยไม่ได้รับอนุญาตเป็นความผิดตาม พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์ และห้ามส่ง Private Key (ไฟล์ที่ไม่มี <code>.pub</code>) ให้ใครหรืออัปโหลดขึ้น GitHub เด็ดขาด</p></div>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>IP คือบ้านเลขที่ Port คือหมายเลขห้องในบ้าน DNS คือสมุดโทรศัพท์ที่แปลงชื่อเป็นบ้านเลขที่ ส่วน SSH Key เหมือนแม่กุญแจกับลูกกุญแจ Public Key คือแม่กุญแจที่แจกไปติดประตูได้หลายบ้าน (ใครเห็นก็ไม่เป็นไร) Private Key คือลูกกุญแจดอกเดียวที่เปิดแม่กุญแจเหล่านั้นได้ และ Passphrase คือรหัสของกล่องที่เก็บลูกกุญแจอีกชั้น</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>ส่วนที่ 1 เปิด Web Server ชั่วคราวในเครื่อง แล้วตรวจด้วย curl และ ss จากนั้นดูข้อมูลเครือข่ายของ WSL</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/linux-lab/c11
+cd ~/projects/linux-lab/c11
+
+# เปิด Web Server ของ Python ที่ Port 8000 เป็นงานเบื้องหลัง
+python3 -m http.server 8000 &gt; server.log 2&gt;&amp;1 &amp;
+sleep 1
+# ขอเฉพาะ Header แล้วดูบรรทัดแรก (Status)
+curl -sI http://localhost:8000/ | head -n 1
+# ใครกำลัง Listen ที่ Port 8000
+ss -tln | grep 8000
+# ปิด Web Server
+kill %1
+
+# ทดสอบ ping ถึงเครื่องตัวเอง 3 ครั้ง
+ping -c 3 127.0.0.1
+
+# ข้อมูลเครือข่ายของ WSL
+ip -br a
+ip route</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[1] 4021
+HTTP/1.0 200 OK
+LISTEN 0      5            0.0.0.0:8000       0.0.0.0:*
+PING 127.0.0.1 (127.0.0.1) 56(84) bytes of data.
+64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.447 ms
+64 bytes from 127.0.0.1: icmp_seq=2 ttl=64 time=0.037 ms
+64 bytes from 127.0.0.1: icmp_seq=3 ttl=64 time=0.038 ms
+
+--- 127.0.0.1 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2051ms
+rtt min/avg/max/mdev = 0.037/0.174/0.447/0.193 ms
+[1]+  Terminated              python3 -m http.server 8000 &gt; server.log 2&gt;&amp;1
+lo               UNKNOWN        127.0.0.1/8 ::1/128
+eth0             UP             172.29.84.51/20 fe80::215:5dff:fe3a:1b2c/64
+default via 172.29.80.1 dev eth0 proto kernel
+172.29.80.0/20 dev eth0 proto kernel scope link src 172.29.84.51</code></pre>
+    <p class="muted small">บรรทัด curl, ss และ ping มาจากการรันจริง (เวลาของ ping จะต่างเล็กน้อย) ส่วน <code>ip -br a</code> และ <code>ip route</code> เป็นตัวอย่างของ WSL2 แบบ NAT ตัวเลข IP บนเครื่องคุณจะต่างไปและเปลี่ยนได้ทุกครั้งที่ WSL เริ่มใหม่</p>
+    <p>ส่วนที่ 2 ติดตั้ง SSH Server สร้าง Key และ Login เข้าเครื่องตัวเองผ่าน localhost</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ติดตั้ง SSH Server (ssh.socket จะรอรับการเชื่อมต่อที่ Port 22)
+sudo apt install -y openssh-server
+ssh -V
+systemctl is-active ssh.socket</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>OpenSSH_9.6p1 Ubuntu-3ubuntu13.20, OpenSSL 3.0.13 30 Jan 2024
+active</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้าง Key ชนิด ed25519 สำหรับ Lab (ระบบจะถาม Passphrase 2 ครั้ง ควรตั้ง)
+ssh-keygen -t ed25519 -C "somchai@wsl" -f ~/.ssh/id_ed25519_lab
+# ส่ง Public Key ไปไว้ใน authorized_keys ของ somchai@localhost (ถามรหัสผ่าน Linux 1 ครั้ง)
+ssh-copy-id -i ~/.ssh/id_ed25519_lab.pub somchai@localhost</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Generating public/private ed25519 key pair.
+Enter passphrase (empty for no passphrase):
+Enter same passphrase again:
+Your identification has been saved in /home/somchai/.ssh/id_ed25519_lab
+Your public key has been saved in /home/somchai/.ssh/id_ed25519_lab.pub
+The key fingerprint is:
+SHA256:GWTBrHe40i61c2vqhDepGst6ej8xHek71xuYUPffh7w somchai@wsl
+The key's randomart image is:
++--[ED25519 256]--+
+|       o+.       |
+|       oo        |
+|       ..o. .    |
+|      . =+.. .   |
+|       =S+    .  |
+|      +.*o o . o.|
+|    . .*=oo.. o +|
+|   .ooo+*.+ .. ..|
+|  o=+oo+oB....E  |
++----[SHA256]-----+
+/usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/home/somchai/.ssh/id_ed25519_lab.pub"
+The authenticity of host 'localhost (127.0.0.1)' can't be established.
+ED25519 key fingerprint is SHA256:Xq3mJ0v2bN8cR5tY7uW1zA4sD6fG9hK2lP0oI8eE3rT.
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+/usr/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+/usr/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
+somchai@localhost's password:
+
+Number of key(s) added: 1
+
+Now try logging into the machine, with:   "ssh 'somchai@localhost'"
+and check to make sure that only the key(s) you wanted were added.</code></pre>
+    <p class="muted small">Fingerprint และรูป randomart สุ่มใหม่ทุกครั้ง ของคุณจะไม่ตรงกับตัวอย่าง ส่วนข้อความของ <code>ssh-copy-id</code> มาจากโปรแกรม ssh-copy-id ของ OpenSSH 9.6p1</p>
+    <p>ตั้งชื่อย่อ <code>lab</code> ให้ Server ในไฟล์ <code>~/.ssh/config</code> (สร้างด้วย <code>nano ~/.ssh/config</code>)</p>
+<pre class="code" data-env="file" data-label="SSH Config · ~/.ssh/config"><code class="language-ini">Host lab
+    HostName localhost
+    User somchai
+    IdentityFile ~/.ssh/id_ed25519_lab
+    IdentitiesOnly yes</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ไฟล์ config และ Private Key ต้องอ่านได้เฉพาะเจ้าของ
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/config ~/.ssh/id_ed25519_lab
+# Login ด้วยชื่อย่อ แล้วรัน 2 คำสั่งบนปลายทาง
+ssh lab 'whoami; hostname'
+# คัดลอกไฟล์ไปปลายทางด้วย scp (ปลายทางคือเครื่องเดียวกันใน Lab นี้)
+echo "hello over ssh" &gt; note.txt
+scp note.txt lab:/tmp/note-from-scp.txt
+ssh lab 'cat /tmp/note-from-scp.txt'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>somchai
+DESKTOP-K7Q2M4P
+note.txt                                      100%   15    18.2KB/s   00:00
+hello over ssh</code></pre>
+    <p class="muted small">ถ้าตั้ง Passphrase ไว้ จะถาม <code>Enter passphrase for key '/home/somchai/.ssh/id_ed25519_lab':</code> ก่อน (ใช้ <code>eval "$(ssh-agent -s)"</code> แล้ว <code>ssh-add ~/.ssh/id_ed25519_lab</code> เพื่อพิมพ์ครั้งเดียว) ความเร็วในบรรทัด scp จะต่างกัน การ Login ด้วย Key ผ่าน <code>ssh -F config</code> ได้ทดสอบจริงบนเครื่องทดสอบ</p>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>python3 -m http.server 8000 ... &amp;</code></td><td>เปิด Web Server เล็ก ๆ ที่แชร์ไฟล์ในโฟลเดอร์ปัจจุบัน ทำงานเบื้องหลังเป็น Job ที่ 1</td></tr>
+      <tr><td><code>curl -sI http://localhost:8000/ | head -n 1</code></td><td><code>-I</code> ขอเฉพาะ Header <code>-s</code> เงียบ บรรทัดแรกคือ Status <code>200 OK</code> แปลว่าสำเร็จ</td></tr>
+      <tr><td><code>ss -tln | grep 8000</code></td><td>มีโปรแกรม Listen ที่ <code>0.0.0.0:8000</code> คือรับจากทุกการ์ดเครือข่าย ถ้าเป็น <code>127.0.0.1:8000</code> จะรับเฉพาะในเครื่อง</td></tr>
+      <tr><td><code>kill %1</code></td><td>ปิด Job ที่ 1 Bash แจ้ง <code>Terminated</code> ตอนแสดง Prompt ถัดไป</td></tr>
+      <tr><td><code>ping -c 3 127.0.0.1</code></td><td>ส่ง 3 แพ็กเก็ต <code>0% packet loss</code> และ <code>time</code> ต่ำกว่า 1 ms เพราะไม่ได้ออกไปนอกเครื่อง</td></tr>
+      <tr><td><code>ip -br a</code> / <code>ip route</code></td><td><code>eth0</code> ของ WSL ได้ IP วง 172 ส่วน <code>default via 172.29.80.1</code> คือ Gateway ที่ Windows สร้างให้</td></tr>
+      <tr><td><code>systemctl is-active ssh.socket</code></td><td>ยืนยันว่ามีตัวรอรับที่ Port 22 แล้ว เมื่อมีคนเชื่อมต่อ systemd จะเปิด <code>sshd</code> ให้เอง</td></tr>
+      <tr><td><code>ssh-keygen -t ed25519 -C "somchai@wsl" -f ...</code></td><td>สร้าง Key ชนิด ed25519 (สั้น เร็ว ปลอดภัย) <code>-C</code> คือ Comment ช่วยจำว่าเป็น Key ของใคร <code>-f</code> กำหนดชื่อไฟล์</td></tr>
+      <tr><td><code>ssh-copy-id -i ... somchai@localhost</code></td><td>ต่อท้าย Public Key ลงใน <code>~/.ssh/authorized_keys</code> ของปลายทาง และตั้งสิทธิ์ให้ถูก ครั้งแรกต้องยืนยัน Fingerprint ของ Server (<code>yes</code>) ซึ่งจะถูกจำไว้ใน <code>~/.ssh/known_hosts</code></td></tr>
+      <tr><td>ไฟล์ <code>~/.ssh/config</code></td><td><code>Host lab</code> คือชื่อย่อ <code>IdentitiesOnly yes</code> ให้ใช้เฉพาะ Key ที่ระบุ ไม่ลองทุก Key ที่มี</td></tr>
+      <tr><td><code>chmod 700 ~/.ssh</code> / <code>chmod 600 ...</code></td><td>SSH ตรวจสิทธิ์ไฟล์ ถ้าคนอื่นอ่าน Private Key ได้ จะปฏิเสธไม่ใช้ Key นั้น</td></tr>
+      <tr><td><code>ssh lab 'whoami; hostname'</code></td><td>Login ด้วยชื่อย่อ รันคำสั่งในเครื่องปลายทางแล้วกลับมา ไม่ถามรหัสผ่าน Linux อีก เพราะใช้ Key</td></tr>
+      <tr><td><code>scp note.txt lab:/tmp/...</code></td><td>คัดลอกไฟล์ผ่าน SSH รูปแบบ <code>host:path</code> ส่วนโฟลเดอร์ใหญ่ใช้ <code>rsync -avz src/ lab:dest/</code> ซึ่งส่งเฉพาะส่วนที่เปลี่ยน</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td><code>ssh: connect to host localhost port 22: Connection refused</code></td><td>ยังไม่ได้ติดตั้งหรือไม่ได้เปิด SSH Server</td><td><code>sudo apt install -y openssh-server</code> แล้วตรวจ <code>systemctl status ssh.socket</code> (ไม่มี systemd ใช้ <code>sudo service ssh start</code>)</td></tr>
+      <tr><td><code>Permissions 0644 for '/home/somchai/.ssh/id_ed25519_lab' are too open.</code> ตามด้วย <code>This private key will be ignored.</code></td><td>Private Key มีสิทธิ์ให้คนอื่นอ่านได้</td><td><code>chmod 600 ~/.ssh/id_ed25519_lab</code></td></tr>
+      <tr><td><code>somchai@localhost: Permission denied (publickey).</code></td><td>Public Key ยังไม่อยู่ใน <code>authorized_keys</code> ของปลายทาง ใช้ Key ผิดไฟล์ หรือ Server ปิด Password แล้ว</td><td>ใช้ <code>ssh -v lab</code> ดูว่าลอง Key ไหน แล้วรัน <code>ssh-copy-id</code> ใหม่ หรือตรวจ <code>IdentityFile</code> ใน config</td></tr>
+      <tr><td><code>WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!</code></td><td>Host Key ของปลายทางเปลี่ยน (เช่น ติดตั้ง Server ใหม่) หรืออาจมีคนดักกลางทาง</td><td>ยืนยันกับผู้ดูแลก่อน ถ้าแน่ใจว่าเปลี่ยนจริงใช้ <code>ssh-keygen -R localhost</code> ลบค่าเดิม</td></tr>
+      <tr><td><code>curl: (7) Failed to connect to localhost port 8000 after 0 ms: Couldn't connect to server</code></td><td>Web Server ยังไม่เปิด หรือปิดไปแล้ว หรือ Port ผิด</td><td>ตรวจ <code>ss -tln</code> ว่ามี Port นั้นจริง และดู Log ของ Server</td></tr>
+      <tr><td><code>ping: ubuntu.co: Name or service not known</code> หรือ <code>ping: ubuntu.com: Temporary failure in name resolution</code></td><td>สะกดชื่อผิด หรือ DNS ของ WSL ใช้งานไม่ได้ (เช่น VPN ของบริษัท)</td><td>ลอง <code>ping -c 1 8.8.8.8</code> ถ้าได้แปลว่าปัญหาอยู่ที่ DNS ให้ดู <code>/etc/resolv.conf</code> และลอง <code>dig ubuntu.com</code></td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>ใช้ Key ชนิด ed25519 พร้อม Passphrase และใช้ <code>ssh-agent</code> แทนการสร้าง Key ที่ไม่มี Passphrase</li>
+      <li>เมื่อ Login ด้วย Key ได้แล้ว ให้ปิดการ Login ด้วยรหัสผ่านและห้าม root Login: สร้างไฟล์ <code>/etc/ssh/sshd_config.d/99-hardening.conf</code> ใส่ <code>PasswordAuthentication no</code> และ <code>PermitRootLogin no</code> ตรวจด้วย <code>sudo sshd -t</code> แล้ว <code>sudo systemctl restart ssh</code> (เปิด Terminal ที่ Login ค้างไว้ 1 หน้าต่างเผื่อตั้งผิด)</li>
+      <li>ใช้ <code>~/.ssh/config</code> ตั้งชื่อย่อให้ทุก Server แทนการจำ IP และ User</li>
+      <li>เวลาแก้ปัญหาเครือข่าย ไล่จากล่างขึ้นบน: มี IP ไหม (<code>ip -br a</code>) ไป Gateway ได้ไหม (<code>ping</code>) แปลชื่อได้ไหม (<code>dig</code>) Port เปิดไหม (<code>ss</code>) แอปตอบไหม (<code>curl -v</code>) รายละเอียดเพิ่มเติมอยู่ในหัวข้อ <a data-t="1"></a></li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ต่อยอด Lab เครือข่ายและ SSH (ทำกับเครื่องตัวเองเท่านั้น)</p><ol>
+      <li>เปิด <code>python3 -m http.server 8000 --bind 127.0.0.1</code> แล้วดู <code>ss -tln</code> ว่า Local Address เปลี่ยนเป็นอะไร</li>
+      <li>เปิด <code>http://localhost:8000</code> ในเบราว์เซอร์ของ Windows ขณะ Server ใน WSL ทำงานอยู่ แล้วดู <code>server.log</code></li>
+      <li>รัน <code>dig +short ubuntu.com</code> และ <code>dig ubuntu.com</code> แล้วหาบรรทัด <code>ANSWER SECTION</code> กับ <code>Query time</code></li>
+      <li>สร้างโฟลเดอร์ <code>sync-src</code> ใส่ไฟล์ 3 ไฟล์ แล้วใช้ <code>rsync -avz sync-src/ lab:/tmp/sync-dest/</code> รัน 2 ครั้ง สังเกตว่าครั้งที่สองไม่ส่งไฟล์ซ้ำ</li>
+      <li>ดูไฟล์ <code>~/.ssh/authorized_keys</code> ด้วย <code>cat</code> แล้วเทียบกับ <code>~/.ssh/id_ed25519_lab.pub</code> ว่าเป็นข้อความเดียวกัน</li>
+    </ol></div>
+  </article>
+
+  <article class="concept">
+    <div class="concept-meta"><span class="c-no">แนวคิดที่ 12</span><span class="lvl" data-lvl="a">Advanced</span></div>
+    <h3 id="s19-2-c12">Bash Scripting ที่เชื่อถือได้ และตั้งเวลาด้วย cron</h3>
+    <h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+    <p><strong>Bash Script</strong> คือไฟล์ที่รวมคำสั่งทั้งหมดที่เรียนมาไว้ด้วยกัน เพื่อให้งานที่ทำซ้ำ (สำรองข้อมูล ตรวจเครื่อง Deploy แอป) ทำได้ในคำสั่งเดียวและได้ผลเหมือนเดิมทุกครั้ง <strong>cron</strong> คือ Service ที่รัน Script ตามเวลาที่กำหนดโดยไม่ต้องมีคนกด สองอย่างนี้รวมกันคือพื้นฐานของ Automation ที่ผู้ดูแลระบบ DevOps และ Backend Developer ใช้ทุกวัน Script ที่ <em>เชื่อถือได้</em> ต้องหยุดเมื่อเกิดข้อผิดพลาด บอกผู้ใช้ชัดเจนว่าผิดอะไร และคืน Exit code ที่ถูกต้อง</p>
+    <ul>
+      <li><strong>โครงพื้นฐาน</strong>: บรรทัดแรก <code>#!/usr/bin/env bash</code> (Shebang) ตามด้วย <code>set -euo pipefail</code> (Strict Mode): <code>-e</code> หยุดเมื่อคำสั่งล้มเหลว <code>-u</code> หยุดเมื่อใช้ตัวแปรที่ไม่ได้กำหนด <code>-o pipefail</code> ให้ Pipe ล้มเหลวถ้าคำสั่งใดในสายล้มเหลว</li>
+      <li><strong>ตัวแปรและ Quoting</strong>: ใส่ <code>"$var"</code> ในเครื่องหมายคำพูดคู่เสมอ <code>$(คำสั่ง)</code> นำผลคำสั่งมาใช้ <code>$(( 2 + 3 ))</code> คำนวณเลขจำนวนเต็ม <code>${var:-default}</code> ค่าเริ่มต้น <code>${var:?ข้อความ}</code> หยุดพร้อมข้อความถ้าไม่มีค่า และ <code>readonly</code> ทำให้เปลี่ยนค่าไม่ได้</li>
+      <li><strong>Argument</strong>: <code>$0</code> ชื่อ Script <code>$1</code> <code>$2</code> ตัวที่ 1 และ 2 <code>$#</code> จำนวน Argument <code>"$@"</code> ทุกตัวโดยรักษาช่องว่างในแต่ละตัว</li>
+      <li><strong>เงื่อนไขและลูป</strong>: <code>if [[ -d "$dir" ]]; then ... fi</code> โดย <code>-d</code> โฟลเดอร์มีจริง <code>-f</code> ไฟล์มีจริง <code>-z</code> ข้อความว่าง <code>-n</code> ไม่ว่าง <code>-eq</code> / <code>-gt</code> / <code>-lt</code> เปรียบเทียบตัวเลข <code>=~</code> ตรวจด้วย Regex ส่วน <code>case</code> ใช้แยกหลายกรณี <code>for x in ...; do ... done</code> และ <code>while read -r line; do ... done</code> อ่านทีละบรรทัด</li>
+      <li><strong>Function และ Exit code</strong>: <code>name() { local x=...; }</code> ใช้ <code>local</code> ให้ตัวแปรอยู่เฉพาะใน Function <code>$?</code> คือ Exit code ของคำสั่งล่าสุด (0 = สำเร็จ) <code>exit 1</code> จบพร้อมรหัส ข้อความ Error ส่งออก stderr ด้วย <code>&gt;&amp;2</code> และ <code>trap 'cleanup' EXIT</code> เก็บกวาดทุกครั้งที่จบ</li>
+      <li><strong>เครื่องมือคุณภาพ</strong>: <code>shellcheck</code> 0.9.0 ตรวจหาบั๊กที่พบบ่อยก่อนรัน และ <code>bash -x script.sh</code> แสดงทุกคำสั่งที่รันจริงพร้อมค่าตัวแปร ใช้ไล่หาจุดผิด</li>
+      <li><strong>Disk และ Archive</strong>: <code>tar -czf a.tar.gz -C parent dir</code> สร้าง <code>tar -tzf</code> ดูรายการข้างใน <code>tar -xzf a.tar.gz -C dest</code> แตกไฟล์ <code>df -h</code> ดูพื้นที่ Disk และ <code>du -sh</code> ดูขนาดโฟลเดอร์</li>
+      <li><strong>cron</strong>: แก้ตารางงานด้วย <code>crontab -e</code> ดูด้วย <code>crontab -l</code> แต่ละบรรทัดมี 5 ช่องเวลา <code>นาที ชั่วโมง วันที่ เดือน วันในสัปดาห์</code> ตามด้วยคำสั่ง เช่น <code>0 2 * * *</code> คือตี 2 ทุกวัน และ <code>*/5 * * * *</code> คือทุก 5 นาที</li>
+    </ul>
+    <p>ข้อควรรู้ของ cron: (1) cron ใช้ PATH สั้นมาก (<code>/usr/bin:/bin</code>) จึงต้องใช้ Path เต็มของทุกไฟล์และโปรแกรม (2) ไม่มี Terminal ให้แสดงผล ต้องเก็บ Log เองด้วย <code>&gt;&gt; file.log 2&gt;&amp;1</code> (3) เครื่องหมาย <code>%</code> ใน crontab มีความหมายพิเศษ (ขึ้นบรรทัดใหม่) ต้องเขียนเป็น <code>\%</code> (4) บน WSL Service cron ต้องทำงานอยู่ และ WSL ต้องเปิดอยู่ ถ้าปิด WSL งานจะไม่รัน ตรวจว่างานรันจริงด้วย <code>journalctl -u cron</code> หรือ <code>grep CRON /var/log/syslog</code> (ถ้ามี rsyslog)</p>
+    <div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Script เหมือนสูตรอาหารที่เขียนละเอียดจนใครทำก็ได้รสเดียวกัน Strict Mode คือกฎในครัวว่า "ถ้าขั้นไหนพลาด ให้หยุดทำทันที อย่าเสิร์ฟจานที่ไหม้" ShellCheck คือเชฟอาวุโสที่อ่านสูตรก่อนแล้วชี้จุดที่จะพัง ส่วน cron คือนาฬิกาปลุกที่ตั้งให้เปิดเตาอบตอนตี 2 ทุกวัน แต่นาฬิกานี้ทำงานเฉพาะเมื่อไฟในครัวเปิดอยู่ (WSL ต้องทำงาน)</p></div>
+    <h4>ตัวอย่างโค้ด</h4>
+    <p>สร้างเครื่องมือสำรองข้อมูล <code>backup.sh</code> ที่บีบอัดโฟลเดอร์เป็น <code>.tar.gz</code> ใส่วันเวลาในชื่อไฟล์ เก็บไว้แค่ N ไฟล์ล่าสุด ตรวจ Input ทุกตัว และคืน Exit code 0 (สำเร็จ) 1 (Input ผิด) และ 2 (วิธีใช้ผิด) ไฟล์สำรองเก็บที่ <code>~/backups</code></p>
+<pre class="code" data-env="file" data-label="Bash · ~/projects/linux-lab/c12/backup.sh"><code class="language-bash">#!/usr/bin/env bash
+# backup.sh: สำรองโฟลเดอร์เป็นไฟล์ .tar.gz และเก็บไว้แค่ N ไฟล์ล่าสุด
+# วิธีใช้: backup.sh &lt;source_dir&gt; [keep]
+set -euo pipefail
+
+readonly BACKUP_DIR="$HOME/backups"
+readonly DEFAULT_KEEP=5
+
+# พิมพ์ข้อความพร้อมวันเวลา
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+}
+
+# พิมพ์ข้อความผิดพลาดออกทาง stderr
+err() {
+    log "ERROR: $*" &gt;&amp;2
+}
+
+usage() {
+    echo "วิธีใช้: $(basename "$0") &lt;source_dir&gt; [keep]" &gt;&amp;2
+    echo "  keep = จำนวนไฟล์สำรองที่จะเก็บไว้ (ค่าเริ่มต้น $DEFAULT_KEEP)" &gt;&amp;2
+}
+
+main() {
+    # ตรวจจำนวน Argument: ต้องมี 1 หรือ 2 ตัว
+    if [[ $# -lt 1 || $# -gt 2 ]]; then
+        usage
+        exit 2
+    fi
+
+    local src="$1"
+    local keep="${2:-$DEFAULT_KEEP}"
+
+    if [[ ! -d "$src" ]]; then
+        err "ไม่พบโฟลเดอร์: $src"
+        exit 1
+    fi
+    if [[ ! "$keep" =~ ^[0-9]+$ || "$keep" -lt 1 ]]; then
+        err "keep ต้องเป็นจำนวนเต็มตั้งแต่ 1 ขึ้นไป: $keep"
+        exit 1
+    fi
+
+    mkdir -p "$BACKUP_DIR"
+
+    local name parent stamp archive
+    name="$(basename "$src")"
+    parent="$(cd "$(dirname "$src")" &amp;&amp; pwd)"
+    stamp="$(date +%Y%m%d-%H%M%S)"
+    archive="$BACKUP_DIR/${name}-${stamp}.tar.gz"
+
+    log "เริ่มสำรอง $src"
+    tar -czf "$archive" -C "$parent" "$name"
+    log "สร้างไฟล์ $archive"
+
+    # ลบไฟล์เก่าที่เกินจำนวน keep
+    # ชื่อไฟล์มีวันเวลาแบบ YYYYMMDD-HHMMSS จึงเรียงชื่อจากมากไปน้อย = ใหม่ไปเก่า
+    local old
+    find "$BACKUP_DIR" -maxdepth 1 -name "${name}-*.tar.gz" | sort -r | tail -n +"$((keep + 1))" | while read -r old; do
+        rm -- "$old"
+        log "ลบไฟล์เก่า $(basename "$old")"
+    done
+
+    log "เสร็จ ขนาด $(du -h "$archive" | cut -f1) เก็บไว้ $keep ไฟล์ล่าสุด"
+}
+
+main "$@"</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/linux-lab/c12
+
+# เตรียมข้อมูลตัวอย่าง 3 ไฟล์ในโฟลเดอร์ data
+mkdir -p data
+echo "ประชุมทีมวันจันทร์ 10:00" &gt; data/notes.txt
+printf '%s\n' "ต่ออายุโดเมน" "อัปเดต Ubuntu" &gt; data/todo.txt
+cat &gt; data/members.csv &lt;&lt;'CSV'
+id,name,city,score
+1,somchai,Bangkok,85
+2,somsri,Chiang Mai,92
+3,mana,Khon Kaen,78
+4,manee,Bangkok,88
+5,piti,Phuket,70
+6,chujai,Chiang Mai,95
+CSV
+
+# ให้สิทธิ์รัน และตรวจด้วย ShellCheck
+chmod +x backup.sh
+shellcheck backup.sh &amp;&amp; echo 'shellcheck ผ่าน'
+
+# รัน 4 ครั้ง ห่างกัน 1 วินาที เก็บไว้ 3 ไฟล์ ครั้งที่ 4 ต้องลบไฟล์เก่าสุด
+for i in 1 2 3 4; do ./backup.sh ~/projects/linux-lab/c12/data 3; sleep 1; done
+ls -1 ~/backups
+# ดูรายการไฟล์ในไฟล์สำรองล่าสุด
+tar -tzf "$(ls -1t ~/backups/*.tar.gz | head -n 1)"
+
+# ทดสอบกรณีผิดพลาด และดู Exit code
+./backup.sh /nope
+echo "exit code = $?"
+./backup.sh
+echo "exit code = $?"
+./backup.sh data abc
+echo "exit code = $?"
+du -sh ~/backups</code></pre>
+    <h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>shellcheck ผ่าน
+[2026-10-19 22:48:06] เริ่มสำรอง /home/somchai/projects/linux-lab/c12/data
+[2026-10-19 22:48:06] สร้างไฟล์ /home/somchai/backups/data-20261019-224806.tar.gz
+[2026-10-19 22:48:06] เสร็จ ขนาด 4.0K เก็บไว้ 3 ไฟล์ล่าสุด
+[2026-10-19 22:48:07] เริ่มสำรอง /home/somchai/projects/linux-lab/c12/data
+[2026-10-19 22:48:07] สร้างไฟล์ /home/somchai/backups/data-20261019-224807.tar.gz
+[2026-10-19 22:48:07] เสร็จ ขนาด 4.0K เก็บไว้ 3 ไฟล์ล่าสุด
+[2026-10-19 22:48:08] เริ่มสำรอง /home/somchai/projects/linux-lab/c12/data
+[2026-10-19 22:48:08] สร้างไฟล์ /home/somchai/backups/data-20261019-224808.tar.gz
+[2026-10-19 22:48:08] เสร็จ ขนาด 4.0K เก็บไว้ 3 ไฟล์ล่าสุด
+[2026-10-19 22:48:09] เริ่มสำรอง /home/somchai/projects/linux-lab/c12/data
+[2026-10-19 22:48:09] สร้างไฟล์ /home/somchai/backups/data-20261019-224809.tar.gz
+[2026-10-19 22:48:09] ลบไฟล์เก่า data-20261019-224806.tar.gz
+[2026-10-19 22:48:09] เสร็จ ขนาด 4.0K เก็บไว้ 3 ไฟล์ล่าสุด
+data-20261019-224807.tar.gz
+data-20261019-224808.tar.gz
+data-20261019-224809.tar.gz
+data/
+data/todo.txt
+data/members.csv
+data/notes.txt
+[2026-10-19 22:48:10] ERROR: ไม่พบโฟลเดอร์: /nope
+exit code = 1
+วิธีใช้: backup.sh &lt;source_dir&gt; [keep]
+  keep = จำนวนไฟล์สำรองที่จะเก็บไว้ (ค่าเริ่มต้น 5)
+exit code = 2
+[2026-10-19 22:48:10] ERROR: keep ต้องเป็นจำนวนเต็มตั้งแต่ 1 ขึ้นไป: abc
+exit code = 1
+16K	/home/somchai/backups</code></pre>
+    <p class="muted small">วันเวลาในชื่อไฟล์และใน Log คือเวลาที่คุณรัน ไฟล์สำรองของคุณจึงมีชื่อต่างไป แต่จำนวนไฟล์ ลำดับข้อความ และ Exit code จะเหมือนกัน ลำดับรายชื่อไฟล์ในผลของ <code>tar -tzf</code> ขึ้นกับระบบไฟล์ อาจต่างไปได้</p>
+    <p>ดูว่า ShellCheck จับบั๊กอะไรได้ และใช้ <code>bash -x</code> ดูการทำงานทีละคำสั่ง</p>
+<pre class="code" data-env="file" data-label="Bash · ~/projects/linux-lab/c12/bad.sh"><code class="language-bash">#!/usr/bin/env bash
+file=$1
+rm $file</code></pre>
+<pre class="code" data-env="file" data-label="Bash · ~/projects/linux-lab/c12/dbg.sh"><code class="language-bash">#!/usr/bin/env bash
+name="somchai"
+count=$((2 + 3))
+echo "hi $name: $count"</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">shellcheck bad.sh
+bash -x dbg.sh</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>In bad.sh line 3:
+rm $file
+   ^---^ SC2086 (info): Double quote to prevent globbing and word splitting.
+
+Did you mean:
+rm "$file"
+
+For more information:
+  https://www.shellcheck.net/wiki/SC2086 -- Double quote to prevent globbing ...
++ name=somchai
++ count=5
++ echo 'hi somchai: 5'
+hi somchai: 5</code></pre>
+    <p>สุดท้าย ตั้งให้ cron รัน backup.sh ทุกวันตอนตี 2 (เก็บ 7 ไฟล์) โดยเพิ่มบรรทัดแบบไม่ต้องเปิด Editor และไม่ลบงานเดิมที่มีอยู่</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ตรวจว่า cron ทำงานอยู่ (ไม่มี systemd ใช้ sudo service cron status)
+systemctl is-active cron
+# สำรอง crontab เดิม (ถ้ายังไม่มีจะได้ไฟล์ว่าง)
+crontab -l &gt; ~/crontab-backup.txt 2&gt;/dev/null || true
+# ต่อท้ายบรรทัดใหม่เข้ากับของเดิม แล้วติดตั้งทั้งชุด
+(crontab -l 2&gt;/dev/null; echo "0 2 * * * /home/somchai/projects/linux-lab/c12/backup.sh /home/somchai/projects/linux-lab/c12/data 7 &gt;&gt; /home/somchai/projects/linux-lab/c12/backup-cron.log 2&gt;&amp;1") | crontab -
+crontab -l</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>active
+0 2 * * * /home/somchai/projects/linux-lab/c12/backup.sh /home/somchai/projects/linux-lab/c12/data 7 &gt;&gt; /home/somchai/projects/linux-lab/c12/backup-cron.log 2&gt;&amp;1</code></pre>
+    <p class="muted small">ถ้าเคยมีงานใน crontab มาก่อน บรรทัดเดิมจะขึ้นก่อนบรรทัดใหม่ เช้าวันถัดไปตรวจผลด้วย <code>tail backup-cron.log</code> และ <code>journalctl -u cron --since today --no-pager</code> ซึ่งจะมีบรรทัด <code>(somchai) CMD (/home/somchai/projects/linux-lab/c12/backup.sh ...)</code> ถ้า cron รันงานจริง</p>
+    <h4>อธิบายโค้ดทีละส่วน</h4>
+    <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+      <tr><td><code>#!/usr/bin/env bash</code></td><td>Shebang บอกระบบให้ใช้ bash ที่พบใน PATH รัน Script นี้ เมื่อเรียกด้วย <code>./backup.sh</code></td></tr>
+      <tr><td><code>set -euo pipefail</code></td><td>Strict Mode ทำให้ Script ไม่ทำงานต่อหลังเกิดข้อผิดพลาด เช่น ถ้า <code>tar</code> ล้มเหลว จะไม่ไปลบไฟล์สำรองเก่า</td></tr>
+      <tr><td><code>readonly BACKUP_DIR="$HOME/backups"</code></td><td>ค่าคงที่ที่แก้ไม่ได้ ใช้ <code>$HOME</code> แทน <code>~</code> เพราะ <code>~</code> ในเครื่องหมายคำพูดจะไม่ถูกขยาย</td></tr>
+      <tr><td><code>log()</code> / <code>err()</code></td><td>Function พิมพ์ข้อความพร้อมวันเวลา <code>"$*"</code> คือ Argument ทั้งหมดรวมเป็นข้อความเดียว <code>err</code> ส่งออก stderr ด้วย <code>&gt;&amp;2</code></td></tr>
+      <tr><td><code>usage()</code> และ <code>exit 2</code></td><td>เมื่อจำนวน Argument ไม่ใช่ 1 หรือ 2 (<code>$# -lt 1 || $# -gt 2</code>) ให้แสดงวิธีใช้และจบด้วยรหัส 2</td></tr>
+      <tr><td><code>local keep="${2:-$DEFAULT_KEEP}"</code></td><td>ถ้าไม่ส่ง Argument ที่ 2 ใช้ค่าเริ่มต้น 5 <code>local</code> ให้ตัวแปรอยู่เฉพาะใน <code>main</code></td></tr>
+      <tr><td><code>[[ ! -d "$src" ]]</code></td><td>ตรวจว่าโฟลเดอร์ต้นทางมีจริง ถ้าไม่มีแจ้ง Error และ <code>exit 1</code></td></tr>
+      <tr><td><code>[[ ! "$keep" =~ ^[0-9]+$ || "$keep" -lt 1 ]]</code></td><td>keep ต้องเป็นตัวเลขล้วนและไม่น้อยกว่า 1 จึงจับกรณี <code>abc</code> ได้ก่อนนำไปคำนวณ</td></tr>
+      <tr><td><code>name</code>, <code>parent</code>, <code>stamp</code>, <code>archive</code></td><td><code>basename</code> เอาชื่อโฟลเดอร์ (<code>data</code>) <code>parent</code> คือ Path เต็มของโฟลเดอร์แม่ <code>date +%Y%m%d-%H%M%S</code> สร้างเวลาที่เรียงตามตัวอักษรได้</td></tr>
+      <tr><td><code>tar -czf "$archive" -C "$parent" "$name"</code></td><td><code>c</code> สร้าง <code>z</code> บีบอัด gzip <code>f</code> ชื่อไฟล์ <code>-C</code> เข้าโฟลเดอร์แม่ก่อน ข้างใน Archive จึงเป็น <code>data/...</code> ไม่ใช่ Path ยาวทั้งหมด</td></tr>
+      <tr><td><code>find ... | sort -r | tail -n +"$((keep + 1))" | while read -r old</code></td><td>หาไฟล์สำรองของโฟลเดอร์นี้ เรียงชื่อจากใหม่ไปเก่า ข้าม keep ไฟล์แรก ที่เหลือคือไฟล์เก่าที่ต้องลบ <code>read -r</code> อ่านทีละบรรทัดโดยไม่แปล <code>\</code> (ใช้ <code>find</code> แทน <code>ls</code> เพราะ ShellCheck เตือน SC2012 ว่า <code>ls</code> ไม่เหมาะกับการนำผลไปประมวลผลต่อ)</td></tr>
+      <tr><td><code>rm -- "$old"</code></td><td><code>--</code> บอกว่าหลังจากนี้ไม่ใช่ตัวเลือก กันชื่อไฟล์ที่ขึ้นต้นด้วย <code>-</code></td></tr>
+      <tr><td><code>du -h "$archive" | cut -f1</code></td><td>ขนาดของไฟล์ที่สร้าง (4.0K คือขนาดขั้นต่ำของ Block บน Disk)</td></tr>
+      <tr><td><code>main "$@"</code></td><td>ส่ง Argument ทั้งหมดให้ <code>main</code> แบบรักษาช่องว่าง เป็นรูปแบบที่ทำให้ Script อ่านง่ายจากบนลงล่าง</td></tr>
+      <tr><td><code>SC2086</code> และ <code>bash -x</code></td><td>ShellCheck เตือนว่า <code>$file</code> ไม่มีเครื่องหมายคำพูด ถ้าชื่อไฟล์มีช่องว่างจะลบผิดไฟล์ <code>bash -x</code> พิมพ์ทุกคำสั่งขึ้นต้นด้วย <code>+</code> พร้อมค่าที่แทนแล้ว</td></tr>
+      <tr><td><code>(crontab -l 2&gt;/dev/null; echo "...") | crontab -</code></td><td>นำ crontab เดิมกับบรรทัดใหม่มาต่อกัน แล้วติดตั้งทั้งชุดจาก stdin (<code>-</code>) จึงไม่ลบงานเดิม</td></tr>
+      <tr><td><code>0 2 * * * ... &gt;&gt; ...backup-cron.log 2&gt;&amp;1</code></td><td>นาที 0 ชั่วโมง 2 ทุกวัน ทุกเดือน ทุกวันในสัปดาห์ ใช้ Path เต็มทั้งหมด และเก็บทั้ง stdout กับ stderr ลง Log</td></tr>
+    </tbody></table></div>
+    <h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+    <div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+      <tr><td><code>bash: line 1: NAME: unbound variable</code></td><td>ใช้ตัวแปรที่ไม่ได้กำหนดขณะเปิด <code>set -u</code> (ซึ่งช่วยจับการพิมพ์ชื่อตัวแปรผิด)</td><td>กำหนดค่าก่อนใช้ หรือใช้ค่าเริ่มต้น <code>"${NAME:-}"</code> / <code>"${NAME:-somchai}"</code></td></tr>
+      <tr><td><code>bash: line 1: TARGET: ต้องกำหนด TARGET</code></td><td>ใช้ <code>${TARGET:?ต้องกำหนด TARGET}</code> แต่ไม่ได้ส่งค่า Script หยุดทันที (ตั้งใจให้เป็นแบบนี้)</td><td>ส่งค่าก่อนรัน เช่น <code>TARGET=/srv ./deploy.sh</code></td></tr>
+      <tr><td>Script รันในมือได้ แต่ใน cron ไม่ทำงาน และ Log มี <code>/bin/sh: 1: backup.sh: not found</code></td><td>cron ใช้ PATH สั้นและ <code>/bin/sh</code> ไม่รู้จักโฟลเดอร์ปัจจุบัน หรือใช้ Path แบบ Relative</td><td>ใช้ Path เต็มทั้งหมดใน crontab และใน Script ถ้าต้องใช้โปรแกรมนอก <code>/usr/bin:/bin</code> ให้ตั้ง PATH ที่บรรทัดแรกของ crontab</td></tr>
+      <tr><td>บรรทัด cron ที่มี <code>date +%F</code> ไม่ทำงาน และ Log มี <code>/bin/sh: 1: Syntax error: Unterminated quoted string</code></td><td>cron แปลง <code>%</code> เป็นการขึ้นบรรทัดใหม่ คำสั่งจึงถูกตัดกลางคัน</td><td>เขียน <code>\%</code> ใน crontab เช่น <code>date +\%F</code> หรือย้ายคำสั่งไปไว้ใน Script</td></tr>
+      <tr><td><code>no crontab for somchai</code></td><td>ยังไม่เคยมี crontab ไม่ใช่ข้อผิดพลาดร้ายแรง</td><td>สร้างด้วย <code>crontab -e</code> หรือวิธีต่อท้ายในตัวอย่าง</td></tr>
+      <tr><td>ตั้ง cron แล้วไม่มีอะไรเกิดขึ้นเลยบน WSL</td><td>Service cron ไม่ทำงาน หรือ WSL ปิดอยู่ตอนถึงเวลา</td><td>ตรวจ <code>systemctl is-active cron</code> (หรือ <code>sudo service cron start</code>) และเปิด WSL ไว้ ทดสอบด้วยเวลา <code>*/5 * * * *</code> ก่อน</td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+      <li>ทุก Script เริ่มด้วย Shebang และ <code>set -euo pipefail</code> ใส่เครื่องหมายคำพูดรอบตัวแปรทุกตัว และผ่าน <code>shellcheck</code> ก่อน Commit</li>
+      <li>ตรวจ Input ทุกตัว แสดงวิธีใช้เมื่อเรียกผิด ส่ง Error ไป stderr และคืน Exit code ที่มีความหมาย (0 สำเร็จ ไม่ใช่ 0 ล้มเหลว) เพื่อให้ cron, CI และ Script อื่นนำไปตัดสินใจต่อได้</li>
+      <li>สำรอง crontab ก่อนแก้ ใช้ Path เต็ม เก็บ Log ของทุกงาน และทดสอบคำสั่งในบรรทัด cron ด้วยมือก่อนตั้งเวลาจริง</li>
+      <li>ไฟล์สำรองที่อยู่เครื่องเดียวกับต้นฉบับยังไม่ใช่การสำรองที่ดีพอ ในงานจริงต้องส่งสำเนาไปอีกที่ด้วย (กฎ 3-2-1: 3 สำเนา 2 สื่อ 1 ที่อยู่นอกสถานที่) และต้องลองกู้คืนเป็นระยะ</li>
+    </ul></div>
+    <div class="callout note"><span class="c-label try">ลองเอง</span><p>ต่อยอด backup.sh</p><ol>
+      <li>กู้คืนไฟล์สำรองล่าสุดไปที่ <code>/tmp/restore-test</code> ด้วย <code>mkdir -p /tmp/restore-test</code> และ <code>tar -xzf ... -C /tmp/restore-test</code> แล้วเทียบด้วย <code>diff -r data /tmp/restore-test/data</code></li>
+      <li>เพิ่มตัวเลือกให้รับโฟลเดอร์ปลายทางจาก Environment Variable: เปลี่ยนเป็น <code>BACKUP_DIR="${BACKUP_DIR:-$HOME/backups}"</code> แล้วรัน <code>BACKUP_DIR=/tmp/bk ./backup.sh data 2</code></li>
+      <li>เพิ่ม <code>trap 'log "จบการทำงาน exit=$?"' EXIT</code> ใน Script แล้วรันทั้งกรณีสำเร็จและกรณี <code>/nope</code> ดูว่าข้อความขึ้นทั้งสองกรณี</li>
+      <li>เปลี่ยนบรรทัด cron เป็น <code>*/5 * * * *</code> ชั่วคราว รอ 10 นาที แล้วดู <code>backup-cron.log</code> และ <code>ls ~/backups</code> จากนั้นเปลี่ยนกลับเป็นตี 2</li>
+      <li>รัน <code>df -h ~</code> และ <code>du -sh ~/projects ~/backups</code> แล้วประเมินว่าถ้าสำรองทุกวันเก็บ 7 ไฟล์ จะใช้พื้นที่ประมาณเท่าไร</li>
+    </ol></div>
+  </article>
+</section>

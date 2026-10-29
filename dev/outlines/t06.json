@@ -1,0 +1,153 @@
+{
+ "concepts": [
+  {
+   "id": "c01",
+   "level": "b",
+   "title": "ติดตั้ง Go, Go Modules และคำสั่ง go (run, build, install, fmt, vet)",
+   "covers": "Matches Part 1 Step 1. Part 2 setup section installs Go 1.27.2 from the official tarball (uname -m; wget https://go.dev/dl/go1.27.2.linux-amd64.tar.gz; sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf ...; echo 'export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin' >> ~/.bashrc; source ~/.bashrc; go version -> 'go version go1.27.2 linux/amd64'; sha256sum check). Concept teaches: module = go.mod (module path + `go 1.27.2` line, written automatically by go mod init), package main + func main, go run vs go build -o vs go install (installs to ~/go/bin), gofmt -l/-w, go vet ./..., go env GOPATH GOMODCACHE, go doc. Runnable example: ~/projects/go-lab/concepts/c01/main.go that prints a greeting, runtime.Version() and GOOS/GOARCH plus reads os.Args to greet a name (`go run ./concepts/c01 somchai`), then `go build -o bin/hello ./concepts/c01 && ./bin/hello somchai`. Mistakes: `Command 'go' not found` (PATH not set / no source ~/.bashrc), `go: go.mod file not found in current directory or any parent directory; see 'go help modules'`, `declared and not used: x` / `\"os\" imported and not used`.",
+   "language": "go",
+   "env": "file"
+  },
+  {
+   "id": "c02",
+   "level": "b",
+   "title": "ตัวแปร, Type, Zero Value, Constant และ Control Flow (for, range, switch)",
+   "covers": "Matches Part 1 Step 2. var vs :=, basic types (int, int64, float64, string, bool, byte, rune), explicit conversion (float64(n), strconv.Itoa), zero values, const + iota, if with init statement, the four forms of for (3-part, condition-only, infinite+break, range), range over int (Go 1.22+), switch without break, tagless switch, fallthrough. Runnable example: concepts/c02/main.go — a grade calculator over a fixed slice of scores (e.g. somchai 82, suda 67, anan 49, malee 95) printing a grade per student with a tagless switch, a count per grade, and an average with float64 conversion and %.2f. Mistakes: `invalid operation: total / n (mismatched types float64 and int)`, `cannot use x (variable of type int) as string value`, `non-boolean condition in if statement` / `missing return`.",
+   "language": "go",
+   "env": "file"
+  },
+  {
+   "id": "c03",
+   "level": "b",
+   "title": "Function, Closure และ Error Handling (errors.Is, errors.As, %w)",
+   "covers": "Matches Part 1 Step 3. Function declarations, multiple returns (value, error), named results (briefly), variadic + slice spreading, functions as values, closures, defer (LIFO, closing resources), errors.New sentinel errors, fmt.Errorf with %w, errors.Is / errors.As, custom error type with Error() string, panic/recover only for programmer errors. Runnable example: concepts/c03/main.go with parseAge(s string) (int, error) using strconv.Atoi, sentinel ErrNegative, custom *ValidationError{Field, Reason}, wrapping, and a loop over inputs [\"25\", \"-3\", \"abc\"] printing results, errors.Is and errors.As outcomes; plus a closure counter and two defers showing LIFO order. Mistakes: ignoring err (`_ =`) leading to wrong zero value, comparing error strings, `%v` instead of `%w` so errors.Is returns false, `panic: runtime error: invalid memory address or nil pointer dereference` when using result before checking err.",
+   "language": "go",
+   "env": "file"
+  },
+  {
+   "id": "c04",
+   "level": "b",
+   "title": "Array, Slice, Map และ String/Rune",
+   "covers": "Matches Part 1 Step 4. Arrays vs slices, slice header (ptr, len, cap), make with cap, append growth, shared backing array pitfall and fixes (slices.Clone, copy, full slice expression a[:2:2]), package slices (Sort, Contains, Index), maps (literal, make, comma-ok, delete, nil-map panic, random iteration order, slices.Sorted(maps.Keys(m))), strings are UTF-8 bytes, len vs utf8.RuneCountInString, range over string yields runes, strings.Fields/Split/TrimSpace/Builder, strconv. Runnable example: concepts/c04/main.go — word frequency counter over a fixed Thai/English sentence plus a fixed list of URLs, printing counts sorted by key, demonstrating the append aliasing bug and its fix, and Thai byte vs rune counts. Mistakes: `panic: assignment to entry in nil map`, `panic: runtime error: index out of range [3] with length 3`, slicing Thai text by bytes producing broken characters (\ufffd).",
+   "language": "go",
+   "env": "file"
+  },
+  {
+   "id": "c05",
+   "level": "i",
+   "title": "Struct, Method, Pointer และ Embedding",
+   "covers": "Matches Part 1 Step 5. Struct types and literals, exported vs unexported fields, constructor NewXxx, pointers (&, *, nil), value vs pointer receivers and when to use each, method sets basics, embedding for reuse, struct tags preview, String() method. Runnable example: concepts/c05/main.go — type Account{Owner string; balance int} with NewAccount, Deposit/Withdraw (pointer receivers, Withdraw returns ErrInsufficientFunds), Balance() getter, String(); embedded type Timestamps{CreatedAt time.Time} shown with a fixed time.Date(2026, 10, 19, 9, 0, 0, 0, time.UTC) so output is deterministic; demonstrates value-receiver copy bug. Mistakes: value receiver so changes are lost, `panic: runtime error: invalid memory address or nil pointer dereference`, `p.balance undefined (cannot refer to unexported field balance)` from another package.",
+   "language": "go",
+   "env": "file"
+  },
+  {
+   "id": "c06",
+   "level": "i",
+   "title": "Interface, Package และโครงสร้างโปรเจกต์ (internal/, go mod tidy)",
+   "covers": "Matches Part 1 Step 6. Implicit interfaces, small interfaces, standard ones (error, fmt.Stringer, io.Reader, io.Writer), type assertion and type switch, any, 'accept interfaces, return structs', multi-package module, internal/ directory, import cycle, go get + go mod tidy + go.sum. Runnable example: multi-file module ~/projects/go-lab/concepts/c06/ with internal/notify/notify.go defining interface Notifier{Notify(msg string) error} and ConsoleNotifier + MemoryNotifier (stores messages in a slice), and concepts/c06/main.go that imports example.com/go-lab/concepts/c06/internal/notify and sends alerts through a []notify.Notifier; show `go run ./concepts/c06` output and `go vet ./...`. Mistakes: `X does not implement Y (missing method Notify)` / `(method Notify has pointer receiver)`, `import cycle not allowed`, `use of internal package ... not allowed`.",
+   "language": "go",
+   "env": "file"
+  },
+  {
+   "id": "c07",
+   "level": "i",
+   "title": "Generics: Type Parameters และ Constraints",
+   "covers": "Matches Part 1 Step 7. Generic functions with inference, constraints any / comparable / cmp.Ordered / custom type sets with ~, generic types (Stack[T], Set[T comparable] backed by map[T]struct{}), returning zero value var zero T, slices/maps/cmp packages, when to prefer interfaces. Runnable example: concepts/c07/main.go with Map[T,U], Filter[T], Sum[T Number] where Number is ~int | ~int64 | ~float64, and Set[T comparable] with Add/Has/Len used on latencies []int{120, 45, 900, 30} and hostnames. Mistakes: `cannot use generic function Map without instantiation`, `invalid operation: operator + not defined on v (variable of type T constrained by any)`, `T does not satisfy comparable` / `string does not satisfy Number`.",
+   "language": "go",
+   "env": "file"
+  },
+  {
+   "id": "c08",
+   "level": "i",
+   "title": "Testing: Table-driven Test, Subtest, Benchmark และ Coverage",
+   "covers": "Matches Part 1 Step 8. _test.go files, TestXxx(t *testing.T), t.Errorf vs t.Fatalf, t.Helper, table-driven tests, t.Run subtests and -run filter, go test ./... -v -cover -coverprofile + go tool cover -html, BenchmarkXxx with for b.Loop() (Go 1.24+) and -benchmem, ExampleXxx with // Output:, t.TempDir. Runnable example: package concepts/c08/textutil with Slugify(s string) string (lowercase, spaces->'-', trim) and Truncate(s string, n int) string that is rune-aware for Thai, plus textutil_test.go with table-driven tests (>=5 cases each, incl. Thai), one Example and one Benchmark; show real `go test -v ./concepts/c08/...` and `-cover` output; benchmark numbers labelled machine-dependent. Mistakes: test file named textutil_tests.go so nothing runs (`no test files`), wrong signature `func TestX(t testing.T)` -> vet error `wrong signature for TestX`, loop-variable capture is no longer an issue since Go 1.22 (explain), `--- FAIL` reading.",
+   "language": "go",
+   "env": "file"
+  },
+  {
+   "id": "c09",
+   "level": "i",
+   "title": "สร้าง CLI: flag, File I/O, encoding/json, encoding/csv และ log/slog",
+   "covers": "Matches Part 1 Step 9. flag (String, Int, Bool, Duration, Parse, Args, custom Usage), os.Open + bufio.Scanner, os.ReadFile/WriteFile, io.Writer abstraction, encoding/json Marshal/MarshalIndent/Unmarshal/NewEncoder with struct tags and omitempty, encoding/csv Writer, text/tabwriter, log/slog TextHandler/JSONHandler with levels to stderr, exit codes via os.Exit (0 ok, 1 problems found, 2 usage error). Runnable example: concepts/c09/main.go reading concepts/c09/urls.txt (comments and blank lines skipped) and printing targets as -format=json|csv|table to stdout, logs to stderr; build the binary and show `echo $?` for a missing file (exit 2) and an invalid -format (exit 2). Note that `go run` prints `exit status 2` and returns 1. Mistakes: `flag provided but not defined: -fromat`, `json: cannot unmarshal string into Go struct field ... of type int`, unexported struct fields silently omitted from JSON output ({}), forgetting w.Flush() on csv/tabwriter so output is empty.",
+   "language": "go",
+   "env": "file"
+  },
+  {
+   "id": "c10",
+   "level": "a",
+   "title": "Goroutine, Channel และ select",
+   "covers": "Matches Part 1 Step 10. go statement, concurrency vs parallelism, unbuffered vs buffered channels, directional channel types, close + range, sender closes, select with time.After and default, deadlock, goroutine leaks, pipeline/fan-out/fan-in. Runnable example: concepts/c10/main.go — a 3-stage pipeline (generate numbers 1..10 -> square in 3 fan-out workers -> fan-in merge) summing results (deterministic total 385) plus a select timeout demo; output must be deterministic (sort or sum results). Mistakes: `fatal error: all goroutines are asleep - deadlock!`, `panic: send on closed channel`, `panic: close of closed channel`, main exiting before goroutines print.",
+   "language": "go",
+   "env": "file"
+  },
+  {
+   "id": "c11",
+   "level": "a",
+   "title": "sync, Data Race, Worker Pool และ context",
+   "covers": "Matches Part 1 Steps 11–12 (concurrency half). sync.WaitGroup with wg.Go (Go 1.25+) and the classic Add/Done form, sync.Mutex/RWMutex, sync/atomic atomic.Int64, sync.Once, race detector (`go run -race`, needs `sudo apt install -y gcc`), worker pool with bounded workers preserving input order via index, context.WithTimeout/WithCancel, ctx as first parameter, select on ctx.Done(), errors.Is(err, context.DeadlineExceeded). Runnable example: concepts/c11/main.go — worker pool (-workers 3) processing 8 simulated jobs with fixed durations (time.Sleep 20–80 ms) under a 150 ms overall context timeout; results printed in input order with status ok/timeout, and a Mutex-protected stats counter; show `go run -race` clean output; also a short racy snippet and its trimmed WARNING: DATA RACE output with /home/somchai paths. Mistakes: `WARNING: DATA RACE`, `sync: negative WaitGroup counter`, passing sync.Mutex by value (`go vet`: `passes lock by value`), forgetting `defer cancel()` (`go vet`: `the cancel function returned by context.WithTimeout should be called, not discarded, to avoid a context leak`).",
+   "language": "go",
+   "env": "file"
+  },
+  {
+   "id": "c12",
+   "level": "a",
+   "title": "net/http Server และ Client: Routing แบบ Go 1.22+, Timeout, Retry และ httptest",
+   "covers": "Matches Part 1 Steps 12–13. ServeMux patterns \"GET /items/{id}\" with r.PathValue, automatic 405, JSON responses, middleware func(http.Handler) http.Handler logging with slog, http.Server with ReadHeaderTimeout and graceful Shutdown via signal.NotifyContext, http.Client{Timeout} + NewRequestWithContext, defer resp.Body.Close(), bounded retry with backoff on 5xx/network errors, testing handlers with httptest.NewRecorder and clients with httptest.NewServer, building with -ldflags \"-s -w -X main.version=v1.0.0\", CGO_ENABLED=0, cross-compile GOOS=windows GOARCH=amd64. Runnable example: concepts/c12/ items API on 127.0.0.1:8080 (GET /health, GET /items/{id}, POST /items returning 201) plus c12/main_test.go testing 200/400/404/405/201 with httptest; show curl outputs and go test -v output; and `file itemsapi.exe` -> `PE32+ executable (console) x86-64, for MS Windows`. Mistakes: `listen tcp 127.0.0.1:8080: bind: address already in use`, pattern conflict panic (`panic: pattern \"GET /items/{id}\" ... conflicts with pattern ...`), `http: superfluous response.WriteHeader call`, forgetting resp.Body.Close leading to connection leaks.",
+   "language": "go",
+   "env": "file"
+  }
+ ],
+ "mini_project": {
+  "name": "Concurrent Website Health Checker (gohealth)",
+  "summary": "A portfolio-grade Go CLI named gohealth in ~/projects/gohealth (module github.com/somchai/gohealth, standard library only, no third-party dependencies) that reads a list of URLs from a file or arguments, checks them concurrently with a bounded worker pool, applies a per-request timeout through context, retries transient failures with backoff, prints results as table, JSON or CSV in the original input order, and exits with CI-friendly codes. Fully tested with table-driven tests against httptest servers (no internet needed) and checked with go vet and go test -race.",
+  "features": [
+   "Usage: gohealth [flags] [url ...]; flags: -file urls.txt (one URL per line, '#' comments and blank lines skipped), -workers 5 (1..100), -timeout 3s (per request, flag.Duration), -retries 2 (extra attempts), -format table|json|csv (default table), -expect-max 399 (status codes <= this count as up), -version",
+   "Worker pool: jobs channel of {index, url}; N workers; results stored by index so output order equals input order; sync.WaitGroup with wg.Go",
+   "Per-request context.WithTimeout derived from a root context created by signal.NotifyContext(ctx, os.Interrupt) so Ctrl+C cancels everything cleanly",
+   "Retry: only on network errors and 5xx; backoff 200ms * attempt; stops immediately when ctx is done; attempts recorded per result",
+   "HTTP: shared http.Client{Timeout: timeout + 1s}, GET with User-Agent 'gohealth/1.0', resp.Body drained and closed, latency measured with time.Since",
+   "Result struct with JSON tags: url, up (bool), status_code (int, 0 on network error), latency_ms (int64), attempts (int), error (string, omitempty)",
+   "Output formats: table via text/tabwriter (columns URL, STATUS, CODE, LATENCY, ATTEMPTS, ERROR; STATUS is UP/DOWN) followed by a summary line 'checked 4 urls: 3 up, 1 down'; JSON array via json.MarshalIndent; CSV with header url,up,status_code,latency_ms,attempts,error",
+   "Logs via log/slog TextHandler to stderr (level INFO, -verbose enables DEBUG) so stdout stays clean for pipes",
+   "Exit codes: 0 all up, 1 at least one down, 2 usage/config error (bad flag, empty URL list, unreadable file, invalid URL)",
+   "URL validation with net/url: scheme must be http or https and host non-empty; invalid lines reported with line number and exit 2",
+   "Tests: internal/checker table-driven tests with httptest.NewServer for 200, 404, 500-then-200 (retry succeeds), always-503 (retry exhausted), slow handler beyond timeout (DeadlineExceeded); worker-pool order test; internal/report tests writing to bytes.Buffer for table/json/csv; run with go test -race -cover ./...",
+   "Build & release: Makefile-free shell commands; go build -ldflags \"-s -w -X main.version=v1.0.0\" -o bin/gohealth .; cross-compile bin/gohealth.exe (GOOS=windows GOARCH=amd64) and bin/gohealth-darwin-arm64; GitHub Actions workflow running gofmt check, go vet, go test -race",
+   "README with usage examples, exit code table, sample output and architecture diagram (text)"
+  ],
+  "structure": "gohealth/{go.mod, main.go, internal/checker/{checker.go, checker_test.go}, internal/report/{report.go, report_test.go}, testdata/urls.txt, urls.txt, .github/workflows/ci.yml, .gitignore (bin/, *.exe, cover.out), README.md}",
+  "stack": "Go 1.27.2 (go.mod line `go 1.27.2`), standard library only: net/http, net/http/httptest, context, sync, flag, encoding/json, encoding/csv, text/tabwriter, log/slog, net/url, os/signal, time, errors; tools: gofmt, go vet, go test -race (needs gcc via apt), optional staticcheck v0.8.2 and golangci-lint v2.15.0; Git 2.43.0; GitHub Actions with actions/checkout and actions/setup-go (check current major versions on GitHub Marketplace) using go-version '1.27.2'"
+ },
+ "versions": {
+  "go": "1.27.2 (official tarball go1.27.2.linux-amd64.tar.gz from https://go.dev/dl/; arm64 users use linux-arm64). In the sandbox test with GOTOOLCHAIN=go1.27.2 (works through the module proxy).",
+  "go.mod go line": "go 1.27.2 (what `go mod init` writes with Go 1.27.2)",
+  "ubuntu": "24.04 LTS on WSL2",
+  "gopls": "v0.24.0 (installed by the VS Code Go extension)",
+  "delve (dlv)": "v1.27.2 — go install github.com/go-delve/delve/cmd/dlv@v1.27.2",
+  "staticcheck": "v0.8.2 — go install honnef.co/go/tools/cmd/staticcheck@v0.8.2",
+  "golangci-lint": "v2.15.0 (install per official docs; do not show exact installer output)",
+  "govulncheck": "v1.9.0 — go install golang.org/x/vuln/cmd/govulncheck@v1.9.0",
+  "golang.org/x/sync": "v0.24.0 (errgroup, semaphore) — optional",
+  "github.com/go-chi/chi/v5": "v5.5.0 — mention only",
+  "github.com/gin-gonic/gin": "v1.12.0 — mention only",
+  "github.com/jackc/pgx/v5": "v5.11.0 — mention only",
+  "github.com/spf13/cobra": "v1.10.2 — mention only",
+  "github.com/stretchr/testify": "v1.12.1 — optional, curriculum uses plain testing",
+  "gcc": "from apt (sudo apt install -y gcc) required for -race",
+  "git": "2.43.0 (apt)",
+  "docker desktop": "4.95.0 (WSL 2 backend); Docker base images: golang:1.27.2 for build stage (check tag on Docker Hub), gcr.io/distroless/static-debian12 or alpine for runtime — say to check tags",
+  "language features relied on": "range over int (1.22), ServeMux method+wildcard patterns and r.PathValue (1.22), per-iteration loop variables (1.22), range-over-func/iterators and slices.Sorted(maps.Keys(m)) (1.23), testing b.Loop (1.24), sync.WaitGroup.Go (1.25). Do not rely on features newer than 1.25 unless verified with GOTOOLCHAIN=go1.27.2."
+ },
+ "notes": [
+  "Learner username somchai; home /home/somchai. Practice module ~/projects/go-lab with `go mod init example.com/go-lab` (one go.mod at the root). Part 1 used ~/projects/go-lab/roadmap/stepNN/main.go (step01..step13, plus roadmap/race and roadmap/step08/mathx package, roadmap/step09/urls.txt). Part 2 examples live in ~/projects/go-lab/concepts/cNN/ (main.go, plus sub-packages such as concepts/c06/internal/notify and concepts/c08/textutil) and are run from the module root with `go run ./concepts/c03`. Part 3 exercises live in ~/projects/go-lab/practice/ (practice/fill, practice/ch1, practice/ch2, practice/ch3). The Mini Project is a separate module ~/projects/gohealth (module github.com/somchai/gohealth).",
+  "Always run commands from the module root (`cd ~/projects/go-lab`) and show the cd in each wsl block. Test every example in the sandbox with `GOTOOLCHAIN=go1.27.2` so `go version` prints go1.27.2; run gofmt -l and go vet ./... on all code before publishing.",
+  "Networking in examples: never depend on the internet. Use httptest.NewServer inside programs/tests, or a local server on 127.0.0.1:8080 (Part 1's items API in roadmap/step13; Part 2 c12 items API). When showing gohealth against real sites, use only https://go.dev and https://example.com in docs, and for real recorded output run against local servers, e.g. `python3 -m http.server 8000` (serves 200) plus http://127.0.0.1:8080/health and a non-listening port http://127.0.0.1:9 (connection refused) and https://down.invalid (DNS failure). Add the safety note: only check sites you own or are allowed to test; limit workers and retries (พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์).",
+  "Sample data: urls.txt contains '# รายการเว็บที่จะตรวจ', https://go.dev, a blank line, https://example.com. Students in c02 examples: somchai 82, suda 67, anan 49, malee 95. Items API data: {1: keyboard, 2: mouse}. Latency sample slice: []int{120, 45, 900, 30}.",
+  "Exit-code convention everywhere: 0 = all good, 1 = problems found (some URL down / tests failed), 2 = usage or config error. Explain that `go run` prints `exit status N` and itself exits 1, so build the binary to show real exit codes with `echo \"exit code: $?\"`.",
+  "Machine-dependent output (timestamps in slog lines, Date headers, latency_ms, benchmark ns/op, race addresses, file sizes, goroutine numbers) must be labelled in Thai as values that will differ; use /home/somchai/... paths and dates around 2026-10-19 in such output. Make all other output deterministic (sort results, fixed time.Date values, sums).",
+  "Terminology: keep English terms Goroutine, Channel, Buffered/Unbuffered Channel, Worker Pool, Data Race, Race Detector, Mutex, WaitGroup, context, Timeout, Retry, Backoff, Interface, Struct, Method, Pointer Receiver, Value Receiver, Slice, Map, Backing Array, Zero Value, Module, Package, Table-driven Test, Subtest, Benchmark, Coverage, Handler, Middleware, Graceful Shutdown, Cross-compile. Call the language 'Go' (mention 'Golang' only as a search keyword). Code comments in Thai.",
+  "Thai text in code: Go handles UTF-8 natively; when aligning tables containing Thai with tabwriter, note that alignment may look off because Thai combining marks have zero width — prefer English column values in table output.",
+  "Certifications: there is no official Go certification ('ไม่มีใบรับรองหลัก'); related ones used in Part 1: GH-200, GH-900, AWS DVA-C02 (until 2026-11-30) then DVA-C03 (from 2026-12-01), LFCS; CKAD mentioned with a 'check training.linuxfoundation.org' caveat. No salary numbers.",
+  "Cross-references: Linux <a data-t=\"19\"></a>, Git/GitHub <a data-t=\"17\"></a>, Python <a data-t=\"9\"></a>, API Design <a data-t=\"8\"></a>, Backend <a data-t=\"12\"></a>, Node.js <a data-t=\"13\"></a>, TypeScript <a data-t=\"15\"></a>, SQL <a data-t=\"14\"></a>, Cyber Security <a data-t=\"5\"></a>, Network Engineer <a data-t=\"1\"></a>."
+ ]
+}

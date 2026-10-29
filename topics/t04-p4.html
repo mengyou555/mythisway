@@ -1,0 +1,1784 @@
+<section class="part" data-part="4">
+<h2 id="s4-4"><span class="sec-no">4.4</span>ส่วนเสริม: Mini Project, Cheat Sheet, Interview</h2>
+
+<p>ส่วนนี้คือบทสรุปของหัวข้อ JavaScript ทั้งหมด คุณจะสร้างโปรเจกต์จริง 1 ชิ้นที่ใช้ทุกอย่างที่เรียนมาใน Part 2 และ Part 3 ตั้งแต่ HTML/CSS, DOM, Events, fetch, localStorage ไปจนถึง Unit test ด้วย <code>node:test</code> แล้วนำขึ้น GitHub Pages ให้คนอื่นเปิดเล่นได้จริง หลังจากนั้นมี Cheat Sheet ไว้เปิดดูเร็ว ๆ ตอนเขียนโค้ด คำถามสัมภาษณ์งาน 5 ข้อพร้อมแนวคำตอบ และแหล่งเรียนต่อที่เชื่อถือได้</p>
+
+<p>โปรเจกต์นี้ต่อยอดจาก Step 12 ถึง Step 14 ใน Part 1 (Learning Roadmap) ซึ่งวางแผนโครงสร้างไว้แล้ว ใน Part นี้เราจะลงมือเขียนทุกไฟล์จนเสร็จ ทดสอบจริง และเผยแพร่ ถ้ายังไม่คล่องเรื่อง Git ให้ทบทวน <a data-t="17"></a> ก่อน และถ้ายังไม่คล่องการใช้ Terminal บน WSL ให้ทบทวน <a data-t="19"></a></p>
+
+<h3 id="s4-4-project">Mini Project: Interactive Quiz App</h3>
+
+<h4>เป้าหมายของโปรเจกต์</h4>
+<p>สร้างเว็บแอป Quiz ทดสอบความรู้ JavaScript 10 ข้อด้วย HTML, CSS และ JavaScript ล้วน ไม่มี Framework ไม่มี Bundler และไม่มีแพ็กเกจ npm ตอนรันจริง (Runtime dependency) แอปโหลดคำถามจากไฟล์ JSON ด้วย <code>fetch</code> วาดหน้าจอจาก state ด้วย DOM รับคำตอบได้ทั้งการคลิกและการกดปุ่ม 1 ถึง 4 จับเวลาข้อละ 15 วินาที และจำคะแนนสูงสุดไว้ใน <code>localStorage</code></p>
+<p>สิ่งที่ทำให้โปรเจกต์นี้ "ใส่ Portfolio ได้" ไม่ใช่ความยาวของโค้ด แต่เป็นวิธีออกแบบ: เราแยก Logic ที่ไม่แตะ DOM (<code>src/quiz.js</code> และ <code>src/storage.js</code>) ออกจากส่วนที่แตะหน้าจอ (<code>src/main.js</code>) ทำให้เขียน Unit test ได้ 16 Test โดยไม่ต้องเปิดเบราว์เซอร์ ผู้สัมภาษณ์งานมักถามเรื่องนี้โดยตรง และโปรเจกต์นี้ให้คุณมีตัวอย่างจริงไว้เล่า</p>
+
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ให้นึกถึงร้านอาหาร <code>quiz.js</code> คือห้องครัวที่มีสูตรชัดเจน รับวัตถุดิบ (state เดิม) แล้วส่งจานใหม่ออกมา (state ใหม่) โดยไม่สนว่าลูกค้านั่งโต๊ะไหน ส่วน <code>main.js</code> คือพนักงานหน้าร้านที่รับออร์เดอร์ (Event) ไปส่งครัว แล้วนำจานไปเสิร์ฟ (Render) เราตรวจคุณภาพครัวได้โดยไม่ต้องเปิดร้าน ซึ่งก็คือการรัน Unit test โดยไม่ต้องเปิดเบราว์เซอร์</p></div>
+
+<h4>ความสามารถ (Features)</h4>
+<ul>
+  <li><strong>โหลดคำถามด้วย fetch</strong> จาก <code>data/questions.json</code> ด้วย Path แบบ Relative เช็ก <code>response.ok</code> มีหน้าจอ "กำลังโหลด" และหน้าจอ Error ที่มีปุ่ม "ลองใหม่"</li>
+  <li><strong>ตรวจรูปแบบข้อมูล</strong> ด้วย <code>validateQuestions()</code> ถ้าไฟล์ JSON ผิดรูปแบบจะแจ้ง TypeError เป็นภาษาไทย แทนที่จะพังกลางเกม</li>
+  <li><strong>3 หน้าจอหลัก</strong> (เริ่ม, คำถาม, สรุปผล) และหน้าจอเสริมอีก 2 แบบ (กำลังโหลด, Error) สลับด้วย attribute <code>hidden</code></li>
+  <li><strong>ตอบได้ 2 วิธี</strong> คลิกปุ่มตัวเลือก (Event delegation บน <code>#choices</code>) หรือกดปุ่ม <kbd>1</kbd> ถึง <kbd>4</kbd></li>
+  <li><strong>จับเวลาข้อละ 15 วินาที</strong> ด้วย <code>setInterval</code> และ <code>clearInterval</code> แสดงทั้งตัวเลขและแถบ <code>&lt;progress&gt;</code> หมดเวลานับว่าผิด</li>
+  <li><strong>แสดงผลถูก/ผิดแบบไม่พึ่งสีอย่างเดียว</strong> ใช้ทั้งสี เส้นขอบ (ผิดเป็นเส้นประ) และข้อความ "✓ ถูกต้อง" หรือ "✗ ผิด คำตอบที่ถูกคือ ..." ในพื้นที่ <code>aria-live="polite"</code></li>
+  <li><strong>จัดการ Focus</strong> ย้าย Focus ไปที่หัวข้อคำถามทุกครั้งที่ขึ้นข้อใหม่ ผู้ใช้คีย์บอร์ดและ Screen reader ใช้งานได้ครบ</li>
+  <li><strong>สรุปคะแนน</strong> แสดงคะแนน เปอร์เซ็นต์ และคะแนนสูงสุด พร้อมปุ่ม "เล่นอีกครั้ง"</li>
+  <li><strong>คะแนนสูงสุดอยู่ถาวร</strong> ใน <code>localStorage</code> ที่ Key <code>quiz-app:highscore</code> ปิดเบราว์เซอร์แล้วเปิดใหม่ก็ยังอยู่ ถ้าข้อมูลเสียหรือใช้ storage ไม่ได้ แอปไม่พัง</li>
+  <li><strong>Responsive</strong> แบบ Mobile-first ด้วย Flexbox มือถือเรียงตัวเลือก 1 คอลัมน์ จอกว้างตั้งแต่ 600px เรียง 2 คอลัมน์ และปิด Transition เมื่อผู้ใช้ตั้งค่า <code>prefers-reduced-motion</code></li>
+  <li><strong>Unit test 16 Test</strong> ใน 2 ไฟล์ ด้วย <code>node:test</code> และ <code>node:assert/strict</code> ที่ติดมากับ Node.js ไม่ต้องติดตั้งอะไรเพิ่ม</li>
+  <li><strong>เผยแพร่ฟรี</strong> บน GitHub Pages ที่ <code>https://somchai.github.io/quiz-app/</code></li>
+</ul>
+
+<h4>เครื่องมือและเวอร์ชันที่ใช้</h4>
+<div class="tbl wide"><table class="explain">
+<thead><tr><th>เครื่องมือ</th><th>เวอร์ชัน</th><th>ใช้ทำอะไรในโปรเจกต์นี้</th><th>หมายเหตุ</th></tr></thead>
+<tbody>
+<tr><td>HTML5, CSS3, JavaScript</td><td class="nw">ES2023</td><td>ตัวแอปทั้งหมด</td><td>ใช้ ES Modules (<code>import</code>/<code>export</code>) ไม่ใช้ <code>require</code></td></tr>
+<tr><td>Node.js</td><td class="nw">24.22.0 LTS</td><td>รัน Unit test ด้วย <code>node --test</code></td><td>ติดตั้งผ่าน nvm v0.40.8 ตาม Part 2 โค้ดนี้รันบน Node 26 ได้เช่นกัน</td></tr>
+<tr><td>npm</td><td class="nw">11 (มากับ Node 24)</td><td>รัน <code>npm test</code></td><td>ไม่มีแพ็กเกจให้ติดตั้งเลย</td></tr>
+<tr><td>Python</td><td class="nw">3.12.3</td><td>เปิด Web server ในเครื่องด้วย <code>python3 -m http.server</code></td><td>มากับ Ubuntu 24.04 อยู่แล้ว</td></tr>
+<tr><td>Git</td><td class="nw">2.43.0</td><td>เก็บประวัติโค้ดและ Push ขึ้น GitHub</td><td>ดู <a data-t="17"></a></td></tr>
+<tr><td>Google Chrome หรือ Microsoft Edge</td><td class="nw">รุ่นล่าสุด</td><td>เปิดแอปและใช้ DevTools (<kbd>F12</kbd>)</td><td>บน Windows เปิด <code>http://127.0.0.1:8000/</code> ที่ WSL เปิดไว้ได้เลย</td></tr>
+<tr><td>VS Code + WSL extension</td><td class="nw">รุ่นล่าสุด</td><td>แก้ไขไฟล์ทั้งหมด</td><td>เปิดด้วย <code>code .</code> ในโฟลเดอร์โปรเจกต์</td></tr>
+</tbody>
+</table></div>
+
+<h4>โครงสร้างโฟลเดอร์สุดท้าย</h4>
+<p>โครงสร้างนี้ตรงกับที่วางแผนไว้ใน Part 1 Step 14 ทุกไฟล์ เมื่อทำครบทุก Step โฟลเดอร์ <code>~/projects/quiz-app</code> จะมีหน้าตาแบบนี้</p>
+<pre class="code" data-env="file" data-label="Plaintext · โครงสร้างโปรเจกต์ quiz-app"><code class="language-plaintext">quiz-app/
+├── index.html          # โครงหน้าเว็บ: หน้าจอโหลด, Error, เริ่ม, คำถาม, สรุปผล
+├── style.css           # หน้าตา, Flexbox, Media query, สถานะ .is-correct / .is-wrong
+├── data/
+│   └── questions.json  # คำถาม 10 ข้อ
+├── src/
+│   ├── quiz.js         # Logic ล้วน ไม่แตะ DOM (ทดสอบด้วย node:test)
+│   ├── storage.js      # คะแนนสูงสุดใน localStorage
+│   └── main.js         # fetch, render, events, timer
+├── test/
+│   ├── quiz.test.js    # 10 Test ของ quiz.js
+│   └── storage.test.js # 6 Test ของ storage.js
+├── package.json        # "type": "module" และ "test": "node --test"
+├── .gitignore
+└── README.md</code></pre>
+
+<h4>ภาพรวมการทำงานของแอป</h4>
+<p>ก่อนเริ่มเขียน ให้เข้าใจเส้นทางของข้อมูลก่อน ทุกอย่างวนอยู่ในรูปแบบเดียวกันคือ "Event เกิดขึ้น → เรียกฟังก์ชันใน quiz.js ได้ state ใหม่ → Render หน้าจอจาก state"</p>
+<ol>
+  <li>เปิดหน้าเว็บ <code>main.js</code> เรียก <code>loadQuestions()</code> ซึ่ง <code>fetch('data/questions.json')</code> แล้วตรวจด้วย <code>validateQuestions()</code></li>
+  <li>โหลดสำเร็จ แสดงหน้าจอเริ่มพร้อมคะแนนสูงสุดจาก <code>loadHighScore()</code> โหลดไม่สำเร็จ แสดงหน้าจอ Error พร้อมปุ่ม "ลองใหม่"</li>
+  <li>กด "เริ่มทำ Quiz" เรียก <code>createQuiz(questions)</code> ได้ state เริ่มต้น แล้ว <code>renderQuestion()</code> และเริ่มจับเวลา</li>
+  <li>ผู้ใช้คลิกหรือกด 1 ถึง 4 เรียก <code>answer(state, index)</code> ถ้าหมดเวลาก่อนเรียก <code>timeout(state)</code> แล้ว <code>showFeedback()</code></li>
+  <li>กด "ข้อต่อไป" เรียก <code>next(state)</code> ถ้า <code>finished</code> เป็น <code>true</code> ไปหน้าสรุปผลและเรียก <code>saveHighScore()</code></li>
+</ol>
+
+<div class="callout"><span class="c-label tip">Tip</span><p>ใช้เวลาทำโปรเจกต์นี้ประมาณ 10 ถึง 14 ชั่วโมง แบ่งเป็น 3 ถึง 4 วัน อย่าพิมพ์ตามทั้งหมดในครั้งเดียว ให้ทำทีละ Step แล้ว Commit ทุกครั้งที่ Step ผ่าน คุณจะมีประวัติ Commit ที่สวยงามใน GitHub ซึ่งผู้สัมภาษณ์ชอบเปิดดู</p></div>
+
+<h4>ขั้นตอนการสร้าง</h4>
+<ol class="proj-steps">
+<li>
+<h4>Step 1: สร้างโฟลเดอร์โปรเจกต์ package.json และ .gitignore</h4>
+<p>เริ่มจากสร้างโฟลเดอร์ทั้งหมดด้วยคำสั่งเดียว แล้วเริ่ม Git Repository ทันที เพื่อให้ทุก Step มี Commit ของตัวเอง ตรวจก่อนว่า Node.js พร้อมใช้งาน (ติดตั้งไว้แล้วใน Part 2 หัวข้อเตรียมเครื่อง)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ตรวจเวอร์ชัน Node.js ต้องเป็น v24 ขึ้นไป
+node -v
+
+# สร้างโฟลเดอร์โปรเจกต์และโฟลเดอร์ย่อยในครั้งเดียว
+mkdir -p ~/projects/quiz-app/{data,src,test}
+cd ~/projects/quiz-app
+
+# เริ่ม Git Repository โดยตั้งชื่อ Branch หลักเป็น main
+git init -b main
+
+# สร้าง package.json แล้วเปิดโฟลเดอร์ใน VS Code
+npm init -y
+code .</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>v24.22.0
+Initialized empty Git repository in /home/somchai/projects/quiz-app/.git/</code></pre>
+<p>คำสั่ง <code>npm init -y</code> จะพิมพ์เนื้อหา package.json ออกมาด้วย ซึ่งยังมี <code>"type": "commonjs"</code> และ Script <code>test</code> ที่แค่พิมพ์ Error เราจะเขียนทับทั้งไฟล์ให้เป็นแบบด้านล่าง เปิด <code>package.json</code> ใน VS Code ลบเนื้อหาเดิมออกแล้ววางเนื้อหานี้แทน</p>
+<pre class="code" data-env="file" data-label="JSON · package.json"><code class="language-json">{
+  "name": "quiz-app",
+  "version": "1.0.0",
+  "description": "Interactive Quiz App ด้วย HTML, CSS และ JavaScript ล้วน",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8000 --bind 127.0.0.1",
+    "test": "node --test"
+  },
+  "license": "MIT"
+}</code></pre>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>"private": true</code></td><td>ป้องกันไม่ให้เผลอสั่ง <code>npm publish</code> โปรเจกต์นี้ขึ้น npm Registry</td></tr>
+<tr><td><code>"type": "module"</code></td><td>ทำให้ Node.js มองไฟล์ <code>.js</code> ทุกไฟล์ในโปรเจกต์เป็น ES Module ใช้ <code>import</code>/<code>export</code> ได้ ถ้าไม่มีบรรทัดนี้ Test จะพังด้วย <code>SyntaxError: Cannot use import statement outside a module</code></td></tr>
+<tr><td><code>"start"</code></td><td>พิมพ์ <code>npm start</code> แทนคำสั่ง http.server ยาว ๆ ได้</td></tr>
+<tr><td><code>"test": "node --test"</code></td><td>ให้ Node.js หาไฟล์ Test เอง ไฟล์ในโฟลเดอร์ <code>test/</code> ที่ลงท้ายด้วย <code>.test.js</code> จะถูกรันอัตโนมัติ</td></tr>
+<tr><td>ไม่มี <code>dependencies</code></td><td>แอปนี้ไม่ใช้แพ็กเกจภายนอกเลย จึงไม่มีโฟลเดอร์ <code>node_modules</code> และไม่มี <code>package-lock.json</code></td></tr>
+</tbody>
+</table></div>
+<p>ต่อไปสร้างไฟล์ <code>.gitignore</code> เพื่อบอก Git ว่าไฟล์ไหนไม่ต้องเก็บ ถึงตอนนี้จะยังไม่มี <code>node_modules</code> แต่ใส่ไว้ก่อนเผื่อวันหลังติดตั้ง ESLint หรือ Prettier</p>
+<pre class="code" data-env="file" data-label="Plaintext · .gitignore"><code class="language-plaintext">node_modules/
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+coverage/</code></pre>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>อย่าใส่ <code>package.json</code> หรือ <code>data/</code> ลงใน <code>.gitignore</code> เด็ดขาด ไม่อย่างนั้น GitHub Pages จะไม่มีไฟล์คำถามให้โหลด และแอปจะขึ้นหน้าจอ Error "HTTP 404"</p></div>
+</li>
+
+<li>
+<h4>Step 2: เตรียมข้อมูลคำถาม data/questions.json</h4>
+<p>ไฟล์นี้คือ "ฐานข้อมูล" ของแอป เป็น Array ของ Object 10 ตัว ทุกตัวมีรูปแบบ (Schema) เดียวกัน คือ <code>id</code> (ตัวเลข), <code>question</code> (ข้อความ), <code>choices</code> (Array ของข้อความ 4 ตัว) และ <code>answer</code> (ตำแหน่งของคำตอบที่ถูก นับจาก 0) คำถามข้อ 1 ถึง 3 ตรงกับที่ใช้ใน Part 1 Step 12</p>
+<pre class="code" data-env="file" data-label="JSON · data/questions.json"><code class="language-json">[
+  {
+    "id": 1,
+    "question": "คำสั่งใดประกาศตัวแปรที่เปลี่ยนค่าไม่ได้",
+    "choices": ["var", "let", "const", "static"],
+    "answer": 2
+  },
+  {
+    "id": 2,
+    "question": "'5' === 5 ได้ผลลัพธ์อะไร",
+    "choices": ["true", "false", "undefined", "Error"],
+    "answer": 1
+  },
+  {
+    "id": 3,
+    "question": "เมธอดใดใช้แปลง JSON String เป็น Object",
+    "choices": ["JSON.stringify", "JSON.parse", "JSON.toObject", "Object.fromJSON"],
+    "answer": 1
+  },
+  {
+    "id": 4,
+    "question": "[1, 2, 3].map(n =&gt; n * 2) ได้ผลลัพธ์อะไร",
+    "choices": ["[2, 4, 6]", "[1, 2, 3]", "12", "undefined"],
+    "answer": 0
+  },
+  {
+    "id": 5,
+    "question": "typeof null ได้ผลลัพธ์อะไร",
+    "choices": ["\"null\"", "\"undefined\"", "\"object\"", "\"number\""],
+    "answer": 2
+  },
+  {
+    "id": 6,
+    "question": "เมธอดใดเลือก Element แรกที่ตรงกับ CSS Selector",
+    "choices": ["getElementsByClassName", "querySelector", "querySelectorAll", "getElementByName"],
+    "answer": 1
+  },
+  {
+    "id": 7,
+    "question": "ข้อใดป้องกันไม่ให้ Form รีโหลดหน้าเมื่อกด Submit",
+    "choices": ["event.stopPropagation()", "event.preventDefault()", "return true", "form.reset()"],
+    "answer": 1
+  },
+  {
+    "id": 8,
+    "question": "localStorage เก็บข้อมูลเป็นชนิดใด",
+    "choices": ["Object", "Number", "String", "Array"],
+    "answer": 2
+  },
+  {
+    "id": 9,
+    "question": "โค้ดใดทำงานก่อน: setTimeout(fn, 0) หรือ Promise.resolve().then(fn)",
+    "choices": ["setTimeout", "Promise.then", "พร้อมกัน", "สุ่ม"],
+    "answer": 1
+  },
+  {
+    "id": 10,
+    "question": "0 ?? 5 ได้ผลลัพธ์อะไร",
+    "choices": ["0", "5", "null", "undefined"],
+    "answer": 0
+  }
+]</code></pre>
+<p>ตรวจว่าไฟล์เป็น JSON ที่ถูกต้องก่อนไปต่อ ด้วย Node.js บรรทัดเดียว คำสั่งนี้อ่านไฟล์ แปลงด้วย <code>JSON.parse</code> แล้วพิมพ์จำนวนข้อและคำตอบของแต่ละข้อ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/quiz-app
+node -e "const q = JSON.parse(require('fs').readFileSync('data/questions.json', 'utf8')); console.log(q.length, 'ข้อ'); console.log(q.map((x) =&gt; x.answer).join(','));"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>10 ข้อ
+2,1,1,0,2,1,1,2,1,0</code></pre>
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p><code>node -e</code> รันโค้ดแบบ CommonJS เสมอ จึงใช้ <code>require</code> ได้ตรงนี้ ส่วนไฟล์ <code>.js</code> ในโปรเจกต์เป็น ES Module ทั้งหมดเพราะ <code>"type": "module"</code></p></div>
+<div class="tbl wide"><table class="mistakes">
+<thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead>
+<tbody>
+<tr><td><code>SyntaxError: Expected double-quoted property name in JSON at position 10 (line 1 column 11)</code> หรือ <code>SyntaxError: Unexpected token ']', "[{"id": 1},]" is not valid JSON</code></td><td>มี Comma ตัวสุดท้ายเกิน (Trailing comma) หลังค่าสุดท้ายใน Object หรือใน Array ซึ่ง JSON ไม่อนุญาต (ตัวเลขตำแหน่งขึ้นกับไฟล์ของคุณ)</td><td>ลบ Comma ตัวสุดท้ายใน Object หรือ Array นั้น</td></tr>
+<tr><td><code>SyntaxError: Expected property name or '}' in JSON at position 4 (line 1 column 5)</code></td><td>ใช้ Single quote ซึ่ง JSON ไม่รองรับ</td><td>ใช้ Double quote <code>"</code> กับทั้ง Key และ String ทุกตัว</td></tr>
+<tr><td>เฉลยผิดข้อ</td><td>นับ <code>answer</code> เริ่มจาก 1 แทนที่จะเริ่มจาก 0</td><td>จำไว้ว่าตัวเลือกแรกคือ <code>0</code> ตัวเลือกที่สี่คือ <code>3</code></td></tr>
+</tbody>
+</table></div>
+</li>
+
+<li>
+<h4>Step 3: เขียนโครงหน้าเว็บ index.html</h4>
+<p>หน้าเว็บมี 5 หน้าจอใน <code>&lt;main&gt;</code> แต่ละหน้าจอเป็น <code>&lt;section class="screen"&gt;</code> และเริ่มต้นซ่อนไว้ด้วย attribute <code>hidden</code> ยกเว้นหน้าจอ "กำลังโหลด" JavaScript จะสลับว่าแสดงหน้าจอไหน ปุ่มทุกปุ่มเป็น <code>&lt;button type="button"&gt;</code> จริง ไม่ใช้ <code>&lt;div&gt;</code> ทำเป็นปุ่ม เพราะ <code>&lt;button&gt;</code> กดด้วย <kbd>Tab</kbd> และ <kbd>Enter</kbd> ได้เองโดยไม่ต้องเขียนโค้ดเพิ่ม</p>
+<pre class="code" data-env="file" data-label="HTML · index.html"><code class="language-xml">&lt;!DOCTYPE html&gt;
+&lt;html lang="th"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+  &lt;meta name="description" content="Quiz ทดสอบความรู้ JavaScript 10 ข้อ ข้อละ 15 วินาที"&gt;
+  &lt;title&gt;JavaScript Quiz&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+  &lt;!-- type="module" ทำงานแบบ defer อัตโนมัติ จึงวางใน head ได้ --&gt;
+  &lt;script type="module" src="src/main.js"&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;header class="site-header"&gt;
+    &lt;h1&gt;JavaScript Quiz&lt;/h1&gt;
+    &lt;p class="tagline"&gt;ทดสอบความรู้ 10 ข้อ ข้อละ 15 วินาที&lt;/p&gt;
+  &lt;/header&gt;
+
+  &lt;main class="container"&gt;
+    &lt;!-- หน้าจอระหว่างโหลดคำถาม --&gt;
+    &lt;section id="loading-screen" class="screen" aria-busy="true"&gt;
+      &lt;p&gt;กำลังโหลดคำถาม...&lt;/p&gt;
+    &lt;/section&gt;
+
+    &lt;!-- หน้าจอเมื่อโหลดไม่สำเร็จ --&gt;
+    &lt;section id="error-screen" class="screen" hidden&gt;
+      &lt;h2&gt;โหลดคำถามไม่สำเร็จ&lt;/h2&gt;
+      &lt;p id="error-message" role="alert"&gt;&lt;/p&gt;
+      &lt;button type="button" id="retry-btn" class="btn"&gt;ลองใหม่&lt;/button&gt;
+    &lt;/section&gt;
+
+    &lt;!-- หน้าจอเริ่ม --&gt;
+    &lt;section id="start-screen" class="screen" hidden&gt;
+      &lt;h2&gt;พร้อมหรือยัง&lt;/h2&gt;
+      &lt;p&gt;มีคำถามทั้งหมด &lt;strong id="total-count"&gt;0&lt;/strong&gt; ข้อ ตอบด้วยการคลิก หรือกดปุ่ม 1 ถึง 4 บนคีย์บอร์ด&lt;/p&gt;
+      &lt;p&gt;คะแนนสูงสุดของคุณ: &lt;strong id="start-highscore"&gt;0&lt;/strong&gt;&lt;/p&gt;
+      &lt;button type="button" id="start-btn" class="btn btn-primary"&gt;เริ่มทำ Quiz&lt;/button&gt;
+    &lt;/section&gt;
+
+    &lt;!-- หน้าจอคำถาม --&gt;
+    &lt;section id="question-screen" class="screen" hidden&gt;
+      &lt;div class="status-bar"&gt;
+        &lt;p id="progress-text"&gt;ข้อ 1 / 10&lt;/p&gt;
+        &lt;p id="score-text"&gt;คะแนน 0&lt;/p&gt;
+      &lt;/div&gt;
+      &lt;div class="timer"&gt;
+        &lt;label for="timer-bar"&gt;เวลาที่เหลือ &lt;span id="timer-text"&gt;15&lt;/span&gt; วินาที&lt;/label&gt;
+        &lt;progress id="timer-bar" max="15" value="15"&gt;&lt;/progress&gt;
+      &lt;/div&gt;
+      &lt;!-- tabindex="-1" ทำให้ย้าย Focus มาที่หัวข้อด้วย JavaScript ได้ --&gt;
+      &lt;h2 id="question-text" tabindex="-1"&gt;&lt;/h2&gt;
+      &lt;ul id="choices" class="choices"&gt;&lt;/ul&gt;
+      &lt;p id="feedback" class="feedback" aria-live="polite"&gt;&lt;/p&gt;
+      &lt;button type="button" id="next-btn" class="btn btn-primary" hidden&gt;ข้อต่อไป&lt;/button&gt;
+    &lt;/section&gt;
+
+    &lt;!-- หน้าจอสรุปผล --&gt;
+    &lt;section id="result-screen" class="screen" hidden&gt;
+      &lt;h2 id="result-title" tabindex="-1"&gt;สรุปผล&lt;/h2&gt;
+      &lt;p id="result-score" class="result-score"&gt;&lt;/p&gt;
+      &lt;p id="result-highscore"&gt;&lt;/p&gt;
+      &lt;button type="button" id="restart-btn" class="btn btn-primary"&gt;เล่นอีกครั้ง&lt;/button&gt;
+    &lt;/section&gt;
+  &lt;/main&gt;
+
+  &lt;footer class="site-footer"&gt;
+    &lt;p&gt;สร้างด้วย HTML, CSS และ JavaScript ล้วน ไม่มี Framework&lt;/p&gt;
+  &lt;/footer&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>&lt;html lang="th"&gt;</code></td><td>บอกเบราว์เซอร์และ Screen reader ว่าเนื้อหาเป็นภาษาไทย ทำให้ออกเสียงถูกต้อง</td></tr>
+<tr><td><code>&lt;meta name="viewport" ...&gt;</code></td><td>ทำให้หน้าเว็บกว้างเท่าจอมือถือจริง ไม่อย่างนั้น Media query จะไม่ทำงานบนมือถือ</td></tr>
+<tr><td><code>&lt;script type="module" src="src/main.js"&gt;</code></td><td>โหลด main.js เป็น ES Module ซึ่งรอให้ HTML โหลดเสร็จก่อนรันเสมอ (เหมือนใส่ <code>defer</code>) จึงวางใน <code>&lt;head&gt;</code> ได้ และ <code>querySelector</code> จะไม่ได้ <code>null</code></td></tr>
+<tr><td><code>aria-busy="true"</code></td><td>บอก Screen reader ว่าส่วนนี้กำลังโหลด</td></tr>
+<tr><td><code>role="alert"</code></td><td>ข้อความ Error จะถูกอ่านออกเสียงทันทีที่ปรากฏ</td></tr>
+<tr><td><code>&lt;label for="timer-bar"&gt;</code> กับ <code>&lt;progress id="timer-bar"&gt;</code></td><td>ผูกป้ายกับแถบเวลา Screen reader จะอ่านว่า "เวลาที่เหลือ ... วินาที"</td></tr>
+<tr><td><code>&lt;h2 id="question-text" tabindex="-1"&gt;</code></td><td><code>tabindex="-1"</code> ทำให้ JavaScript เรียก <code>.focus()</code> ที่หัวข้อได้ แต่ผู้ใช้กด <kbd>Tab</kbd> แล้วจะไม่หยุดที่หัวข้อนี้</td></tr>
+<tr><td><code>&lt;ul id="choices"&gt;</code></td><td>ว่างไว้ JavaScript จะสร้างปุ่มตัวเลือกใส่ทุกครั้งที่ขึ้นข้อใหม่</td></tr>
+<tr><td><code>&lt;p id="feedback" aria-live="polite"&gt;</code></td><td>เมื่อข้อความเปลี่ยน Screen reader จะอ่านให้ฟังหลังอ่านสิ่งที่ค้างอยู่จบ ใช้แจ้งผลถูก/ผิด</td></tr>
+</tbody>
+</table></div>
+<div class="callout"><span class="c-label tip">Tip</span><p>ถ้าอยากเห็นหน้าตาตอนนี้ ให้รัน <code>python3 -m http.server 8000 --bind 127.0.0.1</code> แล้วเปิด <code>http://127.0.0.1:8000/</code> คุณจะเห็นแค่หัวเว็บกับคำว่า "กำลังโหลดคำถาม..." และใน DevTools Console จะมี Error 404 ของ <code>src/main.js</code> ซึ่งเป็นเรื่องปกติเพราะยังไม่ได้สร้างไฟล์นั้น</p></div>
+</li>
+
+<li>
+<h4>Step 4: ตกแต่งด้วย style.css (Mobile-first และ Accessibility)</h4>
+<p>เขียน CSS สำหรับจอมือถือก่อน แล้วค่อยใช้ <code>@media (min-width: 600px)</code> ปรับสำหรับจอกว้าง แบบนี้เรียกว่า Mobile-first สีทั้งหมดเก็บใน CSS Custom properties ที่ <code>:root</code> ถ้าอยากเปลี่ยนธีมก็แก้ที่เดียว</p>
+<pre class="code" data-env="file" data-label="CSS · style.css"><code class="language-css">/* style.css — Mobile-first: เขียนสำหรับจอเล็กก่อน แล้วค่อยขยายด้วย Media query */
+
+/* ตัวแปร CSS (Custom properties) เปลี่ยนสีทั้งแอปได้จากที่เดียว */
+:root {
+  --brand: #2563eb;
+  --brand-dark: #1d4ed8;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --bg: #f3f4f6;
+  --card: #ffffff;
+  --border: #d1d5db;
+  --correct: #15803d;
+  --correct-bg: #dcfce7;
+  --wrong: #b91c1c;
+  --wrong-bg: #fee2e2;
+  --radius: 12px;
+}
+
+/* ให้ width รวม padding และ border เสมอ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* สำคัญ: ทำให้ attribute hidden ชนะ display: flex ของ .screen */
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, 'Noto Sans Thai', sans-serif;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.site-header,
+.site-footer {
+  text-align: center;
+  padding: 1rem;
+}
+
+.site-header h1 {
+  margin: 0;
+  color: var(--brand);
+}
+
+.tagline,
+.site-footer {
+  color: var(--muted);
+}
+
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* แต่ละหน้าจอเป็นการ์ด เรียงลูกในแนวตั้งด้วย Flexbox */
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
+}
+
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+}
+
+.status-bar p {
+  margin: 0;
+}
+
+.timer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.timer progress {
+  width: 100%;
+  height: 0.75rem;
+}
+
+#question-text {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+/* ตัวเลือก: จอเล็กเรียงแนวตั้ง */
+.choices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.btn,
+.choice {
+  font: inherit;
+  cursor: pointer;
+  border-radius: var(--radius);
+}
+
+.choice {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  background: var(--card);
+  color: var(--text);
+  border: 2px solid var(--border);
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.choice:hover:not(:disabled) {
+  border-color: var(--brand);
+}
+
+.choice:disabled {
+  cursor: default;
+}
+
+/* เลขปุ่มลัด 1-4 หน้าตัวเลือก */
+.choice-key {
+  flex: 0 0 2rem;
+  height: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  background: var(--bg);
+  font-weight: bold;
+}
+
+/* สถานะถูก/ผิด ใช้ทั้งสี ขอบหนา และสัญลักษณ์ในข้อความ (ไม่พึ่งสีอย่างเดียว) */
+.is-correct {
+  border-color: var(--correct);
+  background: var(--correct-bg);
+}
+
+.is-wrong {
+  border-color: var(--wrong);
+  background: var(--wrong-bg);
+  border-style: dashed;
+}
+
+.feedback {
+  margin: 0;
+  min-height: 1.6em;
+  font-weight: bold;
+}
+
+.feedback.is-correct {
+  color: var(--correct);
+  background: none;
+}
+
+.feedback.is-wrong {
+  color: var(--wrong);
+  background: none;
+}
+
+.btn {
+  align-self: flex-start;
+  padding: 0.75rem 1.5rem;
+  border: 2px solid var(--brand);
+  background: var(--card);
+  color: var(--brand);
+}
+
+.btn-primary {
+  background: var(--brand);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background: var(--brand-dark);
+}
+
+.result-score {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+/* เส้นขอบเมื่อใช้คีย์บอร์ด (Tab) เห็นชัดว่าอยู่ที่ไหน */
+:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 3px;
+}
+
+/* จอกว้างตั้งแต่ 600px: ตัวเลือกเรียง 2 คอลัมน์ */
+@media (min-width: 600px) {
+  .choices {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .choices li {
+    flex: 1 1 calc(50% - 0.75rem);
+  }
+}
+
+/* ผู้ใช้ที่ตั้งค่าลดการเคลื่อนไหวในระบบ: ปิด Transition */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}</code></pre>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>:root { --brand: ... }</code></td><td>ประกาศตัวแปร CSS ใช้ซ้ำด้วย <code>var(--brand)</code></td></tr>
+<tr><td><code>box-sizing: border-box</code></td><td>ให้ <code>width</code> รวม padding และ border แล้ว คำนวณขนาดง่ายขึ้น (ทบทวน Box Model ใน Part 2 แนวคิดที่ 3)</td></tr>
+<tr><td><code>[hidden] { display: none !important; }</code></td><td>สำคัญมาก: <code>.screen</code> ตั้ง <code>display: flex</code> ซึ่งจะชนะ attribute <code>hidden</code> ทำให้ทุกหน้าจอโผล่พร้อมกัน บรรทัดนี้ทำให้ <code>hidden</code> ชนะเสมอ</td></tr>
+<tr><td><code>.screen { display: flex; flex-direction: column; gap: 1rem; }</code></td><td>เรียงลูกในแนวตั้งและเว้นระยะเท่ากันด้วย <code>gap</code> ไม่ต้องใส่ margin ทีละตัว</td></tr>
+<tr><td><code>.choice-key { flex: 0 0 2rem; }</code></td><td>วงกลมตัวเลข 1 ถึง 4 กว้าง 2rem คงที่ ไม่ยืดไม่หด</td></tr>
+<tr><td><code>.is-wrong { border-style: dashed; }</code></td><td>ตัวเลือกที่ผิดเป็นเส้นประ คนที่มองสีแดงเขียวไม่ออก (Color blindness) ก็แยกได้</td></tr>
+<tr><td><code>:focus-visible</code></td><td>แสดงกรอบ Focus หนา 3px เฉพาะตอนใช้คีย์บอร์ด ไม่โชว์ตอนคลิกเมาส์</td></tr>
+<tr><td><code>@media (min-width: 600px)</code></td><td>จอกว้างตั้งแต่ 600px เปลี่ยนตัวเลือกเป็นแถวและตัดขึ้นบรรทัดใหม่ (<code>flex-wrap</code>) ได้ 2 คอลัมน์</td></tr>
+<tr><td><code>@media (prefers-reduced-motion: reduce)</code></td><td>ปิด Transition สำหรับผู้ใช้ที่ตั้งค่าลดการเคลื่อนไหวในระบบปฏิบัติการ</td></tr>
+</tbody>
+</table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul><li>ใช้หน่วย <code>rem</code> กับขนาดตัวอักษรและระยะห่าง ผู้ใช้ที่ขยายตัวอักษรในเบราว์เซอร์จะได้หน้าที่ขยายตามสัดส่วน</li><li>ตั้งชื่อ Class ตามความหมาย (<code>.is-correct</code>) ไม่ใช่ตามหน้าตา (<code>.green</code>) วันหลังเปลี่ยนสีก็ไม่ต้องเปลี่ยนชื่อ</li><li>อย่าลบ outline ของ Focus ด้วย <code>outline: none</code> โดยไม่มีสิ่งทดแทน ผู้ใช้คีย์บอร์ดจะไม่รู้ว่าตัวเองอยู่ตรงไหน</li></ul></div>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Commit งาน 4 Step แรก
+git add .
+git commit -m "chore: project skeleton, questions data, html and css"</code></pre>
+</li>
+<li>
+<h4>Step 5: เขียน Logic ล้วนใน src/quiz.js (ไม่แตะ DOM)</h4>
+<p>นี่คือหัวใจของแอป ทุกฟังก์ชันในไฟล์นี้เป็น Pure function หรือใกล้เคียง คือรับค่าเข้าไป แล้วคืนค่าใหม่ออกมา ไม่แก้ตัวแปรภายนอก ไม่แตะ <code>document</code> และไม่แตะ <code>localStorage</code> หลักสำคัญมี 2 ข้อ</p>
+<ul>
+  <li><strong>Immutable state:</strong> <code>answer()</code> และ <code>next()</code> ไม่แก้ state เดิม แต่สร้าง Object ใหม่ด้วย Spread (<code>{ ...state, score: ... }</code>) ทำให้ย้อนดู state เก่าได้ และทดสอบได้ง่ายว่า "state เดิมไม่เปลี่ยน"</li>
+  <li><strong>Dependency injection:</strong> ฟังก์ชันที่ต้องใช้ค่าที่เปลี่ยนทุกครั้ง เช่น การสุ่มหรือเวลาปัจจุบัน จะรับค่านั้นเป็น Parameter (<code>random</code>, <code>nowMs</code>) Test จึงส่งค่าคงที่เข้าไปแล้วได้ผลเดิมทุกครั้ง</li>
+</ul>
+<pre class="code" data-env="file" data-label="JavaScript · src/quiz.js"><code class="language-javascript">// src/quiz.js — Logic ของ Quiz ล้วน ๆ ไม่แตะ DOM และไม่แตะ localStorage
+// ทุกฟังก์ชันรับ state เดิมแล้วคืน state ใหม่ (Immutable) จึงทดสอบด้วย node:test ได้ง่าย
+
+// เวลาต่อข้อ (วินาที)
+export const TIME_LIMIT = 15;
+
+// ตรวจรูปแบบข้อมูลคำถามที่โหลดมา ถ้าผิดให้โยน TypeError พร้อมข้อความภาษาไทย
+export function validateQuestions(data) {
+  if (!Array.isArray(data)) {
+    throw new TypeError('ข้อมูลคำถามต้องเป็น Array');
+  }
+  if (data.length === 0) {
+    throw new TypeError('ต้องมีคำถามอย่างน้อย 1 ข้อ');
+  }
+  data.forEach((q, i) =&gt; {
+    const isValid =
+      q !== null &amp;&amp;
+      typeof q === 'object' &amp;&amp;
+      typeof q.question === 'string' &amp;&amp;
+      q.question.trim() !== '' &amp;&amp;
+      Array.isArray(q.choices) &amp;&amp;
+      q.choices.length === 4 &amp;&amp;
+      q.choices.every((choice) =&gt; typeof choice === 'string') &amp;&amp;
+      Number.isInteger(q.answer) &amp;&amp;
+      q.answer &gt;= 0 &amp;&amp;
+      q.answer &lt; q.choices.length;
+    if (!isValid) {
+      throw new TypeError(`คำถามลำดับที่ ${i + 1} มีรูปแบบไม่ถูกต้อง`);
+    }
+  });
+  return data;
+}
+
+// สลับลำดับแบบ Fisher-Yates คืน Array ใหม่ ไม่แก้ Array เดิม
+// รับ random เป็น Parameter เพื่อให้ Test ส่งฟังก์ชันสุ่มปลอมที่ได้ผลเดิมทุกครั้งได้
+export function shuffle(array, random = Math.random) {
+  const result = [...array];
+  for (let i = result.length - 1; i &gt; 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+// สร้าง state เริ่มต้นของ Quiz
+export function createQuiz(questions, { shuffle: shouldShuffle = false, random = Math.random } = {}) {
+  validateQuestions(questions);
+  const list = shouldShuffle ? shuffle(questions, random) : [...questions];
+  return { questions: list, index: 0, score: 0, answers: [], finished: false };
+}
+
+// คำถามข้อปัจจุบัน หรือ null เมื่อจบแล้ว
+export function currentQuestion(state) {
+  if (state.finished) {
+    return null;
+  }
+  return state.questions[state.index] ?? null;
+}
+
+// ข้อปัจจุบันตอบไปแล้วหรือยัง (จำนวนคำตอบมากกว่า index แปลว่าตอบแล้ว)
+export function isAnswered(state) {
+  return state.answers.length &gt; state.index;
+}
+
+// บันทึกคำตอบ คืน state ใหม่ คำตอบล่าสุดอยู่ที่ answers.at(-1) ซึ่งมี correct เป็น true หรือ false
+export function answer(state, choiceIndex) {
+  if (state.finished) {
+    throw new Error('Quiz จบแล้ว ตอบเพิ่มไม่ได้');
+  }
+  if (isAnswered(state)) {
+    throw new Error('ข้อนี้ตอบไปแล้ว');
+  }
+  const question = currentQuestion(state);
+  const correct = choiceIndex === question.answer;
+  return {
+    ...state,
+    score: correct ? state.score + 1 : state.score,
+    answers: [...state.answers, { id: question.id, choice: choiceIndex, correct }],
+  };
+}
+
+// หมดเวลา: บันทึกคำตอบเป็น null และนับว่าผิด
+export function timeout(state) {
+  return answer(state, null);
+}
+
+// ไปข้อถัดไป ถ้าเป็นข้อสุดท้ายแล้วให้ finished เป็น true
+export function next(state) {
+  if (!isAnswered(state)) {
+    throw new Error('ต้องตอบข้อนี้ก่อนไปข้อถัดไป');
+  }
+  const nextIndex = state.index + 1;
+  return {
+    ...state,
+    index: nextIndex,
+    finished: nextIndex &gt;= state.questions.length,
+  };
+}
+
+// คำนวณเปอร์เซ็นต์ ปัดเป็นจำนวนเต็ม (กติกาเดียวกับ score.js ใน Part 1)
+export function percent(score, total) {
+  if (!Number.isInteger(total) || total &lt;= 0) {
+    throw new RangeError('total ต้องเป็นจำนวนเต็มที่มากกว่า 0');
+  }
+  return Math.round((score / total) * 100);
+}
+
+// เวลาที่เหลือเป็นวินาที ไม่ต่ำกว่า 0 และไม่เกิน limit
+export function remainingSeconds(startedAtMs, nowMs, limit = TIME_LIMIT) {
+  const elapsed = Math.floor((nowMs - startedAtMs) / 1000);
+  return Math.min(limit, Math.max(0, limit - elapsed));
+}</code></pre>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>export const TIME_LIMIT = 15</code></td><td>ค่าคงที่เวลาต่อข้อ ทั้ง <code>remainingSeconds()</code> และ <code>main.js</code> ใช้ค่าเดียวกัน อยากเปลี่ยนเป็น 20 วินาทีก็แก้ที่นี่ที่เดียว</td></tr>
+<tr><td><code>validateQuestions(data)</code></td><td>ตรวจทีละข้อว่ามี <code>question</code> เป็นข้อความไม่ว่าง มี <code>choices</code> 4 ตัวที่เป็นข้อความ และ <code>answer</code> เป็นจำนวนเต็มที่อยู่ในช่วง 0 ถึง 3 ถ้าผิดโยน <code>TypeError</code> บอกลำดับข้อที่ผิด</td></tr>
+<tr><td><code>shuffle(array, random)</code></td><td>อัลกอริทึม Fisher-Yates สลับจากท้ายมาหน้า ใช้ <code>[...array]</code> สร้างสำเนาก่อน จึงไม่แก้ Array ต้นฉบับ และใช้ Destructuring <code>[a, b] = [b, a]</code> สลับค่า</td></tr>
+<tr><td><code>createQuiz(questions, { shuffle: shouldShuffle = false, ... } = {})</code></td><td>Destructuring ใน Parameter พร้อมค่าเริ่มต้นและเปลี่ยนชื่อ <code>shuffle</code> เป็น <code>shouldShuffle</code> เพื่อไม่ให้ชนกับชื่อฟังก์ชัน <code>shuffle()</code> ส่วน <code>= {}</code> ท้ายสุดทำให้เรียก <code>createQuiz(questions)</code> โดยไม่ส่ง Option ได้</td></tr>
+<tr><td><code>state.questions[state.index] ?? null</code></td><td>ใช้ Nullish coalescing ถ้า index เกินจำนวนข้อจะได้ <code>null</code> แทน <code>undefined</code></td></tr>
+<tr><td><code>isAnswered(state)</code></td><td>ข้อปัจจุบันตอบแล้วเมื่อจำนวนคำตอบมากกว่า index เช่น อยู่ข้อแรก (index 0) และมีคำตอบ 1 ตัว แปลว่าตอบแล้ว</td></tr>
+<tr><td><code>answer(state, choiceIndex)</code></td><td>ป้องกันการตอบซ้ำและการตอบหลังจบ แล้วคืน state ใหม่ คะแนนเพิ่มเมื่อถูก และต่อท้าย <code>answers</code> ด้วย <code>{ id, choice, correct }</code></td></tr>
+<tr><td><code>timeout(state)</code></td><td>ใช้ <code>answer(state, null)</code> ซ้ำ เพราะ <code>null</code> ไม่มีวันเท่ากับ <code>answer</code> ที่เป็นตัวเลข จึงนับว่าผิดเสมอ ไม่ต้องเขียน Logic ซ้ำ</td></tr>
+<tr><td><code>next(state)</code></td><td>ห้ามข้ามข้อที่ยังไม่ตอบ เลื่อน index และตั้ง <code>finished</code> เมื่อเลยข้อสุดท้าย</td></tr>
+<tr><td><code>percent(score, total)</code></td><td>กติกาเดียวกับ <code>score.js</code> ใน Part 1: ปัดด้วย <code>Math.round</code> และโยน <code>RangeError</code> เมื่อ total ไม่ใช่จำนวนเต็มบวก กันการหารด้วย 0</td></tr>
+<tr><td><code>remainingSeconds(startedAtMs, nowMs, limit)</code></td><td>คำนวณเวลาที่เหลือจากเวลาจริง แล้วบีบค่าให้อยู่ระหว่าง 0 ถึง limit ด้วย <code>Math.min</code> และ <code>Math.max</code> (เรียกว่า Clamp)</td></tr>
+</tbody>
+</table></div>
+<p>ลองเรียกฟังก์ชันเหล่านี้ด้วย Node.js ก่อนไปเขียนส่วนหน้าจอ สร้างไฟล์ทดลองชั่วคราวชื่อ <code>try-quiz.js</code> ที่รากของโปรเจกต์</p>
+<pre class="code" data-env="file" data-label="JavaScript · try-quiz.js (ไฟล์ชั่วคราว)"><code class="language-javascript">// try-quiz.js — ลองเรียก Logic ใน quiz.js ด้วย Node.js โดยไม่ต้องเปิดเบราว์เซอร์
+import { readFile } from 'node:fs/promises';
+import { createQuiz, currentQuestion, answer, timeout, next, percent, remainingSeconds } from './src/quiz.js';
+
+const questions = JSON.parse(await readFile('data/questions.json', 'utf8'));
+let state = createQuiz(questions);
+console.log('ข้อแรก:', currentQuestion(state).question);
+
+const afterAnswer = answer(state, 2);
+console.log('state เดิม score =', state.score, '| state ใหม่ score =', afterAnswer.score);
+console.log('คำตอบล่าสุด:', afterAnswer.answers.at(-1));
+
+state = next(afterAnswer);
+state = timeout(state);
+console.log('หมดเวลาข้อ 2:', state.answers.at(-1));
+
+console.log('เหลือเวลา (เริ่ม 0 ตอนนี้ 4500 ms):', remainingSeconds(0, 4500), 'วินาที');
+console.log('7 จาก 10 =', percent(7, 10) + '%');
+try {
+  answer(state, 1);
+} catch (error) {
+  console.log(`${error.name}: ${error.message}`);
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/quiz-app
+node try-quiz.js
+# ทดลองเสร็จแล้วลบทิ้ง เพื่อให้โครงสร้างโปรเจกต์ตรงกับแผน
+rm try-quiz.js</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ข้อแรก: คำสั่งใดประกาศตัวแปรที่เปลี่ยนค่าไม่ได้
+state เดิม score = 0 | state ใหม่ score = 1
+คำตอบล่าสุด: { id: 1, choice: 2, correct: true }
+หมดเวลาข้อ 2: { id: 2, choice: null, correct: false }
+เหลือเวลา (เริ่ม 0 ตอนนี้ 4500 ms): 11 วินาที
+7 จาก 10 = 70%
+Error: ข้อนี้ตอบไปแล้ว</code></pre>
+<p>สังเกตบรรทัดที่ 2 ของผลลัพธ์: หลังเรียก <code>answer()</code> แล้ว <code>state</code> เดิมยังมีคะแนน 0 อยู่ นี่คือหลักฐานว่าฟังก์ชันไม่แก้ state เดิม</p>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>อย่าเขียน <code>state.score += 1</code> ใน <code>answer()</code> แม้จะสั้นกว่า เพราะจะแก้ Object ที่ส่วนอื่นของโปรแกรมยังถืออยู่ (Mutation) แล้ว Test "state เดิมไม่เปลี่ยน" ใน Step 8 จะล้มเหลว</p></div>
+</li>
+
+<li>
+<h4>Step 6: เก็บคะแนนสูงสุดด้วย src/storage.js</h4>
+<p>ไฟล์นี้ดูแลการอ่านและเขียน <code>localStorage</code> เท่านั้น จุดสำคัญคือรับ <code>storage</code> เป็น Parameter แทนที่จะเรียก <code>localStorage</code> ตรง ๆ ในเบราว์เซอร์ค่าเริ่มต้นคือ <code>localStorage</code> จริง แต่ใน Test เราส่งที่เก็บจำลองที่สร้างจาก <code>Map</code> เข้าไปได้ เพราะ Node.js 24 ไม่มี <code>localStorage</code> ให้ใช้แบบเบราว์เซอร์</p>
+<p>ข้อมูลที่บันทึกเป็น JSON String เช่น <code>{"score":7,"percent":70,"date":"2026-10-19"}</code> เพราะ <code>localStorage</code> เก็บได้แค่ String ถ้าส่ง Object เข้าไปตรง ๆ จะได้ข้อความ <code>[object Object]</code> แทน</p>
+<pre class="code" data-env="file" data-label="JavaScript · src/storage.js"><code class="language-javascript">// src/storage.js — อ่านและบันทึกคะแนนสูงสุด
+// รับ storage เป็น Parameter: ในเบราว์เซอร์ใช้ localStorage ใน Test ใช้ที่เก็บจำลอง
+import { percent } from './quiz.js';
+
+// ใส่ชื่อแอปนำหน้า Key เพื่อไม่ให้ชนกับแอปอื่นใน Origin เดียวกัน
+export const HIGH_SCORE_KEY = 'quiz-app:highscore';
+
+// คืน localStorage ถ้าใช้ได้ ถ้าไม่มี (เช่นรันใน Node.js) หรือถูกบล็อกให้คืน null
+function defaultStorage() {
+  try {
+    return globalThis.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// อ่านคะแนนสูงสุด ถ้าไม่มี ข้อมูลเสีย หรือค่าติดลบ ให้คืน 0
+export function loadHighScore(storage = defaultStorage()) {
+  try {
+    const raw = storage?.getItem(HIGH_SCORE_KEY);
+    if (raw === null || raw === undefined) {
+      return 0;
+    }
+    const data = JSON.parse(raw);
+    const score = data?.score;
+    return Number.isInteger(score) &amp;&amp; score &gt;= 0 ? score : 0;
+  } catch {
+    // JSON เสียหรืออ่าน storage ไม่ได้ เริ่มนับใหม่จาก 0 แทนการทำให้แอปพัง
+    return 0;
+  }
+}
+
+// บันทึกเฉพาะเมื่อคะแนนใหม่สูงกว่าเดิม แล้วคืนคะแนนสูงสุดล่าสุด
+// date รับเข้ามาได้ เพื่อให้ Test ใช้วันที่คงที่
+export function saveHighScore(
+  score,
+  storage = defaultStorage(),
+  { total = null, date = new Date().toISOString().slice(0, 10) } = {},
+) {
+  const current = loadHighScore(storage);
+  if (!Number.isInteger(score) || score &lt;= current) {
+    return current;
+  }
+  const record = {
+    score,
+    percent: total === null ? null : percent(score, total),
+    date,
+  };
+  try {
+    storage?.setItem(HIGH_SCORE_KEY, JSON.stringify(record));
+  } catch (error) {
+    // เช่น โหมดส่วนตัวบางเบราว์เซอร์ หรือพื้นที่เต็ม: แจ้งใน Console แต่ไม่ทำให้เกมพัง
+    console.warn('บันทึกคะแนนสูงสุดไม่สำเร็จ:', error.message);
+  }
+  return score;
+}</code></pre>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>HIGH_SCORE_KEY = 'quiz-app:highscore'</code></td><td>ตั้ง Key แบบมี Namespace นำหน้า GitHub Pages ของคุณทุกโปรเจกต์ใช้ Origin เดียวกัน (<code>somchai.github.io</code>) จึงใช้ <code>localStorage</code> ก้อนเดียวกัน ถ้าใช้ Key สั้น ๆ อย่าง <code>score</code> อาจชนกับโปรเจกต์อื่น</td></tr>
+<tr><td><code>defaultStorage()</code></td><td>คืน <code>localStorage</code> ถ้ามี บางเบราว์เซอร์ที่ปิด Cookie และข้อมูลเว็บไซต์จะโยน Error ตั้งแต่ตอนเข้าถึง <code>localStorage</code> จึงครอบด้วย <code>try/catch</code></td></tr>
+<tr><td><code>storage?.getItem(...)</code></td><td>Optional chaining: ถ้า storage เป็น <code>null</code> จะได้ <code>undefined</code> แทนการพัง</td></tr>
+<tr><td><code>Number.isInteger(score) &amp;&amp; score &gt;= 0 ? score : 0</code></td><td>ข้อมูลใน <code>localStorage</code> ผู้ใช้แก้เองได้ใน DevTools จึงไม่ไว้ใจ ต้องตรวจทุกครั้งที่อ่าน</td></tr>
+<tr><td><code>catch { return 0; }</code></td><td>ไม่มีตัวแปร Error หลัง <code>catch</code> (Optional catch binding) เพราะไม่ได้ใช้ ข้อมูลเสียก็เริ่มนับใหม่จาก 0</td></tr>
+<tr><td><code>{ total = null, date = ... } = {}</code></td><td>รับวันที่จากภายนอกได้ Test จึงใช้วันที่คงที่ <code>2026-10-19</code> ส่วนในแอปจริงใช้วันที่วันนี้จาก <code>new Date().toISOString().slice(0, 10)</code></td></tr>
+<tr><td><code>console.warn(...)</code> ใน catch</td><td>ถ้าบันทึกไม่ได้ (เช่นพื้นที่เต็ม) ให้แจ้งใน Console แต่เกมเล่นต่อได้ เราไม่กลืน Error เงียบ ๆ และไม่ทำให้แอปพัง</td></tr>
+</tbody>
+</table></div>
+<div class="callout sec"><span class="c-label sec">Security</span><p><code>localStorage</code> ไม่ได้เข้ารหัส สคริปต์ใดก็ตามที่รันบนหน้าเดียวกันอ่านได้หมด เก็บได้แค่ข้อมูลที่ไม่สำคัญอย่างคะแนนเกมหรือการตั้งค่าธีม ห้ามเก็บรหัสผ่าน Token หรือข้อมูลส่วนตัวเด็ดขาด</p></div>
+</li>
+
+<li>
+<h4>Step 7: ต่อ Logic เข้ากับหน้าจอด้วย src/main.js</h4>
+<p>ไฟล์นี้เป็นไฟล์เดียวที่แตะ DOM มันทำ 4 งาน คือโหลดคำถามด้วย <code>fetch</code>, วาดหน้าจอจาก state, รับ Event และจับเวลา ทุกครั้งที่ state เปลี่ยน เราเรียกฟังก์ชันจาก <code>quiz.js</code> ให้คืน state ใหม่ แล้วนำไปแสดงผล</p>
+<pre class="code" data-env="file" data-label="JavaScript · src/main.js"><code class="language-javascript">// src/main.js — ส่วนที่แตะ DOM: โหลดคำถาม, แสดงผล, รับ Event และจับเวลา
+// Logic การคิดคะแนนทั้งหมดอยู่ใน quiz.js ไฟล์นี้แค่ "ต่อสาย" ระหว่าง state กับหน้าจอ
+import {
+  TIME_LIMIT,
+  createQuiz,
+  currentQuestion,
+  isAnswered,
+  answer,
+  timeout,
+  next,
+  percent,
+  remainingSeconds,
+  validateQuestions,
+} from './quiz.js';
+import { loadHighScore, saveHighScore } from './storage.js';
+
+// Path แบบ Relative (ไม่ขึ้นต้นด้วย /) จึงใช้ได้ทั้งบนเครื่องและบน GitHub Pages
+const QUESTIONS_URL = 'data/questions.json';
+
+// ฟังก์ชันย่อสำหรับเลือก Element
+const $ = (selector) =&gt; document.querySelector(selector);
+
+// หน้าจอทั้ง 5 แบบ แสดงทีละหน้าจอด้วย attribute hidden
+const screens = {
+  loading: $('#loading-screen'),
+  error: $('#error-screen'),
+  start: $('#start-screen'),
+  question: $('#question-screen'),
+  result: $('#result-screen'),
+};
+
+let questions = []; // คำถามที่โหลดมาแล้วผ่านการตรวจ
+let state = null; // state ปัจจุบันของ Quiz (สร้างจาก createQuiz)
+let timerId = null; // id ของ setInterval ใช้ตอน clearInterval
+let startedAt = 0; // เวลาเริ่มข้อปัจจุบัน (มิลลิวินาที)
+
+// แสดงหน้าจอเดียว ซ่อนที่เหลือ
+function showScreen(name) {
+  for (const [key, element] of Object.entries(screens)) {
+    element.hidden = key !== name;
+  }
+}
+
+// โหลดคำถามด้วย fetch แล้วตรวจรูปแบบ
+async function loadQuestions() {
+  showScreen('loading');
+  try {
+    const response = await fetch(QUESTIONS_URL, { signal: AbortSignal.timeout(5000) });
+    // fetch ไม่ reject เมื่อได้ 404 หรือ 500 จึงต้องเช็ก response.ok เอง
+    if (!response.ok) {
+      throw new Error(`เซิร์ฟเวอร์ตอบกลับ HTTP ${response.status}`);
+    }
+    questions = validateQuestions(await response.json());
+    $('#total-count').textContent = String(questions.length);
+    $('#start-highscore').textContent = String(loadHighScore());
+    showScreen('start');
+    $('#start-btn').focus();
+  } catch (error) {
+    console.error('โหลดคำถามไม่สำเร็จ:', error.message);
+    $('#error-message').textContent = `เกิดข้อผิดพลาด: ${error.message}`;
+    showScreen('error');
+    $('#retry-btn').focus();
+  }
+}
+
+// เริ่ม Quiz ใหม่ทุกครั้งที่กดเริ่มหรือเล่นอีกครั้ง
+function startQuiz() {
+  state = createQuiz(questions);
+  showScreen('question');
+  renderQuestion();
+}
+
+// สร้างปุ่มตัวเลือก 1 ปุ่ม ใช้ textContent เสมอ (ไม่ใช้ innerHTML กับข้อมูล)
+function createChoiceButton(text, index) {
+  const li = document.createElement('li');
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'choice';
+  button.dataset.index = String(index);
+
+  const key = document.createElement('span');
+  key.className = 'choice-key';
+  key.textContent = String(index + 1);
+
+  const label = document.createElement('span');
+  label.textContent = text;
+
+  button.append(key, label);
+  li.append(button);
+  return li;
+}
+
+// วาดข้อปัจจุบันจาก state
+function renderQuestion() {
+  const question = currentQuestion(state);
+  $('#progress-text').textContent = `ข้อ ${state.index + 1} / ${state.questions.length}`;
+  $('#score-text').textContent = `คะแนน ${state.score}`;
+  $('#question-text').textContent = question.question;
+  $('#choices').replaceChildren(...question.choices.map(createChoiceButton));
+
+  const feedback = $('#feedback');
+  feedback.textContent = '';
+  feedback.className = 'feedback';
+  $('#next-btn').hidden = true;
+
+  // ย้าย Focus ไปที่หัวข้อคำถาม ผู้ใช้ Screen reader จะได้ยินคำถามใหม่ทันที
+  $('#question-text').focus();
+  startTimer();
+}
+
+// แสดงเวลาที่เหลือทั้งตัวเลขและแถบ progress
+function updateTimer(secondsLeft) {
+  $('#timer-text').textContent = String(secondsLeft);
+  $('#timer-bar').value = secondsLeft;
+}
+
+function stopTimer() {
+  clearInterval(timerId);
+  timerId = null;
+}
+
+// นับถอยหลัง 15 วินาที คำนวณจากเวลาจริงด้วย Date.now() จึงไม่เพี้ยนแม้ setInterval มาช้า
+function startTimer() {
+  stopTimer();
+  startedAt = Date.now();
+  updateTimer(TIME_LIMIT);
+  timerId = setInterval(() =&gt; {
+    const secondsLeft = remainingSeconds(startedAt, Date.now());
+    updateTimer(secondsLeft);
+    if (secondsLeft === 0) {
+      handleTimeout();
+    }
+  }, 250);
+}
+
+// ผู้ใช้เลือกคำตอบ (จากการคลิกหรือกดปุ่ม 1-4)
+function handleAnswer(choiceIndex) {
+  if (!state || state.finished || isAnswered(state)) {
+    return; // ตอบไปแล้ว ไม่รับซ้ำ
+  }
+  stopTimer();
+  state = answer(state, choiceIndex);
+  showFeedback(false);
+}
+
+// หมดเวลา: นับว่าผิด
+function handleTimeout() {
+  if (!state || state.finished || isAnswered(state)) {
+    return;
+  }
+  stopTimer();
+  state = timeout(state);
+  showFeedback(true);
+}
+
+// แสดงผลถูก/ผิด ด้วยทั้งสี เส้นขอบ และข้อความ (ไม่พึ่งสีอย่างเดียว)
+function showFeedback(timedOut) {
+  const question = currentQuestion(state);
+  const last = state.answers.at(-1);
+
+  for (const button of $('#choices').querySelectorAll('button')) {
+    const index = Number(button.dataset.index);
+    button.disabled = true;
+    if (index === question.answer) {
+      button.classList.add('is-correct');
+    } else if (index === last.choice) {
+      button.classList.add('is-wrong');
+    }
+  }
+
+  const feedback = $('#feedback');
+  if (last.correct) {
+    feedback.textContent = '✓ ถูกต้อง';
+    feedback.className = 'feedback is-correct';
+  } else {
+    const prefix = timedOut ? '✗ หมดเวลา' : '✗ ผิด';
+    feedback.textContent = `${prefix} คำตอบที่ถูกคือ ${question.choices[question.answer]}`;
+    feedback.className = 'feedback is-wrong';
+  }
+  console.log(`ข้อ ${state.index + 1}: ${feedback.textContent}`);
+
+  $('#score-text').textContent = `คะแนน ${state.score}`;
+  const nextBtn = $('#next-btn');
+  const isLast = state.index === state.questions.length - 1;
+  nextBtn.textContent = isLast ? 'ดูผลลัพธ์' : 'ข้อต่อไป';
+  nextBtn.hidden = false;
+  nextBtn.focus();
+}
+
+// ไปข้อถัดไป หรือไปหน้าสรุปผลเมื่อครบทุกข้อ
+function goNext() {
+  state = next(state);
+  if (state.finished) {
+    showResult();
+  } else {
+    renderQuestion();
+  }
+}
+
+// หน้าสรุปผล: คะแนน เปอร์เซ็นต์ และคะแนนสูงสุด
+function showResult() {
+  stopTimer();
+  const total = state.questions.length;
+  const previousHigh = loadHighScore();
+  const highScore = saveHighScore(state.score, undefined, { total });
+
+  $('#result-score').textContent =
+    `คุณได้ ${state.score} / ${total} คะแนน (${percent(state.score, total)}%)`;
+  $('#result-highscore').textContent =
+    state.score &gt; previousHigh
+      ? `ทำลายสถิติ! คะแนนสูงสุดใหม่: ${highScore}`
+      : `คะแนนสูงสุดของคุณ: ${highScore}`;
+  console.log($('#result-score').textContent);
+
+  showScreen('result');
+  $('#result-title').focus();
+}
+
+// Event delegation: ฟังที่ #choices ตัวเดียว ใช้ได้กับปุ่มที่สร้างใหม่ทุกข้อ
+$('#choices').addEventListener('click', (event) =&gt; {
+  // คลิกโดน &lt;span&gt; ข้างในปุ่ม ก็หาปุ่มที่ครอบอยู่ด้วย closest()
+  const button = event.target.closest('button[data-index]');
+  if (button &amp;&amp; !button.disabled) {
+    handleAnswer(Number(button.dataset.index));
+  }
+});
+
+// ปุ่มลัด 1-4 ทำงานเฉพาะตอนอยู่หน้าคำถาม
+document.addEventListener('keydown', (event) =&gt; {
+  if (screens.question.hidden || event.ctrlKey || event.altKey || event.metaKey) {
+    return;
+  }
+  const index = Number(event.key) - 1;
+  if (Number.isInteger(index) &amp;&amp; index &gt;= 0 &amp;&amp; index &lt; 4) {
+    handleAnswer(index);
+  }
+});
+
+$('#start-btn').addEventListener('click', startQuiz);
+$('#next-btn').addEventListener('click', goNext);
+$('#restart-btn').addEventListener('click', startQuiz);
+$('#retry-btn').addEventListener('click', loadQuestions);
+
+// เริ่มโหลดคำถามทันทีที่เปิดหน้า
+loadQuestions();</code></pre>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>import { ... } from './quiz.js'</code></td><td>ในเบราว์เซอร์ต้องมี <code>./</code> และนามสกุล <code>.js</code> เสมอ เบราว์เซอร์ไม่เดานามสกุลให้</td></tr>
+<tr><td><code>const $ = (selector) =&gt; document.querySelector(selector)</code></td><td>Arrow function สั้น ๆ ช่วยให้โค้ดอ่านง่ายขึ้น ไม่ต้องพิมพ์ <code>document.querySelector</code> ซ้ำหลายสิบครั้ง</td></tr>
+<tr><td><code>screens</code> กับ <code>showScreen(name)</code></td><td>เก็บ 5 หน้าจอไว้ใน Object แล้ววนด้วย <code>Object.entries</code> ตั้ง <code>hidden</code> เป็น <code>true</code> ให้ทุกหน้าจอยกเว้นหน้าจอที่ต้องการ</td></tr>
+<tr><td><code>fetch(QUESTIONS_URL, { signal: AbortSignal.timeout(5000) })</code></td><td>ยกเลิกการโหลดอัตโนมัติถ้าเกิน 5 วินาที ผู้ใช้จะเห็นหน้าจอ Error แทนการรอไปเรื่อย ๆ</td></tr>
+<tr><td><code>if (!response.ok) throw ...</code></td><td><code>fetch</code> ไม่ reject เมื่อได้ 404 หรือ 500 ต้องเช็กเองแล้วโยน Error เพื่อให้ไปเข้า <code>catch</code></td></tr>
+<tr><td><code>createChoiceButton(text, index)</code></td><td>สร้างปุ่มด้วย <code>createElement</code> และใส่ข้อความด้วย <code>textContent</code> ข้อความในตัวเลือกอย่าง <code>"object"</code> หรือข้อความที่มี <code>&lt;</code> จะแสดงตรงตัว ไม่ถูกตีความเป็น HTML</td></tr>
+<tr><td><code>question.choices.map(createChoiceButton)</code></td><td>ส่งฟังก์ชันให้ <code>map</code> ตรง ๆ เพราะ <code>map</code> เรียก Callback ด้วย <code>(ค่า, index)</code> ตรงกับ Parameter ของ <code>createChoiceButton</code> พอดี</td></tr>
+<tr><td><code>replaceChildren(...items)</code></td><td>ลบปุ่มของข้อก่อนหน้าทั้งหมดแล้วใส่ปุ่มใหม่ในคำสั่งเดียว</td></tr>
+<tr><td><code>$('#question-text').focus()</code></td><td>ย้าย Focus ไปที่คำถามใหม่ ผู้ใช้ Screen reader จะได้ยินคำถามทันที และผู้ใช้คีย์บอร์ดกด <kbd>Tab</kbd> ต่อไปที่ตัวเลือกแรกได้เลย</td></tr>
+<tr><td><code>startTimer()</code></td><td>เรียก <code>stopTimer()</code> ก่อนเสมอ กัน Interval ซ้อนกันหลายตัว แล้วคำนวณเวลาที่เหลือจาก <code>Date.now()</code> ทุก 250 มิลลิวินาที เวลาจึงแม่นแม้เบราว์เซอร์จะเรียก Callback ช้า (เช่น ตอนสลับไปแท็บอื่น)</td></tr>
+<tr><td><code>handleAnswer()</code> กับ <code>handleTimeout()</code></td><td>เช็ก <code>isAnswered(state)</code> ก่อน กันกรณีผู้ใช้กดตอบในจังหวะเดียวกับที่เวลาหมด</td></tr>
+<tr><td><code>showFeedback(timedOut)</code></td><td>ปิดทุกปุ่ม (<code>disabled</code>) ใส่ <code>.is-correct</code> ที่ข้อถูก และ <code>.is-wrong</code> ที่ข้อที่ผู้ใช้เลือกผิด แล้วเขียนข้อความลงในพื้นที่ <code>aria-live</code></td></tr>
+<tr><td><code>nextBtn.focus()</code></td><td>หลังตอบ ปุ่มที่กดถูกปิดไปแล้ว Focus จะหายไป จึงย้ายไปที่ปุ่ม "ข้อต่อไป" ผู้ใช้กด <kbd>Enter</kbd> ไปข้อถัดไปได้ทันที</td></tr>
+<tr><td><code>saveHighScore(state.score, undefined, { total })</code></td><td>ส่ง <code>undefined</code> ตรงตำแหน่ง storage เพื่อให้ใช้ค่าเริ่มต้น (<code>localStorage</code> จริง) Default parameter ทำงานเมื่อค่าเป็น <code>undefined</code> เท่านั้น</td></tr>
+<tr><td><code>event.target.closest('button[data-index]')</code></td><td>Event delegation: ผู้ใช้อาจคลิกโดน <code>&lt;span&gt;</code> ข้างในปุ่ม <code>closest()</code> จะเดินขึ้นไปหาปุ่มที่ครอบอยู่ ฟังที่ <code>#choices</code> ตัวเดียว ปุ่มที่สร้างใหม่ทุกข้อจึงทำงานได้เอง</td></tr>
+<tr><td><code>document.addEventListener('keydown', ...)</code></td><td>แปลง <code>event.key</code> เป็นตัวเลข <kbd>1</kbd> ถึง <kbd>4</kbd> กลายเป็น index 0 ถึง 3 ข้ามกรณีที่กด <kbd>Ctrl</kbd>, <kbd>Alt</kbd> หรือ <kbd>Meta</kbd> ค้างไว้ เพื่อไม่ให้ชนกับคีย์ลัดของเบราว์เซอร์ เช่น <kbd>Ctrl</kbd>+<kbd>1</kbd> ที่ใช้สลับแท็บ</td></tr>
+<tr><td><code>loadQuestions()</code> บรรทัดสุดท้าย</td><td>เริ่มทำงานทันทีที่ Module โหลดเสร็จ</td></tr>
+</tbody>
+</table></div>
+<div class="tbl wide"><table class="mistakes">
+<thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead>
+<tbody>
+<tr><td>Console แจ้ง <code>Access to script at 'file:///...' from origin 'null' has been blocked by CORS policy</code></td><td>เปิด <code>index.html</code> ด้วยการดับเบิลคลิก (file://) ES Modules และ fetch ใช้กับ file:// ไม่ได้</td><td>เปิดผ่าน <code>python3 -m http.server 8000 --bind 127.0.0.1</code> แล้วไปที่ <code>http://127.0.0.1:8000/</code></td></tr>
+<tr><td>ทุกหน้าจอโผล่พร้อมกัน</td><td>ลืมกฎ <code>[hidden] { display: none !important; }</code> ใน CSS ทำให้ <code>display: flex</code> ชนะ attribute <code>hidden</code></td><td>เพิ่มกฎนั้นใน <code>style.css</code> ตามที่อยู่ใน Step 4</td></tr>
+<tr><td>เวลาลดลงเร็วเป็น 2 เท่า</td><td>เรียก <code>setInterval</code> ซ้ำโดยไม่ <code>clearInterval</code> ตัวเก่า มี Interval 2 ตัวทำงานพร้อมกัน</td><td>เรียก <code>stopTimer()</code> ทุกครั้งก่อนเริ่มจับเวลาใหม่ และตอนตอบ</td></tr>
+<tr><td><code>TypeError: Cannot read properties of null (reading 'addEventListener')</code></td><td>Selector ผิด เช่น <code>$('#choice')</code> แทน <code>$('#choices')</code> หรือ id ใน HTML ไม่ตรงกับใน JavaScript</td><td>ตรวจ id ให้ตรงกันทั้งสองไฟล์ ใช้ DevTools Elements ค้นหา id ด้วย <kbd>Ctrl</kbd>+<kbd>F</kbd></td></tr>
+<tr><td>กดปุ่ม 1 ถึง 4 แล้วตอบได้หลายครั้งในข้อเดียว</td><td>ไม่ได้เช็ก <code>isAnswered(state)</code> ก่อนเรียก <code>answer()</code></td><td>ให้ <code>handleAnswer()</code> ออกจากฟังก์ชันทันทีเมื่อข้อนี้ตอบแล้ว</td></tr>
+</tbody>
+</table></div>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git add .
+git commit -m "feat: quiz logic, high score storage and DOM wiring"</code></pre>
+</li>
+<li>
+<h4>Step 8: เขียน Unit test ด้วย node:test แล้วรัน npm test</h4>
+<p>เพราะ Logic แยกอยู่ใน <code>quiz.js</code> และ <code>storage.js</code> เราจึงทดสอบได้ด้วย Node.js ล้วน ไม่ต้องเปิดเบราว์เซอร์ ไม่ต้องติดตั้ง Jest หรือ Vitest เพราะ <code>node:test</code> และ <code>node:assert/strict</code> ติดมากับ Node.js แล้ว ไฟล์ Test อยู่ในโฟลเดอร์ <code>test/</code> และลงท้ายด้วย <code>.test.js</code> คำสั่ง <code>node --test</code> จึงหาเจอเอง</p>
+<p>ไฟล์แรกทดสอบ <code>quiz.js</code> 10 Test ครอบคลุมการสร้าง Quiz, การตอบแบบ Immutable, การตอบซ้ำ, การหมดเวลา, การจบเกม, เปอร์เซ็นต์และกรณีขอบ (Edge case), การสลับด้วยฟังก์ชันสุ่มปลอม, การตรวจข้อมูลผิดรูปแบบ และการนับเวลาไม่ให้ต่ำกว่า 0</p>
+<pre class="code" data-env="file" data-label="JavaScript · test/quiz.test.js"><code class="language-javascript">// test/quiz.test.js — Unit test ของ Logic ใน src/quiz.js
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  createQuiz,
+  currentQuestion,
+  answer,
+  timeout,
+  next,
+  percent,
+  shuffle,
+  validateQuestions,
+  remainingSeconds,
+} from '../src/quiz.js';
+
+// คำถามตัวอย่าง 3 ข้อสำหรับ Test (ไม่ต้องโหลดไฟล์จริง)
+const sample = [
+  { id: 1, question: 'ข้อ 1', choices: ['a', 'b', 'c', 'd'], answer: 2 },
+  { id: 2, question: 'ข้อ 2', choices: ['a', 'b', 'c', 'd'], answer: 1 },
+  { id: 3, question: 'ข้อ 3', choices: ['a', 'b', 'c', 'd'], answer: 0 },
+];
+
+describe('createQuiz()', () =&gt; {
+  it('เริ่มที่ข้อแรก คะแนน 0 และยังไม่จบ', () =&gt; {
+    const state = createQuiz(sample);
+    assert.equal(state.index, 0);
+    assert.equal(state.score, 0);
+    assert.deepEqual(state.answers, []);
+    assert.equal(state.finished, false);
+    assert.equal(currentQuestion(state).id, 1);
+  });
+});
+
+describe('answer() และ next()', () =&gt; {
+  it('ตอบถูกได้ state ใหม่ที่คะแนนเพิ่ม และ state เดิมไม่เปลี่ยน', () =&gt; {
+    const before = createQuiz(sample);
+    const after = answer(before, 2);
+    assert.notEqual(after, before);
+    assert.equal(after.score, 1);
+    assert.equal(after.answers.at(-1).correct, true);
+    assert.equal(before.score, 0);
+    assert.deepEqual(before.answers, []);
+  });
+
+  it('ตอบซ้ำในข้อเดิมไม่ได้', () =&gt; {
+    const state = answer(createQuiz(sample), 0);
+    assert.throws(() =&gt; answer(state, 2), { message: 'ข้อนี้ตอบไปแล้ว' });
+  });
+
+  it('timeout() บันทึกคำตอบเป็น null และนับว่าผิด', () =&gt; {
+    const state = timeout(createQuiz(sample));
+    assert.deepEqual(state.answers, [{ id: 1, choice: null, correct: false }]);
+    assert.equal(state.score, 0);
+  });
+
+  it('ตอบครบทุกข้อแล้ว finished เป็น true', () =&gt; {
+    let state = createQuiz(sample);
+    for (const choice of [2, 0, 0]) {
+      state = next(answer(state, choice));
+    }
+    assert.equal(state.finished, true);
+    assert.equal(state.score, 2);
+    assert.equal(currentQuestion(state), null);
+  });
+});
+
+describe('percent()', () =&gt; {
+  it('ปัดเป็นจำนวนเต็ม', () =&gt; {
+    assert.equal(percent(7, 10), 70);
+    assert.equal(percent(2, 3), 67);
+    assert.equal(percent(0, 10), 0);
+  });
+
+  it('โยน RangeError เมื่อ total ไม่ใช่จำนวนเต็มบวก', () =&gt; {
+    assert.throws(() =&gt; percent(1, 0), RangeError);
+    assert.throws(() =&gt; percent(1, 2.5), RangeError);
+  });
+});
+
+describe('shuffle()', () =&gt; {
+  it('ใช้ random ปลอมแล้วได้ลำดับเดิมทุกครั้ง และไม่แก้ Array ต้นฉบับ', () =&gt; {
+    const original = [1, 2, 3, 4];
+    const fakeRandom = () =&gt; 0; // สุ่มได้ 0 เสมอ
+    assert.deepEqual(shuffle(original, fakeRandom), [2, 3, 4, 1]);
+    assert.deepEqual(original, [1, 2, 3, 4]);
+  });
+});
+
+describe('validateQuestions()', () =&gt; {
+  it('โยน TypeError เมื่อข้อมูลผิดรูปแบบ', () =&gt; {
+    assert.throws(() =&gt; validateQuestions({}), { name: 'TypeError', message: 'ข้อมูลคำถามต้องเป็น Array' });
+    assert.throws(() =&gt; validateQuestions([]), /อย่างน้อย 1 ข้อ/);
+    const broken = [sample[0], { id: 2, question: 'ข้อ 2', choices: ['a', 'b'], answer: 5 }];
+    assert.throws(() =&gt; validateQuestions(broken), /ลำดับที่ 2/);
+  });
+});
+
+describe('remainingSeconds()', () =&gt; {
+  it('นับถอยหลังและไม่ต่ำกว่า 0', () =&gt; {
+    assert.equal(remainingSeconds(0, 0), 15);
+    assert.equal(remainingSeconds(0, 14_999), 1);
+    assert.equal(remainingSeconds(0, 15_000), 0);
+    assert.equal(remainingSeconds(0, 60_000), 0);
+  });
+});</code></pre>
+<p>ไฟล์ที่สองทดสอบ <code>storage.js</code> 6 Test โดยสร้างที่เก็บจำลอง (Fake storage) จาก <code>Map</code> ที่มีเมธอด <code>getItem</code>, <code>setItem</code> และ <code>removeItem</code> เหมือน <code>localStorage</code> และใช้ <code>t.mock.method()</code> แทนที่ <code>console.warn</code> ชั่วคราว เพื่อนับว่าถูกเรียกกี่ครั้งโดยไม่ให้ข้อความรกหน้าจอ</p>
+<pre class="code" data-env="file" data-label="JavaScript · test/storage.test.js"><code class="language-javascript">// test/storage.test.js — ทดสอบ storage.js ด้วยที่เก็บจำลอง (ไม่ต้องใช้เบราว์เซอร์)
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { loadHighScore, saveHighScore, HIGH_SCORE_KEY } from '../src/storage.js';
+
+// ที่เก็บจำลองที่มีเมธอดเหมือน localStorage โดยเก็บข้อมูลใน Map
+function createMemoryStorage(initial = {}) {
+  const map = new Map(Object.entries(initial));
+  return {
+    getItem: (key) =&gt; (map.has(key) ? map.get(key) : null),
+    setItem: (key, value) =&gt; map.set(key, String(value)),
+    removeItem: (key) =&gt; map.delete(key),
+  };
+}
+
+describe('loadHighScore()', () =&gt; {
+  it('คืน 0 เมื่อยังไม่เคยบันทึก', () =&gt; {
+    assert.equal(loadHighScore(createMemoryStorage()), 0);
+  });
+
+  it('คืน 0 เมื่อข้อมูลเสียหรือคะแนนติดลบ', () =&gt; {
+    assert.equal(loadHighScore(createMemoryStorage({ [HIGH_SCORE_KEY]: 'not-json' })), 0);
+    assert.equal(loadHighScore(createMemoryStorage({ [HIGH_SCORE_KEY]: '{"score":-3}' })), 0);
+  });
+
+  it('คืน 0 และไม่ throw เมื่อไม่มี storage', () =&gt; {
+    assert.equal(loadHighScore(null), 0);
+  });
+});
+
+describe('saveHighScore()', () =&gt; {
+  it('บันทึกเป็น JSON เมื่อคะแนนสูงกว่าเดิม', () =&gt; {
+    const storage = createMemoryStorage();
+    const result = saveHighScore(8, storage, { total: 10, date: '2026-10-19' });
+    assert.equal(result, 8);
+    assert.deepEqual(JSON.parse(storage.getItem(HIGH_SCORE_KEY)), {
+      score: 8,
+      percent: 80,
+      date: '2026-10-19',
+    });
+  });
+
+  it('ไม่เขียนทับเมื่อคะแนนต่ำกว่าหรือเท่าเดิม', () =&gt; {
+    const storage = createMemoryStorage();
+    saveHighScore(8, storage, { total: 10, date: '2026-10-19' });
+    assert.equal(saveHighScore(5, storage, { total: 10, date: '2026-10-20' }), 8);
+    assert.equal(JSON.parse(storage.getItem(HIGH_SCORE_KEY)).date, '2026-10-19');
+  });
+
+  it('ไม่ throw เมื่อ setItem ล้มเหลว เช่น พื้นที่เต็ม', (t) =&gt; {
+    t.mock.method(console, 'warn', () =&gt; {}); // ปิดข้อความเตือนระหว่าง Test
+    const fullStorage = {
+      getItem: () =&gt; null,
+      setItem: () =&gt; {
+        throw new Error('QuotaExceededError');
+      },
+    };
+    assert.equal(saveHighScore(3, fullStorage, { total: 10 }), 3);
+    assert.equal(console.warn.mock.callCount(), 1);
+  });
+});</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/quiz-app
+npm test</code></pre>
+<p>ผลลัพธ์ด้านล่างได้จากการรันจริง ตัวเลขเวลาในวงเล็บและ <code>duration_ms</code> บนเครื่องของคุณจะต่างออกไป ส่วนชื่อ Test และจำนวนต้องตรงกัน</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>&gt; quiz-app@1.0.0 test
+&gt; node --test
+
+▶ createQuiz()
+  ✔ เริ่มที่ข้อแรก คะแนน 0 และยังไม่จบ (2.104657ms)
+✔ createQuiz() (4.003879ms)
+▶ answer() และ next()
+  ✔ ตอบถูกได้ state ใหม่ที่คะแนนเพิ่ม และ state เดิมไม่เปลี่ยน (0.370613ms)
+  ✔ ตอบซ้ำในข้อเดิมไม่ได้ (0.415439ms)
+  ✔ timeout() บันทึกคำตอบเป็น null และนับว่าผิด (0.249819ms)
+  ✔ ตอบครบทุกข้อแล้ว finished เป็น true (0.164649ms)
+✔ answer() และ next() (1.525266ms)
+▶ percent()
+  ✔ ปัดเป็นจำนวนเต็ม (0.227649ms)
+  ✔ โยน RangeError เมื่อ total ไม่ใช่จำนวนเต็มบวก (0.3342ms)
+✔ percent() (0.816579ms)
+▶ shuffle()
+  ✔ ใช้ random ปลอมแล้วได้ลำดับเดิมทุกครั้ง และไม่แก้ Array ต้นฉบับ (0.263401ms)
+✔ shuffle() (0.453838ms)
+▶ validateQuestions()
+  ✔ โยน TypeError เมื่อข้อมูลผิดรูปแบบ (0.454859ms)
+✔ validateQuestions() (0.632005ms)
+▶ remainingSeconds()
+  ✔ นับถอยหลังและไม่ต่ำกว่า 0 (0.183745ms)
+✔ remainingSeconds() (0.259687ms)
+▶ loadHighScore()
+  ✔ คืน 0 เมื่อยังไม่เคยบันทึก (0.897736ms)
+  ✔ คืน 0 เมื่อข้อมูลเสียหรือคะแนนติดลบ (0.352044ms)
+  ✔ คืน 0 และไม่ throw เมื่อไม่มี storage (0.273343ms)
+✔ loadHighScore() (3.831886ms)
+▶ saveHighScore()
+  ✔ บันทึกเป็น JSON เมื่อคะแนนสูงกว่าเดิม (2.223625ms)
+  ✔ ไม่เขียนทับเมื่อคะแนนต่ำกว่าหรือเท่าเดิม (0.438067ms)
+  ✔ ไม่ throw เมื่อ setItem ล้มเหลว เช่น พื้นที่เต็ม (1.023905ms)
+✔ saveHighScore() (4.071566ms)
+ℹ tests 16
+ℹ suites 8
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 136.997577</code></pre>
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>เมื่อรันใน Terminal ปกติ Node.js แสดงผลแบบ <code>spec</code> (มีเครื่องหมาย ✔ และ ▶) ตามด้านบน ถ้าส่งผลลัพธ์ต่อเข้าไฟล์หรือรันในระบบ CI บางเวอร์ชันอาจแสดงเป็นรูปแบบ TAP (<code>ok 1 - ...</code>) แทน ถ้าอยากได้แบบ spec เสมอ ให้ใช้ <code>node --test --test-reporter=spec</code></p></div>
+<h5>ลองทำให้ Test ล้มเหลวดูหนึ่งครั้ง</h5>
+<p>Test ที่ดีต้องจับ Bug ได้จริง ลองแก้ <code>percent()</code> ใน <code>src/quiz.js</code> ให้ปัดลงด้วย <code>Math.floor</code> แทน <code>Math.round</code> แล้วรันเฉพาะไฟล์ <code>quiz.test.js</code></p>
+<pre class="code" data-env="file" data-label="JavaScript · src/quiz.js (แก้ชั่วคราว)"><code class="language-javascript">  // ใส่ Bug ชั่วคราวเพื่อดูว่า Test จับได้หรือไม่
+  return Math.floor((score / total) * 100);</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">node --test test/quiz.test.js</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>▶ percent()
+  ✖ ปัดเป็นจำนวนเต็ม (1.25916ms)
+  ✔ โยน RangeError เมื่อ total ไม่ใช่จำนวนเต็มบวก (0.291129ms)
+✖ percent() (1.872979ms)
+ℹ tests 10
+ℹ suites 6
+ℹ pass 9
+ℹ fail 1
+
+✖ failing tests:
+
+test at test/quiz.test.js:68:3
+✖ ปัดเป็นจำนวนเต็ม (1.25916ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  66 !== 67
+
+      at TestContext.&lt;anonymous&gt; (file:///home/somchai/projects/quiz-app/test/quiz.test.js:70:12)</code></pre>
+<p>ผลลัพธ์ด้านบนตัดมาเฉพาะส่วนสำคัญ ของจริงจะมีรายการ Test อื่นที่ผ่านและ Stack trace ยาวกว่านี้ อ่านได้ว่า Test ที่บรรทัด 70 คาดหวัง <code>percent(2, 3)</code> เป็น 67 แต่ได้ 66 ซึ่งตรงกับ Bug ที่ใส่ไป แก้กลับเป็น <code>Math.round</code> แล้วรัน <code>npm test</code> อีกครั้งจนผ่านครบ 16 Test</p>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul><li>Test สิ่งที่ผู้ใช้สนใจ (พฤติกรรม) ไม่ใช่รายละเอียดภายใน เช่น ทดสอบว่า "ตอบซ้ำไม่ได้" ไม่ใช่ทดสอบว่าเรียก <code>isAnswered</code> กี่ครั้ง</li><li>ใช้ <code>assert.deepEqual</code> กับ Object และ Array เสมอ <code>assert.equal</code> เปรียบเทียบแค่ว่าเป็นตัวเดียวกันในหน่วยความจำหรือไม่</li><li>รัน <code>npm test</code> ทุกครั้งก่อน <code>git commit</code></li></ul></div>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">git add .
+git commit -m "test: unit tests for quiz logic and storage"</code></pre>
+</li>
+
+<li>
+<h4>Step 9: ทดสอบในเบราว์เซอร์ด้วยตัวเอง (Manual test checklist)</h4>
+<p>Unit test ตรวจ Logic แต่ไม่ได้ตรวจว่าหน้าจอแสดงผลถูกต้อง ขั้นนี้คือการเล่นจริงตาม Checklist เปิด Web server ใน Terminal แรก</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/quiz-app
+npm start</code></pre>
+<p>วันที่ เวลา และบรรทัด Log บนเครื่องของคุณจะต่างจากนี้ บรรทัด <code>304</code> หมายถึงเบราว์เซอร์ใช้ไฟล์ใน Cache เพราะไฟล์ไม่เปลี่ยน</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>&gt; quiz-app@1.0.0 start
+&gt; python3 -m http.server 8000 --bind 127.0.0.1
+
+Serving HTTP on 127.0.0.1 port 8000 (http://127.0.0.1:8000/) ...
+127.0.0.1 - - [19/Oct/2026 20:15:02] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 20:15:02] "GET /style.css HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 20:15:02] "GET /src/main.js HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 20:15:02] "GET /src/quiz.js HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 20:15:02] "GET /src/storage.js HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 20:15:02] "GET /data/questions.json HTTP/1.1" 200 -</code></pre>
+<p>เปิด Chrome หรือ Edge บน Windows ไปที่ <code>http://127.0.0.1:8000/</code> กด <kbd>F12</kbd> เปิดแท็บ Console ไว้ แล้วทำตาม Checklist นี้ทีละข้อ</p>
+<ol>
+  <li><strong>หน้าจอ Error:</strong> เปิด Terminal ที่สองแล้วเปลี่ยนชื่อไฟล์คำถามชั่วคราวด้วย <code>mv ~/projects/quiz-app/data/questions.json ~/projects/quiz-app/data/questions.bak</code> กลับมากด <kbd>F5</kbd> ต้องเห็นหน้าจอ "โหลดคำถามไม่สำเร็จ" และข้อความ HTTP 404 จากนั้นเปลี่ยนชื่อกลับด้วย <code>mv ~/projects/quiz-app/data/questions.bak ~/projects/quiz-app/data/questions.json</code> แล้วกด "ลองใหม่" ต้องไปหน้าจอเริ่มโดยไม่ต้องรีโหลดหน้า</li>
+  <li><strong>หน้าจอเริ่ม:</strong> ต้องเห็นจำนวนข้อ 10 และคะแนนสูงสุด 0 (ครั้งแรก)</li>
+  <li><strong>ตอบด้วยคีย์บอร์ด:</strong> กด "เริ่มทำ Quiz" แล้วกด <kbd>3</kbd> ข้อ 1 ต้องขึ้น "✓ ถูกต้อง" ปุ่ม const มีกรอบสีเขียว และ Focus อยู่ที่ปุ่ม "ข้อต่อไป"</li>
+  <li><strong>ตอบด้วยเมาส์:</strong> ข้อถัดไปคลิกที่ข้อความในปุ่ม (โดน <code>&lt;span&gt;</code> ข้างใน) ต้องตอบได้ปกติ แสดงว่า <code>closest()</code> ทำงาน</li>
+  <li><strong>ตอบผิด:</strong> ข้อ 5 เลือก <code>"undefined"</code> ต้องเห็นข้อความ "✗ ผิด คำตอบที่ถูกคือ "object"" ปุ่มที่เลือกเป็นกรอบเส้นประสีแดง และปุ่มที่ถูกเป็นกรอบสีเขียว</li>
+  <li><strong>หมดเวลา:</strong> ข้อ 9 ไม่ต้องกดอะไร รอ 15 วินาที แถบเวลาต้องลดลงจนเป็น 0 แล้วขึ้น "✗ หมดเวลา คำตอบที่ถูกคือ Promise.then"</li>
+  <li><strong>ข้อสุดท้าย:</strong> ปุ่มต้องเปลี่ยนเป็น "ดูผลลัพธ์" กดแล้วไปหน้าสรุปผล</li>
+  <li><strong>คะแนนสูงสุดอยู่ถาวร:</strong> กด <kbd>F5</kbd> หน้าจอเริ่มต้องแสดงคะแนนสูงสุดที่เพิ่งทำได้ เล่นอีกรอบให้ได้คะแนนน้อยกว่า คะแนนสูงสุดต้องไม่ลดลง</li>
+  <li><strong>ใช้แค่คีย์บอร์ด:</strong> ไม่แตะเมาส์เลย ใช้ <kbd>Tab</kbd>, <kbd>Enter</kbd> และ <kbd>1</kbd> ถึง <kbd>4</kbd> ต้องเล่นจนจบได้ และเห็นกรอบ Focus ตลอด</li>
+  <li><strong>จอมือถือ:</strong> กด <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> (Device toolbar) เลือกความกว้าง 375px ตัวเลือกต้องเรียงแนวตั้ง 1 คอลัมน์ ที่ 1024px ต้องเป็น 2 คอลัมน์</li>
+</ol>
+<p>ผู้เขียนเล่นตาม Checklist นี้ครบทุกข้อในเบราว์เซอร์ Chromium (ตอบถูก 7 ข้อ ผิด 2 ข้อ และปล่อยให้หมดเวลา 1 ข้อ) ด้านล่างคือข้อความที่ DevTools Console แสดงจริงตั้งแต่โหลดหน้าตอนที่ไม่มีไฟล์คำถามจนจบเกม</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Failed to load resource: the server responded with a status of 404 (Not Found)
+โหลดคำถามไม่สำเร็จ: เซิร์ฟเวอร์ตอบกลับ HTTP 404
+ข้อ 1: ✓ ถูกต้อง
+ข้อ 2: ✓ ถูกต้อง
+ข้อ 3: ✓ ถูกต้อง
+ข้อ 4: ✓ ถูกต้อง
+ข้อ 5: ✗ ผิด คำตอบที่ถูกคือ "object"
+ข้อ 6: ✓ ถูกต้อง
+ข้อ 7: ✓ ถูกต้อง
+ข้อ 8: ✓ ถูกต้อง
+ข้อ 9: ✗ หมดเวลา คำตอบที่ถูกคือ Promise.then
+ข้อ 10: ✗ ผิด คำตอบที่ถูกคือ 0
+คุณได้ 7 / 10 คะแนน (70%)</code></pre>
+<p>ข้อความบนหน้าจอที่สังเกตได้จริงในแต่ละจุดของ Checklist (ถ้าคุณปิด Web server แทนการเปลี่ยนชื่อไฟล์ ข้อความจะเป็น <code>เกิดข้อผิดพลาด: Failed to fetch</code> เพราะ fetch ติดต่อเซิร์ฟเวอร์ไม่ได้เลย ซึ่งก็คือหน้าจอ Error เดียวกัน)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>หน้าจอ Error   : เกิดข้อผิดพลาด: เซิร์ฟเวอร์ตอบกลับ HTTP 404
+หน้าจอเริ่ม    : มีคำถามทั้งหมด 10 ข้อ ตอบด้วยการคลิก หรือกดปุ่ม 1 ถึง 4 บนคีย์บอร์ด | คะแนนสูงสุดของคุณ: 0
+ข้อ 1          : ข้อ 1 / 10 | คะแนน 0 | เวลาที่เหลือ 15 วินาที | คำสั่งใดประกาศตัวแปรที่เปลี่ยนค่าไม่ได้ | 1 var | 2 let | 3 const | 4 static
+Class ของปุ่มหลังตอบข้อ 1 : choice, choice, choice is-correct, choice (ทุกปุ่ม disabled)
+ข้อ 9 หมดเวลา  : เวลาที่เหลือ 0 วินาที | ✗ หมดเวลา คำตอบที่ถูกคือ Promise.then
+ปุ่มข้อ 10     : ดูผลลัพธ์
+หน้าสรุปผล    : สรุปผล | คุณได้ 7 / 10 คะแนน (70%) | ทำลายสถิติ! คะแนนสูงสุดใหม่: 7
+หลังกด F5      : คะแนนสูงสุดของคุณ: 7
+เล่นรอบ 2 ได้ 0 : คุณได้ 0 / 10 คะแนน (0%) | คะแนนสูงสุดของคุณ: 7
+flex-direction : 375px = column | 1024px = row</code></pre>
+<p>สุดท้ายเปิด DevTools แท็บ Application เลือก Local Storage แล้วเลือก <code>http://127.0.0.1:8000</code> ต้องเห็น Key <code>quiz-app:highscore</code> ที่มีค่าดังนี้ (วันที่เป็นวันที่คุณเล่น)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"score":7,"percent":70,"date":"2026-10-19"}</code></pre>
+<div class="callout"><span class="c-label tip">Tip</span><p>ลองแก้ค่าใน Local Storage เป็น <code>not-json</code> แล้วกด <kbd>F5</kbd> หน้าจอเริ่มต้องแสดงคะแนนสูงสุด 0 และแอปไม่พัง นี่คือสิ่งที่ Test <code>คืน 0 เมื่อข้อมูลเสียหรือคะแนนติดลบ</code> รับประกันไว้ อีกเครื่องมือที่ควรลองคือแท็บ Lighthouse ใน DevTools เลือกหมวด Accessibility แล้วกด Analyze page load เพื่อดูคำแนะนำเพิ่มเติม (คะแนนที่ได้ขึ้นกับเวอร์ชันเบราว์เซอร์)</p></div>
+</li>
+
+<li>
+<h4>Step 10: เขียน README แล้ว Push ขึ้น GitHub และเปิด GitHub Pages</h4>
+<p>README คือหน้าแรกที่ผู้สัมภาษณ์เห็นเมื่อเปิด Repository ของคุณ ต้องบอกได้ภายใน 30 วินาทีว่าโปรเจกต์ทำอะไร ลองเล่นได้ที่ไหน รันอย่างไร และคุณได้เรียนรู้อะไร ใช้ Template ด้านล่างแล้วแก้ส่วน "สิ่งที่ได้เรียนรู้" เป็นประสบการณ์จริงของคุณ</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Markdown · README.md"><code class="language-markdown"># JavaScript Quiz App
+
+Quiz ทดสอบความรู้ JavaScript 10 ข้อ เขียนด้วย HTML, CSS และ JavaScript ล้วน (ไม่มี Framework ไม่มี Build step)
+
+**ทดลองเล่น:** https://somchai.github.io/quiz-app/
+
+![ภาพหน้าจอ Quiz App](docs/screenshot.png)
+
+## ความสามารถ
+
+- โหลดคำถามจาก `data/questions.json` ด้วย `fetch` พร้อมหน้าจอ Loading และ Error ที่กด "ลองใหม่" ได้
+- ตอบได้ทั้งคลิกและกดปุ่ม 1 ถึง 4 บนคีย์บอร์ด
+- จับเวลาข้อละ 15 วินาที หมดเวลานับว่าผิด
+- แสดงผลถูก/ผิดด้วยทั้งสีและข้อความ พร้อมเฉลย
+- เก็บคะแนนสูงสุดใน `localStorage` (Key: `quiz-app:highscore`)
+- รองรับ Screen reader (`aria-live`, ย้าย Focus) และผู้ที่ตั้งค่าลดการเคลื่อนไหว
+- Responsive ด้วย Flexbox (มือถือ 1 คอลัมน์ จอกว้าง 2 คอลัมน์)
+
+## วิธีรันบนเครื่อง
+
+```bash
+git clone https://github.com/somchai/quiz-app.git
+cd quiz-app
+python3 -m http.server 8000 --bind 127.0.0.1
+```
+
+แล้วเปิด http://127.0.0.1:8000/ (ต้องเปิดผ่าน http:// เพราะ ES Modules และ fetch ใช้กับ file:// ไม่ได้)
+
+## วิธีรัน Test
+
+ต้องมี Node.js 24 LTS ขึ้นไป (ไม่ต้องติดตั้งแพ็กเกจเพิ่ม)
+
+```bash
+npm test
+```
+
+## เทคโนโลยีที่ใช้
+
+- HTML5 (Semantic tags, `&lt;progress&gt;`, attribute `hidden`)
+- CSS3 (Custom properties, Flexbox, Media query, `:focus-visible`, `prefers-reduced-motion`)
+- JavaScript ES2023 (ES Modules, async/await, fetch, localStorage)
+- node:test และ node:assert/strict สำหรับ Unit test
+
+## โครงสร้างโค้ด
+
+- `src/quiz.js` Logic ล้วน ไม่แตะ DOM ทุกฟังก์ชันคืน state ใหม่ (Immutable)
+- `src/storage.js` อ่านและบันทึกคะแนนสูงสุด รับ storage เป็น Parameter เพื่อให้ทดสอบได้
+- `src/main.js` ต่อ state เข้ากับหน้าจอ: fetch, render, events, timer
+
+## สิ่งที่ได้เรียนรู้
+
+- แยก Logic ออกจาก DOM ทำให้เขียน Unit test ได้โดยไม่ต้องเปิดเบราว์เซอร์
+- Event delegation ด้วย `closest()` ทำให้ปุ่มที่สร้างใหม่ทุกข้อทำงานได้โดยไม่ต้องผูก Event ซ้ำ
+- `fetch` ไม่ reject เมื่อได้ 404 ต้องเช็ก `response.ok` เอง
+- (เขียนเพิ่มเองว่าติดปัญหาอะไรและแก้อย่างไร)
+
+## License
+
+MIT</code></pre>
+<p>ถ่ายภาพหน้าจอแอปตอนกำลังตอบคำถาม (บน Windows กด <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>) บันทึกเป็น <code>docs/screenshot.png</code> ในโปรเจกต์ ภาพนี้คือไฟล์เดียวที่เพิ่มจากโครงสร้างเดิม ถ้ายังไม่มีภาพ ให้ลบบรรทัด <code>![ภาพหน้าจอ ...]</code> ออกก่อน</p>
+<p>ต่อไปสร้าง Repository ชื่อ <code>quiz-app</code> บน GitHub (กด New repository ตั้งเป็น Public และ<strong>ไม่ต้อง</strong>ติ๊กสร้าง README เพราะเรามีแล้ว) แล้ว Push จาก WSL วิธีตั้งค่า SSH key และการ Push ครั้งแรกอยู่ในหัวข้อ <a data-t="17"></a></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/quiz-app
+
+# ตรวจว่าไม่มีไฟล์แปลก ๆ หลุดเข้าไป
+git status --short
+
+git add .
+git commit -m "docs: add README with run and test instructions"
+
+# ผูกกับ Repository บน GitHub (เปลี่ยน somchai เป็นชื่อผู้ใช้ของคุณ)
+git remote add origin git@github.com:somchai/quiz-app.git
+git push -u origin main</code></pre>
+<p>ถ้ารัน <code>git status --short</code> ก่อน Commit แรกของโปรเจกต์ (ตอนที่ยังไม่เคย Commit เลย และสั่ง <code>git add .</code> แล้ว) จะเห็นไฟล์ทั้งหมด 11 ไฟล์แบบนี้ ถ้ามีไฟล์อื่นโผล่มา เช่น <code>try-quiz.js</code> ให้ลบก่อน</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>A  .gitignore
+A  README.md
+A  data/questions.json
+A  index.html
+A  package.json
+A  src/main.js
+A  src/quiz.js
+A  src/storage.js
+A  style.css
+A  test/quiz.test.js
+A  test/storage.test.js</code></pre>
+<p>เปิด GitHub Pages เพื่อให้คนอื่นเล่นได้ฟรี</p>
+<ol>
+  <li>ไปที่ Repository <code>somchai/quiz-app</code> บน GitHub แล้วกด Settings</li>
+  <li>เมนูด้านซ้ายเลือก Pages</li>
+  <li>หัวข้อ Build and deployment ช่อง Source เลือก Deploy from a branch</li>
+  <li>ช่อง Branch เลือก <code>main</code> และโฟลเดอร์ <code>/ (root)</code> แล้วกด Save</li>
+  <li>รอประมาณ 1 ถึง 2 นาที กลับมาหน้า Pages อีกครั้งจะเห็นลิงก์ <code>https://somchai.github.io/quiz-app/</code> เปิดแล้วเล่นตาม Checklist ใน Step 9 อีกรอบ</li>
+  <li>นำลิงก์ไปใส่ในช่อง About (ไอคอนเฟือง) ของ Repository ใน README และใน Portfolio หรือ LinkedIn ของคุณ</li>
+</ol>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ถ้าเปิดบน GitHub Pages แล้วเจอหน้าจอ "โหลดคำถามไม่สำเร็จ" พร้อม HTTP 404 สาเหตุที่พบบ่อยที่สุดคือใช้ Path ที่ขึ้นต้นด้วย <code>/</code> เช่น <code>fetch('/data/questions.json')</code> ซึ่งจะไปหาที่ <code>https://somchai.github.io/data/questions.json</code> แทน <code>https://somchai.github.io/quiz-app/data/questions.json</code> ให้ใช้ Path แบบ Relative <code>'data/questions.json'</code> ตามโค้ดใน Step 7 อีกสาเหตุคือชื่อไฟล์ตัวพิมพ์เล็กใหญ่ไม่ตรงกัน GitHub Pages แยกตัวพิมพ์เล็กใหญ่ เช่น <code>Questions.json</code> กับ <code>questions.json</code> เป็นคนละไฟล์</p></div>
+</li>
+</ol>
+
+<h4>สิ่งที่ฝึกในโปรเจกต์นี้ เทียบกับแนวคิดใน Part 2</h4>
+<div class="tbl mid"><table class="explain">
+<thead><tr><th>แนวคิดใน Part 2</th><th>ใช้ตรงไหนในโปรเจกต์</th></tr></thead>
+<tbody>
+<tr><td>แนวคิดที่ 3 HTML/CSS, Flexbox</td><td><code>index.html</code> และ <code>style.css</code> ทั้งไฟล์ โดยเฉพาะ <code>.choices</code> ที่เปลี่ยนจาก column เป็น row</td></tr>
+<tr><td>แนวคิดที่ 4 Array methods</td><td><code>choices.map(createChoiceButton)</code>, <code>every()</code> ใน <code>validateQuestions</code>, <code>answers.at(-1)</code></td></tr>
+<tr><td>แนวคิดที่ 5 Object, Spread, <code>?.</code> และ <code>??</code></td><td>state แบบ Immutable ด้วย <code>{ ...state }</code>, <code>storage?.getItem</code>, <code>?? null</code></td></tr>
+<tr><td>แนวคิดที่ 6 ES Modules</td><td><code>import</code>/<code>export</code> ระหว่าง 3 ไฟล์ใน <code>src/</code> และ <code>"type": "module"</code></td></tr>
+<tr><td>แนวคิดที่ 7 DOM</td><td><code>createElement</code>, <code>textContent</code>, <code>classList</code>, <code>replaceChildren</code>, <code>hidden</code></td></tr>
+<tr><td>แนวคิดที่ 8 Events</td><td>Event delegation บน <code>#choices</code> ด้วย <code>closest()</code> และ <code>keydown</code> 1 ถึง 4</td></tr>
+<tr><td>แนวคิดที่ 10 Error handling, localStorage</td><td><code>storage.js</code> ทั้งไฟล์ และ <code>TypeError</code>/<code>RangeError</code> ใน <code>quiz.js</code></td></tr>
+<tr><td>แนวคิดที่ 11 async/await, fetch</td><td><code>loadQuestions()</code> ที่เช็ก <code>response.ok</code> และใช้ <code>AbortSignal.timeout</code></td></tr>
+<tr><td>แนวคิดที่ 12 node:test</td><td><code>test/quiz.test.js</code> และ <code>test/storage.test.js</code> 16 Test</td></tr>
+</tbody>
+</table></div>
+
+<h4>ไอเดียต่อยอด</h4>
+<ul>
+  <li><span class="lvl" data-lvl="b">Beginner</span> เพิ่มคำถามเป็น 20 ข้อ แล้วเปิดใช้ <code>createQuiz(questions, { shuffle: true })</code> ให้ลำดับข้อไม่ซ้ำกันทุกรอบ</li>
+  <li><span class="lvl" data-lvl="b">Beginner</span> เพิ่มปุ่มสลับธีมมืด/สว่างด้วย CSS Custom properties และจำค่าไว้ใน <code>localStorage</code> ที่ Key <code>quiz-app:theme</code></li>
+  <li><span class="lvl" data-lvl="i">Intermediate</span> สลับลำดับตัวเลือกในแต่ละข้อด้วย <code>shuffle()</code> แล้วอัปเดต <code>answer</code> ให้ถูกต้อง พร้อมเขียน Test ใหม่</li>
+  <li><span class="lvl" data-lvl="i">Intermediate</span> แยกคำถามเป็นหมวด (HTML, CSS, JavaScript) ในไฟล์ JSON หลายไฟล์ ให้ผู้ใช้เลือกหมวดก่อนเริ่ม และเก็บคะแนนสูงสุดแยกตามหมวด</li>
+  <li><span class="lvl" data-lvl="i">Intermediate</span> แสดงหน้าทบทวนคำตอบทั้งหมดในหน้าสรุปผล โดยใช้ข้อมูลใน <code>state.answers</code></li>
+  <li><span class="lvl" data-lvl="a">Advanced</span> เขียน End-to-end test ด้วย Playwright (เวอร์ชัน 1.64.x) ที่เล่นครบ 10 ข้อและตรวจคะแนนสูงสุดหลัง Reload แล้วรันอัตโนมัติด้วย GitHub Actions ทุกครั้งที่ Push</li>
+  <li><span class="lvl" data-lvl="a">Advanced</span> แปลงโปรเจกต์เป็น TypeScript (หัวข้อถัดไปที่แนะนำ) เพื่อให้ Compiler ตรวจรูปแบบของ state และคำถามแทน <code>validateQuestions</code> บางส่วน</li>
+  <li><span class="lvl" data-lvl="a">Advanced</span> ทำ Backend ด้วย Node.js เก็บคะแนนของผู้เล่นหลายคนในฐานข้อมูล (ทบทวน <a data-t="14"></a>) แล้วแสดงตารางอันดับ (Leaderboard)</li>
+</ul>
+
+<h3 id="s4-4-cheat">Cheat Sheet</h3>
+<p>สรุปไวยากรณ์และคำสั่งที่ใช้บ่อยที่สุดในหัวข้อนี้ แบ่งตามหมวด ตัวอย่างทุกบรรทัดเขียนผลลัพธ์ไว้ในคอมเมนต์ <code>// →</code> คุณลองพิมพ์ใน Browser Console หรือ Node REPL (พิมพ์ <code>node</code> แล้วกด <kbd>Enter</kbd>) เพื่อตรวจได้ทันที</p>
+
+<h4>Variables &amp; Types</h4>
+<div class="tbl mid"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>const</code> / <code>let</code></td><td>ประกาศตัวแปร ใช้ <code>const</code> เป็นหลัก ใช้ <code>let</code> เมื่อต้องกำหนดค่าใหม่ ไม่ใช้ <code>var</code></td><td><code>const price = 45; let qty = 2; qty = 3;</code></td></tr>
+<tr><td><code>typeof x</code></td><td>ดูชนิดข้อมูล (ระวัง <code>null</code> ได้ <code>'object'</code>)</td><td><code>typeof 45 // → 'number'</code><br><code>typeof null // → 'object'</code></td></tr>
+<tr><td><code>===</code> / <code>!==</code></td><td>เปรียบเทียบทั้งค่าและชนิด ไม่แปลงชนิดให้ ใช้แทน <code>==</code> เสมอ</td><td><code>'5' === 5 // → false</code><br><code>'5' == 5 // → true</code></td></tr>
+<tr><td><code>Number(s)</code> / <code>parseInt(s, 10)</code></td><td>แปลง String เป็นตัวเลข <code>Number</code> เข้มงวด <code>parseInt</code> อ่านจนเจอตัวที่ไม่ใช่ตัวเลข</td><td><code>Number('12a') // → NaN</code><br><code>parseInt('42px', 10) // → 42</code></td></tr>
+<tr><td><code>Number.isNaN(x)</code></td><td>เช็กว่าเป็น NaN จริงหรือไม่ (<code>NaN === NaN</code> ได้ <code>false</code>)</td><td><code>Number.isNaN(Number('abc')) // → true</code></td></tr>
+<tr><td><code>Boolean(x)</code> / <code>!!x</code></td><td>ดูว่าเป็น Truthy หรือ Falsy ค่า Falsy มี <code>false</code>, <code>0</code>, <code>-0</code>, <code>0n</code>, <code>''</code>, <code>null</code>, <code>undefined</code>, <code>NaN</code></td><td><code>Boolean('') // → false</code><br><code>Boolean('0') // → true</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>Strings</h4>
+<div class="tbl mid"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>`ข้อความ ${expr}`</code></td><td>Template literal แทรกค่าในข้อความ เขียนหลายบรรทัดได้</td><td><code>`รวม ${45 * 3} บาท` // → 'รวม 135 บาท'</code></td></tr>
+<tr><td><code>n.toFixed(2)</code></td><td>แสดงทศนิยมตามจำนวนหลัก ได้ผลเป็น String</td><td><code>(0.1 + 0.2).toFixed(2) // → '0.30'</code></td></tr>
+<tr><td><code>n.toLocaleString('th-TH', {...})</code></td><td>จัดรูปแบบตัวเลขแบบไทย ใส่ Comma คั่นหลักพัน</td><td><code>(1070).toLocaleString('th-TH', { minimumFractionDigits: 2 }) // → '1,070.00'</code></td></tr>
+<tr><td><code>s.trim()</code> / <code>s.includes(x)</code></td><td>ตัดช่องว่างหัวท้าย / เช็กว่ามีข้อความย่อยหรือไม่</td><td><code>'  somchai '.trim() // → 'somchai'</code><br><code>'JavaScript'.includes('Script') // → true</code></td></tr>
+<tr><td><code>s.split(sep)</code> / <code>arr.join(sep)</code></td><td>แยก String เป็น Array / รวม Array เป็น String</td><td><code>'a,b,c'.split(',') // → ['a', 'b', 'c']</code><br><code>['a', 'b'].join(' | ') // → 'a | b'</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>Arrays</h4>
+<div class="tbl mid"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>arr.map(fn)</code></td><td>แปลงทุกตัว ได้ Array ใหม่ขนาดเท่าเดิม</td><td><code>[1, 2, 3].map((n) =&gt; n * 2) // → [2, 4, 6]</code></td></tr>
+<tr><td><code>arr.filter(fn)</code></td><td>เก็บเฉพาะตัวที่เงื่อนไขเป็นจริง</td><td><code>[45, 10, 60].filter((p) =&gt; p &gt;= 40) // → [45, 60]</code></td></tr>
+<tr><td><code>arr.reduce(fn, initial)</code></td><td>รวมทุกตัวเป็นค่าเดียว ใส่ค่าเริ่มต้นเสมอ</td><td><code>[90, 50, 105].reduce((sum, n) =&gt; sum + n, 0) // → 245</code></td></tr>
+<tr><td><code>arr.find(fn)</code> / <code>arr.findIndex(fn)</code></td><td>หาตัวแรกที่ตรงเงื่อนไข / ตำแหน่งของตัวนั้น ไม่เจอได้ <code>undefined</code> / <code>-1</code></td><td><code>[2, 1, 3, 4].find((q) =&gt; q &gt;= 3) // → 3</code></td></tr>
+<tr><td><code>arr.some(fn)</code> / <code>arr.every(fn)</code></td><td>มีอย่างน้อยหนึ่งตัวที่จริง / ทุกตัวจริง</td><td><code>[2, 0, 3].some((q) =&gt; q === 0) // → true</code><br><code>[45, 50].every((p) =&gt; p &gt; 0) // → true</code></td></tr>
+<tr><td><code>arr.toSorted((a, b) =&gt; a - b)</code></td><td>เรียงตัวเลขโดยไม่แก้ Array เดิม (<code>sort()</code> แก้ Array เดิมและเรียงแบบ String)</td><td><code>[10, 9, 1, 100].sort() // → [1, 10, 100, 9]</code><br><code>[10, 9, 1, 100].toSorted((a, b) =&gt; a - b) // → [1, 9, 10, 100]</code></td></tr>
+<tr><td><code>arr.at(-1)</code></td><td>อ่านตัวสุดท้าย (เลขติดลบนับจากท้าย)</td><td><code>['HTML', 'CSS', 'JS'].at(-1) // → 'JS'</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>Objects</h4>
+<div class="tbl mid"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>const { a, b = 1 } = obj</code></td><td>Destructuring ดึงค่าออกจาก Object พร้อมค่าเริ่มต้น</td><td><code>const { name, age = 0 } = { name: 'สมชาย' }; // age → 0</code></td></tr>
+<tr><td><code>{ ...defaults, ...settings }</code></td><td>Spread รวม Object ตัวหลังทับตัวหน้า (Shallow copy)</td><td><code>{ ...{ theme: 'light', lang: 'th' }, ...{ theme: 'dark' } } // → { theme: 'dark', lang: 'th' }</code></td></tr>
+<tr><td><code>obj?.a?.b</code> / <code>fn?.()</code></td><td>Optional chaining อ่านค่าลึก ๆ โดยไม่พังเมื่อเจอ <code>null</code> หรือ <code>undefined</code></td><td><code>user.company?.name // → undefined</code></td></tr>
+<tr><td><code>a ?? b</code></td><td>Nullish coalescing ใช้ <code>b</code> เฉพาะเมื่อ <code>a</code> เป็น <code>null</code> หรือ <code>undefined</code> (ต่างจาก <code>||</code> ที่ทิ้ง <code>0</code> และ <code>''</code>)</td><td><code>0 ?? 16 // → 0</code><br><code>0 || 16 // → 16</code></td></tr>
+<tr><td><code>Object.entries(obj)</code> / <code>Object.fromEntries(list)</code></td><td>แปลง Object เป็น Array ของคู่ [key, value] และกลับ</td><td><code>Object.entries({ a: 1, b: 2 }) // → [['a', 1], ['b', 2]]</code></td></tr>
+<tr><td><code>structuredClone(obj)</code></td><td>Deep copy ก๊อปทุกชั้น แก้สำเนาแล้วต้นฉบับไม่เปลี่ยน</td><td><code>const copy = structuredClone(user); copy.address.province = 'เชียงใหม่'; // user ไม่เปลี่ยน</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>Functions &amp; Scope</h4>
+<div class="tbl mid"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>(a, b) =&gt; a + b</code></td><td>Arrow function แบบคืนค่าอัตโนมัติ คืน Object ต้องครอบวงเล็บ</td><td><code>const toObj = (n) =&gt; ({ value: n }); toObj(1) // → { value: 1 }</code></td></tr>
+<tr><td><code>function f(a = 1, ...rest)</code></td><td>Default parameter และ Rest parameter (รับที่เหลือเป็น Array)</td><td><code>const avg = (...nums) =&gt; nums.reduce((s, n) =&gt; s + n, 0) / nums.length; avg(80, 90) // → 85</code></td></tr>
+<tr><td>Closure</td><td>ฟังก์ชันจำตัวแปรของฟังก์ชันที่สร้างมันได้ ใช้ทำ state ส่วนตัว</td><td><code>const makeCounter = () =&gt; { let n = 0; return () =&gt; ++n; }; const c = makeCounter(); c(); c() // → 2</code></td></tr>
+<tr><td><code>fn.bind(obj)</code></td><td>ล็อก <code>this</code> ไว้ก่อนส่งเมธอดไปเป็น Callback</td><td><code>[100, 200].forEach(account.deposit.bind(account));</code></td></tr>
+<tr><td><code>class A extends B { #x; static f() {} }</code></td><td>Class พร้อม Private field, Static method และการสืบทอด ต้องเรียก <code>super()</code> ก่อนใช้ <code>this</code></td><td><code>class SavingsAccount extends BankAccount { constructor(o) { super(o); } }</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>Modules &amp; npm</h4>
+<div class="tbl mid"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>export</code> / <code>export default</code></td><td>Named export (หลายตัวต่อไฟล์) / Default export (หนึ่งตัวต่อไฟล์)</td><td><code>export const VAT_RATE = 0.07;</code><br><code>export default function formatBaht(n) {}</code></td></tr>
+<tr><td><code>import x, { a as b } from './file.js'</code></td><td>นำเข้า Default และ Named พร้อมเปลี่ยนชื่อ ต้องมี <code>./</code> และ <code>.js</code></td><td><code>import formatBaht, { withVat } from './src/price.js';</code></td></tr>
+<tr><td><code>npm init -y</code> แล้ว <code>npm pkg set type=module</code></td><td>สร้าง package.json แล้วเปิดใช้ ES Modules</td><td><code>npm init -y &amp;&amp; npm pkg set type=module</code></td></tr>
+<tr><td><code>npm install pkg@ver</code> / <code>npm install -D pkg</code></td><td>ติดตั้งแพ็กเกจ (dependencies) / ติดตั้งเฉพาะตอนพัฒนา (devDependencies)</td><td><code>npm install dayjs@1.11.23</code><br><code>npm install -D eslint@10.13.0</code></td></tr>
+<tr><td><code>npm ci</code> / <code>npm audit</code></td><td>ติดตั้งตาม package-lock.json แบบตรงตัว (ใช้ใน CI) / ตรวจช่องโหว่ของแพ็กเกจ</td><td><code>npm ci</code><br><code>npm audit</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>DOM</h4>
+<div class="tbl mid"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>document.querySelector(sel)</code></td><td>เลือก Element แรกที่ตรง CSS Selector ไม่เจอได้ <code>null</code></td><td><code>const list = document.querySelector('#topic-list');</code></td></tr>
+<tr><td><code>document.querySelectorAll(sel)</code></td><td>เลือกทุกตัว ได้ NodeList (มี <code>forEach</code> แต่ไม่มี <code>map</code>)</td><td><code>Array.from(document.querySelectorAll('li')).map((li) =&gt; li.textContent);</code></td></tr>
+<tr><td><code>el.textContent = s</code></td><td>ใส่ข้อความแบบปลอดภัย ไม่ตีความเป็น HTML (ใช้แทน <code>innerHTML</code> กับข้อมูลผู้ใช้)</td><td><code>summary.textContent = `เรียนแล้ว ${done} จาก ${total} หัวข้อ`;</code></td></tr>
+<tr><td><code>el.classList.add/remove/toggle(c)</code></td><td>จัดการ Class ของ Element</td><td><code>li.classList.toggle('done', topic.done);</code></td></tr>
+<tr><td><code>document.createElement(tag)</code> + <code>append</code></td><td>สร้าง Element ใหม่แล้วใส่เข้าไปในหน้า</td><td><code>const li = document.createElement('li'); li.textContent = 'DOM'; list.append(li);</code></td></tr>
+<tr><td><code>el.dataset.x</code> / <code>el.replaceChildren(...)</code></td><td>อ่านเขียน attribute <code>data-x</code> / แทนที่ลูกทั้งหมดในคำสั่งเดียว</td><td><code>button.dataset.index = '2';</code><br><code>list.replaceChildren(...items);</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>Events &amp; Forms</h4>
+<div class="tbl mid"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>el.addEventListener(type, fn)</code></td><td>ผูก Event ส่งชื่อฟังก์ชัน ไม่ใส่วงเล็บ</td><td><code>startBtn.addEventListener('click', startQuiz);</code></td></tr>
+<tr><td><code>event.target.closest(sel)</code></td><td>Event delegation: ฟังที่ Parent แล้วหา Element ที่ถูกคลิกจริง</td><td><code>const btn = event.target.closest('button[data-index]'); if (!btn) return;</code></td></tr>
+<tr><td><code>event.preventDefault()</code></td><td>หยุดพฤติกรรมเริ่มต้น เช่น Form รีโหลดหน้า</td><td><code>form.addEventListener('submit', (e) =&gt; { e.preventDefault(); });</code></td></tr>
+<tr><td><code>Object.fromEntries(new FormData(form))</code></td><td>อ่านค่าทุกช่องใน Form เป็น Object (ใช้ attribute <code>name</code> เป็น Key)</td><td><code>const data = Object.fromEntries(new FormData(form)); // → { username: 'somchai', ... }</code></td></tr>
+<tr><td><code>form.checkValidity()</code> / <code>input.setCustomValidity(msg)</code></td><td>ตรวจ Form ด้วยกฎใน HTML (<code>required</code>, <code>minlength</code>) / ตั้งข้อความ Error เอง</td><td><code>if (!form.checkValidity()) { form.reportValidity(); return; }</code></td></tr>
+<tr><td><code>event.key</code></td><td>อ่านปุ่มที่กดใน Event <code>keydown</code></td><td><code>document.addEventListener('keydown', (e) =&gt; { if (e.key === '1') choose(0); });</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>Async &amp; fetch</h4>
+<div class="tbl mid"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>new Promise((resolve, reject) =&gt; {})</code></td><td>ห่องานที่เสร็จในอนาคตให้เป็น Promise</td><td><code>const delay = (ms) =&gt; new Promise((r) =&gt; setTimeout(r, ms));</code></td></tr>
+<tr><td><code>async</code> / <code>await</code> + <code>try/catch</code></td><td>รอ Promise แบบอ่านง่ายเหมือนโค้ดบรรทัดต่อบรรทัด และจับ Error ด้วย try/catch</td><td><code>try { const data = await getQuestions(); } catch (error) { console.error(error.message); }</code></td></tr>
+<tr><td><code>await fetch(url)</code> + <code>response.ok</code></td><td>ดึงข้อมูลผ่าน HTTP ต้องเช็ก <code>ok</code> เอง เพราะ 404 ไม่ทำให้ reject</td><td><code>const res = await fetch('data/questions.json'); if (!res.ok) throw new Error(`HTTP ${res.status}`); const data = await res.json();</code></td></tr>
+<tr><td><code>Promise.all</code> / <code>Promise.allSettled</code></td><td>รอหลายงานพร้อมกัน <code>all</code> พังทั้งหมดถ้ามีตัวเดียวพัง <code>allSettled</code> คืนผลทุกตัว</td><td><code>const results = await Promise.allSettled([fetch(a), fetch(b)]); // → [{ status: 'fulfilled', ... }, { status: 'rejected', ... }]</code></td></tr>
+<tr><td><code>AbortSignal.timeout(ms)</code></td><td>ยกเลิก fetch อัตโนมัติเมื่อเกินเวลา</td><td><code>await fetch(url, { signal: AbortSignal.timeout(3000) });</code></td></tr>
+<tr><td>ลำดับ Event loop</td><td>โค้ด Sync ทำก่อน แล้ว Microtask (Promise) แล้วจึง Macrotask (setTimeout)</td><td><code>setTimeout(() =&gt; console.log('C')); Promise.resolve().then(() =&gt; console.log('B')); console.log('A'); // → A B C</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>Storage &amp; JSON</h4>
+<div class="tbl mid"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>JSON.stringify(obj, null, 2)</code></td><td>แปลง Object เป็น JSON String (เลข 2 คือย่อหน้า 2 ช่อง)</td><td><code>JSON.stringify({ score: 7 }) // → '{"score":7}'</code></td></tr>
+<tr><td><code>JSON.parse(text)</code></td><td>แปลง JSON String เป็น Object ข้อมูลเสียจะโยน <code>SyntaxError</code> จึงควรครอบ try/catch</td><td><code>JSON.parse('{"score":7}').score // → 7</code></td></tr>
+<tr><td><code>localStorage.setItem(key, string)</code></td><td>บันทึกข้อมูลถาวรในเบราว์เซอร์ เก็บได้แค่ String</td><td><code>localStorage.setItem('quiz-app:highscore', JSON.stringify({ score: 7 }));</code></td></tr>
+<tr><td><code>localStorage.getItem(key)</code></td><td>อ่านข้อมูล ไม่มี Key นั้นได้ <code>null</code></td><td><code>JSON.parse(localStorage.getItem('quiz-app:highscore') ?? 'null') // → { score: 7 }</code></td></tr>
+<tr><td><code>localStorage.removeItem(key)</code> / <code>clear()</code></td><td>ลบ Key เดียว / ลบทั้งหมดของ Origin นั้น</td><td><code>localStorage.removeItem('quiz-app:highscore');</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>node:test &amp; Debugging</h4>
+<div class="tbl mid"><table class="cheat">
+<thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead>
+<tbody>
+<tr><td><code>node --test</code></td><td>รัน Test ทุกไฟล์ที่ชื่อลงท้าย <code>.test.js</code> หรืออยู่ในโฟลเดอร์ <code>test/</code></td><td><code>node --test</code><br><code>node --test test/quiz.test.js</code></td></tr>
+<tr><td><code>describe</code> / <code>it</code> / <code>test</code></td><td>จัดกลุ่ม Test และเขียน Test แต่ละกรณี</td><td><code>import { describe, it } from 'node:test'; describe('percent()', () =&gt; { it('ปัดเป็นจำนวนเต็ม', () =&gt; {}); });</code></td></tr>
+<tr><td><code>assert.equal</code> / <code>assert.deepEqual</code></td><td>เทียบค่าเดี่ยว / เทียบ Object และ Array ทุกชั้น (จาก <code>node:assert/strict</code>)</td><td><code>assert.equal(percent(7, 10), 70);</code><br><code>assert.deepEqual(state.answers, []);</code></td></tr>
+<tr><td><code>assert.throws(fn, expected)</code> / <code>await assert.rejects(promise)</code></td><td>ตรวจว่าโค้ดโยน Error ที่คาดไว้ / ตรวจว่า Promise reject</td><td><code>assert.throws(() =&gt; percent(1, 0), RangeError);</code></td></tr>
+<tr><td><code>mock.fn()</code> / <code>mock.timers.enable()</code></td><td>สร้างฟังก์ชันปลอมนับจำนวนครั้งที่ถูกเรียก / ควบคุมเวลาของ setInterval โดยไม่ต้องรอจริง</td><td><code>mock.timers.enable({ apis: ['setInterval'] }); mock.timers.tick(1000);</code></td></tr>
+<tr><td><code>debugger;</code> / <code>node --inspect-brk app.js</code></td><td>หยุดโค้ดที่บรรทัดนั้นเมื่อ DevTools เปิดอยู่ / เปิด Debugger ของ Node.js แล้วต่อจาก <code>chrome://inspect</code></td><td><code>node --inspect-brk src/stats.js</code></td></tr>
+<tr><td><code>console.table</code> / <code>console.time</code></td><td>แสดง Array ของ Object เป็นตาราง / จับเวลาการทำงาน</td><td><code>console.table(cart);</code><br><code>console.time('load'); await load(); console.timeEnd('load');</code></td></tr>
+</tbody>
+</table></div>
+
+<h3 id="s4-4-interview">Interview Questions</h3>
+<p>คำถาม 5 ข้อนี้พบบ่อยในการสัมภาษณ์ตำแหน่ง Junior Frontend Developer และ Full-stack JavaScript ระดับเริ่มต้นถึงกลาง ฝึกตอบออกเสียงให้จบใน 1 ถึง 2 นาที เริ่มจากคำนิยามสั้น ๆ ตามด้วยตัวอย่าง แล้วปิดด้วยการใช้งานจริง ถ้าเล่าโยงกับ Quiz App ของคุณได้ จะได้คะแนนเพิ่มมาก เพราะแสดงว่าคุณเคยใช้จริง</p>
+
+<details class="iq"><summary>1. <code>==</code> กับ <code>===</code> ต่างกันอย่างไร และคุณใช้แบบไหน (Junior)</summary><div>
+<p><strong>คำตอบที่ดี:</strong> <code>===</code> (Strict equality) เปรียบเทียบทั้งค่าและชนิดข้อมูล ถ้าชนิดต่างกันได้ <code>false</code> ทันที ส่วน <code>==</code> (Loose equality) จะพยายามแปลงชนิดข้อมูลให้ตรงกันก่อน (Type coercion) แล้วค่อยเทียบ ทำให้ได้ผลที่คาดเดายาก ผมใช้ <code>===</code> เสมอ และตั้ง ESLint กฎ <code>eqeqeq</code> ไว้กันเผลอ</p>
+<p><strong>ประเด็นสำคัญที่ควรพูดถึง</strong></p>
+<ul>
+  <li>ตัวอย่างที่ <code>==</code> ให้ผลแปลก: <code>0 == ''</code> ได้ <code>true</code>, <code>[] == false</code> ได้ <code>true</code></li>
+  <li>กรณีพิเศษ: <code>null == undefined</code> ได้ <code>true</code> บางทีมยอมให้ใช้ <code>x == null</code> เพื่อเช็กทั้งสองค่าในครั้งเดียว แต่ <code>x ?? fallback</code> หรือ <code>x === null || x === undefined</code> อ่านชัดกว่า</li>
+  <li><code>NaN</code> ไม่เท่ากับอะไรเลย แม้แต่ตัวเอง ต้องใช้ <code>Number.isNaN()</code></li>
+  <li>การเปรียบเทียบ Object เทียบว่าเป็นตัวเดียวกันในหน่วยความจำ (Reference) ไม่ได้เทียบเนื้อหา</li>
+</ul>
+<pre class="code" data-env="app" data-label="JavaScript · Browser Console"><code class="language-javascript">console.log(0 == '', null == undefined, [] == false, '5' === 5, NaN === NaN);</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>true true true false false</code></pre>
+<p><strong>โยงกับโปรเจกต์:</strong> ใน Quiz App ฟังก์ชัน <code>answer()</code> ใช้ <code>choiceIndex === question.answer</code> ถ้าใช้ <code>==</code> แล้วค่าที่มาจาก <code>dataset</code> เป็น String <code>'2'</code> ก็จะเทียบผ่านโดยบังเอิญ และซ่อน Bug ที่ลืมแปลงชนิดไว้ ผมจึงแปลงด้วย <code>Number(button.dataset.index)</code> ก่อนเสมอ</p>
+</div></details>
+
+<details class="iq"><summary>2. Closure คืออะไร ยกตัวอย่างการใช้งานจริง (Junior ถึง Mid)</summary><div>
+<p><strong>คำตอบที่ดี:</strong> Closure คือการที่ฟังก์ชันยังเข้าถึงตัวแปรใน Scope ที่มันถูกสร้างขึ้นได้ แม้ฟังก์ชันภายนอกจะทำงานจบไปแล้ว เพราะ JavaScript ใช้ Lexical scope คือ Scope ถูกกำหนดจากตำแหน่งที่เขียนโค้ด ไม่ใช่จากตำแหน่งที่เรียกใช้</p>
+<pre class="code" data-env="file" data-label="JavaScript · counter.js"><code class="language-javascript">// count อยู่ใน Scope ของ makeCounter ภายนอกเข้าถึงตรง ๆ ไม่ได้
+function makeCounter() {
+  let count = 0;
+  return {
+    increment: () =&gt; ++count,
+    get: () =&gt; count,
+  };
+}
+
+const a = makeCounter();
+a.increment();
+a.increment();
+const b = makeCounter(); // ได้ count ชุดใหม่ แยกจาก a
+b.increment();
+console.log(a.get(), b.get(), typeof count);</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">node counter.js</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>2 1 undefined</code></pre>
+<p><strong>ประเด็นสำคัญที่ควรพูดถึง</strong></p>
+<ul>
+  <li>ใช้ทำ Private state (ข้อมูลที่ภายนอกแก้ไม่ได้) ก่อนจะมี Private field <code>#</code> ใน Class</li>
+  <li>ใช้ใน Event handler และ Callback ทุกวัน เช่น Callback ของ <code>setInterval</code> ใน Quiz App ที่จำ <code>startedAt</code> ไว้</li>
+  <li>ใช้ทำ Function factory เช่น <code>once()</code>, debounce, หรือฟังก์ชันที่ตั้งค่าไว้ล่วงหน้า</li>
+  <li>ข้อควรระวัง: Closure ถือตัวแปรไว้ในหน่วยความจำตราบที่ฟังก์ชันยังถูกอ้างอิง ถ้าผูก Listener แล้วไม่ถอด อาจเกิด Memory leak ได้</li>
+</ul>
+</div></details>
+
+<details class="iq"><summary>3. Event delegation คืออะไร ทำไมต้องใช้ (Junior ถึง Mid)</summary><div>
+<p><strong>คำตอบที่ดี:</strong> Event delegation คือการผูก Event listener ตัวเดียวไว้ที่ Element แม่ แทนการผูกที่ลูกทุกตัว แล้วอาศัย Event bubbling ที่ Event จากลูกจะลอยขึ้นไปหาแม่ ในฟังก์ชันจัดการ เราใช้ <code>event.target.closest(selector)</code> หาว่าลูกตัวไหนถูกคลิกจริง</p>
+<p><strong>ข้อดีที่ควรพูดถึง</strong></p>
+<ul>
+  <li>Element ที่สร้างใหม่ภายหลังทำงานได้ทันทีโดยไม่ต้องผูก Event ใหม่ เหมาะกับหน้าที่ Render จากข้อมูลซ้ำ ๆ</li>
+  <li>ใช้หน่วยความจำน้อยกว่า เพราะมี Listener ตัวเดียวแทนหลายร้อยตัว</li>
+  <li>โค้ดรวมอยู่ที่เดียว อ่านและแก้ง่าย</li>
+</ul>
+<p><strong>ข้อควรระวัง:</strong> <code>event.target</code> อาจเป็น Element ข้างในปุ่ม เช่น <code>&lt;span&gt;</code> จึงต้องใช้ <code>closest()</code> และต้องเช็กว่าผลไม่ใช่ <code>null</code> ส่วน Event บางชนิดไม่ Bubble เช่น <code>focus</code> และ <code>blur</code> ต้องใช้ <code>focusin</code> และ <code>focusout</code> แทน</p>
+<pre class="code" data-env="file" data-label="JavaScript · src/main.js (ตัดมาบางส่วน)"><code class="language-javascript">// ฟังที่ #choices ตัวเดียว ใช้ได้กับปุ่มของทุกข้อที่สร้างใหม่
+document.querySelector('#choices').addEventListener('click', (event) =&gt; {
+  const button = event.target.closest('button[data-index]');
+  if (button &amp;&amp; !button.disabled) {
+    handleAnswer(Number(button.dataset.index));
+  }
+});</code></pre>
+<p><strong>โยงกับโปรเจกต์:</strong> Quiz App สร้างปุ่มตัวเลือกใหม่ทุกข้อด้วย <code>replaceChildren()</code> ถ้าผูก Listener ที่ปุ่มโดยตรง ต้องผูกใหม่ทุกข้อและเสี่ยงลืม การใช้ Delegation ทำให้ผูกครั้งเดียวตอนโหลดหน้า</p>
+</div></details>
+
+<details class="iq"><summary>4. อธิบาย Event loop และความต่างระหว่าง Microtask กับ Macrotask (Mid)</summary><div>
+<p><strong>คำตอบที่ดี:</strong> JavaScript รันบน Thread เดียว มี Call stack เดียว งานที่ต้องรอ เช่น Timer หรือ Network จะถูกส่งให้ Web APIs (ในเบราว์เซอร์) หรือ libuv (ใน Node.js) ทำแทน เมื่อเสร็จแล้ว Callback จะเข้าคิว Event loop จะหยิบงานจากคิวมาใส่ Call stack เมื่อ Stack ว่างเท่านั้น</p>
+<p>มีคิวสำคัญ 2 แบบ <strong>Microtask queue</strong> คือ Callback ของ Promise (<code>then</code>, <code>catch</code>, <code>finally</code>, โค้ดหลัง <code>await</code>) และ <code>queueMicrotask</code> กับ <strong>Macrotask queue</strong> (Task queue) คือ <code>setTimeout</code>, <code>setInterval</code>, Event จากผู้ใช้ และ I/O กติกาคือ หลังโค้ด Sync จบ Event loop จะล้าง Microtask ทั้งหมดจนว่างก่อน แล้วจึงหยิบ Macrotask มาทำทีละ 1 งาน</p>
+<pre class="code" data-env="file" data-label="JavaScript · event-loop.js"><code class="language-javascript">// คำถามข้อ 4: ลำดับของ Event loop
+console.log('1 sync');
+setTimeout(() =&gt; console.log('4 setTimeout (macrotask)'), 0);
+Promise.resolve().then(() =&gt; console.log('3 promise (microtask)'));
+console.log('2 sync');</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">node event-loop.js</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>1 sync
+2 sync
+3 promise (microtask)
+4 setTimeout (macrotask)</code></pre>
+<p><strong>ประเด็นสำคัญที่ควรพูดถึง</strong></p>
+<ul>
+  <li><code>setTimeout(fn, 0)</code> ไม่ได้แปลว่าทำทันที แต่แปลว่า "ไม่เร็วกว่า 0 มิลลิวินาที และหลังจาก Microtask ทั้งหมด"</li>
+  <li>โค้ด Sync ที่ใช้เวลานาน (เช่น Loop คำนวณหนัก ๆ) จะบล็อกทุกอย่าง หน้าเว็บค้างและ Timer ไม่ตรง</li>
+  <li>ถ้าสร้าง Microtask ต่อกันไม่รู้จบ เบราว์เซอร์จะไม่ได้วาดหน้าจอเลย (Starvation)</li>
+</ul>
+<p><strong>โยงกับโปรเจกต์:</strong> Timer ใน Quiz App ไม่นับจำนวนครั้งที่ <code>setInterval</code> ทำงาน แต่คำนวณจาก <code>Date.now()</code> เพราะ Macrotask อาจมาช้ากว่ากำหนดเมื่อ Thread ไม่ว่างหรือแท็บอยู่เบื้องหลัง</p>
+</div></details>
+
+<details class="iq"><summary>5. <code>var</code>, <code>let</code> และ <code>const</code> ต่างกันอย่างไร และ Hoisting คืออะไร (Junior)</summary><div>
+<p><strong>คำตอบที่ดี:</strong> ต่างกัน 3 เรื่อง</p>
+<ul>
+  <li><strong>Scope:</strong> <code>var</code> เป็น Function scope ส่วน <code>let</code> และ <code>const</code> เป็น Block scope (อยู่แค่ใน <code>{ }</code> ที่ประกาศ)</li>
+  <li><strong>การกำหนดค่าใหม่:</strong> <code>const</code> กำหนดค่าใหม่ไม่ได้ แต่ถ้าเป็น Object หรือ Array ยังแก้เนื้อหาข้างในได้ <code>let</code> และ <code>var</code> กำหนดค่าใหม่ได้</li>
+  <li><strong>Hoisting:</strong> ทุกการประกาศถูก "ยกขึ้น" ไปต้น Scope ตอนเตรียมรันโค้ด แต่ <code>var</code> ถูกตั้งค่าเริ่มต้นเป็น <code>undefined</code> ส่วน <code>let</code> และ <code>const</code> อยู่ใน Temporal Dead Zone (TDZ) จนถึงบรรทัดที่ประกาศ ถ้าเข้าถึงก่อนจะได้ <code>ReferenceError</code> ส่วน Function declaration ถูกยกขึ้นทั้งฟังก์ชัน เรียกใช้ก่อนบรรทัดที่ประกาศได้</li>
+</ul>
+<pre class="code" data-env="file" data-label="JavaScript · hoisting.js"><code class="language-javascript">// ตัวอย่างเดียวในหลักสูตรที่ใช้ var เพื่อแสดงความต่าง
+console.log(typeof hoisted, typeof sayHi);
+var hoisted = 'var';
+function sayHi() {}
+try {
+  console.log(total);
+} catch (error) {
+  console.log(`${error.name}: ${error.message}`);
+}
+const total = 10;
+for (var i = 0; i &lt; 3; i += 1) setTimeout(() =&gt; console.log('var', i));
+for (let j = 0; j &lt; 3; j += 1) setTimeout(() =&gt; console.log('let', j));</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">node hoisting.js</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>undefined function
+ReferenceError: Cannot access 'total' before initialization
+var 3
+var 3
+var 3
+let 0
+let 1
+let 2</code></pre>
+<p>Loop ที่ใช้ <code>var</code> พิมพ์ 3 สามครั้ง เพราะทั้ง 3 Callback ใช้ตัวแปร <code>i</code> ตัวเดียวกัน ซึ่งเป็น 3 แล้วตอน Timer ทำงาน ส่วน <code>let</code> สร้างตัวแปร <code>j</code> ใหม่ทุกรอบของ Loop แต่ละ Callback จึงจำค่าของรอบตัวเอง (นี่คือ Closure อีกตัวอย่างหนึ่ง)</p>
+<p><strong>ปิดท้ายคำตอบ:</strong> ผมใช้ <code>const</code> เป็นค่าเริ่มต้น ใช้ <code>let</code> เมื่อต้องกำหนดค่าใหม่จริง ๆ เช่นตัวนับ หรือ <code>state</code> ใน Quiz App และไม่ใช้ <code>var</code> ในโค้ดใหม่เลย</p>
+</div></details>
+
+<h3 id="s4-4-resources">แหล่งเรียนต่อ</h3>
+<p>แหล่งเรียนด้านล่างเป็นของจริงที่นักพัฒนาทั่วโลกใช้ เรียงจากที่ควรเปิดบ่อยที่สุด เนื้อหาส่วนใหญ่เป็นภาษาอังกฤษ แนะนำให้ใช้คู่กับหลักสูตรนี้ และเปิด MDN ทุกครั้งที่สงสัยเรื่อง Syntax</p>
+<ul class="res">
+  <li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide" target="_blank" rel="noopener">MDN Web Docs: JavaScript Guide</a> — คู่มืออ้างอิงหลักของ JavaScript, HTML, CSS และ Web APIs (DOM, fetch, localStorage) ทุกเมธอดมีตัวอย่างและตารางว่าเบราว์เซอร์ไหนรองรับ ควรเปิดเป็นที่แรกเสมอ <span class="pill">ฟรี</span></li>
+  <li><a href="https://javascript.info/" target="_blank" rel="noopener">The Modern JavaScript Tutorial (javascript.info)</a> — บทเรียน JavaScript ตั้งแต่พื้นฐานจนถึงเรื่องลึก เช่น Closure, Prototype, Promise และ Event loop อธิบายละเอียดพร้อมแบบฝึกหัดท้ายบท <span class="pill">ฟรี</span></li>
+  <li><a href="https://nodejs.org/docs/latest/api/" target="_blank" rel="noopener">Node.js Documentation</a> — เอกสารทางการของ Node.js ใช้ดูรายละเอียดของ <code>node:test</code>, <code>node:assert</code>, <code>node:fs</code> และตัวเลือกของคำสั่ง <code>node</code> ทั้งหมด <span class="pill">ฟรี</span></li>
+  <li><a href="https://web.dev/learn" target="_blank" rel="noopener">web.dev Learn (Learn HTML, Learn CSS, Learn Accessibility)</a> — คอร์สจากทีม Chrome ของ Google สอน HTML, CSS, Accessibility และ Performance เป็นตอนสั้น ๆ เหมาะสำหรับเสริมแนวคิดที่ 3 ให้แน่นขึ้น <span class="pill">ฟรี</span></li>
+  <li><a href="https://www.freecodecamp.org/learn" target="_blank" rel="noopener">freeCodeCamp</a> — หลักสูตรเว็บแบบลงมือทำในเบราว์เซอร์ มี Responsive Web Design และ JavaScript พร้อมโปรเจกต์รับใบรับรองของ freeCodeCamp เอง (ไม่ใช่ใบรับรองที่ตลาดงานใช้คัดคน แต่ช่วยฝึกได้ดี) <span class="pill">ฟรี</span></li>
+  <li><a href="https://www.theodinproject.com/" target="_blank" rel="noopener">The Odin Project</a> — หลักสูตร Full-stack JavaScript แบบโอเพนซอร์ส เน้นทำโปรเจกต์จริงบนเครื่องตัวเองด้วย Git และ Terminal เหมาะเป็นเส้นทางต่อหลังจบหัวข้อนี้ <span class="pill">ฟรี</span></li>
+  <li><a href="https://developer.chrome.com/docs/devtools" target="_blank" rel="noopener">Chrome DevTools Documentation</a> — วิธีใช้แท็บ Elements, Console, Sources (Breakpoint), Network, Application และ Lighthouse อย่างละเอียด ช่วยให้ Debug ได้เร็วขึ้นมาก <span class="pill">ฟรี</span></li>
+  <li><a href="https://docs.npmjs.com/" target="_blank" rel="noopener">npm Docs</a> — เอกสารทางการของ npm อธิบาย package.json, Semantic versioning, <code>npm ci</code> และ <code>npm audit</code> <span class="pill">ฟรี</span></li>
+</ul>
+<div class="callout"><span class="c-label tip">Tip</span><p>ก้าวต่อไปที่แนะนำหลังจบหัวข้อนี้คือ TypeScript (เพิ่มระบบ Type ให้ JavaScript) และ Node.js สำหรับ Backend ซึ่งต่อยอดจากความรู้ทั้งหมดในหัวข้อนี้ได้ทันที ระหว่างนี้ให้นำ Quiz App ขึ้น GitHub Pages ใส่ลิงก์ใน Portfolio และทำไอเดียต่อยอดอย่างน้อย 1 ข้อ เพราะหัวข้อ JavaScript ไม่มีใบรับรองหลักที่ตลาดงานใช้คัดคน Portfolio บน GitHub คือหลักฐานที่สำคัญที่สุด</p></div>
+</section>

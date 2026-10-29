@@ -1,0 +1,1710 @@
+<section class="part" data-part="3">
+<h2 id="s12-3"><span class="sec-no">12.3</span>Practice Exercises &amp; Quizzes</h2>
+
+<p>ส่วนนี้ใช้ทบทวนแนวคิด Backend ทั้ง 12 เรื่องใน Part 2 ตั้งแต่ Request Lifecycle, FastAPI, Pydantic, SQLAlchemy, Authentication, Testing ไปจนถึง Redis, Security และ Deployment แบบฝึกหัดแบ่งเป็น 3 ชุด คือ เติมคำในช่องว่าง 9 ข้อ ข้อสอบปรนัย 12 ข้อ และโจทย์ลงมือทำจริง 3 ข้อ ทุกโจทย์จำลองงานที่ Backend Developer เจอจริง ได้แก่ API รับงานซ่อมของร้านคอมพิวเตอร์ ระบบขอลางานของฝ่าย HR และ API สินค้าช่วง Flash Sale ที่มีคนเข้าพร้อมกันจำนวนมาก</p>
+<p>เฉลยทั้งหมดอยู่ท้ายหน้า เฉลยปรนัยอธิบายทั้งเหตุผลที่ข้อถูกถูก และเหตุผลที่ตัวเลือกผิดแต่ละข้อผิด ส่วนเฉลยโจทย์ลงมือทำมีโค้ดเต็มที่ทดสอบแล้ว ผลลัพธ์จริง แนวคิดที่ใช้ และไอเดียต่อยอด</p>
+
+<h3 id="s12-3-howto">วิธีใช้หน้านี้ให้ได้ผล</h3>
+<ul>
+  <li>ทำทุกข้อใน Ubuntu (WSL) ของคุณเอง ใช้โฟลเดอร์ <code>~/projects/backend-lab/practice</code> แยกจากไฟล์ของ Part 2 (<code>concepts/</code>) เพื่อไม่ให้ไฟล์ปนกัน</li>
+  <li>ข้อเติมคำและข้อปรนัยหลายข้อมีโค้ดสั้น ๆ ให้เดาคำตอบในหัวก่อน แล้วค่อยพิมพ์โค้ดลงไฟล์และรันเพื่อตรวจ การเดาก่อนรันช่วยฝึกอ่านโค้ด ซึ่งเป็นทักษะที่ใช้ทุกวันตอน Code Review และตอนสัมภาษณ์งาน</li>
+  <li>ถ้าตอบข้อไหนไม่ได้ ให้กลับไปอ่านแนวคิดที่เกี่ยวข้องใน Part 2 เฉลยทุกข้อบอกไว้ว่าเกี่ยวกับแนวคิดที่เท่าไร</li>
+  <li>โจทย์ลงมือทำข้อ 3 ใช้ Redis จริง ต้องเปิด <code>redis-server</code> ก่อน ส่วน Test ทั้งหมดใช้ <code>fakeredis</code> จึงรันได้แม้ไม่มี Redis</li>
+  <li>ผลลัพธ์ทุกบล็อกในหน้านี้ได้จากการรันจริงบน Python 3.12.3 ค่าที่ขึ้นกับเครื่อง เช่น เวลา (<code>time_total</code>, <code>duration_ms</code>), วันที่ใน Log, <code>request_id</code> และ Process ID ในเครื่องของคุณจะต่างออกไป ซึ่งเป็นเรื่องปกติ</li>
+</ul>
+
+<p>ถ้าติดตั้งแพ็กเกจครบตั้งแต่ Part 2 แล้ว ข้ามขั้นนี้ได้ ถ้ายังไม่ครบ ให้ติดตั้งเวอร์ชันที่ใช้ทดสอบหน้านี้ลงใน venv ของ <code>backend-lab</code> (ห้ามติดตั้งนอก venv เพราะ Ubuntu 24.04 จะขึ้น <code>externally-managed-environment</code>)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เข้าโฟลเดอร์ฝึกและเปิด venv ที่สร้างไว้ตั้งแต่ Part 2
+cd ~/projects/backend-lab
+source .venv/bin/activate
+
+# ติดตั้งแพ็กเกจทุกตัวที่แบบฝึกหัดหน้านี้ใช้ (ระบุเวอร์ชันที่ทดสอบแล้ว)
+python3 -m pip install "fastapi==0.148.0" "uvicorn[standard]==0.54.0" \
+  "email-validator==2.3.0" "python-multipart==0.0.32" "sqlalchemy==2.1.5" \
+  "pwdlib[argon2]==0.3.1" "pyjwt==2.15.1" "redis==8.1.0" \
+  "pytest==9.1.1" "httpx2==2.14.0" "fakeredis==2.40.0"
+
+# สร้างโฟลเดอร์สำหรับแบบฝึกหัด แล้วตรวจเวอร์ชันที่ติดตั้ง
+mkdir -p practice
+python3 -c "import fastapi, sqlalchemy, jwt, redis, pytest; print(fastapi.__version__, sqlalchemy.__version__, jwt.__version__, redis.__version__, pytest.__version__)"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>0.148.0 2.1.5 2.15.1 8.1.0 9.1.1</code></pre>
+
+<h3 id="s12-3-fill">Fill-in-the-blank</h3>
+<p>เติมคำในช่อง <code>_____</code> ให้โค้ดหรือประโยคถูกต้อง บางข้อมีมากกว่า 1 ช่อง ให้ตอบครบทุกช่อง</p>
+<ol class="qlist fill">
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>ร้านหนังสือออนไลน์มี Endpoint สร้างหนังสือใหม่และลบหนังสือ ตามหลัก HTTP Status Code การสร้างสำเร็จควรตอบ <code>201 Created</code> และการลบสำเร็จที่ไม่มี Body ควรตอบ <code>204 No Content</code> จงเติมตัวเลขให้ถูก</p>
+<pre class="code" data-env="file" data-label="Python · practice/fill1_books.py"><code class="language-python">from fastapi import FastAPI
+
+app = FastAPI()
+books: dict[int, dict] = {}
+
+
+@app.post("/books", status_code=_____)
+def create_book(book: dict):
+    new_id = len(books) + 1
+    books[new_id] = {"id": new_id, **book}
+    return books[new_id]
+
+
+@app.delete("/books/{book_id}", status_code=_____)
+def delete_book(book_id: int):
+    books.pop(book_id, None)</code></pre>
+  </li>
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>ต้องการให้ <code>GET /tasks/abc</code> ถูก FastAPI ปฏิเสธอัตโนมัติด้วย <code>422</code> และให้ Query Parameter <code>limit</code> รับค่าได้แค่ 1 ถึง 100 โดยมีค่าเริ่มต้น 10 จงเติม Type Hint และค่าขอบบน</p>
+<pre class="code" data-env="file" data-label="Python · practice/fill2_tasks.py"><code class="language-python">from typing import Annotated
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/tasks/{task_id}")
+def get_task(task_id: _____):
+    return {"id": task_id}
+
+
+@app.get("/tasks")
+def list_tasks(limit: Annotated[int, Query(ge=1, le=_____)] = 10):
+    return {"limit": limit}</code></pre>
+  </li>
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>Endpoint <code>PATCH /tasks/{task_id}</code> รับ <code>TaskUpdate</code> ที่ทุก Field เป็น Optional ถ้า Client ส่งมาแค่ <code>{"status": "done"}</code> เราต้องการ dict ที่มีเฉพาะ <code>status</code> เพื่อไม่ให้ <code>title</code> เดิมถูกทับด้วย <code>None</code> โดยตัดสินจากว่า Client <strong>ส่ง Field นั้นมาหรือไม่</strong> (ไม่ใช่จากว่าค่าเป็น <code>None</code> หรือไม่ เพราะถ้า Client ตั้งใจส่ง <code>null</code> มาเพื่อล้างค่า ต้องเก็บ Field นั้นไว้) จงเติมชื่อ Method และ Argument</p>
+<pre class="code" data-env="file" data-label="Python · practice/fill3_patch.py"><code class="language-python">from pydantic import BaseModel
+
+
+class TaskUpdate(BaseModel):
+    title: str | None = None
+    status: str | None = None
+
+
+payload = TaskUpdate(status="done")
+changes = payload._____(_____=True)
+print(changes)   # ต้องได้ {'status': 'done'}</code></pre>
+  </li>
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>โอนเงินจาก <code>somchai</code> ไป <code>somying</code> ต้องหักและเพิ่มเงินใน Transaction เดียวกัน ถ้าเกิด Exception ระหว่างทาง ทุกอย่างต้อง Rollback อัตโนมัติ และถ้าสำเร็จต้อง Commit อัตโนมัติ จงเติมชื่อ Method ของ Session</p>
+<pre class="code" data-env="file" data-label="Python · practice/fill4_transfer.py"><code class="language-python">def transfer(SessionLocal, from_acc: int, to_acc: int, amount: int) -&gt; None:
+    # ออกจาก with ปกติ = Commit, เกิด Exception = Rollback
+    with SessionLocal() as db, db._____():
+        source = db.get(Account, from_acc)
+        target = db.get(Account, to_acc)
+        source.balance -= amount
+        target.balance += amount</code></pre>
+  </li>
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>หน้า Dashboard แสดงผู้ใช้ 50 คนพร้อมงานของแต่ละคน ตอนนี้ระบบยิง SQL 51 ครั้งต่อ 1 Request (ปัญหา N+1) จงเติมชื่อ Loader Option ที่ทำให้เหลือ 2 Query (Query ผู้ใช้ 1 ครั้ง และ Query งานทั้งหมดด้วย <code>WHERE owner_id IN (...)</code> อีก 1 ครั้ง)</p>
+<pre class="code" data-env="file" data-label="Python · practice/fill5_dashboard.py"><code class="language-python">from sqlalchemy import select
+from sqlalchemy.orm import _____
+
+stmt = select(User).options(_____(User.tasks))
+users = db.scalars(stmt).all()
+for user in users:
+    print(user.email, len(user.tasks))   # ไม่เกิด Query เพิ่มในลูปนี้แล้ว</code></pre>
+  </li>
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>ใน <code>tests/conftest.py</code> เราใช้ฐานข้อมูล SQLite ในหน่วยความจำ (<code>sqlite://</code>) ซึ่งปกติแต่ละ Connection จะได้ฐานข้อมูลก้อนใหม่ ทำให้เจอ <code>sqlite3.OperationalError: no such table: users</code> จงเติมชื่อ Pool ที่ทำให้ทุก Connection ใช้ฐานข้อมูลก้อนเดียวกัน และเติมชื่อ Attribute ของแอปที่ใช้สลับ Dependency ตอนทดสอบ</p>
+<pre class="code" data-env="file" data-label="Python · practice/fill6_conftest.py"><code class="language-python">engine = create_engine(
+    "sqlite://",
+    connect_args={"check_same_thread": False},
+    poolclass=_____,
+)
+Base.metadata.create_all(engine)
+TestingSession = sessionmaker(bind=engine)
+
+
+def override_get_db():
+    with TestingSession() as db:
+        yield db
+
+
+app._____[get_db] = override_get_db</code></pre>
+  </li>
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>เขียน Cache-aside สำหรับสถิติงานของผู้ใช้ เก็บไว้ใน Redis 60 วินาที แยก Key ตามผู้ใช้ จงเติม (1) ชื่อ Keyword Argument ของ <code>redis-py</code> ที่ตั้งอายุเป็นวินาที (2) รูปแบบ Key ที่ปลอดภัย และ (3) ค่าที่คำสั่ง <code>redis-cli TTL stats:user:1</code> จะตอบ เมื่อ Key นั้นหมดอายุไปแล้ว</p>
+<pre class="code" data-env="file" data-label="Python · practice/fill7_cache.py"><code class="language-python">import json
+
+
+def get_stats(r, user_id: int, load_from_db) -&gt; dict:
+    key = f"_____"                       # (2) Key ต้องแยกตามผู้ใช้
+    raw = r.get(key)
+    if raw is not None:
+        return json.loads(raw)            # Cache Hit
+    stats = load_from_db(user_id)         # Cache Miss: ถามฐานข้อมูล
+    r.set(key, json.dumps(stats), _____=60)   # (1) อายุ 60 วินาที
+    return stats
+
+# (3) redis-cli TTL stats:user:1 หลัง Key หมดอายุแล้ว จะได้ _____</code></pre>
+  </li>
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>จำกัดการ Login ไม่เกิน 5 ครั้งต่อนาทีต่อ IP ด้วย Fixed Window บน Redis จงเติมคำสั่ง Redis ที่เพิ่มตัวนับแบบ Atomic, คำสั่งที่ตั้งอายุให้ Key และชื่อ Header ที่บอก Client ว่าต้องรอกี่วินาที</p>
+<pre class="code" data-env="file" data-label="Python · practice/fill8_ratelimit.py"><code class="language-python">from fastapi import HTTPException
+
+
+def check_login_limit(r, ip: str) -&gt; None:
+    key = f"rl:login:{ip}"
+    count = r._____(key)                 # เพิ่มทีละ 1 และคืนค่าใหม่
+    if count == 1:
+        r._____(key, 60)                 # เริ่มหน้าต่างเวลา 60 วินาที
+    if count &gt; 5:
+        raise HTTPException(
+            status_code=429,
+            detail="ลองใหม่ภายหลัง",
+            headers={"_____": str(r.ttl(key))},
+        )</code></pre>
+  </li>
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>ใน <code>compose.yaml</code> ต้องการให้ Service <code>api</code> เริ่มหลังจาก PostgreSQL ผ่าน Health Check แล้วเท่านั้น และ API ต้องต่อฐานข้อมูลผ่านชื่อ Service ไม่ใช่ <code>localhost</code> จงเติมค่าเงื่อนไขของ <code>depends_on</code> และชื่อ Host ใน <code>DATABASE_URL</code></p>
+<pre class="code" data-env="file" data-label="YAML · compose.yaml"><code class="language-yaml">services:
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://taskflow:taskflow_dev_pw@_____:5432/taskflow
+    depends_on:
+      db:
+        condition: _____
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: taskflow
+      POSTGRES_PASSWORD: taskflow_dev_pw
+      POSTGRES_DB: taskflow
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskflow -d taskflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 10</code></pre>
+  </li>
+</ol>
+
+<h3 id="s12-3-mcq">Multiple Choice</h3>
+<p>เลือกคำตอบที่ถูกที่สุดเพียงข้อเดียว ข้อที่มีโค้ด ให้ไล่โค้ดในหัวก่อน แล้วค่อยรันจริงเพื่อตรวจคำตอบ</p>
+<ol class="qlist mcq">
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>ทีมของคุณจะเพิ่ม Server ของ API จาก 1 เครื่องเป็น 4 เครื่องหลัง Load Balancer หัวหน้าทีมบอกว่า "ทำได้ง่ายเพราะ API ของเราเป็น Stateless" ข้อใดอธิบายคำว่า Stateless Server ได้ถูกต้องที่สุด</p>
+    <ol class="choices">
+      <li>Server เก็บข้อมูล Login ของผู้ใช้ไว้ในหน่วยความจำของแต่ละเครื่อง และ Load Balancer ต้องส่งผู้ใช้คนเดิมไปเครื่องเดิมเสมอ</li>
+      <li>Server ห้ามเชื่อมต่อฐานข้อมูล เพราะฐานข้อมูลถือเป็น State</li>
+      <li>ทุก Request พกข้อมูลที่จำเป็นมาเอง เช่น Bearer Token ทำให้ Server เครื่องไหนก็ตอบ Request นั้นได้ จึงเพิ่มเครื่องได้ง่าย</li>
+      <li>Client ต้องเปิด TCP Connection ค้างไว้กับ Server เครื่องเดียวตลอดเวลาที่ใช้งาน</li>
+    </ol>
+  </li>
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>Endpoint ต่อไปนี้ถูกเรียกด้วย <code>curl -i http://127.0.0.1:8000/tasks/abc</code> FastAPI จะตอบ Status Code อะไร</p>
+<pre class="code" data-env="file" data-label="Python · practice/mcq2.py"><code class="language-python">from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/tasks/{task_id}")
+def get_task(task_id: int):
+    return {"id": task_id}</code></pre>
+    <ol class="choices">
+      <li><code>200 OK</code> พร้อม Body <code>{"id":"abc"}</code></li>
+      <li><code>400 Bad Request</code></li>
+      <li><code>404 Not Found</code></li>
+      <li><code>422 Unprocessable Entity</code> พร้อมรายละเอียด <code>int_parsing</code></li>
+    </ol>
+  </li>
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>ฐานข้อมูลมีผู้ใช้ 3 คน แต่ละคนมีงาน 2 รายการ โค้ดด้านล่างนับจำนวน SQL ที่ถูกส่งไปที่ฐานข้อมูล ตัวแปร <code>queries</code> จะยาวเท่าไรหลังจบลูป (ความสัมพันธ์ <code>User.tasks</code> ใช้ค่าเริ่มต้นคือ Lazy Loading)</p>
+<pre class="code" data-env="file" data-label="Python · practice/mcq3.py"><code class="language-python">queries.clear()
+with Session(engine) as db:
+    users = db.scalars(select(User)).all()
+    total = sum(len(u.tasks) for u in users)
+print(total, len(queries))</code></pre>
+    <ol class="choices">
+      <li>1</li>
+      <li>2</li>
+      <li>4</li>
+      <li>7</li>
+    </ol>
+  </li>
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>ผู้ใช้สมัครสมาชิกด้วยอีเมล <code>somchai@example.com</code> ซึ่งมีในระบบอยู่แล้ว (คอลัมน์ <code>email</code> เป็น <code>unique</code>) API ที่ออกแบบดีควรตอบ Status Code ใด</p>
+    <ol class="choices">
+      <li><code>409 Conflict</code> พร้อมข้อความว่าอีเมลนี้ถูกใช้แล้ว</li>
+      <li><code>400 Bad Request</code> เพราะข้อมูลที่ส่งมาผิดรูปแบบ</li>
+      <li><code>401 Unauthorized</code> เพราะผู้ใช้ยังไม่ได้ Login</li>
+      <li><code>500 Internal Server Error</code> เพราะฐานข้อมูลโยน <code>IntegrityError</code></li>
+    </ol>
+  </li>
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>นักพัฒนาคนหนึ่งใส่รหัสผ่านลงใน JWT เพื่อ "ให้ Frontend ใช้ Login ซ้ำได้สะดวก" ดังโค้ดนี้ ข้อใดถูกต้อง</p>
+<pre class="code" data-env="file" data-label="Python · practice/mcq5.py"><code class="language-python">token = jwt.encode(
+    {"sub": "1", "role": "member", "password": "S3cure-pass!"},
+    JWT_SECRET,               # ยาวเกิน 32 ตัวอักษร
+    algorithm="HS256",
+)</code></pre>
+    <ol class="choices">
+      <li>ปลอดภัย เพราะ Token ถูกเซ็นด้วย HS256 คนอื่นจึงอ่านข้างในไม่ได้</li>
+      <li>อันตราย เพราะ Payload ของ JWT เป็นแค่ Base64URL ใครได้ Token ไปก็ถอดอ่านรหัสผ่านได้ทันที ลายเซ็นกันได้แค่การแก้ไข ไม่ได้กันการอ่าน</li>
+      <li>อ่านได้เฉพาะคนที่รู้ <code>JWT_SECRET</code> จึงยอมรับได้ถ้าเก็บ Secret ดี ๆ</li>
+      <li>ปลอดภัย เพราะ PyJWT จะเข้ารหัส Payload ให้อัตโนมัติเมื่อ Secret ยาวพอ</li>
+    </ol>
+  </li>
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>Endpoint <code>GET /api/v1/tasks/stats</code> ตอบจำนวนงานแยกตามสถานะของผู้ใช้ที่ Login อยู่ นักพัฒนาเพิ่ม Cache แบบนี้ แล้วปล่อยขึ้น Production ผลที่ตามมาคืออะไร</p>
+<pre class="code" data-env="file" data-label="Python · practice/mcq6.py"><code class="language-python">@router.get("/stats")
+def task_stats(me: CurrentUser, db: DbSession, cache: CacheDep):
+    cached = cache.get_json("stats")
+    if cached is not None:
+        return {**cached, "cached": True}
+    stats = count_tasks_by_status(db, owner_id=me.id)
+    cache.set_json("stats", stats, ttl=60)
+    return {**stats, "cached": False}</code></pre>
+    <ol class="choices">
+      <li>ไม่มีปัญหา เพราะ TTL แค่ 60 วินาที ข้อมูลจะถูกต้องเองเมื่อหมดอายุ</li>
+      <li>Redis จะโยน Error เพราะหลายคนเขียน Key ชื่อเดียวกัน</li>
+      <li>แค่ทำให้ระบบช้าลงเล็กน้อย เพราะ Cache Hit น้อยลง</li>
+      <li>ข้อมูลรั่ว: ผู้ใช้คนที่สองที่เรียกภายใน 60 วินาทีจะเห็นสถิติของผู้ใช้คนแรก เพราะทุกคนใช้ Key เดียวกัน</li>
+    </ol>
+  </li>
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>ไฟล์นี้ประกาศ Route ตามลำดับด้านล่าง เมื่อเรียก <code>GET /tasks/stats</code> จะได้ผลอย่างไร</p>
+<pre class="code" data-env="file" data-label="Python · practice/mcq7.py"><code class="language-python">from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/tasks/{task_id}")
+def get_task(task_id: int):
+    return {"id": task_id}
+
+
+@app.get("/tasks/stats")
+def task_stats():
+    return {"todo": 1, "doing": 1, "done": 1}</code></pre>
+    <ol class="choices">
+      <li><code>200</code> และ Body <code>{"todo":1,"doing":1,"done":1}</code> เพราะ FastAPI เลือก Route ที่ตรงที่สุด</li>
+      <li><code>422</code> เพราะ <code>/tasks/{task_id}</code> ถูกจับคู่ก่อน แล้วแปลง <code>"stats"</code> เป็น <code>int</code> ไม่ได้</li>
+      <li><code>404</code> เพราะ Path ที่มีตัวแปรจะบัง Path ตายตัวทั้งหมด</li>
+      <li><code>405 Method Not Allowed</code> เพราะมี Route ซ้ำกัน</li>
+    </ol>
+  </li>
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>บัญชี <code>somchai</code> มี 1000 บาท และ <code>somying</code> มี 500 บาท โค้ดนี้โอน 300 บาท แต่ระบบล่มกลางทาง โปรแกรมจะพิมพ์อะไรออกมา</p>
+<pre class="code" data-env="file" data-label="Python · practice/mcq8.py"><code class="language-python">try:
+    with SessionLocal() as db, db.begin():
+        a = db.scalar(select(Account).where(Account.owner == "somchai"))
+        b = db.scalar(select(Account).where(Account.owner == "somying"))
+        a.balance -= 300
+        raise RuntimeError("ระบบล่มกลางทาง")
+        b.balance += 300
+except RuntimeError:
+    pass
+
+with SessionLocal() as db:
+    print([(x.owner, x.balance) for x in db.scalars(select(Account))])</code></pre>
+    <ol class="choices">
+      <li><code>[('somchai', 1000), ('somying', 500)]</code></li>
+      <li><code>[('somchai', 700), ('somying', 500)]</code></li>
+      <li><code>[('somchai', 700), ('somying', 800)]</code></li>
+      <li>โปรแกรมหยุดพร้อม Traceback ของ <code>RuntimeError</code> และไม่พิมพ์อะไร</li>
+    </ol>
+  </li>
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>ทำไมการเก็บรหัสผ่านด้วย <code>pwdlib</code> (Argon2) จึงดีกว่าการเก็บค่า <code>hashlib.sha256(password).hexdigest()</code></p>
+    <ol class="choices">
+      <li>เพราะ SHA-256 ถอดกลับเป็นรหัสผ่านเดิมได้ แต่ Argon2 ถอดกลับไม่ได้</li>
+      <li>เพราะ Argon2 เป็นการเข้ารหัสสองทาง ทำให้ Admin เปิดดูรหัสผ่านเดิมได้เมื่อผู้ใช้ลืม</li>
+      <li>เพราะผลลัพธ์ของ SHA-256 ยาวเกินกว่าที่คอลัมน์ในฐานข้อมูลจะเก็บได้</li>
+      <li>เพราะ Argon2 ถูกออกแบบให้ช้าและใช้หน่วยความจำมากโดยตั้งใจ และใส่ Salt สุ่มในทุก Hash ทำให้การเดารหัสด้วย GPU ทีละพันล้านครั้งแพงมาก ส่วน SHA-256 เร็วมากและไม่มี Salt ถ้าเรียกตรง ๆ แบบนี้</li>
+    </ol>
+  </li>
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>ผู้ใช้ <code>somying</code> เปลี่ยน URL เองจาก <code>/api/v1/tasks/12</code> เป็น <code>/api/v1/tasks/7</code> ซึ่งเป็นงานของ <code>somchai</code> ตาม OWASP API Security Top 10 (2023) ข้อ API1 Broken Object Level Authorization วิธีป้องกันข้อใดดีที่สุด</p>
+    <ol class="choices">
+      <li>ตรวจแค่ว่า Token ถูกต้องและ Role เป็น <code>member</code> ก็พอ เพราะผู้ใช้ Login แล้ว</li>
+      <li>ตอบ <code>403</code> พร้อมข้อความ "งาน id 7 เป็นของ somchai คุณไม่มีสิทธิ์"</li>
+      <li>ค้นงานด้วยเงื่อนไข <code>Task.id == task_id</code> และ <code>Task.owner_id == me.id</code> พร้อมกัน ถ้าไม่พบให้ตอบ <code>404</code> เหมือนงานนั้นไม่มีอยู่ และเขียน Test ยืนยันพฤติกรรมนี้</li>
+      <li>เปลี่ยน id เป็น UUID ที่เดายากก็พอ ไม่ต้องตรวจเจ้าของ</li>
+    </ol>
+  </li>
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>API ตั้ง <code>CORSMiddleware(allow_origins=["http://localhost:5173"])</code> ไว้ เมื่อทดสอบ Preflight จาก Origin <code>http://evil.example</code> ได้ <code>400</code> พร้อมข้อความ <code>Disallowed CORS origin</code> ข้อใดสรุปเรื่อง CORS ได้ถูกต้อง</p>
+    <ol class="choices">
+      <li>CORS ทำให้ <code>curl</code> และ Postman จากเครื่องอื่นเรียก API ไม่ได้ จึงไม่ต้องมี Authentication แล้ว</li>
+      <li>CORS เป็นกติกาที่ Browser บังคับใช้ เพื่อไม่ให้เว็บจาก Origin อื่นอ่าน Response ของเราผ่าน JavaScript แต่เครื่องมืออย่าง <code>curl</code> ไม่สนใจ CORS ดังนั้น API ยังต้องมี Authentication และ Authorization ครบ</li>
+      <li>ควรตั้ง <code>allow_origins=["*"]</code> คู่กับ <code>allow_credentials=True</code> เพราะเปิดกว้างและปลอดภัยที่สุด</li>
+      <li>CORS ใช้แทน Rate Limiting ได้ เพราะ Request จาก Origin แปลกจะถูกตัดตั้งแต่ที่ Server</li>
+    </ol>
+  </li>
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>คุณ Deploy API โดยมี nginx 1.24 รับ Port 80 แล้ว <code>proxy_pass</code> ไปที่ Uvicorn บน <code>127.0.0.1:8000</code> คืนหนึ่ง Process ของ Uvicorn ตายไป แต่ nginx ยังทำงานอยู่ เมื่อผู้ใช้เรียก <code>curl -i http://localhost/health</code> จะได้อะไร</p>
+    <ol class="choices">
+      <li><code>HTTP/1.1 502 Bad Gateway</code> จาก nginx เพราะ nginx ต่อไปยัง Upstream ไม่ได้</li>
+      <li><code>HTTP/1.1 503 Service Unavailable</code> ที่ FastAPI ส่งมาจาก Endpoint <code>/health</code></li>
+      <li><code>HTTP/1.1 504 Gateway Timeout</code> ทุกครั้งทันที</li>
+      <li><code>curl: (7) Failed to connect to localhost port 80</code> เพราะทั้งระบบล่ม</li>
+    </ol>
+  </li>
+</ol>
+
+<h3 id="s12-3-hands">Hands-on Challenge</h3>
+<p>โจทย์ 3 ข้อนี้เรียงจากง่ายไปยาก ข้อ 1 ใช้แนวคิดที่ 1 ถึง 3 ข้อ 2 ใช้แนวคิดที่ 4 ถึง 8 และข้อ 3 ใช้แนวคิดที่ 9 ถึง 11 แต่ละข้อมีสถานการณ์จริง ขั้นตอนที่ต้องทำ ผลลัพธ์ที่ควรได้ และ Hint ถ้าติด ให้พยายามทำเองอย่างน้อย 30 นาทีก่อนเปิด Hint และเปิดเฉลยเป็นลำดับสุดท้าย</p>
+
+<article class="challenge" data-lvl="b">
+  <div class="concept-meta"><span class="c-no">โจทย์ที่ 1</span><span class="lvl" data-lvl="b">Beginner</span></div>
+  <h4>API รับงานซ่อมของร้านซ่อมคอมพิวเตอร์</h4>
+  <h5>สถานการณ์</h5>
+  <p>ร้าน "ช่างสมชาย คอมพิวเตอร์" รับซ่อมโน้ตบุ๊ก คอมพิวเตอร์ตั้งโต๊ะ และมือถือ ตอนนี้จดงานซ่อมในสมุด ทำให้ลูกค้าโทรถามสถานะบ่อยและพนักงานหาใบงานไม่เจอ เจ้าของร้านอยากได้ API เล็ก ๆ ให้หน้าเว็บของร้านเรียกใช้ เพื่อรับงานซ่อม ดูรายการงานตามสถานะ อัปเดตสถานะ และลบงานที่ส่งคืนลูกค้าแล้ว ข้อกำหนดสำคัญคือ ห้ามส่งเบอร์โทรลูกค้าออกไปใน Response เพราะหน้ารายการงานแสดงบนจอหน้าร้าน และลูกค้าต้องตั้งสถานะงานเองไม่ได้</p>
+  <h5>สิ่งที่ต้องทำ</h5>
+  <ol>
+    <li>สร้างไฟล์ <code>~/projects/backend-lab/practice/repair_api.py</code> ด้วย FastAPI เก็บข้อมูลใน dict ในหน่วยความจำ พร้อมงานตัวอย่าง 3 งาน (สถานะ <code>received</code>, <code>repairing</code> และ <code>done</code> อย่างละ 1 งาน)</li>
+    <li>สร้าง Pydantic Model 3 ตัว: <code>TicketCreate</code> (<code>customer_name</code> 1 ถึง 100 ตัวอักษร, <code>phone</code> เป็นเบอร์มือถือไทย 10 หลักขึ้นต้นด้วย 0, <code>device</code> เป็น <code>laptop</code>, <code>desktop</code> หรือ <code>phone</code> เท่านั้น, <code>problem</code> 5 ถึง 500 ตัวอักษร), <code>TicketUpdate</code> (ทุก Field เป็น Optional) และ <code>TicketOut</code> (ไม่มี <code>phone</code>) ทั้ง Create และ Update ต้องปฏิเสธ Field ที่ไม่รู้จัก</li>
+    <li>เขียน Endpoint 5 ตัว: <code>POST /tickets</code> ตอบ <code>201</code> และตั้งสถานะเป็น <code>received</code> เสมอ, <code>GET /tickets</code> กรองด้วย <code>?status=</code> และจำกัดด้วย <code>?limit=</code> (1 ถึง 50 ค่าเริ่มต้น 10), <code>GET /tickets/{ticket_id}</code>, <code>PATCH /tickets/{ticket_id}</code> แก้เฉพาะ Field ที่ส่งมา และ <code>DELETE /tickets/{ticket_id}</code> ตอบ <code>204</code></li>
+    <li>งานที่ไม่มีอยู่ต้องตอบ <code>404</code> พร้อมข้อความภาษาไทย <code>ไม่พบงานซ่อมนี้</code> และ <code>ticket_id</code> ต้องเป็นจำนวนเต็มที่มากกว่า 0</li>
+    <li>รันด้วย <code>uvicorn repair_api:app --reload</code> แล้วเขียนสคริปต์ <code>check_repair.sh</code> ที่ใช้ <code>curl</code> ทดสอบ 8 กรณี: สร้างสำเร็จ, ข้อมูลผิดหลาย Field, แอบส่ง <code>status</code> มาเอง, กรองตามสถานะ, <code>limit</code> เกิน 50, อัปเดตสถานะ, ลบแล้วดูซ้ำ และใช้ id ที่ไม่ใช่ตัวเลข</li>
+  </ol>
+  <h5>ผลลัพธ์ที่คาดหวัง</h5>
+  <p>สคริปต์ต้องพิมพ์ Body และ Status Code ของแต่ละกรณี โดย Status Code ต้องเรียงเป็น 201, 422, 422, 200, 422, 200, 204, 404 และ 422 (มี 9 ค่าเพราะกรณีที่ 7 ยิง 2 Request คือลบแล้วดูซ้ำ) และไม่มี <code>phone</code> โผล่ใน Response ใดเลย ตัวอย่างบางส่วน:</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>1) สร้างงานใหม่
+{"id":4,"customer_name":"Preeya Sukjai","device":"laptop","problem":"แป้นพิมพ์กดไม่ติด","status":"received"} -&gt; 201
+3) แอบส่ง status มาเอง
+{"detail":[{"type":"extra_forbidden","loc":["body","status"],"msg":"Extra inputs are not permitted","input":"done"}]} -&gt; 422
+7) ลบงาน 3 แล้วลองดูอีกครั้ง
+ -&gt; 204
+{"detail":"ไม่พบงานซ่อมนี้"} -&gt; 404</code></pre>
+  <details class="hint"><summary>Hint</summary><div>
+    <ul>
+      <li>ใช้ <code>Literal["laptop", "desktop", "phone"]</code> สำหรับ <code>device</code> และ <code>Field(pattern=r"^0\d{9}$")</code> สำหรับเบอร์โทร</li>
+      <li><code>model_config = ConfigDict(extra="forbid")</code> ทำให้ Field ที่ไม่รู้จักกลายเป็น <code>422</code> แบบ <code>extra_forbidden</code></li>
+      <li>ใส่ <code>response_model=TicketOut</code> ที่ Decorator แล้ว FastAPI จะกรอง <code>phone</code> ออกให้เอง แม้ dict ที่ return จะมี <code>phone</code> อยู่</li>
+      <li>เขียนฟังก์ชันกลาง <code>find_ticket(ticket_id)</code> ที่ <code>raise HTTPException(status_code=404, ...)</code> เพื่อใช้ซ้ำใน GET, PATCH และ DELETE</li>
+      <li>สำหรับ <code>PATCH</code> ใช้ <code>payload.model_dump(exclude_unset=True)</code> แล้วนำไป <code>update()</code> dict เดิม</li>
+      <li>ใน <code>curl</code> ใช้ <code>-w ' -&gt; %{http_code}\n'</code> เพื่อพิมพ์ Status Code ต่อท้าย Body</li>
+    </ul>
+  </div></details>
+</article>
+
+<article class="challenge" data-lvl="i">
+  <div class="concept-meta"><span class="c-no">โจทย์ที่ 2</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+  <h4>ระบบขอลางานของฝ่าย HR พร้อม Auth, Role และชุด Test</h4>
+  <h5>สถานการณ์</h5>
+  <p>บริษัทขนาด 80 คนใช้ Google Form ให้พนักงานยื่นใบลา แล้วหัวหน้าอนุมัติผ่านอีเมล ปัญหาที่เจอคือพนักงานบางคนเห็นใบลาของเพื่อน ใบลาเดียวกันถูกอนุมัติซ้ำ และไม่มีใครรู้ว่าแก้โค้ดแล้วระบบเดิมพังหรือไม่ ฝ่าย HR ขอให้คุณสร้าง Backend ใหม่ที่ Login ด้วยอีเมลและรหัสผ่าน ให้พนักงานเห็นเฉพาะใบลาของตัวเอง ให้เฉพาะหัวหน้า (Role <code>manager</code>) อนุมัติได้ และต้องมีชุด Test อัตโนมัติก่อนส่งงาน</p>
+  <h5>สิ่งที่ต้องทำ</h5>
+  <ol>
+    <li>สร้างโฟลเดอร์ <code>~/projects/backend-lab/practice/leave_api</code> และไฟล์ <code>app.py</code> ที่อ่าน <code>DATABASE_URL</code> (ค่าเริ่มต้น <code>sqlite:///./leave.db</code>) และ <code>JWT_SECRET</code> จาก Environment Variable ถ้า <code>JWT_SECRET</code> สั้นกว่า 32 ตัวอักษรให้แอปหยุดทำงานทันที</li>
+    <li>สร้าง SQLAlchemy 2 Model <code>Employee</code> (<code>email</code> unique, <code>full_name</code>, <code>hashed_password</code>, <code>role</code> ค่าเริ่มต้น <code>employee</code>) และ <code>LeaveRequest</code> (<code>employee_id</code> เป็น Foreign Key แบบ <code>ON DELETE CASCADE</code>, <code>start_date</code>, <code>end_date</code>, <code>reason</code>, <code>status</code> ค่าเริ่มต้น <code>pending</code>) พร้อม <code>relationship()</code> ทั้งสองทาง</li>
+    <li>เขียน <code>POST /auth/register</code> (Hash รหัสผ่านด้วย <code>pwdlib</code>, ตอบ <code>201</code>, อีเมลซ้ำตอบ <code>409</code>, ห้ามรับ <code>role</code> จาก Body) และ <code>POST /auth/login</code> แบบ OAuth2 Form ที่คืน JWT อายุ 30 นาที มี Claim <code>sub</code>, <code>role</code>, <code>iat</code> และ <code>exp</code></li>
+    <li>เขียน <code>POST /leaves</code> (ตรวจว่า <code>end_date</code> ไม่ก่อน <code>start_date</code>), <code>GET /leaves/me</code> แบบแบ่งหน้า คืน <code>{items, total, limit, offset}</code>, <code>GET /leaves/{leave_id}</code> ที่ตอบ <code>404</code> ถ้าเป็นใบลาของคนอื่น และ <code>POST /leaves/{leave_id}/approve</code> ที่ใช้ Dependency <code>require_role("manager")</code> (พนักงานทั่วไปได้ <code>403</code> และอนุมัติซ้ำได้ <code>409</code>)</li>
+    <li>เขียน <code>conftest.py</code> ที่ตั้ง Environment Variable ก่อน import แอป ใช้ SQLite ในหน่วยความจำแบบ <code>StaticPool</code> สร้างตารางใหม่ทุก Test และสลับ <code>get_db</code> ด้วย <code>app.dependency_overrides</code></li>
+    <li>เขียน <code>test_leave.py</code> อย่างน้อย 9 Test ครอบคลุม: สมัครและอีเมลซ้ำ, ปฏิเสธ <code>role</code> จาก Body, รหัสผ่านผิด, ไม่มี Token, วันที่ผิด, ดูใบลาของคนอื่น, พนักงานอนุมัติเอง, หัวหน้าอนุมัติครั้งเดียว และการแบ่งหน้า แล้วรัน <code>python -m pytest -q</code></li>
+  </ol>
+  <h5>ผลลัพธ์ที่คาดหวัง</h5>
+  <p>Test ทั้งหมดผ่าน และเมื่อลองใช้งานจริงผ่าน <code>curl</code> พนักงานที่พยายามอนุมัติใบลาของตัวเองต้องได้ <code>403</code></p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>.........                                                                [100%]
+9 passed in 1.27s</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>5) พนักงานพยายามอนุมัติใบลาเอง
+{"detail":"ไม่มีสิทธิ์ทำรายการนี้"} -&gt; 403</code></pre>
+  <details class="hint"><summary>Hint</summary><div>
+    <ul>
+      <li>ใช้ <code>@model_validator(mode="after")</code> ใน <code>LeaveCreate</code> เพื่อเทียบสอง Field แล้ว <code>raise ValueError(...)</code> FastAPI จะแปลงเป็น <code>422</code> ให้เอง</li>
+      <li><code>require_role</code> เป็นฟังก์ชันที่คืนฟังก์ชันอีกตัว (Dependency Factory) ตัวในรับ <code>CurrentEmployee</code> แล้วเทียบ <code>employee.role</code> ที่อ่านจากฐานข้อมูล ไม่ใช่จาก Body</li>
+      <li>นับจำนวนทั้งหมดด้วย <code>select(func.count()).select_from(base.subquery())</code> แล้วค่อยดึงหน้าที่ต้องการด้วย <code>.limit()</code> และ <code>.offset()</code></li>
+      <li>หัวหน้าสมัครผ่าน API ไม่ได้ ให้ Fixture สร้าง <code>Employee(role="manager")</code> ลงฐานข้อมูลโดยตรงแล้วค่อย Login</li>
+      <li>OAuth2 Form ต้องส่งแบบ <code>data=</code> ไม่ใช่ <code>json=</code> ใน TestClient และต้องติดตั้ง <code>python-multipart</code></li>
+      <li>อย่าลืม <code>app.dependency_overrides.clear()</code> หลังแต่ละ Test</li>
+    </ul>
+  </div></details>
+</article>
+
+<article class="challenge" data-lvl="a">
+  <div class="concept-meta"><span class="c-no">โจทย์ที่ 3</span><span class="lvl" data-lvl="a">Advanced</span></div>
+  <h4>API สินค้า Flash Sale: Redis Cache, Rate Limit, JSON Log และระบบที่ไม่ล่มตาม Redis</h4>
+  <h5>สถานการณ์</h5>
+  <p>ร้านค้าออนไลน์จะจัด Flash Sale เวลา 12:12 น. คาดว่าจะมีคนเปิดหน้าสินค้าหลายพันครั้งต่อนาที Query ดึงข้อมูลสินค้าใช้เวลาราว 300 ms ซึ่งช้าเกินไปเมื่อคนเข้าพร้อมกัน ทีมยังเจอปัญหาบอตกดซื้อรัว ๆ จนคนจริงซื้อไม่ทัน และเมื่อ Redis ล่มในงานครั้งก่อน API ทั้งระบบล่มตามไปด้วย หัวหน้าทีมขอให้คุณสร้าง API ต้นแบบที่ Cache ข้อมูลสินค้า จำกัดการกดซื้อ เขียน Log เป็น JSON ที่ค้นหาได้ และยังขายของได้ต่อแม้ Redis ล่ม</p>
+  <h5>สิ่งที่ต้องทำ</h5>
+  <ol>
+    <li>สร้าง <code>~/projects/backend-lab/practice/flash_api/app.py</code> มีสินค้าจำลอง 2 รายการ (หูฟังไร้สาย 990 บาท สต็อก 3 และ Power Bank 590 บาท สต็อก 100) และฟังก์ชัน <code>db_get_product()</code> ที่ <code>time.sleep(0.3)</code> เพื่อจำลอง Query ช้า</li>
+    <li>เขียนคลาส <code>Cache</code> ที่ห่อ <code>redis.Redis</code> มี <code>get_json</code>, <code>set_json</code>, <code>delete</code>, <code>retry_after</code> (Rate Limit แบบ Fixed Window ด้วย <code>INCR</code> และ <code>EXPIRE</code>) และ <code>ping</code> ทุกเมธอดต้องจับ <code>redis.exceptions.RedisError</code> แล้วเขียน Log ระดับ <code>WARNING</code> แทนการทำให้ Request ล้ม</li>
+    <li><code>GET /products/{product_id}</code> ใช้ Cache-aside ด้วย Key <code>product:{id}</code> อายุ 30 วินาที และใส่ Field <code>cached</code> เป็น <code>true</code> หรือ <code>false</code> ใน Response ส่วน <code>PATCH /products/{product_id}</code> แก้ราคา (ห้ามแก้ <code>stock</code>) และลบ Cache ทันที</li>
+    <li><code>POST /products/{product_id}/buy</code> ตัดสต็อกทีละ 1 (หมดแล้วตอบ <code>409</code>) ลบ Cache ของสินค้านั้น และจำกัดไม่เกิน 5 ครั้งต่อ 60 วินาทีต่อ IP ด้วย Key <code>rl:buy:{ip}</code> ครั้งที่เกินต้องตอบ <code>429</code> พร้อม Header <code>Retry-After</code></li>
+    <li>เพิ่ม Middleware ที่รับหรือสร้าง <code>request_id</code> ส่งกลับใน Header <code>x-request-id</code> และเขียน Log JSON 1 บรรทัดต่อ Request ที่มี <code>method</code>, <code>path</code>, <code>status</code> และ <code>duration_ms</code></li>
+    <li>เพิ่ม <code>GET /health</code> ที่ตอบ <code>{"status":"ok","redis":"ok"}</code> หรือ <code>{"status":"degraded","redis":"down"}</code></li>
+    <li>เขียน <code>test_flash.py</code> ที่ใช้ <code>fakeredis</code> ทดสอบ Miss/Hit, Invalidation, สินค้าหมด, Rate Limit, Mass Assignment, Request ID และกรณี Redis ล่ม แล้วทดลองกับ Redis จริงด้วยสคริปต์ <code>curl</code></li>
+  </ol>
+  <h5>ผลลัพธ์ที่คาดหวัง</h5>
+  <p>Test ต้องผ่านทั้ง 7 ข้อ และเมื่อลองกับ Redis จริง การเรียกครั้งแรกต้องช้าราว 300 ms ครั้งที่สองต้องเร็วเหลือไม่กี่ ms และการกดซื้อครั้งที่ 6 ต้องได้ <code>429</code> (ตัวเลขเวลาในเครื่องของคุณจะต่างไปเล็กน้อย)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>1) ดูสินค้าครั้งแรก (MISS) และครั้งที่สอง (HIT)
+{"id":1,"name":"หูฟังไร้สาย","price":990,"stock":3,"cached":false} -&gt; 200 ใน 0.318850s
+{"id":1,"name":"หูฟังไร้สาย","price":990,"stock":3,"cached":true} -&gt; 200 ใน 0.003455s
+...
+ครั้งที่ 5 -&gt; 200
+ครั้งที่ 6 -&gt; 429
+HTTP/1.1 429 Too Many Requests
+retry-after: 60</code></pre>
+  <details class="hint"><summary>Hint</summary><div>
+    <ul>
+      <li>ห่อทุกคำสั่ง Redis ด้วย <code>try</code>/<code>except redis.exceptions.RedisError</code> ถ้า Cache อ่านไม่ได้ให้ถือว่าเป็น Miss แล้วไปถามฐานข้อมูลตามปกติ ถ้า Rate Limit อ่านไม่ได้ให้ปล่อยผ่าน (Fail-open) แต่เขียน Log ไว้</li>
+      <li>redis-py 8 มีการ Retry พร้อม Backoff เป็นค่าเริ่มต้น เมื่อ Redis ล่มแต่ละคำสั่งอาจค้างหลายวินาที ให้ส่ง <code>retry=Retry(NoBackoff(), 1)</code> และตั้ง <code>socket_connect_timeout</code> สั้น ๆ</li>
+      <li>สร้าง Dependency <code>get_cache()</code> แยกออกมา เพื่อให้ Test สลับเป็น <code>Cache(fakeredis.FakeRedis(decode_responses=True))</code> ผ่าน <code>app.dependency_overrides</code> ได้</li>
+      <li>Rate Limit ใส่เป็น <code>dependencies=[Depends(limit_buy)]</code> ที่ Decorator ทำให้ตรวจก่อนเข้า Handler</li>
+      <li>สร้าง <code>logging.Formatter</code> ของตัวเองที่ <code>json.dumps()</code> dict ของ Log และส่ง Field เสริมผ่าน <code>extra={"fields": {...}}</code></li>
+      <li>จำลอง Redis ล่มใน Test ได้ง่าย ๆ โดยชี้ <code>redis.Redis</code> ไปที่ Port ที่ไม่มีอะไรฟังอยู่ เช่น 6390</li>
+    </ul>
+  </div></details>
+</article>
+
+<h3 id="s12-3-answers">เฉลย</h3>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ลองทำทุกข้อด้วยตัวเองก่อนเปิดเฉลย โดยเฉพาะโจทย์ลงมือทำ ให้เขียนโค้ดจนรันได้ หรือติดจริง ๆ อย่างน้อย 30 นาทีก่อนดูคำตอบ การติดแล้วค้นหาทางออกเองคือการฝึกที่ได้ผลที่สุด ถ้าเปิดเฉลยเร็วเกินไป คุณจะรู้สึกว่าเข้าใจ แต่พอเจองานจริงจะเขียนเองไม่ได้</p></div>
+
+<h4>เฉลย Fill-in-the-blank</h4>
+
+<details class="ans"><summary>ข้อ 1</summary><div>
+<p><strong>คำตอบ:</strong> ช่องแรกคือ <code>201</code> และช่องที่สองคือ <code>204</code></p>
+<p>FastAPI ตอบ <code>200</code> เป็นค่าเริ่มต้นทุก Endpoint ถ้าต้องการ Status อื่นต้องระบุ <code>status_code</code> ที่ Decorator เอง <code>201 Created</code> บอก Client ว่ามี Resource ใหม่เกิดขึ้นแล้ว ส่วน <code>204 No Content</code> บอกว่าทำสำเร็จและไม่มี Body ตามมา ฟังก์ชัน <code>delete_book</code> จึงไม่ต้อง return อะไร (เกี่ยวกับแนวคิดที่ 1 และ 3)</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 2</summary><div>
+<p><strong>คำตอบ:</strong> ช่องแรกคือ <code>int</code> และช่องที่สองคือ <code>100</code></p>
+<p>FastAPI อ่าน Type Hint แล้วให้ Pydantic แปลงค่าจาก URL ซึ่งเป็นข้อความเสมอ ถ้าแปลง <code>"abc"</code> เป็น <code>int</code> ไม่ได้ จะตอบ 422 แบบ <code>int_parsing</code> ให้อัตโนมัติ โดยไม่ต้องเขียน if เอง ส่วน <code>Query(ge=1, le=100)</code> แปลว่ามากกว่าหรือเท่ากับ 1 และน้อยกว่าหรือเท่ากับ 100 ถ้าส่ง <code>?limit=101</code> ก็ได้ 422 เช่นกัน (แนวคิดที่ 2)</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 3</summary><div>
+<p><strong>คำตอบ:</strong> <code>model_dump</code> และ <code>exclude_unset</code> รวมเป็น <code>payload.model_dump(exclude_unset=True)</code></p>
+<p>ถ้าเรียก <code>model_dump()</code> เฉย ๆ จะได้ <code>{'title': None, 'status': 'done'}</code> เพราะ Field ที่ไม่ได้ส่งมาจะมีค่าเริ่มต้นเป็น <code>None</code> เมื่อนำไป update ข้อมูลเดิม ชื่องานจะหายไป ส่วน <code>exclude_unset=True</code> ตัด Field ที่ Client ไม่ได้ส่งออก จึงได้ <code>{'status': 'done'}</code> ตามที่ต้องการ นี่คือหัวใจของ PATCH ที่แก้เฉพาะบางส่วน (แนวคิดที่ 3) เมื่อเติมคำตอบแล้วรัน <code>python3 fill3_patch.py</code> จะได้ผลจริงดังนี้</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{'status': 'done'}</code></pre>
+<p>ทำไมไม่ใช่ <code>exclude_none=True</code>: กับ Payload นี้ทั้งสองแบบให้ผลเหมือนกัน แต่ความหมายต่างกัน <code>exclude_none</code> ตัดทุก Field ที่มีค่าเป็น <code>None</code> รวมถึง Field ที่ Client ตั้งใจส่ง <code>null</code> มาเพื่อล้างค่า ผลจริงเมื่อ Client ส่ง <code>{"title": null, "status": "done"}</code> (บรรทัดแรกคือ <code>exclude_unset</code> บรรทัดที่สองคือ <code>exclude_none</code>):</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{'title': None, 'status': 'done'}
+{'status': 'done'}</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 4</summary><div>
+<p><strong>คำตอบ:</strong> <code>begin</code> รวมเป็น <code>with SessionLocal() as db, db.begin():</code></p>
+<p><code>db.begin()</code> เปิด Transaction และคืน Context Manager ที่จะ Commit ให้เองเมื่อโค้ดในบล็อกจบแบบปกติ และ Rollback ให้เองเมื่อมี Exception หลุดออกมา ทำให้การหักเงินและเพิ่มเงินสำเร็จพร้อมกันหรือไม่เกิดขึ้นเลย ตามหลัก Atomicity ใน ACID ส่วน <code>with SessionLocal() as db</code> ด้านหน้าทำหน้าที่ปิด Session คืน Connection เข้า Pool (แนวคิดที่ 5) ข้อปรนัยที่ 8 แสดงผลจริงของพฤติกรรมนี้</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 5</summary><div>
+<p><strong>คำตอบ:</strong> <code>selectinload</code> ทั้งสองช่อง</p>
+<p><code>selectinload(User.tasks)</code> สั่งให้ SQLAlchemy ดึงงานของผู้ใช้ทุกคนในครั้งเดียวด้วย <code>SELECT ... FROM tasks WHERE tasks.owner_id IN (...)</code> หลังจาก Query ผู้ใช้เสร็จ จึงเหลือ 2 Query เสมอ ไม่ว่าจะมีผู้ใช้กี่คน ถ้าใช้ <code>joinedload</code> จะเหลือ 1 Query แต่ใช้ JOIN ซึ่งได้แถวซ้ำกันมาก เมื่อแต่ละคนมีงานหลายรายการ โจทย์ต้องการ 2 Query ที่ใช้ <code>IN (...)</code> คำตอบจึงเป็น <code>selectinload</code> (แนวคิดที่ 6) ผลจริงเมื่อนับ Query กับผู้ใช้ 3 คน คนละ 2 งาน (คอลัมน์ที่สองคือจำนวนงาน คอลัมน์ที่สามคือจำนวน Query):</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>lazy 6 4
+selectin 6 2
+joined 6 1</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 6</summary><div>
+<p><strong>คำตอบ:</strong> ช่องแรกคือ <code>StaticPool</code> (import จาก <code>sqlalchemy.pool</code>) และช่องที่สองคือ <code>dependency_overrides</code></p>
+<p>SQLite แบบ <code>sqlite://</code> เก็บฐานข้อมูลไว้ใน Connection แต่ละเส้น Connection ใหม่จะเห็นฐานข้อมูลว่างเปล่า <code>StaticPool</code> บังคับให้ทุกคนใช้ Connection เส้นเดียวกัน ตารางที่ <code>create_all</code> สร้างไว้จึงยังอยู่ตอน Request วิ่งเข้ามา ส่วน <code>app.dependency_overrides[get_db] = override_get_db</code> บอก FastAPI ว่าทุกที่ที่ขอ <code>get_db</code> ให้เรียก <code>override_get_db</code> แทน โดยไม่ต้องแก้โค้ดของแอปเลย (แนวคิดที่ 8) ถ้าลบ <code>poolclass=StaticPool</code> ออกจากสคริปต์ตรวจคำตอบด้านล่าง จะได้ Error นี้จริง:</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such table: users</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 7</summary><div>
+<p><strong>คำตอบ:</strong> (1) <code>ex</code> (2) <code>stats:user:{user_id}</code> (3) <code>-2</code></p>
+<ul>
+<li><code>r.set(key, value, ex=60)</code> ตั้งค่าพร้อมอายุ 60 วินาทีในคำสั่งเดียว ซึ่งเทียบเท่า <code>SET key value EX 60</code> ใน redis-cli การตั้งค่าและอายุในคำสั่งเดียวปลอดภัยกว่าการ SET แล้วค่อย EXPIRE เพราะไม่มีช่วงที่ Key ไม่มีอายุ</li>
+<li>Key ต้องมี <code>user_id</code> อยู่ด้วย ถ้าใช้ Key กลางอย่าง <code>stats</code> ผู้ใช้คนหนึ่งจะเห็นสถิติของอีกคน (ข้อปรนัยที่ 6 อธิบายผลเสียนี้)</li>
+<li>คำสั่ง <code>TTL</code> ตอบ <code>-2</code> เมื่อไม่มี Key นี้แล้ว (หมดอายุหรือถูกลบ) และตอบ <code>-1</code> เมื่อ Key มีอยู่แต่ไม่มีอายุ ค่าบวกคือจำนวนวินาทีที่เหลือ (แนวคิดที่ 10)</li>
+</ul>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code># ตั้ง Key อายุ 1 วินาที รอให้หมดอายุ แล้วถาม TTL
+redis-cli SET stats:user:1 x EX 1
+sleep 2
+redis-cli TTL stats:user:1</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>OK
+(integer) -2</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 8</summary><div>
+<p><strong>คำตอบ:</strong> <code>incr</code>, <code>expire</code> และ <code>Retry-After</code></p>
+<p><code>INCR</code> เพิ่มค่าและคืนค่าใหม่ในขั้นตอนเดียวแบบ Atomic แม้มี Request พร้อมกันหลายร้อยตัวจาก Server หลายเครื่อง ตัวนับก็ไม่ผิด ถ้า Key ยังไม่มี Redis ถือว่าเริ่มจาก 0 ครั้งแรกจึงได้ 1 เราจึงเรียก <code>EXPIRE key 60</code> เฉพาะตอน <code>count == 1</code> เพื่อเริ่มหน้าต่างเวลา 60 วินาที เมื่อ Key หมดอายุ ตัวนับก็เริ่มใหม่ ส่วน Header <code>Retry-After</code> เป็น Header มาตรฐานของ HTTP ที่ใช้คู่กับ 429 เพื่อบอกจำนวนวินาทีที่ Client ควรรอ (แนวคิดที่ 11)</p>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ถ้าโปรแกรมล่มระหว่าง <code>INCR</code> กับ <code>EXPIRE</code> Key จะไม่มีอายุและ IP นั้นจะถูกบล็อกตลอดไป งานจริงจึงมักรวมสองคำสั่งด้วย Pipeline แบบ Transaction (<code>r.pipeline()</code>) หรือ Lua Script ให้ทำงานเป็นก้อนเดียว</p></div>
+</div></details>
+
+<details class="ans"><summary>ข้อ 9</summary><div>
+<p><strong>คำตอบ:</strong> ช่องแรกคือ <code>db</code> และช่องที่สองคือ <code>service_healthy</code></p>
+<p>ใน docker compose ทุก Service อยู่ใน Network เดียวกัน และเรียกหากันด้วยชื่อ Service ได้ทันที คำว่า <code>localhost</code> ใน Container ของ api หมายถึงตัว Container api เอง ไม่ใช่ PostgreSQL จึงต้องใช้ <code>db</code> ส่วน <code>condition: service_healthy</code> ทำให้ compose รอจน Health Check ของ db (<code>pg_isready</code>) ผ่านก่อนเริ่ม api ถ้าใช้ <code>service_started</code> ซึ่งเป็นค่าเริ่มต้น api อาจเริ่มขณะ PostgreSQL ยังไม่พร้อมรับ Connection และล่มตอนเปิดแอป (แนวคิดที่ 12)</p>
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>Sandbox ที่ใช้เขียนหน้านี้ไม่มี Docker ข้อนี้จึงตรวจกับเอกสารทางการของ Docker Compose (Compose Specification) แทนการรันจริง ลองรัน <code>docker compose up -d</code> แล้วดู <code>docker compose ps</code> ในเครื่องที่ติดตั้ง Docker Desktop แล้ว คอลัมน์ STATUS ของ db ต้องขึ้นว่า healthy ก่อนที่ api จะเริ่ม</p></div>
+</div></details>
+
+<h4>สคริปต์ตรวจคำตอบข้อ 1, 2, 6 และ 7</h4>
+<p>สคริปต์นี้รวมคำตอบของข้อเติมคำหลายข้อไว้ในแอปเดียว แล้วใช้ <code>TestClient</code> กับ <code>fakeredis</code> ตรวจ จึงรันได้โดยไม่ต้องเปิด Server และไม่ต้องมี Redis</p>
+<pre class="code" data-env="file" data-label="Python · practice/fill_check.py"><code># fill_check.py: ตรวจคำตอบข้อเติมคำ 1, 2, 6 และ 7
+from typing import Annotated
+import json
+import fakeredis
+from fastapi import Depends, FastAPI, Query
+from fastapi.testclient import TestClient
+from sqlalchemy import String, create_engine, select
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
+from sqlalchemy.pool import StaticPool
+
+app = FastAPI()
+books: dict[int, dict] = {}
+
+@app.post("/books", status_code=201)
+def create_book(book: dict):
+    new_id = len(books) + 1
+    books[new_id] = {"id": new_id, **book}
+    return books[new_id]
+
+@app.delete("/books/{book_id}", status_code=204)
+def delete_book(book_id: int):
+    books.pop(book_id, None)
+
+@app.get("/tasks/{task_id}")
+def get_task(task_id: int):
+    return {"id": task_id}
+
+@app.get("/tasks")
+def list_tasks(limit: Annotated[int, Query(ge=1, le=100)] = 10):
+    return {"limit": limit}
+
+class Base(DeclarativeBase):
+    pass
+
+class User(Base):
+    __tablename__ = "users"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(100))
+
+def get_db():
+    raise RuntimeError("ไม่ควรถูกเรียกตอนทดสอบ")
+
+@app.get("/users/count")
+def count_users(db: Annotated[Session, Depends(get_db)]):
+    return {"users": len(db.scalars(select(User)).all())}
+
+engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+Base.metadata.create_all(engine)
+TestingSession = sessionmaker(bind=engine)
+def override_get_db():
+    with TestingSession() as db:
+        yield db
+app.dependency_overrides[get_db] = override_get_db
+
+c = TestClient(app)
+print("fill1:", c.post("/books", json={"title": "Python"}).status_code, c.delete("/books/1").status_code)
+print("fill2:", c.get("/tasks/abc").status_code, c.get("/tasks?limit=101").status_code, c.get("/tasks").json())
+print("fill6:", c.get("/users/count").json())
+
+r = fakeredis.FakeRedis(decode_responses=True)
+def get_stats(r, user_id, load_from_db):
+    key = f"stats:user:{user_id}"
+    raw = r.get(key)
+    if raw is not None:
+        return json.loads(raw)
+    stats = load_from_db(user_id)
+    r.set(key, json.dumps(stats), ex=60)
+    return stats
+get_stats(r, 1, lambda uid: {"todo": 2, "doing": 1, "done": 0})
+print("fill7:", r.get("stats:user:1"), r.ttl("stats:user:1"), r.ttl("stats:user:999"))</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code>cd ~/projects/backend-lab/practice
+python3 fill_check.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>fill1: 201 204
+fill2: 422 422 {'limit': 10}
+fill6: {'users': 0}
+fill7: {"todo": 2, "doing": 1, "done": 0} 60 -2</code></pre>
+<p>อ่านผลได้ว่า สร้างหนังสือได้ 201 และลบได้ 204 (ข้อ 1), <code>/tasks/abc</code> และ <code>limit=101</code> ได้ 422 ทั้งคู่ ส่วนค่าเริ่มต้นของ limit คือ 10 (ข้อ 2), Endpoint ที่ใช้ฐานข้อมูลทดสอบตอบได้โดยไม่เจอ <code>no such table</code> (ข้อ 6) และ Key ของ Cache มีอายุ 60 วินาที ส่วน Key ที่ไม่มีอยู่ได้ TTL เป็น -2 (ข้อ 7)</p>
+
+<h4>เฉลย Multiple Choice</h4>
+
+<details class="ans"><summary>ข้อ 1</summary><div>
+<p><strong>คำตอบ: C</strong> Stateless หมายถึง Server ไม่จำอะไรเกี่ยวกับผู้ใช้ไว้ในหน่วยความจำของตัวเองระหว่าง Request ทุก Request ต้องพกข้อมูลที่จำเป็นมาเอง เช่น Header <code>Authorization: Bearer ...</code> ที่มี JWT ซึ่งบอกว่าเป็นใครและมี Role อะไร Server เครื่องไหนที่รู้ <code>JWT_SECRET</code> ก็ตรวจ Token และตอบได้ทันที Load Balancer จึงส่ง Request ไปเครื่องไหนก็ได้ และการเพิ่มจาก 1 เป็น 4 เครื่อง (Horizontal Scaling) ทำได้โดยไม่ต้องแก้โค้ด ข้อมูลถาวรยังอยู่ในฐานข้อมูลหรือ Redis ที่ทุกเครื่องใช้ร่วมกัน (แนวคิดที่ 1 และ 12)</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะการเก็บ Session ไว้ในหน่วยความจำของแต่ละเครื่องคือ Stateful ซึ่งต้องพึ่ง Sticky Session ของ Load Balancer ถ้าเครื่องนั้นล่ม ผู้ใช้ทุกคนบนเครื่องนั้นจะหลุด Login พร้อมกัน นี่คือสิ่งที่ Stateless ตั้งใจหลีกเลี่ยง</li>
+<li><strong>B</strong> ผิดเพราะ Stateless ไม่ได้ห้ามใช้ฐานข้อมูล State ของระบบยังมีอยู่ แต่ย้ายไปเก็บในที่ส่วนกลาง (PostgreSQL หรือ Redis) แทนหน่วยความจำของ Process ของ API</li>
+<li><strong>D</strong> ผิดเพราะ HTTP ไม่ได้บังคับให้ผูก Client ไว้กับ Server เครื่องเดียว Keep-Alive เป็นแค่การใช้ TCP Connection ซ้ำเพื่อลดเวลา ไม่ได้ทำให้ Server ต้องจำผู้ใช้ และถ้าผูกไว้ก็จะกลายเป็นข้อจำกัดของการ Scale แทน</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 2</summary><div>
+<p><strong>คำตอบ: D</strong> Path <code>/tasks/abc</code> ตรงกับรูปแบบ <code>/tasks/{task_id}</code> FastAPI จึงเลือก Route นี้ แล้วให้ Pydantic แปลง <code>"abc"</code> เป็น <code>int</code> ตาม Type Hint เมื่อแปลงไม่ได้ จะตอบ <code>422 Unprocessable Entity</code> พร้อม <code>"type":"int_parsing"</code> และ <code>"loc":["path","task_id"]</code> ทันทีโดยไม่เรียกฟังก์ชัน <code>get_task</code> เลย ผลจริงแบบเดียวกันเห็นได้ในกรณีที่ 8 ของโจทย์ลงมือทำข้อ 1 (แนวคิดที่ 2)</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ FastAPI ไม่ส่งค่าที่ผิด Type เข้าไปในฟังก์ชัน การ Validation เกิดขึ้นก่อนเรียก Handler เสมอ ฟังก์ชันจึงมั่นใจได้ว่า <code>task_id</code> เป็น <code>int</code> จริง</li>
+<li><strong>B</strong> ผิดเพราะ FastAPI ใช้ 422 สำหรับ Validation Error เป็นค่าเริ่มต้น ไม่ใช่ 400 ถ้าทีมต้องการ 400 ต้องเขียน <code>exception_handler</code> สำหรับ <code>RequestValidationError</code> เอง</li>
+<li><strong>C</strong> ผิดเพราะ Path นี้ตรงกับ Route ที่ประกาศไว้แล้ว 404 จะเกิดเมื่อไม่มี Route ใดตรงเลย เช่น <code>/books/1</code> หรือเมื่อโค้ดของเรา raise <code>HTTPException(404)</code> เอง</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 3</summary><div>
+<p><strong>คำตอบ: C</strong> ได้ 4 Query คือ Query ผู้ใช้ทั้งหมด 1 ครั้ง และเมื่อลูปแตะ <code>u.tasks</code> ของผู้ใช้แต่ละคน Lazy Loading จะยิง <code>SELECT ... FROM tasks WHERE owner_id = ?</code> อีกคนละ 1 ครั้ง รวมเป็น 1 + 3 = 4 นี่คือปัญหา N+1 ที่ N คือจำนวนผู้ใช้ ถ้ามีผู้ใช้ 1,000 คน จะกลายเป็น 1,001 Query ทันที ผลจริงจากการนับด้วย <code>event.listen(engine, "before_cursor_execute", ...)</code> กับข้อมูลชุดเดียวกัน (คอลัมน์ที่สองคือจำนวนงาน คอลัมน์ที่สามคือจำนวน Query):</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>lazy 6 4
+selectin 6 2
+joined 6 1</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ 1 Query จะเกิดเมื่อใช้ <code>joinedload(User.tasks)</code> ซึ่งดึงผู้ใช้และงานด้วย JOIN ในคราวเดียว แต่โค้ดนี้ไม่ได้ใส่ Loader Option ใดเลย</li>
+<li><strong>B</strong> ผิดเพราะ 2 Query เป็นผลของ <code>selectinload(User.tasks)</code> ไม่ใช่ Lazy Loading ที่เป็นค่าเริ่มต้น</li>
+<li><strong>D</strong> ผิดเพราะ 7 คือการนับแบบ 1 + จำนวนงาน (6) แต่ Lazy Loading โหลดงานทีละผู้ใช้ ไม่ใช่ทีละงาน งาน 2 รายการของผู้ใช้คนเดียวมาพร้อมกันใน Query เดียว</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 4</summary><div>
+<p><strong>คำตอบ: A</strong> <code>409 Conflict</code> หมายถึงคำขอขัดแย้งกับสถานะปัจจุบันของ Resource ซึ่งตรงกับกรณีอีเมลซ้ำ ข้อมูลที่ส่งมาถูกรูปแบบทุกอย่าง แต่สร้างไม่ได้เพราะชนกับข้อมูลที่มีอยู่แล้ว วิธีทำในโค้ดคือจับ <code>IntegrityError</code> จาก <code>db.commit()</code> แล้ว <code>db.rollback()</code> ก่อน raise <code>HTTPException(409)</code> ตามที่ใช้ใน <code>/auth/register</code> ของโจทย์ลงมือทำข้อ 2 (แนวคิดที่ 1 และ 5)</p>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะ 400 ใช้กับคำขอที่ผิดรูปแบบ เช่น JSON พัง แต่อีเมลนี้ถูกรูปแบบและผ่าน Validation แล้ว ปัญหาอยู่ที่สถานะของข้อมูลในระบบ ไม่ใช่รูปแบบของคำขอ</li>
+<li><strong>C</strong> ผิดเพราะ 401 หมายถึงไม่ได้ยืนยันตัวตนหรือ Token ไม่ถูกต้อง แต่การสมัครสมาชิกเป็น Endpoint ที่เปิดให้คนที่ยังไม่ Login ใช้อยู่แล้ว</li>
+<li><strong>D</strong> ผิดเพราะการปล่อยให้ <code>IntegrityError</code> หลุดออกไปเป็น 500 แปลว่า API ไม่ได้จัดการกรณีที่คาดเดาได้ ผู้ใช้ไม่รู้ว่าต้องแก้อะไร ระบบ Monitoring จะเห็นเป็น Error ของ Server และ Traceback ใน Log อาจเปิดเผยชื่อตารางและโครงสร้างฐานข้อมูล</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 5</summary><div>
+<p><strong>คำตอบ: B</strong> JWT มี 3 ส่วนคั่นด้วยจุด คือ Header, Payload และ Signature ส่วน Payload เป็นแค่ JSON ที่เข้ารหัสแบบ Base64URL ซึ่งเป็นการแปลงรูปแบบ ไม่ใช่การเข้ารหัสลับ ใครได้ Token ไป เช่น จาก Log, ประวัติ Browser หรือ Extension ที่ไม่ปลอดภัย ก็ถอดอ่านได้ทันทีโดยไม่ต้องรู้ Secret ผลจริงเมื่อนำส่วนกลางของ Token นี้ไปถอดด้วย <code>base64.urlsafe_b64decode</code>:</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"sub":"1","role":"member","password":"S3cure-pass!"}</code></pre>
+<p>ลายเซ็น HS256 ใช้ยืนยันว่า Payload ไม่ถูกแก้ไขเท่านั้น ใน JWT จึงควรมีแค่ข้อมูลที่เปิดเผยได้ เช่น <code>sub</code>, <code>role</code>, <code>iat</code> และ <code>exp</code> (แนวคิดที่ 7)</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะลายเซ็นไม่ได้ซ่อนเนื้อหา มันแค่ทำให้รู้ว่าใครแก้ Payload ผลการถอดด้านบนแสดงว่าอ่านรหัสผ่านได้โดยไม่ต้องใช้ Secret</li>
+<li><strong>C</strong> ผิดเพราะ Secret ใช้สร้างและตรวจลายเซ็นเท่านั้น ไม่ได้ใช้ถอด Payload ทุกคนที่ถือ Token อ่านเนื้อหาได้เท่ากัน</li>
+<li><strong>D</strong> ผิดเพราะ <code>jwt.encode</code> ของ PyJWT สร้าง JWS (JWT แบบเซ็น) ไม่ได้เข้ารหัส Payload ให้ ไม่ว่า Secret จะยาวเท่าไร ถ้าต้องการเข้ารหัสจริงต้องใช้มาตรฐาน JWE ซึ่งเป็นอีกเรื่องหนึ่ง และถึงอย่างนั้นก็ไม่ควรส่งรหัสผ่านกลับไปให้ Client เก็บ</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 6</summary><div>
+<p><strong>คำตอบ: D</strong> Key <code>"stats"</code> ไม่มีรหัสผู้ใช้อยู่ ทุกคนจึงอ่านและเขียน Key เดียวกัน คนแรกที่เรียกหลัง Cache ว่างจะเป็นคนกำหนดค่า ภายใน 60 วินาทีนั้น ผู้ใช้คนอื่นทุกคนจะได้สถิติของคนแรกพร้อม <code>"cached": true</code> นี่คือข้อมูลรั่วข้ามผู้ใช้ ซึ่งร้ายแรงกว่าข้อมูลเก่าหลายเท่า วิธีแก้คือใส่ตัวระบุผู้ใช้ใน Key เสมอ เช่น <code>f"stats:user:{me.id}"</code> และเขียน Test ที่ผู้ใช้สองคนเรียกต่อกันแล้วต้องได้ผลต่างกัน (แนวคิดที่ 10 และ 11)</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ TTL ทำให้ข้อมูลหมดอายุก็จริง แต่พอหมดอายุ คนถัดไปก็จะเขียนค่าของตัวเองลง Key เดียวกันอีก การรั่วจึงเกิดซ้ำทุกรอบ 60 วินาทีไม่มีวันจบ</li>
+<li><strong>B</strong> ผิดเพราะ Redis ยอมให้เขียนทับ Key เดิมได้ตามปกติ คำสั่ง <code>SET</code> ไม่โยน Error เมื่อมีหลาย Client เขียน Key เดียวกัน ปัญหาจึงเงียบและหาเจอยาก</li>
+<li><strong>C</strong> ผิดเพราะจริง ๆ แล้ว Cache Hit จะสูงขึ้นด้วยซ้ำ เพราะทุกคนใช้ Key เดียว ระบบดูเร็วขึ้นแต่ตอบข้อมูลผิดคน ปัญหาคือความถูกต้องและความปลอดภัย ไม่ใช่ความเร็ว</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 7</summary><div>
+<p><strong>คำตอบ: B</strong> FastAPI (ผ่าน Starlette) ไล่จับคู่ Route ตามลำดับที่ประกาศ และหยุดที่ Route แรกที่รูปแบบ Path ตรง <code>/tasks/{task_id}</code> ตรงกับ <code>/tasks/stats</code> เพราะ <code>{task_id}</code> รับข้อความใดก็ได้ในขั้นจับคู่ จากนั้นแปลง <code>"stats"</code> เป็น <code>int</code> ไม่ได้ จึงได้ 422 ผลจริงเมื่อทดสอบด้วย <code>TestClient</code> คือ Status <code>422</code> และ Error Type <code>int_parsing</code> วิธีแก้คือประกาศ Route ที่เป็น Path ตายตัว (<code>/tasks/stats</code>) ไว้ก่อน Route ที่มีตัวแปร (แนวคิดที่ 2)</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ FastAPI ไม่ได้เลือก Route ที่เจาะจงที่สุด แต่เลือก Route แรกที่ตรงตามลำดับการประกาศ ถ้าสลับลำดับสองฟังก์ชันนี้ จึงจะได้ 200</li>
+<li><strong>C</strong> ผิดเพราะ Path ตายตัวไม่ได้ถูกบังทั้งหมด มันถูกบังเฉพาะเมื่อประกาศไว้หลัง Route ที่มีตัวแปรซึ่งรูปแบบตรงกัน และผลที่ได้คือ 422 ไม่ใช่ 404</li>
+<li><strong>D</strong> ผิดเพราะทั้งสอง Route เป็น GET และ Path ไม่ได้ซ้ำกันจริง 405 จะเกิดเมื่อ Path ตรงแต่ Method ไม่ตรง เช่น ส่ง <code>DELETE /tasks/stats</code> ไปยัง Path ที่มีแค่ GET</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 8</summary><div>
+<p><strong>คำตอบ: A</strong> <code>db.begin()</code> เปิด Transaction เมื่อ <code>RuntimeError</code> หลุดออกจากบล็อก <code>with</code> SQLAlchemy จะ Rollback ทุกอย่างที่ทำไปใน Transaction นั้น รวมถึงการหัก 300 บาทของ somchai ที่ทำไปแล้ว จากนั้น <code>except RuntimeError: pass</code> จับ Exception ไว้ โปรแกรมจึงไปต่อและพิมพ์ยอดเดิมของทั้งสองบัญชี ผลรวมยังเป็น 1500 บาทเท่าเดิม ผลจริงจากการรัน:</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[('somchai', 1000), ('somying', 500)]</code></pre>
+<p>นี่คือ Atomicity ใน ACID งานทั้งก้อนสำเร็จพร้อมกันหรือไม่เกิดขึ้นเลย (แนวคิดที่ 5)</p>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะการหักเงินยังไม่ได้ Commit ตอนเกิด Exception ค่า 700 อยู่แค่ใน Object ของ Python ในหน่วยความจำ แล้วถูก Rollback ทิ้งไป ไม่เคยถูกบันทึกลงฐานข้อมูล</li>
+<li><strong>C</strong> ผิดเพราะบรรทัด <code>b.balance += 300</code> อยู่หลัง <code>raise</code> จึงไม่เคยถูกรันเลย และต่อให้รันไปแล้ว Rollback ก็จะยกเลิกทั้งคู่อยู่ดี</li>
+<li><strong>D</strong> ผิดเพราะ Exception ถูกจับด้วย <code>try</code>/<code>except RuntimeError</code> ด้านนอก จึงไม่มี Traceback และโปรแกรมทำงานต่อจนถึงคำสั่ง <code>print</code></li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 9</summary><div>
+<p><strong>คำตอบ: D</strong> Argon2id เป็น Password Hashing Function ที่ตั้งใจให้ใช้เวลาและหน่วยความจำมาก (ค่าที่ pwdlib แนะนำคือ <code>m=65536</code> หรือ 64 MiB, <code>t=3</code> รอบ, <code>p=4</code>) การเดารหัสด้วย GPU จึงแพงมาก และมันสุ่ม Salt ใหม่ทุกครั้ง รหัสเดียวกันจึงได้ Hash ต่างกัน ส่วน <code>sha256</code> ถูกออกแบบให้เร็ว GPU คำนวณได้หลายพันล้านครั้งต่อวินาที และถ้าเรียกตรง ๆ แบบไม่มี Salt รหัสเดียวกันจะได้ค่าเดียวกันเสมอ ผู้โจมตีจึงใช้ตารางที่คำนวณไว้ล่วงหน้าได้ ผลจริงเมื่อ Hash <code>S3cure-pass!</code> สองครั้งด้วยแต่ละวิธี (ตัด Hash ของ Argon2 ให้เหลือ 40 ตัวอักษรแรก และ Salt ในเครื่องคุณจะต่างไป):</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>3596ad997ce7716869756be5988dbb0d520e559d53b83f67a1d5769f33c0875b
+3596ad997ce7716869756be5988dbb0d520e559d53b83f67a1d5769f33c0875b
+$argon2id$v=19$m=65536,t=3,p=4$TaOxsCyHl
+$argon2id$v=19$m=65536,t=3,p=4$a/6LTEqnN
+False True</code></pre>
+<p>บรรทัดสุดท้ายแสดงว่า Hash ของ Argon2 สองค่าไม่เท่ากัน (<code>False</code>) แต่ <code>verify</code> ยังตรวจรหัสผ่านได้ถูกต้อง (<code>True</code>) เพราะ Salt และค่าตั้งค่าถูกเก็บไว้ใน Hash เอง (แนวคิดที่ 7)</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ SHA-256 ก็ถอดกลับไม่ได้เหมือนกัน ทั้งสองเป็นฟังก์ชันทางเดียว ความต่างอยู่ที่ความเร็วในการเดาและการใส่ Salt ไม่ใช่ว่าตัวไหนถอดกลับได้</li>
+<li><strong>B</strong> ผิดเพราะ Argon2 เป็น Hash ทางเดียว ไม่ใช่การเข้ารหัสสองทาง ไม่มีใครเปิดดูรหัสเดิมได้ แม้แต่ Admin เมื่อผู้ใช้ลืมรหัสต้องใช้ขั้นตอนตั้งรหัสใหม่ผ่านอีเมลแทน</li>
+<li><strong>C</strong> ผิดเพราะ SHA-256 ในรูป Hex ยาวแค่ 64 ตัวอักษร ซึ่งสั้นกว่า Hash ของ Argon2 (ประมาณ 97 ตัวอักษร) ด้วยซ้ำ ความยาวไม่ใช่เหตุผลเลย</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 10</summary><div>
+<p><strong>คำตอบ: C</strong> BOLA เกิดเมื่อ API เชื่อ id ที่ผู้ใช้ส่งมาโดยไม่ตรวจว่า Object นั้นเป็นของเขาจริง วิธีที่ดีที่สุดคือผูกเงื่อนไขเจ้าของไว้ใน Query เลย (<code>Task.owner_id == me.id</code>) ทำให้ไม่มีทางดึง Object ของคนอื่นขึ้นมาได้ตั้งแต่ต้น การตอบ 404 แทน 403 ยังไม่เปิดเผยว่า id 7 มีอยู่จริง ผู้โจมตีจึงไล่เดาว่ามีงานกี่รายการไม่ได้ และ Test ช่วยกันไม่ให้ใครเผลอลบเงื่อนไขนี้ในอนาคต ตัวอย่างจริงคือ <code>test_other_employee_gets_404</code> ในโจทย์ลงมือทำข้อ 2 (แนวคิดที่ 7 และ 11)</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ Token บอกแค่ว่าผู้ใช้เป็นใคร (Authentication) และ Role บอกว่าทำ Action ประเภทไหนได้ แต่ไม่ได้บอกว่าเป็นเจ้าของ Object ชิ้นนี้หรือไม่ (Object-level Authorization) somying ก็มี Token ที่ถูกต้องและเป็น member เหมือนกัน</li>
+<li><strong>B</strong> ผิดเพราะการตอบว่า "งาน id 7 เป็นของ somchai" เปิดเผยข้อมูลเพิ่ม ทั้งยืนยันว่า id นี้มีจริงและบอกชื่อเจ้าของ ผู้โจมตีใช้ข้อความนี้ไล่สำรวจข้อมูลทั้งระบบได้</li>
+<li><strong>D</strong> ผิดเพราะ UUID แค่ทำให้เดายากขึ้น แต่ id มักรั่วออกไปทาง URL ที่แชร์, Log หรือ Response อื่น เมื่อมีคนได้ id ไป ระบบที่ไม่ตรวจเจ้าของก็ยังเปิดให้อ่านได้ การซ่อน id ไม่ใช่การตรวจสิทธิ์</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 11</summary><div>
+<p><strong>คำตอบ: B</strong> CORS (Cross-Origin Resource Sharing) เป็นกลไกที่ Browser ใช้ตัดสินว่าจะให้ JavaScript ของเว็บจาก Origin อื่นอ่าน Response ได้หรือไม่ Server แค่ส่ง Header บอกว่ายอมรับ Origin ไหน ผลจริงจากการทดสอบ Preflight (<code>OPTIONS</code>) ด้วย <code>TestClient</code>:</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>cors ok: 200 http://localhost:5173
+cors bad: 400 Disallowed CORS origin None</code></pre>
+<p>Origin ที่อนุญาตได้ 200 พร้อม <code>access-control-allow-origin</code> ส่วน Origin อื่นได้ 400 และไม่มี Header นี้ Browser จึงบล็อก แต่ curl, Postman หรือสคริปต์ Python ไม่ได้ตรวจ Header เหล่านี้ และส่ง Request ไปถึง Endpoint จริงได้ตามปกติ API จึงต้องมี Authentication และ Authorization ครบเสมอ (แนวคิดที่ 11)</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ curl และ Postman ไม่ได้ทำตามกติกา CORS เลย CORS ป้องกันเฉพาะผู้ใช้ที่เปิดเว็บใน Browser ไม่ได้ป้องกันผู้โจมตีที่ยิง API ตรง ๆ จึงใช้แทน Authentication ไม่ได้</li>
+<li><strong>C</strong> ผิดเพราะ <code>allow_origins=["*"]</code> คู่กับ <code>allow_credentials=True</code> เป็นการตั้งค่าที่อันตรายที่สุด ตามสเปก Browser จะไม่ยอมรับ <code>*</code> เมื่อมี Credentials และถ้าแก้ด้วยการสะท้อน Origin ใดก็ได้กลับไป เว็บของใครก็ตามจะเรียก API ด้วย Cookie ของผู้ใช้ได้ ควรระบุ Origin ที่ไว้ใจทีละตัว</li>
+<li><strong>D</strong> ผิดเพราะ CORS ไม่ได้จำกัดจำนวน Request และไม่ได้ตัดทุก Request ที่ Server สำหรับ Request แบบ Simple (เช่น GET ธรรมดา) Server ยังประมวลผลตามปกติ Browser แค่ไม่ให้ JavaScript อ่านผล ส่วน Rate Limiting ต้องใช้ตัวนับอย่าง Redis INCR หรือ <code>limit_req</code> ของ nginx</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 12</summary><div>
+<p><strong>คำตอบ: A</strong> nginx ยังทำงานอยู่และรับ Connection ที่ Port 80 ได้ แต่เมื่อส่งต่อ (<code>proxy_pass</code>) ไปที่ <code>127.0.0.1:8000</code> กลับไม่มี Process ใดรับ Connection (Connection refused) nginx ในฐานะ Gateway จึงตอบ <code>502 Bad Gateway</code> เอง ผลจริงจาก nginx 1.24 ที่ส่งต่อไปยัง Port ที่ไม่มี Uvicorn ฟังอยู่ (วันที่ในเครื่องคุณจะต่างไป):</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>HTTP/1.1 502 Bad Gateway
+Server: nginx/1.24.0 (Ubuntu)
+Date: Thu, 22 Oct 2026 03:09:13 GMT
+Content-Type: text/html
+Content-Length: 166</code></pre>
+<p>ใน Production จึงต้องให้ systemd หรือ Container Runtime เปิด Uvicorn ใหม่อัตโนมัติ และตั้ง Health Check ที่ Load Balancer หรือ Monitoring ให้แจ้งเตือนเมื่อเจอ 502 (แนวคิดที่ 12)</p>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะ 503 จาก <code>/health</code> ต้องมี FastAPI ทำงานอยู่เพื่อส่งคำตอบนั้น แต่ Process ของ Uvicorn ตายไปแล้ว ไม่มีโค้ดของแอปตัวไหนได้รันเลย 503 จะเกิดเมื่อแอปยังทำงานแต่ส่วนที่แอปพึ่งพา เช่น PostgreSQL ล่ม</li>
+<li><strong>C</strong> ผิดเพราะ 504 Gateway Timeout เกิดเมื่อ Upstream รับ Connection แล้วแต่ตอบช้าเกิน <code>proxy_read_timeout</code> (ค่าเริ่มต้น 60 วินาที) ไม่ใช่ทันที กรณีนี้ Connection ถูกปฏิเสธทันที nginx จึงตอบ 502 ได้ทันที</li>
+<li><strong>D</strong> ผิดเพราะ nginx ยังทำงานและฟัง Port 80 อยู่ curl จึงเชื่อมต่อได้และได้คำตอบ HTTP กลับมา <code>curl: (7)</code> จะเกิดเมื่อไม่มีอะไรฟัง Port 80 เลย เช่น เมื่อ nginx เองหยุดทำงาน</li>
+</ul>
+</div></details>
+
+<h4>เฉลย Hands-on Challenge</h4>
+<p>โค้ดเฉลยทั้งสามข้อรันจริงบน Python 3.12.3 กับแพ็กเกจเวอร์ชันที่ติดตั้งไว้ในส่วนวิธีใช้หน้านี้ เฉลยของคุณไม่จำเป็นต้องเหมือนทุกบรรทัด ถ้าผ่านทุกข้อในหัวข้อผลลัพธ์ที่คาดหวัง และอธิบายได้ว่าทำไมเขียนแบบนั้น ถือว่าใช้ได้</p>
+
+<details class="ans"><summary>โจทย์ที่ 1: API รับงานซ่อมของร้านซ่อมคอมพิวเตอร์</summary><div>
+<h5>โค้ดเต็ม</h5>
+<p>ไฟล์ API ทั้งหมดอยู่ในไฟล์เดียว เพราะเป็นระบบเล็กที่ยังไม่มีฐานข้อมูล</p>
+<pre class="code" data-env="file" data-label="Python · practice/repair_api.py"><code># repair_api.py: API รับงานซ่อมของร้านซ่อมคอมพิวเตอร์ (เก็บข้อมูลในหน่วยความจำ)
+from typing import Annotated, Literal
+
+from fastapi import FastAPI, HTTPException, Path, Query
+from pydantic import BaseModel, ConfigDict, Field
+
+app = FastAPI(title="Repair Shop API")
+
+Device = Literal["laptop", "desktop", "phone"]
+Status = Literal["received", "repairing", "done"]
+
+
+class TicketCreate(BaseModel):
+    # extra="forbid" ปฏิเสธ Field ที่ไม่รู้จัก เช่น status หรือ price ที่ลูกค้าแอบส่งมา
+    model_config = ConfigDict(extra="forbid")
+    customer_name: str = Field(min_length=1, max_length=100)
+    phone: str = Field(pattern=r"^0\d{9}$")  # เบอร์มือถือไทย 10 หลัก ขึ้นต้นด้วย 0
+    device: Device
+    problem: str = Field(min_length=5, max_length=500)
+
+
+class TicketUpdate(BaseModel):
+    # ทุก Field เป็น Optional เพราะ PATCH แก้เฉพาะบางส่วน
+    model_config = ConfigDict(extra="forbid")
+    status: Status | None = None
+    problem: str | None = Field(default=None, min_length=5, max_length=500)
+
+
+class TicketOut(BaseModel):
+    id: int
+    customer_name: str
+    device: Device
+    problem: str
+    status: Status
+
+
+# ข้อมูลตัวอย่าง 3 งาน (เบอร์โทรเก็บไว้ภายใน ไม่ส่งออกใน Response)
+tickets: dict[int, dict] = {
+    1: {"id": 1, "customer_name": "Somchai Jaidee", "phone": "0812345678", "device": "laptop",
+        "problem": "เปิดไม่ติด ไฟไม่เข้า", "status": "received"},
+    2: {"id": 2, "customer_name": "Somying Rakdee", "phone": "0898765432", "device": "phone",
+        "problem": "จอแตก ทัชไม่ได้", "status": "repairing"},
+    3: {"id": 3, "customer_name": "Anan Meesuk", "phone": "0861112222", "device": "desktop",
+        "problem": "เครื่องร้อนแล้วดับเอง", "status": "done"},
+}
+next_id = 4
+
+
+def find_ticket(ticket_id: int) -&gt; dict:
+    # ฟังก์ชันกลางสำหรับหา Ticket ถ้าไม่พบให้ตอบ 404
+    ticket = tickets.get(ticket_id)
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="ไม่พบงานซ่อมนี้")
+    return ticket
+
+
+@app.post("/tickets", response_model=TicketOut, status_code=201)
+def create_ticket(payload: TicketCreate):
+    global next_id
+    ticket = {"id": next_id, **payload.model_dump(), "status": "received"}
+    tickets[next_id] = ticket
+    next_id += 1
+    return ticket
+
+
+@app.get("/tickets", response_model=list[TicketOut])
+def list_tickets(
+    status: Status | None = None,
+    limit: Annotated[int, Query(ge=1, le=50)] = 10,
+):
+    items = [t for t in tickets.values() if status is None or t["status"] == status]
+    return items[:limit]
+
+
+@app.get("/tickets/{ticket_id}", response_model=TicketOut)
+def get_ticket(ticket_id: Annotated[int, Path(gt=0)]):
+    return find_ticket(ticket_id)
+
+
+@app.patch("/tickets/{ticket_id}", response_model=TicketOut)
+def update_ticket(ticket_id: Annotated[int, Path(gt=0)], payload: TicketUpdate):
+    ticket = find_ticket(ticket_id)
+    # exclude_unset=True เอาเฉพาะ Field ที่ Client ส่งมาจริง จึงไม่ทับค่าเดิมด้วย None
+    ticket.update(payload.model_dump(exclude_unset=True))
+    return ticket
+
+
+@app.delete("/tickets/{ticket_id}", status_code=204)
+def delete_ticket(ticket_id: Annotated[int, Path(gt=0)]):
+    find_ticket(ticket_id)
+    del tickets[ticket_id]</code></pre>
+<p>สคริปต์ทดสอบด้วย curl ครบ 8 กรณีตามโจทย์</p>
+<pre class="code" data-env="file" data-label="Bash · practice/check_repair.sh"><code>#!/usr/bin/env bash
+# check_repair.sh: ยิง Request ทดสอบ API ร้านซ่อมทีละขั้น แล้วพิมพ์ Body กับ Status Code
+BASE=http://127.0.0.1:8000
+H='Content-Type: application/json'
+W=' -&gt; %{http_code}\n'
+
+echo "1) สร้างงานใหม่"
+curl -s -w "$W" -X POST $BASE/tickets -H "$H" \
+  -d '{"customer_name":"Preeya Sukjai","phone":"0823334444","device":"laptop","problem":"แป้นพิมพ์กดไม่ติด"}'
+echo "2) ข้อมูลผิด: ชื่อว่าง เบอร์ผิด อุปกรณ์ไม่รู้จัก"
+curl -s -w "$W" -X POST $BASE/tickets -H "$H" \
+  -d '{"customer_name":"","phone":"12345","device":"tablet","problem":"พัง"}'
+echo "3) แอบส่ง status มาเอง"
+curl -s -w "$W" -X POST $BASE/tickets -H "$H" \
+  -d '{"customer_name":"Mana","phone":"0811111111","device":"phone","problem":"แบตบวม","status":"done"}'
+echo "4) ดูงานที่สถานะ received"
+curl -s -w "$W" "$BASE/tickets?status=received"
+echo "5) limit เกิน 50"
+curl -s -w "$W" "$BASE/tickets?limit=100"
+echo "6) อัปเดตสถานะงาน 4 เป็น repairing"
+curl -s -w "$W" -X PATCH $BASE/tickets/4 -H "$H" -d '{"status":"repairing"}'
+echo "7) ลบงาน 3 แล้วลองดูอีกครั้ง"
+curl -s -w "$W" -X DELETE $BASE/tickets/3
+curl -s -w "$W" $BASE/tickets/3
+echo "8) ใช้ id ไม่ใช่ตัวเลข"
+curl -s -w "$W" $BASE/tickets/abc</code></pre>
+<h5>วิธีรัน</h5>
+<p>เปิด Terminal ของ Ubuntu 2 หน้าต่าง หน้าต่างแรกใช้เปิด Server และปล่อยค้างไว้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code># Terminal 1: เปิด Server (ระหว่างพัฒนาจะเติม --reload ก็ได้)
+cd ~/projects/backend-lab/practice
+source ../.venv/bin/activate
+uvicorn repair_api:app --port 8000</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code># Terminal 2: ให้สิทธิ์รันสคริปต์ แล้วยิงทดสอบทั้ง 8 กรณี
+cd ~/projects/backend-lab/practice
+chmod +x check_repair.sh
+./check_repair.sh</code></pre>
+<h5>ผลลัพธ์จริง</h5>
+<p>ผลใน Terminal 2:</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>1) สร้างงานใหม่
+{"id":4,"customer_name":"Preeya Sukjai","device":"laptop","problem":"แป้นพิมพ์กดไม่ติด","status":"received"} -&gt; 201
+2) ข้อมูลผิด: ชื่อว่าง เบอร์ผิด อุปกรณ์ไม่รู้จัก
+{"detail":[{"type":"string_too_short","loc":["body","customer_name"],"msg":"String should have at least 1 character","input":"","ctx":{"min_length":1}},{"type":"string_pattern_mismatch","loc":["body","phone"],"msg":"String should match pattern '^0\\d{9}$'","input":"12345","ctx":{"pattern":"^0\\d{9}$"}},{"type":"literal_error","loc":["body","device"],"msg":"Input should be 'laptop', 'desktop' or 'phone'","input":"tablet","ctx":{"expected":"'laptop', 'desktop' or 'phone'"}},{"type":"string_too_short","loc":["body","problem"],"msg":"String should have at least 5 characters","input":"พัง","ctx":{"min_length":5}}]} -&gt; 422
+3) แอบส่ง status มาเอง
+{"detail":[{"type":"extra_forbidden","loc":["body","status"],"msg":"Extra inputs are not permitted","input":"done"}]} -&gt; 422
+4) ดูงานที่สถานะ received
+[{"id":1,"customer_name":"Somchai Jaidee","device":"laptop","problem":"เปิดไม่ติด ไฟไม่เข้า","status":"received"},{"id":4,"customer_name":"Preeya Sukjai","device":"laptop","problem":"แป้นพิมพ์กดไม่ติด","status":"received"}] -&gt; 200
+5) limit เกิน 50
+{"detail":[{"type":"less_than_equal","loc":["query","limit"],"msg":"Input should be less than or equal to 50","input":"100","ctx":{"le":50}}]} -&gt; 422
+6) อัปเดตสถานะงาน 4 เป็น repairing
+{"id":4,"customer_name":"Preeya Sukjai","device":"laptop","problem":"แป้นพิมพ์กดไม่ติด","status":"repairing"} -&gt; 200
+7) ลบงาน 3 แล้วลองดูอีกครั้ง
+ -&gt; 204
+{"detail":"ไม่พบงานซ่อมนี้"} -&gt; 404
+8) ใช้ id ไม่ใช่ตัวเลข
+{"detail":[{"type":"int_parsing","loc":["path","ticket_id"],"msg":"Input should be a valid integer, unable to parse string as an integer","input":"abc"}]} -&gt; 422</code></pre>
+<p>Status Code (ตัวเลขหลัง <code>-&gt;</code>) เรียงเป็น 201, 422, 422, 200, 422, 200, 204, 404 และ 422 ตรงตามโจทย์ และไม่มี <code>phone</code> ใน Response ใดเลย แม้ dict ที่เก็บไว้ภายในจะมีเบอร์โทรอยู่ก็ตาม</p>
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>แยก Schema ตามทิศทางของข้อมูล:</strong> <code>TicketCreate</code> คือสิ่งที่ Client ส่งเข้ามา <code>TicketUpdate</code> คือสิ่งที่แก้ได้ และ <code>TicketOut</code> คือสิ่งที่ยอมให้ออกไป การใส่ <code>response_model=TicketOut</code> ทำให้ FastAPI กรอง Field ที่ไม่ได้ประกาศ (<code>phone</code>) ออกก่อนส่ง ข้อมูลส่วนตัวจึงไม่รั่วแม้ Handler จะ return dict ทั้งก้อน</li>
+<li><strong>ให้ Pydantic ทำ Validation แทน if-else:</strong> <code>Field(min_length=..., max_length=...)</code>, <code>pattern=r"^0\d{9}$"</code> และ <code>Literal[...]</code> ทำให้ Error ทุก Field ถูกรายงานพร้อมกันในครั้งเดียว (กรณีที่ 2 มี Error 4 รายการ) ผู้ใช้จึงแก้ได้ครบในรอบเดียว</li>
+<li><strong>กัน Mass Assignment ด้วย <code>extra="forbid"</code>:</strong> ลูกค้าแอบส่ง <code>"status":"done"</code> มาได้ 422 แบบ <code>extra_forbidden</code> และฝั่ง Server ยังเขียนทับ <code>"status": "received"</code> หลัง <code>model_dump()</code> อีกชั้นหนึ่ง เป็นการป้องกันสองชั้น</li>
+<li><strong>PATCH แก้เฉพาะที่ส่งมา:</strong> <code>model_dump(exclude_unset=True)</code> ได้ dict ที่มีแค่ Field ที่ Client ส่งจริง แล้วนำไป <code>update()</code> ข้อมูลเดิม</li>
+<li><strong>รวม Logic ที่ใช้ซ้ำไว้ที่เดียว:</strong> <code>find_ticket()</code> ทำให้ GET, PATCH และ DELETE ตอบ 404 ด้วยข้อความเดียวกันเสมอ ส่วน <code>Path(gt=0)</code> กันค่า 0 และค่าติดลบตั้งแต่ชั้น Validation</li>
+<li><strong>ตอบ Status Code ให้ตรงความหมาย:</strong> 201 ตอนสร้าง, 204 ตอนลบซึ่งไม่มี Body (บรรทัดของกรณีที่ 7 จึงขึ้นต้นด้วยช่องว่างตามด้วย <code>-&gt; 204</code>) และ 404 เมื่อหาไม่พบ</li>
+</ul>
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+<li>ย้ายข้อมูลจาก dict ไปเก็บใน SQLite ด้วย SQLAlchemy 2 ตามแนวคิดที่ 5 แล้วเพิ่มคอลัมน์ <code>created_at</code> เพื่อให้ข้อมูลไม่หายเมื่อปิด Server และเรียงงานจากเก่าไปใหม่ได้</li>
+<li>บังคับลำดับสถานะให้เดินหน้าอย่างเดียว คือ received ไป repairing แล้วไป done ถ้าพยายามย้อนจาก done กลับเป็น received ให้ตอบ 409 พร้อมข้อความภาษาไทยที่อธิบายเหตุผล</li>
+<li>เพิ่ม Endpoint <code>GET /tickets/{ticket_id}/track?phone=...</code> ให้ลูกค้าเช็กสถานะงานของตัวเองได้ โดยต้องใส่เบอร์โทรที่ตรงกับใบงานเท่านั้น ถ้าไม่ตรงให้ตอบ 404 เพื่อไม่บอกใบ้ว่ามีใบงานนี้อยู่</li>
+<li>เปลี่ยนการตอบ Error ทั้งหมดให้เป็นรูปแบบ <code>application/problem+json</code> (RFC 9457) ด้วย <code>exception_handler</code> ตามแนวคิดที่ 4 แล้วเขียน pytest ครอบคลุมทั้ง 8 กรณีแทนสคริปต์ curl</li>
+</ol>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 2: ระบบขอลางานของฝ่าย HR พร้อม Auth, Role และชุด Test</summary><div>
+<h5>โค้ดเต็ม</h5>
+<p>สร้างโฟลเดอร์ก่อน แพ็กเกจทั้งหมดติดตั้งไว้แล้วในส่วนวิธีใช้หน้านี้ (<code>sqlalchemy</code>, <code>pwdlib[argon2]</code>, <code>pyjwt</code>, <code>email-validator</code>, <code>python-multipart</code>, <code>pytest</code> และ <code>httpx2</code>)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code>cd ~/projects/backend-lab/practice
+mkdir -p leave_api
+cd leave_api
+source ../../.venv/bin/activate</code></pre>
+<p>ไฟล์แอปแบ่งเป็นส่วน Configuration, Models, Schemas, Dependencies และ Endpoints ในระบบใหญ่แต่ละส่วนจะแยกเป็นไฟล์ตามโครงสร้างของแนวคิดที่ 4 แต่โจทย์นี้รวมไว้ไฟล์เดียวเพื่อให้อ่านจบได้ในที่เดียว</p>
+<pre class="code" data-env="file" data-label="Python · practice/leave_api/app.py"><code># app.py: API ระบบขอลางานของฝ่าย HR (SQLAlchemy 2 + Argon2 + JWT + Role)
+import os
+from datetime import UTC, date, datetime, timedelta
+from typing import Annotated
+
+import jwt
+from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from pwdlib import PasswordHash
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from sqlalchemy import Date, ForeignKey, String, create_engine, func, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import (DeclarativeBase, Mapped, Session, mapped_column,
+                            relationship, sessionmaker)
+
+# ---------- Configuration: อ่านจาก Environment Variable ----------
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./leave.db")
+JWT_SECRET = os.environ.get("JWT_SECRET", "")
+if len(JWT_SECRET) &lt; 32:
+    # ไม่มี Secret หรือสั้นเกินไป ให้หยุดทันที ดีกว่าเปิดระบบที่ไม่ปลอดภัย
+    raise RuntimeError("ต้องตั้ง JWT_SECRET ยาวอย่างน้อย 32 ตัวอักษร")
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
+SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
+password_hash = PasswordHash.recommended()
+
+
+# ---------- Models ----------
+class Base(DeclarativeBase):
+    pass
+
+
+class Employee(Base):
+    __tablename__ = "employees"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True)
+    full_name: Mapped[str] = mapped_column(String(100))
+    hashed_password: Mapped[str] = mapped_column(String(255))
+    role: Mapped[str] = mapped_column(String(20), default="employee")
+    leaves: Mapped[list["LeaveRequest"]] = relationship(
+        back_populates="employee", cascade="all, delete-orphan")
+
+
+class LeaveRequest(Base):
+    __tablename__ = "leave_requests"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    employee_id: Mapped[int] = mapped_column(
+        ForeignKey("employees.id", ondelete="CASCADE"), index=True)
+    start_date: Mapped[date] = mapped_column(Date)
+    end_date: Mapped[date] = mapped_column(Date)
+    reason: Mapped[str] = mapped_column(String(300))
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    employee: Mapped[Employee] = relationship(back_populates="leaves")
+
+
+# ---------- Schemas ----------
+class EmployeeCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")  # กันการแอบส่ง role มาเอง
+    email: EmailStr
+    full_name: str = Field(min_length=1, max_length=100)
+    password: str = Field(min_length=8, max_length=128)
+
+
+class EmployeeOut(BaseModel):
+    id: int
+    email: EmailStr
+    full_name: str
+    role: str
+
+
+class LeaveCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    start_date: date
+    end_date: date
+    reason: str = Field(min_length=3, max_length=300)
+
+    @model_validator(mode="after")
+    def check_dates(self):
+        # ตรวจข้าม Field: วันสิ้นสุดต้องไม่ก่อนวันเริ่ม
+        if self.end_date &lt; self.start_date:
+            raise ValueError("end_date ต้องไม่ก่อน start_date")
+        return self
+
+
+class LeaveOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)  # อ่านค่าจาก ORM Object ได้
+    id: int
+    employee_id: int
+    start_date: date
+    end_date: date
+    reason: str
+    status: str
+
+
+class LeavePage(BaseModel):
+    items: list[LeaveOut]
+    total: int
+    limit: int
+    offset: int
+
+
+# ---------- Dependencies ----------
+def get_db():
+    # เปิด Session ต่อ 1 Request และปิดเสมอแม้เกิด Error
+    with SessionLocal() as db:
+        yield db
+
+
+DbSession = Annotated[Session, Depends(get_db)]
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+UNAUTHORIZED = HTTPException(status_code=401, detail="Token ไม่ถูกต้องหรือหมดอายุ",
+                             headers={"WWW-Authenticate": "Bearer"})
+
+
+def create_access_token(employee: Employee) -&gt; str:
+    now = datetime.now(UTC)
+    claims = {"sub": str(employee.id), "role": employee.role, "iat": now,
+              "exp": now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)}
+    return jwt.encode(claims, JWT_SECRET, algorithm="HS256")
+
+
+def get_current_employee(token: Annotated[str, Depends(oauth2_scheme)], db: DbSession) -&gt; Employee:
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+    except jwt.InvalidTokenError:  # รวม ExpiredSignatureError ด้วย
+        raise UNAUTHORIZED
+    employee = db.get(Employee, int(payload["sub"]))
+    if employee is None:
+        raise UNAUTHORIZED
+    return employee
+
+
+CurrentEmployee = Annotated[Employee, Depends(get_current_employee)]
+
+
+def require_role(role: str):
+    # Dependency Factory: สร้าง Dependency ที่ตรวจ Role จากฐานข้อมูล ไม่เชื่อค่าจาก Client
+    def checker(employee: CurrentEmployee) -&gt; Employee:
+        if employee.role != role:
+            raise HTTPException(status_code=403, detail="ไม่มีสิทธิ์ทำรายการนี้")
+        return employee
+    return checker
+
+
+# ---------- App และ Endpoints ----------
+app = FastAPI(title="Leave Request API")
+
+
+@app.post("/auth/register", response_model=EmployeeOut, status_code=201)
+def register(payload: EmployeeCreate, db: DbSession):
+    employee = Employee(email=payload.email, full_name=payload.full_name,
+                        hashed_password=password_hash.hash(payload.password))
+    db.add(employee)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="อีเมลนี้ถูกใช้แล้ว")
+    return employee
+
+
+@app.post("/auth/login")
+def login(form: Annotated[OAuth2PasswordRequestForm, Depends()], db: DbSession):
+    employee = db.scalar(select(Employee).where(Employee.email == form.username))
+    # ตอบข้อความเดียวกันทั้งกรณีไม่มีอีเมลและรหัสผิด เพื่อไม่บอกใบ้ผู้โจมตี
+    if employee is None or not password_hash.verify(form.password, employee.hashed_password):
+        raise HTTPException(status_code=401, detail="อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+                            headers={"WWW-Authenticate": "Bearer"})
+    return {"access_token": create_access_token(employee), "token_type": "bearer"}
+
+
+@app.post("/leaves", response_model=LeaveOut, status_code=201)
+def create_leave(payload: LeaveCreate, me: CurrentEmployee, db: DbSession):
+    # employee_id มาจาก Token เสมอ ไม่รับจาก Body
+    leave = LeaveRequest(**payload.model_dump(), employee_id=me.id)
+    db.add(leave)
+    db.commit()
+    return leave
+
+
+@app.get("/leaves/me", response_model=LeavePage)
+def my_leaves(me: CurrentEmployee, db: DbSession,
+              limit: Annotated[int, Query(ge=1, le=100)] = 20,
+              offset: Annotated[int, Query(ge=0)] = 0):
+    base = select(LeaveRequest).where(LeaveRequest.employee_id == me.id)
+    total = db.scalar(select(func.count()).select_from(base.subquery()))
+    items = db.scalars(base.order_by(LeaveRequest.id).limit(limit).offset(offset)).all()
+    return {"items": items, "total": total, "limit": limit, "offset": offset}
+
+
+@app.get("/leaves/{leave_id}", response_model=LeaveOut)
+def get_leave(leave_id: int, me: CurrentEmployee, db: DbSession):
+    leave = db.get(LeaveRequest, leave_id)
+    # ใบลาของคนอื่นตอบ 404 เหมือนไม่มีอยู่ (กัน BOLA และไม่บอกว่า id นี้มีจริง)
+    if leave is None or (leave.employee_id != me.id and me.role != "manager"):
+        raise HTTPException(status_code=404, detail="ไม่พบใบลานี้")
+    return leave
+
+
+@app.post("/leaves/{leave_id}/approve", response_model=LeaveOut)
+def approve_leave(leave_id: int, db: DbSession,
+                  manager: Annotated[Employee, Depends(require_role("manager"))]):
+    leave = db.get(LeaveRequest, leave_id)
+    if leave is None:
+        raise HTTPException(status_code=404, detail="ไม่พบใบลานี้")
+    if leave.status != "pending":
+        raise HTTPException(status_code=409, detail="ใบลานี้ถูกพิจารณาไปแล้ว")
+    leave.status = "approved"
+    db.commit()
+    return leave
+
+
+# สร้างตารางเมื่อเริ่มแอป (งานจริงควรใช้ Alembic Migration แทน)
+Base.metadata.create_all(engine)</code></pre>
+<p>ไฟล์ <code>conftest.py</code> ถูก pytest โหลดก่อนไฟล์ Test เสมอ จึงเป็นที่ที่เหมาะกับการตั้ง Environment Variable และ Fixture ที่ใช้ร่วมกัน</p>
+<pre class="code" data-env="file" data-label="Python · practice/leave_api/conftest.py"><code># conftest.py: ตั้งค่า Environment ก่อน import แอป และเตรียม Fixture ที่ใช้ร่วมกัน
+import os
+
+os.environ["DATABASE_URL"] = "sqlite://"  # Engine หลักของแอปจะไม่ถูกใช้ เพราะเราสลับ get_db
+os.environ["JWT_SECRET"] = "test-only-secret-not-for-production-0123456789"
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from app import Base, Employee, app, get_db, password_hash
+
+
+@pytest.fixture
+def session_factory():
+    # StaticPool ทำให้ทุก Connection ใช้ฐานข้อมูลในหน่วยความจำก้อนเดียวกัน
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False},
+                           poolclass=StaticPool)
+    Base.metadata.create_all(engine)  # ตารางใหม่ทุก Test จึงไม่มีข้อมูลค้างข้าม Test
+    yield sessionmaker(bind=engine, expire_on_commit=False)
+    engine.dispose()
+
+
+@pytest.fixture
+def client(session_factory):
+    def override_get_db():
+        with session_factory() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as c:
+        yield c
+    app.dependency_overrides.clear()  # ล้างทุกครั้ง กัน Test อื่นได้รับผลกระทบ
+
+
+def register_and_login(client, email, password="S3cure-pass!"):
+    # Helper: สมัครแล้ว Login คืนค่า Header สำหรับแนบ Token
+    client.post("/auth/register", json={"email": email, "full_name": email.split("@")[0],
+                                        "password": password})
+    r = client.post("/auth/login", data={"username": email, "password": password})
+    return {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+
+@pytest.fixture
+def somchai(client):
+    return register_and_login(client, "somchai@example.com")
+
+
+@pytest.fixture
+def manager(client, session_factory):
+    # ผู้จัดการถูกสร้างตรงในฐานข้อมูล เพราะ API สมัครได้แค่ Role employee
+    with session_factory() as db:
+        db.add(Employee(email="boss@example.com", full_name="Boss", role="manager",
+                        hashed_password=password_hash.hash("Manager-pass!1")))
+        db.commit()
+    r = client.post("/auth/login", data={"username": "boss@example.com",
+                                         "password": "Manager-pass!1"})
+    return {"Authorization": f"Bearer {r.json()['access_token']}"}</code></pre>
+<pre class="code" data-env="file" data-label="Python · practice/leave_api/test_leave.py"><code># test_leave.py: ทดสอบ API ขอลางานตามรูปแบบ Arrange-Act-Assert
+from conftest import register_and_login
+
+LEAVE = {"start_date": "2026-11-02", "end_date": "2026-11-04", "reason": "ไปงานแต่งญาติ"}
+
+
+def test_register_returns_201_and_duplicate_returns_409(client):
+    body = {"email": "suda@example.com", "full_name": "Suda", "password": "S3cure-pass!"}
+    first = client.post("/auth/register", json=body)
+    second = client.post("/auth/register", json=body)
+    assert first.status_code == 201
+    assert first.json()["role"] == "employee"
+    assert "hashed_password" not in first.json()
+    assert second.status_code == 409
+
+
+def test_register_rejects_role_from_body(client):
+    body = {"email": "x@example.com", "full_name": "X", "password": "S3cure-pass!",
+            "role": "manager"}
+    assert client.post("/auth/register", json=body).status_code == 422
+
+
+def test_login_with_wrong_password_returns_401(client, somchai):
+    r = client.post("/auth/login", data={"username": "somchai@example.com",
+                                         "password": "wrong-pass"})
+    assert r.status_code == 401
+
+
+def test_leaves_require_token(client):
+    r = client.get("/leaves/me")
+    assert r.status_code == 401
+    assert r.headers["www-authenticate"] == "Bearer"
+
+
+def test_end_date_before_start_date_returns_422(client, somchai):
+    bad = {**LEAVE, "end_date": "2026-11-01"}
+    assert client.post("/leaves", json=bad, headers=somchai).status_code == 422
+
+
+def test_other_employee_gets_404(client, somchai):
+    leave_id = client.post("/leaves", json=LEAVE, headers=somchai).json()["id"]
+    somying = register_and_login(client, "somying@example.com")
+    assert client.get(f"/leaves/{leave_id}", headers=somchai).status_code == 200
+    assert client.get(f"/leaves/{leave_id}", headers=somying).status_code == 404
+
+
+def test_employee_cannot_approve(client, somchai):
+    leave_id = client.post("/leaves", json=LEAVE, headers=somchai).json()["id"]
+    r = client.post(f"/leaves/{leave_id}/approve", headers=somchai)
+    assert r.status_code == 403
+
+
+def test_manager_approves_once(client, somchai, manager):
+    leave_id = client.post("/leaves", json=LEAVE, headers=somchai).json()["id"]
+    first = client.post(f"/leaves/{leave_id}/approve", headers=manager)
+    second = client.post(f"/leaves/{leave_id}/approve", headers=manager)
+    assert first.status_code == 200 and first.json()["status"] == "approved"
+    assert second.status_code == 409
+
+
+def test_pagination_returns_total(client, somchai):
+    for _ in range(5):
+        client.post("/leaves", json=LEAVE, headers=somchai)
+    page = client.get("/leaves/me?limit=2&amp;offset=4", headers=somchai).json()
+    assert page["total"] == 5
+    assert len(page["items"]) == 1
+    assert (page["limit"], page["offset"]) == (2, 4)</code></pre>
+<pre class="code" data-env="file" data-label="Bash · practice/leave_api/demo_leave.sh"><code>#!/usr/bin/env bash
+# demo_leave.sh: ลองใช้ API ขอลางานจริงผ่าน curl
+BASE=http://127.0.0.1:8000
+echo "1) สมัครสมาชิก"
+curl -s -w ' -&gt; %{http_code}\n' -X POST $BASE/auth/register -H 'Content-Type: application/json' \
+  -d '{"email":"somchai@example.com","full_name":"Somchai Jaidee","password":"S3cure-pass!"}'
+echo "2) Login แล้วเก็บ Token ไว้ในตัวแปร"
+TOKEN=$(curl -s -X POST $BASE/auth/login -d 'username=somchai@example.com&amp;password=S3cure-pass!' \
+  | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])')
+echo "ได้ Token ยาว ${#TOKEN} ตัวอักษร"
+echo "3) ยื่นใบลา"
+curl -s -w ' -&gt; %{http_code}\n' -X POST $BASE/leaves -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"start_date":"2026-11-02","end_date":"2026-11-04","reason":"ไปงานแต่งญาติ"}'
+echo "4) ดูใบลาของฉัน"
+curl -s -w ' -&gt; %{http_code}\n' "$BASE/leaves/me?limit=5" -H "Authorization: Bearer $TOKEN"
+echo "5) พนักงานพยายามอนุมัติใบลาเอง"
+curl -s -w ' -&gt; %{http_code}\n' -X POST $BASE/leaves/1/approve -H "Authorization: Bearer $TOKEN"</code></pre>
+<h5>วิธีรันและผลลัพธ์จริง</h5>
+<p>ขั้นที่ 1 รันชุด Test ซึ่งไม่ต้องเปิด Server และไม่แตะไฟล์ <code>leave.db</code> เพราะทุก Test ใช้ SQLite ในหน่วยความจำ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code>cd ~/projects/backend-lab/practice/leave_api
+python -m pytest -q</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>.........                                                                [100%]
+9 passed in 1.48s</code></pre>
+<p>เวลาที่ใช้ในเครื่องคุณจะต่างไปเล็กน้อย ส่วนสำคัญคือ <code>9 passed</code> ขั้นที่ 2 ลองเปิดแอปโดยไม่ตั้ง <code>JWT_SECRET</code> เพื่อดูว่าแอปหยุดทันทีจริง (แสดงเฉพาะ 3 บรรทัดท้ายของ Traceback)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code>unset JWT_SECRET
+uvicorn app:app --port 8000</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>  File "/home/somchai/projects/backend-lab/practice/leave_api/app.py", line 21, in &lt;module&gt;
+    raise RuntimeError("ต้องตั้ง JWT_SECRET ยาวอย่างน้อย 32 ตัวอักษร")
+RuntimeError: ต้องตั้ง JWT_SECRET ยาวอย่างน้อย 32 ตัวอักษร</code></pre>
+<p>ขั้นที่ 3 ตั้ง Secret สำหรับเครื่องพัฒนาแล้วเปิด Server ใน Terminal 1 ค่านี้ใช้แค่ในเครื่องของคุณ ห้ามนำไปใช้จริงและห้าม Commit ลง Git</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code># Terminal 1: ลบฐานข้อมูลเก่า (ถ้ามี) แล้วเปิด Server พร้อม Secret สำหรับเครื่องพัฒนา
+rm -f leave.db
+JWT_SECRET=dev-only-secret-change-me-0123456789abcdef uvicorn app:app --port 8000</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code># Terminal 2: ลองใช้งานจริงผ่าน curl
+cd ~/projects/backend-lab/practice/leave_api
+chmod +x demo_leave.sh
+./demo_leave.sh</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>1) สมัครสมาชิก
+{"id":1,"email":"somchai@example.com","full_name":"Somchai Jaidee","role":"employee"} -&gt; 201
+2) Login แล้วเก็บ Token ไว้ในตัวแปร
+ได้ Token ยาว 165 ตัวอักษร
+3) ยื่นใบลา
+{"id":1,"employee_id":1,"start_date":"2026-11-02","end_date":"2026-11-04","reason":"ไปงานแต่งญาติ","status":"pending"} -&gt; 201
+4) ดูใบลาของฉัน
+{"items":[{"id":1,"employee_id":1,"start_date":"2026-11-02","end_date":"2026-11-04","reason":"ไปงานแต่งญาติ","status":"pending"}],"total":1,"limit":5,"offset":0} -&gt; 200
+5) พนักงานพยายามอนุมัติใบลาเอง
+{"detail":"ไม่มีสิทธิ์ทำรายการนี้"} -&gt; 403</code></pre>
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>Fail fast เรื่อง Secret:</strong> แอปตรวจความยาว <code>JWT_SECRET</code> ตั้งแต่ตอน import ถ้าไม่ผ่านจะหยุดทันที ดีกว่าปล่อยให้แอปเปิดด้วย Secret ว่างที่ใครก็ปลอม Token ได้ ใน Mini Project ของ Part 4 งานนี้ย้ายไปอยู่ใน <code>pydantic-settings</code> ซึ่งทำได้เป็นระบบกว่า</li>
+<li><strong>Authentication กับ Authorization แยกชั้นกัน:</strong> <code>get_current_employee</code> ตอบคำถามว่า "คุณคือใคร" (ไม่ผ่านได้ 401 พร้อม <code>WWW-Authenticate: Bearer</code>) ส่วน <code>require_role("manager")</code> ตอบคำถามว่า "คุณทำสิ่งนี้ได้ไหม" (ไม่ผ่านได้ 403) Dependency Factory ทำให้ใช้ซ้ำกับ Role อื่นได้ด้วยบรรทัดเดียว</li>
+<li><strong>เชื่อแค่ข้อมูลจาก Server:</strong> Role อ่านจากแถวในฐานข้อมูลที่ได้จาก <code>sub</code> ใน Token ไม่ได้อ่านจาก Body ส่วน <code>employee_id</code> ของใบลามาจาก Token เสมอ และ <code>extra="forbid"</code> ทำให้การแอบส่ง <code>role</code> ตอนสมัครได้ 422</li>
+<li><strong>Object-level Authorization:</strong> <code>GET /leaves/{leave_id}</code> ตอบ 404 เมื่อเป็นใบลาของคนอื่น ป้องกัน BOLA ตาม OWASP API1 ในเฉลยนี้ยอมให้ manager ดูได้ทุกใบ เพราะหัวหน้าต้องเห็นใบลาก่อนอนุมัติ</li>
+<li><strong>กันการอนุมัติซ้ำ:</strong> ตรวจ <code>leave.status != "pending"</code> แล้วตอบ 409 ระบบจึงไม่บันทึกการอนุมัติซ้ำเหมือนปัญหาเดิมของ Google Form</li>
+<li><strong>Pagination ที่บอกจำนวนทั้งหมด:</strong> นับ <code>total</code> จาก Subquery ของเงื่อนไขเดียวกัน แล้วค่อยใส่ <code>limit</code> และ <code>offset</code> Frontend จึงคำนวณจำนวนหน้าได้ ส่วน <code>Query(le=100)</code> กันไม่ให้ใครขอทีละล้านแถว</li>
+<li><strong>Test ที่แยกขาดจากกัน:</strong> ทุก Test ได้ Engine ใหม่และตารางใหม่ <code>StaticPool</code> ทำให้ฐานข้อมูลในหน่วยความจำอยู่ครบทั้ง Test และ <code>dependency_overrides.clear()</code> คืนค่าเดิมหลังจบ Test แต่ละข้อจึงรันลำดับไหนก็ได้ผลเหมือนเดิม หัวหน้าถูกสร้างตรงในฐานข้อมูลผ่าน Fixture เพราะ API ไม่เปิดให้สมัครเป็น manager</li>
+<li><strong>ไม่บอกใบ้ผู้โจมตี:</strong> Login ที่ผิดทั้งกรณีไม่มีอีเมลและรหัสผิดตอบข้อความเดียวกัน ผู้โจมตีจึงใช้หน้า Login ตรวจว่าอีเมลไหนมีบัญชีอยู่ไม่ได้</li>
+</ul>
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+<li>เพิ่ม Endpoint <code>POST /leaves/{leave_id}/reject</code> ที่ต้องใส่เหตุผล และเก็บว่าใครอนุมัติหรือปฏิเสธเมื่อไร (คอลัมน์ <code>decided_by</code> และ <code>decided_at</code>) เพื่อใช้ตรวจสอบย้อนหลัง</li>
+<li>เพิ่มตาราง Department ให้หัวหน้าเห็นและอนุมัติได้เฉพาะใบลาของลูกทีมในแผนกตัวเอง แล้วเขียน Test ยืนยันว่าหัวหน้าแผนกอื่นได้ 404</li>
+<li>คำนวณโควตาวันลาพักร้อน เช่น ปีละ 10 วัน แล้วตอบ 409 เมื่อยื่นใบลาเกินโควตาที่เหลือ และตรวจไม่ให้ใบลาของคนเดียวกันมีช่วงวันที่ซ้อนกัน</li>
+<li>ย้ายไปใช้ PostgreSQL 16 กับ Alembic Migration ตามแนวคิดที่ 5 และ 6 แล้วตั้ง GitHub Actions ให้รัน <code>pytest</code> ทุกครั้งที่ Push ตามแนวคิดที่ 12</li>
+<li>ใช้ <code>BackgroundTasks</code> ส่งอีเมลจำลอง (เขียนเป็น Log) แจ้งพนักงานเมื่อใบลาได้รับการอนุมัติ ตามแนวคิดที่ 9</li>
+</ol>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 3: API สินค้า Flash Sale พร้อม Redis Cache, Rate Limit และ JSON Log</summary><div>
+<h5>โค้ดเต็ม</h5>
+<p>ติดตั้งและเปิด Redis ก่อน (ถ้าทำแนวคิดที่ 10 ไว้แล้วข้ามคำสั่งติดตั้งได้) จากนั้นสร้างโฟลเดอร์ของโจทย์</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code># ติดตั้ง Redis 7.0.15 จาก apt แล้วเปิด Service
+sudo apt install -y redis-server
+sudo service redis-server start
+redis-cli PING
+# สร้างโฟลเดอร์ของโจทย์และเปิด venv
+cd ~/projects/backend-lab/practice
+mkdir -p flash_api
+cd flash_api
+source ../../.venv/bin/activate</code></pre>
+<p>คำสั่ง apt จะพิมพ์ข้อความติดตั้งยาวหลายบรรทัด ส่วนที่ต้องตรวจคือบรรทัดสุดท้ายจาก <code>redis-cli PING</code> ซึ่งต้องเป็นแบบนี้</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>PONG</code></pre>
+<pre class="code" data-env="file" data-label="Python · practice/flash_api/app.py"><code># app.py: API สินค้า Flash Sale พร้อม Redis Cache, Rate Limit, JSON Log และ Health Check
+import json
+import logging
+import os
+import threading
+import time
+import uuid
+from copy import deepcopy
+from datetime import UTC, datetime
+from typing import Annotated
+
+import redis
+from redis.backoff import NoBackoff
+from redis.retry import Retry
+from fastapi import Depends, FastAPI, HTTPException, Request
+from pydantic import BaseModel, ConfigDict, Field
+
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+CACHE_TTL_SECONDS = 30
+BUY_LIMIT = 5            # ซื้อได้ไม่เกิน 5 ครั้ง
+BUY_WINDOW_SECONDS = 60  # ต่อ 60 วินาที ต่อ IP
+
+
+# ---------- Structured Logging: 1 บรรทัด = 1 JSON ----------
+class JsonFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -&gt; str:
+        data = {
+            "time": datetime.fromtimestamp(record.created, UTC).isoformat(timespec="milliseconds"),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        data.update(getattr(record, "fields", {}))  # Field เพิ่มเติม เช่น request_id
+        return json.dumps(data, ensure_ascii=False)
+
+
+logger = logging.getLogger("flashsale")
+_handler = logging.StreamHandler()
+_handler.setFormatter(JsonFormatter())
+logger.handlers = [_handler]
+logger.setLevel(logging.INFO)
+logger.propagate = False
+
+
+def log(level: int, message: str, **fields) -&gt; None:
+    logger.log(level, message, extra={"fields": fields})
+
+
+# ---------- "ฐานข้อมูล" จำลอง: ช้า 300 ms ต่อ Query ----------
+SEED = {
+    1: {"id": 1, "name": "หูฟังไร้สาย", "price": 990, "stock": 3},
+    2: {"id": 2, "name": "Power Bank 20000mAh", "price": 590, "stock": 100},
+}
+PRODUCTS: dict[int, dict] = deepcopy(SEED)
+stock_lock = threading.Lock()  # กันสองคำขอตัดสต็อกชิ้นสุดท้ายพร้อมกัน
+
+
+def reset_products() -&gt; None:
+    PRODUCTS.clear()
+    PRODUCTS.update(deepcopy(SEED))
+
+
+def db_get_product(product_id: int) -&gt; dict | None:
+    time.sleep(0.3)  # จำลอง Query หนักในช่วงคนเข้าเยอะ
+    product = PRODUCTS.get(product_id)
+    return dict(product) if product else None
+
+
+# ---------- Cache: ทุกคำสั่ง Redis ห้ามทำให้ API ล่ม ----------
+class Cache:
+    def __init__(self, client: redis.Redis):
+        self.client = client
+
+    def get_json(self, key: str) -&gt; dict | None:
+        try:
+            raw = self.client.get(key)
+        except redis.exceptions.RedisError as exc:
+            log(logging.WARNING, "cache get failed", key=key, error=type(exc).__name__)
+            return None
+        return json.loads(raw) if raw else None
+
+    def set_json(self, key: str, value: dict, ttl: int) -&gt; None:
+        try:
+            self.client.set(key, json.dumps(value, ensure_ascii=False), ex=ttl)
+        except redis.exceptions.RedisError as exc:
+            log(logging.WARNING, "cache set failed", key=key, error=type(exc).__name__)
+
+    def delete(self, key: str) -&gt; None:
+        try:
+            self.client.delete(key)
+        except redis.exceptions.RedisError as exc:
+            log(logging.WARNING, "cache delete failed", key=key, error=type(exc).__name__)
+
+    def retry_after(self, key: str, limit: int, window: int) -&gt; int | None:
+        """Fixed Window: คืนจำนวนวินาทีที่ต้องรอ ถ้าเกินโควตา หรือ None ถ้ายังไม่เกิน"""
+        try:
+            count = self.client.incr(key)
+            if count == 1:
+                self.client.expire(key, window)  # เริ่มนับหน้าต่างเวลาใหม่
+            if count &gt; limit:
+                ttl = self.client.ttl(key)
+                return ttl if ttl &gt; 0 else window
+            return None
+        except redis.exceptions.RedisError as exc:
+            # Fail-open: Redis ล่มแล้วยังขายของได้ แต่บันทึก Log ไว้ให้ทีมรู้
+            log(logging.WARNING, "rate limit skipped", key=key, error=type(exc).__name__)
+            return None
+
+    def ping(self) -&gt; bool:
+        try:
+            return bool(self.client.ping())
+        except redis.exceptions.RedisError:
+            return False
+
+
+# Retry(NoBackoff(), 1) = ลองใหม่ 1 ครั้งทันที ค่าเริ่มต้นของ redis-py รอ Backoff นานหลายวินาที
+_cache = Cache(redis.Redis.from_url(REDIS_URL, decode_responses=True,
+                                    socket_connect_timeout=0.5, socket_timeout=0.5,
+                                    retry=Retry(NoBackoff(), 1)))
+
+
+def get_cache() -&gt; Cache:
+    return _cache
+
+
+CacheDep = Annotated[Cache, Depends(get_cache)]
+
+
+class PriceUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")  # ห้ามแอบแก้ stock ผ่าน Endpoint นี้
+    price: int = Field(gt=0, le=1_000_000)
+
+
+app = FastAPI(title="Flash Sale API")
+
+
+@app.middleware("http")
+async def access_log(request: Request, call_next):
+    # ใช้ X-Request-ID จาก Client ถ้ามี ไม่งั้นสร้างใหม่ เพื่อไล่ Log ข้ามระบบได้
+    request_id = request.headers.get("x-request-id") or uuid.uuid4().hex[:12]
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration_ms = round((time.perf_counter() - start) * 1000, 1)
+    response.headers["x-request-id"] = request_id
+    log(logging.INFO, "request", request_id=request_id, method=request.method,
+        path=request.url.path, status=response.status_code, duration_ms=duration_ms)
+    return response
+
+
+def product_key(product_id: int) -&gt; str:
+    return f"product:{product_id}"
+
+
+@app.get("/products/{product_id}")
+def get_product(product_id: int, cache: CacheDep):
+    cached = cache.get_json(product_key(product_id))
+    if cached is not None:
+        return {**cached, "cached": True}
+    product = db_get_product(product_id)  # Cache Miss: ไปถามฐานข้อมูล
+    if product is None:
+        raise HTTPException(status_code=404, detail="ไม่พบสินค้านี้")
+    cache.set_json(product_key(product_id), product, CACHE_TTL_SECONDS)
+    return {**product, "cached": False}
+
+
+@app.patch("/products/{product_id}")
+def update_price(product_id: int, payload: PriceUpdate, cache: CacheDep):
+    product = PRODUCTS.get(product_id)
+    if product is None:
+        raise HTTPException(status_code=404, detail="ไม่พบสินค้านี้")
+    product["price"] = payload.price
+    cache.delete(product_key(product_id))  # Invalidation: ลบ Cache ทันทีที่ข้อมูลเปลี่ยน
+    return product
+
+
+def limit_buy(request: Request, cache: CacheDep) -&gt; None:
+    ip = request.client.host if request.client else "unknown"
+    wait = cache.retry_after(f"rl:buy:{ip}", BUY_LIMIT, BUY_WINDOW_SECONDS)
+    if wait is not None:
+        raise HTTPException(status_code=429, detail="สั่งซื้อถี่เกินไป กรุณารอสักครู่",
+                            headers={"Retry-After": str(wait)})
+
+
+@app.post("/products/{product_id}/buy", dependencies=[Depends(limit_buy)])
+def buy(product_id: int, cache: CacheDep):
+    with stock_lock:
+        product = PRODUCTS.get(product_id)
+        if product is None:
+            raise HTTPException(status_code=404, detail="ไม่พบสินค้านี้")
+        if product["stock"] &lt;= 0:
+            raise HTTPException(status_code=409, detail="สินค้าหมดแล้ว")
+        product["stock"] -= 1
+        remaining = product["stock"]
+    cache.delete(product_key(product_id))  # สต็อกเปลี่ยน ต้องลบ Cache เช่นกัน
+    return {"product_id": product_id, "remaining": remaining}
+
+
+@app.get("/health")
+def health(cache: CacheDep):
+    # ระบบยังขายได้แม้ Redis ล่ม จึงตอบ 200 แต่บอกสถานะ degraded ให้ Monitoring เห็น
+    redis_ok = cache.ping()
+    return {"status": "ok" if redis_ok else "degraded", "redis": "ok" if redis_ok else "down"}</code></pre>
+<pre class="code" data-env="file" data-label="Python · practice/flash_api/test_flash.py"><code># test_flash.py: ทดสอบ Cache, Invalidation, Rate Limit และ Fallback ด้วย fakeredis
+import fakeredis
+import pytest
+import redis
+from redis.backoff import NoBackoff
+from redis.retry import Retry
+from fastapi.testclient import TestClient
+
+from app import Cache, app, get_cache, reset_products
+
+
+@pytest.fixture
+def cache():
+    return Cache(fakeredis.FakeRedis(decode_responses=True))  # Redis ปลอมในหน่วยความจำ
+
+
+@pytest.fixture
+def client(cache):
+    reset_products()  # สินค้าเริ่มต้นใหม่ทุก Test
+    app.dependency_overrides[get_cache] = lambda: cache
+    with TestClient(app) as c:
+        yield c
+    app.dependency_overrides.clear()
+
+
+def test_first_request_miss_then_hit(client, cache):
+    first = client.get("/products/1").json()
+    second = client.get("/products/1").json()
+    assert first["cached"] is False
+    assert second["cached"] is True
+    assert 0 &lt; cache.client.ttl("product:1") &lt;= 30
+
+
+def test_patch_invalidates_cache(client):
+    client.get("/products/1")
+    client.patch("/products/1", json={"price": 790})
+    after = client.get("/products/1").json()
+    assert after["cached"] is False
+    assert after["price"] == 790
+
+
+def test_buy_until_sold_out_returns_409(client):
+    codes = [client.post("/products/1/buy").status_code for _ in range(4)]
+    assert codes == [200, 200, 200, 409]
+    assert client.get("/products/1").json()["stock"] == 0
+
+
+def test_rate_limit_returns_429_with_retry_after(client):
+    responses = [client.post("/products/2/buy") for _ in range(6)]
+    assert [r.status_code for r in responses] == [200, 200, 200, 200, 200, 429]
+    assert 1 &lt;= int(responses[-1].headers["retry-after"]) &lt;= 60
+
+
+def test_mass_assignment_is_rejected(client):
+    r = client.patch("/products/1", json={"price": 1, "stock": 9999})
+    assert r.status_code == 422
+
+
+def test_request_id_is_echoed(client):
+    r = client.get("/health", headers={"X-Request-ID": "order-abc123"})
+    assert r.headers["x-request-id"] == "order-abc123"
+
+
+def test_api_still_works_when_redis_is_down(client):
+    # ชี้ไปที่ Port ที่ไม่มี Redis เพื่อจำลอง Redis ล่มของจริง
+    down = Cache(redis.Redis(host="127.0.0.1", port=6390, socket_connect_timeout=0.2,
+                             retry=Retry(NoBackoff(), 1)))
+    app.dependency_overrides[get_cache] = lambda: down
+    assert client.get("/products/2").json()["cached"] is False
+    assert client.post("/products/2/buy").status_code == 200  # Fail-open
+    assert client.get("/health").json() == {"status": "degraded", "redis": "down"}</code></pre>
+<pre class="code" data-env="file" data-label="Bash · practice/flash_api/demo_flash.sh"><code>#!/usr/bin/env bash
+# demo_flash.sh: ทดลอง Cache, Invalidation และ Rate Limit กับ Redis จริง
+BASE=http://127.0.0.1:8000
+T=' -&gt; %{http_code} ใน %{time_total}s\n'
+echo "1) ดูสินค้าครั้งแรก (MISS) และครั้งที่สอง (HIT)"
+curl -s -w "$T" $BASE/products/1
+curl -s -w "$T" $BASE/products/1
+echo "2) TTL ที่เหลือของ Cache"
+redis-cli TTL product:1
+echo "3) ลดราคาแล้วดูอีกครั้ง"
+curl -s -w ' -&gt; %{http_code}\n' -X PATCH $BASE/products/1 -H 'Content-Type: application/json' -d '{"price":790}'
+redis-cli EXISTS product:1
+curl -s -w "$T" $BASE/products/1
+echo "4) กดซื้อ Power Bank 6 ครั้งติดกัน"
+for i in 1 2 3 4 5 6; do
+  curl -s -o /dev/null -w "ครั้งที่ $i -&gt; %{http_code}\n" -X POST $BASE/products/2/buy
+done
+curl -s -i -X POST $BASE/products/2/buy | grep -iE '^(HTTP|retry-after)'
+echo "5) Health Check"
+curl -s -w ' -&gt; %{http_code}\n' $BASE/health</code></pre>
+<h5>วิธีรันและผลลัพธ์จริง</h5>
+<p>ขั้นที่ 1 รันชุด Test ซึ่งใช้ fakeredis จึงไม่แตะข้อมูลใน Redis จริง Test ข้อสุดท้ายชี้ไปที่ Port 6390 ที่ไม่มีอะไรฟังอยู่ เพื่อจำลอง Redis ล่ม</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code>cd ~/projects/backend-lab/practice/flash_api
+python -m pytest -q</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>.......                                                                  [100%]
+7 passed in 2.09s</code></pre>
+<p>ขั้นที่ 2 ล้าง Redis ของเครื่องพัฒนา แล้วเปิด Server ใน Terminal 1 ตัวเลือก <code>--no-access-log</code> ปิด Access Log แบบข้อความของ Uvicorn เพราะ Middleware ของเราเขียน Log แบบ JSON ให้แล้ว</p>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p><code>redis-cli FLUSHDB</code> ลบทุก Key ในฐานข้อมูลที่ 0 ใช้ได้กับ Redis ในเครื่องพัฒนาของคุณเท่านั้น ห้ามรันกับ Redis ของ Production เด็ดขาด</p></div>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code># Terminal 1: ล้างข้อมูลทดลองเก่า แล้วเปิด Server
+redis-cli FLUSHDB
+uvicorn app:app --port 8000 --no-access-log</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code># Terminal 2: ทดลอง Cache, Invalidation และ Rate Limit กับ Redis จริง
+cd ~/projects/backend-lab/practice/flash_api
+chmod +x demo_flash.sh
+./demo_flash.sh</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>1) ดูสินค้าครั้งแรก (MISS) และครั้งที่สอง (HIT)
+{"id":1,"name":"หูฟังไร้สาย","price":990,"stock":3,"cached":false} -&gt; 200 ใน 0.318850s
+{"id":1,"name":"หูฟังไร้สาย","price":990,"stock":3,"cached":true} -&gt; 200 ใน 0.003455s
+2) TTL ที่เหลือของ Cache
+30
+3) ลดราคาแล้วดูอีกครั้ง
+{"id":1,"name":"หูฟังไร้สาย","price":790,"stock":3} -&gt; 200
+0
+{"id":1,"name":"หูฟังไร้สาย","price":790,"stock":3,"cached":false} -&gt; 200 ใน 0.302723s
+4) กดซื้อ Power Bank 6 ครั้งติดกัน
+ครั้งที่ 1 -&gt; 200
+ครั้งที่ 2 -&gt; 200
+ครั้งที่ 3 -&gt; 200
+ครั้งที่ 4 -&gt; 200
+ครั้งที่ 5 -&gt; 200
+ครั้งที่ 6 -&gt; 429
+HTTP/1.1 429 Too Many Requests
+retry-after: 60
+5) Health Check
+{"status":"ok","redis":"ok"} -&gt; 200</code></pre>
+<p>Log แบบ JSON ใน Terminal 1 มี 1 บรรทัดต่อ 1 Request (แสดง 6 บรรทัดแรก) สังเกตว่า <code>duration_ms</code> ของ Cache Miss อยู่ราว 300 ms ส่วน Cache Hit เหลือราว 2 ms ค่า <code>time</code>, <code>request_id</code> และ <code>duration_ms</code> ในเครื่องคุณจะต่างไป</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"time": "2026-10-21T22:27:44.238+00:00", "level": "INFO", "logger": "flashsale", "message": "request", "request_id": "647617574451", "method": "GET", "path": "/products/1", "status": 200, "duration_ms": 305.8}
+{"time": "2026-10-21T22:27:44.248+00:00", "level": "INFO", "logger": "flashsale", "message": "request", "request_id": "afde647025bc", "method": "GET", "path": "/products/1", "status": 200, "duration_ms": 2.1}
+{"time": "2026-10-21T22:27:44.263+00:00", "level": "INFO", "logger": "flashsale", "message": "request", "request_id": "c05f70205cb7", "method": "PATCH", "path": "/products/1", "status": 200, "duration_ms": 1.9}
+{"time": "2026-10-21T22:27:44.577+00:00", "level": "INFO", "logger": "flashsale", "message": "request", "request_id": "9aebe73688ca", "method": "GET", "path": "/products/1", "status": 200, "duration_ms": 301.9}
+{"time": "2026-10-21T22:27:44.588+00:00", "level": "INFO", "logger": "flashsale", "message": "request", "request_id": "0c38f93e4052", "method": "POST", "path": "/products/2/buy", "status": 200, "duration_ms": 2.5}
+{"time": "2026-10-21T22:27:44.597+00:00", "level": "INFO", "logger": "flashsale", "message": "request", "request_id": "71ace8ace9f1", "method": "POST", "path": "/products/2/buy", "status": 200, "duration_ms": 1.5}</code></pre>
+<p>ขั้นที่ 3 หยุด Redis ขณะที่ Server ยังทำงานอยู่ แล้วเรียก API ซ้ำใน Terminal 2 เพื่อพิสูจน์ว่าระบบไม่ล่มตาม</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code># Terminal 2: หยุด Redis แล้วเรียกดูสินค้าและ Health Check
+sudo service redis-server stop
+curl -s -w ' -&gt; %{http_code} ใน %{time_total}s\n' http://127.0.0.1:8000/products/2
+curl -s -w ' -&gt; %{http_code}\n' http://127.0.0.1:8000/health</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Stopping redis-server: redis-server.
+{"id":2,"name":"Power Bank 20000mAh","price":590,"stock":95,"cached":false} -&gt; 200 ใน 0.303848s
+{"status":"degraded","redis":"down"} -&gt; 200</code></pre>
+<p>API ยังตอบ 200 ด้วยข้อมูลจากฐานข้อมูล (<code>"cached":false</code> และใช้เวลาราว 300 ms เท่ากับ Query ปกติ) และ <code>/health</code> รายงานสถานะ <code>degraded</code> ให้ระบบ Monitoring เห็น ส่วน Terminal 1 มี Log ระดับ WARNING บอกว่า Cache อ่านและเขียนไม่ได้:</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"time": "2026-10-21T22:27:47.282+00:00", "level": "WARNING", "logger": "flashsale", "message": "cache get failed", "key": "product:2", "error": "ConnectionError"}
+{"time": "2026-10-21T22:27:47.583+00:00", "level": "WARNING", "logger": "flashsale", "message": "cache set failed", "key": "product:2", "error": "ConnectionError"}
+{"time": "2026-10-21T22:27:47.584+00:00", "level": "INFO", "logger": "flashsale", "message": "request", "request_id": "58121b9861fe", "method": "GET", "path": "/products/2", "status": 200, "duration_ms": 302.8}
+{"time": "2026-10-21T22:27:47.593+00:00", "level": "INFO", "logger": "flashsale", "message": "request", "request_id": "f1b27d3458bf", "method": "GET", "path": "/health", "status": 200, "duration_ms": 1.3}</code></pre>
+<p>ทดลองเสร็จแล้วอย่าลืมเปิด Redis กลับมาด้วย <code>sudo service redis-server start</code> แล้วกด <kbd>Ctrl</kbd>+<kbd>C</kbd> ใน Terminal 1 เพื่อปิด Server</p>
+<p>สต็อกของ Power Bank เหลือ 95 เพราะสคริปต์ demo กดซื้อสำเร็จ 5 ครั้ง ส่วนครั้งที่ 6 และครั้งที่ 7 (บรรทัด <code>curl -i</code>) ถูก Rate Limit ตอบ 429 ทั้งคู่ จึงไม่ตัดสต็อก</p>
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>Cache-aside:</strong> อ่าน Cache ก่อน ถ้าไม่เจอ (Miss) ให้ถามฐานข้อมูลแล้วเขียนผลลง Cache พร้อม TTL 30 วินาที ครั้งต่อไปจะเป็น Hit ผลจริงลดเวลาจากราว 319 ms เหลือราว 3.5 ms ต่อ Request ฐานข้อมูลจึงรับภาระน้อยลงมากในช่วงคนเข้าพร้อมกัน</li>
+<li><strong>Invalidation ทุกครั้งที่ข้อมูลเปลี่ยน:</strong> ทั้ง PATCH ราคาและการกดซื้อ (สต็อกเปลี่ยน) เรียก <code>cache.delete()</code> ทันที ผลจริงคือ <code>redis-cli EXISTS product:1</code> ได้ 0 หลังลดราคา และการอ่านครั้งถัดไปเป็น Miss ที่ได้ราคาใหม่ 790 บาท TTL เป็นแค่ตาข่ายกันพลาดชั้นที่สอง ไม่ใช่วิธีหลักในการทำให้ข้อมูลถูกต้อง</li>
+<li><strong>Rate Limit แบบ Fixed Window:</strong> <code>INCR</code> ตัวนับ <code>rl:buy:{ip}</code> และตั้ง <code>EXPIRE</code> 60 วินาทีเมื่อเป็นครั้งแรก เกิน 5 ครั้งตอบ 429 พร้อม <code>Retry-After</code> ที่อ่านจาก TTL จริงของ Key การใส่ไว้ใน <code>dependencies=[Depends(limit_buy)]</code> ทำให้ตรวจก่อนเข้า Handler Request ที่เกินโควตาจึงไม่แตะสต็อกเลย</li>
+<li><strong>Graceful Degradation:</strong> คลาส <code>Cache</code> จับ <code>RedisError</code> ทุกจุด อ่าน Cache ไม่ได้ให้ถือเป็น Miss เขียนไม่ได้ก็ข้าม และ Rate Limit เลือกแบบ Fail-open (ยอมให้ผ่าน) เพราะการหยุดขายทั้งระบบเสียหายกว่าการไม่มี Rate Limit ชั่วคราว ระบบที่ต้องการความปลอดภัยสูงกว่า เช่น หน้า Login อาจเลือก Fail-closed แทน การเลือกนี้ต้องคุยกับทีมและเขียนเหตุผลไว้</li>
+<li><strong>ตั้ง Timeout และ Retry ให้สั้น:</strong> redis-py 8 มีการ Retry พร้อม Backoff เป็นค่าเริ่มต้น ถ้าไม่ปรับ ทุก Request จะค้างหลายวินาทีเมื่อ Redis ล่ม <code>socket_connect_timeout=0.5</code> คู่กับ <code>Retry(NoBackoff(), 1)</code> ทำให้ล้มเร็วและไปถามฐานข้อมูลแทนทันที ผลจริงคือเรียกสินค้าตอน Redis ล่มใช้เวลาราว 304 ms ซึ่งเกือบเท่ากับเวลา Query ล้วน ๆ</li>
+<li><strong>Structured Log ที่ไล่ได้:</strong> Log ทุกบรรทัดเป็น JSON ที่มี <code>request_id</code>, <code>method</code>, <code>path</code>, <code>status</code> และ <code>duration_ms</code> ระบบรวม Log อย่าง Loki หรือ Elasticsearch จึงค้นหาได้ทันที เช่น หา Request ที่ <code>status</code> เป็น 429 หรือช้ากว่า 200 ms และ Header <code>x-request-id</code> ที่ส่งกลับไปช่วยให้ทีม Support ไล่ปัญหาจากฝั่งลูกค้าได้</li>
+<li><strong>กัน Race Condition ของสต็อก:</strong> <code>threading.Lock()</code> กันไม่ให้สอง Request ใน Process เดียวกันตัดชิ้นสุดท้ายพร้อมกัน (FastAPI รัน Handler แบบ <code>def</code> ใน Thread Pool) แต่ Lock นี้ใช้ได้แค่ใน Process เดียว ถ้ารันหลาย Worker หรือหลายเครื่อง ต้องย้ายการตัดสต็อกไปทำแบบ Atomic ที่ฐานข้อมูลแทน (ดูไอเดียต่อยอดข้อ 1)</li>
+<li><strong>Test ที่ไม่ต้องพึ่ง Redis จริง:</strong> แยก <code>get_cache()</code> เป็น Dependency แล้วสลับเป็น <code>fakeredis</code> ผ่าน <code>dependency_overrides</code> ทำให้ Test รันได้ทุกที่ รวมถึงใน CI ส่วนกรณี Redis ล่มทดสอบด้วยการชี้ไปที่ Port ที่ไม่มีอะไรฟังอยู่ ซึ่งเหมือนของจริงกว่าการ Mock</li>
+</ul>
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+<li>ย้ายสินค้าไปเก็บใน PostgreSQL 16 แล้วตัดสต็อกด้วย <code>UPDATE products SET stock = stock - 1 WHERE id = :id AND stock &gt; 0</code> เพียงคำสั่งเดียว แล้วดูจำนวนแถวที่ถูกแก้ ถ้าเป็น 0 แปลว่าของหมด วิธีนี้ถูกต้องแม้รันหลาย Worker และหลายเครื่อง จึงเลิกใช้ <code>threading.Lock</code> ได้</li>
+<li>เปลี่ยน Rate Limit เป็น Sliding Window ด้วย Sorted Set (<code>ZADD</code>, <code>ZREMRANGEBYSCORE</code>, <code>ZCARD</code>) รวมใน Pipeline เดียว เพื่อแก้ปัญหาของ Fixed Window ที่ยอมให้ยิงได้ 10 ครั้งในช่วงรอยต่อของสองหน้าต่างเวลา</li>
+<li>ป้องกัน Cache Stampede ตอน Cache ของสินค้ายอดนิยมหมดอายุพร้อมกันหลายพัน Request โดยใช้ Lock ใน Redis (<code>SET lock:product:1 1 NX EX 5</code>) ให้มีแค่ Request เดียวไปถามฐานข้อมูล และสุ่มบวกลบ TTL เล็กน้อย (Jitter) ไม่ให้ทุก Key หมดอายุพร้อมกัน</li>
+<li>เพิ่ม Endpoint <code>/metrics</code> ที่นับจำนวน Cache Hit, Cache Miss และ Request ที่โดน 429 แล้วลองต่อกับ Prometheus และ Grafana ตามแนวคิดที่ 9 เพื่อดูอัตรา Hit และ p95 ของ <code>duration_ms</code> ระหว่างทดสอบโหลด</li>
+<li>เขียนสคริปต์ทดสอบโหลดด้วย Locust หรือ k6 ยิง 500 Request พร้อมกันไปที่ <code>/products/1</code> แล้วเปรียบเทียบเวลาตอบเมื่อเปิดและปิด Cache บันทึกผลลง README เป็นหลักฐานใน Portfolio</li>
+</ol>
+</div></details>
+</section>

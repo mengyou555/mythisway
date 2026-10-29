@@ -1,0 +1,1225 @@
+<section class="part" data-part="3">
+<h2 id="s15-3"><span class="sec-no">15.3</span>Practice Exercises &amp; Quizzes</h2>
+<p>ส่วนนี้ใช้ทบทวนสิ่งที่เรียนใน Part 2 ทั้ง 12 แนวคิด ตั้งแต่ <code>tsconfig.json</code> แบบ strict, Type Inference, Union, Narrowing, Generics, Utility Types ไปจนถึง Runtime Validation ด้วย zod และการเขียน Test ด้วย <code>node:test</code> แบบฝึกหัดเรียงจากง่ายไปยาก แต่ละข้อมีป้ายระดับกำกับไว้</p>
+<p>คำตอบทุกข้ออยู่ท้ายหน้าในหัวข้อ "เฉลย" โค้ดทุกชิ้นในเฉลยผ่านการรันจริงด้วย TypeScript 7.0.2 (<code>npx tsc</code> ในโปรเจกต์) และผลลัพธ์ที่แสดงคือผลลัพธ์จริงจากการรัน</p>
+
+<h3 id="s15-3-howto">วิธีใช้แบบฝึกหัดนี้</h3>
+<ol>
+<li>ทำงานในโปรเจกต์ <code>~/projects/ts-lab</code> ที่สร้างไว้ตั้งแต่แนวคิดที่ 1 ของ Part 2 โปรเจกต์นี้ต้องมี <code>typescript@7.0.2</code>, <code>@types/node@24.19.2</code> และ <code>tsconfig.json</code> แบบ strict ชุดเดียวกับที่ใช้ทั้งหัวข้อ (มี <code>erasableSyntaxOnly</code>, <code>noUncheckedIndexedAccess</code> และ <code>exactOptionalPropertyTypes</code>)</li>
+<li>ข้อ Fill-in-the-blank และ Multiple Choice ให้ลองตอบในหัวก่อน แล้วค่อยพิมพ์โค้ดลงไฟล์ใน <code>src/</code> และรัน <code>npx tsc --noEmit</code> เพื่อดูว่า Compiler ตอบเหมือนเราหรือไม่</li>
+<li>Hands-on Challenge ให้ทำทีละขั้นตาม "สิ่งที่ต้องทำ" เปิด Hint เมื่อติดเกิน 15 นาทีเท่านั้น</li>
+<li>ถ้าคำตอบผิด ให้กลับไปอ่านแนวคิดที่เกี่ยวข้องใน Part 2 แล้วลองใหม่ การอ่าน Error ของ <code>tsc</code> ให้เข้าใจคือทักษะสำคัญที่สุดของหัวข้อนี้</li>
+</ol>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ตรวจว่าอยู่ในโปรเจกต์ที่ถูกต้องและใช้ TypeScript 7 ของโปรเจกต์
+cd ~/projects/ts-lab
+npx tsc -v</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Version 7.0.2</code></pre>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>อย่าเรียก <code>tsc</code> เฉย ๆ โดยไม่มี <code>npx</code> เพราะเครื่องบางเครื่องมี <code>tsc</code> เวอร์ชันเก่าติดตั้งแบบ Global อยู่ ผลลัพธ์และข้อความ Error อาจไม่ตรงกับในหน้านี้ ใช้ <code>npx tsc</code> เสมอเพื่อให้ได้ TypeScript 7.0.2 ที่ติดตั้งในโปรเจกต์</p></div>
+
+<h3 id="s15-3-fill">Fill-in-the-blank</h3>
+<p>เติมคำหรือโค้ดที่หายไปในช่อง <code>_____</code> ให้ถูกต้อง ทุกข้อใช้ <code>tsconfig.json</code> แบบ strict ของหัวข้อนี้</p>
+<ol class="qlist fill">
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>ตัวเลือกใน <code>tsconfig.json</code> ที่เปิดการตรวจแบบเข้มงวดทั้งชุดในบรรทัดเดียว (รวม <code>noImplicitAny</code> และ <code>strictNullChecks</code>) คือ</p>
+<pre class="code" data-env="file" data-label="JSON · tsconfig.json"><code class="language-json">{
+  "compilerOptions": {
+    "_____": true
+  }
+}</code></pre>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>ต้องการให้ <code>tsc</code> ตรวจ Type อย่างเดียว โดยไม่สร้างไฟล์ <code>.js</code> ลงในโฟลเดอร์ <code>dist/</code> (เหมาะกับการรันใน CI หรือ npm script ชื่อ <code>typecheck</code>) ให้ใช้คำสั่ง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">npx tsc _____</code></pre>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>โปรเจกต์เปิด <code>noUncheckedIndexedAccess</code> ไว้ จากโค้ดด้านล่าง Type ของตัวแปร <code>first</code> คือ <code>number | _____</code></p>
+<pre class="code" data-env="file" data-label="TypeScript · src/fill03.ts"><code class="language-typescript">const prices: number[] = [120, 85, 60];
+// อ่านสมาชิกตัวแรกของ Array
+const first = prices[0];</code></pre>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ต้องการสร้าง Union Type <code>"todo" | "doing" | "done"</code> จาก Array ที่ประกาศด้วย <code>as const</code> โดยไม่ต้องพิมพ์ค่าซ้ำสองที่ ให้เติมช่องว่าง</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/fill04.ts"><code class="language-typescript">const STATUSES = ["todo", "doing", "done"] as const;
+// ดึง Type ของสมาชิกทุกตัวใน Array ออกมาเป็น Union
+type Status = (typeof STATUSES)[_____];</code></pre>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>เขียน User-defined Type Guard เพื่อบอก TypeScript ว่า ถ้าฟังก์ชันคืน <code>true</code> แปลว่า <code>v</code> เป็น <code>Task</code> ให้เติม Keyword ที่หายไป</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/fill05.ts"><code class="language-typescript">type Task = { id: string; title: string };
+
+// ฟังก์ชันตรวจข้อมูล unknown ว่าเป็น Task หรือไม่
+function isTask(v: unknown): v _____ Task {
+  return typeof v === "object" &amp;&amp; v !== null &amp;&amp; "id" in v &amp;&amp; "title" in v;
+}</code></pre>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ฟังก์ชัน <code>assertNever</code> ใช้ใน <code>default</code> ของ <code>switch</code> เพื่อให้ Compiler แจ้ง Error ทันทีเมื่อมีสมาชิกใหม่ใน Discriminated Union ที่เรายังไม่ได้จัดการ Type ของพารามิเตอร์ <code>x</code> ต้องเป็น</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/fill06.ts"><code class="language-typescript">// ถ้าโค้ดมาถึงบรรทัดนี้ได้ แปลว่ามีกรณีที่ลืมจัดการ
+function assertNever(x: _____): never {
+  throw new Error("ยังไม่ได้จัดการ: " + JSON.stringify(x));
+}</code></pre>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>ต้องการ Type สำหรับข้อมูลที่ผู้ใช้กรอกตอนสร้างงานใหม่ ซึ่งคือ <code>Task</code> ที่ตัดฟิลด์ <code>id</code> และ <code>createdAt</code> ออก (สองฟิลด์นี้ระบบสร้างให้เอง) ให้เติม Utility Type ที่ถูกต้อง</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/fill07.ts"><code class="language-typescript">type Task = {
+  id: string;
+  title: string;
+  status: "todo" | "doing" | "done";
+  createdAt: string;
+};
+// ผลลัพธ์ที่ต้องการ: { title: string; status: "todo" | "doing" | "done" }
+type NewTask = _____&lt;Task, "id" | "createdAt"&gt;;</code></pre>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>เขียน Conditional Type ที่ "แกะ" Type ข้างใน Promise ออกมา เช่น <code>UnwrapPromise&lt;Promise&lt;number&gt;&gt;</code> ได้ <code>number</code> ส่วน Type ที่ไม่ใช่ Promise ให้คืนตัวเดิม ให้เติม Keyword ที่ใช้ประกาศตัวแปร Type ระหว่างการเทียบ</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/fill08.ts"><code class="language-typescript">// ถ้า T เป็น Promise ของอะไรสักอย่าง ให้จับสิ่งนั้นไว้ในชื่อ U แล้วคืน U
+type UnwrapPromise&lt;T&gt; = T extends Promise&lt;_____ U&gt; ? U : T;</code></pre>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>สร้าง Mapped Type ชื่อ <code>Getters&lt;T&gt;</code> ที่เปลี่ยนชื่อ Key ทุกตัวเป็น <code>get</code> ตามด้วยชื่อเดิมที่ขึ้นต้นด้วยตัวพิมพ์ใหญ่ เช่น <code>name</code> กลายเป็น <code>getName</code> ให้เติม Intrinsic String Type ที่ใช้แปลงตัวอักษรแรกเป็นตัวพิมพ์ใหญ่</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/fill09.ts"><code class="language-typescript">type Getters&lt;T&gt; = {
+  // Key Remapping ด้วย as และ Template Literal Type
+  [K in keyof T as `get${_____&lt;string &amp; K&gt;}`]: () =&gt; T[K];
+};
+
+// ผลลัพธ์ที่ต้องการ: { getName: () =&gt; string; getAge: () =&gt; number }
+type G = Getters&lt;{ name: string; age: number }&gt;;</code></pre>
+</li>
+</ol>
+
+<h3 id="s15-3-mcq">Multiple Choice</h3>
+<p>เลือกคำตอบที่ถูกที่สุดเพียงข้อเดียว ทุกข้อสมมติว่าโปรเจกต์ใช้ TypeScript 7.0.2 กับ <code>tsconfig.json</code> แบบ strict ของหัวข้อนี้ และรันด้วย Node.js LTS (24 หรือ 26) คำถามเรียงตามแนวคิดใน Part 2 ตั้งแต่แนวคิดที่ 1 ถึง 12</p>
+<ol class="qlist mcq">
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>ไฟล์ <code>src/app.ts</code> มีโค้ดด้านล่าง ถ้ารันด้วยคำสั่ง <code>node src/app.ts</code> บน Node.js 24 (ไม่รัน <code>tsc</code> ก่อน) จะเกิดอะไรขึ้น</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/app.ts"><code class="language-typescript">// ใส่ string ให้ตัวแปรที่ประกาศว่าเป็น number โดยตั้งใจ
+const total: number = "100";
+console.log("ยอดรวม:", total);</code></pre>
+<ol class="choices">
+<li>Node แสดง <code>error TS2322</code> แล้วหยุดทำงานโดยไม่พิมพ์อะไรออกมา</li>
+<li>Node ลบ Type Annotation ทิ้งแล้วรันตามปกติ พิมพ์ <code>ยอดรวม: 100</code> เพราะ Type Stripping ไม่ตรวจ Type</li>
+<li>Node เรียก <code>tsc</code> ให้อัตโนมัติ สร้างไฟล์ <code>dist/app.js</code> แล้วรันไฟล์นั้นแทน</li>
+<li>Node แปลง <code>"100"</code> เป็นตัวเลข <code>100</code> ให้ตรงกับ Annotation ก่อน แล้วจึงพิมพ์ผล</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>จากโค้ดด้านล่าง TypeScript อนุมาน (Infer) Type ของ <code>a</code>, <code>b</code> และ <code>arr</code> เป็นอะไรตามลำดับ</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/q02.ts"><code class="language-typescript">let a = "todo";
+const b = "todo";
+const arr = [1, "x"];</code></pre>
+<ol class="choices">
+<li><code>"todo"</code>, <code>"todo"</code>, <code>[number, string]</code></li>
+<li><code>string</code>, <code>string</code>, <code>any[]</code></li>
+<li><code>string</code>, <code>"todo"</code>, <code>(string | number)[]</code></li>
+<li><code>"todo"</code>, <code>string</code>, <code>(string | number)[]</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>โปรเจกต์เปิด <code>exactOptionalPropertyTypes</code> ไว้ บรรทัดใดที่ <code>tsc</code> แจ้ง Error</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/q03.ts"><code class="language-typescript">interface Profile {
+  name: string;
+  nickname?: string; // Optional Property
+}</code></pre>
+<ol class="choices">
+<li><code>const p1: Profile = { name: "somchai" };</code></li>
+<li><code>const p2: Profile = { name: "somsri", nickname: "ศรี" };</code></li>
+<li><code>const p3: Profile = { name: "somchai", nickname: undefined };</code></li>
+<li><code>const p4: Profile = { name: "somsri" }; p4.nickname = "ศรี";</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>ฟังก์ชันคำนวณค่าส่งด้านล่างระบุ Return Type เป็น <code>number</code> ไว้ เมื่อรัน <code>npx tsc</code> จะได้ผลอย่างไร</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/q04.ts"><code class="language-typescript">// ค่าส่ง: ซื้อครบ 500 บาทส่งฟรี ต่ำกว่านั้นคิด 40 บาท
+function shippingFee(total: number): number {
+  if (total &gt;= 500) {
+    return 0;
+  } else if (total &gt; 0) {
+    return 40;
+  }
+}
+console.log(shippingFee(300));</code></pre>
+<ol class="choices">
+<li>ได้ <code>error TS2366: Function lacks ending return statement and return type does not include 'undefined'.</code></li>
+<li>ไม่มี Error เพราะ TypeScript รู้ว่ายอดซื้อต้องมากกว่า 0 เสมอ</li>
+<li>ได้ <code>error TS2554: Expected 1 arguments, but got 0.</code></li>
+<li>ไม่มี Error ตอน Compile แต่ตอนรัน Node จะ throw Error เพราะฟังก์ชันไม่มี return</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ทำไมหัวข้อนี้จึงแนะนำให้ใช้ Union ของ Literal Types เช่น <code>type Priority = "low" | "medium" | "high"</code> แทน <code>enum Priority { Low, Medium, High }</code></p>
+<ol class="choices">
+<li>เพราะ <code>enum</code> ถูกลบออกจาก TypeScript 7 แล้ว ทุกโปรเจกต์จึงใช้ไม่ได้อีก</li>
+<li>เพราะ <code>enum</code> ทำงานช้ากว่า Union มากตอนรัน</li>
+<li>เพราะ Union ของ Literal Types ใช้กับ <code>switch</code> ไม่ได้ จึงบังคับให้เขียนโค้ดสั้นลง</li>
+<li>เพราะ <code>enum</code> สร้างโค้ด JavaScript จริงขึ้นมา จึงไม่ใช่ Syntax ที่ลบทิ้งได้ เมื่อเปิด <code>erasableSyntaxOnly</code> จะได้ <code>error TS1294</code> และ Type Stripping ของ Node ก็รันไม่ได้</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ทีมเพิ่มสมาชิกใหม่ <code>{ kind: "archive"; id: string }</code> เข้าไปใน <code>Command</code> แต่ลืมเพิ่ม <code>case "archive"</code> ใน <code>switch</code> เมื่อรัน <code>npx tsc</code> จะเกิดอะไรขึ้น</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/q06.ts"><code class="language-typescript">type Command =
+  | { kind: "add"; title: string }
+  | { kind: "done"; id: string }
+  | { kind: "archive"; id: string }; // เพิ่มใหม่
+
+function assertNever(x: never): never {
+  throw new Error("ไม่ได้จัดการ: " + JSON.stringify(x));
+}
+
+function describe(cmd: Command): string {
+  switch (cmd.kind) {
+    case "add":
+      return "เพิ่ม " + cmd.title;
+    case "done":
+      return "ปิดงาน " + cmd.id;
+    default:
+      return assertNever(cmd);
+  }
+}</code></pre>
+<ol class="choices">
+<li>Compile ผ่าน แต่ตอนรันจะ throw Error เฉพาะเมื่อมีคำสั่ง <code>archive</code> เข้ามาจริง</li>
+<li>ได้ <code>error TS2345: Argument of type '{ kind: "archive"; id: string; }' is not assignable to parameter of type 'never'.</code> ที่บรรทัด <code>assertNever(cmd)</code></li>
+<li>ได้ Error ที่บรรทัดประกาศ <code>type Command</code> ว่ามีสมาชิกที่ไม่ได้ใช้</li>
+<li>TypeScript เพิ่ม <code>case "archive"</code> ให้อัตโนมัติในไฟล์ <code>.js</code> ที่ได้</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>จากโค้ดด้านล่าง ข้อใดอธิบายความต่างระหว่าง <code>private</code> ของ TypeScript กับ <code>#private</code> ของ JavaScript ได้ถูกต้อง</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/q07.ts"><code class="language-typescript">class AccountA {
+  private balance = 1000; // private ของ TypeScript
+}
+class AccountB {
+  #balance = 1000; // private ของ JavaScript
+  get balance(): number {
+    return this.#balance;
+  }
+}
+const a = new AccountA();
+const b = new AccountB();
+console.log((a as any).balance);
+console.log((b as any)["#balance"]);</code></pre>
+<ol class="choices">
+<li><code>private</code> ตรวจแค่ตอน Compile ตอนรันค่ายังเข้าถึงได้ จึงพิมพ์ <code>1000</code> ส่วน <code>#balance</code> เป็นของจริงตอนรัน การอ่านด้วย <code>["#balance"]</code> จึงได้ <code>undefined</code></li>
+<li>ทั้งสองแบบปลอดภัยเท่ากันตอนรัน โค้ดนี้จึงพิมพ์ <code>undefined</code> ทั้งสองบรรทัด</li>
+<li><code>private</code> ปลอดภัยกว่า เพราะ <code>tsc</code> เข้ารหัสค่าใน <code>dist/</code> ให้ ส่วน <code>#balance</code> อ่านได้ปกติจึงพิมพ์ <code>1000</code></li>
+<li><code>#balance</code> ใช้ไม่ได้เมื่อเปิด <code>erasableSyntaxOnly</code> เพราะไม่ใช่ Syntax ที่ลบทิ้งได้</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>Type ของตัวแปร <code>p</code> ในโค้ดด้านล่างคืออะไร</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/q08.ts"><code class="language-typescript">type Task = { id: string; title: string; priority: "low" | "medium" | "high" };
+
+// อ่านค่า property ตามชื่อ key แบบ Type-safe
+function getProp&lt;T, K extends keyof T&gt;(obj: T, key: K): T[K] {
+  return obj[key];
+}
+
+const task: Task = { id: "T-001", title: "ติดตั้ง TypeScript 7", priority: "high" };
+const p = getProp(task, "priority");</code></pre>
+<ol class="choices">
+<li><code>string</code></li>
+<li><code>keyof Task</code></li>
+<li><code>"low" | "medium" | "high"</code></li>
+<li><code>any</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ไฟล์ <code>src/types.ts</code> export เฉพาะ Type ชื่อ <code>Task</code> ไฟล์อื่นต้องการนำ <code>Task</code> ไปใช้ โดยโปรเจกต์ตั้ง <code>module: "nodenext"</code>, <code>verbatimModuleSyntax: true</code> และ <code>rewriteRelativeImportExtensions: true</code> บรรทัดใดเขียนถูกต้อง</p>
+<ol class="choices">
+<li><code>import { Task } from "./types.ts";</code></li>
+<li><code>import type { Task } from "./types";</code></li>
+<li><code>const { Task } = require("./types.ts");</code></li>
+<li><code>import type { Task } from "./types.ts";</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>จาก Type ด้านล่าง ค่าใดกำหนดให้ตัวแปร Type <code>TaskPatch</code> ได้โดยไม่มี Error (โปรเจกต์เปิด <code>exactOptionalPropertyTypes</code>)</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/q10.ts"><code class="language-typescript">type Task = {
+  id: string;
+  title: string;
+  priority: "low" | "medium" | "high";
+  status: "todo" | "doing" | "done";
+};
+type TaskPatch = Partial&lt;Pick&lt;Task, "title" | "status"&gt;&gt;;</code></pre>
+<ol class="choices">
+<li><code>{ id: "T-001" }</code></li>
+<li><code>{ status: "archived" }</code></li>
+<li><code>{}</code></li>
+<li><code>{ title: undefined }</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p><code>R</code> ในโค้ดด้านล่างคือ Type ใด</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/q11.ts"><code class="language-typescript">type ToArray&lt;T&gt; = T extends unknown ? T[] : never;
+type R = ToArray&lt;string | number&gt;;</code></pre>
+<ol class="choices">
+<li><code>(string | number)[]</code></li>
+<li><code>string[] | number[]</code></li>
+<li><code>never</code></li>
+<li><code>unknown[]</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>ค่าใดกำหนดให้ตัวแปร Type <code>EventName</code> ได้</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/q12.ts"><code class="language-typescript">type Status = "todo" | "doing" | "done";
+type EventName = `task:${Capitalize&lt;Status&gt;}`;</code></pre>
+<ol class="choices">
+<li><code>"task:Done"</code></li>
+<li><code>"task:done"</code></li>
+<li><code>"Task:Done"</code></li>
+<li><code>"task:Archived"</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>ระบบดึงข้อมูลผู้ใช้จาก API ภายนอกด้วย <code>fetch</code> และมี <code>UserSchema</code> ที่สร้างด้วย zod 4.6.7 แล้ว วิธีใดปลอดภัยที่สุดในการแปลง Response ให้เป็น <code>User</code></p>
+<ol class="choices">
+<li><code>const user = (await res.json()) as User;</code></li>
+<li><code>const user: User = await res.json();</code></li>
+<li><code>const user = JSON.parse(await res.text()) satisfies User;</code></li>
+<li><code>const data: unknown = await res.json(); const r = UserSchema.safeParse(data);</code> แล้วใช้ <code>r.data</code> เฉพาะเมื่อ <code>r.success</code> เป็น <code>true</code></li>
+</ol>
+</li>
+</ol>
+
+<h3 id="s15-3-hands">Hands-on Challenge</h3>
+<p>โจทย์ 3 ข้อนี้จำลองงานจริงที่นักพัฒนา TypeScript เจอบ่อย คือ การเปลี่ยนสคริปต์ JavaScript ที่พังง่ายให้ปลอดภัยด้วย Type, การรับข้อมูลจากระบบภายนอกที่เชื่อไม่ได้ และการเขียน Client ที่มี Runtime Validation พร้อม Test ทำในโปรเจกต์ <code>~/projects/ts-lab</code> ทั้งหมด แล้วใช้รูปแบบการรันเดียวกับ Part 2 คือ <code>npx tsc</code> แล้วตามด้วย <code>node dist/...</code></p>
+
+<article class="challenge" data-lvl="b">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 1</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h4>ใบเสร็จร้านกาแฟแบบ Type-safe</h4>
+<h5>สถานการณ์</h5>
+<p>ร้านกาแฟเล็ก ๆ ของญาติสมชายใช้สคริปต์ JavaScript พิมพ์ใบเสร็จ เมื่อสัปดาห์ก่อนพนักงานพิมพ์รหัสสินค้าผิดเป็น <code>X99</code> สคริปต์จึงพังด้วย <code>TypeError: Cannot read properties of undefined (reading 'price')</code> กลางช่วงที่ลูกค้าเยอะ เจ้าของร้านขอให้สมชายเขียนใหม่ด้วย TypeScript ให้ Compiler ช่วยบังคับว่าต้องจัดการกรณีหาสินค้าไม่เจอ และรองรับส่วนลดสมาชิกแบบไม่บังคับ</p>
+<p>ข้อมูลเมนูที่ใช้:</p>
+<div class="tbl wide"><table class="explain"><thead><tr><th>code</th><th>name</th><th>price (บาท)</th><th>category</th></tr></thead><tbody>
+<tr><td class="nw"><code>C01</code></td><td>Americano เย็น</td><td class="num">65</td><td><code>coffee</code></td></tr>
+<tr><td class="nw"><code>C02</code></td><td>Latte ร้อน</td><td class="num">70</td><td><code>coffee</code></td></tr>
+<tr><td class="nw"><code>T01</code></td><td>ชาไทยเย็น</td><td class="num">55</td><td><code>tea</code></td></tr>
+<tr><td class="nw"><code>B01</code></td><td>ครัวซองต์เนยสด</td><td class="num">79</td><td><code>bakery</code></td></tr>
+</tbody></table></div>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+<li>สร้างไฟล์ <code>src/ch1-receipt.ts</code> แล้วประกาศ Type ต่อไปนี้: <code>Category</code> เป็น Union ของ <code>"coffee" | "tea" | "bakery"</code> (ห้ามใช้ <code>enum</code>), <code>MenuItem</code> ที่มี <code>code</code> เป็น <code>readonly</code>, และ <code>OrderLine</code> เป็น Named Tuple <code>[code: string, qty: number]</code></li>
+<li>ประกาศค่าคงที่ <code>MENU</code> เป็น <code>readonly MenuItem[]</code> ตามตารางด้านบน</li>
+<li>เขียนฟังก์ชัน <code>findItem(code: string): MenuItem | undefined</code> และ <code>formatBaht(amount: number): string</code> ที่แสดงทศนิยม 2 ตำแหน่งตามรูปแบบไทย (<code>toLocaleString("th-TH")</code>) ตามด้วยคำว่า "บาท"</li>
+<li>เขียนฟังก์ชัน <code>calcReceipt(order: readonly OrderLine[], discountPercent?: number)</code> ที่คืน Object Type ชื่อ <code>Receipt</code> ประกอบด้วยรายการที่คิดเงินแล้ว, รหัสที่หาไม่เจอ, ยอดก่อนส่วนลด, ส่วนลด และยอดสุทธิ ถ้าไม่ส่ง <code>discountPercent</code> ให้ส่วนลดเป็น 0</li>
+<li>เขียนฟังก์ชัน <code>printReceipt(receipt: Receipt): void</code> แล้วพิมพ์ใบเสร็จ 2 ใบ: ใบแรกสั่ง <code>C01</code> 2 แก้ว, <code>B01</code> 1 ชิ้น และรหัสผิด <code>X99</code> 1 ชิ้นโดยไม่มีส่วนลด ใบที่สองสั่ง <code>T01</code> 3 แก้ว และ <code>C02</code> 1 แก้ว พร้อมส่วนลดสมาชิก 10%</li>
+<li>รัน <code>npx tsc</code> ให้ผ่านโดยไม่มี Error แล้วรัน <code>node dist/ch1-receipt.js</code></li>
+<li>ทดลองแก้จำนวนในรายการแรกจาก <code>2</code> เป็น <code>"2"</code> แล้วรัน <code>npx tsc</code> อีกครั้ง จดข้อความ Error ไว้ แล้วแก้กลับ</li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<p>โปรแกรมต้องไม่พังเมื่อเจอรหัสสินค้าที่ไม่มีในเมนู แต่แสดงบรรทัด "(ข้าม)" แทน ยอดเงินต้องถูกต้อง และไม่มี <code>any</code> ในโค้ดเลย ตัวอย่างผลลัพธ์:</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>===== ร้านกาแฟบ้านสมชาย =====
+Americano เย็น   x2  130.00 บาท
+ครัวซองต์เนยสด   x1  79.00 บาท
+(ข้าม) ไม่พบรหัสสินค้า X99
+ยอดก่อนส่วนลด : 209.00 บาท
+ส่วนลด        : 0.00 บาท
+ยอดสุทธิ      : 209.00 บาท
+
+===== ร้านกาแฟบ้านสมชาย =====
+ชาไทยเย็น        x3  165.00 บาท
+Latte ร้อน       x1  70.00 บาท
+ยอดก่อนส่วนลด : 235.00 บาท
+ส่วนลด        : 23.50 บาท
+ยอดสุทธิ      : 211.50 บาท</code></pre>
+<p>ในขั้นที่ 7 ต้องเห็น Error ประเภท <code>TS2322</code> ชี้ไปที่ค่า <code>"2"</code></p>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+<li><code>MENU.find(...)</code> คืน <code>MenuItem | undefined</code> อยู่แล้ว ให้ตรวจ <code>if (item === undefined)</code> ก่อนใช้ <code>item.price</code> ซึ่งเป็นการ Narrowing</li>
+<li>ใช้ <code>for (const [code, qty] of order)</code> เพื่อแยกค่าจาก Tuple ทีละบรรทัด</li>
+<li>Type ของ Array ภายใน Object อ้างถึงได้ด้วย Indexed Access เช่น <code>Receipt["lines"]</code> ไม่ต้องประกาศซ้ำ</li>
+<li>ส่วนลด 10% ของ 235 บาทคือ 23.50 บาท ใช้ <code>Math.round(subtotal * discountPercent) / 100</code> เพื่อปัดเป็นสตางค์</li>
+</ul>
+</div></details>
+</article>
+
+<article class="challenge" data-lvl="i">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 2</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h4>แปลง Webhook Events ของร้านออนไลน์เป็นข้อความแจ้งเตือน</h4>
+<h5>สถานการณ์</h5>
+<p>ร้านออนไลน์รับ Webhook จากระบบชำระเงินและระบบขนส่ง แล้วบันทึกเป็นไฟล์ <code>data/events.json</code> โค้ด JavaScript เดิมใช้ <code>if</code> ซ้อนกันหลายชั้น เมื่อมี Event ชนิดใหม่ที่ไม่รู้จักหรือข้อมูลผิดรูปแบบ (เช่น ยอดเงินมาเป็น string) โค้ดจะพิมพ์ <code>undefined</code> ออกไปโดยไม่มีใครรู้ หัวหน้าทีมต้องการเวอร์ชัน TypeScript ที่ (1) ตรวจข้อมูลทุกรายการก่อนใช้ (2) รายงานรายการที่ถูกปฏิเสธพร้อมเหตุผล และ (3) ถ้าวันหน้ามีคนเพิ่ม Event ชนิดใหม่แต่ลืมเขียนข้อความให้ ต้อง Compile ไม่ผ่าน</p>
+<p>สร้างไฟล์ข้อมูลตัวอย่างนี้ไว้ที่ <code>~/projects/ts-lab/data/events.json</code> (มีข้อมูลผิดตั้งใจ 3 รายการ):</p>
+<pre class="code" data-env="file" data-label="JSON · data/events.json"><code class="language-json">[
+  { "type": "order.created", "orderId": "A-1001", "customer": "somchai", "total": 450 },
+  { "type": "order.paid", "orderId": "A-1001", "method": "promptpay" },
+  { "type": "order.created", "orderId": "A-1002", "customer": "somsri", "total": 1290 },
+  { "type": "order.shipped", "orderId": "A-1001", "trackingNo": "TH0123456789" },
+  { "type": "order.paid", "orderId": "A-1002", "method": "bitcoin" },
+  { "type": "order.cancelled", "orderId": "A-1002", "reason": "ลูกค้าขอยกเลิก" },
+  { "type": "order.refunded", "orderId": "A-1003" },
+  { "type": "order.created", "orderId": "A-1004", "customer": "somchai", "total": "990" }
+]</code></pre>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+<li>สร้างไฟล์ <code>src/ch2-events.ts</code> แล้วประกาศ <code>PAY_METHODS = ["promptpay", "card", "cash"] as const</code> และสร้าง Type <code>PayMethod</code> จาก Array นี้</li>
+<li>ประกาศ Discriminated Union ชื่อ <code>OrderEvent</code> ที่มีฟิลด์ <code>type</code> เป็นตัวแยก 4 ชนิด: <code>order.created</code> (มี <code>customer</code> และ <code>total</code>), <code>order.paid</code> (มี <code>method</code>), <code>order.shipped</code> (มี <code>trackingNo</code>) และ <code>order.cancelled</code> (มี <code>reason</code>) ทุกชนิดมี <code>orderId</code></li>
+<li>เขียนฟังก์ชัน <code>checkEvent(raw: unknown, index: number)</code> ที่คืน Union <code>{ ok: true; event: OrderEvent } | { ok: false; index: number; reason: string }</code> โดยตรวจข้อมูลด้วย <code>typeof</code>, User-defined Type Guard และ <code>switch</code> ห้ามใช้ <code>any</code> และห้ามใช้ <code>as OrderEvent</code></li>
+<li>เขียนฟังก์ชัน <code>toMessage(e: OrderEvent): string</code> ด้วย <code>switch</code> แบบ Exhaustive ที่มี <code>assertNever</code> ใน <code>default</code></li>
+<li>เขียน Generic Function <code>countBy&lt;T, K extends string&gt;(items, keys, keyOf)</code> ที่คืน <code>Record&lt;K, number&gt;</code> โดยทุก key ใน <code>keys</code> ต้องมีค่าเริ่มต้นเป็น 0</li>
+<li>ในส่วนหลักของโปรแกรม อ่านไฟล์ด้วย <code>node:fs/promises</code> และ <code>new URL("../data/events.json", import.meta.url)</code> แปลงด้วย <code>JSON.parse</code> เก็บเป็น <code>unknown</code> แล้วพิมพ์ 3 ส่วน: ข้อความแจ้งเตือน, รายการที่ถูกปฏิเสธ และสรุปจำนวนตามประเภท</li>
+<li>ทดสอบว่า Exhaustive Check ทำงาน: เพิ่มชนิด <code>order.refunded</code> เข้าไปใน <code>OrderEvent</code> ชั่วคราว รัน <code>npx tsc</code> ดู Error แล้วลบออก</li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<p>รายการที่ถูกต้อง 5 รายการกลายเป็นข้อความภาษาไทย รายการที่ผิด 3 รายการ (ลำดับที่ 4, 6 และ 7 นับจาก 0) ถูกปฏิเสธพร้อมเหตุผลที่ชัดเจน และโปรแกรมไม่พัง:</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>--- ข้อความแจ้งเตือน ---
+[A-1001] somchai สั่งซื้อ ยอด 450 บาท
+[A-1001] ชำระเงินแล้วผ่าน promptpay
+[A-1002] somsri สั่งซื้อ ยอด 1,290 บาท
+[A-1001] จัดส่งแล้ว เลขพัสดุ TH0123456789
+[A-1002] ถูกยกเลิก: ลูกค้าขอยกเลิก
+--- รายการที่ถูกปฏิเสธ ---
+#4: method ไม่รองรับ: bitcoin
+#6: ไม่รู้จัก type: order.refunded
+#7: total ต้องเป็น number
+--- สรุปตามประเภท ---
+{
+  'order.created': 2,
+  'order.paid': 1,
+  'order.shipped': 1,
+  'order.cancelled': 1
+}</code></pre>
+<p>ในขั้นที่ 7 ต้องเห็น <code>error TS2345</code> ที่บรรทัด <code>return assertNever(e);</code> ซึ่งบอกว่า <code>order.refunded</code> ยังไม่ถูกจัดการ</p>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+<li>เริ่มจาก Type Guard ทั่วไป <code>isRecord(v: unknown): v is Record&lt;string, unknown&gt;</code> ที่ตรวจ <code>typeof v === "object" &amp;&amp; v !== null &amp;&amp; !Array.isArray(v)</code> แล้วค่อยอ่าน <code>raw.type</code>, <code>raw.orderId</code> ได้อย่างปลอดภัย</li>
+<li><code>switch (type)</code> บนค่าที่เป็น <code>unknown</code> ก็ Narrow ได้ ภายใน <code>case "order.created":</code> TypeScript รู้ว่า <code>type</code> คือ Literal <code>"order.created"</code> จึงใส่ลงใน Object ของ <code>OrderEvent</code> ได้ตรง ๆ</li>
+<li>การตรวจว่า string อยู่ใน <code>PAY_METHODS</code> ให้แปลง Array เป็น <code>readonly string[]</code> ก่อนเรียก <code>.includes(v)</code> เพราะ <code>includes</code> ของ Tuple แบบ <code>as const</code> รับเฉพาะค่าที่อยู่ใน Tuple</li>
+<li>ใน <code>countBy</code> สร้างผลลัพธ์เริ่มต้นด้วย <code>{} as Record&lt;K, number&gt;</code> แล้ววนใส่ 0 ให้ครบทุก key ก่อนเริ่มนับ</li>
+</ul>
+</div></details>
+</article>
+
+<article class="challenge" data-lvl="a">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 3</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h4>Client สำหรับ Inventory API แบบ Type-safe พร้อม zod และ node:test</h4>
+<h5>สถานการณ์</h5>
+<p>ร้านเบเกอรี่ที่มีหลายสาขาดึงข้อมูลสินค้าคงคลังจาก Inventory API ที่ทีมอื่นดูแล บางครั้ง API ส่ง <code>price</code> มาเป็น string, ส่ง <code>stock</code> ติดลบ, ตอบ 404 หรือตอบข้อความธรรมดาที่ไม่ใช่ JSON ตอนระบบปิดปรับปรุง โค้ดเดิมใช้ <code>const products = await res.json()</code> แล้วนำไปคำนวณทันที ทำให้รายงานยอดสต็อกผิดโดยไม่มีใครรู้ คุณได้รับมอบหมายให้เขียน Client ที่ (1) ไม่ throw Error ออกไปถึงผู้เรียก แต่คืน <code>Result</code> (2) ตรวจข้อมูลด้วย zod ทุกครั้ง และบอกตำแหน่งฟิลด์ที่ผิด (3) มี Test ที่รันได้โดยไม่ต้องต่ออินเทอร์เน็ต</p>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+<li>ติดตั้ง <code>zod@4.6.7</code> ในโปรเจกต์ (ถ้ายังไม่ได้ติดตั้งตอนแนวคิดที่ 12) แล้วสร้างโฟลเดอร์ <code>src/ch3/</code></li>
+<li>สร้าง <code>schemas.ts</code>: <code>ProductSchema</code> มี <code>id</code> รูปแบบ <code>P-001</code>, <code>name</code> ไม่ว่าง, <code>price</code> ไม่ติดลบ, <code>stock</code> เป็นจำนวนเต็มไม่ติดลบ และ <code>category</code> เป็น <code>"drink" | "snack" | "bakery"</code> แล้วสร้าง <code>ProductListSchema</code> และ <code>type Product = z.infer&lt;typeof ProductSchema&gt;</code></li>
+<li>สร้าง <code>result.ts</code> ที่มี <code>type Result&lt;T, E = string&gt;</code> เป็น Discriminated Union บนฟิลด์ <code>ok</code></li>
+<li>สร้าง <code>client.ts</code> ที่มี Generic Function <code>getJson&lt;T&gt;(url: string, schema: z.ZodType&lt;T&gt;): Promise&lt;Result&lt;T&gt;&gt;</code> จัดการ 4 กรณี: เชื่อมต่อไม่ได้, HTTP status ไม่ใช่ 2xx, body ไม่ใช่ JSON และข้อมูลไม่ตรง Schema (ใช้ <code>z.prettifyError</code>) พร้อมฟังก์ชัน <code>countByCategory</code> ที่คืน <code>Record&lt;Category, number&gt;</code> และ <code>lowStock</code> ที่คืน <code>Pick&lt;Product, "id" | "name" | "stock"&gt;[]</code></li>
+<li>สร้าง <code>fake-server.ts</code> ที่เปิด <code>node:http</code> บน <code>127.0.0.1</code> port 0 มี 4 เส้นทาง: <code>/products</code> (ข้อมูลถูก 3 รายการ), <code>/products-broken</code> (มีรายการที่ <code>id</code>, <code>price</code> และ <code>stock</code> ผิด), <code>/not-json</code> (ตอบข้อความธรรมดา) และเส้นทางอื่นตอบ 404</li>
+<li>สร้าง <code>main.ts</code> ที่เรียกทั้ง 4 เส้นทางแล้วพิมพ์ผล และสร้าง <code>client.test.ts</code> ที่มี Test อย่างน้อย 6 ข้อ แบ่งเป็น 2 กลุ่มด้วย <code>describe</code></li>
+<li>รัน <code>npx tsc</code>, <code>node dist/ch3/main.js</code> และ <code>npm test</code> ให้ผ่านทั้งหมด</li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<p>เดโมต้องแสดงสรุปสินค้า, ตารางสินค้าใกล้หมด และ Error ที่อ่านเข้าใจได้สำหรับทุกกรณีที่ผิดพลาด (เลข port ถูกแทนด้วย <code>PORT</code> เพราะระบบสุ่มให้ทุกครั้ง):</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>โหลดสินค้าได้ 3 รายการ
+จำนวนตามหมวด: { drink: 1, snack: 1, bakery: 1 }
+ใกล้หมด (stock &lt; 5):
+┌─────────┬─────────┬────────────────┬───────┐
+│ (index) │ id      │ name           │ stock │
+├─────────┼─────────┼────────────────┼───────┤
+│ 0       │ 'P-003' │ 'มันฝรั่งทอด'     │ 0     │
+│ 1       │ 'P-002' │ 'ขนมปังกระเทียม' │ 2     │
+└─────────┴─────────┴────────────────┴───────┘
+
+เรียก /products-broken ไม่สำเร็จ:
+✖ id ต้องอยู่ในรูปแบบ P-001
+  → at [1].id
+✖ Invalid input: expected number, received string
+  → at [1].price
+✖ Too small: expected number to be &gt;=0
+  → at [1].stock
+
+เรียก /missing ไม่สำเร็จ:
+HTTP 404 จาก http://127.0.0.1:PORT/missing
+
+เรียก /not-json ไม่สำเร็จ:
+ข้อมูลจาก http://127.0.0.1:PORT/not-json ไม่ใช่ JSON</code></pre>
+<p>และ <code>npm test</code> ต้องสรุปท้ายว่า <code>ℹ tests 6</code>, <code>ℹ pass 6</code> และ <code>ℹ fail 0</code></p>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+<li>ให้ TypeScript อนุมาน <code>T</code> จาก Schema: เมื่อเรียก <code>getJson(url, ProductListSchema)</code> ค่า <code>value</code> ใน Result จะเป็น <code>Product[]</code> เองโดยไม่ต้องเขียน <code>getJson&lt;Product[]&gt;</code></li>
+<li><code>fetch</code> ที่ต่อไม่ได้จะ throw <code>TypeError: fetch failed</code> ส่วน <code>res.json()</code> ที่ body ไม่ใช่ JSON จะ throw <code>SyntaxError</code> ให้ห่อแต่ละจุดด้วย <code>try</code>/<code>catch</code> แยกกันเพื่อให้ข้อความ Error ตรงกับสาเหตุ</li>
+<li>เก็บผลของ <code>res.json()</code> ไว้ในตัวแปรที่ประกาศเป็น <code>unknown</code> เพื่อบังคับตัวเองว่าต้องผ่าน <code>safeParse</code> ก่อนใช้</li>
+<li>หา port ที่ระบบเลือกให้ได้จาก <code>server.address()</code> แล้วแปลง Type เป็น <code>AddressInfo</code> จาก <code>node:net</code> และใช้ <code>before</code>/<code>after</code> ของ <code>node:test</code> เปิดปิด server ครั้งเดียวต่อกลุ่ม Test</li>
+</ul>
+</div></details>
+</article>
+
+<h3 id="s15-3-answers">เฉลย</h3>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ลองทำทุกข้อด้วยตัวเองก่อนเปิดเฉลย ถ้ายังไม่แน่ใจ ให้พิมพ์โค้ดลงไฟล์แล้วรัน <code>npx tsc --noEmit</code> ดูว่า Compiler ตอบอะไร การเปิดเฉลยเร็วเกินไปทำให้ไม่ได้ฝึกอ่าน Error ซึ่งเป็นทักษะที่ใช้ทุกวันในงานจริง</p></div>
+
+<h4>เฉลย Fill-in-the-blank</h4>
+<details class="ans"><summary>ข้อ 1</summary><div>
+<p><strong>คำตอบ: <code>strict</code></strong></p>
+<p><code>"strict": true</code> เปิดกลุ่มการตรวจแบบเข้มงวดทั้งชุดพร้อมกัน เช่น <code>noImplicitAny</code> (ห้ามมี Parameter ที่ไม่รู้ Type), <code>strictNullChecks</code> (แยก <code>null</code>/<code>undefined</code> ออกจาก Type อื่น), <code>strictFunctionTypes</code> และ <code>useUnknownInCatchVariables</code> โปรเจกต์ใหม่ทุกโปรเจกต์ควรเปิดตั้งแต่วันแรก เพราะการมาเปิดทีหลังในโปรเจกต์ใหญ่จะเจอ Error หลายร้อยจุดพร้อมกัน</p>
+<p>ส่วนตัวเลือกอย่าง <code>noUncheckedIndexedAccess</code> และ <code>exactOptionalPropertyTypes</code> ไม่ได้อยู่ในชุด <code>strict</code> ต้องเปิดแยกเอง ซึ่ง <code>tsconfig.json</code> ของหัวข้อนี้เปิดไว้แล้ว</p>
+</div></details>
+<details class="ans"><summary>ข้อ 2</summary><div>
+<p><strong>คำตอบ: <code>--noEmit</code></strong></p>
+<p><code>npx tsc --noEmit</code> ทำเฉพาะขั้น Type Check แล้วจบ ไม่เขียนไฟล์ <code>.js</code> หรือ <code>.js.map</code> ลง <code>dist/</code> เลย ถ้ามี Error จะคืน Exit Code ที่ไม่ใช่ 0 ทำให้ CI รู้ว่าต้องหยุด ใน <code>package.json</code> ของ <code>ts-lab</code> จึงมี script <code>"typecheck": "tsc --noEmit"</code> ไว้รันก่อน Commit หรือใน GitHub Actions</p>
+</div></details>
+<details class="ans"><summary>ข้อ 3</summary><div>
+<p><strong>คำตอบ: <code>undefined</code></strong> (Type เต็มคือ <code>number | undefined</code>)</p>
+<p>ตอนเขียนโค้ด TypeScript ไม่รู้ว่า Array มีสมาชิกกี่ตัว การอ่าน <code>prices[0]</code> อาจได้ <code>undefined</code> ถ้า Array ว่าง เมื่อเปิด <code>noUncheckedIndexedAccess</code> Compiler จะบังคับให้เราตรวจก่อนใช้ เช่น <code>if (first !== undefined) { ... }</code> หรือใช้ <code>first ?? 0</code> ถ้าเอา <code>first</code> ไปคำนวณตรง ๆ จะได้ Error <code>TS18048: 'first' is possibly 'undefined'.</code></p>
+</div></details>
+<details class="ans"><summary>ข้อ 4</summary><div>
+<p><strong>คำตอบ: <code>number</code></strong></p>
+<p><code>typeof STATUSES</code> คือ Type ของ Array <code>readonly ["todo", "doing", "done"]</code> การเขียน <code>[number]</code> เป็น Indexed Access ที่หมายถึง "Type ของสมาชิกที่อ่านด้วย index ใดก็ได้ที่เป็นตัวเลข" จึงได้ Union ของสมาชิกทุกตัว คือ <code>"todo" | "doing" | "done"</code> ข้อดีคือมีรายการค่าอยู่ที่เดียว ใช้ได้ทั้งตอนรัน (วนลูป แสดงตัวเลือก) และตอนตรวจ Type</p>
+<p>ถ้าลืม <code>as const</code> Type ของ Array จะกว้างเป็น <code>string[]</code> และ <code>Status</code> จะกลายเป็น <code>string</code> ธรรมดา ซึ่งไม่ช่วยจับค่าที่สะกดผิด</p>
+</div></details>
+<details class="ans"><summary>ข้อ 5</summary><div>
+<p><strong>คำตอบ: <code>is</code></strong> (Return Type เต็มคือ <code>v is Task</code>)</p>
+<p>Return Type แบบ <code>v is Task</code> เรียกว่า Type Predicate บอก Compiler ว่า ถ้าฟังก์ชันคืน <code>true</code> ให้ถือว่า <code>v</code> เป็น <code>Task</code> ใน Block นั้น เช่น <code>if (isTask(data)) { data.title }</code> ใช้ได้ทันที ถ้าเขียนเป็น <code>boolean</code> ธรรมดา Compiler จะไม่ Narrow ให้</p>
+<p>ข้อควรรู้: TypeScript เชื่อสิ่งที่ Type Guard บอกโดยไม่ตรวจซ้ำ ถ้าเงื่อนไขข้างในหละหลวม (ในตัวอย่างนี้ไม่ได้ตรวจว่า <code>title</code> เป็น string) ก็จะได้ข้อมูลผิดผ่านไปได้ งานที่ข้อมูลซับซ้อนจึงนิยมใช้ zod แทนการเขียน Guard เอง</p>
+</div></details>
+<details class="ans"><summary>ข้อ 6</summary><div>
+<p><strong>คำตอบ: <code>never</code></strong></p>
+<p>ใน <code>default</code> ของ <code>switch</code> ที่จัดการครบทุก <code>case</code> แล้ว Narrowing จะตัดสมาชิกของ Union ออกจนไม่เหลืออะไร Type ของตัวแปรจึงเป็น <code>never</code> การส่งค่าเข้า <code>assertNever(x: never)</code> จึงผ่าน แต่เมื่อมีสมาชิกใหม่ที่ยังไม่มี <code>case</code> ค่าใน <code>default</code> จะมี Type เป็นสมาชิกนั้นแทน และ <code>tsc</code> แจ้ง <code>error TS2345 ... is not assignable to parameter of type 'never'</code> ทันที ถ้าใช้ <code>unknown</code> หรือ <code>any</code> แทน <code>never</code> การตรวจนี้จะไม่ทำงาน</p>
+</div></details>
+<details class="ans"><summary>ข้อ 7</summary><div>
+<p><strong>คำตอบ: <code>Omit</code></strong></p>
+<p><code>Omit&lt;Task, "id" | "createdAt"&gt;</code> สร้าง Object Type ใหม่ที่มีทุกฟิลด์ของ <code>Task</code> ยกเว้นฟิลด์ที่ระบุ ผลคือ <code>{ title: string; status: "todo" | "doing" | "done" }</code> ข้อดีคือถ้าวันหลังเพิ่มฟิลด์ใน <code>Task</code> เช่น <code>priority</code> Type <code>NewTask</code> จะได้ฟิลด์นั้นตามไปเองโดยไม่ต้องแก้สองที่</p>
+<p>ถ้าใช้ <code>Pick</code> ต้องเขียนกลับด้าน คือระบุฟิลด์ที่ต้องการเก็บ (<code>Pick&lt;Task, "title" | "status"&gt;</code>) ซึ่งได้ผลเหมือนกันตอนนี้ แต่ไม่อัปเดตตามเมื่อเพิ่มฟิลด์ใหม่</p>
+</div></details>
+<details class="ans"><summary>ข้อ 8</summary><div>
+<p><strong>คำตอบ: <code>infer</code></strong></p>
+<p><code>infer U</code> ใช้ได้เฉพาะในส่วน <code>extends</code> ของ Conditional Type หมายถึง "ถ้า T ตรงกับรูปแบบ <code>Promise&lt;อะไรสักอย่าง&gt;</code> ให้จับอะไรสักอย่างนั้นไว้ในชื่อ U" แล้วนำ U ไปใช้ในฝั่ง <code>?</code> ได้ ตัวอย่าง <code>UnwrapPromise&lt;Promise&lt;number&gt;&gt;</code> ได้ <code>number</code> และ <code>UnwrapPromise&lt;string&gt;</code> ได้ <code>string</code> เดิม</p>
+<p>ในงานจริงไม่ต้องเขียนเอง เพราะ TypeScript มี Utility Type <code>Awaited&lt;T&gt;</code> ที่แกะ Type ออกจาก Promise ได้เหมือนกันและรองรับ Promise ซ้อนหลายชั้นด้วย</p>
+</div></details>
+<details class="ans"><summary>ข้อ 9</summary><div>
+<p><strong>คำตอบ: <code>Capitalize</code></strong></p>
+<p><code>Capitalize&lt;S&gt;</code> เป็น Intrinsic String Type ที่เปลี่ยนตัวอักษรแรกของ String Literal Type เป็นตัวพิมพ์ใหญ่ เช่น <code>Capitalize&lt;"name"&gt;</code> ได้ <code>"Name"</code> เมื่อใส่ใน Template Literal <code>`get${...}`</code> จึงได้ <code>"getName"</code> ส่วน <code>as</code> ใน Mapped Type คือ Key Remapping ที่เปลี่ยนชื่อ key ระหว่างวนลูป</p>
+<p>ต้องเขียน <code>string &amp; K</code> เพราะ <code>keyof T</code> อาจเป็น <code>number</code> หรือ <code>symbol</code> ได้ด้วย แต่ <code>Capitalize</code> รับเฉพาะ string การ Intersect กับ <code>string</code> จะคัดเอาเฉพาะ key ที่เป็น string Intrinsic Type ตัวอื่นในกลุ่มเดียวกันคือ <code>Uppercase</code>, <code>Lowercase</code> และ <code>Uncapitalize</code></p>
+</div></details>
+<h4>เฉลย Multiple Choice</h4>
+<p>ทุกคำตอบด้านล่างตรวจแล้วด้วย <code>tsc</code> 7.0.2 กับ <code>tsconfig.json</code> แบบ strict ของหัวข้อนี้ ส่วนข้อที่ต้องดูผลตอนรันตรวจด้วย Node.js ที่รองรับ Type Stripping โดยไม่ต้องใส่ flag (Node 22.18 ขึ้นไป รวมถึง Node 24 และ 26) ข้อความ Error ที่ยกมาคือข้อความจริงจาก Compiler</p>
+
+<details class="ans"><summary>ข้อ 1</summary><div>
+<p><strong>คำตอบ: B</strong> ตั้งแต่ Node.js 22.18 และ Node 24 ขึ้นไป Node รันไฟล์ <code>.ts</code> ได้เลยด้วยกลไก Type Stripping คือ "ลบ" Type Annotation ทิ้งแล้วรันส่วนที่เหลือเป็น JavaScript ธรรมดา Node <strong>ไม่ตรวจ Type</strong> เลย บรรทัด <code>const total: number = "100";</code> จึงเหลือแค่ <code>const total = "100";</code> แล้วพิมพ์ผลออกมาตามปกติ</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ยอดรวม: 100</code></pre>
+<p>นี่คือเหตุผลที่โปรเจกต์จริงต้องรัน <code>npx tsc --noEmit</code> (หรือ <code>npm run typecheck</code>) ใน CI เสมอ เพราะการรันด้วย Node อย่างเดียวไม่ช่วยจับ Error เรื่อง Type ถ้ารัน <code>npx tsc</code> กับไฟล์นี้จะได้ <code>error TS2322: Type 'string' is not assignable to type 'number'.</code></p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ error TS2322 มาจาก <code>tsc</code> เท่านั้น Node ไม่ได้รัน Type Checker จึงไม่มีทางแสดงรหัส Error ของ TypeScript</li>
+<li><strong>C</strong> ผิดเพราะ Node ไม่เรียก <code>tsc</code> และไม่สร้างโฟลเดอร์ <code>dist/</code> ให้ Type Stripping ทำงานในหน่วยความจำตอนโหลดไฟล์ ไม่เขียนไฟล์ <code>.js</code> ใดลงดิสก์</li>
+<li><strong>D</strong> ผิดเพราะ Type Annotation ไม่มีผลตอนรันเลย ไม่มีการแปลงค่าให้ตรง Type ค่า <code>total</code> ยังเป็น string <code>"100"</code> อยู่ (ถ้าเขียน <code>total + 1</code> จะได้ <code>"1001"</code> ไม่ใช่ <code>101</code>)</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 2</summary><div>
+<p><strong>คำตอบ: C</strong> <code>let a = "todo"</code> เปลี่ยนค่าได้ภายหลัง TypeScript จึง "ขยาย" (Widen) Type เป็น <code>string</code> ส่วน <code>const b = "todo"</code> เปลี่ยนค่าไม่ได้ Type จึงแคบที่สุดคือ Literal Type <code>"todo"</code> และ Array ที่มีทั้งตัวเลขและข้อความถูกอนุมานเป็น <code>(string | number)[]</code> ซึ่งหมายถึง "Array ที่สมาชิกแต่ละตัวเป็น string หรือ number ก็ได้ ยาวเท่าไรก็ได้"</p>
+<p>ตรวจได้ด้วยการเอาเมาส์ชี้ชื่อตัวแปรใน VS Code หรือทดลองกำหนดค่า เช่น <code>const x: typeof arr = [1, "y", 2];</code> ซึ่ง Compile ผ่าน แสดงว่าไม่ใช่ Tuple ที่ยาวตายตัว</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ <code>let</code> ไม่ได้ Literal Type (ถ้าได้ <code>"todo"</code> เราจะเปลี่ยนเป็น <code>"done"</code> ไม่ได้เลย ซึ่งขัดกับจุดประสงค์ของ <code>let</code>) และ Array literal ธรรมดาไม่ถูกอนุมานเป็น Tuple <code>[number, string]</code> ต้องเขียน <code>as const</code> หรือระบุ Type เองถึงจะได้ Tuple</li>
+<li><strong>B</strong> ผิดเพราะ <code>const b</code> ได้ Literal Type <code>"todo"</code> ไม่ใช่ <code>string</code> และเมื่อเปิด <code>strict</code> TypeScript ไม่อนุมาน Array ที่มีค่าเริ่มต้นเป็น <code>any[]</code> แต่ได้ Union ของ Type สมาชิกทั้งหมด</li>
+<li><strong>D</strong> ผิดเพราะสลับกัน <code>let</code> ได้ <code>string</code> และ <code>const</code> ได้ <code>"todo"</code> ไม่ใช่กลับกัน</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 3</summary><div>
+<p><strong>คำตอบ: C</strong> เมื่อเปิด <code>exactOptionalPropertyTypes</code> คำว่า <code>nickname?: string</code> หมายความว่า "จะไม่มี key นี้เลยก็ได้ แต่ถ้ามี ค่าต้องเป็น string" การเขียน <code>nickname: undefined</code> คือ "มี key แต่ค่าเป็น undefined" จึงไม่ผ่าน tsc แจ้งว่า</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>error TS2375: Type '{ name: string; nickname: undefined; }' is not assignable to type 'Profile' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'nickname' are incompatible.
+    Type 'undefined' is not assignable to type 'string'.</code></pre>
+<p>ถ้าระบบต้องการให้ส่ง <code>undefined</code> ได้จริง ให้ประกาศเป็น <code>nickname?: string | undefined</code> ให้ชัดเจน</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะการไม่ใส่ key <code>nickname</code> เลยคือความหมายหลักของ Optional Property จึงผ่าน</li>
+<li><strong>B</strong> ผิดเพราะใส่ <code>nickname</code> เป็น string ซึ่งตรงกับ Type ทุกประการ</li>
+<li><strong>D</strong> ผิดเพราะสร้าง Object โดยไม่มี <code>nickname</code> ก่อน แล้วกำหนดค่าเป็น string ภายหลังได้ (ตัวแปร <code>p4</code> เป็น <code>const</code> แต่ห้ามแค่การกำหนดตัวแปรใหม่ ไม่ได้ห้ามแก้ property ข้างใน)</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 4</summary><div>
+<p><strong>คำตอบ: A</strong> ฟังก์ชันประกาศว่าคืน <code>number</code> แต่ถ้า <code>total</code> เป็น 0 หรือติดลบ จะไม่เข้า <code>if</code> ใดเลยและหลุดออกจากฟังก์ชันโดยไม่มี <code>return</code> ซึ่งใน JavaScript หมายถึงคืน <code>undefined</code> TypeScript วิเคราะห์ Control Flow แล้วพบช่องโหว่นี้ จึงแจ้ง</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>error TS2366: Function lacks ending return statement and return type does not include 'undefined'.</code></pre>
+<p>วิธีแก้ที่ดีคือเพิ่ม <code>return</code> ท้ายฟังก์ชัน หรือเปลี่ยน <code>else if</code> สุดท้ายเป็น <code>else</code> หรือ <code>throw new Error("ยอดซื้อต้องมากกว่า 0")</code> เมื่อข้อมูลผิด</p>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะ Type <code>number</code> รวมค่า 0 และค่าติดลบด้วย TypeScript ไม่รู้กฎธุรกิจว่า "ยอดซื้อต้องมากกว่า 0" มันรู้แค่ Type ที่เราประกาศ</li>
+<li><strong>C</strong> ผิดเพราะ TS2554 เกิดเมื่อส่ง argument ไม่ครบ แต่โค้ดเรียก <code>shippingFee(300)</code> ส่งครบ 1 ตัวแล้ว</li>
+<li><strong>D</strong> ผิดเพราะ tsc ตรวจพบตั้งแต่ตอน Compile และตอนรันจริงฟังก์ชันที่ไม่มี <code>return</code> จะคืน <code>undefined</code> โดยไม่ throw Error ซึ่งอันตรายกว่า เพราะค่าผิดจะไหลไปคำนวณต่อแบบเงียบ ๆ</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 5</summary><div>
+<p><strong>คำตอบ: D</strong> <code>enum</code> เป็นหนึ่งในไม่กี่ Syntax ของ TypeScript ที่สร้างโค้ด JavaScript จริงขึ้นมา (Compiler สร้าง Object <code>Priority</code> ที่ map ชื่อกับตัวเลขไปมา) การลบ Type ทิ้งเฉย ๆ จึงไม่พอ เมื่อเปิด <code>erasableSyntaxOnly</code> ตามที่หัวข้อนี้แนะนำ tsc จะแจ้ง</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>error TS1294: This syntax is not allowed when 'erasableSyntaxOnly' is enabled.</code></pre>
+<p>และ <code>node src/app.ts</code> ที่ใช้ Type Stripping ก็รันไฟล์ที่มี <code>enum</code> ไม่ได้ ส่วน Union ของ Literal Types หายไปหมดตอนรัน ไม่มีโค้ดเพิ่ม และยังได้ Autocomplete กับ Exhaustive Check ครบเหมือนเดิม</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ TypeScript 7 ยังรองรับ <code>enum</code> ตามปกติ เพียงแต่ใช้ไม่ได้เมื่อเราเลือกเปิด <code>erasableSyntaxOnly</code> เอง โปรเจกต์เก่าที่ใช้ <code>enum</code> ยัง Compile ได้</li>
+<li><strong>B</strong> ผิดเพราะความเร็วตอนรันแทบไม่ต่างกัน การอ่านค่าจาก Object ของ enum เร็วมาก เหตุผลจริงคือเรื่องความเข้ากันได้กับ Type Stripping และความเรียบง่าย ไม่ใช่ประสิทธิภาพ</li>
+<li><strong>C</strong> ผิดเพราะ Union ของ Literal Types ใช้กับ <code>switch</code> ได้ดีมาก และ TypeScript ยัง Narrow Type ในแต่ละ <code>case</code> ให้ด้วย</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 6</summary><div>
+<p><strong>คำตอบ: B</strong> ใน <code>default</code> TypeScript ตัดสมาชิกที่ถูกจัดการแล้ว (<code>"add"</code> และ <code>"done"</code>) ออกจาก Type ของ <code>cmd</code> ถ้าจัดการครบทุกตัว <code>cmd</code> จะเหลือ Type <code>never</code> แต่เพราะลืม <code>"archive"</code> ค่า <code>cmd</code> ยังเป็น <code>{ kind: "archive"; id: string }</code> ซึ่งส่งให้พารามิเตอร์ <code>never</code> ไม่ได้ tsc จึงแจ้ง</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>error TS2345: Argument of type '{ kind: "archive"; id: string; }' is not assignable to parameter of type 'never'.</code></pre>
+<p>นี่คือ Exhaustive Check ที่ทำให้ทีมไม่ลืมจัดการกรณีใหม่ Error ยังบอกด้วยว่าสมาชิกตัวไหนที่ขาดไป</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ Error เกิดตั้งแต่ตอน Compile นี่คือประโยชน์หลักของ <code>assertNever</code> การ throw ตอนรันเป็นแค่ด่านสำรองกรณีข้อมูลจากภายนอกหลุดมา</li>
+<li><strong>C</strong> ผิดเพราะ TypeScript ไม่แจ้ง Error เมื่อสมาชิกของ Union ไม่ถูกใช้ การประกาศ Type ไม่เคยผิดเพียงเพราะยังไม่มีคนใช้</li>
+<li><strong>D</strong> ผิดเพราะ tsc ไม่เขียน Logic เพิ่มให้ หน้าที่ของมันคือตรวจ Type แล้วลบ Type ออก โค้ดใน <code>.js</code> ที่ได้มี Logic เท่ากับที่เราเขียนทุกประการ</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 7</summary><div>
+<p><strong>คำตอบ: A</strong> <code>private</code> ของ TypeScript เป็นแค่การตรวจตอน Compile เมื่อถูกลบ Type ออก <code>balance</code> ก็เป็น property ธรรมดาของ Object การใช้ <code>as any</code> หลบ Type Checker จึงอ่านค่าได้ ส่วน <code>#balance</code> เป็น Private Field ของ JavaScript ที่ Runtime บังคับจริง ชื่อ <code>"#balance"</code> แบบ string ไม่ใช่ field เดียวกัน จึงได้ <code>undefined</code> ผลที่รันได้จริงคือ</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>1000
+undefined</code></pre>
+<p>ถ้าต้องการซ่อนข้อมูลจริง ๆ (เช่น Token หรือยอดเงินที่ไม่ควรถูกแก้จากภายนอก) ให้ใช้ <code>#field</code> แล้วเปิดให้อ่านผ่าน getter</p>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะ <code>private</code> ไม่มีผลตอนรันเลย บรรทัดแรกจึงพิมพ์ <code>1000</code> ไม่ใช่ <code>undefined</code></li>
+<li><strong>C</strong> ผิดเพราะ tsc ไม่เข้ารหัสค่าใด ๆ ใน <code>dist/</code> และอธิบายผลกลับด้านกับความจริง <code>#balance</code> คือแบบที่ปลอดภัยกว่า</li>
+<li><strong>D</strong> ผิดเพราะ <code>#private</code> เป็น Syntax มาตรฐานของ JavaScript ไม่ใช่ Syntax เฉพาะของ TypeScript จึงไม่ต้องลบทิ้งและใช้ได้ปกติเมื่อเปิด <code>erasableSyntaxOnly</code> (สิ่งที่ใช้ไม่ได้คือ Parameter Property อย่าง <code>constructor(private x: number)</code>)</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 8</summary><div>
+<p><strong>คำตอบ: C</strong> เมื่อเรียก <code>getProp(task, "priority")</code> TypeScript อนุมาน <code>T</code> เป็น <code>Task</code> และ <code>K</code> เป็น Literal <code>"priority"</code> (เพราะ <code>K extends keyof T</code> ทำให้มันเก็บ Literal ไว้) Return Type <code>T[K]</code> จึงเป็น <code>Task["priority"]</code> ซึ่งคือ <code>"low" | "medium" | "high"</code></p>
+<p>ตรวจได้ด้วยการเขียน <code>const bad: typeof p = "urgent";</code> แล้วรัน tsc จะได้ <code>error TS2322: Type '"urgent"' is not assignable to type '"high" | "low" | "medium"'.</code></p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ Indexed Access Type <code>T[K]</code> ให้ Type ของ property นั้นตรง ๆ ไม่ได้ขยายเป็น <code>string</code> นี่คือข้อดีของ Generic แบบนี้</li>
+<li><strong>B</strong> ผิดเพราะ <code>keyof Task</code> คือ Type ของ "ชื่อ key" (<code>"id" | "title" | "priority"</code>) ไม่ใช่ Type ของ "ค่า" ที่อ่านออกมา</li>
+<li><strong>D</strong> ผิดเพราะทั้งฟังก์ชันไม่มีจุดไหนใช้ <code>any</code> และเมื่อเปิด <code>strict</code> TypeScript ไม่ปล่อยให้ Type หลุดเป็น <code>any</code> โดยไม่บอก</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 9</summary><div>
+<p><strong>คำตอบ: D</strong> มีเงื่อนไข 2 ข้อที่ต้องผ่านพร้อมกัน ข้อแรก <code>verbatimModuleSyntax</code> บังคับให้ Import ที่เป็น Type ล้วนต้องเขียน <code>import type</code> เพื่อให้ลบทิ้งได้แน่นอนตอนรัน ข้อสอง <code>module: "nodenext"</code> บังคับให้ Relative Import ระบุนามสกุลไฟล์ และ <code>rewriteRelativeImportExtensions</code> อนุญาตให้เขียน <code>.ts</code> ได้ (tsc จะเปลี่ยนเป็น <code>.js</code> ใน <code>dist/</code> ให้) จึงรันได้ทั้งแบบ <code>node src/...</code> และ <code>node dist/...</code></p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ Import Type โดยไม่มีคำว่า <code>type</code> ได้ <code>error TS1484: 'Task' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.</code></li>
+<li><strong>B</strong> ผิดเพราะไม่มีนามสกุลไฟล์ ได้ <code>error TS2835: Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean './types.js'?</code></li>
+<li><strong>C</strong> ผิดเพราะโปรเจกต์ใช้ ES Modules (<code>"type": "module"</code>) จึงไม่ควรใช้ <code>require</code> และที่สำคัญ <code>Task</code> เป็น Type ซึ่งไม่มีตัวตนตอนรัน จะดึงออกมาเป็นค่าด้วย <code>require</code> ไม่ได้</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 10</summary><div>
+<p><strong>คำตอบ: C</strong> อ่านจากในออกนอก <code>Pick&lt;Task, "title" | "status"&gt;</code> เลือกมาแค่ 2 ฟิลด์ แล้ว <code>Partial</code> ทำให้ทั้ง 2 ฟิลด์เป็น Optional ผลคือ <code>{ title?: string; status?: "todo" | "doing" | "done" }</code> Object ว่าง <code>{}</code> จึงถูกต้อง (หมายถึง "ไม่แก้อะไรเลย")</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ <code>id</code> ไม่ได้ถูก Pick มา ได้ <code>error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'Partial&lt;Pick&lt;Task, "status" | "title"&gt;&gt;'.</code> ซึ่งเป็นสิ่งที่ต้องการ เพราะ Patch ไม่ควรแก้รหัสงาน</li>
+<li><strong>B</strong> ผิดเพราะ <code>"archived"</code> ไม่อยู่ใน Union ของ <code>status</code> ได้ <code>error TS2322: Type '"archived"' is not assignable to type '"doing" | "done" | "todo"'.</code></li>
+<li><strong>D</strong> ผิดเพราะเปิด <code>exactOptionalPropertyTypes</code> อยู่ การใส่ <code>title: undefined</code> จึงได้ <code>error TS2375</code> (Optional หมายถึงไม่มี key ไม่ได้หมายถึงใส่ <code>undefined</code> ได้)</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 11</summary><div>
+<p><strong>คำตอบ: B</strong> เมื่อ Conditional Type เขียนในรูป <code>T extends ...</code> โดยที่ <code>T</code> เป็น Type Parameter เปล่า ๆ และเราส่ง Union เข้าไป TypeScript จะ "กระจาย" (Distributive Conditional Type) คิดทีละสมาชิกแล้วรวมผล คือ <code>ToArray&lt;string&gt; | ToArray&lt;number&gt;</code> ได้ <code>string[] | number[]</code></p>
+<p>ความหมายคือ Array ที่มีแต่ string หรือ Array ที่มีแต่ number ห้ามปนกัน ตรวจได้ด้วย <code>const r1: R = ["a", 1];</code> ซึ่งได้ <code>error TS2322: Type '(string | number)[]' is not assignable to type 'R'.</code> ถ้าไม่ต้องการให้กระจาย ให้ครอบด้วยวงเล็บเหลี่ยม <code>[T] extends [unknown]</code></p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ <code>(string | number)[]</code> เป็นผลของแบบไม่กระจาย (เช่น <code>[T] extends [unknown] ? T[] : never</code>) ซึ่งยอมให้ปนกันในอาร์เรย์เดียว</li>
+<li><strong>C</strong> ผิดเพราะ <code>string</code> และ <code>number</code> ต่าง extends <code>unknown</code> ทุกตัว จึงไม่มีสมาชิกใดตกไปที่ <code>never</code></li>
+<li><strong>D</strong> ผิดเพราะ <code>T</code> ในแต่ละรอบคือ <code>string</code> หรือ <code>number</code> ไม่ใช่ <code>unknown</code> ผลจึงเป็น <code>T[]</code> ของสมาชิกนั้น ไม่ใช่ <code>unknown[]</code></li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 12</summary><div>
+<p><strong>คำตอบ: A</strong> Template Literal Type กระจายทุกสมาชิกของ Union และ <code>Capitalize</code> เปลี่ยนตัวอักษรแรกเป็นตัวใหญ่ ผลคือ <code>"task:Todo" | "task:Doing" | "task:Done"</code> ดังนั้น <code>"task:Done"</code> ผ่าน</p>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะ <code>Capitalize</code> ทำให้ <code>done</code> เป็น <code>Done</code> แล้ว ได้ <code>error TS2820: Type '"task:done"' is not assignable to type '"task:Doing" | "task:Done" | "task:Todo"'. Did you mean '"task:Done"'?</code></li>
+<li><strong>C</strong> ผิดเพราะส่วน <code>task:</code> เป็นข้อความคงที่ในเทมเพลตซึ่งเป็นตัวเล็ก <code>Capitalize</code> มีผลเฉพาะส่วน <code>${...}</code> ไม่ได้ทำกับคำนำหน้า</li>
+<li><strong>D</strong> ผิดเพราะ <code>"archived"</code> ไม่ได้อยู่ใน <code>Status</code> จึงไม่มี <code>"task:Archived"</code> ใน Union ที่ได้</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 13</summary><div>
+<p><strong>คำตอบ: D</strong> Type ของ TypeScript หายไปตอนรัน จึงรับประกันไม่ได้ว่าข้อมูลจาก API ภายนอกตรงกับ <code>User</code> จริง วิธีที่ปลอดภัยคือรับมาเป็น <code>unknown</code> (บังคับว่าต้องตรวจก่อนใช้) แล้วตรวจตอนรันด้วย <code>UserSchema.safeParse(data)</code> ซึ่งไม่ throw แต่คืน Object ที่มี <code>success</code> เป็นตัวแยก เมื่อ <code>r.success</code> เป็น <code>true</code> TypeScript จะ Narrow ให้ <code>r.data</code> เป็น <code>User</code> ที่ตรวจแล้วจริง ถ้าเป็น <code>false</code> ก็อ่าน <code>r.error</code> เพื่อรายงานว่าฟิลด์ไหนผิด</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ <code>as User</code> คือการบอก Compiler ว่า "เชื่อฉัน" โดยไม่มีการตรวจจริง ถ้า API ส่ง <code>age</code> มาเป็น string โค้ดจะยัง Compile ผ่านแต่พังทีหลังในจุดที่หาสาเหตุยาก</li>
+<li><strong>B</strong> ผิดเพราะ <code>res.json()</code> คืน <code>Promise&lt;any&gt;</code> การใส่ Annotation <code>User</code> จึงผ่านเสมอโดยไม่ตรวจอะไรเลย อันตรายเท่ากับข้อ A แต่ดูปลอดภัยกว่า จึงหลอกตาได้ง่ายกว่า</li>
+<li><strong>C</strong> ผิดเพราะ <code>satisfies</code> ตรวจตอน Compile เท่านั้น และ <code>JSON.parse</code> คืน <code>any</code> ซึ่งผ่าน <code>satisfies</code> ได้ทุกกรณี ไม่มีการตรวจข้อมูลจริงตอนรันเลย</li>
+</ul>
+</div></details>
+<h4>เฉลย Hands-on Challenge</h4>
+<p>เฉลยทั้ง 3 ข้ออยู่ในโปรเจกต์ <code>~/projects/ts-lab</code> เดียวกับ Part 2 ซึ่งใช้ TypeScript 7.0.2, <code>@types/node</code> 24.19.2 และ <code>tsconfig.json</code> แบบ strict (เปิด <code>noUncheckedIndexedAccess</code>, <code>exactOptionalPropertyTypes</code>, <code>verbatimModuleSyntax</code>, <code>erasableSyntaxOnly</code> และ <code>rewriteRelativeImportExtensions</code>) ทุกไฟล์ผ่าน <code>npx tsc</code> โดยไม่มี Error และผลลัพธ์ที่แสดงคือผลจากการรันจริง โค้ดของคุณไม่จำเป็นต้องเหมือนเฉลยทุกบรรทัด ขอให้ผลลัพธ์ถูกต้อง ไม่มี <code>any</code> และผ่าน tsc แบบ strict ก็ถือว่าใช้ได้</p>
+
+<details class="ans"><summary>โจทย์ที่ 1: ใบเสร็จร้านกาแฟแบบ Type-safe</summary><div>
+<h5>โค้ดเฉลย</h5>
+<pre class="code" data-env="file" data-label="TypeScript · src/ch1-receipt.ts"><code class="language-typescript">// โจทย์ที่ 1: ใบเสร็จร้านกาแฟแบบ Type-safe
+
+// หมวดสินค้าเป็น Union ของ Literal Types (ไม่ใช้ enum)
+type Category = "coffee" | "tea" | "bakery";
+
+// ข้อมูลเมนู 1 รายการ: code เป็น readonly เพราะห้ามเปลี่ยนรหัสสินค้า
+type MenuItem = {
+  readonly code: string;
+  name: string;
+  price: number;
+  category: Category;
+};
+
+// รายการสั่ง 1 บรรทัดเป็น Named Tuple: [รหัสสินค้า, จำนวน]
+type OrderLine = [code: string, qty: number];
+
+// ผลการคำนวณใบเสร็จ
+type Receipt = {
+  lines: { name: string; qty: number; amount: number }[];
+  unknownCodes: string[];
+  subtotal: number;
+  discount: number;
+  total: number;
+};
+
+const MENU: readonly MenuItem[] = [
+  { code: "C01", name: "Americano เย็น", price: 65, category: "coffee" },
+  { code: "C02", name: "Latte ร้อน", price: 70, category: "coffee" },
+  { code: "T01", name: "ชาไทยเย็น", price: 55, category: "tea" },
+  { code: "B01", name: "ครัวซองต์เนยสด", price: 79, category: "bakery" },
+];
+
+// find() คืน MenuItem | undefined เสมอ ผู้เรียกต้องจัดการกรณีไม่เจอ
+function findItem(code: string): MenuItem | undefined {
+  return MENU.find((item) =&gt; item.code === code);
+}
+
+// แปลงตัวเลขเป็นรูปแบบเงินบาท เช่น 1,234.00 บาท
+function formatBaht(amount: number): string {
+  return (
+    amount.toLocaleString("th-TH", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }) + " บาท"
+  );
+}
+
+// discountPercent เป็น Optional Parameter: ไม่ส่งมาก็ได้
+function calcReceipt(
+  order: readonly OrderLine[],
+  discountPercent?: number,
+): Receipt {
+  const lines: Receipt["lines"] = [];
+  const unknownCodes: string[] = [];
+
+  for (const [code, qty] of order) {
+    const item = findItem(code);
+    if (item === undefined) {
+      // Narrowing: หลังบรรทัดนี้ TypeScript รู้ว่า item ไม่ใช่ undefined
+      unknownCodes.push(code);
+      continue;
+    }
+    lines.push({ name: item.name, qty, amount: item.price * qty });
+  }
+
+  const subtotal = lines.reduce((sum, line) =&gt; sum + line.amount, 0);
+  const discount =
+    discountPercent === undefined
+      ? 0
+      : Math.round(subtotal * discountPercent) / 100;
+  return { lines, unknownCodes, subtotal, discount, total: subtotal - discount };
+}
+
+function printReceipt(receipt: Receipt): void {
+  console.log("===== ร้านกาแฟบ้านสมชาย =====");
+  for (const line of receipt.lines) {
+    console.log(
+      `${line.name.padEnd(16)} x${line.qty}  ${formatBaht(line.amount)}`,
+    );
+  }
+  for (const code of receipt.unknownCodes) {
+    console.log(`(ข้าม) ไม่พบรหัสสินค้า ${code}`);
+  }
+  console.log(`ยอดก่อนส่วนลด : ${formatBaht(receipt.subtotal)}`);
+  console.log(`ส่วนลด        : ${formatBaht(receipt.discount)}`);
+  console.log(`ยอดสุทธิ      : ${formatBaht(receipt.total)}`);
+}
+
+const order1: OrderLine[] = [
+  ["C01", 2],
+  ["B01", 1],
+  ["X99", 1],
+];
+const order2: OrderLine[] = [
+  ["T01", 3],
+  ["C02", 1],
+];
+
+printReceipt(calcReceipt(order1));
+console.log("");
+printReceipt(calcReceipt(order2, 10));</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># อยู่ในโฟลเดอร์โปรเจกต์
+cd ~/projects/ts-lab
+# ตรวจ Type และสร้างไฟล์ใน dist/
+npx tsc
+# รันไฟล์ JavaScript ที่ได้
+node dist/ch1-receipt.js</code></pre>
+<h5>ผลลัพธ์ที่ได้จริง</h5>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>===== ร้านกาแฟบ้านสมชาย =====
+Americano เย็น   x2  130.00 บาท
+ครัวซองต์เนยสด   x1  79.00 บาท
+(ข้าม) ไม่พบรหัสสินค้า X99
+ยอดก่อนส่วนลด : 209.00 บาท
+ส่วนลด        : 0.00 บาท
+ยอดสุทธิ      : 209.00 บาท
+
+===== ร้านกาแฟบ้านสมชาย =====
+ชาไทยเย็น        x3  165.00 บาท
+Latte ร้อน       x1  70.00 บาท
+ยอดก่อนส่วนลด : 235.00 บาท
+ส่วนลด        : 23.50 บาท
+ยอดสุทธิ      : 211.50 บาท</code></pre>
+<p>ขั้นที่ 7 เมื่อแก้ <code>["C01", 2]</code> เป็น <code>["C01", "2"]</code> แล้วรัน <code>npx tsc</code> ได้ Error นี้ (เลขบรรทัดอาจต่างจากของคุณเล็กน้อยตามจำนวนบรรทัดในไฟล์)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>src/ch1-receipt.ts(90,11): error TS2322: Type 'string' is not assignable to type 'number'.</code></pre>
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>ออกแบบ Type ก่อนเขียน Logic</strong> เริ่มจาก <code>Category</code>, <code>MenuItem</code>, <code>OrderLine</code> และ <code>Receipt</code> เมื่อ Type ชัด ฟังก์ชันที่เหลือก็แค่แปลงข้อมูลจาก Type หนึ่งไปอีก Type หนึ่ง</li>
+<li><strong>ให้ Type บังคับจัดการกรณีหาไม่เจอ</strong> <code>findItem</code> คืน <code>MenuItem | undefined</code> ถ้าเขียน <code>item.price</code> โดยไม่ตรวจก่อน tsc จะแจ้ง <code>error TS18048: 'item' is possibly 'undefined'.</code> นี่คือ Bug เดียวกับที่ทำให้สคริปต์เดิมพังด้วย <code>TypeError</code> แต่ตอนนี้ถูกจับได้ตั้งแต่ตอน Compile</li>
+<li><strong>Named Tuple</strong> <code>[code: string, qty: number]</code> ทำให้ข้อมูลสั้นเหมือน Array แต่ยังมีชื่อกำกับ และ <code>for (const [code, qty] of order)</code> ได้ Type ที่ถูกต้องทั้ง 2 ตัว ใส่จำนวนเป็น <code>"2"</code> จึงไม่ผ่าน</li>
+<li><strong><code>readonly</code> 2 ระดับ</strong> <code>readonly code</code> ห้ามแก้รหัสสินค้า และ <code>readonly MenuItem[]</code> ห้าม <code>push</code> หรือ <code>sort</code> เมนูโดยไม่ตั้งใจ ส่วนพารามิเตอร์ <code>order: readonly OrderLine[]</code> บอกผู้เรียกว่าฟังก์ชันนี้ไม่แก้ข้อมูลที่ส่งเข้ามา</li>
+<li><strong>Optional Parameter</strong> <code>discountPercent?: number</code> มี Type เป็น <code>number | undefined</code> ภายในฟังก์ชัน จึงต้องเช็ก <code>=== undefined</code> ก่อนคำนวณ ส่วนลดปัดเป็นสตางค์ด้วย <code>Math.round(subtotal * discountPercent) / 100</code> เช่น 235 x 10 = 2350 หาร 100 ได้ 23.5 บาท</li>
+<li><strong>Indexed Access Type</strong> <code>Receipt["lines"]</code> ใช้ Type ของฟิลด์ใน <code>Receipt</code> โดยตรง ถ้าวันหน้าเพิ่มฟิลด์ใน <code>lines</code> ก็แก้ที่เดียว</li>
+</ul>
+<h5>ไอเดียต่อยอด</h5>
+<ul>
+<li>เพิ่ม Type <code>Size = "S" | "M" | "L"</code> และราคาบวกเพิ่มตามขนาด แล้วเปลี่ยน <code>OrderLine</code> เป็น <code>[code: string, qty: number, size?: Size]</code></li>
+<li>เปลี่ยนส่วนลดเป็น Discriminated Union เช่น <code>{ kind: "percent"; value: number } | { kind: "fixed"; baht: number } | { kind: "none" }</code> แล้วใช้ <code>switch</code> กับ <code>assertNever</code> คำนวณ</li>
+<li>สรุปยอดขายตาม <code>Category</code> ด้วย <code>Record&lt;Category, number&gt;</code> ซึ่งบังคับให้มีครบทุกหมวดแม้หมวดนั้นขายไม่ได้เลย</li>
+<li>แยก <code>calcReceipt</code> ไปไว้ในไฟล์ของตัวเอง แล้วเขียน Test ด้วย <code>node:test</code> ตรวจกรณีรหัสผิด ส่วนลด 0% และส่วนลด 10%</li>
+<li>อ่านรายการสั่งจากไฟล์ JSON แล้วตรวจด้วย zod ก่อนส่งเข้า <code>calcReceipt</code> เพื่อป้องกันข้อมูลผิดรูปแบบตอนรัน</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 2: แปลง Webhook Events เป็นข้อความแจ้งเตือน</summary><div>
+<h5>โค้ดเฉลย</h5>
+<p>ไฟล์ <code>data/events.json</code> ใช้ตามที่ให้ไว้ในโจทย์ ส่วนโค้ดหลักเป็นดังนี้</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/ch2-events.ts"><code class="language-typescript">// โจทย์ที่ 2: แปลง Webhook Events ของร้านออนไลน์ให้เป็นข้อความแจ้งเตือน
+import { readFile } from "node:fs/promises";
+
+// ---------- 1) Types ----------
+const PAY_METHODS = ["promptpay", "card", "cash"] as const;
+type PayMethod = (typeof PAY_METHODS)[number];
+
+// Discriminated Union: ทุกสมาชิกมีฟิลด์ type เป็น Literal ที่ไม่ซ้ำกัน
+type OrderEvent =
+  | { type: "order.created"; orderId: string; customer: string; total: number }
+  | { type: "order.paid"; orderId: string; method: PayMethod }
+  | { type: "order.shipped"; orderId: string; trackingNo: string }
+  | { type: "order.cancelled"; orderId: string; reason: string };
+
+type EventType = OrderEvent["type"];
+
+// ผลการตรวจ 1 รายการ: ผ่าน หรือ ไม่ผ่านพร้อมเหตุผล
+type Checked =
+  | { ok: true; event: OrderEvent }
+  | { ok: false; index: number; reason: string };
+
+// ---------- 2) Type Guards สำหรับข้อมูล unknown ----------
+function isRecord(v: unknown): v is Record&lt;string, unknown&gt; {
+  return typeof v === "object" &amp;&amp; v !== null &amp;&amp; !Array.isArray(v);
+}
+
+function isPayMethod(v: unknown): v is PayMethod {
+  return typeof v === "string" &amp;&amp; (PAY_METHODS as readonly string[]).includes(v);
+}
+
+// ตรวจ 1 รายการ แล้วคืน Checked (ไม่ throw)
+function checkEvent(raw: unknown, index: number): Checked {
+  const fail = (reason: string): Checked =&gt; ({ ok: false, index, reason });
+  if (!isRecord(raw)) return fail("ไม่ใช่ object");
+  const { type, orderId } = raw;
+  if (typeof orderId !== "string") return fail("orderId ต้องเป็น string");
+
+  switch (type) {
+    case "order.created":
+      if (typeof raw.customer !== "string") return fail("customer ต้องเป็น string");
+      if (typeof raw.total !== "number") return fail("total ต้องเป็น number");
+      return { ok: true, event: { type, orderId, customer: raw.customer, total: raw.total } };
+    case "order.paid":
+      if (!isPayMethod(raw.method)) return fail(`method ไม่รองรับ: ${String(raw.method)}`);
+      return { ok: true, event: { type, orderId, method: raw.method } };
+    case "order.shipped":
+      if (typeof raw.trackingNo !== "string") return fail("trackingNo ต้องเป็น string");
+      return { ok: true, event: { type, orderId, trackingNo: raw.trackingNo } };
+    case "order.cancelled":
+      if (typeof raw.reason !== "string") return fail("reason ต้องเป็น string");
+      return { ok: true, event: { type, orderId, reason: raw.reason } };
+    default:
+      return fail(`ไม่รู้จัก type: ${String(type)}`);
+  }
+}
+
+// ---------- 3) Exhaustive switch ----------
+function assertNever(x: never): never {
+  throw new Error("มี Event ที่ยังไม่ได้จัดการ: " + JSON.stringify(x));
+}
+
+function toMessage(e: OrderEvent): string {
+  switch (e.type) {
+    case "order.created":
+      return `[${e.orderId}] ${e.customer} สั่งซื้อ ยอด ${e.total.toLocaleString("th-TH")} บาท`;
+    case "order.paid":
+      return `[${e.orderId}] ชำระเงินแล้วผ่าน ${e.method}`;
+    case "order.shipped":
+      return `[${e.orderId}] จัดส่งแล้ว เลขพัสดุ ${e.trackingNo}`;
+    case "order.cancelled":
+      return `[${e.orderId}] ถูกยกเลิก: ${e.reason}`;
+    default:
+      return assertNever(e);
+  }
+}
+
+// ---------- 4) Generic helper ----------
+// นับจำนวนตาม key ที่ได้จาก callback โดย K ต้องเป็น string
+function countBy&lt;T, K extends string&gt;(
+  items: readonly T[],
+  keys: readonly K[],
+  keyOf: (item: T) =&gt; K,
+): Record&lt;K, number&gt; {
+  const result = {} as Record&lt;K, number&gt;;
+  for (const k of keys) result[k] = 0;
+  for (const item of items) result[keyOf(item)] += 1;
+  return result;
+}
+
+const EVENT_TYPES: readonly EventType[] = [
+  "order.created",
+  "order.paid",
+  "order.shipped",
+  "order.cancelled",
+];
+
+// ---------- 5) main ----------
+const fileUrl = new URL("../data/events.json", import.meta.url);
+const parsed: unknown = JSON.parse(await readFile(fileUrl, "utf8"));
+
+if (!Array.isArray(parsed)) {
+  console.error("ไฟล์ต้องเป็น JSON array");
+  process.exitCode = 1;
+} else {
+  const checked = parsed.map((raw: unknown, i) =&gt; checkEvent(raw, i));
+  const events: OrderEvent[] = [];
+  console.log("--- ข้อความแจ้งเตือน ---");
+  for (const c of checked) {
+    if (c.ok) {
+      events.push(c.event);
+      console.log(toMessage(c.event));
+    }
+  }
+  console.log("--- รายการที่ถูกปฏิเสธ ---");
+  for (const c of checked) {
+    if (!c.ok) console.log(`#${c.index}: ${c.reason}`);
+  }
+  console.log("--- สรุปตามประเภท ---");
+  console.log(countBy(events, EVENT_TYPES, (e) =&gt; e.type));
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/ts-lab
+# ตรวจ Type และสร้างไฟล์ใน dist/
+npx tsc
+# รันไฟล์ที่ได้ (ไฟล์อ่าน data/events.json จากตำแหน่งของตัวเอง จึงรันจากโฟลเดอร์ไหนก็ได้)
+node dist/ch2-events.js</code></pre>
+<h5>ผลลัพธ์ที่ได้จริง</h5>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>--- ข้อความแจ้งเตือน ---
+[A-1001] somchai สั่งซื้อ ยอด 450 บาท
+[A-1001] ชำระเงินแล้วผ่าน promptpay
+[A-1002] somsri สั่งซื้อ ยอด 1,290 บาท
+[A-1001] จัดส่งแล้ว เลขพัสดุ TH0123456789
+[A-1002] ถูกยกเลิก: ลูกค้าขอยกเลิก
+--- รายการที่ถูกปฏิเสธ ---
+#4: method ไม่รองรับ: bitcoin
+#6: ไม่รู้จัก type: order.refunded
+#7: total ต้องเป็น number
+--- สรุปตามประเภท ---
+{
+  'order.created': 2,
+  'order.paid': 1,
+  'order.shipped': 1,
+  'order.cancelled': 1
+}</code></pre>
+<p>ขั้นที่ 7 เมื่อเพิ่มสมาชิก <code>| { type: "order.refunded"; orderId: string; amount: number }</code> เข้าไปใน <code>OrderEvent</code> ชั่วคราวแล้วรัน <code>npx tsc</code> ได้ Error ที่บรรทัด <code>return assertNever(e);</code> เพียงจุดเดียว</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>src/ch2-events.ts(74,26): error TS2345: Argument of type '{ type: "order.refunded"; orderId: string; amount: number; }' is not assignable to parameter of type 'never'.</code></pre>
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>Single Source of Truth</strong> <code>PAY_METHODS</code> แบบ <code>as const</code> เป็นทั้งค่าที่ใช้ตอนรัน (ตรวจด้วย <code>includes</code>) และที่มาของ Type <code>PayMethod</code> ผ่าน <code>(typeof PAY_METHODS)[number]</code> เพิ่มวิธีชำระเงินใหม่ที่เดียว ทั้ง Type และการตรวจอัปเดตพร้อมกัน</li>
+<li><strong>ข้อมูลภายนอกเป็น <code>unknown</code> เสมอ</strong> <code>JSON.parse</code> คืน <code>any</code> เราจึงประกาศ <code>const parsed: unknown</code> เพื่อบังคับตัวเองให้ตรวจก่อนใช้ จากนั้นใช้ <code>Array.isArray</code>, Type Guard <code>isRecord</code> และ <code>typeof</code> ค่อย ๆ Narrow ทีละชั้น</li>
+<li><strong>Narrowing ด้วย <code>switch</code> บนค่า <code>unknown</code></strong> ภายใน <code>case "order.created":</code> ตัวแปร <code>type</code> ถูก Narrow เป็น Literal <code>"order.created"</code> จึงประกอบเป็น <code>OrderEvent</code> ได้โดยไม่ต้องใช้ <code>as</code> ถ้าเราใส่ฟิลด์ผิดชนิด tsc จะจับได้ทันที</li>
+<li><strong>คืน Result แทนการ throw</strong> <code>Checked</code> เป็น Discriminated Union บนฟิลด์ <code>ok</code> ทำให้ประมวลผลรายการที่ดีต่อได้ และรายงานรายการที่เสียพร้อมลำดับและเหตุผล โปรแกรมจึงไม่หยุดกลางทางเพราะข้อมูลเสียรายการเดียว</li>
+<li><strong>Exhaustive Check 2 ชั้น</strong> <code>default</code> ใน <code>checkEvent</code> จัดการ <code>type</code> ที่ไม่รู้จักจากข้อมูลจริง (ตอนรัน) ส่วน <code>assertNever</code> ใน <code>toMessage</code> จับกรณีที่นักพัฒนาเพิ่ม Event ใหม่แต่ลืมเขียนข้อความ (ตอน Compile)</li>
+<li><strong>Generic กับ <code>Record&lt;K, number&gt;</code></strong> <code>countBy</code> ใช้ได้กับข้อมูลทุกชนิด และเพราะใส่ 0 ให้ครบทุก key ก่อนนับ ผลจึงมีครบทุกประเภทเสมอ จุดเดียวที่ใช้ <code>as</code> คือค่าเริ่มต้น <code>{}</code> ซึ่งปลอดภัยเพราะลูปถัดมาเติมครบทุก key ทันที</li>
+</ul>
+<h5>ไอเดียต่อยอด</h5>
+<ul>
+<li>เปลี่ยนการตรวจด้วยมือเป็น <code>z.discriminatedUnion("type", [...])</code> ของ zod แล้วใช้ <code>z.infer</code> สร้าง <code>OrderEvent</code> จาก Schema เปรียบเทียบความยาวโค้ดกับแบบเดิม</li>
+<li>เพิ่ม Event <code>order.refunded</code> ให้ครบจริง ทั้งการตรวจใน <code>checkEvent</code> ข้อความใน <code>toMessage</code> และค่าใน <code>EVENT_TYPES</code> แล้วสังเกตว่า tsc พาไปทุกจุดที่ต้องแก้</li>
+<li>สร้าง Type ชื่อ Handler แบบ Mapped Type <code>{ [K in OrderEvent["type"]]: (e: Extract&lt;OrderEvent, { type: K }&gt;) =&gt; string }</code> แทน <code>switch</code> ซึ่งบังคับให้มีฟังก์ชันครบทุกชนิดเช่นกัน</li>
+<li>เปลี่ยนจากอ่านไฟล์เป็นรับ Webhook จริงด้วย <code>node:http</code> บน <code>127.0.0.1</code> และตอบ HTTP 400 พร้อมเหตุผลเมื่อข้อมูลไม่ผ่านการตรวจ</li>
+<li>เขียน Test ด้วย <code>node:test</code> ให้ <code>checkEvent</code> ครอบคลุมทั้ง 3 กรณีที่ถูกปฏิเสธ และกรณีที่ข้อมูลไม่ใช่ Object</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 3: Client สำหรับ Inventory API พร้อม zod และ node:test</summary><div>
+<h5>โค้ดเฉลย</h5>
+<p>ติดตั้ง zod และสร้างโฟลเดอร์ก่อน (ข้ามได้ถ้าติดตั้งไว้แล้วตอนแนวคิดที่ 12)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/ts-lab
+# ติดตั้ง zod เวอร์ชันที่หัวข้อนี้ทดสอบแล้ว
+npm install zod@4.6.7
+# สร้างโฟลเดอร์สำหรับโจทย์นี้
+mkdir -p src/ch3</code></pre>
+<p>ไฟล์ที่ 1: Schema และ Type ที่ได้จาก Schema</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/ch3/schemas.ts"><code class="language-typescript">// Schema ของข้อมูลสินค้าที่ได้จาก Inventory API
+import { z } from "zod";
+
+export const CATEGORIES = ["drink", "snack", "bakery"] as const;
+
+export const ProductSchema = z.object({
+  id: z.string().regex(/^P-\d{3}$/, "id ต้องอยู่ในรูปแบบ P-001"),
+  name: z.string().min(1),
+  price: z.number().nonnegative(),
+  stock: z.number().int().nonnegative(),
+  category: z.enum(CATEGORIES),
+});
+
+export const ProductListSchema = z.array(ProductSchema);
+
+// Type มาจาก Schema โดยตรง จึงไม่มีวันไม่ตรงกัน
+export type Product = z.infer&lt;typeof ProductSchema&gt;;
+export type Category = Product["category"];</code></pre>
+<p>ไฟล์ที่ 2: Type <code>Result</code></p>
+<pre class="code" data-env="file" data-label="TypeScript · src/ch3/result.ts"><code class="language-typescript">// Result: คืนผลสำเร็จหรือข้อผิดพลาดแทนการ throw
+export type Result&lt;T, E = string&gt; =
+  | { ok: true; value: T }
+  | { ok: false; error: E };</code></pre>
+<p>ไฟล์ที่ 3: Client และฟังก์ชันคำนวณ</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/ch3/client.ts"><code class="language-typescript">// Client สำหรับเรียก Inventory API แบบ Type-safe
+import { z } from "zod";
+import type { Result } from "./result.ts";
+import { CATEGORIES } from "./schemas.ts";
+import type { Category, Product } from "./schemas.ts";
+
+// Generic: T ถูกอนุมานจาก Schema ที่ส่งเข้ามา
+export async function getJson&lt;T&gt;(
+  url: string,
+  schema: z.ZodType&lt;T&gt;,
+): Promise&lt;Result&lt;T&gt;&gt; {
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch {
+    return { ok: false, error: `เชื่อมต่อ ${url} ไม่ได้` };
+  }
+  if (!res.ok) {
+    return { ok: false, error: `HTTP ${res.status} จาก ${url}` };
+  }
+
+  // ข้อมูลจากภายนอกเก็บเป็น unknown ก่อนเสมอ
+  let data: unknown;
+  try {
+    data = await res.json();
+  } catch {
+    return { ok: false, error: `ข้อมูลจาก ${url} ไม่ใช่ JSON` };
+  }
+
+  const parsed = schema.safeParse(data);
+  if (!parsed.success) {
+    return { ok: false, error: z.prettifyError(parsed.error) };
+  }
+  return { ok: true, value: parsed.data };
+}
+
+// นับจำนวนสินค้าแต่ละหมวด ได้ครบทุกหมวดเพราะใช้ Record&lt;Category, number&gt;
+export function countByCategory(products: readonly Product[]): Record&lt;Category, number&gt; {
+  const counts = Object.fromEntries(CATEGORIES.map((c) =&gt; [c, 0])) as Record&lt;Category, number&gt;;
+  for (const p of products) counts[p.category] += 1;
+  return counts;
+}
+
+// คืนสินค้าที่ stock น้อยกว่า threshold เรียงจากน้อยไปมาก
+export function lowStock(
+  products: readonly Product[],
+  threshold: number,
+): Pick&lt;Product, "id" | "name" | "stock"&gt;[] {
+  return products
+    .filter((p) =&gt; p.stock &lt; threshold)
+    .sort((a, b) =&gt; a.stock - b.stock)
+    .map(({ id, name, stock }) =&gt; ({ id, name, stock }));
+}</code></pre>
+<p>ไฟล์ที่ 4: Server จำลองสำหรับเดโมและ Test</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/ch3/fake-server.ts"><code class="language-typescript">// Server จำลองบน 127.0.0.1 port 0 (ระบบเลือก port ว่างให้) ไม่ต้องใช้อินเทอร์เน็ต
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
+
+const GOOD = [
+  { id: "P-001", name: "ชาเขียวนม", price: 45, stock: 12, category: "drink" },
+  { id: "P-002", name: "ขนมปังกระเทียม", price: 35, stock: 2, category: "bakery" },
+  { id: "P-003", name: "มันฝรั่งทอด", price: 25, stock: 0, category: "snack" },
+];
+
+const BROKEN = [
+  { id: "P-001", name: "ชาเขียวนม", price: 45, stock: 12, category: "drink" },
+  { id: "P-2", name: "ขนมปังกระเทียม", price: "35", stock: -2, category: "bakery" },
+];
+
+export type FakeServer = { baseUrl: string; close: () =&gt; Promise&lt;void&gt; };
+
+export function startFakeServer(): Promise&lt;FakeServer&gt; {
+  const server = createServer((req, res) =&gt; {
+    if (req.url === "/products") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify(GOOD));
+    } else if (req.url === "/products-broken") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify(BROKEN));
+    } else if (req.url === "/not-json") {
+      res.writeHead(200, { "content-type": "text/plain" });
+      res.end("ระบบปิดปรับปรุง");
+    } else {
+      res.writeHead(404, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "not found" }));
+    }
+  });
+  return new Promise((resolve) =&gt; {
+    server.listen(0, "127.0.0.1", () =&gt; {
+      const { port } = server.address() as AddressInfo;
+      resolve({
+        baseUrl: `http://127.0.0.1:${port}`,
+        close: () =&gt; new Promise((done) =&gt; server.close(() =&gt; done())),
+      });
+    });
+  });
+}</code></pre>
+<p>ไฟล์ที่ 5: โปรแกรมเดโม</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/ch3/main.ts"><code class="language-typescript">// เดโม: เรียก API 4 แบบ แล้วแสดงผล
+import { countByCategory, getJson, lowStock } from "./client.ts";
+import { startFakeServer } from "./fake-server.ts";
+import { ProductListSchema } from "./schemas.ts";
+
+const server = await startFakeServer();
+try {
+  const good = await getJson(`${server.baseUrl}/products`, ProductListSchema);
+  if (good.ok) {
+    // ตรงนี้ good.value มี Type เป็น Product[] แล้ว
+    console.log(`โหลดสินค้าได้ ${good.value.length} รายการ`);
+    console.log("จำนวนตามหมวด:", countByCategory(good.value));
+    console.log("ใกล้หมด (stock &lt; 5):");
+    console.table(lowStock(good.value, 5));
+  }
+
+  for (const path of ["/products-broken", "/missing", "/not-json"]) {
+    const r = await getJson(`${server.baseUrl}${path}`, ProductListSchema);
+    if (!r.ok) {
+      console.log(`\nเรียก ${path} ไม่สำเร็จ:`);
+      console.log(r.error.replaceAll(server.baseUrl, "http://127.0.0.1:PORT"));
+    }
+  }
+} finally {
+  await server.close();
+}</code></pre>
+<p>ไฟล์ที่ 6: Test 6 ข้อ แบ่งเป็น 2 กลุ่ม</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/ch3/client.test.ts"><code class="language-typescript">// ทดสอบ client ด้วย node:test โดยใช้ server จำลอง
+import { after, before, describe, test } from "node:test";
+import assert from "node:assert/strict";
+import { countByCategory, getJson, lowStock } from "./client.ts";
+import { startFakeServer } from "./fake-server.ts";
+import type { FakeServer } from "./fake-server.ts";
+import { ProductListSchema } from "./schemas.ts";
+import type { Product } from "./schemas.ts";
+
+const SAMPLE: Product[] = [
+  { id: "P-010", name: "น้ำเปล่า", price: 10, stock: 3, category: "drink" },
+  { id: "P-011", name: "โดนัท", price: 20, stock: 1, category: "bakery" },
+  { id: "P-012", name: "กาแฟเย็น", price: 50, stock: 9, category: "drink" },
+];
+
+describe("ฟังก์ชันคำนวณ", () =&gt; {
+  test("countByCategory นับครบทุกหมวดแม้หมวดนั้นเป็น 0", () =&gt; {
+    assert.deepEqual(countByCategory(SAMPLE), { drink: 2, snack: 0, bakery: 1 });
+  });
+  test("lowStock เรียงจาก stock น้อยไปมาก", () =&gt; {
+    assert.deepEqual(lowStock(SAMPLE, 5).map((p) =&gt; p.id), ["P-011", "P-010"]);
+  });
+});
+
+describe("getJson กับ server จำลอง", () =&gt; {
+  let server: FakeServer;
+  before(async () =&gt; {
+    server = await startFakeServer();
+  });
+  after(async () =&gt; {
+    await server.close();
+  });
+
+  test("ข้อมูลถูกต้องได้ ok: true และ Product[]", async () =&gt; {
+    const r = await getJson(`${server.baseUrl}/products`, ProductListSchema);
+    assert.equal(r.ok, true);
+    if (r.ok) assert.equal(r.value.length, 3);
+  });
+  test("ข้อมูลผิด Schema ได้ error ที่บอกตำแหน่งฟิลด์", async () =&gt; {
+    const r = await getJson(`${server.baseUrl}/products-broken`, ProductListSchema);
+    assert.equal(r.ok, false);
+    if (!r.ok) assert.match(r.error, /\[1\]\.price/);
+  });
+  test("HTTP 404 ได้ error ที่มีรหัส 404", async () =&gt; {
+    const r = await getJson(`${server.baseUrl}/missing`, ProductListSchema);
+    assert.equal(r.ok, false);
+    if (!r.ok) assert.match(r.error, /^HTTP 404/);
+  });
+  test("body ไม่ใช่ JSON ได้ error ไม่ใช่ JSON", async () =&gt; {
+    const r = await getJson(`${server.baseUrl}/not-json`, ProductListSchema);
+    assert.equal(r.ok, false);
+    if (!r.ok) assert.match(r.error, /ไม่ใช่ JSON/);
+  });
+});</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/ts-lab
+# Compile ทุกไฟล์
+npx tsc
+# รันเดโม
+node dist/ch3/main.js</code></pre>
+<h5>ผลลัพธ์ที่ได้จริง</h5>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>โหลดสินค้าได้ 3 รายการ
+จำนวนตามหมวด: { drink: 1, snack: 1, bakery: 1 }
+ใกล้หมด (stock &lt; 5):
+┌─────────┬─────────┬────────────────┬───────┐
+│ (index) │ id      │ name           │ stock │
+├─────────┼─────────┼────────────────┼───────┤
+│ 0       │ 'P-003' │ 'มันฝรั่งทอด'     │ 0     │
+│ 1       │ 'P-002' │ 'ขนมปังกระเทียม' │ 2     │
+└─────────┴─────────┴────────────────┴───────┘
+
+เรียก /products-broken ไม่สำเร็จ:
+✖ id ต้องอยู่ในรูปแบบ P-001
+  → at [1].id
+✖ Invalid input: expected number, received string
+  → at [1].price
+✖ Too small: expected number to be &gt;=0
+  → at [1].stock
+
+เรียก /missing ไม่สำเร็จ:
+HTTP 404 จาก http://127.0.0.1:PORT/missing
+
+เรียก /not-json ไม่สำเร็จ:
+ข้อมูลจาก http://127.0.0.1:PORT/not-json ไม่ใช่ JSON</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สคริปต์ test ใน package.json คือ tsc แล้วตามด้วย node --test
+npm test</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>
+&gt; ts-lab@1.0.0 test
+&gt; tsc &amp;&amp; node --test --test-reporter=spec "dist/**/*.test.js"
+
+▶ ฟังก์ชันคำนวณ
+  ✔ countByCategory นับครบทุกหมวดแม้หมวดนั้นเป็น 0 (1.710861ms)
+  ✔ lowStock เรียงจาก stock น้อยไปมาก (0.357823ms)
+✔ ฟังก์ชันคำนวณ (3.069604ms)
+▶ getJson กับ server จำลอง
+  ✔ ข้อมูลถูกต้องได้ ok: true และ Product[] (25.801535ms)
+  ✔ ข้อมูลผิด Schema ได้ error ที่บอกตำแหน่งฟิลด์ (5.207285ms)
+  ✔ HTTP 404 ได้ error ที่มีรหัส 404 (3.861853ms)
+  ✔ body ไม่ใช่ JSON ได้ error ไม่ใช่ JSON (2.568119ms)
+✔ getJson กับ server จำลอง (48.608159ms)
+ℹ tests 6
+ℹ suites 2
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 320.998586</code></pre>
+<p class="muted small">เวลาในวงเล็บ (ms) บนเครื่องของคุณจะต่างจากนี้ทุกครั้งที่รัน สิ่งที่ต้องตรงคือ tests 6, pass 6 และ fail 0</p>
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>Schema เป็นที่มาของ Type</strong> <code>type Product = z.infer&lt;typeof ProductSchema&gt;</code> ทำให้ Type ตอน Compile กับการตรวจตอนรันมาจากแหล่งเดียว ไม่มีทางไม่ตรงกัน และ <code>Category</code> ก็ได้มาจาก <code>Product["category"]</code> อีกต่อหนึ่ง</li>
+<li><strong>Generic ที่อนุมานจาก Schema</strong> <code>getJson&lt;T&gt;(url, schema: z.ZodType&lt;T&gt;)</code> ทำให้ <code>getJson(url, ProductListSchema)</code> คืน <code>Result&lt;Product[]&gt;</code> เอง ฟังก์ชันเดียวนี้ใช้กับ Endpoint อื่นได้ทุกตัวแค่เปลี่ยน Schema</li>
+<li><strong>แยก try/catch ตามสาเหตุ</strong> เชื่อมต่อไม่ได้ (<code>fetch</code> throw), HTTP ไม่ใช่ 2xx (<code>res.ok</code> เป็น <code>false</code>), body ไม่ใช่ JSON (<code>res.json()</code> throw <code>SyntaxError</code>) และข้อมูลผิด Schema (<code>safeParse</code> ไม่สำเร็จ) แต่ละกรณีได้ข้อความที่บอกสาเหตุชัดเจน ผู้เรียกไม่ต้องเขียน try/catch เอง</li>
+<li><strong>Result แทน Exception</strong> Type <code>Result&lt;T, E&gt;</code> บังคับให้ผู้เรียกตรวจ <code>r.ok</code> ก่อนอ่าน <code>r.value</code> ถ้าลืม tsc จะแจ้ง Error เพราะ <code>value</code> ไม่มีในฝั่ง <code>ok: false</code></li>
+<li><strong><code>z.prettifyError</code></strong> แปลง Error ของ zod เป็นข้อความที่อ่านง่ายพร้อมตำแหน่ง เช่น <code>→ at [1].price</code> ทำให้ทีมที่ดูแล API รู้ทันทีว่ารายการไหน ฟิลด์ไหนผิด</li>
+<li><strong>Test ที่ไม่ต้องใช้อินเทอร์เน็ต</strong> Server จำลองเปิดบน <code>127.0.0.1</code> port 0 ให้ระบบเลือก port ว่าง จึงรันพร้อมกันหลายครั้งได้โดยไม่ชนกัน <code>before</code>/<code>after</code> เปิดปิด Server ครั้งเดียวต่อกลุ่ม และใน Test ใช้ <code>if (r.ok)</code> เพื่อ Narrow ก่อนอ่านค่า</li>
+<li><strong>Utility Types ในงานจริง</strong> <code>Record&lt;Category, number&gt;</code> รับประกันว่ามีครบทุกหมวด และ <code>Pick&lt;Product, "id" | "name" | "stock"&gt;</code> บอกชัดว่า <code>lowStock</code> คืนเฉพาะฟิลด์ที่จำเป็น</li>
+</ul>
+<h5>ไอเดียต่อยอด</h5>
+<ul>
+<li>เพิ่ม Timeout ด้วย <code>fetch(url, { signal: AbortSignal.timeout(3000) })</code> แล้วเพิ่มเส้นทาง <code>/slow</code> ใน Server จำลองที่ตอบช้า พร้อม Test ว่าได้ Error ที่บอกว่าหมดเวลา</li>
+<li>เปลี่ยน <code>E</code> ใน <code>Result</code> จาก string เป็น Discriminated Union เช่น <code>{ kind: "network" } | { kind: "http"; status: number } | { kind: "invalid-json" } | { kind: "schema"; issues: string[] }</code> เพื่อให้ผู้เรียกตัดสินใจต่อได้ตามชนิดของ Error</li>
+<li>เพิ่ม Retry แบบ Exponential Backoff เฉพาะกรณี network และ HTTP 5xx แต่ไม่ Retry กรณีข้อมูลผิด Schema เพราะลองใหม่ก็ผิดเหมือนเดิม</li>
+<li>เพิ่มฟังก์ชัน <code>postJson&lt;TReq, TRes&gt;</code> ที่ตรวจทั้งข้อมูลขาส่งและขารับด้วย Schema 2 ตัว แล้วเพิ่มเส้นทาง <code>POST /products</code> ใน Server จำลอง</li>
+<li>เพิ่มสคริปต์ <code>"test:coverage"</code> ที่ใช้ <code>node --test --experimental-test-coverage</code> เพื่อดูว่า Test ครอบคลุมโค้ดใน <code>client.ts</code> กี่เปอร์เซ็นต์</li>
+</ul>
+</div></details>
+</section>

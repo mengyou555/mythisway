@@ -1,0 +1,1231 @@
+<section class="part" data-part="3">
+<h2 id="s5-3"><span class="sec-no">5.3</span>Practice Exercises &amp; Quizzes</h2>
+<p>ส่วนนี้คือสนามซ้อมของหัวข้อ Cyber Security ทุกข้อทดสอบความเข้าใจจากแนวคิดใน Part 2 ตั้งแต่ CIA Triad, Risk, Cyber Kill Chain, Hashing, Encryption, Linux Hardening, Firewall, Authentication, Network Security ในแล็บ, Web Security, Detection ไปจนถึง Vulnerability Management และ Incident Response โจทย์เรียงจากง่ายไปยาก แบ่งเป็น 3 แบบ ได้แก่ เติมคำในช่องว่าง (Fill-in-the-blank), ตัวเลือก (Multiple Choice) และโจทย์ลงมือทำจริง (Hands-on Challenge)</p>
+<p>เฉลยทั้งหมดอยู่ท้ายหน้า โค้ดทุกชิ้นในโจทย์และเฉลยผ่านการรันจริงแล้ว และผลลัพธ์ที่แสดงคือผลที่ได้จริง ให้ลองทำเองก่อนเปิดเฉลยเสมอ เพราะการคิดเองแม้จะผิดก็ช่วยให้จำได้ดีกว่าการอ่านคำตอบทันที</p>
+
+<div class="callout sec"><span class="c-label sec">Security</span><p>ทุกแบบฝึกหัดในหน้านี้เป็นงานฝั่งผู้ป้องกัน (Defensive) และทำในแล็บของตัวเองเท่านั้น คือเครื่อง WSL ของคุณ, Container ของคุณ และ <code>127.0.0.1</code> ห้ามนำสคริปต์หรือคำสั่งไปทดลองกับเครื่องหรือเว็บไซต์ของคนอื่นโดยไม่ได้รับอนุญาตเป็นลายลักษณ์อักษร เพราะเป็นความผิดตาม พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์ (พ.ร.บ.คอมพิวเตอร์) ถ้าอยากฝึกฝั่ง Red Team ให้ใช้แพลตฟอร์มที่ถูกกฎหมาย เช่น TryHackMe, Hack The Box, OverTheWire Bandit และ picoCTF</p></div>
+
+<h3 id="s5-3-setup">เตรียมโฟลเดอร์สำหรับฝึก</h3>
+<p>สร้างโฟลเดอร์ <code>practice</code> ไว้ในแล็บเดิม <code>~/projects/sec-lab</code> จาก Part 1 และ Part 2 แล้วสร้าง venv สำหรับโจทย์ที่ต้องใช้ Package ภายนอก (ข้อเติมคำข้อ 4 และโจทย์ Hands-on ข้อ 3) โจทย์อื่นใช้แค่ Python Standard Library และคำสั่งที่มีใน Ubuntu 24.04 อยู่แล้ว</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างโฟลเดอร์ฝึกและ venv
+mkdir -p ~/projects/sec-lab/practice
+cd ~/projects/sec-lab/practice
+python3 -m venv .venv
+source .venv/bin/activate
+
+# ติดตั้ง Package ตามเวอร์ชันที่หลักสูตรนี้ทดสอบแล้ว
+python3 -m pip install flask==3.1.3 pytest==9.1.1 argon2-cffi==25.1.0
+
+# ตรวจเวอร์ชัน
+python3 --version
+python3 -m pytest --version</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Python 3.12.3
+pytest 9.1.1</code></pre>
+<p class="muted small">ถ้าเปิด Terminal ใหม่ ต้องรัน <code>source ~/projects/sec-lab/practice/.venv/bin/activate</code> อีกครั้งก่อนทำโจทย์ที่ใช้ Flask, pytest หรือ argon2-cffi</p>
+
+<h3 id="s5-3-fill">Fill-in-the-blank</h3>
+<p>เติมคำหรือโค้ดลงในช่อง <code>_____</code> ให้ถูกต้อง บางข้อมีมากกว่าหนึ่งช่อง ให้ตอบครบทุกช่อง</p>
+<ol class="qlist fill">
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>ข้อมูลถูกแปลงได้ 3 แบบที่มือใหม่มักสับสน คือ Hash, Encryption และ Encoding เพื่อนในทีมบอกว่า "API Key ของเราปลอดภัยแล้ว เพราะเก็บเป็น Base64" ประโยคนี้ผิด เพราะ Base64 เป็นเพียง _____ ซึ่งใครก็แปลงกลับเป็นข้อความเดิมได้ทันทีโดยไม่ต้องมี Key หรือรหัสผ่านใด ๆ</p>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>สมชายเก็บไฟล์ราคาสินค้าไว้และต้องการตรวจว่าไฟล์ถูกแก้หรือไม่ เติมตัวเลือก (Option) ของคำสั่ง <code>sha256sum</code> ในบรรทัดที่ 4 และบรรทัดที่ 6 ให้ได้ผลลัพธ์ตามด้านล่าง (ทั้งสองช่องเป็นคำตอบเดียวกัน)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/sec-lab/practice/fill-b2 &amp;&amp; cd ~/projects/sec-lab/practice/fill-b2
+echo "ราคา Notebook 25000" &gt; price.txt
+sha256sum price.txt &gt; SHA256SUMS
+sha256sum _____ SHA256SUMS
+echo "ราคา Notebook 2500" &gt; price.txt
+sha256sum _____ SHA256SUMS</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>price.txt: OK
+price.txt: FAILED
+sha256sum: WARNING: 1 computed checksum did NOT match</code></pre>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>หลังแก้ไฟล์ <code>/etc/ssh/sshd_config.d/99-hardening.conf</code> ผู้ดูแลระบบที่ดีจะตรวจ Syntax ของ Config ก่อน Reload เสมอ ถ้า Config ถูกต้อง คำสั่ง <code>sudo sshd _____</code> จะไม่แสดงอะไรออกมาเลยและจบด้วย Exit Code 0 แต่ถ้ามีบรรทัดผิดจะแสดงข้อความอย่าง <code>Bad configuration option</code> พร้อมเลขบรรทัด ส่วนถ้าอยากดูค่าที่มีผลจริงทั้งหมดหลังรวมทุกไฟล์แล้ว ให้ใช้ตัวพิมพ์ใหญ่ <code>sudo sshd _____</code></p>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>เติมชื่อ Method ของ <code>PasswordHasher</code> ที่ใช้ตรวจรหัสผ่านกับค่า Hash ที่เก็บไว้ (ไฟล์ <code>~/projects/sec-lab/practice/fill_i2.py</code> รันใน venv) และเติมชื่อ Exception ที่ Method นี้ Raise เมื่อรหัสผ่านไม่ตรง</p>
+<pre class="code" data-env="file" data-label="Python · fill_i2.py"><code class="language-python">from argon2 import PasswordHasher
+from argon2.exceptions import _____
+
+ph = PasswordHasher()
+stored = ph.hash("Correct-Horse-42")   # เก็บค่านี้ในฐานข้อมูล ไม่เก็บรหัสผ่านจริง
+print(stored[:31])
+
+for attempt in ["Correct-Horse-42", "correct-horse-42"]:
+    try:
+        ph._____(stored, attempt)
+        print(attempt, "-&gt; ถูกต้อง")
+    except _____:
+        print(attempt, "-&gt; รหัสผ่านไม่ถูกต้อง")</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/sec-lab/practice
+python3 fill_i2.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>$argon2id$v=19$m=65536,t=3,p=4$
+Correct-Horse-42 -&gt; ถูกต้อง
+correct-horse-42 -&gt; รหัสผ่านไม่ถูกต้อง</code></pre>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>เติมอาร์กิวเมนต์ตัวที่สองของ <code>conn.execute</code> ให้เป็น Parameterized Query ที่ถูกต้อง ตัวแปร <code>name</code> เป็น String ที่มาจาก Query String ของผู้ใช้ และต้องระวังว่าถ้าเขียนผิดรูปแบบเพียงตัวอักษรเดียว Python จะ Error ว่า <code>sqlite3.ProgrammingError: Incorrect number of bindings supplied. The current statement uses 1, and there are 5 supplied.</code> เมื่อผู้ใช้ค้นหาคำว่า <code>Mouse</code></p>
+<pre class="code" data-env="file" data-label="Python · app.py (บางส่วน)"><code class="language-python">rows = conn.execute(
+    "SELECT id, name, price FROM products WHERE name = ?", _____
+).fetchall()</code></pre>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>ฟังก์ชันด้านล่างคือหัวใจของ SSH Brute-force Detector แบบ Sliding Window (ฝั่งผู้ป้องกัน) ที่แจ้งเตือนเมื่อ IP เดียวกัน Login ล้มเหลวครบ 5 ครั้งภายใน 10 นาที เติมช่อง (1) และ (2) ให้ใช้ค่าคงที่ที่ประกาศไว้ แล้วทำนายผลลัพธ์บรรทัดแรกในช่อง (3)</p>
+<pre class="code" data-env="file" data-label="Python · window.py"><code class="language-python">from collections import deque
+from datetime import datetime, timedelta
+
+WINDOW = timedelta(minutes=10)
+THRESHOLD = 5
+
+
+def first_alert(times):
+    window = deque()
+    for t in times:
+        window.append(t)
+        # ตัดเหตุการณ์ที่เก่ากว่า 10 นาทีออกจากหัวคิว
+        while t - window[0] &gt; _____:          # ช่อง (1)
+            window.popleft()
+        if len(window) &gt;= _____:              # ช่อง (2)
+            return t
+    return None
+
+
+base = datetime.fromisoformat("2026-10-20T02:14:00+07:00")
+offsets = [0, 4, 9, 11, 12, 13]   # นาทีที่เกิด Failed password จาก IP เดียวกัน
+times = [base + timedelta(minutes=m) for m in offsets]
+print("แจ้งเตือนครั้งแรกเวลา:", first_alert(times))
+print("ถ้ามีแค่ 4 ครั้ง:", first_alert(times[:4]))</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>แจ้งเตือนครั้งแรกเวลา: _____          # ช่อง (3)
+ถ้ามีแค่ 4 ครั้ง: None</code></pre>
+</li>
+</ol>
+
+<h3 id="s5-3-mcq">Multiple Choice</h3>
+<p>เลือกคำตอบที่ถูกต้องที่สุดเพียงข้อเดียว ทุกข้อมี 4 ตัวเลือก (A ถึง D) โจทย์หลายข้อเป็นสถานการณ์จริงที่คนทำงาน Blue Team เจอ ให้คิดว่า "ถ้าเป็นเรา จะตัดสินใจอย่างไรและเพราะอะไร" ก่อนเลือก</p>
+<ol class="qlist mcq">
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>เว็บไซต์ร้านค้าของบริษัทถูกแก้ไขโดยไม่ได้รับอนุญาต ราคา Notebook เปลี่ยนจาก 25000 บาทเป็น 25 บาท แต่เว็บยังเปิดได้ปกติและไม่มีข้อมูลลูกค้ารั่วออกไป เหตุการณ์นี้กระทบด้านใดของ CIA Triad โดยตรง</p>
+<ol class="choices">
+<li>Confidentiality</li>
+<li>Integrity</li>
+<li>Availability</li>
+<li>Accounting (จากหลัก AAA)</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>ในตาราง Risk ของแล็บ สมชายประเมิน Wi-Fi Router ว่า Likelihood = 4 และ Impact = 4 ถ้าใช้สูตร Risk = Likelihood × Impact และเกณฑ์ Low 1–6, Medium 7–14, High 15–19, Critical 20–25 ความเสี่ยงนี้อยู่ระดับใด</p>
+<ol class="choices">
+<li>Medium</li>
+<li>Critical</li>
+<li>High</li>
+<li>Low</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>Log ของ Firewall ในแล็บแสดงว่า IP <code>203.0.113.45</code> เชื่อมต่อเข้ามาที่ Port ต่าง ๆ เกือบ 1000 Port ภายในไม่กี่วินาที โดยยังไม่มีการพยายาม Login ใด ๆ เลย จากมุมมองของผู้ป้องกัน พฤติกรรมนี้ตรงกับ Cyber Kill Chain Phase และ MITRE ATT&amp;CK Technique ใดมากที่สุด</p>
+<ol class="choices">
+<li>Reconnaissance และ T1595 Active Scanning</li>
+<li>Delivery และ T1566 Phishing</li>
+<li>Installation และ T1078 Valid Accounts</li>
+<li>Actions on Objectives และ T1110 Brute Force</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>ทีมของสมชายต้องการ Sign ไฟล์ <code>release.tar.gz</code> ด้วย Key แบบ Ed25519 เพื่อให้ผู้ใช้ตรวจได้ว่าไฟล์มาจากทีมจริงและไม่ถูกแก้ไข ข้อใดอธิบายการใช้ Key ได้ถูกต้อง</p>
+<ol class="choices">
+<li>Sign ด้วย Public Key ของทีม และให้ผู้ใช้ Verify ด้วย Private Key ของทีม</li>
+<li>Sign ด้วย AES-256 Key ตัวเดียว แล้วส่ง Key นั้นให้ผู้ใช้ทุกคนไป Verify</li>
+<li>Sign ด้วย Private Key และให้ผู้ใช้ Verify ด้วย Private Key ตัวเดียวกันที่ทีมส่งไปให้</li>
+<li>Sign ด้วย Private Key ที่ทีมเก็บไว้คนเดียว และให้ผู้ใช้ Verify ด้วย Public Key ที่เผยแพร่ได้</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ไฟล์ Private Key <code>~/.ssh/id_ed25519</code> ของสมชายควรมี Permission แบบ Octal เป็นค่าใด เพื่อให้เป็นไปตามหลัก Least Privilege และไม่ถูกโปรแกรม <code>ssh</code> ปฏิเสธ</p>
+<ol class="choices">
+<li><code>600</code></li>
+<li><code>644</code></li>
+<li><code>755</code></li>
+<li><code>640</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>สมชายต้องการเปลี่ยน SSH Server ในแล็บให้ Login ได้ด้วย Key เท่านั้น (<code>PasswordAuthentication no</code>) ลำดับขั้นตอนใดปลอดภัยที่สุดและไม่ทำให้ตัวเองถูกล็อกออกจากเครื่อง</p>
+<ol class="choices">
+<li>ตั้ง <code>PasswordAuthentication no</code> แล้ว Reload ทันที จากนั้นค่อยสร้าง Key ด้วย <code>ssh-keygen</code> และคัดลอก Public Key ขึ้นเครื่อง</li>
+<li>แก้ไฟล์ <code>/etc/ssh/sshd_config</code> หลักโดยตรง Restart Service ปิดทุก Session ที่เปิดอยู่ แล้วค่อยลอง Login ใหม่</li>
+<li>สร้าง Key และทดสอบ Login ด้วย Key ให้ผ่านก่อน แล้วเขียนค่าใน Drop-in <code>99-hardening.conf</code> ตรวจด้วย <code>sudo sshd -t</code> เปิด Session เดิมค้างไว้ แล้วจึง Reload และทดสอบจาก Session ใหม่</li>
+<li>ปิด Firewall ทั้งหมดชั่วคราว ตั้งค่า แล้ว Reload เพื่อให้แน่ใจว่าไม่มีอะไรขวางการเชื่อมต่อ</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ทำไมระบบ Login ควรเก็บรหัสผ่านด้วย Argon2id แทนการเก็บ <code>sha256(salt + password)</code> แม้ว่าจะใส่ Salt แบบสุ่มแล้วก็ตาม</p>
+<ol class="choices">
+<li>เพราะ SHA-256 เป็นการเข้ารหัสที่ถอดกลับได้ แต่ Argon2id ถอดกลับไม่ได้</li>
+<li>เพราะ Argon2id เข้ารหัสรหัสผ่านไว้ ทำให้ Admin ถอดออกมาดูได้เมื่อผู้ใช้ลืมรหัสผ่าน</li>
+<li>เพราะผลลัพธ์ของ SHA-256 สั้นเกินไปจนรหัสผ่านต่างกันมักได้ Hash เดียวกัน</li>
+<li>เพราะ Argon2id ถูกออกแบบให้ช้าและใช้หน่วยความจำมากโดยตั้งใจ ถ้า Hash รั่วออกไป ผู้โจมตีจะเดารหัสผ่านแบบ Offline ได้ช้ากว่ามาก ส่วน SHA-256 คำนวณได้เร็วมากบน GPU</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>สมชายรัน <code>sudo tcpdump -i lo -nn -A</code> บนเครื่องตัวเอง ขณะใช้ <code>curl</code> เรียก <code>http://127.0.0.1:8000/</code> เขาเห็นข้อความ <code>GET / HTTP/1.1</code> ชัดเจน แต่เมื่อเรียก <code>https://127.0.0.1:8443/</code> ซึ่งเป็น <code>openssl s_server</code> จาก Part 2 เขาเห็นแต่ตัวอักษรอ่านไม่ออก เหตุผลคืออะไร</p>
+<ol class="choices">
+<li><code>tcpdump</code> ไม่มีสิทธิ์ดักจับ Port ที่สูงกว่า 8000 จึงแสดงข้อมูลเสีย</li>
+<li>Port 8443 ใช้ TLS ข้อมูลระดับ Application จึงถูกเข้ารหัสหลัง Handshake ผู้ดักจับเห็นได้แค่ IP, Port และข้อมูลบางส่วนของ Handshake</li>
+<li>ข้อมูลบน Port ที่ลงท้ายด้วย 443 ถูกบีบอัด (Compress) อัตโนมัติโดย Linux Kernel</li>
+<li><code>curl</code> ส่ง HTTP แบบ Binary ทุกครั้งที่ปลายทางเป็น Port ตัวเลขสี่หลัก</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ในไฟล์ <code>/etc/fail2ban/jail.local</code> ของแล็บมีบรรทัด <code>ignoreip = 127.0.0.1/8 ::1 192.0.2.10</code> บรรทัดนี้มีไว้เพื่ออะไร</p>
+<ol class="choices">
+<li>สั่งให้ fail2ban Ban IP เหล่านี้ทันทีตั้งแต่ครั้งแรกที่ Login ผิด</li>
+<li>ปิด Jail <code>[sshd]</code> สำหรับผู้ใช้ทุกคนชั่วคราว</li>
+<li>บอก fail2ban ว่าไม่ต้อง Ban ที่อยู่เหล่านี้ เช่น Loopback และ Laptop ของสมชาย เพื่อกันผู้ดูแลระบบล็อกตัวเองออกเมื่อพิมพ์รหัสผิดหลายครั้ง</li>
+<li>เปิด Port 22 ใน ufw ให้เฉพาะ IP เหล่านี้</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>Route <code>/products?name=...</code> ของ Flask App ในแล็บใช้ <code>sqlite3</code> โค้ดแบบใดป้องกัน SQL Injection ได้ถูกต้องตามหลักการ</p>
+<ol class="choices">
+<li><code>conn.execute(f"SELECT * FROM products WHERE name = '{name.replace(chr(39), '')}'")</code></li>
+<li><code>conn.execute("SELECT * FROM products WHERE name = '%s'" % name)</code></li>
+<li><code>conn.execute("SELECT * FROM products WHERE name = ?", (name,))</code></li>
+<li><code>conn.execute("SELECT * FROM products WHERE name = ?" + name)</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>Route <code>/hello</code> คืนค่าด้วยโค้ด <code>return f"&lt;h1&gt;สวัสดี {name}&lt;/h1&gt;"</code> โดย <code>name</code> มาจาก Query String ของผู้ใช้ ข้อใดเป็นวิธีแก้ปัญหา XSS ที่ถูกต้องที่สุด</p>
+<ol class="choices">
+<li>ทำ Output Encoding โดยให้ Jinja2 Template ที่เปิด Autoescape แสดงค่า <code>{{ name }}</code> (หรือใช้ <code>markupsafe.escape</code>) และเพิ่ม Header <code>Content-Security-Policy</code> เป็นชั้นป้องกันที่สอง</li>
+<li>เปลี่ยนไปใช้ Template แล้วเขียน <code>{{ name|safe }}</code> เพื่อให้ Jinja2 ตรวจความปลอดภัยให้</li>
+<li>เขียน Blacklist ปฏิเสธทุก Request ที่มีคำว่า <code>script</code> ใน Query String</li>
+<li>แปลง <code>name</code> เป็น Base64 ก่อนแสดงผล เพื่อไม่ให้ Browser อ่านออก</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>ทีมมีเวลาแก้ได้ทีละรายการ พบ Finding สองรายการ F1: CVSS 9.8 ใน Library ที่ใช้เฉพาะสคริปต์ Offline บนเครื่องแล็บซึ่งไม่ได้เปิดรับการเชื่อมต่อจาก Network และยังไม่มีรายงานการโจมตีจริง F2: CVSS 7.5 ใน Web Server ที่เปิดสู่ Internet และช่องโหว่นี้อยู่ใน CISA KEV (Known Exploited Vulnerabilities) ควรจัดลำดับอย่างไร</p>
+<ol class="choices">
+<li>แก้ F1 ก่อน เพราะคะแนน CVSS สูงกว่าเสมอหมายถึงเร่งด่วนกว่าเสมอ</li>
+<li>ยังไม่ต้องแก้ทั้งสองรายการจนกว่าจะมีผู้ใช้ร้องเรียน</li>
+<li>สองรายการเร่งด่วนเท่ากัน ให้แก้ตามลำดับรหัส Finding</li>
+<li>แก้ F2 ก่อน เพราะระบบเปิดสู่ Internet และมีการโจมตีจริงแล้ว ความเสี่ยงจริงจึงสูงกว่า CVSS เป็นเพียงหนึ่งในหลายสัญญาณที่ใช้จัดลำดับ</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>ระหว่างทำ Threat Modeling ด้วย STRIDE ให้ Flask App (Browser → Flask → SQLite) ทีมพบว่าถ้ามะลิ (<code>malee</code>) ลบสินค้าแล้วปฏิเสธในภายหลังว่า "ไม่ได้ทำ" ทีมจะพิสูจน์ไม่ได้ เพราะแอปไม่มี Audit Log บันทึกว่าใครทำอะไรเมื่อไร ภัยคุกคามนี้อยู่ในหมวดใดของ STRIDE</p>
+<ol class="choices">
+<li>Spoofing</li>
+<li>Repudiation</li>
+<li>Tampering</li>
+<li>Elevation of Privilege</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>จาก Alert ของ Detector พบว่าบัญชี <code>test</code> Login สำเร็จจาก <code>203.0.113.45</code> เวลา 02:31 แล้วมีการสร้าง User ใหม่ชื่อ <code>backup2</code> ตามแนวทาง NIST Incident Response สิ่งใดควรทำก่อนจะลบ User หรือติดตั้งเครื่องใหม่</p>
+<ol class="choices">
+<li>แยกเครื่องออกจาก Network (Containment) และเก็บหลักฐานไว้ก่อน เช่น คัดลอก Log, บันทึกค่า <code>sha256sum</code> ของไฟล์หลักฐาน, จดลำดับเหตุการณ์ (Timeline) และบันทึก Chain of Custody</li>
+<li>Format เครื่องและติดตั้งใหม่ทันที เพราะยิ่งเร็วยิ่งดี ไม่ต้องเสียเวลาเก็บอะไร</li>
+<li>ลบ User <code>backup2</code> และล้างไฟล์ <code>/var/log/auth.log</code> เพื่อให้ระบบกลับมาสะอาด</li>
+<li>สแกนกลับไปที่ <code>203.0.113.45</code> ด้วย nmap เพื่อหาข้อมูลของผู้โจมตีให้ได้มากที่สุด</li>
+</ol>
+</li>
+</ol>
+
+<h3 id="s5-3-hands">Hands-on Challenge</h3>
+<p>โจทย์ลงมือทำ 3 ข้อนี้จำลองงานจริงของทีม Blue Team และ DevSecOps ทุกข้อทำในแล็บของตัวเองใต้ <code>~/projects/sec-lab/practice/</code> ไม่ต้องแตะไฟล์ระบบจริงใน <code>/etc</code> และไม่ต้องเชื่อมต่อเครื่องอื่น ใช้เวลาประมาณ 1, 2 และ 3 ชั่วโมงตามลำดับ</p>
+
+<article class="challenge" data-lvl="b">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 1</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h4>File Integrity Monitor ขนาดเล็ก: รู้ทันทีเมื่อไฟล์ Config ถูกแก้</h4>
+<h5>สถานการณ์</h5>
+<p>สมชายดูแลเครื่อง <code>lab-ubuntu</code> และเก็บไฟล์ Config สำคัญไว้ในโฟลเดอร์ <code>watched/</code> ได้แก่ SSH Drop-in, ไฟล์ fail2ban และไฟล์ตัวอย่าง Environment ของแอป หลังเหตุการณ์ในคืนวันที่ 2026-10-20 หัวหน้าทีมอยากรู้ว่า "มีใครแอบแก้ไฟล์ Config หรือเพิ่มไฟล์แปลก ๆ เข้ามาไหม" เครื่องมือ File Integrity Monitoring (FIM) อย่าง AIDE หรือ Wazuh ทำงานนี้ในระบบจริง แต่ในโจทย์นี้ให้คุณเขียนเวอร์ชันเล็กด้วย Python Standard Library เพื่อเข้าใจหลักการ คือ "เก็บ Hash ของไฟล์ตอนที่รู้ว่าสะอาด (Baseline) แล้วเทียบกับ Hash ปัจจุบัน"</p>
+<p>เตรียมโฟลเดอร์โจทย์ด้วยสคริปต์นี้ก่อน</p>
+<pre class="code" data-env="file" data-label="Bash · setup.sh"><code class="language-bash"># สร้างไฟล์ Config ตัวอย่าง 3 ไฟล์ในโฟลเดอร์ watched/
+mkdir -p watched/ssh watched/fail2ban
+printf 'PermitRootLogin no\nPasswordAuthentication no\nMaxAuthTries 3\n' &gt; watched/ssh/99-hardening.conf
+printf '[sshd]\nenabled = true\nmaxretry = 5\nbantime = 1h\n' &gt; watched/fail2ban/jail.local
+printf 'SECRET_KEY=\nDATABASE_URL=sqlite:///shop.db\n' &gt; watched/app.env.example</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/sec-lab/practice/ch1-fim
+cd ~/projects/sec-lab/practice/ch1-fim
+# สร้างไฟล์ setup.sh ตามด้านบนแล้วรัน
+bash setup.sh</code></pre>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+<li>เขียน <code>fim.py</code> ที่รับคำสั่งแบบ <code>python3 fim.py init watched</code> แล้วคำนวณ SHA-256 ของทุกไฟล์ในโฟลเดอร์ (รวมโฟลเดอร์ย่อย) บันทึกเป็น <code>baseline.json</code> โดยใช้ Path แบบ Relative เป็น Key</li>
+<li>เพิ่มคำสั่ง <code>python3 fim.py check watched</code> ที่เทียบไฟล์ปัจจุบันกับ Baseline แล้วพิมพ์สถานะของแต่ละไฟล์เป็น <code>OK</code>, <code>MODIFIED</code>, <code>ADDED</code> หรือ <code>REMOVED</code> เรียงตามชื่อไฟล์ พร้อมบรรทัดสรุปจำนวนแต่ละสถานะ</li>
+<li>กำหนด Exit Code ให้เอาไปใช้ต่อกับ cron หรือ CI ได้: <code>0</code> เมื่อไม่มีอะไรเปลี่ยน, <code>1</code> เมื่อพบการเปลี่ยนแปลง, <code>2</code> เมื่อหาโฟลเดอร์หรือ Baseline ไม่เจอ</li>
+<li>ทดสอบ: รัน <code>init</code> แล้ว <code>check</code> ทันที (ต้องได้ OK ทั้งหมด) จากนั้นจำลองเหตุการณ์ 3 อย่าง คือแก้ <code>PermitRootLogin no</code> เป็น <code>yes</code>, เพิ่มไฟล์ <code>watched/ssh/authorized_keys_extra</code> และลบ <code>watched/app.env.example</code> แล้ว <code>check</code> อีกครั้ง</li>
+<li>เพิ่มตัวเลือก <code>--baseline</code> ให้ระบุตำแหน่งไฟล์ Baseline เองได้ และอธิบายสั้น ๆ ว่าทำไมไม่ควรเก็บ Baseline ไว้ในโฟลเดอร์เดียวกับไฟล์ที่เฝ้าดู</li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<p>หลังจำลองเหตุการณ์ทั้ง 3 อย่าง คำสั่ง <code>check</code> ต้องแสดงสถานะแต่ละไฟล์และจบด้วย Exit Code 1 แบบนี้</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>REMOVED   app.env.example
+OK        fail2ban/jail.local
+MODIFIED  ssh/99-hardening.conf
+ADDED     ssh/authorized_keys_extra
+----------------------------------------
+สรุป: OK=1, MODIFIED=1, ADDED=1, REMOVED=1
+exit=1</code></pre>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+<li>ใช้ <code>Path(folder).rglob("*")</code> เพื่อเดินทุกไฟล์ และ <code>p.relative_to(folder).as_posix()</code> เพื่อได้ชื่อแบบ <code>ssh/99-hardening.conf</code></li>
+<li>Python 3.11 ขึ้นไปมี <code>hashlib.file_digest(f, "sha256")</code> ที่อ่านไฟล์เป็นก้อนให้เอง ไม่ต้องโหลดทั้งไฟล์เข้าหน่วยความจำ (ต้องเปิดไฟล์ด้วยโหมด <code>"rb"</code>)</li>
+<li>รวมชื่อไฟล์จากสองฝั่งด้วย <code>old.keys() | new.keys()</code> แล้ววนทีละชื่อ จะตัดสินสถานะได้ครบทั้ง 4 แบบในลูปเดียว</li>
+<li>ใช้ <code>sys.exit(main())</code> แล้วให้ <code>main()</code> คืนเลข Exit Code และดูค่าได้ด้วย <code>echo "exit=$?"</code></li>
+</ul>
+</div></details>
+</article>
+
+<article class="challenge" data-lvl="i">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 2</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h4>SSH Policy Checker: ตรวจค่าที่มีผลจริงก่อน Reload</h4>
+<h5>สถานการณ์</h5>
+<p>ทีมของสมชายใส่ไฟล์ <code>99-hardening.conf</code> ที่ตั้ง <code>PasswordAuthentication no</code> ไว้แล้ว แต่ผลสแกนรอบล่าสุดกลับพบว่า Server ยังรับการ Login ด้วยรหัสผ่าน หัวหน้าทีมสงสัยว่ามีไฟล์อื่นใน <code>sshd_config.d/</code> ทับค่าอยู่ (บน Ubuntu Image ที่สร้างด้วย cloud-init มักมีไฟล์ <code>50-cloud-init.conf</code>) และสำหรับ Keyword ส่วนใหญ่ sshd ใช้กฎ "ค่าแรกที่เจอชนะ" (First Match Wins) ไม่ใช่ "ค่าสุดท้ายชนะ" แบบโปรแกรมทั่วไป งานของคุณคือเขียนตัวตรวจที่บอกได้ว่าค่าที่มีผลจริงของแต่ละ Key มาจากไฟล์ไหนบรรทัดไหน เพื่อใช้ตรวจก่อน Reload ทุกครั้ง</p>
+<p>สร้างโฟลเดอร์ <code>lab/</code> ที่จำลอง <code>/etc/ssh</code> ด้วย 3 ไฟล์นี้ (เราไม่แตะ <code>/etc/ssh</code> ของจริง)</p>
+<pre class="code" data-env="file" data-label="Config · lab/sshd_config"><code class="language-ini"># ไฟล์หลัก (ย่อมาจากค่าเริ่มต้นของ Ubuntu 24.04)
+Include /etc/ssh/sshd_config.d/*.conf
+
+#PermitRootLogin prohibit-password
+KbdInteractiveAuthentication no
+UsePAM yes
+X11Forwarding yes
+PrintMotd no
+AcceptEnv LANG LC_*
+Subsystem sftp /usr/lib/openssh/sftp-server</code></pre>
+<pre class="code" data-env="file" data-label="Config · lab/sshd_config.d/50-cloud-init.conf"><code class="language-ini">PasswordAuthentication yes</code></pre>
+<pre class="code" data-env="file" data-label="Config · lab/sshd_config.d/99-hardening.conf"><code class="language-ini"># Hardening ของ somchai
+PermitRootLogin no
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+MaxAuthTries 3
+LoginGraceTime 30
+AllowUsers somchai
+X11Forwarding no
+ClientAliveInterval 300
+ClientAliveCountMax 2</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/sec-lab/practice/ch2-ssh-policy/lab/sshd_config.d
+cd ~/projects/sec-lab/practice/ch2-ssh-policy
+# สร้างไฟล์ทั้ง 3 ไฟล์ด้านบนด้วย nano หรือ VS Code แล้วตรวจว่าครบ
+ls -R lab</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>lab:
+sshd_config  sshd_config.d
+
+lab/sshd_config.d:
+50-cloud-init.conf  99-hardening.conf</code></pre>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+<li>เขียน <code>ssh_policy_check.py</code> ที่อ่าน <code>lab/sshd_config</code> ทีละบรรทัด ข้ามบรรทัดว่างและ Comment แยก Keyword (ไม่สนตัวพิมพ์เล็กใหญ่) กับค่า และรองรับรูปแบบ <code>Key value</code> กับ <code>Key=value</code></li>
+<li>รองรับ <code>Include</code>: แทน <code>/etc/ssh/</code> ด้วยโฟลเดอร์ที่ระบุผ่านตัวเลือก <code>--etc-ssh</code> แล้วอ่านไฟล์ที่ตรงกับ Pattern เรียงตามชื่อ (Lexical Order) ณ ตำแหน่งที่ <code>Include</code> อยู่ เหมือนที่ sshd ทำ</li>
+<li>ใช้กฎ First Match Wins: เก็บเฉพาะค่าแรกของแต่ละ Key พร้อมที่มา (ชื่อไฟล์:เลขบรรทัด) และหยุดอ่านเมื่อเจอ <code>Match</code> เพราะส่วนนั้นเป็นเงื่อนไขเฉพาะกลุ่ม ยกเว้น Keyword ที่ sshd สะสมค่าจากทุกบรรทัด ได้แก่ <code>AllowUsers</code>, <code>DenyUsers</code>, <code>AllowGroups</code>, <code>DenyGroups</code> และ <code>AcceptEnv</code> ให้ต่อค่าและที่มาของทุกบรรทัดเข้าด้วยกัน</li>
+<li>ตรวจตามนโยบาย 8 ข้อ: <code>PermitRootLogin no</code>, <code>PasswordAuthentication no</code>, <code>KbdInteractiveAuthentication no</code>, <code>PubkeyAuthentication yes</code>, <code>X11Forwarding no</code>, <code>MaxAuthTries</code> ไม่เกิน 3, <code>LoginGraceTime</code> ไม่เกิน 30 วินาที (รองรับรูปแบบ <code>30</code>, <code>30s</code>, <code>2m</code>) และ <code>AllowUsers</code> มี <code>somchai</code> ถ้า Key ใดไม่ถูกตั้งเลย ให้ใช้ค่า Default ของ OpenSSH 9.6 และแสดงที่มาว่า <code>(ค่า default)</code></li>
+<li>พิมพ์ตาราง STATUS / KEY / EXPECT / ACTUAL / SOURCE และบรรทัดสรุป แล้วจบด้วย Exit Code 1 ถ้ามี FAIL อย่างน้อยหนึ่งข้อ</li>
+<li>แก้ Config ใน <code>lab/</code> ให้ผ่านทุกข้อ แล้วยืนยันผลกับ sshd ตัวจริงด้วย <code>sshd -T</code> ถ้าเครื่องคุณติดตั้ง <code>openssh-server</code> ไว้</li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<p>รอบแรกต้องเจอ FAIL หนึ่งข้อ และชี้ได้ว่าต้นเหตุคือบรรทัดที่ 1 ของ <code>50-cloud-init.conf</code></p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>STATUS KEY                           EXPECT      ACTUAL             SOURCE
+PASS   permitrootlogin               no          no                 99-hardening.conf:2
+FAIL   passwordauthentication        no          yes                50-cloud-init.conf:1
+PASS   kbdinteractiveauthentication  no          no                 99-hardening.conf:4
+PASS   pubkeyauthentication          yes         yes                99-hardening.conf:5
+PASS   x11forwarding                 no          no                 99-hardening.conf:9
+PASS   maxauthtries                  &lt;= 3        3                  99-hardening.conf:6
+PASS   logingracetime                &lt;= 30       30                 99-hardening.conf:7
+PASS   allowusers                    มี somchai  somchai            99-hardening.conf:8
+
+ผลรวม: PASS 7 / FAIL 1
+exit=1</code></pre>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+<li>แยก Keyword กับค่าได้ด้วย <code>re.split(r"\s*=\s*|\s+", line, maxsplit=1)</code></li>
+<li>กฎ First Match Wins เขียนได้ในบรรทัดเดียวด้วย <code>effective.setdefault(key, (value, source))</code> เพราะ <code>setdefault</code> จะไม่เขียนทับ Key ที่มีอยู่แล้ว ส่วน Key แบบสะสมค่าให้เช็กก่อนว่ามี Key นั้นอยู่แล้วหรือยัง ถ้ามีให้ต่อ String ค่าเดิมกับค่าใหม่</li>
+<li>ทำ <code>Include</code> แบบ Recursive: เมื่อเจอ <code>Include</code> ให้เรียกฟังก์ชันอ่านไฟล์ตัวเดิมกับแต่ละไฟล์จาก <code>sorted(glob.glob(pattern))</code></li>
+<li>สังเกตว่า <code>KbdInteractiveAuthentication no</code> และ <code>X11Forwarding yes</code> ในไฟล์หลักอยู่ "หลัง" บรรทัด <code>Include</code> ค่าจาก Drop-in จึงชนะ</li>
+</ul>
+</div></details>
+</article>
+
+<article class="challenge" data-lvl="a">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 3</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h4>Secure Code Fix: แก้ช่องโหว่ใน Flask App แล้วพิสูจน์ด้วย pytest</h4>
+<h5>สถานการณ์</h5>
+<p>ก่อนนำ API ร้านค้าขึ้นระบบ ทีม Security ทำ Code Review แล้วพบปัญหา 5 ข้อในไฟล์ <code>vuln_app.py</code> ของทีมพัฒนา หัวหน้าทีมมอบหมายให้คุณเขียนเวอร์ชันที่แก้แล้วชื่อ <code>app.py</code> และต้องมี Automated Test ที่พิสูจน์ว่าการแก้ได้ผลจริง เพื่อให้ Test นี้เป็นด่านกันไม่ให้ช่องโหว่กลับมาอีก (Regression Test) ในอนาคต งานนี้คือหน้าที่ประจำของตำแหน่ง Application Security Engineer และ DevSecOps</p>
+<div class="callout sec"><span class="c-label sec">Security</span><p>โค้ด <code>vuln_app.py</code> มีช่องโหว่โดยตั้งใจ ใช้เพื่อศึกษาและแก้ไขบนเครื่องตัวเองเท่านั้น ไม่ต้องรัน และห้ามนำไปเปิดบน Network ใด ๆ งานของโจทย์นี้อยู่ที่การแก้และการทดสอบ ไม่ใช่การโจมตี</p></div>
+<pre class="code" data-env="file" data-label="Python · init_db.py"><code class="language-python">"""init_db.py - สร้างฐานข้อมูลตัวอย่าง shop.db สำหรับแล็บ"""
+import sqlite3
+
+conn = sqlite3.connect("shop.db")
+conn.executescript("""
+DROP TABLE IF EXISTS products;
+CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL, price INTEGER NOT NULL);
+INSERT INTO products (name, price) VALUES ('Notebook', 25000), ('Mouse', 590), ('Keyboard', 1290);
+""")
+conn.commit()
+conn.close()
+print("สร้าง shop.db พร้อมสินค้า 3 รายการแล้ว")</code></pre>
+<pre class="code" data-env="file" data-label="Python · vuln_app.py"><code class="language-python">"""vuln_app.py - โค้ดเดิมของทีม (มีช่องโหว่ ห้ามนำไปใช้จริง ใช้ศึกษาบน 127.0.0.1 เท่านั้น)"""
+import sqlite3
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+app.config["SECRET_KEY"] = "dev123"          # ปัญหา 1: secret ฝังในโค้ด
+
+
+@app.get("/products")
+def products():
+    name = request.args.get("name", "")
+    conn = sqlite3.connect("shop.db")
+    # ปัญหา 2: ต่อ string เป็นคำสั่ง SQL ข้อมูลจากผู้ใช้จึงเปลี่ยนความหมายของ query ได้
+    sql = f"SELECT id, name, price FROM products WHERE name = '{name}'"
+    rows = conn.execute(sql).fetchall()
+    conn.close()
+    return jsonify([{"id": r[0], "name": r[1], "price": r[2]} for r in rows])
+
+
+@app.get("/hello")
+def hello():
+    name = request.args.get("name", "guest")
+    # ปัญหา 3: นำข้อความจากผู้ใช้ไปประกอบเป็น HTML ตรง ๆ โดยไม่ encode
+    return f"&lt;h1&gt;สวัสดี {name}&lt;/h1&gt;"
+
+
+# ปัญหา 4: ไม่มี security headers เลย
+
+if __name__ == "__main__":
+    # ปัญหา 5: เปิด debug และ bind ทุก interface
+    app.run(host="0.0.0.0", port=5000, debug=True)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/sec-lab/practice/ch3-flask-fix
+cd ~/projects/sec-lab/practice/ch3-flask-fix
+source ../.venv/bin/activate
+# สร้าง init_db.py และ vuln_app.py ตามด้านบน แล้วสร้างฐานข้อมูล
+python3 init_db.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>สร้าง shop.db พร้อมสินค้า 3 รายการแล้ว</code></pre>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+<li>สร้าง <code>app.py</code> แบบ Application Factory (<code>create_app()</code>) ที่อ่าน <code>SECRET_KEY</code> จาก Environment Variable ถ้าไม่มีให้ Raise <code>RuntimeError("SECRET_KEY is not set")</code> ทันที (Fail Closed) และตั้ง Session Cookie เป็น <code>HttpOnly</code>, <code>Secure</code>, <code>SameSite=Lax</code></li>
+<li>แก้ <code>/products</code> ให้ใช้ Parameterized Query และเพิ่ม Input Validation เป็นชั้นที่สอง: ถ้า <code>name</code> ยาวเกิน 50 ตัวอักษร ให้ตอบ HTTP 400</li>
+<li>แก้ <code>/hello</code> ให้ทำ Output Encoding ผ่าน Jinja2 Template ที่เปิด Autoescape (ห้ามใช้ <code>|safe</code>)</li>
+<li>เพิ่ม Security Headers ทุก Response ผ่าน <code>@app.after_request</code>: <code>Content-Security-Policy: default-src 'self'</code>, <code>X-Content-Type-Options: nosniff</code>, <code>Referrer-Policy: no-referrer</code>, <code>X-Frame-Options: DENY</code> และเพิ่ม Error Handler 500 ที่ตอบข้อความกลาง ๆ ไม่เปิดเผยรายละเอียดภายใน</li>
+<li>ให้ส่วน <code>__main__</code> รันบน <code>127.0.0.1</code> และ <code>debug=False</code> เท่านั้น</li>
+<li>เขียน <code>test_app.py</code> ด้วย pytest ที่ใช้ฐานข้อมูลชั่วคราวแยกต่อ Test และมีอย่างน้อย 8 Test ครอบคลุม 8 เรื่องนี้: ค้นหาปกติ, ข้อความที่มี Single Quote ถูกมองเป็นข้อมูลธรรมดา, ชื่อที่มี Apostrophe ไม่ทำให้ Error, Input ยาวเกินถูกปฏิเสธ, Output ถูก Encode, Header ครบทั้ง 4 ตัว, ไม่มี <code>SECRET_KEY</code> แล้วแอปไม่ยอมเริ่ม และ Debug ปิดอยู่</li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<p>รัน <code>python3 -m pytest -v</code> แล้วทุก Test ต้องผ่าน (จำนวน Test ของคุณอาจต่างจากนี้ได้ ถ้าครอบคลุมครบทุกข้อ) และเมื่อเปิดแอปจริงแล้วใช้ <code>curl -i</code> ต้องเห็น Header ครบและข้อความจากผู้ใช้ถูก Encode</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>test_app.py::test_normal_search PASSED                                   [  9%]
+test_app.py::test_quote_input_is_plain_data PASSED                       [ 18%]
+...
+============================== 11 passed in 0.29s ==============================</code></pre>
+<p class="muted small">บรรทัด <code>...</code> ในตัวอย่างนี้ละผลของ Test ที่อยู่ตรงกลางไว้ ผลเต็มอยู่ในเฉลย</p>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+<li>Parameterized Query ของ <code>sqlite3</code> ใช้ <code>?</code> และส่งค่าเป็น Tuple: <code>(name,)</code> อย่าลืม Comma</li>
+<li><code>render_template_string("&lt;h1&gt;สวัสดี {{ name }}&lt;/h1&gt;", name=name)</code> เปิด Autoescape ให้อยู่แล้ว ตัวอักษร <code>&lt;</code> จะกลายเป็น <code>&amp;lt;</code></li>
+<li>ใน Test ใช้ Fixture <code>tmp_path</code> สร้างฐานข้อมูลชั่วคราว และ <code>monkeypatch.setenv</code> / <code>monkeypatch.delenv</code> จัดการ Environment Variable โดยไม่กระทบเครื่องจริง</li>
+<li>ใช้ <code>@pytest.mark.parametrize</code> ตรวจ Header ทั้ง 4 ตัวด้วยฟังก์ชัน Test เดียว</li>
+</ul>
+</div></details>
+</article>
+
+<h3 id="s5-3-answers">เฉลย</h3>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ลองทำทุกข้อด้วยตัวเองก่อนเปิดเฉลย โดยเฉพาะ Hands-on Challenge ให้เขียนโค้ดและรันจนได้ผลลัพธ์ของตัวเองก่อน แม้จะยังไม่สมบูรณ์ก็ตาม แล้วค่อยเปิดเฉลยมาเทียบ วิธีนี้ทำให้เห็นชัดว่าเราเข้าใจตรงไหนแล้วและยังพลาดตรงไหน</p></div>
+
+<h4>เฉลย Fill-in-the-blank</h4>
+<details class="ans"><summary>ข้อ 1</summary><div>
+<p><strong>คำตอบ: Encoding</strong></p>
+<p>Base64 เป็นการแปลงรูปแบบข้อมูล (Encoding) ให้อยู่ในชุดตัวอักษรที่ส่งผ่านระบบต่าง ๆ ได้ง่าย ไม่มี Key และไม่มีความลับใด ๆ ใครก็ถอดกลับได้ด้วยคำสั่งเดียว เช่น <code>echo 'c29tY2hhaQ==' | base64 -d</code> ได้คำว่า <code>somchai</code> ทันที</p>
+<ul>
+<li><strong>Encoding</strong> (Base64, URL Encoding, UTF-8): เปลี่ยนรูปแบบ ไม่ได้ปกป้องอะไร</li>
+<li><strong>Encryption</strong> (AES-256, RSA): ปกป้องความลับ (Confidentiality) ถอดกลับได้เฉพาะผู้มี Key</li>
+<li><strong>Hash</strong> (SHA-256, Argon2id): ทางเดียว ถอดกลับไม่ได้ ใช้ตรวจ Integrity หรือเก็บรหัสผ่าน</li>
+</ul>
+<p>API Key ที่ต้องเก็บเป็นความลับจึงควรอยู่ใน Environment Variable หรือ Secrets Manager และไม่ถูก Commit ขึ้น Git ไม่ใช่แค่แปลงเป็น Base64</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 2</summary><div>
+<p><strong>คำตอบ: <code>-c</code></strong> (หรือแบบยาว <code>--check</code>) ทั้งสองช่อง</p>
+<p>ตัวเลือก <code>-c</code> สั่งให้ <code>sha256sum</code> อ่านรายการ Hash จากไฟล์ <code>SHA256SUMS</code> แล้วคำนวณ Hash ของไฟล์ปัจจุบันมาเทียบ ครั้งแรกไฟล์ยังเหมือนเดิมจึงได้ <code>price.txt: OK</code> ครั้งที่สองราคาเปลี่ยนจาก 25000 เป็น 2500 แค่ตัวเลขหายไปหนึ่งตัว Hash ก็เปลี่ยนทั้งหมด (Avalanche Effect) จึงได้ <code>FAILED</code> และคำเตือนว่ามี 1 Checksum ไม่ตรง คำสั่งยังจบด้วย Exit Code 1 ทำให้นำไปใช้ในสคริปต์ได้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">sha256sum -c SHA256SUMS
+echo "exit=$?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>price.txt: FAILED
+sha256sum: WARNING: 1 computed checksum did NOT match
+exit=1</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 3</summary><div>
+<p><strong>คำตอบ: ช่องแรก <code>-t</code> และช่องที่สอง <code>-T</code></strong></p>
+<ul>
+<li><code>sudo sshd -t</code> (test mode) ตรวจ Syntax ของ Config และ Host Key ถ้าถูกต้องจะเงียบและคืน Exit Code 0 ถ้าผิดจะบอกชื่อไฟล์ เลขบรรทัด และ Keyword ที่ไม่รู้จัก แล้วจบด้วย Exit Code 255 เช่น ถ้าพิมพ์บรรทัดที่ 3 ผิดเป็น <code>PasswordAuthentcation no</code> จะได้ <code>/etc/ssh/sshd_config.d/99-hardening.conf: line 3: Bad configuration option: PasswordAuthentcation</code> ตามด้วย <code>/etc/ssh/sshd_config.d/99-hardening.conf: terminating, 1 bad configuration options</code></li>
+<li><code>sudo sshd -T</code> (extended test mode) พิมพ์ค่าที่มีผลจริงทุกค่าหลังรวมไฟล์หลักกับ Drop-in แล้ว นิยมใช้คู่กับ <code>grep</code> เช่น <code>sudo sshd -T | grep -Ei 'permitrootlogin|passwordauthentication'</code></li>
+</ul>
+<p>ลำดับที่ปลอดภัยคือ แก้ไฟล์ → <code>sshd -t</code> → <code>sshd -T</code> ดูค่าจริง → เปิด Session เดิมค้างไว้ → <code>sudo systemctl reload ssh</code> → ทดสอบจาก Session ใหม่ ถ้า Reload Config ที่ผิดโดยไม่ตรวจก่อน อาจทำให้ Login ใหม่ไม่ได้</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 4</summary><div>
+<p><strong>คำตอบ: ช่อง import และช่อง except คือ <code>VerifyMismatchError</code> ส่วนช่อง Method คือ <code>verify</code></strong></p>
+<p>โค้ดที่สมบูรณ์คือ <code>from argon2.exceptions import VerifyMismatchError</code>, <code>ph.verify(stored, attempt)</code> และ <code>except VerifyMismatchError:</code></p>
+<ul>
+<li><code>PasswordHasher.verify(hash, password)</code> รับ Hash ที่เก็บไว้เป็นอาร์กิวเมนต์แรก และรหัสผ่านที่ผู้ใช้พิมพ์เป็นอาร์กิวเมนต์ที่สอง ถ้าตรงจะคืน <code>True</code> ถ้าไม่ตรงจะ Raise <code>VerifyMismatchError</code> แทนการคืน <code>False</code> จึงต้องครอบด้วย <code>try</code>/<code>except</code> ไม่อย่างนั้นแอปจะ Crash ทุกครั้งที่ผู้ใช้พิมพ์รหัสผิด</li>
+<li>เราไม่ Hash รหัสผ่านใหม่แล้วเอา String มาเทียบกันเอง เพราะ Argon2id ใช้ Salt สุ่มทุกครั้ง Hash ของรหัสผ่านเดียวกันจึงไม่เหมือนกัน <code>verify</code> จะอ่าน Salt และพารามิเตอร์ <code>m=65536,t=3,p=4</code> จาก String ที่เก็บไว้แล้วคำนวณเทียบให้เอง</li>
+<li>บรรทัดแรกของผลลัพธ์แสดงเฉพาะส่วนหัว <code>$argon2id$v=19$m=65536,t=3,p=4$</code> ซึ่งเหมือนกันทุกเครื่อง ส่วน Salt และ Hash ที่ตามมาจะต่างกันทุกครั้งที่รัน</li>
+</ul>
+<p>สังเกตว่า <code>correct-horse-42</code> ที่ต่างแค่ตัวพิมพ์เล็กใหญ่ก็ถูกปฏิเสธ เพราะรหัสผ่านต้องตรงทุกตัวอักษร</p>
+<p>ถ้าตอบช่อง Exception เป็น <code>VerificationError</code> โค้ดก็รันได้ผลเหมือนกัน เพราะเป็น Class แม่ของ <code>VerifyMismatchError</code> แต่คำตอบที่ตรงที่สุดคือ <code>VerifyMismatchError</code> เพราะเอกสารของ argon2-cffi ระบุว่าใช้กับกรณี "Hash ไม่ตรงกับรหัสผ่าน" โดยเฉพาะ ส่วน <code>VerificationError</code> ใช้กับการตรวจที่ล้มเหลวด้วยเหตุผลอื่นด้วย ถ้าจับแบบกว้างเกินไป แอปจะรายงานทุกปัญหาว่า "รหัสผ่านไม่ถูกต้อง" และซ่อนต้นเหตุจริง</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 5</summary><div>
+<p><strong>คำตอบ: <code>(name,)</code></strong></p>
+<pre class="code" data-env="file" data-label="Python · app.py (บางส่วน)"><code class="language-python">rows = conn.execute(
+    "SELECT id, name, price FROM products WHERE name = ?", (name,)
+).fetchall()</code></pre>
+<p>อาร์กิวเมนต์ที่สองต้องเป็น Sequence ของค่าที่จะใส่แทน <code>?</code> ตามลำดับ Database Driver จะส่งค่าเป็น "ข้อมูล" แยกจาก "คำสั่ง SQL" เสมอ ไม่ว่าในค่าจะมี Single Quote หรือคำว่า <code>OR</code> ก็ตาม จึงเปลี่ยนความหมายของ Query ไม่ได้</p>
+<p>จุดที่หลายคนพลาดคือเขียน <code>(name)</code> โดยไม่มี Comma วงเล็บแบบนี้ไม่ได้สร้าง Tuple เป็นแค่ <code>name</code> ตัวเดิม และ String ใน Python เป็น Sequence ของตัวอักษร <code>"Mouse"</code> จึงถูกมองเป็น 5 ค่า ทำให้เกิด Error ตามโจทย์</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>sqlite3.ProgrammingError: Incorrect number of bindings supplied. The current statement uses 1, and there are 5 supplied.</code></pre>
+<p>รูปแบบที่ถูกต้องอื่น ๆ ได้แก่ <code>[name]</code> (List ที่มี 1 ค่า) หรือ Named Placeholder <code>WHERE name = :name</code> คู่กับ <code>{"name": name}</code></p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 6</summary><div>
+<p><strong>คำตอบ: (1) <code>WINDOW</code> (2) <code>THRESHOLD</code> (3) <code>2026-10-20 02:27:00+07:00</code></strong></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/sec-lab/practice
+python3 window.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>แจ้งเตือนครั้งแรกเวลา: 2026-10-20 02:27:00+07:00
+ถ้ามีแค่ 4 ครั้ง: None</code></pre>
+<p>ไล่ทีละเหตุการณ์ (นาทีนับจาก 02:14) เพื่อดูว่า Deque <code>window</code> มีอะไรอยู่หลังตัดของเก่าออก</p>
+<div class="tbl mid"><table class="explain"><thead><tr><th>เหตุการณ์ (เวลา)</th><th>สิ่งที่เกิดขึ้นใน window</th></tr></thead><tbody>
+<tr><td class="nw">02:14 (นาที 0)</td><td>[0] มี 1 ครั้ง</td></tr>
+<tr><td class="nw">02:18 (นาที 4)</td><td>[0, 4] มี 2 ครั้ง</td></tr>
+<tr><td class="nw">02:23 (นาที 9)</td><td>[0, 4, 9] มี 3 ครั้ง ห่างจากตัวแรก 9 นาที ยังไม่เกิน 10</td></tr>
+<tr><td class="nw">02:25 (นาที 11)</td><td>11 − 0 = 11 นาที เกิน <code>WINDOW</code> จึงตัดนาที 0 ออก เหลือ [4, 9, 11] มี 3 ครั้ง</td></tr>
+<tr><td class="nw">02:26 (นาที 12)</td><td>12 − 4 = 8 ไม่เกิน เหลือ [4, 9, 11, 12] มี 4 ครั้ง</td></tr>
+<tr><td class="nw">02:27 (นาที 13)</td><td>[4, 9, 11, 12, 13] มี 5 ครั้ง ถึง <code>THRESHOLD</code> จึงคืนเวลา 02:27 ทันที</td></tr>
+</tbody></table></div>
+<p>ถ้านับแบบ "รวมทั้งหมด" ไม่มี Window จะได้ครบ 5 ครั้งที่นาที 12 (02:26) ซึ่งผิด เพราะ 5 ครั้งนั้นกินเวลา 12 นาที นี่คือเหตุผลที่ Detector จริงต้องใช้ Sliding Window และกรณีมีแค่ 4 ครั้งก็ไม่แจ้งเตือนเลย (ได้ <code>None</code>) เหมือน IP <code>198.51.100.23</code> ในสถานการณ์ตัวอย่างที่ล้มเหลวแค่ 3 ครั้ง</p>
+<p>เหตุผลที่ต้องใช้ชื่อค่าคงที่แทนการพิมพ์ตัวเลขตรง ๆ คือเมื่อนำไปทำเป็นตัวเลือก <code>--threshold</code> และ <code>--window</code> ของ <code>ssh_detector.py</code> ใน Part 2 จะเปลี่ยนค่าได้จากจุดเดียว และ <code>t - window[0]</code> ได้ผลเป็น <code>timedelta</code> จึงต้องเทียบกับ <code>timedelta</code> ด้วย ถ้าเทียบกับเลข <code>10</code> จะเกิด <code>TypeError</code></p>
+</div></details>
+
+<h4>เฉลย Multiple Choice</h4>
+<details class="ans"><summary>ข้อ 1</summary><div>
+<p><strong>คำตอบ: B</strong> Integrity คือความถูกต้องครบถ้วนของข้อมูล ราคาที่ถูกแก้โดยไม่ได้รับอนุญาตคือข้อมูลที่ไม่ถูกต้องอีกต่อไป ลูกค้าอาจสั่งซื้อในราคา 25 บาทและบริษัทเสียหายทันที วิธีป้องกันได้แก่ การจำกัดสิทธิ์แก้ไขราคา (Least Privilege), การตรวจ Hash ของไฟล์สำคัญ และ Audit Log ที่บันทึกว่าใครแก้อะไรเมื่อไร</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ Confidentiality คือการรักษาความลับ ซึ่งจะถูกกระทบเมื่อข้อมูลรั่วไปถึงคนที่ไม่ควรเห็น แต่โจทย์ระบุว่าไม่มีข้อมูลลูกค้ารั่ว</li>
+<li><strong>C</strong> ผิดเพราะ Availability คือการที่ระบบใช้งานได้เมื่อต้องการ แต่เว็บยังเปิดได้ปกติ ตัวอย่างที่กระทบ Availability คือ DDoS หรือ Server ล่ม</li>
+<li><strong>D</strong> ผิดเพราะ Accounting เป็นส่วนหนึ่งของหลัก AAA (Authentication, Authorization, Accounting) ที่หมายถึงการบันทึกการกระทำ ไม่ใช่หนึ่งในสามด้านของ CIA Triad</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 2</summary><div>
+<p><strong>คำตอบ: C</strong> Risk = 4 × 4 = 16 ซึ่งอยู่ในช่วง High (15–19) ความเสี่ยงระดับนี้ควรมีแผนลดความเสี่ยงที่ชัดเจนและมีเจ้าของรับผิดชอบ เช่น เปลี่ยนรหัสผ่าน Admin ของ Router, ปิดการจัดการจากภายนอก และอัปเดต Firmware</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ Medium คือช่วง 7–14 ซึ่งต่ำกว่า 16 ข้อนี้อาจเกิดจากการนำ 4 + 4 = 8 มาคิดแทนการคูณ</li>
+<li><strong>B</strong> ผิดเพราะ Critical คือช่วง 20–25 ต้องมีคะแนนอย่างน้อย 4 × 5 หรือ 5 × 4 จึงจะถึง</li>
+<li><strong>D</strong> ผิดเพราะ Low คือช่วง 1–6 เท่านั้น เช่น Likelihood 2 กับ Impact 3</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 3</summary><div>
+<p><strong>คำตอบ: A</strong> การเชื่อมต่อไล่ Port จำนวนมากในเวลาสั้น ๆ โดยยังไม่พยายาม Login คือการสำรวจว่ามี Service อะไรเปิดอยู่ ตรงกับ Phase Reconnaissance ของ Cyber Kill Chain และ Technique T1595 Active Scanning (Tactic TA0043 Reconnaissance) ใน MITRE ATT&amp;CK ผู้ป้องกันตัดวงจรตรงนี้ได้ด้วยการลด Attack Surface (ปิด Service ที่ไม่ใช้), Firewall แบบ Default Deny และการแจ้งเตือนเมื่อมี Port Scan (ตรวจ ID ล่าสุดที่ attack.mitre.org เสมอ เพราะ Framework มีการอัปเดต)</p>
+<p class="muted small">หมายเหตุ: ATT&amp;CK ยังมี T1046 Network Service Discovery ใน Tactic TA0007 Discovery ซึ่งใช้กับการสำรวจ Service จากเครื่องที่ผู้โจมตียึดได้แล้วภายในเครือข่าย ส่วนการสแกนจากภายนอกก่อนเจาะระบบได้ อย่าง IP <code>203.0.113.45</code> ในข้อนี้ ใช้ T1595 Active Scanning เวลาเขียนรายงานจริงให้เลือก ID ตามบริบท และตรวจกับ attack.mitre.org เสมอ</p>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะ Delivery คือการส่งสิ่งที่เป็นอันตรายไปถึงเป้าหมาย และ T1566 Phishing เกี่ยวกับการหลอกผ่านอีเมลหรือข้อความ ไม่เกี่ยวกับการไล่ Port</li>
+<li><strong>C</strong> ผิดเพราะ Installation คือขั้นที่ผู้โจมตีติดตั้งสิ่งที่ทำให้อยู่ในระบบได้ต่อเนื่อง และ T1078 Valid Accounts คือการใช้บัญชีที่ถูกต้อง ซึ่งเกิดหลังจากได้รหัสผ่านแล้ว แต่โจทย์ยังไม่มีการ Login</li>
+<li><strong>D</strong> ผิดเพราะ Actions on Objectives คือขั้นสุดท้ายที่ผู้โจมตีทำตามเป้าหมาย เช่น ขโมยข้อมูล และ T1110 Brute Force คือการเดารหัสผ่านซ้ำ ๆ ซึ่งโจทย์ระบุว่ายังไม่มีการพยายาม Login</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 4</summary><div>
+<p><strong>คำตอบ: D</strong> Digital Signature ใช้คู่ Key แบบ Asymmetric เจ้าของ Sign ด้วย Private Key ที่เก็บไว้คนเดียว และใครก็ได้ Verify ด้วย Public Key ที่เผยแพร่ได้ ถ้า Verify ผ่านแปลว่าไฟล์มาจากผู้ถือ Private Key จริงและไม่ถูกแก้หลัง Sign เช่น <code>openssl pkeyutl -sign -inkey signer.key -rawin</code> แล้ว Verify ด้วย <code>-pubin -inkey signer.pub</code> ตามที่ฝึกใน Part 2</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะสลับบทบาทของ Key ถ้า Sign ด้วย Public Key ซึ่งทุกคนมี ใครก็ปลอมลายเซ็นได้ และ Private Key ต้องไม่ถูกส่งให้ใคร</li>
+<li><strong>B</strong> ผิดเพราะ AES-256 เป็น Symmetric Key ถ้าทุกคนได้ Key เดียวกันไปตรวจ ทุกคนก็สร้างค่าตรวจสอบปลอมได้เช่นกัน จึงพิสูจน์ไม่ได้ว่าใครเป็นผู้สร้างไฟล์</li>
+<li><strong>C</strong> ผิดเพราะการส่ง Private Key ให้ผู้ใช้ทำให้ Key ไม่เป็นความลับอีกต่อไป ผู้ใช้ทุกคนจะ Sign ไฟล์ปลอมในนามทีมได้</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 5</summary><div>
+<p><strong>คำตอบ: A</strong> <code>600</code> หมายถึงเจ้าของอ่านและเขียนได้ (<code>rw-</code>) ส่วน Group และคนอื่นไม่มีสิทธิ์ใดเลย (<code>---</code>) ตรงกับหลัก Least Privilege สำหรับไฟล์ลับ และ OpenSSH จะปฏิเสธการใช้ Private Key ที่คนอื่นอ่านได้ โดยแสดงคำเตือน <code>UNPROTECTED PRIVATE KEY FILE!</code> แก้ด้วย <code>chmod 600 ~/.ssh/id_ed25519</code></p>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะ <code>644</code> ให้ Group และผู้ใช้ทุกคนบนเครื่องอ่านไฟล์ได้ ใช้ได้กับ Public Key (<code>id_ed25519.pub</code>) แต่ไม่ใช่ Private Key</li>
+<li><strong>C</strong> ผิดเพราะ <code>755</code> ให้ทุกคนอ่านได้ และยังให้สิทธิ์ Execute ซึ่งไม่จำเป็นกับไฟล์ Key เลย ค่านี้ใช้กับโฟลเดอร์หรือสคริปต์ทั่วไป</li>
+<li><strong>D</strong> ผิดเพราะ <code>640</code> ยังให้สมาชิกใน Group อ่านไฟล์ได้ ถ้ามีผู้ใช้อื่นอยู่ใน Group เดียวกัน เขาจะคัดลอก Private Key ไปได้ และ OpenSSH ก็ปฏิเสธ Key นี้ด้วย เพราะยอมรับเฉพาะ Private Key ที่ Group และคนอื่นไม่มีสิทธิ์ใดเลย (จะเห็นข้อความ <code>Permissions 0640 for '/home/somchai/.ssh/id_ed25519' are too open.</code>)</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 6</summary><div>
+<p><strong>คำตอบ: C</strong> หลักคือ "พิสูจน์ว่าทางเข้าใหม่ใช้ได้ก่อน แล้วจึงปิดทางเข้าเก่า" ทดสอบ Login ด้วย Key ให้ผ่านก่อน, ใส่ค่าใน Drop-in เพื่อไม่ต้องแก้ไฟล์หลัก, ตรวจ Syntax ด้วย <code>sshd -t</code>, เปิด Session เดิมค้างไว้เป็นทางสำรอง แล้วจึง <code>sudo systemctl reload ssh</code> และลอง Login จาก Session ใหม่ ถ้าใช้ไม่ได้ก็ยังแก้ไขจาก Session เดิมได้</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะปิด Password ก่อนที่จะมี Key ที่ใช้งานได้ ทันทีที่ Reload จะไม่มีวิธี Login เข้าเครื่องจากระยะไกลเลย ซึ่งเป็นสาเหตุอันดับต้นของการล็อกตัวเองออก</li>
+<li><strong>B</strong> ผิดเพราะการแก้ไฟล์หลักทำให้การอัปเดต Package ครั้งหน้าอาจชนกับการแก้ไขของเรา และการปิดทุก Session ก่อนทดสอบทำให้ไม่มีทางกลับมาแก้ ถ้า Config ผิด</li>
+<li><strong>D</strong> ผิดเพราะการปิด Firewall ทั้งหมดเปิด Attack Surface ทั้งเครื่องโดยไม่จำเป็น และไม่ได้ช่วยกันปัญหาล็อกตัวเองออกจาก SSH เลย</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 7</summary><div>
+<p><strong>คำตอบ: D</strong> ปัญหาของ SHA-256 ไม่ได้อยู่ที่ถอดกลับได้ แต่อยู่ที่ "เร็วเกินไป" GPU คำนวณได้หลายพันล้านครั้งต่อวินาที ถ้าฐานข้อมูลรั่ว ผู้โจมตีก็เดารหัสผ่านทีละคำแบบ Offline ได้รวดเร็ว Salt ช่วยแค่ทำให้ต้องเดาแยกทีละบัญชี Argon2id ถูกออกแบบให้ช้าและใช้หน่วยความจำมาก (ค่าเริ่มต้นของ argon2-cffi คือ <code>m=65536</code> KiB, <code>t=3</code>, <code>p=4</code>) ทำให้การเดาแต่ละครั้งแพงขึ้นมาก ทั้งยังสร้าง Salt ให้อัตโนมัติ</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ SHA-256 เป็น Hash ทางเดียว ถอดกลับไม่ได้เช่นเดียวกับ Argon2id และไม่ใช่การเข้ารหัส</li>
+<li><strong>B</strong> ผิดเพราะ Argon2id เป็น Password Hashing ไม่ใช่ Encryption ไม่มีใครถอดกลับได้ รวมถึง Admin ด้วย ระบบที่ดีจึงให้ผู้ใช้ "ตั้งรหัสผ่านใหม่" ไม่ใช่ "ดูรหัสผ่านเดิม"</li>
+<li><strong>C</strong> ผิดเพราะ SHA-256 ให้ผลยาว 256 บิต โอกาสที่รหัสผ่านต่างกันได้ Hash ชนกันน้อยมากจนไม่ใช่ปัญหาในทางปฏิบัติ</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 8</summary><div>
+<p><strong>คำตอบ: B</strong> HTTP บน Port 8000 ส่งข้อมูลเป็นข้อความธรรมดา (Plaintext) <code>tcpdump -A</code> จึงแสดง Request ให้อ่านได้ทั้งหมด ส่วน Port 8443 ใช้ TLS 1.3 ข้อมูลทั้งหมดหลัง Handshake ถูกเข้ารหัส ผู้ที่ดักจับได้เห็นเพียง IP, Port, ขนาดและจังหวะของ Packet และข้อมูลบางส่วนตอน Handshake นี่คือเหตุผลที่ระบบจริงต้องใช้ HTTPS ทุกที่ และเป็นเหตุผลที่ IDS แบบ Network มองเห็นเนื้อหาของ Traffic ที่เข้ารหัสได้จำกัด</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ <code>tcpdump</code> ที่รันด้วย <code>sudo</code> ดักจับได้ทุก Port บน Interface <code>lo</code> และโจทย์ก็เห็น Packet ของ 8443 อยู่ เพียงแต่อ่านไม่ออก</li>
+<li><strong>C</strong> ผิดเพราะ Linux Kernel ไม่บีบอัดข้อมูลตามเลข Port และเลข 443 ไม่ได้มีความหมายพิเศษต่อ Kernel ความหมายมาจาก Service ที่ฟังอยู่ซึ่งในกรณีนี้คือ TLS</li>
+<li><strong>D</strong> ผิดเพราะ <code>curl</code> ไม่ได้เปลี่ยนรูปแบบตามจำนวนหลักของ Port หลักฐานคือ Port 8000 ซึ่งเป็นเลขสี่หลักเหมือนกันยังอ่านได้ปกติ</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 9</summary><div>
+<p><strong>คำตอบ: C</strong> <code>ignoreip</code> คือรายการที่อยู่ที่ fail2ban จะไม่ Ban ไม่ว่าจะ Login ผิดกี่ครั้ง ใส่ Loopback (<code>127.0.0.1/8</code> และ <code>::1</code>) และเครื่องของผู้ดูแลระบบ (<code>192.0.2.10</code>) เพื่อกันกรณีพิมพ์รหัสผิดหลายครั้งแล้วล็อกตัวเองออก ควรใส่เฉพาะที่อยู่ที่เชื่อถือได้จริงและจำนวนน้อยที่สุด เพราะถ้าเครื่องในรายการถูกยึด fail2ban ก็จะไม่ช่วยอะไร</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะความหมายตรงกันข้าม การ Ban ขึ้นกับ <code>maxretry</code>, <code>findtime</code> และ <code>bantime</code> ไม่ใช่ <code>ignoreip</code></li>
+<li><strong>B</strong> ผิดเพราะการเปิดปิด Jail ใช้ <code>enabled = true</code> หรือ <code>enabled = false</code> ใต้ <code>[sshd]</code> ส่วน <code>ignoreip</code> ไม่ได้ปิด Jail</li>
+<li><strong>D</strong> ผิดเพราะ fail2ban ไม่ได้ใช้ <code>ignoreip</code> เปิด Port การอนุญาตเฉพาะ IP ใน ufw ต้องใช้คำสั่งอย่าง <code>sudo ufw allow from 192.0.2.0/24 to any port 22 proto tcp</code></li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 10</summary><div>
+<p><strong>คำตอบ: C</strong> ใช้ Placeholder <code>?</code> และส่งค่าแยกเป็น Tuple <code>(name,)</code> Driver ของ SQLite จะ Bind ค่าเป็นข้อมูลเสมอ ข้อความของผู้ใช้จึงไม่มีทางกลายเป็นส่วนหนึ่งของคำสั่ง SQL นี่คือวิธีป้องกันหลักที่ OWASP แนะนำ (หรือใช้ ORM ที่ทำ Parameterization ให้)</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะยังเป็นการต่อ String อยู่ การลบ Single Quote เป็นการกรองแบบ Blacklist ที่พลาดได้ง่าย เช่น ใช้ไม่ได้กับ Query ที่ค่าเป็นตัวเลขไม่มี Quote ครอบ และยังทำให้ชื่อที่มี Apostrophe จริง เช่น <code>Somchai's Mouse</code> ค้นหาไม่เจอ</li>
+<li><strong>B</strong> ผิดเพราะ <code>%</code> ของ Python ก็คือการต่อ String ก่อนส่งให้ฐานข้อมูล ผลเหมือนกับ f-string ทุกประการ แม้หน้าตาจะคล้าย Placeholder ก็ตาม</li>
+<li><strong>D</strong> ผิดเพราะ <code>+ name</code> นำข้อความของผู้ใช้ไปต่อเป็นส่วนหนึ่งของคำสั่ง SQL โดยตรง ซึ่งก็คือการต่อ String แบบเดียวกับข้อ A และ B การมี <code>?</code> อยู่ในข้อความไม่ได้ทำให้เป็น Parameterized Query เพราะไม่ได้ส่งค่าใดไปให้ <code>?</code> เลย เมื่อรันจริงโค้ดนี้จึง Error ทุกครั้ง เช่น ค้นหา <code>Mouse</code> จะได้ SQL เป็น <code>... WHERE name = ?Mouse</code> และเกิด <code>sqlite3.OperationalError: near "Mouse": syntax error</code> ส่วนกรณีที่ SQL หลังต่อ String ยังถูก Syntax จะเกิด <code>sqlite3.ProgrammingError: Incorrect number of bindings supplied. The current statement uses 1, and there are 0 supplied.</code></li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 11</summary><div>
+<p><strong>คำตอบ: A</strong> XSS เกิดจากข้อมูลที่ไม่น่าเชื่อถือถูกแสดงเป็น HTML วิธีแก้หลักคือ Output Encoding ตามบริบท Jinja2 ที่เปิด Autoescape จะแปลง <code>&lt;</code> เป็น <code>&amp;lt;</code> และ <code>&gt;</code> เป็น <code>&amp;gt;</code> Browser จึงแสดงเป็นตัวอักษร ไม่ตีความเป็น Tag ส่วน Content-Security-Policy เป็น Defense in Depth ที่ช่วยจำกัดความเสียหายถ้ามีจุดที่พลาด</p>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะ <code>|safe</code> มีความหมายว่า "เชื่อใจค่านี้ ไม่ต้อง Escape" ซึ่งเป็นการปิดการป้องกันของ Jinja2 ทิ้ง ทำให้ปัญหาเหมือนเดิมทุกประการ</li>
+<li><strong>C</strong> ผิดเพราะ Blacklist คำบางคำหลบได้หลายวิธี เช่น เปลี่ยนตัวพิมพ์เล็กใหญ่หรือใช้ Tag และ Attribute อื่น และยังปฏิเสธข้อความปกติที่บังเอิญมีคำนั้นด้วย</li>
+<li><strong>D</strong> ผิดเพราะ Base64 เป็นแค่ Encoding เพื่อการส่งข้อมูล ไม่ใช่ HTML Encoding ผู้ใช้จะเห็นข้อความที่อ่านไม่ออก และไม่ได้แก้หลักการที่ถูกต้องคือ Encode ให้ตรงกับบริบทที่แสดงผล</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 12</summary><div>
+<p><strong>คำตอบ: D</strong> การจัดลำดับ Patch ที่ดีดูความเสี่ยงจริง ไม่ใช่ดูแค่ตัวเลข CVSS F2 อยู่บนระบบที่เปิดสู่ Internet (Exposure สูง) และอยู่ใน CISA KEV ซึ่งแปลว่ามีการโจมตีเกิดขึ้นจริงแล้ว โอกาสเกิด (Likelihood) จึงสูงมาก ส่วน F1 แม้ CVSS สูงกว่า แต่เข้าถึงจาก Network ไม่ได้และยังไม่มีการโจมตีจริง จึงตามมาเป็นลำดับถัดไป ไม่ใช่ทิ้งไป</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ CVSS Base Score วัดความรุนแรงทางเทคนิคของช่องโหว่ ไม่ได้รวมบริบทของระบบเรา การใช้ CVSS เป็นสัญญาณเดียวคือข้อผิดพลาดที่พบบ่อยใน Vulnerability Management</li>
+<li><strong>B</strong> ผิดเพราะการรอให้มีผู้ร้องเรียนหมายถึงรอให้ถูกโจมตีก่อน ช่องโหว่ที่อยู่ใน KEV ต้องรีบจัดการ</li>
+<li><strong>C</strong> ผิดเพราะการเรียงตามรหัส Finding ไม่ได้สะท้อนความเสี่ยงเลย และทั้งสองรายการไม่ได้เร่งด่วนเท่ากัน</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 13</summary><div>
+<p><strong>คำตอบ: B</strong> Repudiation คือภัยที่ผู้กระทำ "ปฏิเสธได้" ว่าไม่ได้ทำ เพราะระบบไม่มีหลักฐาน วิธีลดความเสี่ยงคือ Audit Log ที่บันทึกผู้ใช้ การกระทำ เวลา และ IP เก็บ Log แยกจากระบบที่ผู้ใช้แก้ไขได้ และป้องกันการแก้ไข Log ภายหลัง</p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ Spoofing คือการปลอมตัวเป็นคนอื่น เช่น ใช้ Session ที่ขโมยมา แต่โจทย์คือมะลิทำเองแล้วปฏิเสธ ไม่ใช่มีคนปลอมเป็นมะลิ</li>
+<li><strong>C</strong> ผิดเพราะ Tampering คือการแก้ไขข้อมูลหรือโค้ดโดยไม่ได้รับอนุญาต การลบสินค้าในโจทย์อาจเป็นสิทธิ์ที่มะลิมีอยู่แล้ว ปัญหาหลักอยู่ที่ไม่มีหลักฐาน</li>
+<li><strong>D</strong> ผิดเพราะ Elevation of Privilege คือการได้สิทธิ์สูงกว่าที่ควรมี เช่น ผู้ใช้ <code>member</code> ทำงานของ <code>admin</code> ได้ โจทย์ไม่ได้พูดถึงการยกระดับสิทธิ์</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 14</summary><div>
+<p><strong>คำตอบ: A</strong> ตาม NIST SP 800-61 เมื่อยืนยันว่าเกิด Incident แล้ว ต้องควบคุมไม่ให้ลุกลาม (Containment) เช่น แยกเครื่องออกจาก Network และเก็บรักษาหลักฐานก่อน Eradication และ Recovery การบันทึก <code>sha256sum</code> ของไฟล์หลักฐานช่วยพิสูจน์ภายหลังว่าหลักฐานไม่ถูกแก้ไข และ Chain of Custody บันทึกว่าใครจับต้องหลักฐานเมื่อไร หลักฐานเหล่านี้จำเป็นต่อการหาต้นเหตุ ปิดช่องโหว่ให้ถูกจุด และใช้ประกอบการดำเนินการทางกฎหมาย</p>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะการ Format ทันทีทำลายหลักฐานทั้งหมด ทีมจะไม่รู้ว่าผู้โจมตีเข้ามาทางไหนและทำอะไรไปบ้าง และเครื่องที่ติดตั้งใหม่ก็อาจถูกเจาะซ้ำด้วยวิธีเดิม</li>
+<li><strong>C</strong> ผิดเพราะการลบ Log คือการทำลายหลักฐานด้วยมือตัวเอง และการลบ User ก่อนเก็บข้อมูลทำให้เสียร่องรอยของการกระทำของผู้โจมตี</li>
+<li><strong>D</strong> ผิดเพราะการสแกนเครื่องที่เราไม่ได้เป็นเจ้าของคือการกระทำต่อระบบของผู้อื่นโดยไม่ได้รับอนุญาต อาจผิด พ.ร.บ.คอมพิวเตอร์ ทั้งยังไม่ได้ช่วยควบคุมเหตุการณ์หรือเก็บหลักฐานบนเครื่องของเราเลย และ IP ต้นทางอาจเป็นเครื่องของผู้บริสุทธิ์ที่ถูกยึดมาใช้ การติดตามผู้โจมตีเป็นหน้าที่ของเจ้าหน้าที่ตามกฎหมาย</li>
+</ul>
+</div></details>
+
+<h4>เฉลย Hands-on Challenge</h4>
+<details class="ans"><summary>โจทย์ที่ 1: File Integrity Monitor ขนาดเล็ก</summary><div>
+<p>โค้ดนี้ใช้เฉพาะ Python Standard Library ไม่ต้องติดตั้ง Package และรันได้บน Python 3.12 ขึ้นไป (ใช้ <code>hashlib.file_digest</code> ที่มีตั้งแต่ 3.11)</p>
+<pre class="code" data-env="file" data-label="Python · fim.py"><code class="language-python">#!/usr/bin/env python3
+"""fim.py - File Integrity Monitoring ขนาดเล็ก (ใช้เฉพาะ stdlib)"""
+import argparse
+import hashlib
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+def sha256_of(path: Path) -&gt; str:
+    # อ่านไฟล์แบบ binary แล้วคำนวณ SHA-256 (file_digest มีตั้งแต่ Python 3.11)
+    with path.open("rb") as f:
+        return hashlib.file_digest(f, "sha256").hexdigest()
+
+
+def scan(folder: Path) -&gt; dict[str, str]:
+    # เดินทุกไฟล์ในโฟลเดอร์ (รวมโฟลเดอร์ย่อย) เก็บเป็น {path แบบ relative: hash}
+    result = {}
+    for p in sorted(folder.rglob("*")):
+        if p.is_file():
+            result[p.relative_to(folder).as_posix()] = sha256_of(p)
+    return result
+
+
+def cmd_init(folder: Path, baseline: Path) -&gt; int:
+    hashes = scan(folder)
+    data = {
+        "folder": str(folder.resolve()),
+        "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "algorithm": "sha256",
+        "files": hashes,
+    }
+    baseline.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"[INIT] บันทึก baseline {len(hashes)} ไฟล์ ลงใน {baseline}")
+    return 0
+
+
+def cmd_check(folder: Path, baseline: Path) -&gt; int:
+    if not baseline.exists():
+        print(f"[ERROR] ไม่พบ baseline: {baseline} (รัน init ก่อน)", file=sys.stderr)
+        return 2
+    old = json.loads(baseline.read_text(encoding="utf-8"))["files"]
+    new = scan(folder)
+    counts = {"OK": 0, "MODIFIED": 0, "ADDED": 0, "REMOVED": 0}
+    # รวมชื่อไฟล์จากทั้งสองฝั่ง แล้วเรียงเพื่อให้ผลลัพธ์คงที่ทุกครั้ง
+    for name in sorted(old.keys() | new.keys()):
+        if name not in new:
+            status = "REMOVED"
+        elif name not in old:
+            status = "ADDED"
+        elif old[name] != new[name]:
+            status = "MODIFIED"
+        else:
+            status = "OK"
+        counts[status] += 1
+        print(f"{status:&lt;9} {name}")
+    print("-" * 40)
+    print("สรุป: " + ", ".join(f"{k}={v}" for k, v in counts.items()))
+    changed = counts["MODIFIED"] + counts["ADDED"] + counts["REMOVED"]
+    # exit code 0 = ไม่มีอะไรเปลี่ยน, 1 = มีการเปลี่ยนแปลง (เอาไปต่อกับ cron หรือ CI ได้)
+    return 1 if changed else 0
+
+
+def main() -&gt; int:
+    ap = argparse.ArgumentParser(description="ตรวจว่าไฟล์ในโฟลเดอร์ถูกแก้ไขหรือไม่")
+    ap.add_argument("command", choices=["init", "check"])
+    ap.add_argument("folder", type=Path)
+    ap.add_argument("--baseline", type=Path, default=Path("baseline.json"))
+    args = ap.parse_args()
+    if not args.folder.is_dir():
+        print(f"[ERROR] ไม่พบโฟลเดอร์: {args.folder}", file=sys.stderr)
+        return 2
+    if args.command == "init":
+        return cmd_init(args.folder, args.baseline)
+    return cmd_check(args.folder, args.baseline)
+
+
+if __name__ == "__main__":
+    sys.exit(main())</code></pre>
+<h5>รันขั้นที่ 1: สร้าง Baseline แล้วตรวจทันที</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/sec-lab/practice/ch1-fim
+python3 fim.py init watched; echo "exit=$?"
+python3 fim.py check watched; echo "exit=$?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[INIT] บันทึก baseline 3 ไฟล์ ลงใน baseline.json
+exit=0
+OK        app.env.example
+OK        fail2ban/jail.local
+OK        ssh/99-hardening.conf
+----------------------------------------
+สรุป: OK=3, MODIFIED=0, ADDED=0, REMOVED=0
+exit=0</code></pre>
+<p>ดูเนื้อหาของ Baseline ได้ด้วย <code>head -8 baseline.json</code> ค่า Hash ทั้ง 3 ค่าจะตรงกับเครื่องคุณถ้าสร้างไฟล์ด้วย <code>setup.sh</code> ตัวเดียวกัน แต่ <code>folder</code> และ <code>created</code> จะต่างไปตามชื่อผู้ใช้และเวลาที่รัน</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{
+  "folder": "/home/somchai/projects/sec-lab/practice/ch1-fim/watched",
+  "created": "2026-10-22T13:08:08+00:00",
+  "algorithm": "sha256",
+  "files": {
+    "app.env.example": "0b86da660feb57ce5e713a84c4e62f590e4e23654f7339f0177237185c58d4f9",
+    "fail2ban/jail.local": "7d132fad47b797d74742cd5efdb8c4410d468b9700efe083ba5ebc0f9c733d92",
+    "ssh/99-hardening.conf": "22793edd53f5af8763e9d7ba15ccb64118d09416cbc8bb5ec9e153c69fcd4338"</code></pre>
+<h5>รันขั้นที่ 2: จำลองเหตุการณ์ 3 อย่างแล้วตรวจอีกครั้ง</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># 1) มีคนเปลี่ยนให้ root login ได้
+sed -i 's/PermitRootLogin no/PermitRootLogin yes/' watched/ssh/99-hardening.conf
+# 2) มีไฟล์ key แปลกหน้าเพิ่มเข้ามา (เนื้อหาเป็นข้อความสมมติ)
+printf 'ssh-ed25519 AAAA-example-only unknown@device\n' &gt; watched/ssh/authorized_keys_extra
+# 3) ไฟล์ตัวอย่าง env ถูกลบ
+rm watched/app.env.example
+
+python3 fim.py check watched; echo "exit=$?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>REMOVED   app.env.example
+OK        fail2ban/jail.local
+MODIFIED  ssh/99-hardening.conf
+ADDED     ssh/authorized_keys_extra
+----------------------------------------
+สรุป: OK=1, MODIFIED=1, ADDED=1, REMOVED=1
+exit=1</code></pre>
+<h5>รันขั้นที่ 3: ทดสอบกรณีผิดพลาด (Exit Code 2)</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 fim.py check nofolder; echo "exit=$?"
+python3 fim.py check watched --baseline none.json; echo "exit=$?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[ERROR] ไม่พบโฟลเดอร์: nofolder
+exit=2
+[ERROR] ไม่พบ baseline: none.json (รัน init ก่อน)
+exit=2</code></pre>
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>Hash คือลายนิ้วมือของไฟล์:</strong> แก้ไฟล์แค่ตัวอักษรเดียว SHA-256 ก็เปลี่ยนทั้งค่า (Avalanche Effect) จึงไม่ต้องเก็บสำเนาไฟล์ทั้งไฟล์ไว้เทียบ เก็บแค่ Hash ขนาด 64 ตัวอักษรก็พอ</li>
+<li><strong>Baseline ต้องสร้างตอนที่มั่นใจว่าระบบสะอาด:</strong> ถ้าสร้างหลังถูกแก้แล้ว Baseline ก็จะยืนยันว่าไฟล์ที่ถูกแก้คือ "ปกติ"</li>
+<li><strong>เทียบด้วยการรวม Set:</strong> <code>old.keys() | new.keys()</code> ได้ชื่อไฟล์ทุกไฟล์จากทั้งสองฝั่ง ไฟล์ที่ไม่มีใน <code>new</code> คือ REMOVED ไม่มีใน <code>old</code> คือ ADDED มีทั้งคู่แต่ Hash ต่างคือ MODIFIED ทำให้จบได้ในลูปเดียวและไม่หลุดกรณีใด</li>
+<li><strong>Exit Code คือภาษากลางของระบบอัตโนมัติ:</strong> cron, systemd timer หรือ CI ดู Exit Code เพื่อตัดสินว่าจะส่ง Alert หรือไม่ การแยก 1 (พบการเปลี่ยนแปลง) กับ 2 (เครื่องมือทำงานไม่ได้) ช่วยให้ Triage ง่ายขึ้น</li>
+<li><strong>ไม่เก็บ Baseline ไว้ในโฟลเดอร์ที่เฝ้าดู:</strong> ถ้าผู้บุกรุกแก้ Config ได้ เขาก็แก้ <code>baseline.json</code> ที่อยู่ข้าง ๆ ให้ตรงกันได้ ระบบจริงเก็บ Baseline ไว้ที่อ่านอย่างเดียว เครื่องอื่น หรือสื่อ Offline และถ้าเก็บไว้ในโฟลเดอร์เดียวกัน Baseline เองก็จะถูกนับเป็นไฟล์ที่เปลี่ยนทุกครั้งที่สร้างใหม่</li>
+<li><strong>เลือก ADDED เป็นสัญญาณสำคัญ:</strong> ในสถานการณ์จริง ไฟล์ใหม่ในโฟลเดอร์ SSH เช่น Key ที่ไม่รู้จัก มักเป็นร่องรอยของการฝังทางเข้าถาวร จึงควรได้รับการตรวจสอบทันที</li>
+</ul>
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+<li>เพิ่มการเก็บ Permission (<code>stat.filemode</code>) และเจ้าของไฟล์ลงใน Baseline เพื่อจับกรณีที่เนื้อหาไม่เปลี่ยนแต่มีคน <code>chmod 777</code> ไฟล์สำคัญ</li>
+<li>ให้คำสั่ง <code>check</code> เขียนผลเป็น JSON ด้วยตัวเลือก <code>--json</code> แล้วส่งเข้า SIEM หรือรวมเข้ากับ <code>log_analyzer.py</code> ใน Mini Project</li>
+<li>ตั้ง systemd timer หรือ cron ให้รัน <code>check</code> ทุก 15 นาที และเขียนข้อความลง <code>logger -t fim</code> เมื่อ Exit Code เป็น 1 เพื่อให้ดูได้ด้วย <code>journalctl -t fim</code></li>
+<li>Sign ไฟล์ <code>baseline.json</code> ด้วย Ed25519 ตามแนวคิดที่ 4 ใน Part 2 แล้วให้ <code>check</code> ตรวจลายเซ็นก่อนเชื่อ Baseline</li>
+<li>ศึกษาเครื่องมือจริงอย่าง AIDE (<code>sudo apt install aide</code>) หรือ Wazuh File Integrity Monitoring แล้วเปรียบเทียบความสามารถกับสคริปต์ของเรา</li>
+</ol>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 2: SSH Policy Checker</summary><div>
+<p>โค้ดใช้เฉพาะ Python Standard Library (<code>argparse</code>, <code>glob</code>, <code>re</code>, <code>pathlib</code>) อ่านไฟล์ในโฟลเดอร์แล็บเท่านั้น ไม่แก้ไขอะไรในระบบ</p>
+<pre class="code" data-env="file" data-label="Python · ssh_policy_check.py"><code class="language-python">#!/usr/bin/env python3
+"""ssh_policy_check.py - ตรวจค่า "ที่มีผลจริง" ของ sshd_config เทียบกับนโยบาย Hardening"""
+import argparse
+import glob
+import re
+import sys
+from pathlib import Path
+
+# ค่า default ของ OpenSSH 9.6 สำหรับ key ที่เราตรวจ (ใช้เมื่อไม่มีไฟล์ใดตั้งค่าไว้)
+DEFAULTS = {
+    "permitrootlogin": "prohibit-password",
+    "passwordauthentication": "yes",
+    "kbdinteractiveauthentication": "yes",
+    "pubkeyauthentication": "yes",
+    "x11forwarding": "no",
+    "maxauthtries": "6",
+    "logingracetime": "120",
+    "allowusers": "",
+}
+
+# นโยบาย: (key, วิธีตรวจ, ค่าที่ต้องการ)
+POLICY = [
+    ("permitrootlogin", "eq", "no"),
+    ("passwordauthentication", "eq", "no"),
+    ("kbdinteractiveauthentication", "eq", "no"),
+    ("pubkeyauthentication", "eq", "yes"),
+    ("x11forwarding", "eq", "no"),
+    ("maxauthtries", "max", 3),
+    ("logingracetime", "max", 30),
+    ("allowusers", "has", "somchai"),
+]
+
+# key กลุ่มนี้ sshd ไม่ใช้กฎ first match wins แต่ "สะสม" ค่าจากทุกบรรทัด
+ACCUMULATE = {"allowusers", "denyusers", "allowgroups", "denygroups", "acceptenv"}
+
+
+def to_seconds(text: str) -&gt; int:
+    # แปลงรูปแบบเวลาของ sshd เช่น 30, 30s, 2m, 1h เป็นวินาที
+    m = re.fullmatch(r"(\d+)([smh]?)", text.strip().lower())
+    if not m:
+        raise ValueError(f"รูปแบบเวลาไม่ถูกต้อง: {text!r}")
+    return int(m.group(1)) * {"": 1, "s": 1, "m": 60, "h": 3600}[m.group(2)]
+
+
+def expand_include(pattern: str, etc_dir: Path) -&gt; list[Path]:
+    # sshd ตีความ path แบบ relative ว่าอยู่ใต้ /etc/ssh
+    # ในแล็บเราแทน /etc/ssh ด้วยโฟลเดอร์ etc_dir เพื่อไม่ต้องแตะไฟล์ระบบจริง
+    if pattern.startswith("/etc/ssh/"):
+        pattern = str(etc_dir / pattern[len("/etc/ssh/"):])
+    elif not pattern.startswith("/"):
+        pattern = str(etc_dir / pattern)
+    return [Path(p) for p in sorted(glob.glob(pattern))]
+
+
+def parse(path: Path, etc_dir: Path, effective: dict) -&gt; bool:
+    """อ่านไฟล์ทีละบรรทัด เก็บเฉพาะค่าแรกที่เจอของแต่ละ key (กฎ first match wins)
+    ยกเว้น key ใน ACCUMULATE ที่ต่อค่าจากทุกบรรทัดเหมือน sshd
+    คืนค่า False เมื่อเจอ Match block เพื่อหยุดอ่าน (ส่วนนั้นเป็นเงื่อนไขเฉพาะกลุ่ม)"""
+    for no, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = re.split(r"\s*=\s*|\s+", line, maxsplit=1)
+        key = parts[0].lower()
+        value = parts[1].strip() if len(parts) &gt; 1 else ""
+        if key == "include":
+            for pattern in value.split():
+                for inc in expand_include(pattern, etc_dir):
+                    if not parse(inc, etc_dir, effective):
+                        return False
+            continue
+        if key == "match":
+            return False
+        if key in ACCUMULATE and key in effective:
+            # key แบบสะสม: ต่อค่าใหม่ท้ายค่าเดิม และเก็บที่มาไว้ครบทุกจุด
+            old_value, old_source = effective[key]
+            effective[key] = (f"{old_value} {value}", f"{old_source},{path.name}:{no}")
+            continue
+        # key ทั่วไป: เก็บเฉพาะครั้งแรก ค่าที่มาทีหลังถูกเพิกเฉย
+        effective.setdefault(key, (value, f"{path.name}:{no}"))
+    return True
+
+
+def check(effective: dict) -&gt; list[tuple]:
+    rows = []
+    for key, rule, want in POLICY:
+        value, source = effective.get(key, (DEFAULTS[key], "(ค่า default)"))
+        if rule == "eq":
+            ok = value.lower() == want
+            expect = want
+        elif rule == "max":
+            ok = to_seconds(value) &lt;= want if key == "logingracetime" else int(value) &lt;= want
+            expect = f"&lt;= {want}"
+        else:  # has
+            ok = want in value.split()
+            expect = f"มี {want}"
+        rows.append(("PASS" if ok else "FAIL", key, expect, value or "(ว่าง)", source))
+    return rows
+
+
+def main() -&gt; int:
+    ap = argparse.ArgumentParser(description="ตรวจ sshd_config ตามนโยบาย Hardening")
+    ap.add_argument("config", type=Path, help="ไฟล์ sshd_config หลัก")
+    ap.add_argument("--etc-ssh", type=Path, default=Path("/etc/ssh"),
+                    help="โฟลเดอร์ที่ใช้แทน /etc/ssh (สำหรับแล็บ)")
+    args = ap.parse_args()
+    if not args.config.is_file():
+        print(f"[ERROR] ไม่พบไฟล์: {args.config}", file=sys.stderr)
+        return 2
+    effective: dict = {}
+    parse(args.config, args.etc_ssh, effective)
+    rows = check(effective)
+    print(f"{'STATUS':&lt;6} {'KEY':&lt;29} {'EXPECT':&lt;11} {'ACTUAL':&lt;18} SOURCE")
+    for r in rows:
+        print(f"{r[0]:&lt;6} {r[1]:&lt;29} {r[2]:&lt;11} {r[3]:&lt;18} {r[4]}")
+    fails = sum(1 for r in rows if r[0] == "FAIL")
+    print(f"\nผลรวม: PASS {len(rows) - fails} / FAIL {fails}")
+    return 1 if fails else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())</code></pre>
+<h5>รันรอบแรก: หาต้นเหตุ</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/sec-lab/practice/ch2-ssh-policy
+python3 ssh_policy_check.py lab/sshd_config --etc-ssh lab; echo "exit=$?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>STATUS KEY                           EXPECT      ACTUAL             SOURCE
+PASS   permitrootlogin               no          no                 99-hardening.conf:2
+FAIL   passwordauthentication        no          yes                50-cloud-init.conf:1
+PASS   kbdinteractiveauthentication  no          no                 99-hardening.conf:4
+PASS   pubkeyauthentication          yes         yes                99-hardening.conf:5
+PASS   x11forwarding                 no          no                 99-hardening.conf:9
+PASS   maxauthtries                  &lt;= 3        3                  99-hardening.conf:6
+PASS   logingracetime                &lt;= 30       30                 99-hardening.conf:7
+PASS   allowusers                    มี somchai  somchai            99-hardening.conf:8
+
+ผลรวม: PASS 7 / FAIL 1
+exit=1</code></pre>
+<p>ตัวตรวจชี้ว่า <code>PasswordAuthentication yes</code> ที่มีผลจริงมาจากบรรทัด 1 ของ <code>50-cloud-init.conf</code> เพราะ <code>50-</code> เรียงก่อน <code>99-</code> sshd จึงอ่านเจอก่อนและใช้ค่านั้น ค่า <code>no</code> ใน <code>99-hardening.conf</code> ถูกเพิกเฉย</p>
+<h5>แก้ไขและรันอีกครั้ง</h5>
+<p>ปิดบรรทัดใน <code>50-cloud-init.conf</code> ด้วยการทำเป็น Comment พร้อมเหตุผล เพื่อให้คนที่มาอ่านทีหลังเข้าใจ (บนเครื่องจริงที่ใช้ cloud-init ควรตั้ง <code>ssh_pwauth: false</code> ใน Config ของ cloud-init ด้วย เพื่อไม่ให้ไฟล์ถูกสร้างค่าเดิมกลับมา ตรวจรายละเอียดกับเอกสารของ cloud-init เวอร์ชันที่ใช้)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cat &gt; lab/sshd_config.d/50-cloud-init.conf &lt;&lt;'EOF'
+# ปิดไว้: ให้ 99-hardening.conf เป็นผู้กำหนด
+# PasswordAuthentication yes
+EOF
+python3 ssh_policy_check.py lab/sshd_config --etc-ssh lab; echo "exit=$?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>STATUS KEY                           EXPECT      ACTUAL             SOURCE
+PASS   permitrootlogin               no          no                 99-hardening.conf:2
+PASS   passwordauthentication        no          no                 99-hardening.conf:3
+PASS   kbdinteractiveauthentication  no          no                 99-hardening.conf:4
+PASS   pubkeyauthentication          yes         yes                99-hardening.conf:5
+PASS   x11forwarding                 no          no                 99-hardening.conf:9
+PASS   maxauthtries                  &lt;= 3        3                  99-hardening.conf:6
+PASS   logingracetime                &lt;= 30       30                 99-hardening.conf:7
+PASS   allowusers                    มี somchai  somchai            99-hardening.conf:8
+
+ผลรวม: PASS 8 / FAIL 0
+exit=0</code></pre>
+<p>ทางเลือกที่สองคือเปลี่ยนชื่อไฟล์ Hardening ให้เรียงก่อนไฟล์อื่น เช่น <code>00-hardening.conf</code> ก็ได้ผลเหมือนกัน ทีมควรเลือกแบบเดียวและเขียนไว้ใน README ให้ชัด</p>
+<h5>ทดสอบกรณีไม่มีการตั้งค่า (ใช้ค่า Default)</h5>
+<p>ลองลบบรรทัด <code>MaxAuthTries 3</code> ออกจาก <code>99-hardening.conf</code> ชั่วคราว ตัวตรวจจะใช้ค่า Default ของ OpenSSH คือ 6 และแจ้ง FAIL พร้อมบอกว่าค่ามาจาก Default (ใส่บรรทัดกลับคืนหลังทดสอบ)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">sed -i '/^MaxAuthTries/d' lab/sshd_config.d/99-hardening.conf
+python3 ssh_policy_check.py lab/sshd_config --etc-ssh lab | grep -E 'maxauthtries|ผลรวม'</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>FAIL   maxauthtries                  &lt;= 3        6                  (ค่า default)
+ผลรวม: PASS 7 / FAIL 1</code></pre>
+<h5>ยืนยันผลกับ sshd ตัวจริง</h5>
+<p>ถ้าติดตั้ง <code>openssh-server</code> ไว้แล้ว (มี Host Key ใน <code>/etc/ssh</code>) ให้คัดลอกไฟล์แล็บไปไว้ใน <code>/tmp/sshd-verify</code> ปรับ Path ของ <code>Include</code> แล้วให้ <code>sshd -T -f</code> คำนวณค่าจริงจากไฟล์ชุดนี้ คำสั่งนี้แค่อ่าน Config ไม่ได้เปิด Service ใหม่และไม่แตะ Config ที่ใช้งานอยู่ (ใส่ <code>MaxAuthTries 3</code> กลับคืนก่อนรัน)</p>
+<pre class="code" data-env="file" data-label="Bash · verify.sh"><code class="language-bash"># $1 = โฟลเดอร์แล็บ เช่น lab
+rm -rf /tmp/sshd-verify &amp;&amp; mkdir -p /tmp/sshd-verify/d
+cp "$1"/sshd_config.d/*.conf /tmp/sshd-verify/d/
+sed "s#/etc/ssh/sshd_config.d#/tmp/sshd-verify/d#" "$1"/sshd_config &gt; /tmp/sshd-verify/sshd_config
+sshd -t -f /tmp/sshd-verify/sshd_config &amp;&amp; echo "syntax OK"
+sshd -T -f /tmp/sshd-verify/sshd_config | grep -Ei '^(permitrootlogin|passwordauthentication|kbdinteractiveauthentication|pubkeyauthentication|x11forwarding|maxauthtries|logingracetime|allowusers) '</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">sudo bash verify.sh lab</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>syntax OK
+logingracetime 30
+maxauthtries 3
+permitrootlogin no
+pubkeyauthentication yes
+passwordauthentication no
+kbdinteractiveauthentication no
+x11forwarding no
+allowusers somchai</code></pre>
+<p>ค่าที่ sshd คำนวณตรงกับตัวตรวจของเราทุกค่า และถ้ารันกับไฟล์ก่อนแก้ sshd จะแสดง <code>passwordauthentication yes</code> เหมือนที่ตัวตรวจรายงานในรอบแรก ซึ่งเป็นการยืนยันว่ากฎ First Match Wins ที่เราเขียนถูกต้อง</p>
+<h5>ทดสอบ Keyword ที่ sshd สะสมค่า</h5>
+<p>ลองเพิ่ม Drop-in อีกไฟล์ที่อนุญาตให้ <code>malee</code> Login ได้ แล้วเทียบผลของตัวตรวจกับ sshd ตัวจริง จากนั้นลบไฟล์ทิ้งเพื่อคืนแล็บให้เหมือนเดิม</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">printf 'AllowUsers malee\n' &gt; lab/sshd_config.d/60-team.conf
+python3 ssh_policy_check.py lab/sshd_config --etc-ssh lab | grep allowusers
+sudo bash verify.sh lab | grep allowusers
+rm lab/sshd_config.d/60-team.conf</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>PASS   allowusers                    มี somchai  malee somchai      60-team.conf:1,99-hardening.conf:8
+allowusers malee
+allowusers somchai</code></pre>
+<p>sshd แสดง <code>allowusers</code> สองบรรทัด แปลว่าทั้ง <code>malee</code> และ <code>somchai</code> Login ได้ ตัวตรวจของเรารายงานตรงกันพร้อมที่มาครบทั้งสองไฟล์ ถ้าใช้กฎ First Match Wins กับ <code>AllowUsers</code> ด้วย ตัวตรวจจะเห็นแค่ <code>malee</code> จาก <code>60-team.conf</code> แล้วรายงาน FAIL ว่าไม่มี <code>somchai</code> ทั้งที่ sshd ยังอนุญาต <code>somchai</code> อยู่ นี่คือเหตุผลที่ต้องแยก Keyword กลุ่ม <code>ACCUMULATE</code> ออกมา</p>
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>ตรวจ "ค่าที่มีผลจริง" ไม่ใช่ "ค่าที่เราเขียน":</strong> การ <code>grep</code> หาคำว่า <code>PasswordAuthentication no</code> ในไฟล์ของเราจะเจอและดูเหมือนผ่าน แต่ไม่ได้บอกว่ามีไฟล์อื่นชนะอยู่ ตัวตรวจจึงต้องจำลองลำดับการอ่านแบบเดียวกับ sshd</li>
+<li><strong>First Match Wins ด้วย <code>setdefault</code>:</strong> <code>dict.setdefault</code> เขียนค่าเฉพาะเมื่อ Key ยังไม่มี จึงตรงกับกฎของ sshd สำหรับ Keyword ส่วนใหญ่โดยไม่ต้องเขียน <code>if</code> เพิ่ม ส่วน Keyword ใน <code>ACCUMULATE</code> ต้องต่อค่าแทน เพราะ sshd สะสมค่าเหล่านี้จากทุกบรรทัด ถ้าใช้ <code>setdefault</code> กับ <code>AllowUsers</code> ด้วย ผู้ใช้ที่ถูกอนุญาตในไฟล์ถัดไปจะหายไปจากรายงาน ทั้งที่ Login ได้จริง</li>
+<li><strong>Include แบบ Recursive ตามตำแหน่ง:</strong> ไฟล์ที่ <code>Include</code> ถูกอ่าน "ณ ตำแหน่งของบรรทัด Include" และเรียงชื่อด้วย <code>sorted()</code> ค่าใน Drop-in จึงชนะค่าที่อยู่หลังบรรทัด Include ในไฟล์หลัก เช่น <code>X11Forwarding yes</code></li>
+<li><strong>บอกที่มาของค่าทุกครั้ง:</strong> คอลัมน์ SOURCE ทำให้แก้ได้ตรงจุดทันที ไม่ต้องเดาว่าไฟล์ไหนผิด เป็นหลักเดียวกับ Alert ที่ดีใน SOC ที่ต้องมีหลักฐานแนบเสมอ</li>
+<li><strong>ใช้ค่า Default เมื่อไม่มีการตั้งค่า:</strong> การไม่ตั้งค่าไม่ได้แปลว่าปลอดภัย <code>MaxAuthTries</code> ที่ไม่ได้ตั้งจะเป็น 6 ตัวตรวจจึงต้องรู้ค่า Default ด้วย</li>
+<li><strong>หยุดที่ <code>Match</code>:</strong> ค่าใน Match Block มีผลเฉพาะผู้ใช้หรือ Address ที่ตรงเงื่อนไข เวอร์ชันนี้จึงตรวจเฉพาะค่าระดับ Global ซึ่งเป็นข้อจำกัดที่ต้องบอกไว้ในเอกสาร</li>
+</ul>
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+<li>ย้าย <code>POLICY</code> ไปไว้ในไฟล์ <code>policy.json</code> เพื่อให้แต่ละทีมกำหนดนโยบายของตัวเองได้โดยไม่ต้องแก้โค้ด</li>
+<li>เพิ่มโหมด <code>--live</code> ที่เรียก <code>sudo sshd -T</code> ผ่าน <code>subprocess</code> แล้วเทียบผลกับนโยบายโดยตรง ใช้กับเครื่องจริงที่ติดตั้ง <code>openssh-server</code></li>
+<li>เขียน pytest อย่างน้อย 5 Test ด้วย <code>tmp_path</code> เช่น Key ซ้ำในไฟล์เดียว, รูปแบบ <code>Key=value</code>, <code>LoginGraceTime 2m</code>, ไม่มี <code>Include</code> และเจอ <code>Match</code> กลางไฟล์</li>
+<li>ใส่สคริปต์นี้ใน <code>hardening/</code> ของ Mini Project และให้ <code>harden.sh</code> เรียกก่อน <code>systemctl reload ssh</code> ถ้า Exit Code ไม่ใช่ 0 ให้ยกเลิกการ Reload</li>
+<li>รองรับ Match Block โดยรับตัวเลือก <code>--user</code> และ <code>--addr</code> แล้วประเมินเงื่อนไขแบบเดียวกับ <code>sshd -T -C user=somchai,addr=192.0.2.10</code></li>
+</ol>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 3: Secure Code Fix ของ Flask App</summary><div>
+<p>ทดสอบกับ Flask 3.1.3 และ pytest 9.1.1 ใน venv ของโฟลเดอร์ <code>practice</code> (pip ติดตั้ง Werkzeug 3.1.9, Jinja2 3.1.6 และ MarkupSafe 3.0.4 ให้อัตโนมัติ เวอร์ชันของ Package ที่ติดมาอาจต่างจากนี้ถ้าติดตั้งในวันอื่น)</p>
+<pre class="code" data-env="file" data-label="Python · app.py"><code class="language-python">"""app.py - เวอร์ชันแก้ไขแล้วของ vuln_app.py"""
+import os
+import sqlite3
+
+from flask import Flask, jsonify, render_template_string, request
+
+MAX_NAME_LEN = 50
+DB_PATH = os.environ.get("SHOP_DB", "shop.db")
+
+HELLO_TEMPLATE = "&lt;h1&gt;สวัสดี {{ name }}&lt;/h1&gt;"   # Jinja2 จะ escape ค่า name ให้อัตโนมัติ
+
+
+def create_app() -&gt; Flask:
+    app = Flask(__name__)
+
+    # แก้ปัญหา 1: อ่าน SECRET_KEY จาก environment ถ้าไม่มีให้หยุดทันที (fail closed)
+    secret = os.environ.get("SECRET_KEY")
+    if not secret:
+        raise RuntimeError("SECRET_KEY is not set")
+    app.config.update(
+        SECRET_KEY=secret,
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_SECURE=True,
+    )
+
+    def bad_input(name: str) -&gt; bool:
+        # input validation เป็นชั้นป้องกันเสริม ไม่ใช่ตัวแทนของ parameterized query
+        return len(name) &gt; MAX_NAME_LEN
+
+    @app.get("/products")
+    def products():
+        name = request.args.get("name", "")
+        if bad_input(name):
+            return jsonify(error="invalid input"), 400
+        conn = sqlite3.connect(DB_PATH)
+        try:
+            # แก้ปัญหา 2: ใช้ placeholder ? และส่งค่าเป็น tuple 1 ตัว
+            rows = conn.execute(
+                "SELECT id, name, price FROM products WHERE name = ?", (name,)
+            ).fetchall()
+        finally:
+            conn.close()
+        return jsonify([{"id": r[0], "name": r[1], "price": r[2]} for r in rows])
+
+    @app.get("/hello")
+    def hello():
+        name = request.args.get("name", "guest")
+        if bad_input(name):
+            return "invalid input", 400
+        # แก้ปัญหา 3: ให้ template engine ทำ output encoding (ห้ามใช้ |safe กับข้อมูลผู้ใช้)
+        return render_template_string(HELLO_TEMPLATE, name=name)
+
+    @app.errorhandler(500)
+    def server_error(_err):
+        # ข้อความกลาง ๆ ไม่เปิดเผย stack trace หรือชื่อตาราง
+        return jsonify(error="internal error"), 500
+
+    @app.after_request
+    def security_headers(resp):
+        # แก้ปัญหา 4: เพิ่ม security headers ทุก response
+        resp.headers["Content-Security-Policy"] = "default-src 'self'"
+        resp.headers["X-Content-Type-Options"] = "nosniff"
+        resp.headers["Referrer-Policy"] = "no-referrer"
+        resp.headers["X-Frame-Options"] = "DENY"
+        return resp
+
+    return app
+
+
+if __name__ == "__main__":
+    # แก้ปัญหา 5: bind เฉพาะ 127.0.0.1 และปิด debug
+    create_app().run(host="127.0.0.1", port=5000, debug=False)</code></pre>
+<pre class="code" data-env="file" data-label="Python · test_app.py"><code class="language-python">"""test_app.py - พิสูจน์ว่าการแก้ไขได้ผล (รันด้วย pytest -v)"""
+import sqlite3
+
+import pytest
+
+import app as app_module
+
+
+@pytest.fixture
+def client(tmp_path, monkeypatch):
+    # สร้างฐานข้อมูลชั่วคราวแยกต่อ test เพื่อไม่ให้ test กระทบกัน
+    db = tmp_path / "test.db"
+    conn = sqlite3.connect(db)
+    conn.executescript("""
+    CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, price INTEGER);
+    INSERT INTO products (name, price) VALUES ('Notebook', 25000), ('Mouse', 590), ('Keyboard', 1290);
+    """)
+    conn.commit()
+    conn.close()
+    monkeypatch.setattr(app_module, "DB_PATH", str(db))
+    monkeypatch.setenv("SECRET_KEY", "test-only-secret")
+    return app_module.create_app().test_client()
+
+
+def test_normal_search(client):
+    resp = client.get("/products", query_string={"name": "Mouse"})
+    assert resp.status_code == 200
+    assert resp.get_json() == [{"id": 2, "name": "Mouse", "price": 590}]
+
+
+def test_quote_input_is_plain_data(client):
+    # ข้อความที่มี single quote ต้องถูกมองเป็น "ชื่อสินค้า" ธรรมดา จึงไม่พบอะไรเลย
+    resp = client.get("/products", query_string={"name": "Mouse' OR '1'='1"})
+    assert resp.status_code == 200
+    assert resp.get_json() == []
+
+
+def test_name_with_apostrophe_does_not_crash(client):
+    resp = client.get("/products", query_string={"name": "Somchai's Mouse"})
+    assert resp.status_code == 200
+    assert resp.get_json() == []
+
+
+def test_too_long_input_rejected(client):
+    resp = client.get("/products", query_string={"name": "A" * 51})
+    assert resp.status_code == 400
+
+
+def test_hello_output_is_encoded(client):
+    resp = client.get("/hello", query_string={"name": "&lt;b&gt;somchai&lt;/b&gt;"})
+    body = resp.get_data(as_text=True)
+    assert "&amp;lt;b&amp;gt;somchai&amp;lt;/b&amp;gt;" in body
+    assert "&lt;b&gt;" not in body
+
+
+@pytest.mark.parametrize("header, value", [
+    ("Content-Security-Policy", "default-src 'self'"),
+    ("X-Content-Type-Options", "nosniff"),
+    ("Referrer-Policy", "no-referrer"),
+    ("X-Frame-Options", "DENY"),
+])
+def test_security_headers(client, header, value):
+    resp = client.get("/hello")
+    assert resp.headers[header] == value
+
+
+def test_missing_secret_key_fails_closed(monkeypatch):
+    monkeypatch.delenv("SECRET_KEY", raising=False)
+    with pytest.raises(RuntimeError, match="SECRET_KEY is not set"):
+        app_module.create_app()
+
+
+def test_debug_is_off(client):
+    assert client.application.debug is False</code></pre>
+<h5>รัน Test</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/sec-lab/practice/ch3-flask-fix
+source ../.venv/bin/activate
+python3 -m pytest -v</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0 -- /home/somchai/projects/sec-lab/practice/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/somchai/projects/sec-lab/practice/ch3-flask-fix
+collecting ... collected 11 items
+
+test_app.py::test_normal_search PASSED                                   [  9%]
+test_app.py::test_quote_input_is_plain_data PASSED                       [ 18%]
+test_app.py::test_name_with_apostrophe_does_not_crash PASSED             [ 27%]
+test_app.py::test_too_long_input_rejected PASSED                         [ 36%]
+test_app.py::test_hello_output_is_encoded PASSED                         [ 45%]
+test_app.py::test_security_headers[Content-Security-Policy-default-src 'self'] PASSED [ 54%]
+test_app.py::test_security_headers[X-Content-Type-Options-nosniff] PASSED [ 63%]
+test_app.py::test_security_headers[Referrer-Policy-no-referrer] PASSED   [ 72%]
+test_app.py::test_security_headers[X-Frame-Options-DENY] PASSED          [ 81%]
+test_app.py::test_missing_secret_key_fails_closed PASSED                 [ 90%]
+test_app.py::test_debug_is_off PASSED                                    [100%]
+
+============================== 11 passed in 0.29s ==============================</code></pre>
+<p class="muted small">บรรทัด <code>platform</code>, Path ของ venv และเวลาที่ใช้รันจะต่างไปตามเครื่องของคุณ</p>
+<h5>รันแอปจริงและตรวจด้วย curl</h5>
+<p>เปิด Terminal ที่ 1 แล้วสร้าง <code>SECRET_KEY</code> แบบสุ่มเก็บไว้ใน Environment Variable ของ Session นั้น (ไม่เขียนลงไฟล์โค้ด) จากนั้นรันแอป</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 1"><code class="language-bash">cd ~/projects/sec-lab/practice/ch3-flask-fix
+source ../.venv/bin/activate
+# ลองรันโดยไม่มี SECRET_KEY ก่อน แอปต้องไม่ยอมเริ่ม
+python3 app.py 2&gt;&amp;1 | tail -2
+# สร้าง secret แบบสุ่มแล้วรันใหม่
+export SECRET_KEY=$(python3 -c 'import secrets;print(secrets.token_hex(32))')
+python3 app.py</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>    raise RuntimeError("SECRET_KEY is not set")
+RuntimeError: SECRET_KEY is not set
+ * Serving Flask app 'app'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit</code></pre>
+<p>เปิด Terminal ที่ 2 แล้วเรียกแอป</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL) · Terminal 2"><code class="language-bash">curl -si "http://127.0.0.1:5000/hello?name=%3Cb%3Esomchai%3C%2Fb%3E"
+echo
+curl -s "http://127.0.0.1:5000/products?name=Keyboard"
+echo</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>HTTP/1.1 200 OK
+Server: Werkzeug/3.1.9 Python/3.12.3
+Date: Thu, 22 Oct 2026 13:09:36 GMT
+Content-Type: text/html; charset=utf-8
+Content-Length: 54
+Content-Security-Policy: default-src 'self'
+X-Content-Type-Options: nosniff
+Referrer-Policy: no-referrer
+X-Frame-Options: DENY
+Connection: close
+
+&lt;h1&gt;สวัสดี &amp;lt;b&amp;gt;somchai&amp;lt;/b&amp;gt;&lt;/h1&gt;
+[{"id":3,"name":"Keyboard","price":1290}]</code></pre>
+<p>Terminal ที่ 1 จะแสดง Access Log ของทั้งสอง Request (เวลาจะต่างไปตามเครื่อง) กด <kbd>Ctrl</kbd>+<kbd>C</kbd> เพื่อหยุดแอปเมื่อทดสอบเสร็จ</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>127.0.0.1 - - [22/Oct/2026 13:09:36] "GET /hello?name=&lt;b&gt;somchai&lt;/b&gt; HTTP/1.1" 200 -
+127.0.0.1 - - [22/Oct/2026 13:09:36] "GET /products?name=Keyboard HTTP/1.1" 200 -</code></pre>
+<p class="muted small">ค่า <code>Date</code>, เวลาใน Access Log และเวอร์ชันใน Header <code>Server</code> จะต่างไปตามเครื่องและวันที่รัน</p>
+<h5>แนวคิด</h5>
+<div class="tbl wide"><table class="explain"><thead><tr><th>ปัญหาใน vuln_app.py</th><th>หมวด OWASP Top 10 ที่เกี่ยวข้อง</th><th>วิธีแก้ใน app.py</th><th>Test ที่พิสูจน์</th></tr></thead><tbody>
+<tr><td>1. SECRET_KEY ฝังในโค้ด</td><td>Cryptographic Failures / Security Misconfiguration</td><td>อ่านจาก Environment Variable และ Raise <code>RuntimeError</code> ถ้าไม่มี (Fail Closed)</td><td><code>test_missing_secret_key_fails_closed</code></td></tr>
+<tr><td>2. ต่อ String เป็น SQL</td><td>Injection</td><td>Parameterized Query <code>?</code> กับ <code>(name,)</code> และจำกัดความยาว Input เป็นชั้นที่สอง</td><td><code>test_normal_search</code>, <code>test_quote_input_is_plain_data</code>, <code>test_name_with_apostrophe_does_not_crash</code>, <code>test_too_long_input_rejected</code></td></tr>
+<tr><td>3. ประกอบ HTML จาก Input ตรง ๆ</td><td>Injection (XSS)</td><td><code>render_template_string</code> ที่ Autoescape ให้ <code>&lt;</code> กลายเป็น <code>&amp;lt;</code></td><td><code>test_hello_output_is_encoded</code></td></tr>
+<tr><td>4. ไม่มี Security Headers</td><td>Security Misconfiguration</td><td><code>@app.after_request</code> เพิ่ม Header 4 ตัวทุก Response</td><td><code>test_security_headers</code> (4 กรณี)</td></tr>
+<tr><td>5. <code>debug=True</code> และ <code>0.0.0.0</code></td><td>Security Misconfiguration</td><td><code>debug=False</code>, bind <code>127.0.0.1</code>, Error Handler 500 ตอบข้อความกลาง ๆ</td><td><code>test_debug_is_off</code></td></tr>
+</tbody></table></div>
+<ul>
+<li><strong>แก้ที่ต้นเหตุ ไม่ใช่ที่อาการ:</strong> SQL Injection แก้ด้วยการแยก "คำสั่ง" ออกจาก "ข้อมูล" (Parameterized Query) และ XSS แก้ด้วยการ Encode ข้อมูลตามบริบทที่แสดงผล ส่วน Input Validation และ CSP เป็นชั้นเสริมตามหลัก Defense in Depth</li>
+<li><strong>Application Factory ทำให้ทดสอบได้:</strong> <code>create_app()</code> สร้างแอปใหม่ทุกครั้ง Test จึงเปลี่ยน Environment Variable และฐานข้อมูลได้อิสระ ถ้าสร้าง <code>app</code> ไว้ระดับ Module ตั้งแต่ Import จะทดสอบกรณีไม่มี <code>SECRET_KEY</code> ไม่ได้</li>
+<li><strong>Test ต้องแยกจากข้อมูลจริง:</strong> Fixture ใช้ <code>tmp_path</code> สร้างฐานข้อมูลชั่วคราวและ <code>monkeypatch</code> เปลี่ยน <code>DB_PATH</code> กับ <code>SECRET_KEY</code> หลังจบแต่ละ Test pytest คืนค่าเดิมให้อัตโนมัติ</li>
+<li><strong>Test คือหลักฐานและ Regression Guard:</strong> ถ้าวันหนึ่งมีคนแก้ Query กลับไปเป็น f-string หรือเติม <code>|safe</code> Test จะ Fail ทันทีใน CI ก่อนโค้ดขึ้นระบบ</li>
+<li><strong>Fail Closed:</strong> ถ้าขาดค่าที่เกี่ยวกับความปลอดภัย แอปต้องไม่เริ่มทำงาน ดีกว่าแอบใช้ค่า Default ที่ทุกคนรู้</li>
+</ul>
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+<li>เพิ่ม GitHub Actions Workflow ที่รัน <code>pytest</code> และ <code>pip-audit -r requirements.txt</code> ทุกครั้งที่ Push เพื่อให้การตรวจความปลอดภัยเป็นส่วนหนึ่งของ CI (ดู <a data-t="17"></a>)</li>
+<li>เพิ่ม Audit Log ที่บันทึกผู้ใช้ เวลา IP และ Action ลงไฟล์ JSON Lines เพื่อลดภัยหมวด Repudiation ตามที่วิเคราะห์ด้วย STRIDE ใน MCQ ข้อ 13</li>
+<li>เพิ่ม Endpoint <code>POST /products</code> ที่ต้องมี CSRF Token และตรวจสิทธิ์แบบ RBAC ให้เฉพาะ Role <code>admin</code> เพิ่มสินค้าได้ พร้อม Test ว่า <code>member</code> ได้ HTTP 403</li>
+<li>ติดตั้ง Bandit (Static Analysis สำหรับ Python) ใน venv แล้วรันกับ <code>vuln_app.py</code> และ <code>app.py</code> เพื่อดูว่าเครื่องมือจับปัญหาใดได้เองและปัญหาใดต้องอาศัย Code Review</li>
+<li>รันแอปด้วย Production WSGI Server เช่น Gunicorn หลัง Reverse Proxy ที่มี TLS แล้วเพิ่ม Header <code>Strict-Transport-Security</code> ซึ่งมีความหมายเฉพาะเมื่อใช้ HTTPS</li>
+</ol>
+</div></details>
+</section>

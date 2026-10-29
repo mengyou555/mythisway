@@ -1,0 +1,157 @@
+{
+ "concepts": [
+  {
+   "id": "c01",
+   "level": "b",
+   "title": "Repository, 3 พื้นที่ของ Git และ Commit แรก (init, status, add, commit)",
+   "covers": "What version control is (no more report_final_v3.docx), Git vs GitHub in one paragraph, the Working Tree -> Staging Area -> Local Repository flow (reuse the text diagram style of Part 1 section s17-1-model), the hidden .git folder, file states Untracked / Modified / Staged / Committed, HEAD, what a commit contains (snapshot, author, date, message, parent, SHA-1 hash). Commands: git init, git status, git status -s (codes ??, A, M, ' M', 'MM'), git add <file>, git add . , git commit -m, git commit (opens nano). CODE EXAMPLE (real output): mkdir -p ~/projects/git-lab/c01-first-repo && cd there; git init; echo '# First Repo' > README.md; git status; git add README.md; git status -s; git commit -m 'docs: add README'; echo 'ฝึก Git วันแรก' >> README.md; git status -s; ls -a (shows .git). Mistakes rows: 'fatal: not a git repository (or any of the parent directories): .git', 'nothing added to commit but untracked files present (use \"git add\" to track)', 'Author identity unknown *** Please tell me who you are.' (fix with git config --global user.name/user.email), and running git init in the home folder by accident (rm -rf ~/.git with care).",
+   "language": "bash",
+   "env": "wsl"
+  },
+  {
+   "id": "c02",
+   "level": "b",
+   "title": "อ่านประวัติและความเปลี่ยนแปลงด้วย git log, git diff และ git show",
+   "covers": "git log, git log --oneline, --graph, --all, -n 3, --stat, -p, --author, --since, -- <file>; git diff (Working Tree vs Staging), git diff --staged (Staging vs last commit), git diff HEAD~1 HEAD, reading a unified diff (---/+++/@@ -1 +1,2 @@, + and - lines); git show <hash> and git show HEAD:README.md; HEAD~1 / HEAD~2 notation; GIT_PAGER / pressing q in less. CODE EXAMPLE in ~/projects/git-lab/c02-history: create menu.md 'ลาเต้ 60 บาท' and commit 'feat: add menu', add 'มอคค่า 70 บาท' and commit 'feat: add mocha', change latte to 65 and show git diff before staging, git diff --staged after add, commit 'fix: update latte price', then git log --oneline, git log --stat -n 1, git show HEAD --stat, git diff HEAD~2 HEAD. Run with GIT_PAGER=cat or git --no-pager so output prints. Mistakes rows: 'fatal: ambiguous argument 'HEAD~5': unknown revision or path not in the working tree.', git diff shows nothing after git add (need --staged), stuck inside the pager showing '(END)' (press q), \"fatal: your current branch 'main' does not have any commits yet\".",
+   "language": "bash",
+   "env": "wsl"
+  },
+  {
+   "id": "c03",
+   "level": "b",
+   "title": "Commit อย่างมืออาชีพ: Conventional Commits, .gitignore และ .env.example",
+   "covers": "Good commit messages: one logical change per commit, imperative subject <= 50-72 chars, body explaining why; Conventional Commits 1.0.0 types feat, fix, docs, style, refactor, test, chore, ci, plus scope feat(menu): and breaking change '!'; git add -p for partial staging (mention). .gitignore syntax (*.log, build/, /todo.txt, **/temp, !keep.log, # comment), templates for Python (.venv/, __pycache__/), Node (node_modules/), OS files (.DS_Store, Thumbs.db), and .env; why .env must never be committed and .env.example is committed instead; git check-ignore -v; git status --ignored; git rm --cached for a file committed by mistake; global ignore core.excludesFile. CODE EXAMPLE in ~/projects/git-lab/c03-ignore: create app.log, .env (API_KEY=fake-key-for-lab-only), .env.example (API_KEY=), notes.md, a __pycache__/ folder; write .gitignore; git status -s; git check-ignore -v .env app.log; git status --short --ignored; git add . and commit 'chore: add .gitignore and .env.example'; then show git rm --cached on a file committed earlier by mistake (secret.txt is never real). Mistakes rows: .gitignore added after the file was already tracked so it is still tracked (fix git rm --cached), 'The following paths are ignored by one of your .gitignore files: .env ... hint: Use -f if you really want to add them.', a message like 'update' or 'fix stuff' rejected in code review, file named .gitignore.txt by Windows Notepad.",
+   "language": "bash",
+   "env": "wsl"
+  },
+  {
+   "id": "c04",
+   "level": "b",
+   "title": "ย้อนกลับอย่างปลอดภัย: git restore, git restore --staged, commit --amend และ git revert",
+   "covers": "Decision table: change not staged -> git restore <file> (WARNING: permanently discards uncommitted edits); staged by mistake -> git restore --staged <file>; last commit message wrong or forgot a file and NOT pushed -> git commit --amend (changes the hash; never amend pushed commits); bad commit already pushed/shared -> git revert <hash> (creates a new inverse commit, history kept). Also git restore --source=HEAD~1 <file> to take one file from an older commit. Older equivalents git checkout -- <file> and git reset HEAD <file> mentioned only for reading old tutorials. CODE EXAMPLE in ~/projects/git-lab/c04-undo: commit index.html, break it, git restore; stage a wrong file then git restore --staged; commit with a typo then git commit --amend -m 'feat: add contact section' (show hash change via git log --oneline before/after); commit a bad change 'feat: add broken banner' then git revert --no-edit HEAD and git log --oneline showing 'Revert \"feat: add broken banner\"'. Mistakes rows: 'error: pathspec 'indx.html' did not match any file(s) known to git', amended a commit that was already pushed then 'rejected (non-fast-forward)', revert conflicts 'error: could not revert 1a2b3c4... hint: After resolving the conflicts, mark them with \"git add/rm <pathspec>\"', expecting git restore to recover a file that was never committed.",
+   "language": "bash",
+   "env": "wsl"
+  },
+  {
+   "id": "c05",
+   "level": "i",
+   "title": "Branch, Merge (Fast-forward กับ Merge commit) และ Stash",
+   "covers": "What a branch is (a movable pointer to a commit), HEAD pointing to a branch, git branch, git branch -v, git switch <name>, git switch -c feature/contact, naming conventions feature/..., fix/..., docs/...; git merge with fast-forward vs 3-way merge commit ('ort' strategy), git merge --no-ff, git log --oneline --graph --all; deleting with git branch -d (and -D warning); git stash push -m, git stash list, git stash pop vs apply, git stash -u for untracked files, when to stash vs commit WIP. CODE EXAMPLE in ~/projects/git-lab/c05-branch reproducing Part 1 lab names: main has README.md; git switch -c feature/contact, add contact.md, commit, switch main, merge (Fast-forward output 'Updating x..y Fast-forward'); then git switch -c feature/menu, commit menu.md, back on main commit 'docs: add plan to README', merge feature/menu (\"Merge made by the 'ort' strategy.\"), git log --oneline --graph --all; then stash demo: edit README.md, git stash push -m 'wip: readme', git status -s (clean), git stash list ('stash@{0}: On main: wip: readme'), git stash pop. Use git merge --no-edit to avoid opening nano in examples. Mistakes rows: 'error: Your local changes to the following files would be overwritten by checkout: ... Please commit your changes or stash them before you switch branches.', \"error: The branch 'feature/menu' is not fully merged.\", 'fatal: a branch named 'feature/contact' already exists', working on main by mistake (fix: git switch -c new-branch keeps the changes).",
+   "language": "bash",
+   "env": "wsl"
+  },
+  {
+   "id": "c06",
+   "level": "i",
+   "title": "แก้ Merge Conflict ทีละขั้น",
+   "covers": "Why conflicts happen (both sides change the same lines; Git never guesses), reading conflict markers <<<<<<< HEAD / ======= / >>>>>>> branch, git status 'Unmerged paths' and 'both modified', resolving by editing the file (keep one side, keep both, or write a new version), git add to mark resolved, git commit (or git merge --continue), git merge --abort to start over, git diff during a conflict, git checkout --ours/--theirs <file> for whole-file choices, VS Code Merge Editor (Accept Current / Accept Incoming / Accept Both) described for WSL, preventing conflicts (small PRs, pull often, formatters). CODE EXAMPLE in ~/projects/git-lab/c06-conflict reproducing Part 1: main has menu.md with '# เมนู' and 'ลาเต้ 60 บาท'; branch price/somchai changes it to 'ลาเต้ 65 บาท'; main changes it to 'ลาเต้ 60 บาท (ราคาโปรโมชัน)'; git merge price/somchai -> 'CONFLICT (content): Merge conflict in menu.md'; git status; cat menu.md showing markers; resolve by writing the final line with a heredoc (cat > menu.md <<'EOF'); git add menu.md; git commit --no-edit; git log --oneline --graph. Also show git merge --abort on a second conflict. Mistakes rows: committing a file that still contains '<<<<<<<' markers (check with git diff --check or grep -n '<<<<<<<'), 'error: Committing is not possible because you have unmerged files.', 'fatal: You have not concluded your merge (MERGE_HEAD exists).', deleting the other person's line without asking.",
+   "language": "bash",
+   "env": "wsl"
+  },
+  {
+   "id": "c07",
+   "level": "i",
+   "title": "Remote, SSH Key และ GitHub จำลอง: push, fetch, pull และ clone",
+   "covers": "What a remote is, origin, remote-tracking branches origin/main, git remote add/-v/rename/remove, git push -u origin main, git fetch vs git pull (= fetch + merge or rebase), pull.rebase false (course default) vs git pull --rebase, git clone, rejected push '(fetch first)' and the divergent-branches hint, git fetch --prune, git branch -vv (ahead/behind). GitHub-only part written carefully and NOT run: ssh-keygen -t ed25519 -C 'somchai@example.com', eval \"$(ssh-agent -s)\", ssh-add, cat ~/.ssh/id_ed25519.pub, add in GitHub Settings -> SSH and GPG keys, ssh -T git@github.com with expected text 'Hi somchai-dev! You've successfully authenticated, but GitHub does not provide shell access.' and the first-connection fingerprint prompt (ED25519 SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU); SSH URL git@github.com:somchai-dev/learning-journal.git vs HTTPS + token. RUNNABLE CODE EXAMPLE (real output) uses the local bare repo exactly like Part 1 lab: mkdir -p ~/projects/git-lab/remotes; git init --bare ~/projects/git-lab/remotes/hello-team.git; clone as hello-team (Somchai) and malee-hello-team (Malee Srisuk, malee@example.com set with git config --local); push -u; Malee pushes malee.txt; Somchai's push is rejected; git fetch then git log --oneline --all; git pull with pull.rebase false; push; git log --oneline --graph. Mistakes rows: 'git@github.com: Permission denied (publickey). fatal: Could not read from remote repository.', '! [rejected] main -> main (fetch first)', 'fatal: Need to specify how to reconcile divergent branches.', 'remote: Support for password authentication was removed on August 13, 2021.', \"error: src refspec main does not match any\" (no commits yet).",
+   "language": "bash",
+   "env": "wsl"
+  },
+  {
+   "id": "c08",
+   "level": "i",
+   "title": "Pull Request, Fork, Code Review และ GitHub CLI (gh)",
+   "covers": "The PR lifecycle (branch -> commit -> git push -u origin feature/... -> gh pr create -> checks + review -> push fixes to the same branch -> merge -> delete branch -> git switch main && git pull), 3 merge methods on GitHub (merge commit, squash, rebase), writing a good PR title/description (what, why, how tested, screenshots), Closes #1 / Fixes #1, code review etiquette (comment on code not people, ask questions, 'nit:', approve vs request changes, suggestion blocks), Issues, labels, GitHub Projects board (Todo, In Progress, Done), fork vs clone, upstream remote, keeping a fork in sync. gh installation exactly as Part 1 Step 9 (official apt repo from cli.github.com, not Ubuntu's old gh 2.45.0), gh auth login (GitHub.com, SSH, browser login, one-time code), gh auth status, gh repo create, gh issue create, gh pr create --fill, gh pr checks, gh pr merge --squash --delete-branch: these cannot run in the sandbox; show the commands and describe in Thai what the learner will see, do not invent full outputs (only short well-known lines such as '? Where do you use GitHub? GitHub.com' if sure). RUNNABLE CODE EXAMPLE simulating a fork with bare repos in ~/projects/git-lab/c08-fork: remotes/upstream-recipes.git (owner Malee) and remotes/somchai-recipes.git (Somchai's fork made with git clone --bare), clone the fork, git remote add upstream, create branch fix/typo-readme, commit, push -u origin fix/typo-readme; Malee pushes a new commit to upstream; Somchai runs git fetch upstream, git switch main, git merge upstream/main, git push origin main, git remote -v, git log --oneline --graph --all. Mistakes rows: 'gh: command not found' or old gh from apt, 'To get started with GitHub CLI, please run:  gh auth login', PR includes unrelated commits because branch was made from an outdated main, pushing straight to someone else's repo 'Permission to malee-dev/recipes.git denied to somchai-dev.'",
+   "language": "bash",
+   "env": "wsl"
+  },
+  {
+   "id": "c09",
+   "level": "a",
+   "title": "Rebase และ Interactive Rebase พร้อมกฎทอง",
+   "covers": "Rebase replays commits on a new base producing new hashes; linear history vs merge commits; git rebase main from a feature branch; conflicts during rebase (git status, fix, git add, git rebase --continue, --skip, --abort); git pull --rebase; interactive rebase git rebase -i HEAD~3 with pick, reword, squash, fixup, drop and reorder; git commit --fixup + git rebase -i --autosquash; THE GOLDEN RULE: never rebase commits that others already have (shared/pushed history) and why; git push --force-with-lease only on your own feature branch, never on main. CODE EXAMPLE in ~/projects/git-lab/c09-rebase: main gets 'docs: add README' and 'docs: add plan'; branch feature/about has 3 messy commits ('feat: add about page', 'wip', 'fix typo'); git rebase main then git log --oneline --graph --all showing linear history; then squash the 3 commits non-interactively for reproducible output using GIT_SEQUENCE_EDITOR=\"sed -i -e '2,3s/^pick/fixup/'\" git rebase -i HEAD~3 (explain that normally nano opens with the todo list and show the todo list text as a tpl block); final git log --oneline. Mistakes rows: 'error: could not apply 1a2b3c4... feat: add about page' + 'hint: Resolve all conflicts manually, mark them as resolved with \"git add/rm <conflicted_files>\", then run \"git rebase --continue\".', '! [rejected] feature/about -> feature/about (non-fast-forward)' after rebasing a pushed branch, 'fatal: It seems that there is already a rebase-merge directory' (use git rebase --abort), teammate's history broken after force-pushing main.",
+   "language": "bash",
+   "env": "wsl"
+  },
+  {
+   "id": "c10",
+   "level": "a",
+   "title": "Reset (--soft, --mixed, --hard), Reflog และการลบ Secret ออกจากประวัติ",
+   "covers": "git reset moves the branch pointer: --soft (keep changes staged), --mixed default (keep changes unstaged), --hard (DISCARD working tree and staging, strong warning); reset vs revert decision (local-only vs shared); git reflog as the safety net (HEAD@{n}), recovering a commit lost by reset --hard or a deleted branch (git branch rescue HEAD@{1} or git reset --hard <hash>), reflog expiry (~90 days default) and that uncommitted work is not in reflog; git clean -n / -fd with warning. Secret leak response in order: revoke/rotate the key first, check usage logs, remove from history with git filter-repo --invert-paths --path .env (apt git-filter-repo 2.38.0; filter-repo removes the origin remote by design), force-push and ask the team to re-clone, tell the team; mention GitHub secret scanning and push protection. CODE EXAMPLE in ~/projects/git-lab/c10-reset: 3 commits (a.txt, b.txt, c.txt); git reset --soft HEAD~1 + git status -s; recommit; git reset HEAD~1 (mixed) + git status -s; recommit; git reset --hard HEAD~1 + ls (c.txt gone); git reflog -n 5; git reset --hard HEAD@{1} (or the hash) + ls (c.txt back). Second block: commit a fake .env (API_KEY=fake-key-for-lab-only) then another commit, git log --oneline --all -- .env shows it, sudo apt install -y git-filter-repo, git filter-repo --invert-paths --path .env --force (lab repo is a fresh clone so --force is explained), git log --oneline --all -- .env shows nothing. Mistakes rows: reset --hard with uncommitted work (gone, not in reflog), 'Aborting: Refusing to destructively overwrite repo history since this does not look like a fresh clone.' from filter-repo, 'fatal: ambiguous argument 'HEAD@{9}': unknown revision', deleting .env in a new commit only (secret still in history).",
+   "language": "bash",
+   "env": "wsl"
+  },
+  {
+   "id": "c11",
+   "level": "a",
+   "title": "สืบสวนและออก Release: git bisect, cherry-pick, blame และ Tags",
+   "covers": "git blame -L and git log -S 'text' to find who/when/why a line changed; git bisect start/bad/good/reset and fully automatic git bisect run <script> with exit codes (0 good, 1-127 except 125 bad, 125 skip); git cherry-pick <hash> to copy a hotfix to another branch (and -x); tags: lightweight vs annotated (git tag -a v1.0.0 -m), git tag -n, git show v1.0.0, git push origin v1.0.0 / --tags, Semantic Versioning MAJOR.MINOR.PATCH, GitHub Releases from a tag (gh release create v1.0.0 --generate-notes: describe, not run); Git LFS overview (git lfs install, git lfs track '*.psd', .gitattributes, quotas) as text only. CODE EXAMPLE 1 in ~/projects/git-lab/c11-bisect: a Bash script loop creates 10 commits that append prices to prices.txt, where commit 7 introduces the line 'ลาเต้ -5 บาท' (the bug); test script check.sh exits 1 if grep finds a negative price; git bisect start HEAD <first-hash>; git bisect run ./check.sh shows '<hash> is the first bad commit' with the commit message 'feat: add price 7'; git bisect reset. CODE EXAMPLE 2: branch release/1.0 + cherry-pick of a fix commit from main, then git tag -a v1.0.1 -m 'Hotfix release' and git tag -n. Use fixed GIT_AUTHOR_DATE/GIT_COMMITTER_DATE optional; state hashes differ. Mistakes rows: 'You need to start by \"git bisect start\"', forgetting git bisect reset (detached HEAD 'HEAD detached at ...'), cherry-pick conflict 'error: could not apply ... hint: after resolving the conflicts, mark the corrected paths', 'fatal: tag 'v1.0.0' already exists', tags not on GitHub because plain git push does not push tags.",
+   "language": "bash",
+   "env": "wsl"
+  },
+  {
+   "id": "c12",
+   "level": "a",
+   "title": "GitHub Actions (CI) และ GitHub Pages (CD) สำหรับเว็บ Static",
+   "covers": "CI/CD concepts; workflow file anatomy in .github/workflows/*.yml: name, on (push, pull_request with branches, workflow_dispatch, schedule cron in UTC), permissions (contents: read least privilege), jobs, runs-on ubuntu-latest, steps with uses and run, with:, env, secrets via ${{ secrets.NAME }} (never echo), needs between jobs; YAML pitfalls (spaces not tabs, ': ' spacing, quoting '**/*.html'); reading results in the Actions tab and on the PR, required status checks via branch protection/rulesets; Pages deploy with Actions: permissions pages: write + id-token: write, actions/configure-pages@v5, actions/upload-pages-artifact@v4 (path: .), actions/deploy-pages@v4, environment github-pages, concurrency group pages; relative links because the site lives under /portfolio/. FILE EXAMPLES: .github/workflows/ci.yml identical to Part 1 Step 12 (checkout@v5, setup-node@v5 node-version 24, npx --yes html-validate@11.16.2 \"**/*.html\", npx --yes linkinator@8.1.0 . --recurse --skip \"^https://\") and .github/workflows/pages.yml. RUNNABLE PART (real output): in ~/projects/git-lab/c12-site create index.html (with a deliberate missing alt and a link to missing projects.html), run the same two npx commands locally with Node 24 LTS (nvm v0.40.8) and show the failing output and exit code 1, fix the HTML, rerun and show passing output and exit code 0. The YAML files themselves cannot run in the sandbox: copy ci.yml exactly from Part 1 Step 12 and write pages.yml from GitHub's official Pages starter workflow syntax; describe in Thai what the Actions tab and the PR checks show. Mistakes rows: 'Invalid workflow file: .github/workflows/ci.yml#L5 You have an error in your yaml syntax' (tab indentation), CSS missing on Pages because of absolute '/css/style.css', 'Error: Get Pages site failed. Please verify that the repository has Pages enabled and configured to build using GitHub Actions', workflow never runs because the file is in .github/workflow/ (missing s) or the branch filter does not match.",
+   "language": "yaml",
+   "env": "file"
+  }
+ ],
+ "mini_project": {
+  "name": "Portfolio Website บน GitHub Pages",
+  "summary": "A personal portfolio site for สมชาย ใจดี (static HTML/CSS, no framework) in its own GitHub repository somchai-dev/portfolio, built feature by feature on branches merged through pull requests, checked on every PR by a GitHub Actions CI workflow (html-validate + linkinator), deployed to https://somchai-dev.github.io/portfolio/ by a second Actions workflow using GitHub Pages, released as tag v1.0.0, plus a profile README repo somchai-dev/somchai-dev and pushing the Day 0 learning-journal repo to GitHub. Developed and tested locally in ~/projects/portfolio; the push/PR flow is rehearsed against a local bare repo ~/projects/git-lab/remotes/portfolio.git so real output can be shown, then repeated on GitHub.",
+  "features": [
+   "Pages: index.html (intro, photo, skills, contact), projects.html (cards linking to learning-journal and later projects), 404.html, all with lang=\"th\", meta viewport, relative links only",
+   "css/style.css responsive layout (mobile-first, one media query at 720px), images/profile.png (small placeholder PNG)",
+   "Git setup: .gitignore (.env, node_modules/, .DS_Store, Thumbs.db, *.log), .gitattributes with '* text=auto eol=lf', MIT LICENSE with the learner's name and year 2026, README.md with Live demo link, screenshot, how to run locally, tech used, what I learned",
+   "Workflow: each feature on its own branch (feature/home-page, feature/projects-page, feature/contact-section, fix/broken-link, ci/add-workflow, docs/readme) merged by PR with Conventional Commit titles and Closes #N, Issues tracked on a GitHub Projects board",
+   ".github/workflows/ci.yml runs on pull_request and push to main: checkout@v5, setup-node@v5 (Node 24), npx --yes html-validate@11.16.2 \"**/*.html\", npx --yes linkinator@8.1.0 . --recurse --skip \"^https://\"; a deliberately broken PR shows a red check, then fixed",
+   ".github/workflows/pages.yml deploys on push to main with configure-pages@v5, upload-pages-artifact@v4, deploy-pages@v4; Settings -> Pages -> Source: GitHub Actions",
+   "Branch protection or a ruleset on main: require PR, require status check 'check-site', block force pushes",
+   "Annotated tag v1.0.0 and a GitHub Release (gh release create v1.0.0 --generate-notes)",
+   "Profile README repo somchai-dev/somchai-dev and learning-journal pushed to git@github.com:somchai-dev/learning-journal.git; both pinned on the profile"
+  ],
+  "stack": {
+   "git": "2.43.0 (apt, Ubuntu 24.04 in WSL2)",
+   "gh": "latest from the official apt repo https://cli.github.com/packages (check with gh --version; do not use Ubuntu's gh 2.45.0)",
+   "node": "24 LTS via nvm v0.40.8 (code must also work on Node 26) - only for running npx checks locally",
+   "html-validate": "11.16.2 via npx --yes",
+   "linkinator": "8.1.0 via npx --yes",
+   "github_actions": "actions/checkout@v5, actions/setup-node@v5, actions/configure-pages@v5, actions/upload-pages-artifact@v4, actions/deploy-pages@v4, runs-on ubuntu-latest",
+   "hosting": "GitHub Pages (Public repository, Source: GitHub Actions)",
+   "html_css": "plain HTML5 + CSS, no framework, no build step",
+   "license": "MIT"
+  }
+ },
+ "versions": {
+  "ubuntu": "24.04 LTS in WSL2 (sandbox 24.04.5)",
+  "git": "2.43.0 (apt)",
+  "git-lfs": "3.4.1 (apt git-lfs) - overview only",
+  "git-filter-repo": "2.38.0 (apt git-filter-repo)",
+  "tig": "2.5.8 (apt, optional)",
+  "gitk": "2.43.0 (apt, optional, GUI via WSLg)",
+  "nano": "7.2 (core.editor)",
+  "openssh-client": "9.6p1 (Ubuntu 1:9.6p1-3ubuntu13.x)",
+  "gh": "latest from cli.github.com official apt repo; Ubuntu archive has old 2.45.0 - do not use it; never print a specific newer gh version as real output",
+  "nvm": "v0.40.8",
+  "node": "24 LTS (24.22.0 on 2026-10-19), must also work on 26",
+  "html-validate": "11.16.2",
+  "linkinator": "8.1.0",
+  "actions": "actions/checkout@v5, actions/setup-node@v5, actions/configure-pages@v5, actions/upload-pages-artifact@v4, actions/deploy-pages@v4",
+  "conventional_commits": "1.0.0",
+  "semver": "2.0.0",
+  "certifications": "GH-900 Foundations, GH-200 Actions, GH-300 Copilot, GH-500 Advanced Security, GH-100 Administration (all offered; check details on Microsoft Learn credentials; do not state prices)"
+ },
+ "notes": [
+  "Identity: Linux user somchai, home /home/somchai, git user.name 'Somchai Jaidee', user.email somchai@example.com (Part 1 also teaches switching to the GitHub noreply address); GitHub username somchai-dev; teammate 'Malee Srisuk' <malee@example.com>, GitHub username malee-dev, set with git config --local in her clone. Display name in the portfolio: สมชาย ใจดี.",
+  "Global config assumed from Day 0 + Part 1: init.defaultBranch main, core.editor nano, pull.rebase false (course default; teach --rebase as an option). Default branch is always main.",
+  "Folders: all practice in ~/projects/git-lab/<concept-folder> (Part 2 uses c01-first-repo, c02-history, c03-ignore, c04-undo, c05-branch, c06-conflict, c07-remote (bare repos in ~/projects/git-lab/remotes/), c08-fork, c09-rebase, c10-reset, c11-bisect, c12-site). Part 3 challenges use ~/projects/git-lab/ch1, ch2, ch3. Mini Project lives in ~/projects/portfolio; Day 0 journal is ~/projects/learning-journal. Each example starts with rm -rf of its own folder so it can be re-run (say so in Thai).",
+  "Part 1 lab names to reuse: bare repo ~/projects/git-lab/remotes/hello-team.git, clones hello-team (Somchai) and malee-hello-team (Malee), files README.md '# Hello Team', malee.txt 'สวัสดีจากมาลี', somchai.txt 'สวัสดีจากสมชาย'. Branch names: feature/contact, feature/menu, feature/about-page, price/somchai, fix/broken-link, docs/git-summary. Sample data: cafe menu menu.md with 'ลาเต้ 60 บาท' / 'ลาเต้ 65 บาท' / 'มอคค่า 70 บาท'.",
+  "Real output: run every git command in the sandbox (Git 2.43.0 is installed) with GIT_PAGER=cat (or git --no-pager) and GIT_EDITOR=true, but show the learner plain commands; use git merge --no-edit / git commit --no-edit / git revert --no-edit where nano would open, and explain that without the flag nano opens. Paths in output must show /home/somchai/... (run as somchai or replace /root carefully). Say in Thai that commit hashes, dates, byte counts and speeds will differ.",
+  "GitHub-only actions (github.com UI, ssh -T git@github.com, gh auth login, gh pr create, Actions runs, Pages URL) cannot run in the sandbox: show commands, describe in Thai what the learner will see, and only quote short output that is certain, e.g. 'Hi somchai-dev! You've successfully authenticated, but GitHub does not provide shell access.'. Simulate remotes with git init --bare so push/fetch/pull/conflict outputs are real.",
+  "Terminology: keep English terms Repository, Working Tree, Staging Area, Commit, Branch, Merge, Merge Conflict, Remote, Push, Pull, Fetch, Clone, Fork, Pull Request (PR), Code Review, Rebase, Reset, Reflog, Stash, Tag, Release, Workflow, Job, Step, Runner, Secret. Commit messages in examples follow Conventional Commits in English (feat:, fix:, docs:, chore:, ci:, refactor:, test:, style:); file contents may be Thai.",
+  "Safety: always warn before git reset --hard, git clean -fd, git push --force (prefer --force-with-lease, only on your own branch), git filter-repo; never put real secrets in examples (use API_KEY=fake-key-for-lab-only); .env always in .gitignore with .env.example committed.",
+  "Cross-links: <a data-t=\"19\"></a> Linux (prerequisite), <a data-t=\"9\"></a> Python (next topic), <a data-t=\"4\"></a> JavaScript/web, <a data-t=\"12\"></a> Backend, <a data-t=\"2\"></a> Vibe Coding, <a data-t=\"5\"></a> Cyber Security, <a data-t=\"18\"></a> Android, <a data-t=\"3\"></a> Game Dev.",
+  "Part 1 has 13 steps (Beginner 1-5, Intermediate 6-9, Advanced 10-13); Part 2 concepts map: c01-c04 -> Steps 1-5, c05-c06 -> Steps 6-7, c07 -> Step 8, c08 -> Step 9, c09-c10 -> Step 10 and 13 (secrets), c11 -> Step 11, c12 -> Step 12. Part 4 cheat sheet groups: Setup & config, Snapshot (add/commit/status), History (log/diff/show/blame), Undo (restore/revert/reset/reflog), Branch & merge & stash, Remote (remote/fetch/pull/push/clone), Rewrite (rebase/cherry-pick/bisect/tag), GitHub CLI, Actions YAML keys."
+ ]
+}

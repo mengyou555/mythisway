@@ -1,0 +1,1601 @@
+<section class="part" data-part="4">
+<h2 id="s15-4"><span class="sec-no">15.4</span>ส่วนเสริม: Mini Project, Cheat Sheet, Interview</h2>
+<p>ส่วนนี้รวมทุกอย่างที่เรียนมาใน Part 1–3 เข้าเป็นงานชิ้นเดียว คุณจะสร้าง <strong>Type-safe Task Manager</strong> ซึ่งเป็นโปรแกรม Command Line สำหรับจัดการรายการงาน เขียนด้วย TypeScript 7.0.2 แบบ strict ทั้งโปรเจกต์ ตรวจข้อมูลจากไฟล์ด้วย zod เขียน Test ด้วย <code>node:test</code> และมี GitHub Actions ตรวจโค้ดให้อัตโนมัติ งานนี้ตั้งใจให้เป็น Repository ที่เปิดให้ผู้สัมภาษณ์ดูได้ทันที</p>
+<p>ท้ายส่วนมี Cheat Sheet สำหรับเปิดดูระหว่างทำงาน คำถามสัมภาษณ์งาน 5 ข้อพร้อมแนวคำตอบ และแหล่งเรียนต่อ</p>
+
+<h3 id="s15-4-project">Mini Project: Type-safe Task Manager</h3>
+<h4>เป้าหมายของโปรเจกต์</h4>
+<p>สร้าง CLI ที่โฟลเดอร์ <code>~/projects/task-manager-ts</code> สำหรับเพิ่ม ดู เริ่มทำ ปิด และลบงาน โดยเก็บข้อมูลไว้ในไฟล์ <code>data/tasks.json</code> โปรแกรมนี้เล็ก แต่ออกแบบแบบเดียวกับระบบจริงในบริษัท คือแยกเป็นชั้น (Layer) ชัดเจน และให้ Type ช่วยจับ Bug ในทุกชั้น</p>
+<p>หัวใจของโปรเจกต์มี 3 ข้อ</p>
+<ol>
+  <li><strong>Type มาจากแหล่งเดียว:</strong> Type <code>Task</code> สร้างจาก zod Schema ด้วย <code>z.infer</code> ดังนั้นกฎตรวจข้อมูลตอนรันจริงกับ Type ตอน Compile จะตรงกันเสมอ</li>
+  <li><strong>ไม่เชื่อข้อมูลจากภายนอก:</strong> ทุกครั้งที่อ่านไฟล์ JSON จะตรวจด้วย zod ก่อนใช้ ถ้ามีคนแก้ไฟล์ด้วยมือจนผิด โปรแกรมจะบอกว่าผิดที่ช่องไหนของงานลำดับที่เท่าไร</li>
+  <li><strong>ผู้ใช้ไม่เห็น Stack Trace:</strong> ความผิดพลาดที่คาดได้ส่งกลับเป็นค่า <code>Result</code> ส่วนความผิดพลาดที่ไม่คาดคิดถูกจับไว้ที่จุดเดียว แล้วแสดงข้อความภาษาไทยพร้อม Exit Code 1</li>
+</ol>
+
+<h4>ความสามารถของโปรแกรม</h4>
+<ul>
+  <li><strong>Task model:</strong> <code>id</code> รูปแบบ <code>T-001</code>, <code>title</code> ยาว 1–100 ตัวอักษร, <code>priority</code> เป็น <code>"low" | "medium" | "high"</code>, <code>status</code> เป็น <code>"todo" | "doing" | "done"</code>, <code>tags</code> เป็น <code>string[]</code>, <code>dueDate</code> แบบ <code>YYYY-MM-DD</code> (ไม่บังคับ) และ <code>createdAt</code> เป็นเวลาแบบ ISO 8601</li>
+  <li><strong>คำสั่ง 7 แบบ</strong> เก็บเป็น Discriminated Union ที่แยกด้วยช่อง <code>kind</code>: <code>add "ชื่องาน" [--priority high] [--tag study] [--due 2026-10-25]</code>, <code>list [--status todo|doing|done]</code>, <code>start &lt;id&gt;</code>, <code>done &lt;id&gt;</code>, <code>remove &lt;id&gt;</code>, <code>stats</code> และ <code>help</code> โดยใช้ <code>switch</code> ที่ตรวจครบทุกกรณีด้วย <code>assertNever</code></li>
+  <li><strong>ชั้น Generic Repository:</strong> <code>interface Repository&lt;T extends Entity&gt;</code> มีเมธอด <code>findAll</code>, <code>findById</code>, <code>save</code>, <code>remove</code> ที่คืน Promise ทั้งหมด มีสองแบบคือ <code>JsonFileRepository&lt;T&gt;</code> สำหรับใช้งานจริง และ <code>InMemoryRepository&lt;T&gt;</code> สำหรับ Test</li>
+  <li><strong>ชั้น Service:</strong> <code>TaskService</code> ใช้ Utility Types เช่น <code>NewTask = Omit&lt;Task, "id" | "createdAt" | "status"&gt;</code>, <code>TaskPatch</code> และ <code>stats(): Record&lt;Status, number&gt;</code></li>
+  <li><strong>ผลลัพธ์อ่านง่าย:</strong> แสดงเป็นตารางข้อความที่จัดคอลัมน์ตรงกัน ข้อความเป็นภาษาไทย และตั้ง <code>process.exitCode = 1</code> เมื่อผิดพลาด เพื่อให้ Script อื่นรู้ว่าคำสั่งล้มเหลว</li>
+  <li><strong>Test:</strong> ไฟล์ <code>src/**/*.test.ts</code> ใช้ <code>node:test</code> กับ <code>InMemoryRepository</code> สั่งรันด้วย <code>npm test</code> ซึ่ง Compile ด้วย <code>tsc</code> ก่อนแล้วค่อยรัน Test จาก <code>dist/</code></li>
+  <li><strong>ข้อมูลตัวอย่าง:</strong> <code>data/tasks.json</code> มีงาน 2 ชิ้น และ <code>data/bad.json</code> เป็นไฟล์ที่ตั้งใจให้ผิด ใช้สาธิตการตรวจข้อมูล</li>
+</ul>
+
+<h4>เครื่องมือและเวอร์ชันที่ใช้</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>เครื่องมือ</th><th>เวอร์ชัน</th><th>หน้าที่ในโปรเจกต์</th></tr></thead><tbody>
+<tr><td class="nw">Node.js</td><td class="nw">LTS ผ่าน nvm v0.40.8 (24.22.0 ณ 2026-10-19)</td><td>รันโปรแกรมและ Test โค้ดนี้รันได้ทั้ง Node 24 และ Node 26 (26.12.0 จะเป็น Active LTS วันที่ 2026-10-28)</td></tr>
+<tr><td class="nw">typescript</td><td class="nw">7.0.2 (devDependency)</td><td>Compiler รุ่นที่เขียนด้วยภาษา Go คำสั่งยังคงเป็น <code>tsc</code></td></tr>
+<tr><td class="nw">@types/node</td><td class="nw">24.19.2 (devDependency)</td><td>Type ของ <code>node:fs/promises</code>, <code>node:test</code>, <code>process</code></td></tr>
+<tr><td class="nw">zod</td><td class="nw">4.6.7 (dependency)</td><td>Schema สำหรับตรวจข้อมูลตอนรันจริง และเป็นต้นทางของ Type</td></tr>
+<tr><td class="nw">node:test, node:assert/strict</td><td class="nw">มากับ Node</td><td>เขียนและรัน Test โดยไม่ต้องติดตั้งอะไรเพิ่ม</td></tr>
+<tr><td class="nw">Git, GitHub Actions</td><td class="nw">Git 2.43.0, <code>actions/checkout@v5</code>, <code>actions/setup-node@v5</code></td><td>เก็บประวัติโค้ด และรัน <code>npm ci</code>, <code>npm run typecheck</code>, <code>npm test</code> อัตโนมัติ</td></tr>
+</tbody></table></div>
+
+<h4>โครงสร้างโฟลเดอร์เมื่อทำเสร็จ</h4>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Plaintext · โครงสร้างโปรเจกต์"><code class="language-plaintext">task-manager-ts/
+  package.json
+  package-lock.json
+  tsconfig.json
+  README.md
+  .gitignore                        (node_modules/, dist/)
+  .github/workflows/ci.yml
+  data/tasks.json
+  data/bad.json
+  src/cli.ts                        (จุดเริ่ม: อ่าน argv -&gt; Command -&gt; ทำงาน)
+  src/domain/task.ts                (zod Schema และ Type: Task, Priority, Status, NewTask, TaskPatch)
+  src/domain/command.ts             (Command แบบ Discriminated Union และ parseArgs ที่คืน Result)
+  src/lib/result.ts                 (type Result&lt;T, E = string&gt;)
+  src/repo/repository.ts            (Entity, Repository&lt;T&gt;)
+  src/repo/json-file-repository.ts
+  src/repo/in-memory-repository.ts
+  src/service/task-service.ts
+  src/format.ts                     (จัดรูปแบบตารางและสถิติ)
+  src/service/task-service.test.ts
+  src/domain/command.test.ts
+  dist/                             (tsc สร้างให้ ไม่ต้อง Commit)</code></pre>
+
+<h4>ภาพรวมการทำงานของแต่ละชั้น</h4>
+<p>เมื่อผู้ใช้พิมพ์ <code>node dist/cli.js done T-002</code> ข้อมูลจะไหลผ่านชั้นต่าง ๆ ตามลำดับนี้</p>
+<ol>
+  <li><code>cli.ts</code> ส่ง <code>["done", "T-002"]</code> ให้ <code>parseArgs</code> ใน <code>domain/command.ts</code></li>
+  <li><code>parseArgs</code> คืน <code>{ ok: true, value: { kind: "done", id: "T-002" } }</code> หรือคืน <code>{ ok: false, error: "..." }</code> ถ้าพิมพ์ผิด</li>
+  <li><code>cli.ts</code> ใช้ <code>switch (command.kind)</code> เรียก <code>TaskService.complete("T-002")</code></li>
+  <li><code>TaskService</code> ใช้กฎทางธุรกิจ เช่น ห้ามปิดงานที่ปิดไปแล้ว แล้วสั่ง <code>Repository</code> ให้บันทึก</li>
+  <li><code>JsonFileRepository</code> อ่านไฟล์ ตรวจด้วย zod แก้ข้อมูล แล้วเขียนกลับลงไฟล์อย่างปลอดภัย</li>
+</ol>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ให้นึกถึงร้านอาหาร พนักงานหน้าร้าน (<code>cli.ts</code>) รับออร์เดอร์และตรวจว่าเขียนถูกแบบฟอร์มไหม (<code>parseArgs</code>) พ่อครัว (<code>TaskService</code>) ทำอาหารตามสูตรและกฎของร้าน ส่วนห้องเก็บของ (<code>Repository</code>) ดูแลวัตถุดิบและตรวจของที่ส่งเข้ามาทุกครั้งว่าไม่เสีย พ่อครัวไม่ต้องรู้ว่าวัตถุดิบเก็บในตู้เย็นแบบไหน ขอแค่ห้องเก็บของมีประตูหน้าตาเดิม (<code>interface Repository</code>) เราจึงสลับเป็นตู้เย็นจำลองตอน Test ได้</p></div>
+
+<ol class="proj-steps">
+<li>
+<h4>Step 1: สร้างโปรเจกต์ ติดตั้ง TypeScript 7 และ zod แล้วตั้งค่า tsconfig แบบ strict</h4>
+<p>เปิด Ubuntu (WSL) แล้วตรวจว่าใช้ Node.js รุ่น LTS ที่ติดตั้งผ่าน nvm ตั้งแต่ Part 2 จากนั้นสร้างโฟลเดอร์โปรเจกต์ ตั้ง <code>"type": "module"</code> และติดตั้ง Package โดยล็อกเวอร์ชันให้ตรงด้วย <code>--save-exact</code> ทำให้ทุกคนที่ Clone Repository ได้เวอร์ชันเดียวกัน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ตรวจเวอร์ชัน Node.js (ควรเป็น v24 หรือ v26)
+node -v
+
+# สร้างโฟลเดอร์โปรเจกต์และเข้าไปข้างใน
+mkdir -p ~/projects/task-manager-ts
+cd ~/projects/task-manager-ts
+
+# สร้าง package.json และตั้งให้ใช้ ES Modules
+npm init -y
+npm pkg set type=module
+
+# ติดตั้งเครื่องมือฝั่งพัฒนา (ล็อกเวอร์ชันตรงตัว)
+npm install -D --save-exact typescript@7.0.2 @types/node@24.19.2
+
+# ติดตั้ง zod ซึ่งต้องใช้ตอนโปรแกรมรันจริง
+npm install --save-exact zod@4.6.7
+
+# ตรวจว่าใช้ tsc ของโปรเจกต์ ไม่ใช่ตัวที่ติดตั้งแบบ global
+npx tsc -v</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>v24.22.0
+Wrote to /home/somchai/projects/task-manager-ts/package.json:
+
+{
+  "name": "task-manager-ts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" &amp;&amp; exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
+
+added 4 packages, and audited 5 packages in 1s
+
+found 0 vulnerabilities
+
+added 1 package, and audited 6 packages in 684ms
+
+1 package is looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+Version 7.0.2</code></pre>
+<p class="muted small">เลขเวอร์ชันของ Node.js และเวลาที่ใช้ติดตั้งบนเครื่องคุณอาจต่างออกไป ส่วนบรรทัด <code>Version 7.0.2</code> ต้องตรงกันทุกเครื่อง</p>
+<p>ต่อไปแก้ <code>package.json</code> ให้มี Script ที่ใช้ทั้งโปรเจกต์ เปิดไฟล์ด้วย <code>code .</code> (VS Code) หรือ <code>nano package.json</code> แล้วแทนที่ทั้งไฟล์ด้วยเนื้อหานี้ ไฟล์ JSON ใส่ Comment ไม่ได้ จึงอธิบายแต่ละ Script ไว้ในตารางด้านล่าง</p>
+<pre class="code" data-env="file" data-label="JSON · package.json"><code class="language-json">{
+  "name": "task-manager-ts",
+  "version": "1.0.0",
+  "description": "Type-safe Task Manager: CLI จัดการงานด้วย TypeScript 7, zod และ node:test",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/cli.js",
+    "dev": "node src/cli.ts",
+    "test": "tsc &amp;&amp; node --test --test-reporter=spec \"dist/**/*.test.js\""
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  }
+}</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>Script</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td class="nw"><code>build</code></td><td>Compile ทุกไฟล์ใน <code>src/</code> เป็น JavaScript ใน <code>dist/</code></td></tr>
+<tr><td class="nw"><code>typecheck</code></td><td>ตรวจ Type อย่างเดียว ไม่สร้างไฟล์ (<code>--noEmit</code>) เร็วและเหมาะกับ CI</td></tr>
+<tr><td class="nw"><code>start</code></td><td>รันโปรแกรมที่ Compile แล้ว</td></tr>
+<tr><td class="nw"><code>dev</code></td><td>รัน <code>src/cli.ts</code> ตรง ๆ ด้วย Type Stripping ของ Node.js (ไม่ตรวจ Type) เหมาะตอนลองเร็ว ๆ</td></tr>
+<tr><td class="nw"><code>test</code></td><td>Compile ก่อน แล้วรันทุกไฟล์ที่ลงท้าย <code>.test.js</code> ใน <code>dist/</code> ด้วยรายงานแบบ <code>spec</code> ต้องใส่เครื่องหมายคำพูดรอบ Glob เพื่อให้ Node เป็นคนขยาย Pattern เอง ไม่ใช่ Bash</td></tr>
+<tr><td class="nw"><code>"private": true</code></td><td>กันไม่ให้เผลอสั่ง <code>npm publish</code> ขึ้น npm Registry</td></tr>
+</tbody></table></div>
+<p>สร้าง <code>tsconfig.json</code> ชุดเดียวกับที่ใช้ตลอดหัวข้อนี้ TypeScript 7.0.2 ยอมรับทุกตัวเลือกในไฟล์นี้ ไฟล์ tsconfig ใส่ Comment ได้ เพราะ TypeScript อ่านแบบ JSON with Comments</p>
+<pre class="code" data-env="file" data-label="JSON · tsconfig.json"><code class="language-json">{
+  "compilerOptions": {
+    // ตำแหน่งไฟล์: โค้ดต้นฉบับอยู่ใน src และผลลัพธ์ JavaScript ไปที่ dist
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    // สภาพแวดล้อม: Node.js 24 ขึ้นไป แบบ ES Modules
+    "module": "nodenext",
+    "target": "es2024",
+    "types": ["node"],
+    "sourceMap": true,
+
+    // ตรวจเข้มงวด
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+
+    // ให้โค้ดรันได้ทั้งผ่าน tsc และผ่าน Node แบบ Type Stripping
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "erasableSyntaxOnly": true,
+    "rewriteRelativeImportExtensions": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true
+  },
+  "include": ["src"]
+}</code></pre>
+<p>สุดท้ายสร้าง <code>.gitignore</code> เพื่อไม่ให้ Commit โฟลเดอร์ที่สร้างใหม่ได้เสมอ</p>
+<pre class="code" data-env="file" data-label="Plaintext · .gitignore"><code class="language-plaintext">node_modules/
+dist/</code></pre>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ถ้าพิมพ์ <code>tsc</code> เฉย ๆ โดยไม่มี <code>npx</code> เครื่องอาจไปเรียก TypeScript ตัวเก่าที่ติดตั้งแบบ global ซึ่งให้ผลต่างจาก 7.0.2 ใช้ <code>npx tsc</code> หรือ <code>npm run build</code> เสมอ ส่วนเครื่องมือที่เรียก TypeScript API โดยตรง เช่น typescript-eslint 8.71.2 ยังรองรับแค่ TypeScript ต่ำกว่า 6.1 ถ้าจำเป็นต้องใช้ ให้ติดตั้ง <code>typescript@6.0.3</code> แยกไว้ในโปรเจกต์ที่ต้องใช้เครื่องมือนั้น</p></div>
+</li>
+<li>
+<h4>Step 2: สร้าง Type Result สำหรับส่งผลสำเร็จหรือผิดพลาดโดยไม่ต้อง throw</h4>
+<p>ความผิดพลาดในโปรแกรมนี้ส่วนใหญ่ "คาดได้" เช่น ผู้ใช้พิมพ์ priority ผิด หรือขอปิดงานที่ไม่มีอยู่ ถ้าใช้ <code>throw</code> ผู้เรียกจะไม่รู้จาก Type เลยว่าฟังก์ชันนี้ล้มเหลวได้ และอาจลืมจับ Error เราจึงคืนค่าเป็น <code>Result</code> ซึ่งเป็น Discriminated Union สองแบบ แยกด้วยช่อง <code>ok</code> ผู้เรียกต้องตรวจ <code>ok</code> ก่อนจึงจะเข้าถึง <code>value</code> ได้ ถ้าลืมตรวจ <code>tsc</code> จะแจ้ง Error</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างโฟลเดอร์ทั้งหมดของโปรเจกต์ในคำสั่งเดียว
+mkdir -p src/domain src/lib src/repo src/service data .github/workflows</code></pre>
+<pre class="code" data-env="file" data-label="TypeScript · src/lib/result.ts"><code class="language-typescript">// Result: ผลลัพธ์ของงานที่ "สำเร็จ" หรือ "ล้มเหลว" โดยไม่ต้อง throw
+// E มีค่าเริ่มต้นเป็น string คือข้อความผิดพลาดภาษาไทยที่แสดงให้ผู้ใช้ได้ทันที
+export type Result&lt;T, E = string&gt; =
+  | { ok: true; value: T }
+  | { ok: false; error: E };
+
+// ตัวช่วยสร้าง Result ฝั่งสำเร็จ
+export function ok&lt;T&gt;(value: T): Result&lt;T, never&gt; {
+  return { ok: true, value };
+}
+
+// ตัวช่วยสร้าง Result ฝั่งล้มเหลว
+export function err&lt;E = string&gt;(error: E): Result&lt;never, E&gt; {
+  return { ok: false, error };
+}</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>type Result&lt;T, E = string&gt;</code></td><td>Generic Type ที่มีสองพารามิเตอร์ <code>T</code> คือชนิดของผลสำเร็จ <code>E</code> คือชนิดของข้อผิดพลาด และมีค่าเริ่มต้นเป็น <code>string</code> จึงเขียนสั้น ๆ ว่า <code>Result&lt;Task&gt;</code> ได้</td></tr>
+<tr><td><code>{ ok: true; value: T } | { ok: false; error: E }</code></td><td>Union สองแบบ ช่อง <code>ok</code> เป็น Literal Type <code>true</code> หรือ <code>false</code> จึงใช้ Narrow ได้: ใน <code>if (result.ok)</code> TypeScript รู้ว่ามี <code>value</code></td></tr>
+<tr><td><code>ok&lt;T&gt;(value: T): Result&lt;T, never&gt;</code></td><td>ฝั่งสำเร็จไม่มีทางมี Error จึงใช้ <code>never</code> ค่านี้นำไปใช้แทน <code>Result&lt;T, string&gt;</code> ได้ทุกที่ เพราะ <code>never</code> เข้ากับทุก Type</td></tr>
+<tr><td><code>err&lt;E = string&gt;(error: E): Result&lt;never, E&gt;</code></td><td>ฝั่งล้มเหลวไม่มีทางมีค่าผลลัพธ์ จึงใช้ <code>never</code> ในตำแหน่ง <code>T</code></td></tr>
+</tbody></table></div>
+<div class="callout"><span class="c-label tip">Tip</span><p>แนวคิด Result มาจากภาษา Rust และ Go ที่ส่ง Error กลับเป็นค่า ใน TypeScript ไม่มีของในตัวภาษา แต่เขียนเองได้ใน 15 บรรทัด ทีมจริงหลายทีมใช้ Library อย่าง neverthrow แทน ถ้าต้องการเมธอดเสริม เช่น <code>map</code> หรือ <code>andThen</code></p></div>
+</li>
+
+<li>
+<h4>Step 3: สร้าง Domain Model จาก zod Schema และไฟล์ข้อมูลตัวอย่าง</h4>
+<p>ไฟล์นี้คือหัวใจของโปรเจกต์ เราเขียนกฎของข้อมูลเป็น zod Schema เพียงครั้งเดียว แล้วให้ <code>z.infer</code> สร้าง Type ให้ ถ้าวันหนึ่งเพิ่ม priority แบบใหม่ เราแก้แค่ <code>PRIORITIES</code> ที่เดียว ทั้งการตรวจไฟล์ การตรวจคำสั่ง ข้อความ Error และ Type ทุกตัวจะเปลี่ยนตามทันที</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/domain/task.ts"><code class="language-typescript">import { z } from "zod";
+
+// ค่าที่อนุญาต เขียนเป็น const array เพื่อใช้ทั้งตอนตรวจข้อมูลและตอนแสดงผล
+export const PRIORITIES = ["low", "medium", "high"] as const;
+export const STATUSES = ["todo", "doing", "done"] as const;
+
+export const PrioritySchema = z.enum(PRIORITIES);
+export const StatusSchema = z.enum(STATUSES);
+
+// Schema ของงานหนึ่งชิ้น: เป็นทั้งกฎตรวจข้อมูลตอนรันจริง และต้นทางของ Type
+export const TaskSchema = z.object({
+  id: z.string().regex(/^T-\d{3,}$/, "id ต้องอยู่ในรูปแบบ T-001"),
+  title: z
+    .string()
+    .trim()
+    .min(1, "title ห้ามว่าง")
+    .max(100, "title ยาวได้ไม่เกิน 100 ตัวอักษร"),
+  priority: PrioritySchema,
+  status: StatusSchema,
+  tags: z.array(z.string().min(1, "tag ห้ามว่าง")),
+  dueDate: z.iso.date("dueDate ต้องอยู่ในรูปแบบ YYYY-MM-DD").optional(),
+  createdAt: z.iso.datetime("createdAt ต้องเป็นเวลาแบบ ISO 8601"),
+});
+
+// Schema ของทั้งไฟล์ data/tasks.json (Array ของงาน)
+export const TaskListSchema = z.array(TaskSchema);
+
+// Type ทั้งหมดได้มาจาก Schema จึงไม่มีวันไม่ตรงกัน
+export type Task = z.infer&lt;typeof TaskSchema&gt;;
+export type Priority = z.infer&lt;typeof PrioritySchema&gt;;
+export type Status = z.infer&lt;typeof StatusSchema&gt;;
+
+// ข้อมูลที่ผู้ใช้ป้อนตอนสร้างงาน: ระบบเป็นคนกำหนด id, createdAt และ status เอง
+export type NewTask = Omit&lt;Task, "id" | "createdAt" | "status"&gt;;
+
+// ข้อมูลที่แก้ไขได้ภายหลัง: ทุกช่องไม่บังคับ
+export type TaskPatch = Partial&lt;Pick&lt;Task, "title" | "priority" | "status" | "tags"&gt;&gt;;
+
+// Type Guard: ตรวจว่า string ที่รับมาเป็น Priority หรือ Status ที่ถูกต้องหรือไม่
+export function isPriority(value: string): value is Priority {
+  return (PRIORITIES as readonly string[]).includes(value);
+}
+
+export function isStatus(value: string): value is Status {
+  return (STATUSES as readonly string[]).includes(value);
+}</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>["low", "medium", "high"] as const</code></td><td><code>as const</code> ทำให้ Type เป็น <code>readonly ["low", "medium", "high"]</code> แทน <code>string[]</code> zod จึงสร้าง Union ของ Literal ได้</td></tr>
+<tr><td><code>z.enum(PRIORITIES)</code></td><td>Schema ที่ยอมรับเฉพาะค่าใน Array นี้ ไม่ใช่ <code>enum</code> ของ TypeScript (ซึ่งโปรเจกต์นี้ห้ามใช้เพราะ <code>erasableSyntaxOnly</code>)</td></tr>
+<tr><td><code>z.string().regex(/^T-\d{3,}$/, "...")</code></td><td>id ต้องขึ้นต้นด้วย <code>T-</code> ตามด้วยตัวเลขอย่างน้อย 3 หลัก ข้อความที่สองคือข้อความ Error ภาษาไทยที่ผู้ใช้จะเห็น</td></tr>
+<tr><td><code>.trim().min(1).max(100)</code></td><td>ตัดช่องว่างหัวท้ายก่อน แล้วจึงตรวจความยาว ชื่องานที่มีแต่ช่องว่างจึงไม่ผ่าน</td></tr>
+<tr><td><code>z.iso.date(...).optional()</code></td><td>ต้องเป็นวันที่แบบ <code>YYYY-MM-DD</code> ที่มีอยู่จริง (เดือน 13 ไม่ผ่าน) และไม่ใส่ก็ได้</td></tr>
+<tr><td><code>z.iso.datetime(...)</code></td><td>ต้องเป็นเวลาแบบ ISO 8601 เช่น <code>2026-10-19T09:00:00.000Z</code> ซึ่งได้จาก <code>new Date().toISOString()</code></td></tr>
+<tr><td><code>type Task = z.infer&lt;typeof TaskSchema&gt;</code></td><td>ดึง Type ออกจาก Schema <code>typeof</code> แปลงค่าตัวแปรให้เป็น Type แล้ว <code>z.infer</code> อ่านว่า Schema นี้ตรวจผ่านแล้วได้ข้อมูลหน้าตาแบบไหน</td></tr>
+<tr><td><code>Omit&lt;Task, "id" | "createdAt" | "status"&gt;</code></td><td>Utility Type ที่ตัดสามช่องออก เพราะระบบเป็นคนกำหนดเอง ผู้ใช้ส่งมาได้แค่ title, priority, tags และ dueDate</td></tr>
+<tr><td><code>Partial&lt;Pick&lt;Task, ...&gt;&gt;</code></td><td>เลือกเฉพาะช่องที่แก้ได้ แล้วทำให้ทุกช่องไม่บังคับ ใช้ตอนอัปเดตทีละบางช่อง</td></tr>
+<tr><td><code>value is Priority</code></td><td>User-defined Type Guard ถ้าฟังก์ชันคืน <code>true</code> TypeScript จะ Narrow <code>value</code> จาก <code>string</code> เป็น <code>Priority</code> ให้ในโค้ดที่เรียก</td></tr>
+<tr><td><code>(PRIORITIES as readonly string[]).includes(value)</code></td><td><code>includes</code> ของ Array แบบ Literal รับเฉพาะ Literal จึงต้องมองเป็น <code>readonly string[]</code> ก่อน ไม่อย่างนั้นจะส่ง <code>string</code> ทั่วไปเข้าไปไม่ได้</td></tr>
+</tbody></table></div>
+<p>ต่อไปสร้างไฟล์ข้อมูลตัวอย่าง <code>data/tasks.json</code> ซึ่งมีงาน 2 ชิ้น</p>
+<pre class="code" data-env="file" data-label="JSON · data/tasks.json"><code class="language-json">[
+  {
+    "id": "T-001",
+    "title": "ติดตั้ง TypeScript 7",
+    "priority": "high",
+    "status": "done",
+    "tags": [
+      "setup"
+    ],
+    "createdAt": "2026-10-19T09:00:00.000Z"
+  },
+  {
+    "id": "T-002",
+    "title": "อ่านบท Generics",
+    "priority": "medium",
+    "status": "doing",
+    "tags": [
+      "study"
+    ],
+    "dueDate": "2026-10-25",
+    "createdAt": "2026-10-19T09:05:00.000Z"
+  }
+]</code></pre>
+<p>และไฟล์ <code>data/bad.json</code> ที่จำลองว่ามีคนแก้ไฟล์ด้วยมือแล้วผิดสามจุด คือ priority เป็น <code>"urgent"</code> ซึ่งไม่มีในระบบ, <code>tags</code> เป็น string แทน Array และ <code>dueDate</code> เขียนแบบวัน/เดือน/ปี เราจะใช้ไฟล์นี้ทดสอบใน Step 9</p>
+<pre class="code" data-env="file" data-label="JSON · data/bad.json"><code class="language-json">[
+  {
+    "id": "T-001",
+    "title": "ติดตั้ง TypeScript 7",
+    "priority": "urgent",
+    "status": "done",
+    "tags": ["setup"],
+    "createdAt": "2026-10-19T09:00:00.000Z"
+  },
+  {
+    "id": "T-002",
+    "title": "อ่านบท Generics",
+    "priority": "medium",
+    "status": "doing",
+    "tags": "study",
+    "dueDate": "25/10/2026",
+    "createdAt": "2026-10-19T09:05:00.000Z"
+  }
+]</code></pre>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ให้ Schema เป็น "แหล่งความจริงเดียว" (Single Source of Truth) แล้ว Derive Type จากมัน อย่าเขียน <code>interface Task</code> ซ้ำอีกชุด เพราะวันหนึ่งสองชุดจะไม่ตรงกัน</li>
+<li>Export ค่าคงที่อย่าง <code>PRIORITIES</code> ไว้ใช้ในข้อความช่วยเหลือและข้อความ Error ด้วย ผู้ใช้จะเห็นรายการค่าที่ถูกต้องเสมอ</li>
+</ul></div>
+</li>
+
+<li>
+<h4>Step 4: สร้าง Command แบบ Discriminated Union และตัวแปลง argv ที่คืน Result</h4>
+<p>สิ่งที่ผู้ใช้พิมพ์มาเป็นแค่ Array ของ string เช่น <code>["add", "อ่านบท", "--priority", "high"]</code> ซึ่งเชื่อถือไม่ได้ ไฟล์นี้แปลงข้อมูลดิบนั้นเป็น <code>Command</code> ที่มี Type ชัดเจน ทุกคำสั่งมีช่อง <code>kind</code> ที่เป็น Literal ต่างกัน TypeScript จึงรู้ว่าเมื่อ <code>kind</code> เป็น <code>"add"</code> จะมีช่อง <code>title</code> แต่เมื่อเป็น <code>"stats"</code> จะไม่มี</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/domain/command.ts"><code class="language-typescript">import { err, ok, type Result } from "../lib/result.ts";
+import { isPriority, isStatus, PRIORITIES, STATUSES, type Priority, type Status } from "./task.ts";
+
+// คำสั่งทั้งหมดของโปรแกรม: Discriminated Union ที่แยกกันด้วยช่อง kind
+export type Command =
+  | { kind: "add"; title: string; priority: Priority; tags: string[]; dueDate?: string }
+  | { kind: "list"; status?: Status }
+  | { kind: "start"; id: string }
+  | { kind: "done"; id: string }
+  | { kind: "remove"; id: string }
+  | { kind: "stats" }
+  | { kind: "help" };
+
+// ใช้ใน default ของ switch: ถ้ามี kind ที่ลืมจัดการ tsc จะแจ้ง Error ทันที
+export function assertNever(value: never): never {
+  throw new Error(`พบค่าที่ไม่ได้จัดการ: ${JSON.stringify(value)}`);
+}
+
+const ID_PATTERN = /^T-\d{3,}$/;
+
+type SplitArgs = { positional: string[]; flags: Record&lt;string, string[]&gt; };
+
+// แยกอาร์กิวเมนต์ธรรมดาออกจากตัวเลือกแบบ --name value
+function splitArgs(args: readonly string[], allowed: readonly string[]): Result&lt;SplitArgs&gt; {
+  const positional: string[] = [];
+  const flags: Record&lt;string, string[]&gt; = {};
+  for (let i = 0; i &lt; args.length; i++) {
+    const arg = args[i];
+    // noUncheckedIndexedAccess ทำให้ args[i] เป็น string | undefined
+    if (arg === undefined) continue;
+    if (!arg.startsWith("--")) {
+      positional.push(arg);
+      continue;
+    }
+    const name = arg.slice(2);
+    if (!allowed.includes(name)) {
+      return err(`ไม่รู้จักตัวเลือก --${name}`);
+    }
+    const value = args[i + 1];
+    if (value === undefined || value.startsWith("--")) {
+      return err(`ตัวเลือก --${name} ต้องมีค่าตามหลัง`);
+    }
+    (flags[name] ??= []).push(value);
+    i++; // ข้ามค่าที่อ่านไปแล้ว
+  }
+  return ok({ positional, flags });
+}
+
+// แปลง process.argv (ตัดสองช่องแรกออกแล้ว) ให้เป็น Command หรือข้อความผิดพลาด
+export function parseArgs(argv: readonly string[]): Result&lt;Command&gt; {
+  const [name, ...rest] = argv;
+
+  switch (name) {
+    case undefined:
+    case "help":
+    case "--help":
+      return ok({ kind: "help" });
+
+    case "add": {
+      const parsed = splitArgs(rest, ["priority", "tag", "due"]);
+      if (!parsed.ok) return parsed;
+      const { positional, flags } = parsed.value;
+      const title = positional.join(" ").trim();
+      if (title === "") {
+        return err('ต้องระบุชื่องาน เช่น add "อ่านบท Generics"');
+      }
+      const priority = flags["priority"]?.at(-1) ?? "medium";
+      if (!isPriority(priority)) {
+        return err(`priority ต้องเป็น ${PRIORITIES.join(" | ")} แต่ได้รับ "${priority}"`);
+      }
+      const due = flags["due"]?.at(-1);
+      // exactOptionalPropertyTypes: ใส่ dueDate เฉพาะเมื่อมีค่าจริง
+      return ok({
+        kind: "add",
+        title,
+        priority,
+        tags: flags["tag"] ?? [],
+        ...(due !== undefined ? { dueDate: due } : {}),
+      });
+    }
+
+    case "list": {
+      const parsed = splitArgs(rest, ["status"]);
+      if (!parsed.ok) return parsed;
+      const status = parsed.value.flags["status"]?.at(-1);
+      if (status === undefined) return ok({ kind: "list" });
+      if (!isStatus(status)) {
+        return err(`status ต้องเป็น ${STATUSES.join(" | ")} แต่ได้รับ "${status}"`);
+      }
+      return ok({ kind: "list", status });
+    }
+
+    case "start":
+    case "done":
+    case "remove": {
+      // ตรงนี้ name ถูก Narrow เหลือ "start" | "done" | "remove"
+      const id = rest[0]?.toUpperCase();
+      if (id === undefined) {
+        return err(`คำสั่ง ${name} ต้องระบุ id เช่น ${name} T-001`);
+      }
+      if (!ID_PATTERN.test(id)) {
+        return err(`id "${id}" ไม่ถูกรูปแบบ ต้องเป็นแบบ T-001`);
+      }
+      return ok({ kind: name, id });
+    }
+
+    case "stats":
+      return ok({ kind: "stats" });
+
+    default:
+      return err(`ไม่รู้จักคำสั่ง "${name}" พิมพ์ help เพื่อดูคำสั่งทั้งหมด`);
+  }
+}</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>import { err, ok, type Result } from "../lib/result.ts"</code></td><td>Import ด้วยนามสกุล <code>.ts</code> ตามที่ <code>rewriteRelativeImportExtensions</code> กำหนด tsc จะเปลี่ยนเป็น <code>.js</code> ให้ตอน Compile ส่วน <code>type Result</code> บอกว่าเป็น Type ล้วน ซึ่ง <code>verbatimModuleSyntax</code> บังคับให้เขียน</td></tr>
+<tr><td><code>export type Command = | { kind: "add"; ... } | ...</code></td><td>Discriminated Union 7 แบบ ช่อง <code>kind</code> เป็นตัวแยก (Discriminant)</td></tr>
+<tr><td><code>dueDate?: string</code></td><td>ช่องไม่บังคับ เมื่อเปิด <code>exactOptionalPropertyTypes</code> แปลว่า "ไม่มีช่องนี้" เท่านั้น จะใส่ <code>dueDate: undefined</code> ไม่ได้</td></tr>
+<tr><td><code>assertNever(value: never): never</code></td><td>ถ้าเรียกฟังก์ชันนี้ได้ แปลว่า <code>value</code> ถูก Narrow จนเหลือ <code>never</code> แล้ว คือจัดการครบทุกกรณี ถ้ายังเหลือกรณีที่ลืม tsc จะแจ้ง Error ตอน Compile (เราจะลองใน Step 9)</td></tr>
+<tr><td><code>Record&lt;string, string[]&gt;</code></td><td>เก็บตัวเลือกที่ซ้ำได้ เช่น <code>--tag study --tag ts</code> ได้ <code>{ tag: ["study", "ts"] }</code></td></tr>
+<tr><td><code>const arg = args[i]; if (arg === undefined) continue;</code></td><td><code>noUncheckedIndexedAccess</code> ทำให้ <code>args[i]</code> มี Type เป็น <code>string | undefined</code> ต้องตรวจก่อนใช้</td></tr>
+<tr><td><code>(flags[name] ??= []).push(value)</code></td><td>ถ้ายังไม่มี Array ของตัวเลือกนี้ให้สร้างใหม่ แล้วเพิ่มค่าเข้าไป</td></tr>
+<tr><td><code>const [name, ...rest] = argv</code></td><td>แยกชื่อคำสั่งออกจากอาร์กิวเมนต์ที่เหลือ <code>name</code> มี Type เป็น <code>string | undefined</code> เพราะ Array อาจว่าง</td></tr>
+<tr><td><code>case undefined: case "help": case "--help":</code></td><td>หลาย <code>case</code> ที่ว่างต่อกันใช้ร่วมกันได้ <code>noFallthroughCasesInSwitch</code> ห้ามเฉพาะ case ที่มีโค้ดแล้วไหลต่อไป case ถัดไป</td></tr>
+<tr><td><code>if (!parsed.ok) return parsed;</code></td><td>ส่ง Error ต่อขึ้นไปทันที ตรงนี้ <code>parsed</code> ถูก Narrow เป็นฝั่ง <code>ok: false</code> แล้ว จึงคืนเป็น <code>Result&lt;Command&gt;</code> ได้</td></tr>
+<tr><td><code>flags["priority"]?.at(-1) ?? "medium"</code></td><td>เอาค่าสุดท้ายถ้าพิมพ์ซ้ำ ถ้าไม่ได้พิมพ์ใช้ <code>"medium"</code></td></tr>
+<tr><td><code>...(due !== undefined ? { dueDate: due } : {})</code></td><td>เพิ่มช่อง <code>dueDate</code> เฉพาะตอนมีค่า วิธีนี้ผ่าน <code>exactOptionalPropertyTypes</code></td></tr>
+<tr><td><code>return ok({ kind: name, id })</code></td><td>ใน case นี้ <code>name</code> ถูก Narrow เหลือ <code>"start" | "done" | "remove"</code> TypeScript ตรวจได้ว่า Object นี้ตรงกับสมาชิกตัวใดตัวหนึ่งของ <code>Command</code></td></tr>
+<tr><td><code>rest[0]?.toUpperCase()</code></td><td>ยอมให้พิมพ์ <code>t-002</code> แล้วแปลงเป็น <code>T-002</code> ถ้าไม่มีอาร์กิวเมนต์จะได้ <code>undefined</code></td></tr>
+</tbody></table></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ตรวจว่าโค้ดถึงตรงนี้ไม่มี Error ด้วย <code>npx tsc --noEmit</code> (ถ้าผ่านจะไม่มีข้อความใดแสดงออกมา) จากนั้นลองทำให้พัง แล้วอ่านข้อความของ tsc</p><ol>
+<li>ลบบรรทัด <code>if (arg === undefined) continue;</code> แล้วสั่ง <code>npx tsc --noEmit</code> ดูว่า tsc บ่นที่บรรทัดไหน</li>
+<li>เปลี่ยน <code>"medium"</code> ใน <code>?? "medium"</code> เป็น <code>"normal"</code> สังเกตว่า tsc ไม่บ่น เพราะ Type Guard <code>isPriority</code> จะตรวจตอนรันจริงแทน แล้วคิดว่าควรแก้อย่างไรให้ tsc ช่วยจับ</li>
+<li>คืนโค้ดให้เหมือนเดิมก่อนไปขั้นถัดไป</li>
+</ol></div>
+</li>
+<li>
+<h4>Step 5: สร้าง Generic Repository แบบไฟล์ JSON และแบบหน่วยความจำ</h4>
+<p>Repository คือชั้นที่รู้ว่าข้อมูลเก็บไว้ที่ไหน ชั้นอื่นคุยกับมันผ่าน <code>interface Repository&lt;T&gt;</code> เท่านั้น เราใช้ Generics เพราะโค้ดอ่าน เขียน และลบไม่ได้ขึ้นกับว่าเป็นงาน (Task) หรือผู้ใช้ (User) ขอแค่ข้อมูลมีช่อง <code>id</code> ซึ่งบังคับด้วย Constraint <code>T extends Entity</code></p>
+<p>เริ่มจากสัญญา (Contract) ที่ทุก Repository ต้องทำตาม</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/repo/repository.ts"><code class="language-typescript">// ข้อมูลทุกชนิดที่เก็บผ่าน Repository ต้องมี id ที่เป็น string
+export interface Entity {
+  readonly id: string;
+}
+
+// สัญญา (Contract) ของที่เก็บข้อมูล: ใช้ได้กับทุก T ที่มี id
+// ทุกเมธอดคืน Promise เพื่อให้สลับไปใช้ไฟล์ ฐานข้อมูล หรือ API ได้โดยไม่ต้องแก้ผู้เรียก
+export interface Repository&lt;T extends Entity&gt; {
+  findAll(): Promise&lt;T[]&gt;;
+  findById(id: string): Promise&lt;T | undefined&gt;;
+  save(entity: T): Promise&lt;void&gt;; // เพิ่มใหม่ หรือแทนที่ตัวเดิมที่ id ตรงกัน
+  remove(id: string): Promise&lt;boolean&gt;; // คืน true ถ้าลบได้จริง
+}</code></pre>
+<p>แบบแรกเก็บข้อมูลใน <code>Map</code> ใช้ใน Test เพราะเร็ว ไม่แตะไฟล์จริง และเริ่มต้นใหม่ได้ทุก Test</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/repo/in-memory-repository.ts"><code class="language-typescript">import type { Entity, Repository } from "./repository.ts";
+
+// Repository ที่เก็บข้อมูลไว้ในหน่วยความจำ ใช้ใน Test เพราะเร็วและไม่แตะไฟล์จริง
+export class InMemoryRepository&lt;T extends Entity&gt; implements Repository&lt;T&gt; {
+  readonly #items = new Map&lt;string, T&gt;();
+
+  constructor(initial: readonly T[] = []) {
+    for (const item of initial) {
+      this.#items.set(item.id, item);
+    }
+  }
+
+  async findAll(): Promise&lt;T[]&gt; {
+    return [...this.#items.values()];
+  }
+
+  async findById(id: string): Promise&lt;T | undefined&gt; {
+    return this.#items.get(id);
+  }
+
+  async save(entity: T): Promise&lt;void&gt; {
+    this.#items.set(entity.id, entity);
+  }
+
+  async remove(id: string): Promise&lt;boolean&gt; {
+    return this.#items.delete(id);
+  }
+}</code></pre>
+<p>แบบที่สองใช้งานจริง อ่านและเขียนไฟล์ JSON ทุกครั้งที่อ่านจะตรวจข้อมูลด้วย Schema ที่รับเข้ามา จึงใช้ได้กับข้อมูลทุกชนิดที่มี zod Schema</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/repo/json-file-repository.ts"><code class="language-typescript">import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
+import { z } from "zod";
+import type { Entity, Repository } from "./repository.ts";
+
+// Error เฉพาะของไฟล์ข้อมูลเสีย เพื่อให้ cli.ts แยกแยะและแสดงข้อความที่อ่านง่ายได้
+export class DataFileError extends Error {
+  override name = "DataFileError";
+}
+
+// Repository ที่เก็บข้อมูลเป็นไฟล์ JSON และตรวจไฟล์ด้วย zod ทุกครั้งที่อ่าน
+export class JsonFileRepository&lt;T extends Entity&gt; implements Repository&lt;T&gt; {
+  // #private ของ JavaScript: ซ่อนจริงตอนรัน ไม่ใช่แค่ตอน Compile
+  readonly #filePath: string;
+  readonly #listSchema: z.ZodType&lt;T[]&gt;;
+
+  constructor(filePath: string, itemSchema: z.ZodType&lt;T&gt;) {
+    this.#filePath = filePath;
+    this.#listSchema = z.array(itemSchema);
+  }
+
+  async findAll(): Promise&lt;T[]&gt; {
+    let text: string;
+    try {
+      text = await readFile(this.#filePath, "utf8");
+    } catch (error) {
+      // ยังไม่มีไฟล์ = ยังไม่มีงาน ไม่ถือว่าผิดพลาด
+      if (error instanceof Error &amp;&amp; "code" in error &amp;&amp; error.code === "ENOENT") {
+        return [];
+      }
+      throw error;
+    }
+
+    // JSON.parse คืน any จึงเก็บไว้เป็น unknown แล้วให้ zod ตรวจ
+    let data: unknown;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new DataFileError(`ไฟล์ ${this.#filePath} ไม่ใช่ JSON ที่ถูกต้อง`);
+    }
+
+    const result = this.#listSchema.safeParse(data);
+    if (!result.success) {
+      throw new DataFileError(
+        `ไฟล์ ${this.#filePath} มีข้อมูลไม่ถูกต้อง:\n${z.prettifyError(result.error)}`,
+      );
+    }
+    return result.data;
+  }
+
+  async findById(id: string): Promise&lt;T | undefined&gt; {
+    const items = await this.findAll();
+    return items.find((item) =&gt; item.id === id);
+  }
+
+  async save(entity: T): Promise&lt;void&gt; {
+    const items = await this.findAll();
+    const index = items.findIndex((item) =&gt; item.id === entity.id);
+    if (index === -1) {
+      items.push(entity);
+    } else {
+      items[index] = entity;
+    }
+    await this.#writeAll(items);
+  }
+
+  async remove(id: string): Promise&lt;boolean&gt; {
+    const items = await this.findAll();
+    const kept = items.filter((item) =&gt; item.id !== id);
+    if (kept.length === items.length) return false;
+    await this.#writeAll(kept);
+    return true;
+  }
+
+  // เขียนลงไฟล์ชั่วคราวก่อนแล้วค่อยเปลี่ยนชื่อ ไฟล์จริงจะไม่เสียถ้าโปรแกรมหยุดกลางทาง
+  async #writeAll(items: readonly T[]): Promise&lt;void&gt; {
+    await mkdir(dirname(this.#filePath), { recursive: true });
+    const tempPath = `${this.#filePath}.tmp`;
+    await writeFile(tempPath, JSON.stringify(items, null, 2) + "\n", "utf8");
+    await rename(tempPath, this.#filePath);
+  }
+}</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>interface Repository&lt;T extends Entity&gt;</code></td><td>Generic Interface ที่ <code>T</code> ต้องมีอย่างน้อยช่อง <code>readonly id: string</code> ถ้าส่ง Type ที่ไม่มี id เข้ามา tsc จะแจ้ง Error TS2344</td></tr>
+<tr><td><code>Promise&lt;T | undefined&gt;</code></td><td><code>findById</code> อาจหาไม่เจอ Type บอกตรง ๆ ว่าคืน <code>undefined</code> ได้ ผู้เรียกจึงต้องตรวจก่อนใช้</td></tr>
+<tr><td><code>implements Repository&lt;T&gt;</code></td><td>บังคับให้ Class มีเมธอดครบและ Type ตรงตาม Interface ถ้าขาดหรือผิด tsc จะแจ้งที่ Class นี้</td></tr>
+<tr><td><code>readonly #items = new Map&lt;string, T&gt;()</code></td><td>Private Field ของ JavaScript (เครื่องหมาย <code>#</code>) ซ่อนจริงตอนรัน ต่างจาก <code>private</code> ของ TypeScript ที่ตรวจแค่ตอน Compile และ <code>#</code> ใช้ได้กับ <code>erasableSyntaxOnly</code></td></tr>
+<tr><td><code>class DataFileError extends Error</code> และ <code>override name</code></td><td>Error เฉพาะเรื่องไฟล์ข้อมูลเสีย <code>override</code> จำเป็นเพราะเปิด <code>noImplicitOverride</code> และ <code>Error</code> มีช่อง <code>name</code> อยู่แล้ว</td></tr>
+<tr><td><code>itemSchema: z.ZodType&lt;T&gt;</code></td><td>รับ Schema ของข้อมูลหนึ่งชิ้น แล้วสร้าง <code>z.array(itemSchema)</code> เก็บไว้ ส่ง <code>TaskSchema</code> เข้ามา TypeScript จะอนุมานว่า <code>T</code> คือ <code>Task</code> เอง</td></tr>
+<tr><td><code>"code" in error &amp;&amp; error.code === "ENOENT"</code></td><td>Narrowing ด้วย <code>in</code> ทำให้เข้าถึง <code>error.code</code> ได้ <code>ENOENT</code> แปลว่าไม่พบไฟล์ ซึ่งถือว่ายังไม่มีงาน จึงคืน <code>[]</code></td></tr>
+<tr><td><code>let data: unknown; data = JSON.parse(text);</code></td><td><code>JSON.parse</code> คืน <code>any</code> ซึ่งอันตราย เราเก็บไว้เป็น <code>unknown</code> เพื่อบังคับให้ผ่าน zod ก่อนใช้</td></tr>
+<tr><td><code>safeParse(data)</code> และ <code>z.prettifyError(result.error)</code></td><td>ตรวจโดยไม่ throw ถ้าไม่ผ่านจะได้รายการปัญหาทุกจุด แล้วแปลงเป็นข้อความหลายบรรทัดที่บอกตำแหน่ง เช่น <code>at [1].tags</code></td></tr>
+<tr><td><code>items[index] = entity</code></td><td>ถ้ามี id นี้อยู่แล้วให้แทนที่ ถ้าไม่มีให้ <code>push</code> เมธอด <code>save</code> จึงใช้ได้ทั้งเพิ่มและแก้ไข</td></tr>
+<tr><td><code>async #writeAll(...)</code></td><td>Private Method เขียนไฟล์ชั่วคราว <code>.tmp</code> ก่อน แล้ว <code>rename</code> ทับไฟล์จริง การ rename บนดิสก์เดียวกันเกิดขึ้นในครั้งเดียว ไฟล์จริงจึงไม่เหลือครึ่ง ๆ กลาง ๆ ถ้าไฟดับระหว่างเขียน</td></tr>
+<tr><td><code>JSON.stringify(items, null, 2) + "\n"</code></td><td>เขียน JSON แบบเว้นวรรค 2 ช่องให้คนอ่านง่าย และปิดท้ายด้วยบรรทัดว่างตามธรรมเนียมของไฟล์ข้อความ</td></tr>
+</tbody></table></div>
+<div class="callout sec"><span class="c-label sec">Security</span><p>ไฟล์บนดิสก์ก็คือ "ข้อมูลจากภายนอก" เหมือน Request จากเว็บหรือคำตอบของ LLM (ดู <a data-t="16"></a>) ใครก็แก้ได้ ทั้งคนและโปรแกรมอื่น อย่าใช้ <code>as Task[]</code> เพื่อบอก TypeScript ว่า "เชื่อฉันเถอะ" เพราะคำสั่งนี้ไม่ตรวจอะไรเลยตอนรันจริง ให้ตรวจด้วย Schema ที่ขอบระบบ (Boundary) ทุกครั้ง</p></div>
+</li>
+
+<li>
+<h4>Step 6: สร้าง TaskService ที่รวมกฎทางธุรกิจ</h4>
+<p>Service คือชั้นที่รู้ "กฎของงาน" เช่น งานใหม่ต้องเริ่มที่สถานะ <code>todo</code>, id ต้องเรียงต่อกัน และห้ามปิดงานที่ปิดไปแล้ว Service ไม่รู้ว่าข้อมูลเก็บที่ไหน เพราะรับ <code>Repository&lt;Task&gt;</code> เข้ามาทาง Constructor วิธีนี้เรียกว่า Dependency Injection ทำให้ Test ส่ง <code>InMemoryRepository</code> เข้าไปแทนได้ และส่งนาฬิกาปลอมเข้าไปเพื่อให้เวลาคงที่</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/service/task-service.ts"><code class="language-typescript">import { z } from "zod";
+import { err, ok, type Result } from "../lib/result.ts";
+import {
+  TaskSchema,
+  type NewTask,
+  type Status,
+  type Task,
+  type TaskPatch,
+} from "../domain/task.ts";
+import type { Repository } from "../repo/repository.ts";
+
+// กฎทางธุรกิจทั้งหมดอยู่ที่นี่ ไม่สนใจว่าข้อมูลเก็บที่ไหน (รับ Repository เข้ามา)
+export class TaskService {
+  readonly #repo: Repository&lt;Task&gt;;
+  readonly #now: () =&gt; Date;
+
+  // now รับเข้ามาได้ เพื่อให้ Test กำหนดเวลาตายตัวได้
+  constructor(repo: Repository&lt;Task&gt;, now: () =&gt; Date = () =&gt; new Date()) {
+    this.#repo = repo;
+    this.#now = now;
+  }
+
+  async list(status?: Status): Promise&lt;Task[]&gt; {
+    const tasks = await this.#repo.findAll();
+    return status === undefined ? tasks : tasks.filter((task) =&gt; task.status === status);
+  }
+
+  async create(input: NewTask): Promise&lt;Result&lt;Task&gt;&gt; {
+    const tasks = await this.#repo.findAll();
+    const candidate = {
+      ...input,
+      id: nextId(tasks),
+      status: "todo",
+      createdAt: this.#now().toISOString(),
+    };
+    // ตรวจด้วย Schema เดียวกับตอนอ่านไฟล์ ข้อมูลเสียจึงเข้าไฟล์ไม่ได้
+    const parsed = TaskSchema.safeParse(candidate);
+    if (!parsed.success) return err(z.prettifyError(parsed.error));
+    await this.#repo.save(parsed.data);
+    return ok(parsed.data);
+  }
+
+  async update(id: string, patch: TaskPatch): Promise&lt;Result&lt;Task&gt;&gt; {
+    const task = await this.#repo.findById(id);
+    if (task === undefined) return err(`ไม่พบงาน ${id}`);
+    const parsed = TaskSchema.safeParse({ ...task, ...patch });
+    if (!parsed.success) return err(z.prettifyError(parsed.error));
+    await this.#repo.save(parsed.data);
+    return ok(parsed.data);
+  }
+
+  start(id: string): Promise&lt;Result&lt;Task&gt;&gt; {
+    return this.#changeStatus(id, "doing");
+  }
+
+  complete(id: string): Promise&lt;Result&lt;Task&gt;&gt; {
+    return this.#changeStatus(id, "done");
+  }
+
+  async remove(id: string): Promise&lt;Result&lt;Task&gt;&gt; {
+    const task = await this.#repo.findById(id);
+    if (task === undefined) return err(`ไม่พบงาน ${id}`);
+    await this.#repo.remove(id);
+    return ok(task);
+  }
+
+  // Record&lt;Status, number&gt; บังคับให้มีครบทุกสถานะ ขาดตัวไหน tsc จะแจ้ง
+  async stats(): Promise&lt;Record&lt;Status, number&gt;&gt; {
+    const counts: Record&lt;Status, number&gt; = { todo: 0, doing: 0, done: 0 };
+    for (const task of await this.#repo.findAll()) {
+      counts[task.status] += 1;
+    }
+    return counts;
+  }
+
+  async #changeStatus(id: string, status: Status): Promise&lt;Result&lt;Task&gt;&gt; {
+    const task = await this.#repo.findById(id);
+    if (task === undefined) return err(`ไม่พบงาน ${id}`);
+    if (task.status === status) return err(`งาน ${id} อยู่ในสถานะ ${status} อยู่แล้ว`);
+    return this.update(id, { status });
+  }
+}
+
+// หา id ถัดไปจากเลขที่มากที่สุด เช่น มี T-001, T-002 จะได้ T-003
+function nextId(tasks: readonly Task[]): string {
+  const max = tasks.reduce((highest, task) =&gt; {
+    const n = Number(task.id.slice(2));
+    return Number.isNaN(n) ? highest : Math.max(highest, n);
+  }, 0);
+  return `T-${String(max + 1).padStart(3, "0")}`;
+}</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>constructor(repo: Repository&lt;Task&gt;, now: () =&gt; Date = () =&gt; new Date())</code></td><td>ประกาศ Field แยกแล้วกำหนดค่าใน Constructor แทนการเขียน <code>constructor(private repo: ...)</code> เพราะ Parameter Properties ไม่ใช่ Syntax ที่ลบทิ้งได้ (<code>erasableSyntaxOnly</code> จะแจ้ง TS1294) ส่วน <code>now</code> มีค่าเริ่มต้นเป็นเวลาจริง</td></tr>
+<tr><td><code>list(status?: Status)</code></td><td>พารามิเตอร์ไม่บังคับ ถ้าไม่ส่งมาจะได้งานทั้งหมด ถ้าส่งมาจะกรองเฉพาะสถานะนั้น</td></tr>
+<tr><td><code>create(input: NewTask): Promise&lt;Result&lt;Task&gt;&gt;</code></td><td>รับเฉพาะช่องที่ผู้ใช้กำหนดได้ คืน Result เพราะข้อมูลอาจไม่ผ่านกฎ เช่น ชื่อว่างหรือวันที่ผิด</td></tr>
+<tr><td><code>TaskSchema.safeParse(candidate)</code></td><td>ใช้ Schema เดียวกับตอนอ่านไฟล์ ข้อมูลที่ผิดกฎจึงเขียนลงไฟล์ไม่ได้ตั้งแต่ต้น และ <code>parsed.data</code> ที่ได้มี Type เป็น <code>Task</code> พอดี</td></tr>
+<tr><td><code>{ ...task, ...patch }</code></td><td>รวมข้อมูลเดิมกับช่องที่แก้ เพราะ <code>TaskPatch</code> ทุกช่องไม่บังคับ ช่องที่ไม่ได้ส่งมาจะคงค่าเดิม</td></tr>
+<tr><td><code>Record&lt;Status, number&gt;</code></td><td>Object ที่ต้องมี Key ครบทั้ง <code>todo</code>, <code>doing</code>, <code>done</code> ถ้าวันหนึ่งเพิ่มสถานะใหม่แต่ลืมแก้ค่าเริ่มต้นตรงนี้ tsc จะแจ้งทันที</td></tr>
+<tr><td><code>counts[task.status] += 1</code></td><td><code>task.status</code> มี Type เป็น <code>Status</code> จึงใช้เป็น Key ของ <code>Record&lt;Status, number&gt;</code> ได้โดยไม่ได้ <code>undefined</code> แม้เปิด <code>noUncheckedIndexedAccess</code></td></tr>
+<tr><td><code>async #changeStatus(...)</code></td><td>Private Method ที่ <code>start</code> และ <code>complete</code> ใช้ร่วมกัน ตรวจว่ามีงานจริง และสถานะใหม่ต่างจากเดิม</td></tr>
+<tr><td><code>function nextId(tasks: readonly Task[])</code></td><td>หาเลขมากที่สุดแล้วบวก 1 เติมเลข 0 ข้างหน้าให้ครบ 3 หลักด้วย <code>padStart</code> พารามิเตอร์เป็น <code>readonly</code> เพื่อสัญญาว่าจะไม่แก้ Array ที่รับมา</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>อย่าเรียก <code>new Date()</code> หรือ <code>Math.random()</code> ตรง ๆ ในโค้ดที่มีกฎทางธุรกิจ ให้รับเข้ามาเป็นพารามิเตอร์ Test จะได้ผลเหมือนเดิมทุกครั้ง</li>
+<li>ให้ Service คืน <code>Result</code> สำหรับความผิดพลาดที่ผู้ใช้ทำได้ และปล่อยให้ <code>throw</code> เฉพาะเรื่องที่ไม่ควรเกิด เช่น ดิสก์เต็มหรือไฟล์เสีย</li>
+</ul></div>
+</li>
+<li>
+<h4>Step 7: สร้างการแสดงผลและจุดเริ่มโปรแกรม แล้ว Build และใช้งานจริง</h4>
+<p><code>format.ts</code> เปลี่ยนข้อมูลเป็นข้อความสำหรับแสดงบน Terminal แยกไว้คนละไฟล์เพื่อให้ Service ไม่ต้องสนใจหน้าตาของผลลัพธ์ ถ้าวันหนึ่งอยากเปลี่ยนไปแสดงเป็น JSON หรือหน้าเว็บ ก็ไม่ต้องแตะกฎทางธุรกิจเลย</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/format.ts"><code class="language-typescript">import { STATUSES, type Status, type Task } from "./domain/task.ts";
+
+// ข้อความช่วยเหลือของโปรแกรม
+export const HELP_TEXT = `Type-safe Task Manager
+
+วิธีใช้: node dist/cli.js &lt;คำสั่ง&gt; [ตัวเลือก]
+
+คำสั่ง:
+  add "ชื่องาน" [--priority low|medium|high] [--tag แท็ก] [--due YYYY-MM-DD]
+  list [--status todo|doing|done]
+  start &lt;id&gt;      เปลี่ยนสถานะเป็น doing
+  done &lt;id&gt;       เปลี่ยนสถานะเป็น done
+  remove &lt;id&gt;     ลบงาน
+  stats           สรุปจำนวนงานตามสถานะ
+  help            แสดงข้อความนี้
+
+ตัวแปรแวดล้อม:
+  TASKS_FILE      ไฟล์ข้อมูล (ค่าเริ่มต้น data/tasks.json)`;
+
+// คอลัมน์ของตาราง: value รับ Task ถ้าสะกดชื่อช่องผิด tsc จะแจ้งทันที
+type Column = { header: string; value: (task: Task) =&gt; string };
+
+const COLUMNS: readonly Column[] = [
+  { header: "ID", value: (t) =&gt; t.id },
+  { header: "STATUS", value: (t) =&gt; t.status },
+  { header: "PRIORITY", value: (t) =&gt; t.priority },
+  { header: "DUE", value: (t) =&gt; t.dueDate ?? "-" },
+  { header: "TAGS", value: (t) =&gt; (t.tags.length &gt; 0 ? t.tags.join(",") : "-") },
+  { header: "TITLE", value: (t) =&gt; t.title },
+];
+
+// สร้างตารางข้อความที่จัดคอลัมน์ตรงกัน (คอลัมน์ TITLE อยู่ท้ายสุด
+// เพราะสระและวรรณยุกต์ภาษาไทยทำให้นับความกว้างตัวอักษรไม่ตรง)
+export function formatTable(tasks: readonly Task[]): string {
+  if (tasks.length === 0) return "ยังไม่มีงาน";
+  const rows = tasks.map((task) =&gt; COLUMNS.map((col) =&gt; col.value(task)));
+  const widths = COLUMNS.map((col, i) =&gt;
+    Math.max(col.header.length, ...rows.map((row) =&gt; row[i]?.length ?? 0)),
+  );
+  const line = (cells: readonly string[]): string =&gt;
+    cells
+      .map((cell, i) =&gt; (i === cells.length - 1 ? cell : cell.padEnd(widths[i] ?? 0)))
+      .join("  ");
+  const header = line(COLUMNS.map((col) =&gt; col.header));
+  const divider = "-".repeat(header.length);
+  return [header, divider, ...rows.map(line), divider, `ทั้งหมด ${tasks.length} งาน`].join("\n");
+}
+
+// สรุปจำนวนงานตามสถานะ พร้อมเปอร์เซ็นต์งานที่เสร็จ
+export function formatStats(stats: Record&lt;Status, number&gt;): string {
+  const total = STATUSES.reduce((sum, status) =&gt; sum + stats[status], 0);
+  const percent = total === 0 ? 0 : Math.round((stats.done / total) * 100);
+  const lines = STATUSES.map((status) =&gt; `${status.padEnd(6)}${String(stats[status]).padStart(3)}`);
+  return [...lines, `${"total".padEnd(6)}${String(total).padStart(3)}`, `เสร็จแล้ว ${percent}%`].join("\n");
+}</code></pre>
+<p><code>cli.ts</code> คือจุดเริ่มของโปรแกรม ประกอบทุกชั้นเข้าด้วยกัน และเป็นที่เดียวที่จับ Error ทุกชนิดก่อนถึงผู้ใช้</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/cli.ts"><code class="language-typescript">import { assertNever, parseArgs, type Command } from "./domain/command.ts";
+import { TaskSchema } from "./domain/task.ts";
+import { formatStats, formatTable, HELP_TEXT } from "./format.ts";
+import { ok, type Result } from "./lib/result.ts";
+import { DataFileError, JsonFileRepository } from "./repo/json-file-repository.ts";
+import { TaskService } from "./service/task-service.ts";
+
+// เลือกไฟล์ข้อมูลได้ผ่านตัวแปรแวดล้อม TASKS_FILE
+const DATA_FILE = process.env["TASKS_FILE"] ?? "data/tasks.json";
+
+// ทำงานตามคำสั่ง แล้วคืนข้อความที่จะแสดง (หรือข้อความผิดพลาด)
+async function run(command: Command, service: TaskService): Promise&lt;Result&lt;string&gt;&gt; {
+  switch (command.kind) {
+    case "help":
+      return ok(HELP_TEXT);
+    case "add": {
+      // ตัด kind ออก ส่วนที่เหลือคือ NewTask พอดี
+      const { kind: _kind, ...input } = command;
+      const result = await service.create(input);
+      if (!result.ok) return result;
+      return ok(`เพิ่มงาน ${result.value.id} แล้ว: ${result.value.title}`);
+    }
+    case "list":
+      return ok(formatTable(await service.list(command.status)));
+    case "start": {
+      const result = await service.start(command.id);
+      return result.ok ? ok(`เริ่มทำ ${command.id} แล้ว: ${result.value.title}`) : result;
+    }
+    case "done": {
+      const result = await service.complete(command.id);
+      return result.ok ? ok(`ปิดงาน ${command.id} แล้ว: ${result.value.title}`) : result;
+    }
+    case "remove": {
+      const result = await service.remove(command.id);
+      return result.ok ? ok(`ลบงาน ${command.id} แล้ว: ${result.value.title}`) : result;
+    }
+    case "stats":
+      return ok(formatStats(await service.stats()));
+    default:
+      // ถ้าเพิ่ม kind ใหม่ใน Command แล้วลืมเขียน case บรรทัดนี้จะ Compile ไม่ผ่าน
+      return assertNever(command);
+  }
+}
+
+async function main(): Promise&lt;void&gt; {
+  const parsed = parseArgs(process.argv.slice(2));
+  if (!parsed.ok) {
+    console.error(`ผิดพลาด: ${parsed.error}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const service = new TaskService(new JsonFileRepository(DATA_FILE, TaskSchema));
+  try {
+    const result = await run(parsed.value, service);
+    if (result.ok) {
+      console.log(result.value);
+    } else {
+      console.error(`ผิดพลาด: ${result.error}`);
+      process.exitCode = 1;
+    }
+  } catch (error) {
+    // ไม่ปล่อย Stack Trace ให้ผู้ใช้เห็น แสดงแค่ข้อความที่อ่านเข้าใจ
+    if (error instanceof DataFileError) {
+      console.error(error.message);
+    } else {
+      console.error("เกิดข้อผิดพลาดที่ไม่คาดคิด:", error instanceof Error ? error.message : String(error));
+    }
+    process.exitCode = 1;
+  }
+}
+
+await main();</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>type Column = { header: string; value: (task: Task) =&gt; string }</code></td><td>แต่ละคอลัมน์มีหัวตารางและฟังก์ชันดึงค่าจากงาน ถ้าพิมพ์ <code>t.prioirty</code> ผิด tsc จะแจ้ง TS2551 พร้อมเสนอชื่อที่ถูก</td></tr>
+<tr><td><code>row[i]?.length ?? 0</code> และ <code>widths[i] ?? 0</code></td><td>เพราะเปิด <code>noUncheckedIndexedAccess</code> การอ่าน Array ด้วยเลขลำดับได้ Type ที่รวม <code>undefined</code> จึงต้องมีค่าสำรอง</td></tr>
+<tr><td><code>cell.padEnd(widths[i] ?? 0)</code></td><td>เติมช่องว่างให้ทุกคอลัมน์กว้างเท่ากัน ยกเว้นคอลัมน์สุดท้าย (TITLE) เพราะสระบนล่างและวรรณยุกต์ภาษาไทยนับเป็นตัวอักษรแต่ไม่กินที่บนจอ</td></tr>
+<tr><td><code>process.env["TASKS_FILE"] ?? "data/tasks.json"</code></td><td>ให้เปลี่ยนไฟล์ข้อมูลได้โดยไม่แก้โค้ด เราจะใช้ตัวแปรนี้ทดสอบกับ <code>data/bad.json</code></td></tr>
+<tr><td><code>async function run(command: Command, ...): Promise&lt;Result&lt;string&gt;&gt;</code></td><td>ทำงานตามคำสั่งแล้วคืนข้อความ ไม่พิมพ์เอง ฟังก์ชันนี้จึงทดสอบได้ง่าย</td></tr>
+<tr><td><code>switch (command.kind)</code></td><td>Narrow ตาม <code>kind</code> ใน <code>case "list"</code> TypeScript รู้ว่า <code>command.status</code> มีอยู่ ส่วนใน <code>case "start"</code> รู้ว่ามี <code>command.id</code></td></tr>
+<tr><td><code>const { kind: _kind, ...input } = command</code></td><td>แยกช่อง <code>kind</code> ออก ส่วนที่เหลือ (<code>title</code>, <code>priority</code>, <code>tags</code>, <code>dueDate</code>) ตรงกับ <code>NewTask</code> พอดี ขีดล่างหน้าชื่อบอกผู้อ่านว่าตั้งใจไม่ใช้ตัวแปรนี้</td></tr>
+<tr><td><code>return result.ok ? ok(...) : result</code></td><td>ถ้าสำเร็จสร้างข้อความใหม่ ถ้าล้มเหลวส่ง Result เดิมต่อไป</td></tr>
+<tr><td><code>default: return assertNever(command);</code></td><td>ตรงนี้ <code>command</code> ต้องเป็น <code>never</code> ถ้ามีคำสั่งที่ยังไม่มี <code>case</code> โค้ดจะ Compile ไม่ผ่าน</td></tr>
+<tr><td><code>process.exitCode = 1</code></td><td>บอกระบบว่าคำสั่งล้มเหลว โดยไม่ตัดการทำงานทันทีแบบ <code>process.exit(1)</code> Node จะปิดโปรแกรมเองหลังงานค้างทั้งหมดเสร็จ</td></tr>
+<tr><td><code>catch (error)</code> และ <code>error instanceof DataFileError</code></td><td>ใน strict mode ตัวแปร <code>error</code> ใน <code>catch</code> มี Type เป็น <code>unknown</code> ต้อง Narrow ด้วย <code>instanceof</code> ก่อนอ่าน <code>.message</code></td></tr>
+<tr><td><code>await main();</code></td><td>Top-level <code>await</code> ใช้ได้เพราะไฟล์เป็น ES Module (<code>"type": "module"</code> กับ <code>module: nodenext</code>)</td></tr>
+</tbody></table></div>
+<p>Build แล้วลองใช้งานจริง เริ่มจากดูวิธีใช้และรายการงานในไฟล์ตัวอย่าง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Compile ทั้งโปรเจกต์ไปที่ dist/
+npm run build
+
+# ดูวิธีใช้ แล้วดูงานทั้งหมด
+node dist/cli.js help
+node dist/cli.js list</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>&gt; task-manager-ts@1.0.0 build
+&gt; tsc
+
+Type-safe Task Manager
+
+วิธีใช้: node dist/cli.js &lt;คำสั่ง&gt; [ตัวเลือก]
+
+คำสั่ง:
+  add "ชื่องาน" [--priority low|medium|high] [--tag แท็ก] [--due YYYY-MM-DD]
+  list [--status todo|doing|done]
+  start &lt;id&gt;      เปลี่ยนสถานะเป็น doing
+  done &lt;id&gt;       เปลี่ยนสถานะเป็น done
+  remove &lt;id&gt;     ลบงาน
+  stats           สรุปจำนวนงานตามสถานะ
+  help            แสดงข้อความนี้
+
+ตัวแปรแวดล้อม:
+  TASKS_FILE      ไฟล์ข้อมูล (ค่าเริ่มต้น data/tasks.json)
+ID     STATUS  PRIORITY  DUE         TAGS   TITLE
+-------------------------------------------------
+T-001  done    high      -           setup  ติดตั้ง TypeScript 7
+T-002  doing   medium    2026-10-25  study  อ่านบท Generics
+-------------------------------------------------
+ทั้งหมด 2 งาน</code></pre>
+<p>เพิ่มงานใหม่สองชิ้น ชิ้นแรกระบุตัวเลือกครบ ชิ้นที่สองใช้ค่าเริ่มต้น แล้วกรองดูเฉพาะงานที่ยังไม่เริ่ม</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">node dist/cli.js add "อ่านบท Utility Types" --priority high --tag study --due 2026-10-27
+node dist/cli.js add "ซื้อกาแฟ"
+node dist/cli.js list --status todo</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>เพิ่มงาน T-003 แล้ว: อ่านบท Utility Types
+เพิ่มงาน T-004 แล้ว: ซื้อกาแฟ
+ID     STATUS  PRIORITY  DUE         TAGS   TITLE
+-------------------------------------------------
+T-003  todo    high      2026-10-27  study  อ่านบท Utility Types
+T-004  todo    medium    -           -      ซื้อกาแฟ
+-------------------------------------------------
+ทั้งหมด 2 งาน</code></pre>
+<p>เปลี่ยนสถานะงาน ลองพิมพ์ id เป็นตัวพิมพ์เล็ก และลองปิดงานเดิมซ้ำ แล้วดู Exit Code ด้วย <code>echo $?</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">node dist/cli.js start T-003
+node dist/cli.js done t-002
+node dist/cli.js done T-002
+echo $?</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>เริ่มทำ T-003 แล้ว: อ่านบท Utility Types
+ปิดงาน T-002 แล้ว: อ่านบท Generics
+ผิดพลาด: งาน T-002 อยู่ในสถานะ done อยู่แล้ว
+1</code></pre>
+<p>ดูสถิติ ลบงาน แล้วดูรายการล่าสุด</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">node dist/cli.js stats
+node dist/cli.js remove T-004
+node dist/cli.js list</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>todo    1
+doing   1
+done    2
+total   4
+เสร็จแล้ว 50%
+ลบงาน T-004 แล้ว: ซื้อกาแฟ
+ID     STATUS  PRIORITY  DUE         TAGS   TITLE
+-------------------------------------------------
+T-001  done    high      -           setup  ติดตั้ง TypeScript 7
+T-002  done    medium    2026-10-25  study  อ่านบท Generics
+T-003  doing   high      2026-10-27  study  อ่านบท Utility Types
+-------------------------------------------------
+ทั้งหมด 3 งาน</code></pre>
+<p>เปิดท้ายไฟล์ <code>data/tasks.json</code> ด้วย <code>tail -n 12 data/tasks.json</code> จะเห็นว่างาน T-003 ถูกเขียนลงไฟล์เป็น JSON ที่อ่านง่าย</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>  {
+    "id": "T-003",
+    "title": "อ่านบท Utility Types",
+    "priority": "high",
+    "status": "doing",
+    "tags": [
+      "study"
+    ],
+    "dueDate": "2026-10-27",
+    "createdAt": "2026-10-21T16:31:14.617Z"
+  }
+]</code></pre>
+<p class="muted small">ค่า <code>createdAt</code> ของงานที่คุณเพิ่มเองจะเป็นวันและเวลาที่คุณรันคำสั่ง จึงต่างจากตัวอย่างนี้</p>
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>ตอนนี้ <code>data/tasks.json</code> มีงาน 3 ชิ้นแล้ว ผลลัพธ์ใน Step 9 อ้างอิงข้อมูลชุดนี้ จึงยังไม่ต้องแก้ไฟล์ เราจะคืนไฟล์เป็นข้อมูลตัวอย่างเดิมใน Step 10 ก่อน Commit</p></div>
+</li>
+
+<li>
+<h4>Step 8: เขียน Test ด้วย node:test และ InMemoryRepository</h4>
+<p>Test ช่วยให้กล้าแก้โค้ด เพราะถ้าแก้แล้วกฎเดิมพัง Test จะแจ้งทันที เราทดสอบสองส่วนที่มีกฎมากที่สุด คือตัวแปลงคำสั่ง (<code>parseArgs</code>) และ <code>TaskService</code> โดยใช้ <code>InMemoryRepository</code> แทนไฟล์จริง และใช้นาฬิกาที่คืนเวลาตายตัว Test จึงเร็ว ไม่ทิ้งไฟล์ขยะ และได้ผลเหมือนเดิมทุกครั้ง</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/domain/command.test.ts"><code class="language-typescript">import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import { parseArgs } from "./command.ts";
+
+describe("parseArgs", () =&gt; {
+  it("อ่านคำสั่ง add พร้อมตัวเลือกครบ", () =&gt; {
+    const result = parseArgs(["add", "อ่านบท", "Generics", "--priority", "high", "--tag", "study", "--tag", "ts", "--due", "2026-10-25"]);
+    assert.deepEqual(result, {
+      ok: true,
+      value: { kind: "add", title: "อ่านบท Generics", priority: "high", tags: ["study", "ts"], dueDate: "2026-10-25" },
+    });
+  });
+
+  it("add ที่ไม่ระบุ priority จะได้ medium และไม่มีช่อง dueDate", () =&gt; {
+    const result = parseArgs(["add", "ซื้อกาแฟ"]);
+    assert.deepEqual(result, {
+      ok: true,
+      value: { kind: "add", title: "ซื้อกาแฟ", priority: "medium", tags: [] },
+    });
+  });
+
+  it("ปฏิเสธ priority ที่ไม่มีในระบบ", () =&gt; {
+    const result = parseArgs(["add", "งานด่วน", "--priority", "urgent"]);
+    assert.equal(result.ok, false);
+    if (!result.ok) assert.match(result.error, /low \| medium \| high/);
+  });
+
+  it("ปฏิเสธตัวเลือกที่ไม่มีค่าตามหลัง", () =&gt; {
+    assert.deepEqual(parseArgs(["add", "งาน", "--tag"]), { ok: false, error: "ตัวเลือก --tag ต้องมีค่าตามหลัง" });
+  });
+
+  it("list กรองตาม status ได้ และปฏิเสธ status ผิด", () =&gt; {
+    assert.deepEqual(parseArgs(["list", "--status", "doing"]), { ok: true, value: { kind: "list", status: "doing" } });
+    assert.equal(parseArgs(["list", "--status", "finished"]).ok, false);
+  });
+
+  it("done ต้องมี id และแปลงเป็นตัวพิมพ์ใหญ่", () =&gt; {
+    assert.deepEqual(parseArgs(["done", "t-002"]), { ok: true, value: { kind: "done", id: "T-002" } });
+    assert.equal(parseArgs(["done"]).ok, false);
+    assert.equal(parseArgs(["remove", "abc"]).ok, false);
+  });
+
+  it("ไม่ใส่คำสั่งจะได้ help และคำสั่งแปลกจะได้ข้อผิดพลาด", () =&gt; {
+    assert.deepEqual(parseArgs([]), { ok: true, value: { kind: "help" } });
+    assert.deepEqual(parseArgs(["delete"]), { ok: false, error: 'ไม่รู้จักคำสั่ง "delete" พิมพ์ help เพื่อดูคำสั่งทั้งหมด' });
+  });
+});</code></pre>
+<pre class="code" data-env="file" data-label="TypeScript · src/service/task-service.test.ts"><code class="language-typescript">import { beforeEach, describe, it } from "node:test";
+import assert from "node:assert/strict";
+import type { Task } from "../domain/task.ts";
+import { InMemoryRepository } from "../repo/in-memory-repository.ts";
+import { TaskService } from "./task-service.ts";
+
+// เวลาตายตัว ทำให้ createdAt ที่ได้คาดเดาได้ทุกครั้ง
+const FIXED_NOW = new Date("2026-10-20T08:00:00.000Z");
+
+describe("TaskService", () =&gt; {
+  let repo: InMemoryRepository&lt;Task&gt;;
+  let service: TaskService;
+
+  beforeEach(() =&gt; {
+    repo = new InMemoryRepository&lt;Task&gt;();
+    service = new TaskService(repo, () =&gt; FIXED_NOW);
+  });
+
+  it("create กำหนด id เรียงกัน สถานะ todo และ createdAt จากนาฬิกา", async () =&gt; {
+    const first = await service.create({ title: "ติดตั้ง TypeScript 7", priority: "high", tags: ["setup"] });
+    const second = await service.create({ title: "อ่านบท Generics", priority: "medium", tags: [], dueDate: "2026-10-25" });
+    assert.ok(first.ok &amp;&amp; second.ok);
+    assert.equal(first.value.id, "T-001");
+    assert.equal(second.value.id, "T-002");
+    assert.equal(second.value.status, "todo");
+    assert.equal(second.value.createdAt, "2026-10-20T08:00:00.000Z");
+    assert.equal((await repo.findAll()).length, 2);
+  });
+
+  it("create ปฏิเสธชื่อว่างและวันที่ผิดรูปแบบด้วย zod", async () =&gt; {
+    const result = await service.create({ title: "   ", priority: "low", tags: [], dueDate: "25/10/2026" });
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.match(result.error, /title ห้ามว่าง/);
+      assert.match(result.error, /dueDate ต้องอยู่ในรูปแบบ YYYY-MM-DD/);
+    }
+    assert.equal((await repo.findAll()).length, 0);
+  });
+
+  it("start และ complete เปลี่ยนสถานะ และห้ามปิดงานซ้ำ", async () =&gt; {
+    await service.create({ title: "เขียน Test", priority: "high", tags: [] });
+    assert.equal((await service.start("T-001")).ok, true);
+    assert.equal((await service.complete("T-001")).ok, true);
+    assert.deepEqual(await service.complete("T-001"), { ok: false, error: "งาน T-001 อยู่ในสถานะ done อยู่แล้ว" });
+  });
+
+  it("update และ remove แจ้งเมื่อไม่พบ id", async () =&gt; {
+    assert.deepEqual(await service.update("T-999", { title: "ใหม่" }), { ok: false, error: "ไม่พบงาน T-999" });
+    assert.deepEqual(await service.remove("T-999"), { ok: false, error: "ไม่พบงาน T-999" });
+  });
+
+  it("stats นับครบทุกสถานะ แม้สถานะนั้นจะเป็น 0", async () =&gt; {
+    await service.create({ title: "งาน A", priority: "low", tags: [] });
+    await service.create({ title: "งาน B", priority: "low", tags: [] });
+    await service.start("T-002");
+    assert.deepEqual(await service.stats(), { todo: 1, doing: 1, done: 0 });
+  });
+
+  it("list กรองตามสถานะ และ remove ลบออกจริง", async () =&gt; {
+    await service.create({ title: "งาน A", priority: "low", tags: [] });
+    await service.create({ title: "งาน B", priority: "high", tags: [] });
+    await service.start("T-001");
+    assert.deepEqual((await service.list("doing")).map((t) =&gt; t.id), ["T-001"]);
+    assert.equal((await service.remove("T-002")).ok, true);
+    assert.deepEqual((await service.list()).map((t) =&gt; t.id), ["T-001"]);
+  });
+});</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>import { describe, it } from "node:test"</code></td><td>Test Runner ที่มากับ Node.js ไม่ต้องติดตั้ง Jest หรือ Vitest Type ของมันมาจาก <code>@types/node</code></td></tr>
+<tr><td><code>import assert from "node:assert/strict"</code></td><td>ชุดคำสั่งตรวจผลแบบเข้มงวด <code>deepEqual</code> ในโหมดนี้เปรียบเทียบแบบ <code>===</code> ทุกชั้น</td></tr>
+<tr><td><code>assert.deepEqual(result, { ok: true, value: {...} })</code></td><td>ตรวจทั้ง Object ทีเดียว ถ้าต่างกันแม้แต่ช่องเดียว Test จะล้มพร้อมแสดงส่วนที่ต่าง</td></tr>
+<tr><td><code>if (!result.ok) assert.match(result.error, /.../)</code></td><td>ต้อง Narrow ก่อนจึงอ่าน <code>result.error</code> ได้ Test ก็ได้ประโยชน์จาก Type เช่นกัน</td></tr>
+<tr><td><code>beforeEach(() =&gt; { ... })</code></td><td>สร้าง Repository และ Service ใหม่ก่อนทุก Test แต่ละ Test จึงไม่กระทบกัน</td></tr>
+<tr><td><code>new TaskService(repo, () =&gt; FIXED_NOW)</code></td><td>ส่งนาฬิกาปลอมเข้าไป ค่า <code>createdAt</code> จึงเป็น <code>2026-10-20T08:00:00.000Z</code> เสมอ</td></tr>
+<tr><td><code>assert.ok(first.ok &amp;&amp; second.ok)</code></td><td><code>assert.ok</code> ประกาศ Type เป็น Assertion Function บรรทัดถัดไป TypeScript จึงรู้ว่าทั้งคู่สำเร็จ และให้อ่าน <code>first.value</code> ได้</td></tr>
+</tbody></table></div>
+<p>รัน Test ทั้งหมด คำสั่งนี้ Compile ด้วย tsc ก่อน ถ้ามี Type Error จะไม่รัน Test เลย</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">npm test</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>&gt; task-manager-ts@1.0.0 test
+&gt; tsc &amp;&amp; node --test --test-reporter=spec "dist/**/*.test.js"
+
+▶ parseArgs
+  ✔ อ่านคำสั่ง add พร้อมตัวเลือกครบ (2.142762ms)
+  ✔ add ที่ไม่ระบุ priority จะได้ medium และไม่มีช่อง dueDate (0.225972ms)
+  ✔ ปฏิเสธ priority ที่ไม่มีในระบบ (0.375402ms)
+  ✔ ปฏิเสธตัวเลือกที่ไม่มีค่าตามหลัง (0.195748ms)
+  ✔ list กรองตาม status ได้ และปฏิเสธ status ผิด (0.174589ms)
+  ✔ done ต้องมี id และแปลงเป็นตัวพิมพ์ใหญ่ (0.16551ms)
+  ✔ ไม่ใส่คำสั่งจะได้ help และคำสั่งแปลกจะได้ข้อผิดพลาด (0.210821ms)
+✔ parseArgs (4.759193ms)
+▶ TaskService
+  ✔ create กำหนด id เรียงกัน สถานะ todo และ createdAt จากนาฬิกา (3.871242ms)
+  ✔ create ปฏิเสธชื่อว่างและวันที่ผิดรูปแบบด้วย zod (1.160221ms)
+  ✔ start และ complete เปลี่ยนสถานะ และห้ามปิดงานซ้ำ (1.447535ms)
+  ✔ update และ remove แจ้งเมื่อไม่พบ id (0.423004ms)
+  ✔ stats นับครบทุกสถานะ แม้สถานะนั้นจะเป็น 0 (0.661205ms)
+  ✔ list กรองตามสถานะ และ remove ลบออกจริง (0.488895ms)
+✔ TaskService (9.064116ms)
+ℹ tests 13
+ℹ suites 2
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 146.357062</code></pre>
+<p class="muted small">เวลาในวงเล็บ (หน่วย ms) จะต่างกันทุกครั้งที่รันและทุกเครื่อง ส่วนจำนวน Test ที่ผ่านต้องได้ 13 จาก 13</p>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>ถึงตรงนี้ <code>npm test</code> ต้องผ่านครบ 13 ข้อ และ <code>node dist/cli.js list</code> ต้องแสดงตารางงานได้ ถ้า Test ข้อใดล้ม ให้อ่านบรรทัด <code>expected</code> กับ <code>actual</code> ที่ Node แสดง แล้วเทียบกับโค้ดในขั้นก่อนหน้า</p></div>
+</li>
+<li>
+<h4>Step 9: ทดสอบกรณีผิดพลาด ทั้งตอนรันจริงและตอน Compile</h4>
+<p>โปรแกรมที่ดีต้องรับมือกับ "ทางที่ผิด" ได้ดีพอ ๆ กับทางที่ถูก ขั้นนี้คือการตรวจรับงาน (Verification) ว่าทุกจุดที่ออกแบบไว้ทำงานจริง แบ่งเป็นสองกลุ่ม คือความผิดพลาดตอนรันที่ zod และ Result จัดการ และความผิดพลาดตอน Compile ที่ tsc จับให้</p>
+<h5>9.1 ไฟล์ข้อมูลถูกแก้จนผิด</h5>
+<p>ชี้ <code>TASKS_FILE</code> ไปที่ <code>data/bad.json</code> ที่สร้างไว้ใน Step 3 zod จะรายงานปัญหาครบทั้งสามจุด พร้อมบอกลำดับของงานและชื่อช่อง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">TASKS_FILE=data/bad.json node dist/cli.js list
+echo $?</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ไฟล์ data/bad.json มีข้อมูลไม่ถูกต้อง:
+✖ Invalid option: expected one of "low"|"medium"|"high"
+  → at [0].priority
+✖ Invalid input: expected array, received string
+  → at [1].tags
+✖ dueDate ต้องอยู่ในรูปแบบ YYYY-MM-DD
+  → at [1].dueDate
+1</code></pre>
+<p>อ่านผลลัพธ์แบบนี้: <code>[0].priority</code> คือช่อง priority ของงานลำดับแรก (นับจาก 0) ส่วน <code>[1].tags</code> และ <code>[1].dueDate</code> คือช่องของงานลำดับที่สอง ข้อความสองบรรทัดแรกเป็นข้อความมาตรฐานของ zod 4 ส่วนบรรทัดสุดท้ายเป็นข้อความภาษาไทยที่เรากำหนดเองใน Schema ผู้ใช้ไม่เห็น Stack Trace และ Exit Code เป็น 1</p>
+<h5>9.2 ผู้ใช้พิมพ์คำสั่งผิด</h5>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">node dist/cli.js add "ส่งการบ้าน" --due 2026-13-01
+node dist/cli.js add "ส่งการบ้าน" --priority urgent
+node dist/cli.js finish T-001
+node dist/cli.js start
+node dist/cli.js done T-099
+echo $?</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ผิดพลาด: ✖ dueDate ต้องอยู่ในรูปแบบ YYYY-MM-DD
+  → at dueDate
+ผิดพลาด: priority ต้องเป็น low | medium | high แต่ได้รับ "urgent"
+ผิดพลาด: ไม่รู้จักคำสั่ง "finish" พิมพ์ help เพื่อดูคำสั่งทั้งหมด
+ผิดพลาด: คำสั่ง start ต้องระบุ id เช่น start T-001
+ผิดพลาด: ไม่พบงาน T-099
+1</code></pre>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>คำสั่งที่ผิด</th><th>ชั้นที่จับได้</th><th>เหตุผล</th></tr></thead><tbody>
+<tr><td><code>--due 2026-13-01</code></td><td><code>TaskService.create</code> ผ่าน <code>TaskSchema</code></td><td>รูปแบบถูกแต่ไม่มีเดือน 13 <code>z.iso.date()</code> ตรวจว่าเป็นวันที่ที่มีอยู่จริง</td></tr>
+<tr><td><code>--priority urgent</code></td><td><code>parseArgs</code> ผ่าน <code>isPriority</code></td><td>ค่าไม่อยู่ใน <code>PRIORITIES</code> ข้อความ Error สร้างจาก Array เดียวกัน จึงแสดงค่าที่ถูกต้องเสมอ</td></tr>
+<tr><td><code>finish T-001</code></td><td><code>parseArgs</code> ส่วน <code>default</code></td><td>ไม่มีคำสั่งชื่อนี้</td></tr>
+<tr><td><code>start</code> (ไม่มี id)</td><td><code>parseArgs</code></td><td><code>rest[0]</code> เป็น <code>undefined</code></td></tr>
+<tr><td><code>done T-099</code></td><td><code>TaskService</code></td><td>รูปแบบ id ถูก แต่ไม่มีงานนี้ในไฟล์</td></tr>
+</tbody></table></div>
+<h5>9.3 ลืมจัดการคำสั่งใหม่ (Exhaustive Check)</h5>
+<p>สมมติว่าวันหนึ่งเพิ่มคำสั่ง <code>edit</code> ลงใน <code>Command</code> แต่ลืมเพิ่ม <code>case "edit"</code> ใน <code>cli.ts</code> ลองแก้ <code>src/domain/command.ts</code> ชั่วคราวให้ท้าย Union เป็นแบบนี้</p>
+<pre class="code" data-env="file" data-label="TypeScript · src/domain/command.ts (แก้ชั่วคราว)"><code class="language-typescript">  | { kind: "stats" }
+  | { kind: "help" }
+  // คำสั่งใหม่ที่ยังไม่มีใครเขียน case รองรับ
+  | { kind: "edit"; id: string; title: string };</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">npx tsc --noEmit</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>src/cli.ts:41:26 - error TS2345: Argument of type '{ kind: "edit"; id: string; title: string; }' is not assignable to parameter of type 'never'.
+
+41       return assertNever(command);
+                            ~~~~~~~
+
+
+Found 1 error in src/cli.ts:41</code></pre>
+<p>tsc ชี้ไปที่ <code>assertNever(command)</code> ใน <code>cli.ts</code> และบอกว่ายังเหลือ <code>{ kind: "edit"; ... }</code> ที่ไม่ได้จัดการ นี่คือเหตุผลที่เราเขียน <code>default</code> แบบนี้ Bug จะถูกจับก่อนถึงมือผู้ใช้ ลบบรรทัด <code>edit</code> ออกให้เหมือนเดิมก่อนทำต่อ</p>
+<h5>9.4 พิมพ์ชื่อช่องผิด</h5>
+<p>ลองแก้ <code>src/format.ts</code> บรรทัดคอลัมน์ PRIORITY เป็น <code>(t) =&gt; t.prioirty</code> แล้วสั่ง <code>npx tsc --noEmit</code></p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>src/format.ts:26:41 - error TS2551: Property 'prioirty' does not exist on type '{ id: string; title: string; priority: "high" | "low" | "medium"; status: "doing" | "done" | "todo"; tags: string[]; dueDate?: string | undefined; createdAt: string; }'. Did you mean 'priority'?
+
+26   { header: "PRIORITY", value: (t) =&gt; t.prioirty },
+                                           ~~~~~~~~
+
+
+Found 1 error in src/format.ts:26</code></pre>
+<p>สังเกตว่า Type ในข้อความคือ Object ที่ zod สร้างจาก Schema ทุกช่องตรงกับ <code>TaskSchema</code> แก้คำผิดกลับให้ถูกก่อนทำต่อ</p>
+<h5>9.5 รันจาก Source ด้วย Type Stripping และตรวจ Type ทั้งโปรเจกต์</h5>
+<p>Node.js ตั้งแต่ 22.18.0 และ 23.6.0 ขึ้นไป (จึงรวม Node 24 และ 26) รันไฟล์ <code>.ts</code> ได้โดยไม่ต้องใส่ Flag โดยลบ Type ทิ้งก่อนรัน โปรเจกต์นี้ใช้ได้เพราะเปิด <code>erasableSyntaxOnly</code> และ Import ด้วยนามสกุล <code>.ts</code> แต่ Node ไม่ตรวจ Type และไม่อ่าน <code>tsconfig.json</code> จึงต้องสั่ง <code>npm run typecheck</code> คู่กันเสมอ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">npm run dev -- stats
+npm run typecheck</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>&gt; task-manager-ts@1.0.0 dev
+&gt; node src/cli.ts stats
+
+todo    0
+doing   1
+done    2
+total   3
+เสร็จแล้ว 67%
+
+&gt; task-manager-ts@1.0.0 typecheck
+&gt; tsc --noEmit</code></pre>
+<p><code>npm run typecheck</code> ไม่แสดงอะไรต่อจากชื่อคำสั่ง แปลว่าไม่มี Type Error เลย ส่วนตัวเลขของ <code>stats</code> มาจากข้อมูลหลังรันคำสั่งใน Step 7 ครบแล้ว</p>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นสุดท้าย ตรวจให้ครบ: (1) <code>data/bad.json</code> ให้ Error 3 จุดและ Exit Code 1 (2) คำสั่งผิดทุกแบบแสดงข้อความขึ้นต้นด้วย <code>ผิดพลาด:</code> โดยไม่มี Stack Trace (3) เพิ่มสมาชิกใน <code>Command</code> แล้ว tsc แจ้ง TS2345 ที่ <code>assertNever</code> (4) <code>npm run typecheck</code> และ <code>npm test</code> ผ่านหลังคืนโค้ดเป็นแบบเดิม</p></div>
+</li>
+
+<li>
+<h4>Step 10: เขียน README ตั้ง GitHub Actions แล้ว Push ขึ้น GitHub</h4>
+<p>Repository ที่ดีต้องอ่านแล้วเข้าใจว่าโปรเจกต์ทำอะไร ติดตั้งอย่างไร และพิสูจน์ได้ว่าโค้ดยังทำงาน ขั้นนี้เพิ่มสามอย่าง คือ README, CI ที่รันทุกครั้งที่ Push และการขึ้น GitHub ตามที่เรียนใน <a data-t="17"></a></p>
+<p>เริ่มจากคืน <code>data/tasks.json</code> เป็นข้อมูลตัวอย่างจาก Step 3 (คัดลอกเนื้อหาจาก Step 3 มาวางทับทั้งไฟล์) เพื่อให้คนที่ Clone ไปได้ข้อมูลชุดเดียวกับในหน้านี้ จากนั้นสร้าง README โดยใช้แม่แบบนี้ เปลี่ยน <code>somchai</code> เป็นชื่อบัญชี GitHub ของคุณ</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="Markdown · README.md"><code class="language-markdown"># Type-safe Task Manager
+
+CLI จัดการรายการงาน เขียนด้วย TypeScript 7 แบบ strict ทั้งโปรเจกต์
+ตรวจข้อมูลจากไฟล์ด้วย zod และทดสอบด้วย node:test
+
+![CI](https://github.com/somchai/task-manager-ts/actions/workflows/ci.yml/badge.svg)
+
+## ความสามารถ
+
+- เพิ่ม ดู เริ่มทำ ปิด และลบงาน พร้อมกำหนด priority, tag และวันครบกำหนด
+- สรุปจำนวนงานตามสถานะ และเปอร์เซ็นต์งานที่เสร็จ
+- ตรวจไฟล์ `data/tasks.json` ทุกครั้งที่อ่าน ถ้าไฟล์ผิดจะบอกว่าผิดที่ช่องไหน
+- ข้อความภาษาไทย และคืน Exit Code 1 เมื่อผิดพลาด
+
+## สิ่งที่โปรเจกต์นี้แสดง
+
+- Type มาจาก zod Schema แหล่งเดียว (`z.infer`)
+- คำสั่งเป็น Discriminated Union และตรวจครบทุกกรณีด้วย `assertNever`
+- Generic Repository (`Repository&lt;T extends Entity&gt;`) สองแบบ: ไฟล์ JSON และหน่วยความจำ
+- Utility Types: `Omit`, `Partial`, `Pick`, `Record`
+- tsconfig แบบ strict พร้อม `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `erasableSyntaxOnly`
+- Test 13 ข้อด้วย node:test และ CI บน GitHub Actions
+
+## ติดตั้ง
+
+ต้องมี Node.js 24 ขึ้นไป
+
+```bash
+git clone https://github.com/somchai/task-manager-ts.git
+cd task-manager-ts
+npm ci
+npm run build
+```
+
+## วิธีใช้
+
+```bash
+node dist/cli.js add "อ่านบท Generics" --priority high --tag study --due 2026-10-25
+node dist/cli.js list --status todo
+node dist/cli.js start T-003
+node dist/cli.js done T-003
+node dist/cli.js stats
+node dist/cli.js help
+```
+
+เปลี่ยนไฟล์ข้อมูลได้ด้วยตัวแปร `TASKS_FILE` เช่น `TASKS_FILE=data/bad.json node dist/cli.js list`
+
+## คำสั่งสำหรับนักพัฒนา
+
+| คำสั่ง | ใช้ทำอะไร |
+|---|---|
+| `npm run build` | Compile ไปที่ `dist/` |
+| `npm run typecheck` | ตรวจ Type อย่างเดียว |
+| `npm test` | Compile แล้วรัน Test |
+| `npm run dev -- list` | รันจาก `src/` ตรง ๆ ด้วย Type Stripping ของ Node.js |
+
+## โครงสร้าง
+
+```text
+src/cli.ts                  จุดเริ่มโปรแกรม
+src/domain/                 Schema, Type และ Command
+src/repo/                   Repository แบบไฟล์ JSON และแบบหน่วยความจำ
+src/service/                กฎทางธุรกิจ (TaskService)
+src/format.ts               จัดรูปแบบผลลัพธ์
+```
+
+## เครื่องมือ
+
+TypeScript 7.0.2, zod 4.6.7, @types/node 24.19.2, Node.js 24 LTS
+
+## License
+
+MIT</code></pre>
+<p>สร้าง Workflow ของ GitHub Actions ทุกครั้งที่ Push เข้า <code>main</code> หรือเปิด Pull Request เครื่องของ GitHub จะติดตั้ง Package ตาม <code>package-lock.json</code> ตรวจ Type และรัน Test</p>
+<pre class="code" data-env="file" data-label="YAML · .github/workflows/ci.yml"><code class="language-yaml"># ตรวจ Type และรัน Test อัตโนมัติทุกครั้งที่ Push หรือเปิด Pull Request
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test</code></pre>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>on: push: branches: [main]</code> และ <code>pull_request:</code></td><td>รันเมื่อ Push เข้า <code>main</code> และทุกครั้งที่มี Pull Request</td></tr>
+<tr><td><code>actions/checkout@v5</code></td><td>ดึงโค้ดของ Repository ลงเครื่องที่รัน</td></tr>
+<tr><td><code>actions/setup-node@v5</code> กับ <code>node-version: 24</code></td><td>ติดตั้ง Node.js 24 และ <code>cache: npm</code> เก็บ Package ไว้ใช้ครั้งถัดไปให้เร็วขึ้น</td></tr>
+<tr><td><code>npm ci</code></td><td>ติดตั้งตาม <code>package-lock.json</code> ตรงตัว ถ้า Lock File ไม่ตรงกับ <code>package.json</code> จะล้มทันที ต่างจาก <code>npm install</code> ที่อาจแก้ Lock File</td></tr>
+<tr><td><code>npm run typecheck</code> แล้ว <code>npm test</code></td><td>ตรวจ Type ก่อน แล้วจึง Compile และรัน Test ถ้าขั้นไหนล้ม Workflow จะเป็นสีแดง</td></tr>
+</tbody></table></div>
+<p>ทดสอบแบบเดียวกับที่ CI จะทำบนเครื่องตัวเองก่อน Push</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">npm ci
+npm run typecheck
+npm test</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>added 5 packages, and audited 6 packages in 907ms
+
+1 package is looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+
+&gt; task-manager-ts@1.0.0 typecheck
+&gt; tsc --noEmit
+
+
+&gt; task-manager-ts@1.0.0 test
+&gt; tsc &amp;&amp; node --test --test-reporter=spec "dist/**/*.test.js"
+
+▶ parseArgs
+  ✔ อ่านคำสั่ง add พร้อมตัวเลือกครบ (2.793563ms)
+  ✔ add ที่ไม่ระบุ priority จะได้ medium และไม่มีช่อง dueDate (0.336152ms)
+  ✔ ปฏิเสธ priority ที่ไม่มีในระบบ (0.416887ms)
+  ✔ ปฏิเสธตัวเลือกที่ไม่มีค่าตามหลัง (0.298204ms)
+  ✔ list กรองตาม status ได้ และปฏิเสธ status ผิด (0.313505ms)
+  ✔ done ต้องมี id และแปลงเป็นตัวพิมพ์ใหญ่ (0.329769ms)
+  ✔ ไม่ใส่คำสั่งจะได้ help และคำสั่งแปลกจะได้ข้อผิดพลาด (0.322403ms)
+✔ parseArgs (6.287388ms)
+▶ TaskService
+  ✔ create กำหนด id เรียงกัน สถานะ todo และ createdAt จากนาฬิกา (4.685444ms)
+  ✔ create ปฏิเสธชื่อว่างและวันที่ผิดรูปแบบด้วย zod (1.131679ms)
+  ✔ start และ complete เปลี่ยนสถานะ และห้ามปิดงานซ้ำ (1.793281ms)
+  ✔ update และ remove แจ้งเมื่อไม่พบ id (0.346287ms)
+  ✔ stats นับครบทุกสถานะ แม้สถานะนั้นจะเป็น 0 (0.718163ms)
+  ✔ list กรองตามสถานะ และ remove ลบออกจริง (0.543276ms)
+✔ TaskService (10.256369ms)
+ℹ tests 13
+ℹ suites 2
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 176.291712</code></pre>
+<p>สร้าง Git Repository และ Commit แรก</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เริ่ม Repository โดยตั้งชื่อ Branch หลักเป็น main
+git init -b main
+
+# เพิ่มทุกไฟล์ (node_modules/ และ dist/ ถูกข้ามเพราะ .gitignore)
+git add .
+git status --short
+
+# Commit แรก
+git commit -m "feat: type-safe task manager CLI with zod and node:test"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Initialized empty Git repository in /home/somchai/projects/task-manager-ts/.git/
+A  .github/workflows/ci.yml
+A  .gitignore
+A  README.md
+A  data/bad.json
+A  data/tasks.json
+A  package-lock.json
+A  package.json
+A  src/cli.ts
+A  src/domain/command.test.ts
+A  src/domain/command.ts
+A  src/domain/task.ts
+A  src/format.ts
+A  src/lib/result.ts
+A  src/repo/in-memory-repository.ts
+A  src/repo/json-file-repository.ts
+A  src/repo/repository.ts
+A  src/service/task-service.test.ts
+A  src/service/task-service.ts
+A  tsconfig.json
+[main (root-commit) ab8f4f6] feat: type-safe task manager CLI with zod and node:test
+ 19 files changed, 1240 insertions(+)
+ create mode 100644 .github/workflows/ci.yml
+ create mode 100644 .gitignore
+ create mode 100644 README.md
+ create mode 100644 data/bad.json
+ create mode 100644 data/tasks.json
+ create mode 100644 package-lock.json
+ create mode 100644 package.json
+ create mode 100644 src/cli.ts
+ create mode 100644 src/domain/command.test.ts
+ create mode 100644 src/domain/command.ts
+ create mode 100644 src/domain/task.ts
+ create mode 100644 src/format.ts
+ create mode 100644 src/lib/result.ts
+ create mode 100644 src/repo/in-memory-repository.ts
+ create mode 100644 src/repo/json-file-repository.ts
+ create mode 100644 src/repo/repository.ts
+ create mode 100644 src/service/task-service.test.ts
+ create mode 100644 src/service/task-service.ts
+ create mode 100644 tsconfig.json</code></pre>
+<p class="muted small">รหัส Commit (เช่น <code>ab8f4f6</code>) และจำนวนบรรทัดจะต่างกันในเครื่องของคุณ ถ้า Git ยังไม่รู้จักชื่อและอีเมลของคุณ ให้ตั้งค่าด้วย <code>git config --global user.name</code> และ <code>git config --global user.email</code> ตามหัวข้อ Git and GitHub ก่อน</p>
+<p>ไปที่ <a href="https://github.com/new" target="_blank" rel="noopener">github.com/new</a> สร้าง Repository ชื่อ <code>task-manager-ts</code> แบบ Public โดย<strong>ไม่ติ๊ก</strong> Add a README (เพราะเรามี README แล้ว) แล้วเชื่อมและ Push ด้วย SSH ที่ตั้งไว้ในหัวข้อ Git and GitHub</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># เปลี่ยน somchai เป็นชื่อบัญชี GitHub ของคุณ
+git remote add origin git@github.com:somchai/task-manager-ts.git
+git push -u origin main</code></pre>
+<p>เปิดแท็บ <strong>Actions</strong> ของ Repository บน GitHub จะเห็น Workflow ชื่อ CI เริ่มรันเอง ภายในไม่กี่นาทีควรขึ้นเครื่องหมายถูกสีเขียว และ Badge ใน README จะแสดงคำว่า passing</p>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>Commit <code>package-lock.json</code> เสมอ เพื่อให้ <code>npm ci</code> บน CI และบนเครื่องคนอื่นได้ Package เวอร์ชันเดียวกับคุณ</li>
+<li>อย่า Commit <code>dist/</code> เพราะสร้างใหม่ได้จาก <code>src/</code> และจะทำให้ Diff รก</li>
+<li>เปิด Branch Protection ของ <code>main</code> ให้ต้องผ่าน CI ก่อน Merge เมื่อเริ่มทำงานเป็นทีม</li>
+</ul></div>
+</li>
+</ol>
+
+<h4>ไอเดียต่อยอด</h4>
+<ol>
+  <li><strong>คำสั่ง <code>edit</code>:</strong> เพิ่ม <code>edit T-001 --title "..." --priority low</code> โดยใช้ <code>TaskService.update</code> ที่มีอยู่แล้ว แล้วสังเกตว่า tsc บังคับให้เพิ่ม <code>case "edit"</code> ใน <code>cli.ts</code></li>
+  <li><strong>เรียงและค้นหา:</strong> เพิ่ม <code>list --sort priority</code> และ <code>list --tag study</code> โดยใช้ลำดับจาก <code>PRIORITIES</code> เป็นตัวเรียง</li>
+  <li><strong>แสดงผลเป็น JSON:</strong> เพิ่มตัวเลือก <code>--json</code> ที่พิมพ์ผลลัพธ์เป็น JSON เพื่อให้ Script อื่นนำไปใช้ต่อ แล้วเขียน Test ให้ <code>format.ts</code></li>
+  <li><strong>เปลี่ยนที่เก็บข้อมูล:</strong> เขียน <code>SqliteRepository&lt;T&gt;</code> ที่ทำตาม <code>Repository&lt;T&gt;</code> โดยใช้ความรู้จาก <a data-t="14"></a> Service และ CLI ไม่ต้องแก้แม้แต่บรรทัดเดียว</li>
+  <li><strong>ทำเป็น REST API:</strong> ใช้ <code>node:http</code> สร้าง Endpoint <code>GET /tasks</code> และ <code>POST /tasks</code> ที่ตรวจ Body ด้วย Schema เดียวกัน (<code>TaskSchema.omit(...)</code>)</li>
+  <li><strong>สร้างงานจากภาษาพูด:</strong> ให้ LLM แปลงประโยคอย่าง "พรุ่งนี้อ่านบท Generics ด่วน" เป็น <code>NewTask</code> แล้วตรวจคำตอบด้วย zod ก่อนบันทึก ตามแนวทางใน <a data-t="16"></a> โดยมีโหมดจำลอง (Mock) เมื่อไม่มี API Key</li>
+  <li><strong>ติดตั้งเป็นคำสั่งของเครื่อง:</strong> เพิ่ม <code>"bin": { "task": "dist/cli.js" }</code> ใน <code>package.json</code> ใส่บรรทัด <code>#!/usr/bin/env node</code> บนสุดของ <code>src/cli.ts</code> แล้วสั่ง <code>npm link</code> เพื่อเรียกใช้ด้วยคำสั่ง <code>task list</code></li>
+</ol>
+
+<h3 id="s15-4-cheat">Cheat Sheet</h3>
+<p>สรุปคำสั่งและ Syntax ที่ใช้บ่อยที่สุดในหัวข้อนี้ จัดกลุ่มตามเรื่อง ทุกตัวอย่างใช้ได้กับ TypeScript 7.0.2 และ tsconfig แบบ strict ที่ใช้ตลอดหัวข้อ</p>
+
+<h4>คำสั่งในโปรเจกต์และ Compiler</h4>
+<div class="tbl wide"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td class="nw"><code>npm install -D --save-exact typescript@7.0.2</code></td><td>ติดตั้ง TypeScript ในโปรเจกต์ ล็อกเวอร์ชันตรงตัว</td><td><code>npm install -D --save-exact typescript@7.0.2 @types/node@24.19.2</code></td></tr>
+<tr><td class="nw"><code>npx tsc -v</code></td><td>ดูเวอร์ชันของ tsc ในโปรเจกต์</td><td>ได้ <code>Version 7.0.2</code></td></tr>
+<tr><td class="nw"><code>npx tsc</code></td><td>ตรวจ Type และ Compile ตาม <code>tsconfig.json</code></td><td><code>npx tsc &amp;&amp; node dist/cli.js list</code></td></tr>
+<tr><td class="nw"><code>npx tsc --noEmit</code></td><td>ตรวจ Type อย่างเดียว ไม่สร้างไฟล์</td><td>ใช้เป็น Script <code>"typecheck"</code> และใน CI</td></tr>
+<tr><td class="nw"><code>npx tsc --watch</code></td><td>Compile ใหม่ทุกครั้งที่บันทึกไฟล์</td><td>เปิดค้างไว้ใน Terminal อีกหน้าต่างระหว่างเขียนโค้ด</td></tr>
+<tr><td class="nw"><code>npx tsc --noEmit --pretty</code></td><td>แสดง Error แบบมีบรรทัดโค้ดและเครื่องหมาย <code>~~~</code> ใต้จุดที่ผิด แม้ส่งผลลัพธ์ไปที่ไฟล์</td><td><code>npx tsc --noEmit --pretty &gt; errors.txt</code></td></tr>
+<tr><td class="nw"><code>node file.ts</code></td><td>รันไฟล์ TypeScript ตรง ๆ ด้วย Type Stripping (Node 22.18.0+, 23.6.0+, 24, 26) ไม่ตรวจ Type</td><td><code>node src/cli.ts stats</code></td></tr>
+<tr><td class="nw"><code>node --test --test-reporter=spec "dist/**/*.test.js"</code></td><td>รัน Test ทุกไฟล์ที่ตรงกับ Glob</td><td>ใส่ใน Script <code>"test": "tsc &amp;&amp; node --test ..."</code></td></tr>
+<tr><td class="nw"><code>npm ci</code></td><td>ติดตั้งตาม <code>package-lock.json</code> ตรงตัว เหมาะกับ CI</td><td>ขั้นแรกใน <code>.github/workflows/ci.yml</code></td></tr>
+</tbody></table></div>
+
+<h4>tsconfig.json ตัวเลือกสำคัญ</h4>
+<div class="tbl wide"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td class="nw"><code>"strict": true</code></td><td>เปิดการตรวจเข้มงวดชุดหลัก เช่น <code>strictNullChecks</code> และ <code>noImplicitAny</code></td><td>Parameter ที่ไม่ระบุ Type จะเป็น Error TS7006</td></tr>
+<tr><td class="nw"><code>"noUncheckedIndexedAccess": true</code></td><td>การอ่าน Array หรือ Record ด้วย Index ได้ Type ที่รวม <code>undefined</code></td><td><code>const first = arr[0]; // string | undefined</code></td></tr>
+<tr><td class="nw"><code>"exactOptionalPropertyTypes": true</code></td><td>ช่อง <code>x?: T</code> หมายถึง "ไม่มีช่องนี้" ห้ามใส่ <code>undefined</code> ตรง ๆ</td><td><code>...(due ? { dueDate: due } : {})</code></td></tr>
+<tr><td class="nw"><code>"module": "nodenext"</code></td><td>ใช้กฎ Module ของ Node.js ตามค่า <code>"type"</code> ใน <code>package.json</code></td><td>คู่กับ <code>"type": "module"</code> เพื่อใช้ <code>import</code> และ Top-level <code>await</code></td></tr>
+<tr><td class="nw"><code>"erasableSyntaxOnly": true</code></td><td>ห้าม Syntax ที่ลบทิ้งไม่ได้ (<code>enum</code>, <code>namespace</code>, Parameter Properties) ให้โค้ดรันด้วย Type Stripping ได้</td><td>ใช้ <code>type Status = "todo" | "done"</code> แทน <code>enum</code></td></tr>
+<tr><td class="nw"><code>"rewriteRelativeImportExtensions": true</code></td><td>เขียน Import ด้วย <code>.ts</code> แล้ว tsc เปลี่ยนเป็น <code>.js</code> ให้ใน <code>dist/</code></td><td><code>import { ok } from "./lib/result.ts";</code></td></tr>
+<tr><td class="nw"><code>"verbatimModuleSyntax": true</code></td><td>บังคับเขียน <code>import type</code> สำหรับสิ่งที่เป็น Type ล้วน</td><td><code>import type { Task } from "./domain/task.ts";</code></td></tr>
+</tbody></table></div>
+
+<h4>Type พื้นฐาน Object และ Union</h4>
+<div class="tbl wide"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td class="nw"><code>let x: T = value</code></td><td>ระบุ Type ของตัวแปร (ส่วนใหญ่ให้ TypeScript อนุมานเอง)</td><td><code>let total: number = 0;</code></td></tr>
+<tr><td class="nw"><code>T[]</code> / <code>readonly T[]</code></td><td>Array และ Array ที่ห้ามแก้</td><td><code>function sum(xs: readonly number[]): number</code></td></tr>
+<tr><td class="nw"><code>[A, B]</code></td><td>Tuple: Array ที่รู้จำนวนและ Type ของแต่ละตำแหน่ง</td><td><code>const item: [name: string, price: number] = ["กาแฟ", 55];</code></td></tr>
+<tr><td class="nw"><code>type X = { ... }</code></td><td>ตั้งชื่อ Type ของ Object, Union หรือ Type ใด ๆ</td><td><code>type User = { name: string; role: "admin" | "member" };</code></td></tr>
+<tr><td class="nw"><code>interface X extends Y { ... }</code></td><td>สัญญาของ Object ที่ขยายต่อหรือให้ Class <code>implements</code> ได้</td><td><code>interface Entity { readonly id: string }</code></td></tr>
+<tr><td class="nw"><code>prop?: T</code> / <code>readonly prop: T</code></td><td>ช่องไม่บังคับ / ช่องที่ห้ามแก้หลังสร้าง</td><td><code>{ readonly id: string; dueDate?: string }</code></td></tr>
+<tr><td class="nw"><code>A | B</code></td><td>Union: เป็นได้อย่างใดอย่างหนึ่ง</td><td><code>type Priority = "low" | "medium" | "high";</code></td></tr>
+<tr><td class="nw"><code>A &amp; B</code></td><td>Intersection: ต้องมีครบทั้งสองแบบ</td><td><code>type TaskWithOwner = Task &amp; { owner: string };</code></td></tr>
+<tr><td class="nw"><code>as const</code></td><td>ทำให้ค่าเป็น Literal และ <code>readonly</code></td><td><code>const STATUSES = ["todo", "doing", "done"] as const;</code></td></tr>
+<tr><td class="nw"><code>(typeof ARR)[number]</code></td><td>สร้าง Union จากสมาชิกของ Array ที่เป็น <code>as const</code></td><td><code>type Status = (typeof STATUSES)[number];</code></td></tr>
+<tr><td class="nw"><code>unknown</code> / <code>any</code> / <code>never</code></td><td><code>unknown</code> ต้องตรวจก่อนใช้, <code>any</code> ปิดการตรวจ (เลี่ยง), <code>never</code> คือค่าที่เป็นไปไม่ได้</td><td><code>const data: unknown = JSON.parse(text);</code></td></tr>
+</tbody></table></div>
+
+<h4>Narrowing, Function, Class และ Generics</h4>
+<div class="tbl wide"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td class="nw"><code>typeof</code> / <code>instanceof</code> / <code>in</code></td><td>Narrow Type ด้วยการตรวจตอนรันจริง</td><td><code>if (error instanceof Error &amp;&amp; "code" in error)</code></td></tr>
+<tr><td class="nw"><code>(x: string): x is T</code></td><td>User-defined Type Guard</td><td><code>function isStatus(v: string): v is Status</code></td></tr>
+<tr><td class="nw"><code>switch (x.kind)</code> + <code>assertNever</code></td><td>Discriminated Union พร้อมตรวจว่าจัดการครบทุกกรณี</td><td><code>default: return assertNever(command);</code></td></tr>
+<tr><td class="nw"><code>(a: A, b = 1, ...rest: C[]): R</code></td><td>Function ที่มี Parameter ปกติ ค่าเริ่มต้น และ Rest</td><td><code>function total(vat = 0.07, ...prices: number[]): number</code></td></tr>
+<tr><td class="nw"><code>(x: A) =&gt; R</code></td><td>Type ของ Function หรือ Callback</td><td><code>type Column = { value: (t: Task) =&gt; string };</code></td></tr>
+<tr><td class="nw"><code>#field</code> / <code>private</code> / <code>override</code></td><td>ซ่อนจริงตอนรัน / ซ่อนเฉพาะตอน Compile / ประกาศว่าเขียนทับของคลาสแม่</td><td><code>readonly #items = new Map&lt;string, T&gt;();</code></td></tr>
+<tr><td class="nw"><code>class C implements I</code></td><td>บังคับให้ Class ทำตาม Interface ครบ</td><td><code>class InMemoryRepository&lt;T extends Entity&gt; implements Repository&lt;T&gt;</code></td></tr>
+<tr><td class="nw"><code>function f&lt;T&gt;(x: T): T</code></td><td>Generic Function ที่ใช้ได้กับทุก Type</td><td><code>function first&lt;T&gt;(xs: readonly T[]): T | undefined</code></td></tr>
+<tr><td class="nw"><code>&lt;T extends C&gt;</code> / <code>&lt;K extends keyof T&gt;</code></td><td>จำกัดว่า Type Parameter ต้องมีคุณสมบัติอะไร</td><td><code>function get&lt;T, K extends keyof T&gt;(o: T, k: K): T[K]</code></td></tr>
+</tbody></table></div>
+
+<h4>Utility Types และ Type-level</h4>
+<div class="tbl wide"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td class="nw"><code>Partial&lt;T&gt;</code> / <code>Required&lt;T&gt;</code></td><td>ทำให้ทุกช่องไม่บังคับ / บังคับทุกช่อง</td><td><code>type TaskPatch = Partial&lt;Pick&lt;Task, "title" | "status"&gt;&gt;;</code></td></tr>
+<tr><td class="nw"><code>Pick&lt;T, K&gt;</code> / <code>Omit&lt;T, K&gt;</code></td><td>เลือก / ตัดบางช่องออกจาก Type</td><td><code>type NewTask = Omit&lt;Task, "id" | "createdAt" | "status"&gt;;</code></td></tr>
+<tr><td class="nw"><code>Record&lt;K, V&gt;</code></td><td>Object ที่มี Key ครบตาม <code>K</code> และค่าเป็น <code>V</code></td><td><code>const counts: Record&lt;Status, number&gt; = { todo: 0, doing: 0, done: 0 };</code></td></tr>
+<tr><td class="nw"><code>ReturnType&lt;F&gt;</code> / <code>Awaited&lt;P&gt;</code></td><td>ดึง Type ที่ Function คืน / แกะ Promise ออก</td><td><code>type Stats = Awaited&lt;ReturnType&lt;TaskService["stats"]&gt;&gt;;</code></td></tr>
+<tr><td class="nw"><code>keyof T</code> / <code>T["k"]</code></td><td>Union ของชื่อช่อง / Type ของช่องนั้น</td><td><code>type TaskKey = keyof Task; type Id = Task["id"];</code></td></tr>
+<tr><td class="nw"><code>satisfies T</code></td><td>ตรวจว่าค่าตรงตาม Type โดยไม่ทำให้ Type ที่อนุมานได้กว้างขึ้น</td><td><code>const labels = { todo: "รอทำ", doing: "กำลังทำ", done: "เสร็จ" } satisfies Record&lt;Status, string&gt;;</code></td></tr>
+<tr><td class="nw"><code>{ [K in keyof T]: X }</code></td><td>Mapped Type: สร้าง Type ใหม่จากทุกช่องของ Type เดิม</td><td><code>type Flags&lt;T&gt; = { [K in keyof T]: boolean };</code></td></tr>
+<tr><td class="nw"><code>T extends U ? X : Y</code> / <code>infer</code></td><td>Conditional Type และการดึง Type ย่อยออกมา</td><td><code>type ElementOf&lt;A&gt; = A extends readonly (infer E)[] ? E : never;</code></td></tr>
+<tr><td class="nw"><code>`prefix:${U}`</code></td><td>Template Literal Type: สร้าง Union ของ string จาก Union เดิม</td><td><code>type TaskEvent = `task:${Status}`; // "task:todo" | "task:doing" | "task:done"</code></td></tr>
+</tbody></table></div>
+
+<h4>zod และ node:test</h4>
+<div class="tbl wide"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td class="nw"><code>z.object({ ... })</code></td><td>สร้าง Schema ของ Object</td><td><code>const UserSchema = z.object({ name: z.string().min(1), email: z.email() });</code></td></tr>
+<tr><td class="nw"><code>z.enum([...])</code> / <code>.optional()</code></td><td>รับเฉพาะค่าในรายการ / ช่องไม่บังคับ</td><td><code>priority: z.enum(PRIORITIES), dueDate: z.iso.date().optional()</code></td></tr>
+<tr><td class="nw"><code>z.infer&lt;typeof S&gt;</code></td><td>สร้าง Type จาก Schema</td><td><code>type Task = z.infer&lt;typeof TaskSchema&gt;;</code></td></tr>
+<tr><td class="nw"><code>S.safeParse(data)</code></td><td>ตรวจข้อมูลโดยไม่ throw ได้ <code>{ success, data }</code> หรือ <code>{ success, error }</code></td><td><code>const r = TaskSchema.safeParse(input); if (!r.success) ...</code></td></tr>
+<tr><td class="nw"><code>z.prettifyError(error)</code></td><td>แปลง Error ของ zod เป็นข้อความหลายบรรทัดที่บอกตำแหน่ง</td><td>ได้ข้อความเช่น <code>✖ Invalid input: expected array, received string → at [1].tags</code></td></tr>
+<tr><td class="nw"><code>describe</code> / <code>it</code> / <code>beforeEach</code></td><td>จัดกลุ่ม Test, เขียน Test หนึ่งข้อ, เตรียมข้อมูลก่อนทุกข้อ</td><td><code>import { describe, it, beforeEach } from "node:test";</code></td></tr>
+<tr><td class="nw"><code>assert.equal</code> / <code>assert.deepEqual</code> / <code>assert.match</code></td><td>เทียบค่า / เทียบ Object ทุกชั้น / เทียบกับ Regular Expression</td><td><code>assert.deepEqual(await service.stats(), { todo: 1, doing: 1, done: 0 });</code></td></tr>
+</tbody></table></div>
+
+<h3 id="s15-4-interview">Interview Questions</h3>
+<p>คำถาม 5 ข้อนี้พบบ่อยในการสัมภาษณ์ตำแหน่ง Frontend, Backend และ Full-stack ที่ใช้ TypeScript ข้อ 1–3 เป็นระดับ Junior ข้อ 4–5 เป็นระดับ Mid-level ลองตอบด้วยคำพูดของตัวเองก่อน แล้วค่อยเปิดดูแนวคำตอบ</p>
+
+<details class="iq"><summary>1. TypeScript ต่างจาก JavaScript อย่างไร และ Type ยังอยู่ไหมตอนโปรแกรมรันจริง</summary><div>
+<p><strong>แนวคำตอบ:</strong> TypeScript คือ JavaScript ที่เพิ่มระบบ Type แบบ Static เข้าไป Compiler (<code>tsc</code>) ตรวจ Type ก่อนรัน แล้วลบ Type ทิ้งจนเหลือ JavaScript ธรรมดา เรียกว่า Type Erasure ดังนั้นตอนรันจริงไม่มี Type เหลืออยู่เลย</p>
+<ul>
+<li>ประโยชน์หลักคือจับ Bug ตอนเขียน เช่น พิมพ์ชื่อช่องผิด ส่ง <code>string</code> ไปที่ต้องการ <code>number</code> หรือลืมตรวจ <code>undefined</code> และทำให้ Editor แนะนำโค้ดและ Refactor ได้ปลอดภัย</li>
+<li>ผลที่ตามมาคือ Type ป้องกันข้อมูลจากภายนอกไม่ได้ เช่น Body ของ Request ไฟล์ JSON หรือคำตอบจาก API เพราะข้อมูลพวกนี้มาตอนรัน ต้องตรวจด้วย Runtime Validation เช่น zod ที่ขอบระบบ</li>
+<li>ตั้งแต่ Node.js 22.18.0 และ 23.6.0 สามารถรันไฟล์ <code>.ts</code> ได้ตรง ๆ ด้วย Type Stripping แต่ Node แค่ลบ Type ไม่ได้ตรวจ จึงยังต้องรัน <code>tsc --noEmit</code></li>
+<li>TypeScript 7 เปลี่ยน Compiler มาเขียนด้วยภาษา Go ทำให้เร็วขึ้นมาก แต่คำสั่งยังเป็น <code>tsc</code> และภาษายังเหมือนเดิม</li>
+</ul>
+<pre class="code" data-env="file" data-label="TypeScript · ตัวอย่าง"><code class="language-typescript">// Type นี้ช่วยตอนเขียนโค้ด แต่หายไปตอนรัน
+type Task = { id: string; title: string };
+
+// ข้อมูลจากไฟล์อาจหน้าตาไม่ตรงกับ Type เลย จึงต้องตรวจด้วย Schema
+const data: unknown = JSON.parse('{"id": 1}');
+const parsed = TaskSchema.safeParse(data); // ไม่ผ่าน เพราะ id เป็น number</code></pre>
+</div></details>
+
+<details class="iq"><summary>2. any, unknown และ never ต่างกันอย่างไร ควรใช้ตัวไหนเมื่อไร</summary><div>
+<p><strong>แนวคำตอบ:</strong> ทั้งสามเป็น Type พิเศษที่อยู่คนละขั้วของระบบ Type</p>
+<ul>
+<li><strong><code>any</code></strong> ปิดการตรวจ Type ทุกอย่าง ทำอะไรกับค่านี้ก็ได้ และมัน "ติดต่อ" ไปยังค่าอื่นที่คำนวณจากมัน ควรเลี่ยง ใช้เฉพาะตอนย้ายโค้ด JavaScript เก่าชั่วคราว</li>
+<li><strong><code>unknown</code></strong> รับค่าอะไรก็ได้เหมือน <code>any</code> แต่ห้ามใช้จนกว่าจะ Narrow ด้วย <code>typeof</code>, <code>instanceof</code>, Type Guard หรือ Schema เหมาะกับข้อมูลจากภายนอก เช่นผลของ <code>JSON.parse</code> และตัวแปรใน <code>catch</code> ซึ่ง strict mode กำหนดให้เป็น <code>unknown</code> อยู่แล้ว</li>
+<li><strong><code>never</code></strong> คือ Type ที่ไม่มีค่าใดเป็นได้เลย ใช้เป็น Type คืนของฟังก์ชันที่ throw เสมอ และใช้ตรวจว่าจัดการ Union ครบทุกกรณี</li>
+</ul>
+<p>จุดที่ผู้สัมภาษณ์อยากได้ยินคือ "ใช้ <code>unknown</code> แทน <code>any</code> ที่ขอบระบบ แล้ว Narrow ด้วย Schema" และยกตัวอย่าง <code>never</code> กับ Exhaustive Check ได้</p>
+<pre class="code" data-env="file" data-label="TypeScript · ตัวอย่าง"><code class="language-typescript">function assertNever(value: never): never {
+  throw new Error(`ไม่ได้จัดการ: ${JSON.stringify(value)}`);
+}
+
+try {
+  await loadTasks();
+} catch (error) {
+  // error เป็น unknown ต้องตรวจก่อนอ่าน message
+  console.error(error instanceof Error ? error.message : String(error));
+}</code></pre>
+</div></details>
+
+<details class="iq"><summary>3. type alias กับ interface ต่างกันอย่างไร ในทีมควรเลือกใช้อย่างไร</summary><div>
+<p><strong>แนวคำตอบ:</strong> สำหรับ Object ทั้งสองแบบใช้แทนกันได้เกือบทุกกรณี ความต่างที่ควรรู้มีดังนี้</p>
+<ul>
+<li><code>type</code> ตั้งชื่อให้ Type ได้ทุกแบบ ทั้ง Union, Tuple, Function, Mapped Type และ Conditional Type ส่วน <code>interface</code> ใช้ได้กับรูปร่างของ Object เท่านั้น</li>
+<li><code>interface</code> ขยายต่อด้วย <code>extends</code> และรวมร่างกันได้ถ้าประกาศชื่อซ้ำ (Declaration Merging) ซึ่งมีประโยชน์ตอนเพิ่มช่องให้ Type ของ Library แต่ก็อาจทำให้งงถ้าเผลอตั้งชื่อซ้ำ</li>
+<li><code>type</code> รวม Type ด้วย <code>&amp;</code> (Intersection) แทน <code>extends</code></li>
+<li>ข้อความ Error ของ <code>interface</code> มักแสดงเป็นชื่อสั้น ๆ อ่านง่ายกว่าในบางกรณี</li>
+</ul>
+<p>สิ่งสำคัญกว่าการเลือกคือ<strong>ความสม่ำเสมอในทีม</strong> แนวที่ใช้ในหัวข้อนี้คือ ใช้ <code>type</code> สำหรับข้อมูลและ Union และใช้ <code>interface</code> สำหรับสัญญาที่ Class จะ <code>implements</code> หรือที่ต้องขยายต่อ เช่น <code>interface Repository&lt;T extends Entity&gt;</code></p>
+</div></details>
+
+<details class="iq"><summary>4. Discriminated Union คืออะไร และช่วยลด Bug ในงานจริงได้อย่างไร</summary><div>
+<p><strong>แนวคำตอบ:</strong> Discriminated Union คือ Union ของ Object หลายแบบที่ทุกแบบมีช่องร่วมกันหนึ่งช่อง (เช่น <code>kind</code> หรือ <code>type</code>) ซึ่งเป็น Literal Type คนละค่า เมื่อตรวจช่องนั้นด้วย <code>if</code> หรือ <code>switch</code> TypeScript จะ Narrow ให้เหลือแบบเดียว จึงเข้าถึงช่องเฉพาะของแบบนั้นได้อย่างปลอดภัย</p>
+<ul>
+<li>ทำให้ "สถานะที่เป็นไปไม่ได้เขียนไม่ได้" เช่น Result ที่มีทั้ง <code>value</code> และ <code>error</code> พร้อมกันจะไม่ผ่าน tsc</li>
+<li>เมื่อรวมกับ <code>assertNever</code> ใน <code>default</code> ถ้ามีคนเพิ่มแบบใหม่แต่ลืมจัดการ tsc จะแจ้ง Error ทุกจุดที่ต้องแก้ เหมาะกับ Command, Event, Action ของ Redux และสถานะการโหลดข้อมูล</li>
+<li>ใน Mini Project ใช้ทั้งกับ <code>Command</code> และ <code>Result</code></li>
+</ul>
+<pre class="code" data-env="file" data-label="TypeScript · ตัวอย่าง"><code class="language-typescript">type LoadState&lt;T&gt; =
+  | { status: "loading" }
+  | { status: "success"; data: T }
+  | { status: "error"; message: string };
+
+function render(state: LoadState&lt;string[]&gt;): string {
+  switch (state.status) {
+    case "loading":
+      return "กำลังโหลด";
+    case "success":
+      return state.data.join(", "); // ตรงนี้รู้ว่ามี data
+    case "error":
+      return `ผิดพลาด: ${state.message}`;
+    default:
+      return assertNever(state);
+  }
+}</code></pre>
+</div></details>
+
+<details class="iq"><summary>5. ถ้าต้องย้ายโปรเจกต์ JavaScript ขนาดกลางมาเป็น TypeScript แบบ strict จะวางแผนอย่างไร</summary><div>
+<p><strong>แนวคำตอบ:</strong> ย้ายทีละขั้นโดยไม่หยุดงานส่วนอื่น และให้ CI ป้องกันไม่ให้ถอยหลัง</p>
+<ol>
+<li>ติดตั้ง <code>typescript</code> และ <code>@types</code> ของ Library ที่ใช้ สร้าง <code>tsconfig.json</code> ที่เปิด <code>allowJs</code> เพื่อให้ไฟล์ <code>.js</code> กับ <code>.ts</code> อยู่ร่วมกันได้ และเพิ่ม <code>tsc --noEmit</code> เข้า CI ตั้งแต่วันแรก</li>
+<li>เริ่มตรวจไฟล์ JavaScript เดิมด้วย <code>// @ts-check</code> และ JSDoc หรือเปิด <code>checkJs</code> เพื่อเจอปัญหาโดยยังไม่ต้องเปลี่ยนนามสกุล</li>
+<li>เปลี่ยนนามสกุลทีละไฟล์ เริ่มจากไฟล์ที่ไม่มีใครพึ่งพา (ปลายทาง) เช่น Utility แล้วไล่ขึ้นไปหาไฟล์ที่ใช้มัน สำหรับ Library ที่ไม่มี Type ให้เขียนไฟล์ <code>.d.ts</code> เอง</li>
+<li>ใส่ Schema (เช่น zod) ที่ขอบระบบก่อน เพราะเป็นจุดที่ Bug จากข้อมูลผิดรูปแบบเกิดบ่อยที่สุด</li>
+<li>เปิด <code>strict</code> และตัวเลือกเข้มงวดอื่นทีละตัว แก้ Error ให้หมดก่อนเปิดตัวถัดไป และจำกัดการใช้ <code>any</code> หรือ <code>// @ts-expect-error</code> พร้อมเหตุผลในโค้ด</li>
+<li>วัดความคืบหน้า เช่น จำนวนไฟล์ <code>.js</code> ที่เหลือ และห้าม Merge โค้ดที่เพิ่ม Error ใหม่</li>
+</ol>
+<p>ผู้สมัครที่ดีจะพูดถึงความเสี่ยงด้วย เช่น Type ที่เขียนเองใน <code>.d.ts</code> อาจไม่ตรงกับโค้ดจริง จึงต้องมี Test รองรับ และเครื่องมือบางตัวที่เรียก TypeScript API โดยตรง เช่น typescript-eslint ยังต้องใช้ TypeScript 6.x ในช่วงที่ TypeScript 7 เพิ่งออก</p>
+</div></details>
+
+<h3 id="s15-4-resources">แหล่งเรียนต่อ</h3>
+<ul class="res">
+  <li><a href="https://www.typescriptlang.org/docs/handbook/intro.html" target="_blank" rel="noopener">The TypeScript Handbook</a> - คู่มือทางการของ TypeScript อธิบายทุกเรื่องตั้งแต่ Type พื้นฐานจนถึง Generics, Narrowing และ Type-level ควรอ่านคู่กับหัวข้อนี้ <span class="pill">ฟรี</span></li>
+  <li><a href="https://www.typescriptlang.org/tsconfig/" target="_blank" rel="noopener">TSConfig Reference</a> - คำอธิบายตัวเลือกทุกตัวของ <code>tsconfig.json</code> พร้อมตัวอย่าง ใช้เปิดดูเมื่อเจอตัวเลือกที่ไม่รู้จัก <span class="pill">ฟรี</span></li>
+  <li><a href="https://www.typescriptlang.org/play" target="_blank" rel="noopener">TypeScript Playground</a> - เขียนและลองโค้ด TypeScript บนเบราว์เซอร์ ดู JavaScript ที่ได้และ Error ทันทีโดยไม่ต้องติดตั้งอะไร <span class="pill">ฟรี</span></li>
+  <li><a href="https://devblogs.microsoft.com/typescript/" target="_blank" rel="noopener">TypeScript Blog</a> - ประกาศรุ่นใหม่จากทีมพัฒนา อ่านเพื่อตามการเปลี่ยนแปลงของ TypeScript 7 และรุ่นถัดไป <span class="pill">ฟรี</span></li>
+  <li><a href="https://zod.dev/" target="_blank" rel="noopener">Zod Documentation</a> - เอกสารทางการของ zod ครอบคลุม Schema ทุกชนิด การจัดรูปแบบ Error และการใช้กับ TypeScript <span class="pill">ฟรี</span></li>
+  <li><a href="https://nodejs.org/api/typescript.html" target="_blank" rel="noopener">Node.js: Modules: TypeScript</a> - เอกสารของ Node.js เรื่อง Type Stripping บอกว่า Syntax ไหนรันได้และข้อจำกัดของการรันไฟล์ <code>.ts</code> ตรง ๆ <span class="pill">ฟรี</span></li>
+  <li><a href="https://nodejs.org/api/test.html" target="_blank" rel="noopener">Node.js: Test runner</a> - เอกสารของ <code>node:test</code> รวมถึง <code>describe</code>, <code>it</code>, Mock และ Reporter แบบต่าง ๆ <span class="pill">ฟรี</span></li>
+  <li><a href="https://github.com/type-challenges/type-challenges" target="_blank" rel="noopener">Type Challenges</a> - โจทย์ฝึก Type-level ตั้งแต่ง่ายถึงยากมาก เหมาะฝึก Mapped Types, Conditional Types และ <code>infer</code> หลังจบหัวข้อนี้ <span class="pill">ฟรี</span></li>
+  <li><a href="https://docs.github.com/en/actions" target="_blank" rel="noopener">GitHub Actions Documentation</a> - เอกสารทางการสำหรับต่อยอด CI ของ Mini Project เช่น รัน Test หลายเวอร์ชันของ Node.js ด้วย Matrix <span class="pill">ฟรี</span></li>
+  <li><a href="https://www.totaltypescript.com/" target="_blank" rel="noopener">Total TypeScript</a> - คอร์สและบทความ TypeScript เชิงลึกโดย Matt Pocock มีบทเรียนและบทความฟรีบางส่วน ส่วนคอร์สเต็มต้องซื้อ <span class="pill">มีค่าใช้จ่าย</span></li>
+</ul>
+</section>

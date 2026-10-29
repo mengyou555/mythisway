@@ -1,0 +1,1932 @@
+<section class="part" data-part="3">
+<h2 id="s6-3"><span class="sec-no">6.3</span>Practice Exercises &amp; Quizzes</h2>
+<p>ส่วนนี้คือสนามซ้อมของหัวข้อ Go ทุกข้อทดสอบความเข้าใจจากแนวคิดใน Part 2 ตั้งแต่คำสั่ง <code>go</code> พื้นฐาน, Slice, Map, Error Handling, Struct และ Method, Interface, Generics, Testing, การทำ CLI ไปจนถึง Goroutine, Channel, context และ <code>net/http</code> โจทย์เรียงจากง่ายไปยาก แบ่งเป็น 3 แบบ ได้แก่ เติมคำในช่องว่าง (Fill-in-the-blank), ตัวเลือก (Multiple Choice) และโจทย์ลงมือทำจริง (Hands-on Challenge)</p>
+<p>เฉลยทั้งหมดอยู่ท้ายหน้า ทุกโค้ดในเฉลยผ่านการรันจริงด้วย Go 1.27.2 แล้ว ผลลัพธ์ที่แสดงคือผลที่ได้จริง ให้ลองทำเองก่อนเปิดเฉลยเสมอ เพราะการคิดเองแม้จะผิดก็ช่วยให้จำได้ดีกว่าการอ่านคำตอบทันที</p>
+
+<h3 id="s6-3-setup">เตรียมโฟลเดอร์สำหรับฝึก</h3>
+<p>เราใช้ Module เดิมจาก Part 1 และ Part 2 คือ <code>~/projects/go-lab</code> (สร้างด้วย <code>go mod init example.com/go-lab</code>) แบบฝึกหัดของ Part 3 ทั้งหมดอยู่ใต้โฟลเดอร์ <code>practice/</code> ได้แก่ <code>practice/fill</code> สำหรับข้อเติมคำ และ <code>practice/ch1</code>, <code>practice/ch2</code>, <code>practice/ch3</code> สำหรับโจทย์ลงมือทำ ทุกคำสั่งให้รันจาก root ของ Module เสมอ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+# ตรวจว่าใช้ Go เวอร์ชันที่ถูกต้อง
+go version
+# สร้างโฟลเดอร์สำหรับแบบฝึกหัดทั้งหมด
+mkdir -p practice/fill practice/ch1 practice/ch2/svcconf practice/ch3 bin
+# ดูบรรทัด module และ go ใน go.mod
+cat go.mod</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>go version go1.27.2 linux/amd64
+module example.com/go-lab
+
+go 1.27.2</code></pre>
+<div class="callout"><span class="c-label tip">Tip</span><p>ข้อเติมคำที่มีโค้ด ให้สร้างไฟล์ตามชื่อที่ระบุ เช่น <code>practice/fill/f02/main.go</code> แล้วเติมคำลงในช่อง <code>_____</code> ให้ครบ จากนั้นรัน <code>go run ./practice/fill/f02</code> ถ้าคอมไพล์ผ่านและผลลัพธ์ตรงกับที่โจทย์บอก แปลว่าคำตอบถูก วิธีนี้ทำให้คุณตรวจคำตอบเองได้ก่อนเปิดเฉลย</p></div>
+
+<h3 id="s6-3-fill">Fill-in-the-blank</h3>
+<p>เติมคำลงในช่อง <code>_____</code> ให้ถูกต้อง บางข้อมีมากกว่าหนึ่งช่อง ให้เติมทุกช่อง</p>
+<ol class="qlist fill">
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>เมื่อเริ่มโปรเจกต์ Go ใหม่ เราพิมพ์คำสั่ง <code>go _____ init example.com/go-lab</code> คำสั่งนี้สร้างไฟล์ชื่อ <code>_____</code> ไว้ที่ root ของโปรเจกต์ ไฟล์นี้เก็บ Module Path และเวอร์ชันของ Go ส่วนคำสั่ง <code>go _____ ./...</code> ใช้ตรวจโค้ดทุก Package หาจุดที่น่าจะเป็น bug เช่น format string ไม่ตรงกับ argument</p>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>โปรแกรมนับจำนวนคำต่อไปนี้ต้องสร้าง Map ที่พร้อมเขียนข้อมูลได้ ถ้าประกาศแค่ <code>var count map[string]int</code> โปรแกรมจะ panic ด้วย <code>assignment to entry in nil map</code> จงเติมคำในช่องว่าง (ไฟล์ <code>practice/fill/f02/main.go</code>)</p>
+<pre class="code" data-env="file" data-label="Go · practice/fill/f02/main.go"><code class="language-go">package main
+
+import (
+	"fmt"
+	"maps"
+	"slices"
+	"strings"
+)
+
+func main() {
+	text := "go is fast go is simple go"
+	// สร้าง Map ว่างที่พร้อมใช้งาน (ไม่ใช่ nil map)
+	count := _____(map[string]int)
+	for _, w := range strings.Fields(text) {
+		count[w]++
+	}
+	// เรียง key ก่อนพิมพ์ เพราะลำดับของ Map สุ่มทุกครั้ง
+	for _, k := range slices.Sorted(maps.Keys(count)) {
+		fmt.Printf("%s=%d\n", k, count[k])
+	}
+}</code></pre>
+<p>เมื่อเติมถูก บรรทัดแรกของผลลัพธ์ต้องเป็น <code>fast=1</code></p>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>ข้อความภาษาไทย "สวัสดี" มี 6 ตัวอักษร แต่ <code>len(s)</code> คืนค่า 18 เพราะ <code>len</code> นับเป็น byte ของ UTF-8 จงเติมชื่อฟังก์ชันในแพ็กเกจ <code>unicode/utf8</code> ที่นับจำนวนตัวอักษร (rune) ให้ได้ 6 (ไฟล์ <code>practice/fill/f03/main.go</code>)</p>
+<pre class="code" data-env="file" data-label="Go · practice/fill/f03/main.go"><code class="language-go">package main
+
+import (
+	"fmt"
+	"unicode/utf8"
+)
+
+func main() {
+	s := "สวัสดี"
+	// len นับจำนวน byte ส่วนอีกฟังก์ชันนับจำนวนตัวอักษร (rune)
+	fmt.Println("bytes:", len(s))
+	fmt.Println("runes:", utf8._____(s))
+}</code></pre>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ฟังก์ชัน <code>parseQty</code> ต้องห่อ (wrap) error เดิมไว้ เพื่อให้ผู้เรียกใช้ <code>errors.Is(err, ErrNegative)</code> แล้วได้ <code>true</code> จงเติม verb ของ <code>fmt.Errorf</code> ที่ถูกต้องในทั้งสองช่อง (ไฟล์ <code>practice/fill/f04/main.go</code>)</p>
+<pre class="code" data-env="file" data-label="Go · practice/fill/f04/main.go"><code class="language-go">package main
+
+import (
+	"errors"
+	"fmt"
+	"strconv"
+)
+
+// ErrNegative คือ sentinel error สำหรับค่าติดลบ
+var ErrNegative = errors.New("value must not be negative")
+
+func parseQty(s string) (int, error) {
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		// ห่อ error เดิมไว้ เพื่อให้ errors.Is / errors.As มองทะลุเข้าไปได้
+		return 0, fmt.Errorf("parse %q: _____", s, err)
+	}
+	if n &lt; 0 {
+		return 0, fmt.Errorf("parse %q: _____", s, ErrNegative)
+	}
+	return n, nil
+}
+
+func main() {
+	for _, in := range []string{"12", "-5", "x"} {
+		n, err := parseQty(in)
+		if err != nil {
+			fmt.Println("error:", err, "| negative?", errors.Is(err, ErrNegative))
+			continue
+		}
+		fmt.Println("ok:", n)
+	}
+}</code></pre>
+<p>เมื่อเติมถูก บรรทัดของ <code>"-5"</code> ต้องจบด้วย <code>| negative? true</code></p>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>Method <code>TopUp</code> ต้องเพิ่มยอดเงินใน Wallet ตัวจริง ไม่ใช่ในสำเนา จงเติม Receiver ให้ถูกต้องทั้งสองช่อง เพื่อให้ผลลัพธ์เป็น <code>somchai 500</code> (ไฟล์ <code>practice/fill/f05/main.go</code>)</p>
+<pre class="code" data-env="file" data-label="Go · practice/fill/f05/main.go"><code class="language-go">package main
+
+import "fmt"
+
+type Wallet struct {
+	Owner   string
+	balance int
+}
+
+// Receiver แบบนี้ทำให้เมธอดแก้ไขค่าของ Wallet ตัวจริงได้
+func (w _____) TopUp(n int) {
+	w.balance += n
+}
+
+func (w _____) Balance() int {
+	return w.balance
+}
+
+func main() {
+	w := &amp;Wallet{Owner: "somchai"}
+	w.TopUp(300)
+	w.TopUp(200)
+	fmt.Println(w.Owner, w.Balance())
+}</code></pre>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ฟังก์ชัน Generic <code>Max</code> ต้องรับ Slice ของ Type ใดก็ได้ที่เปรียบเทียบด้วย <code>&gt;</code> ได้ เช่น <code>int</code>, <code>float64</code> และ <code>string</code> ถ้าใช้ <code>any</code> จะคอมไพล์ไม่ผ่าน จงเติม Constraint จากแพ็กเกจมาตรฐาน <code>cmp</code> (ไฟล์ <code>practice/fill/f06/main.go</code>)</p>
+<pre class="code" data-env="file" data-label="Go · practice/fill/f06/main.go"><code class="language-go">package main
+
+import (
+	"cmp"
+	"fmt"
+)
+
+// Max ใช้ได้กับทุก Type ที่เปรียบเทียบด้วย &lt; &gt; ได้
+func Max[T _____](xs []T) T {
+	var best T // Zero Value ของ T
+	for i, x := range xs {
+		if i == 0 || x &gt; best {
+			best = x
+		}
+	}
+	return best
+}
+
+func main() {
+	fmt.Println(Max([]int{120, 45, 900, 30}))
+	fmt.Println(Max([]string{"api", "db", "cache"}))
+	fmt.Println(Max([]float64{}))
+}</code></pre>
+<p>คำถามเสริม: บรรทัดสุดท้ายที่ส่ง Slice ว่างเข้าไป จะพิมพ์ค่า <code>_____</code> ออกมา</p>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>โปรแกรมนี้จำลองการ query ฐานข้อมูลภายใต้ Timeout 50 ms จงเติมช่องว่าง 2 ช่อง ช่องแรกคือการคืนทรัพยากรของ context ที่ <code>go vet</code> เตือนถ้าลืม ช่องที่สองคือ Method ที่คืน Channel ซึ่งถูกปิดเมื่อ context หมดเวลา (ไฟล์ <code>practice/fill/f07/main.go</code>)</p>
+<pre class="code" data-env="file" data-label="Go · practice/fill/f07/main.go"><code class="language-go">package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"time"
+)
+
+// slowQuery จำลองการ query ฐานข้อมูลที่ใช้เวลา d
+func slowQuery(ctx context.Context, d time.Duration) error {
+	select {
+	case &lt;-time.After(d):
+		return nil
+	case &lt;-ctx._____():
+		return ctx.Err()
+	}
+}
+
+func main() {
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer _____() // คืนทรัพยากรของ context เสมอ
+	for _, d := range []time.Duration{10 * time.Millisecond, 200 * time.Millisecond} {
+		err := slowQuery(ctx, d)
+		fmt.Printf("query %v -&gt; err=%v timeout=%v\n", d, err, errors.Is(err, context.DeadlineExceeded))
+	}
+}</code></pre>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>Goroutine 5 ตัวส่งผลลัพธ์เข้า Channel เดียวกัน ฝั่ง main ใช้ <code>for v := range results</code> อ่านจนกว่า Channel จะถูกปิด ถ้าไม่ปิด Channel โปรแกรมจะจบด้วย <code>fatal error: all goroutines are asleep - deadlock!</code> จงเติมช่องว่างเพื่อให้ Goroutine ตัวพิเศษรอจนทุกตัวส่งเสร็จ แล้วจึงปิด Channel (ไฟล์ <code>practice/fill/f08/main.go</code>)</p>
+<pre class="code" data-env="file" data-label="Go · practice/fill/f08/main.go"><code class="language-go">package main
+
+import (
+	"fmt"
+	"sync"
+)
+
+func main() {
+	results := make(chan int)
+	var wg sync.WaitGroup
+	for i := range 5 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			results &lt;- (i + 1) * 10
+		}()
+	}
+	// ปิด Channel หลังจากทุก Goroutine ส่งค่าเสร็จแล้ว
+	go func() {
+		wg._____()
+		close(_____)
+	}()
+	total := 0
+	for v := range results {
+		total += v
+	}
+	fmt.Println("total:", total)
+}</code></pre>
+<p>คำถามเสริม: เมื่อเติมถูก โปรแกรมพิมพ์ <code>total: _____</code></p>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>ServeMux ของ Go 1.22 ขึ้นไปรองรับ Pattern แบบมี Method และ Wildcard จงเติม Method ของ <code>*http.Request</code> ที่ดึงค่าของ <code>{name}</code> ออกมา และเติม Status Code ที่ Server ตอบกลับเมื่อส่ง <code>POST</code> ไปยัง Path ที่ลงทะเบียนไว้แค่ <code>GET</code> (ไฟล์ <code>practice/fill/f09/main.go</code>)</p>
+<pre class="code" data-env="file" data-label="Go · practice/fill/f09/main.go"><code class="language-go">package main
+
+import (
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+)
+
+func main() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /users/{name}", func(w http.ResponseWriter, r *http.Request) {
+		// ดึงค่า wildcard {name} จาก path
+		name := r._____("name")
+		fmt.Fprintf(w, "hello %s\n", name)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/users/somchai")
+	if err != nil {
+		fmt.Println("error:", err)
+		return
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	fmt.Print(resp.StatusCode, " ", string(body))
+
+	resp2, err := http.Post(srv.URL+"/users/somchai", "text/plain", nil)
+	if err != nil {
+		fmt.Println("error:", err)
+		return
+	}
+	resp2.Body.Close()
+	fmt.Println(resp2.StatusCode, resp2.Header.Get("Allow"))
+}</code></pre>
+<p>ผลลัพธ์บรรทัดที่สองจะขึ้นต้นด้วย Status Code <code>_____</code> ตามด้วยค่าของ Header <code>Allow</code></p>
+</li>
+</ol>
+
+<h3 id="s6-3-mcq">Multiple Choice</h3>
+<p>เลือกคำตอบที่ถูกที่สุดเพียงข้อเดียว ทุกโค้ดในคำถามเป็นโปรแกรมที่ครบ ถ้าอยากพิสูจน์ ให้สร้างไฟล์ <code>practice/mcq/qNN/main.go</code> แล้วรันด้วย <code>go run ./practice/mcq/qNN</code> ได้เลย แต่แนะนำให้คิดในหัวก่อนรัน</p>
+<ol class="qlist mcq">
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>โปรแกรมนี้พิมพ์อะไรออกมา (ทดสอบเรื่อง Zero Value)</p>
+<pre class="code" data-env="file" data-label="Go · main.go"><code class="language-go">package main
+
+import "fmt"
+
+func main() {
+	var s []int
+	var m map[string]int
+	var p *int
+	fmt.Println(s == nil, len(s), m == nil, p == nil)
+}</code></pre>
+<ol class="choices">
+<li><code>true 0 true true</code></li>
+<li><code>false 0 true true</code></li>
+<li><code>true 0 false false</code></li>
+<li>คอมไพล์ไม่ผ่าน เพราะตัวแปรยังไม่ได้กำหนดค่าเริ่มต้น</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>เมื่อรันด้วย Go 1.27.2 (go.mod เขียนว่า <code>go 1.27.2</code>) โปรแกรมนี้พิมพ์อะไร</p>
+<pre class="code" data-env="file" data-label="Go · main.go"><code class="language-go">package main
+
+import "fmt"
+
+func main() {
+	for i := range 3 {
+		fmt.Print(i, " ")
+	}
+	fmt.Println()
+}</code></pre>
+<ol class="choices">
+<li><code>1 2 3</code></li>
+<li><code>0 1 2</code></li>
+<li><code>0 1 2 3</code></li>
+<li>คอมไพล์ไม่ผ่าน เพราะ <code>range</code> ใช้กับตัวเลขไม่ได้</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>โปรแกรมนี้พิมพ์ค่าอะไร</p>
+<pre class="code" data-env="file" data-label="Go · main.go"><code class="language-go">package main
+
+import "fmt"
+
+type Counter struct{ n int }
+
+func (c Counter) Inc() { c.n++ }
+
+func main() {
+	c := Counter{}
+	c.Inc()
+	c.Inc()
+	fmt.Println(c.n)
+}</code></pre>
+<ol class="choices">
+<li><code>2</code></li>
+<li><code>1</code></li>
+<li><code>0</code></li>
+<li>คอมไพล์ไม่ผ่าน เพราะ <code>c</code> ไม่ใช่ Pointer จึงเรียก Method ไม่ได้</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>ลำดับบรรทัดที่โปรแกรมนี้พิมพ์คือข้อใด</p>
+<pre class="code" data-env="file" data-label="Go · main.go"><code class="language-go">package main
+
+import "fmt"
+
+func main() {
+	defer fmt.Println("A")
+	defer fmt.Println("B")
+	fmt.Println("C")
+}</code></pre>
+<ol class="choices">
+<li><code>C</code> แล้ว <code>A</code> แล้ว <code>B</code></li>
+<li><code>A</code> แล้ว <code>B</code> แล้ว <code>C</code></li>
+<li><code>B</code> แล้ว <code>A</code> แล้ว <code>C</code></li>
+<li><code>C</code> แล้ว <code>B</code> แล้ว <code>A</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>โปรแกรมนี้พิมพ์อะไร (ทดสอบเรื่อง Backing Array ของ Slice)</p>
+<pre class="code" data-env="file" data-label="Go · main.go"><code class="language-go">package main
+
+import "fmt"
+
+func main() {
+	a := []int{1, 2, 3, 4}
+	b := a[:2]
+	b = append(b, 99)
+	fmt.Println(a, b, len(b), cap(b))
+}</code></pre>
+<ol class="choices">
+<li><code>[1 2 99 4] [1 2 99] 3 4</code></li>
+<li><code>[1 2 3 4] [1 2 99] 3 4</code></li>
+<li><code>[1 2 99 4] [1 2 99] 3 3</code></li>
+<li><code>[1 2 3 4 99] [1 2 99] 3 4</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>เกิดอะไรขึ้นเมื่อรันโปรแกรมนี้</p>
+<pre class="code" data-env="file" data-label="Go · main.go"><code class="language-go">package main
+
+import "fmt"
+
+func main() {
+	ch := make(chan int)
+	ch &lt;- 1
+	fmt.Println(&lt;-ch)
+}</code></pre>
+<ol class="choices">
+<li>พิมพ์ <code>1</code></li>
+<li>พิมพ์ <code>0</code> ซึ่งเป็น Zero Value ของ <code>int</code></li>
+<li>จบด้วย <code>fatal error: all goroutines are asleep - deadlock!</code></li>
+<li>คอมไพล์ไม่ผ่าน เพราะต้องประกาศขนาดของ Channel ทุกครั้ง</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="b">ง่าย</span>
+<p>โปรแกรมตัดเกรดนี้พิมพ์อะไร</p>
+<pre class="code" data-env="file" data-label="Go · main.go"><code class="language-go">package main
+
+import "fmt"
+
+func main() {
+	score := 75
+	switch {
+	case score &gt;= 80:
+		fmt.Println("A")
+	case score &gt;= 70:
+		fmt.Println("B")
+	case score &gt;= 60:
+		fmt.Println("C")
+	default:
+		fmt.Println("F")
+	}
+}</code></pre>
+<ol class="choices">
+<li><code>A</code></li>
+<li><code>B</code> แล้วตามด้วย <code>C</code> และ <code>F</code> เพราะไม่มี <code>break</code></li>
+<li><code>F</code></li>
+<li><code>B</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>โปรแกรมนี้พิมพ์อะไร</p>
+<pre class="code" data-env="file" data-label="Go · main.go"><code class="language-go">package main
+
+import (
+	"errors"
+	"fmt"
+)
+
+var ErrNotFound = errors.New("not found")
+
+func main() {
+	e1 := fmt.Errorf("load user: %v", ErrNotFound)
+	e2 := fmt.Errorf("load user: %w", ErrNotFound)
+	fmt.Println(errors.Is(e1, ErrNotFound), errors.Is(e2, ErrNotFound))
+}</code></pre>
+<ol class="choices">
+<li><code>true true</code></li>
+<li><code>false true</code></li>
+<li><code>true false</code></li>
+<li><code>false false</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>โปรแกรมนี้พิมพ์อะไร</p>
+<pre class="code" data-env="file" data-label="Go · main.go"><code class="language-go">package main
+
+import (
+	"context"
+	"fmt"
+	"time"
+)
+
+func main() {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
+	defer cancel()
+	select {
+	case &lt;-time.After(100 * time.Millisecond):
+		fmt.Println("done")
+	case &lt;-ctx.Done():
+		fmt.Println("stop:", ctx.Err())
+	}
+}</code></pre>
+<ol class="choices">
+<li><code>done</code></li>
+<li><code>stop: context canceled</code></li>
+<li><code>stop: context deadline exceeded</code></li>
+<li>พิมพ์ทั้ง <code>stop: ...</code> และ <code>done</code> เพราะ <code>select</code> ทำทุก case ที่พร้อม</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>เกิดอะไรขึ้นเมื่อสั่ง <code>go run</code> โปรแกรมนี้</p>
+<pre class="code" data-env="file" data-label="Go · main.go"><code class="language-go">package main
+
+type Notifier interface {
+	Notify(msg string) error
+}
+
+type Console struct{}
+
+func (c *Console) Notify(msg string) error { return nil }
+
+func main() {
+	var n Notifier = Console{}
+	_ = n
+}</code></pre>
+<ol class="choices">
+<li>คอมไพล์ไม่ผ่าน เพราะ <code>Console</code> ไม่ได้ implement <code>Notifier</code> (Method <code>Notify</code> มี Pointer Receiver)</li>
+<li>คอมไพล์ผ่านและรันจบปกติ เพราะ Go แปลง <code>Console{}</code> เป็น <code>&amp;Console{}</code> ให้อัตโนมัติ</li>
+<li>คอมไพล์ผ่าน แต่ panic ตอนรันด้วย <code>nil pointer dereference</code></li>
+<li>คอมไพล์ผ่าน มีเพียง <code>go vet</code> ที่เตือนเรื่อง Receiver</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>โปรแกรมนี้พิมพ์อะไร</p>
+<pre class="code" data-env="file" data-label="Go · main.go"><code class="language-go">package main
+
+import "fmt"
+
+func main() {
+	ch := make(chan string, 2)
+	ch &lt;- "a"
+	ch &lt;- "b"
+	close(ch)
+	for v := range ch {
+		fmt.Print(v, " ")
+	}
+	v, ok := &lt;-ch
+	fmt.Printf("%q %v\n", v, ok)
+}</code></pre>
+<ol class="choices">
+<li><code>panic: receive from closed channel</code></li>
+<li><code>a b "b" true</code></li>
+<li><code>fatal error: all goroutines are asleep - deadlock!</code></li>
+<li><code>a b "" false</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="i">กลาง</span>
+<p>ผลของการรันโปรแกรม Generic นี้คือข้อใด</p>
+<pre class="code" data-env="file" data-label="Go · main.go"><code class="language-go">package main
+
+import "fmt"
+
+func Sum[T any](xs []T) T {
+	var total T
+	for _, x := range xs {
+		total += x
+	}
+	return total
+}
+
+func main() {
+	fmt.Println(Sum([]int{1, 2, 3}))
+}</code></pre>
+<ol class="choices">
+<li>พิมพ์ <code>6</code></li>
+<li>พิมพ์ <code>0</code></li>
+<li>คอมไพล์ไม่ผ่าน: <code>invalid operation: operator + not defined on total (variable of type T constrained by any)</code></li>
+<li>คอมไพล์ผ่าน แต่ panic ตอนรัน เพราะ <code>T</code> ไม่รู้จักเครื่องหมาย <code>+</code></li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>ข้อใดอธิบายโปรแกรมนี้ได้ถูกต้องที่สุด</p>
+<pre class="code" data-env="file" data-label="Go · main.go"><code class="language-go">package main
+
+import (
+	"fmt"
+	"sync"
+)
+
+func main() {
+	count := 0
+	var wg sync.WaitGroup
+	for range 1000 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			count++
+		}()
+	}
+	wg.Wait()
+	fmt.Println(count)
+}</code></pre>
+<ol class="choices">
+<li>พิมพ์ <code>1000</code> ทุกครั้ง เพราะ <code>wg.Wait()</code> รอทุก Goroutine ให้เสร็จก่อน</li>
+<li>ผลลัพธ์อาจน้อยกว่า <code>1000</code> และ <code>go run -race</code> จะรายงาน <code>WARNING: DATA RACE</code> แก้ได้ด้วย <code>sync.Mutex</code> หรือ <code>atomic.Int64</code></li>
+<li>คอมไพล์ไม่ผ่าน เพราะ Closure เข้าถึงตัวแปร <code>count</code> ที่อยู่นอกฟังก์ชันไม่ได้</li>
+<li>พิมพ์ <code>0</code> ทุกครั้ง เพราะแต่ละ Goroutine ได้สำเนาของ <code>count</code> ไปคนละตัว</li>
+</ol>
+</li>
+<li><span class="lvl" data-lvl="a">ยาก</span>
+<p>Server นี้ลงทะเบียนไว้แค่ Pattern เดียว ส่ง Request 4 รายการตามลำดับ จะได้ Status Code ตามลำดับเป็นข้อใด</p>
+<pre class="code" data-env="file" data-label="Go · main.go"><code class="language-go">package main
+
+import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+)
+
+func main() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /items/{id}", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "item ", r.PathValue("id"))
+	})
+	for _, rq := range []struct{ method, path string }{
+		{"GET", "/items/7"},
+		{"DELETE", "/items/7"},
+		{"GET", "/items/"},
+		{"GET", "/items/7/reviews"},
+	} {
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, httptest.NewRequest(rq.method, rq.path, nil))
+		fmt.Println(rq.method, rq.path, rec.Code)
+	}
+}</code></pre>
+<ol class="choices">
+<li><code>200</code>, <code>405</code>, <code>404</code>, <code>404</code></li>
+<li><code>200</code>, <code>404</code>, <code>404</code>, <code>404</code></li>
+<li><code>200</code>, <code>405</code>, <code>200</code>, <code>200</code></li>
+<li><code>200</code>, <code>405</code>, <code>404</code>, <code>200</code></li>
+</ol>
+</li>
+</ol>
+
+<h3 id="s6-3-hands">Hands-on Challenge</h3>
+<p>โจทย์ 3 ข้อนี้จำลองงานจริงที่นักพัฒนา Backend ได้รับบ่อย ทุกข้อทำงานบนเครื่องของคุณเองทั้งหมด ไม่ต้องต่ออินเทอร์เน็ต ให้เขียนโค้ดเองให้ได้ก่อน ใช้ Hint เมื่อติดจริง ๆ แล้วค่อยเทียบกับเฉลย</p>
+
+<article class="challenge" data-lvl="b">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 1</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h4>สรุป Access Log ของเว็บร้านค้าออนไลน์ (logsum)</h4>
+<h5>สถานการณ์</h5>
+<p>คุณเพิ่งเข้าทีม Backend ของร้านค้าออนไลน์ เมื่อเช้าลูกค้าแจ้งว่าจ่ายเงินไม่ผ่านหลายครั้ง หัวหน้าทีมส่งไฟล์ <code>access.log</code> ช่วงเวลานั้นมาให้ และขอให้เขียนเครื่องมือเล็ก ๆ ด้วย Go ที่สรุปจำนวน Request ตามกลุ่ม Status Code, จำนวน Request ต่อ Path, Latency เฉลี่ย, Request ที่ช้าที่สุด และแจ้งเตือนถ้าสัดส่วน Error ฝั่ง Server (5xx) เกิน 10% ไฟล์ log จริงมักมีบรรทัดเสียปนมา โปรแกรมต้องข้ามบรรทัดเสียได้โดยไม่ล่ม และบอกเลขบรรทัดที่ข้ามไป</p>
+<p>สร้างไฟล์ข้อมูลตัวอย่าง <code>practice/ch1/access.log</code> ดังนี้ (รูปแบบแต่ละบรรทัดคือ <code>เวลา Method Path Status Latency_ms</code>)</p>
+<pre class="code" data-env="file" data-label="Text · practice/ch1/access.log"><code class="language-plaintext"># access log ของร้าน shop.example (ตัวอย่าง)
+2026-10-19T09:00:01Z GET /products 200 120
+2026-10-19T09:00:02Z GET /products/42 200 85
+2026-10-19T09:00:03Z POST /cart 201 230
+2026-10-19T09:00:04Z GET /products/99 404 15
+
+2026-10-19T09:00:05Z POST /checkout 500 1450
+2026-10-19T09:00:06Z GET /products 200 98
+2026-10-19T09:00:07Z GET /login 302 40
+2026-10-19T09:00:08Z POST /checkout 200 610
+broken line here
+2026-10-19T09:00:09Z GET /products/42 200 abc
+2026-10-19T09:00:10Z POST /checkout 503 2010</code></pre>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+<li>สร้างไฟล์ <code>practice/ch1/main.go</code> รับ path ของไฟล์ log จาก <code>os.Args[1]</code> ถ้าไม่ส่งมาให้ใช้ <code>practice/ch1/access.log</code> อ่านไฟล์ด้วย <code>os.ReadFile</code> ถ้าเปิดไฟล์ไม่ได้ให้พิมพ์ error ไปที่ stderr แล้วจบด้วย Exit Code 2</li>
+<li>ประกาศ Struct <code>Entry</code> ที่มี <code>Method</code>, <code>Path</code>, <code>Status</code> และ <code>LatencyMS</code> แล้วเขียนฟังก์ชัน <code>parseLine(line string) (Entry, error)</code> ที่คืน error เมื่อจำนวนช่องไม่เท่ากับ 5 (ห่อ sentinel error <code>ErrBadFormat</code> ด้วย <code>%w</code>) หรือเมื่อแปลงตัวเลขด้วย <code>strconv.Atoi</code> ไม่ได้</li>
+<li>วนอ่านทีละบรรทัด ข้ามบรรทัดว่างและบรรทัดที่ขึ้นต้นด้วย <code>#</code> ถ้า parse ไม่ผ่านให้พิมพ์ <code>skip line N: ...</code> ไปที่ stderr (N คือเลขบรรทัดจริงในไฟล์ เริ่มที่ 1) แล้วทำบรรทัดถัดไปต่อ</li>
+<li>เขียนฟังก์ชัน <code>statusClass(code int) string</code> ด้วย tagless <code>switch</code> ที่แปลง 200–299 เป็น <code>2xx</code>, 300–399 เป็น <code>3xx</code>, 400–499 เป็น <code>4xx</code> และ 500 ขึ้นไปเป็น <code>5xx</code></li>
+<li>นับจำนวนตามกลุ่ม Status และตาม Path ด้วย Map แล้วพิมพ์โดยเรียง key ด้วย <code>slices.Sorted(maps.Keys(m))</code> เพื่อให้ผลลัพธ์เหมือนเดิมทุกครั้ง</li>
+<li>คำนวณ Latency เฉลี่ยด้วยการแปลงเป็น <code>float64</code> (พิมพ์ทศนิยม 2 ตำแหน่ง), หา Request ที่ช้าที่สุด และคำนวณสัดส่วน 5xx เป็นเปอร์เซ็นต์ (ทศนิยม 1 ตำแหน่ง)</li>
+<li>ถ้าสัดส่วน 5xx เกิน 10% ให้พิมพ์ <code>ALERT: 5xx rate is above 10%</code> แล้วจบด้วย Exit Code 1 ถ้าไม่เกินให้จบด้วย 0 จากนั้น build เป็นไฟล์ <code>bin/logsum</code> แล้วตรวจ Exit Code ด้วย <code>echo "exit code: $?"</code></li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<p>เมื่อรัน <code>./bin/logsum</code> กับไฟล์ตัวอย่าง ข้อความ skip สองบรรทัดแรกออกทาง stderr ส่วนที่เหลือออกทาง stdout และ Exit Code ต้องเป็น 1 เพราะมี 5xx 2 จาก 9 Request</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>skip line 11: want 5 fields, got 3: bad format
+skip line 12: latency "abc": strconv.Atoi: parsing "abc": invalid syntax
+requests: 9 (skipped 2 bad lines)
+by status class:
+  2xx: 5
+  3xx: 1
+  4xx: 1
+  5xx: 2
+by path:
+  /cart          1
+  /checkout      3
+  /login         1
+  /products      2
+  /products/42   1
+  /products/99   1
+avg latency: 517.56 ms
+slowest: POST /checkout 503 (2010 ms)
+5xx rate: 22.2%
+ALERT: 5xx rate is above 10%
+exit code: 1</code></pre>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+<li>ใช้ <code>strings.Split(string(data), "\n")</code> แยกบรรทัด แล้วใช้ index จาก <code>range</code> บวก 1 เป็นเลขบรรทัด</li>
+<li>ใช้ <code>strings.Fields(line)</code> แยกช่องตามช่องว่าง ได้ Slice ที่ตรวจความยาวด้วย <code>len</code> ได้ทันที</li>
+<li>Latency เฉลี่ยต้องเขียนเป็น <code>float64(total) / float64(len(entries))</code> ถ้าหาร <code>int</code> กับ <code>int</code> จะได้ 517 ทศนิยมหายไป</li>
+<li>จัดคอลัมน์ Path ให้ตรงกันได้ด้วย <code>fmt.Printf("  %-14s %d\n", k, v)</code> โดย <code>%-14s</code> คือชิดซ้ายกว้าง 14 ตัวอักษร</li>
+<li>ใน <code>Printf</code> ถ้าต้องการพิมพ์เครื่องหมาย % ให้เขียน <code>%%</code></li>
+</ul>
+</div></details>
+</article>
+
+<article class="challenge" data-lvl="i">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 2</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h4>ตรวจไฟล์ Config ของ Service ก่อน Deploy (svccheck)</h4>
+<h5>สถานการณ์</h5>
+<p>ทีม DevOps เก็บการตั้งค่าของทุก Service ไว้ในไฟล์ <code>services.json</code> สัปดาห์ที่แล้วมีคนพิมพ์ port เป็น 0 และตั้ง replicas เป็น 12 ทำให้ deploy ล้มกลางดึก ทีมจึงอยากได้เครื่องมือ CLI ที่รันใน CI ก่อน deploy ทุกครั้ง โปรแกรมต้องรายงานปัญหา <strong>ทุกข้อ</strong> ในครั้งเดียว (ไม่ใช่หยุดที่ข้อแรก) แสดงผลเป็นตารางให้คนอ่าน หรือเป็น JSON ให้เครื่องมืออื่นอ่าน และใช้ Exit Code บอก CI ว่าผ่านหรือไม่ผ่าน กฎของทีมมีดังนี้</p>
+<ul>
+<li><code>name</code> ห้ามว่าง และห้ามซ้ำกับ Service ก่อนหน้าในไฟล์</li>
+<li><code>port</code> ต้องอยู่ในช่วง 1–65535</li>
+<li><code>replicas</code> ต้องอยู่ในช่วง 1–10</li>
+<li><code>health_path</code> ต้องขึ้นต้นด้วย <code>/</code></li>
+<li>ถ้ามี field ที่ไม่รู้จัก (เช่นพิมพ์ <code>prot</code> แทน <code>port</code>) ให้ถือว่าไฟล์ config ผิด</li>
+</ul>
+<p>สร้างไฟล์ทดสอบ <code>practice/ch2/services.json</code> ดังนี้</p>
+<pre class="code" data-env="file" data-label="JSON · practice/ch2/services.json"><code class="language-json">[
+  {"name": "api", "port": 8080, "replicas": 3, "health_path": "/health"},
+  {"name": "worker", "port": 0, "replicas": 12, "health_path": "/health"},
+  {"name": "web", "port": 3000, "replicas": 2, "health_path": "healthz"},
+  {"name": "api", "port": 8081, "replicas": 1, "health_path": "/health"}
+]</code></pre>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+<li>สร้าง Package <code>practice/ch2/svcconf</code> ที่มี Struct <code>Service</code> พร้อม Struct Tag ของ JSON (<code>name</code>, <code>port</code>, <code>replicas</code>, <code>health_path</code>) และ Custom Error Type <code>*FieldError{Service, Field, Reason}</code> ที่มี Method <code>Error() string</code></li>
+<li>เขียน Method <code>(s Service) Validate() error</code> ที่ตรวจกฎทุกข้อ เก็บ error ทุกตัวไว้ใน Slice แล้วคืนรวมกันด้วย <code>errors.Join</code> (ไม่มี error ต้องคืน <code>nil</code>)</li>
+<li>เขียน <code>Load(r io.Reader) ([]Service, error)</code> ที่ใช้ <code>json.NewDecoder</code> พร้อม <code>DisallowUnknownFields()</code> และ <code>ValidateAll([]Service) []Result</code> ที่ตรวจชื่อซ้ำด้วย Map และคืนผลตามลำดับเดิมในไฟล์ โดย <code>Result</code> มี Tag <code>problems,omitempty</code></li>
+<li>เขียน Table-driven Test ใน <code>svcconf_test.go</code> อย่างน้อย 6 กรณีสำหรับ <code>Validate</code> ใช้ <code>t.Run</code> และ <code>errors.As</code> ตรวจว่าได้ <code>*FieldError</code> ที่ field ถูกต้อง พร้อมเทสต์ชื่อซ้ำและเทสต์ field ที่ไม่รู้จัก</li>
+<li>เขียน <code>practice/ch2/main.go</code> ที่รับ Flag <code>-file</code> (ค่าเริ่มต้น <code>practice/ch2/services.json</code>) และ <code>-format</code> (<code>table</code> หรือ <code>json</code>) แสดงตารางด้วย <code>text/tabwriter</code> พร้อมบรรทัดสรุป และเขียน log ผ่าน <code>log/slog</code> ไปที่ stderr</li>
+<li>กำหนด Exit Code: 0 เมื่อทุก Service ผ่าน, 1 เมื่อมี Service ไม่ผ่าน, 2 เมื่อ <code>-format</code> ผิด เปิดไฟล์ไม่ได้ หรือ JSON อ่านไม่ได้ จากนั้นรัน <code>go test -v ./practice/ch2/...</code> และ build เป็น <code>bin/svccheck</code></li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<p>รัน <code>./bin/svccheck</code> กับไฟล์ตัวอย่าง ต้องได้ตารางที่บอกปัญหาทุกข้อของทุก Service และ Exit Code 1</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>SERVICE  STATUS  PROBLEM
+api      OK      -
+worker   FAIL    worker.port: 0 is out of range 1-65535
+                 worker.replicas: 12 is out of range 1-10
+web      FAIL    web.health_path: "healthz" must start with /
+api      FAIL    api.name: duplicate service name
+checked 4 services: 1 ok, 3 failed
+exit code: 1</code></pre>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+<li><code>errors.Join(errs...)</code> คืน <code>nil</code> เมื่อ Slice ว่าง จึงใช้เป็นค่า return ได้ตรง ๆ และ <code>err.Error()</code> ของมันคือข้อความของทุก error คั่นด้วย <code>\n</code> ใช้ <code>strings.Split</code> แยกเป็นรายการได้</li>
+<li><code>errors.As</code> ทำงานกับ error ที่ได้จาก <code>errors.Join</code> ได้ เพราะมันค้นหาเข้าไปในทุก error ที่ถูกรวมไว้</li>
+<li>เวลาเขียนแถวที่สองของ Service เดียวกันในตาราง ให้ปล่อยคอลัมน์ SERVICE และ STATUS เป็นข้อความว่าง แล้ว tabwriter จะจัดให้ตรงคอลัมน์เอง</li>
+<li>อย่าลืม <code>tw.Flush()</code> หลังเขียนตารางเสร็จ ไม่อย่างนั้นจะไม่มีอะไรออกทางหน้าจอเลย</li>
+</ul>
+</div></details>
+</article>
+
+<article class="challenge" data-lvl="a">
+<div class="concept-meta"><span class="c-no">โจทย์ที่ 3</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h4>ค้นหาราคาตั๋วจากหลายสายการบินพร้อมกัน (farefind)</h4>
+<h5>สถานการณ์</h5>
+<p>บริษัทท่องเที่ยวแห่งหนึ่งมีหน้าเว็บค้นหาตั๋วเครื่องบิน เมื่อผู้ใช้กดค้นหา Backend ต้องขอราคาจาก API ของสายการบินพันธมิตรหลายเจ้า ถ้าเรียกทีละเจ้า ผู้ใช้ต้องรอผลรวมของทุกเจ้า ทีมจึงกำหนดว่าต้องเรียกทุกเจ้า <strong>พร้อมกัน</strong> และรอรวมแล้วไม่เกิน 300 ms เจ้าที่ตอบไม่ทันให้ตัดทิ้ง เจ้าที่ตอบ 5xx ชั่วคราวให้ลองใหม่ (Retry) แบบ Backoff ส่วนเจ้าที่ตอบ 4xx ห้ามลองใหม่ สุดท้ายให้เลือกราคาที่ถูกที่สุดจากเจ้าที่ตอบสำเร็จ</p>
+<p>ในการฝึก ให้จำลอง API ของสายการบิน 4 เจ้าด้วย <code>httptest.NewServer</code> ภายในโปรแกรมเอง (ไม่ต้องใช้อินเทอร์เน็ต) แต่ละเจ้าใช้ Pattern <code>GET /quotes/{route}</code> และตอบ JSON <code>{"route":"BKK-CNX","price_thb":2890}</code></p>
+<div class="tbl mid"><table class="explain"><thead><tr><th>Supplier</th><th>พฤติกรรมที่ต้องจำลอง</th></tr></thead><tbody>
+<tr><td><code>fastair</code></td><td>ตอบภายใน 10 ms ราคา 2890 บาท</td></tr>
+<tr><td><code>budgetfly</code></td><td>ครั้งแรกตอบ 500 ครั้งต่อไปตอบ 200 ราคา 2450 บาท (ต้อง Retry จึงได้ราคา)</td></tr>
+<tr><td><code>slowjet</code></td><td>ใช้เวลา 2 วินาที ราคา 1990 บาท (ถูกสุดแต่ช้าเกิน ต้องถูกตัดด้วย Timeout)</td></tr>
+<tr><td><code>brokenair</code></td><td>ตอบ 503 ทุกครั้ง (Retry จนครบจำนวนแล้วยอมแพ้)</td></tr>
+</tbody></table></div>
+<h5>สิ่งที่ต้องทำ</h5>
+<ol>
+<li>สร้าง <code>practice/ch3/main.go</code> ประกาศ Struct <code>Supplier{Name, BaseURL}</code>, <code>Quote{Route, PriceTHB}</code> (มี JSON Tag), <code>Result{Supplier, Quote *Quote, Attempts, Err}</code> และ Custom Error <code>*StatusError{Code}</code></li>
+<li>เขียน <code>fetchQuote(ctx, client, supplier, route, retries, backoff) Result</code> ที่สร้าง Request ด้วย <code>http.NewRequestWithContext</code>, ปิด <code>resp.Body</code> ทุกครั้ง, Retry เฉพาะ 5xx และ Network Error โดยรอ <code>backoff * attempt</code> ระหว่างรอบ และเลิกทันทีเมื่อ <code>ctx.Done()</code></li>
+<li>เขียน <code>aggregate(ctx, client, suppliers, route, retries) []Result</code> ที่เรียกทุก Supplier พร้อมกันด้วย <code>sync.WaitGroup</code> (ใช้ <code>wg.Go</code> ของ Go 1.25+) และเก็บผลลง Slice ตาม index เพื่อให้ลำดับผลตรงกับลำดับ Supplier เสมอ และไม่เกิด Data Race</li>
+<li>เขียน <code>cheapest([]Result) (Result, bool)</code> และ <code>describe(err) string</code> ที่แปลง <code>context.DeadlineExceeded</code> เป็นคำว่า <code>timeout</code> และ <code>*StatusError</code> เป็น <code>status 503</code> (ใช้ <code>errors.Is</code> และ <code>errors.As</code>) เพื่อไม่ให้มีเลข port สุ่มในผลลัพธ์</li>
+<li>ใน <code>main</code> รับ Flag <code>-timeout</code> (ค่าเริ่มต้น 300ms ใช้ <code>flag.Duration</code>), <code>-retries</code> (0–5 ค่าเริ่มต้น 2 ถ้านอกช่วงให้จบด้วย Exit Code 2) และ <code>-route</code> (ค่าเริ่มต้น <code>BKK-CNX</code>) สร้าง context ด้วย <code>context.WithTimeout</code> และ <code>defer cancel()</code> แล้วพิมพ์ตารางด้วย tabwriter ตามด้วยราคาที่ถูกที่สุด ถ้าไม่มีเจ้าไหนตอบสำเร็จให้พิมพ์ <code>no quotes available</code> และจบด้วย Exit Code 1</li>
+<li>เขียน <code>main_test.go</code> แบบ Table-driven ด้วย <code>httptest.NewServer</code> ครอบคลุมกรณี สำเร็จครั้งแรก, 500 แล้ว 200, 503 ตลอด, 404 (ห้าม Retry) และช้าเกิน Timeout รวมทั้งเทสต์ว่า <code>aggregate</code> คืนผลตามลำดับเดิมแม้เจ้าแรกจะช้าที่สุด แล้วรันด้วย <code>go test -race -v ./practice/ch3</code></li>
+</ol>
+<h5>ผลลัพธ์ที่คาดหวัง</h5>
+<p>บรรทัด <code>elapsed</code> ออกทาง stderr และค่าบนเครื่องของคุณอาจต่างไปเล็กน้อย ส่วนตารางต้องเหมือนนี้ทุกครั้ง</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>SUPPLIER   PRICE_THB  ATTEMPTS  ERROR
+fastair    2890       1         -
+budgetfly  2450       2         -
+slowjet    -          1         timeout
+brokenair  -          3         status 503
+elapsed: 300ms
+best for BKK-CNX: budgetfly 2450 THB
+exit code: 0</code></pre>
+<details class="hint"><summary>Hint</summary><div>
+<ul>
+<li>ใน Handler ของ Supplier ปลอม ให้ใช้ <code>select</code> ระหว่าง <code>time.After(delay)</code> กับ <code>r.Context().Done()</code> เพื่อให้ Handler เลิกทำงานทันทีเมื่อ Client ยกเลิก ไม่อย่างนั้น <code>srv.Close()</code> จะต้องรอจน Handler ทำงานครบ 2 วินาที</li>
+<li>นับจำนวนครั้งที่ถูกเรียกใน Handler ด้วย <code>atomic.Int32</code> เพราะ Handler ถูกเรียกจากหลาย Goroutine พร้อมกันได้</li>
+<li>Error จาก <code>client.Do</code> เมื่อ context หมดเวลาจะห่อ <code>context.DeadlineExceeded</code> ไว้ จึงตรวจด้วย <code>errors.Is(err, context.DeadlineExceeded)</code> ได้ และกรณีนี้ไม่ควร Retry</li>
+<li>ตั้งแต่ Go 1.22 ตัวแปรในลูป <code>for i, s := range sups</code> เป็นตัวใหม่ทุกรอบ Closure ใน <code>wg.Go</code> จึงใช้ <code>i</code> และ <code>s</code> ได้โดยตรงอย่างปลอดภัย</li>
+</ul>
+</div></details>
+</article>
+
+<h3 id="s6-3-answers">เฉลย</h3>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ลองทำทุกข้อด้วยตัวเองก่อนเปิดเฉลย โดยเฉพาะข้อที่มีโค้ด ให้เติมคำแล้วรัน <code>go run</code> ดูผลจริงก่อน ถ้าเปิดเฉลยเร็วเกินไป คุณจะรู้สึกว่าเข้าใจ แต่พอต้องเขียนเองจะนึกไม่ออก ความผิดพลาดที่เจอเองคือบทเรียนที่จำได้นานที่สุด</p></div>
+
+<h4>เฉลย Fill-in-the-blank</h4>
+<details class="ans"><summary>ข้อ 1</summary><div>
+<p><strong>คำตอบ:</strong> <code>mod</code>, <code>go.mod</code>, <code>vet</code></p>
+<p><code>go mod init &lt;module-path&gt;</code> สร้างไฟล์ <code>go.mod</code> ที่ระบุว่าโฟลเดอร์นี้คือ Module ชื่ออะไร และเขียนบรรทัด <code>go 1.27.2</code> ตามเวอร์ชันของ Go ที่ใช้อยู่ ทุก Package ใต้โฟลเดอร์นี้ import กันได้ด้วยชื่อขึ้นต้นด้วย Module Path เช่น <code>example.com/go-lab/practice/ch2/svcconf</code> ส่วน <code>go vet ./...</code> คือเครื่องมือวิเคราะห์โค้ดแบบ static ที่หาจุดน่าสงสัย เช่น <code>Printf</code> ที่ verb ไม่ตรงกับ argument, ลืมเรียก <code>cancel</code> ของ context หรือส่ง <code>sync.Mutex</code> แบบ copy ค่า <code>./...</code> แปลว่าทุก Package ในโฟลเดอร์ปัจจุบันและโฟลเดอร์ย่อยทั้งหมด</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/demo &amp;&amp; cd ~/projects/demo
+go mod init example.com/demo
+cat go.mod</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>go: creating new go.mod: module example.com/demo
+module example.com/demo
+
+go 1.27.2</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 2</summary><div>
+<p><strong>คำตอบ:</strong> <code>make</code> ทำให้บรรทัดนั้นเป็น <code>count := make(map[string]int)</code></p>
+<p>Zero Value ของ Map คือ <code>nil</code> อ่านจาก nil map ได้ (ได้ค่า 0) แต่เขียนไม่ได้ จะ panic ทันที <code>make</code> สร้าง Map ว่างที่จองโครงสร้างภายในไว้แล้ว จึงเขียน <code>count[w]++</code> ได้ อีกวิธีที่ได้ผลเหมือนกันคือ Map Literal <code>count := map[string]int{}</code> ส่วนการเรียง key ด้วย <code>slices.Sorted(maps.Keys(count))</code> จำเป็นเพราะ Go สุ่มลำดับการวน Map ทุกครั้งโดยตั้งใจ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./practice/fill/f02</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>fast=1
+go=3
+is=2
+simple=1</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 3</summary><div>
+<p><strong>คำตอบ:</strong> <code>RuneCountInString</code> ทำให้บรรทัดนั้นเป็น <code>utf8.RuneCountInString(s)</code></p>
+<p>String ใน Go คือลำดับของ byte ที่เข้ารหัสแบบ UTF-8 ตัวอักษรไทยแต่ละตัว (รวมสระและวรรณยุกต์ที่เป็น rune แยก) ใช้ 3 byte "สวัสดี" มี 6 rune คือ ส, ว, ั, ส, ด, ี จึงมีขนาด 6 × 3 = 18 byte ถ้าต้องการตัดข้อความไทยหรือนับความยาวที่ผู้ใช้เห็น ห้ามใช้ <code>len</code> หรือ slice แบบ <code>s[:4]</code> เพราะจะตัดกลาง byte ของตัวอักษรจนได้ตัว <code>&#xFFFD;</code> ให้แปลงเป็น <code>[]rune(s)</code> หรือใช้ <code>range</code> ซึ่งวนทีละ rune แทน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./practice/fill/f03</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>bytes: 18
+runes: 6</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 4</summary><div>
+<p><strong>คำตอบ:</strong> <code>%w</code> ทั้งสองช่อง</p>
+<p><code>%w</code> บอก <code>fmt.Errorf</code> ให้สร้าง error ใหม่ที่ "ห่อ" error เดิมไว้ข้างใน ข้อความยังอ่านได้เหมือน <code>%v</code> แต่ <code>errors.Is</code> และ <code>errors.As</code> จะแกะเข้าไปตรวจ error ข้างในได้ ถ้าใช้ <code>%v</code> error เดิมจะกลายเป็นแค่ข้อความ บรรทัด <code>"-5"</code> จะได้ <code>negative? false</code> แทน สังเกตว่าบรรทัด <code>"x"</code> ได้ <code>false</code> ถูกต้องแล้ว เพราะ error ข้างในคือ <code>*strconv.NumError</code> ไม่ใช่ <code>ErrNegative</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./practice/fill/f04</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ok: 12
+error: parse "-5": value must not be negative | negative? true
+error: parse "x": strconv.Atoi: parsing "x": invalid syntax | negative? false</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 5</summary><div>
+<p><strong>คำตอบ:</strong> <code>*Wallet</code> ทั้งสองช่อง คือ <code>func (w *Wallet) TopUp(n int)</code> และ <code>func (w *Wallet) Balance() int</code></p>
+<p>Pointer Receiver ทำให้ <code>w</code> ชี้ไปที่ Wallet ตัวจริง การเพิ่ม <code>w.balance</code> จึงมีผลกับตัวจริง ถ้าใช้ Value Receiver <code>func (w Wallet) TopUp</code> Go จะ copy Wallet ทั้งก้อนเข้าไปในเมธอด การเพิ่มยอดเกิดกับสำเนาแล้วหายไปเมื่อเมธอดจบ ผลลัพธ์จะเป็น <code>somchai 0</code> สำหรับ <code>Balance</code> ใช้ Value Receiver ก็ได้ผลถูก แต่แนวปฏิบัติที่ดีคือถ้า Type มีเมธอดใดใช้ Pointer Receiver ให้ทุกเมธอดใช้ Pointer Receiver เหมือนกัน เพื่อให้ Method Set สม่ำเสมอ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./practice/fill/f05</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>somchai 500</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 6</summary><div>
+<p><strong>คำตอบ:</strong> <code>cmp.Ordered</code> และคำถามเสริมคือ <code>0</code></p>
+<p><code>cmp.Ordered</code> คือ Constraint ในไลบรารีมาตรฐานที่รวมทุก Type ซึ่งใช้ <code>&lt;</code> <code>&lt;=</code> <code>&gt;</code> <code>&gt;=</code> ได้ ได้แก่ จำนวนเต็มทุกขนาด, จำนวนทศนิยม และ <code>string</code> (รวมถึง Type ที่สร้างขึ้นจากพวกนี้ด้วย <code>~</code>) ถ้าใช้ <code>any</code> คอมไพเลอร์จะแจ้ง <code>invalid operation: x &gt; best (type parameter T cannot use operator &gt;)</code> ส่วน Slice ว่างทำให้ลูปไม่ทำงานเลย <code>best</code> จึงยังเป็น Zero Value ของ <code>float64</code> คือ <code>0</code> ในงานจริงควรคืน <code>(T, bool)</code> หรือ error เพื่อแยกกรณี "ไม่มีข้อมูล" ออกจาก "ค่ามากสุดคือ 0" ไลบรารีมาตรฐานก็มี <code>slices.Max</code> ที่ panic เมื่อเจอ Slice ว่าง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./practice/fill/f06</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>900
+db
+0</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 7</summary><div>
+<p><strong>คำตอบ:</strong> ช่องใน <code>select</code> คือ <code>Done</code> (<code>case &lt;-ctx.Done():</code>) และช่องหลัง <code>defer</code> คือ <code>cancel</code> (<code>defer cancel()</code>)</p>
+<p><code>ctx.Done()</code> คืน Channel ที่ถูกปิดเมื่อ context หมดเวลาหรือถูกยกเลิก การรับค่าจาก Channel ที่ปิดแล้วทำได้ทันที <code>select</code> จึงเลือก case นี้เมื่อครบ 50 ms หลังจากนั้น <code>ctx.Err()</code> คืน <code>context.DeadlineExceeded</code> ส่วน <code>cancel</code> คือฟังก์ชันที่คืน Timer และทรัพยากรของ context ถ้าไม่เรียก <code>go vet</code> จะเตือนว่า <code>the cancel function returned by context.WithTimeout should be called, not discarded, to avoid a context leak</code> สังเกตว่า query แรก 10 ms เสร็จก่อน Timeout จึงไม่มี error ส่วน query ที่สอง 200 ms ถูกตัดที่ประมาณ 50 ms นับจากตอนสร้าง context</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./practice/fill/f07</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>query 10ms -&gt; err=&lt;nil&gt; timeout=false
+query 200ms -&gt; err=context deadline exceeded timeout=true</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 8</summary><div>
+<p><strong>คำตอบ:</strong> <code>Wait</code> และ <code>results</code> ทำให้ได้ <code>wg.Wait()</code> ตามด้วย <code>close(results)</code> คำถามเสริมคือ <code>150</code></p>
+<p><code>for v := range results</code> จะหยุดวนก็ต่อเมื่อ Channel ถูกปิด คนที่ควรปิดคือฝั่งผู้ส่ง แต่เรามีผู้ส่ง 5 ตัว ไม่มีตัวไหนรู้ว่าตัวเองเป็นตัวสุดท้าย จึงต้องมี Goroutine อีกตัวที่รอด้วย <code>wg.Wait()</code> จนทุกตัวเรียก <code>wg.Done()</code> แล้วจึงปิด ต้องทำใน Goroutine แยก เพราะถ้าเรียก <code>wg.Wait()</code> ใน main ก่อนวนอ่าน ผู้ส่งจะค้างอยู่ที่ <code>results &lt;-</code> (Channel แบบ Unbuffered ต้องมีคนรับ) และ main ค้างที่ <code>Wait</code> กลายเป็น deadlock ผลรวมคือ 10 + 20 + 30 + 40 + 50 = 150 ได้ค่าเดิมทุกครั้งแม้ลำดับการส่งจะสุ่ม</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./practice/fill/f08</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>total: 150</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 9</summary><div>
+<p><strong>คำตอบ:</strong> <code>PathValue</code> (<code>r.PathValue("name")</code>) และ Status Code คือ <code>405</code></p>
+<p>ตั้งแต่ Go 1.22 <code>http.ServeMux</code> เข้าใจ Pattern แบบ <code>"GET /users/{name}"</code> ค่าที่อยู่ในตำแหน่ง <code>{name}</code> ดึงออกมาได้ด้วย <code>r.PathValue("name")</code> และเมื่อ Path ตรงแต่ Method ไม่ตรง ServeMux จะตอบ <code>405 Method Not Allowed</code> พร้อม Header <code>Allow</code> ที่บอกว่ารองรับ Method อะไรให้เองโดยอัตโนมัติ (Pattern ที่เป็น <code>GET</code> รองรับ <code>HEAD</code> ด้วยเสมอ) เราจึงไม่ต้องเขียน <code>if r.Method != "GET"</code> เองเหมือนสมัยก่อน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./practice/fill/f09</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>200 hello somchai
+405 GET, HEAD</code></pre>
+</div></details>
+
+<h4>เฉลย Multiple Choice</h4>
+<details class="ans"><summary>ข้อ 1</summary><div>
+<p><strong>คำตอบ: A</strong> ใน Go ตัวแปรที่ประกาศด้วย <code>var</code> โดยไม่กำหนดค่า จะได้ Zero Value ของ Type นั้นเสมอ Zero Value ของ Slice, Map และ Pointer คือ <code>nil</code> และ <code>len</code> ของ nil slice คือ 0 จึงได้ <code>true 0 true true</code> ข้อดีคือ nil slice ใช้ <code>append</code> และ <code>range</code> ได้ทันทีโดยไม่ต้องสร้างก่อน แต่ nil map เขียนไม่ได้ (ต้อง <code>make</code> ก่อน)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>true 0 true true</code></pre>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะ Slice ที่ประกาศด้วย <code>var s []int</code> คือ nil slice จริง ๆ ไม่ใช่ Slice ว่างที่ได้จาก <code>[]int{}</code> การเปรียบเทียบ <code>s == nil</code> จึงได้ <code>true</code></li>
+<li><strong>C</strong> ผิดเพราะ Zero Value ของ Map และ Pointer ก็คือ <code>nil</code> เช่นกัน Go ไม่สร้าง Map หรือจองหน่วยความจำให้อัตโนมัติ</li>
+<li><strong>D</strong> ผิดเพราะ Go ไม่มีตัวแปรที่ "ยังไม่ได้กำหนดค่า" ทุกตัวแปรมี Zero Value เสมอ และตัวแปรทั้งสามถูกใช้ใน <code>Println</code> แล้ว จึงไม่มี error <code>declared and not used</code></li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 2</summary><div>
+<p><strong>คำตอบ: B</strong> ตั้งแต่ Go 1.22 <code>for i := range n</code> วนตั้งแต่ 0 ถึง n-1 เหมือน <code>for i := 0; i &lt; n; i++</code> เมื่อ n คือ 3 จึงได้ <code>0 1 2</code> (มีช่องว่างต่อท้ายตัวสุดท้ายเพราะ <code>Print(i, " ")</code>) ความสามารถนี้ใช้ได้เพราะ go.mod ระบุ <code>go 1.27.2</code> ซึ่งใหม่กว่า 1.22</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>0 1 2 </code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ range over int เริ่มที่ 0 เหมือน index ของ Slice ไม่ได้เริ่มที่ 1</li>
+<li><strong>C</strong> ผิดเพราะไม่รวมตัวเลข n เอง วนแค่ n รอบ คือ 0, 1, 2 รวม 3 รอบ</li>
+<li><strong>D</strong> ผิดเพราะข้อจำกัดนี้มีเฉพาะ Go รุ่นก่อน 1.22 ซึ่งจะแจ้ง <code>cannot range over 3 (untyped int constant)</code> แต่ Go 1.27.2 รองรับแล้ว</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 3</summary><div>
+<p><strong>คำตอบ: C</strong> <code>Inc</code> ใช้ Value Receiver <code>(c Counter)</code> ทุกครั้งที่เรียก Go จะ copy Struct ทั้งก้อนเป็น <code>c</code> ตัวใหม่ภายในเมธอด การเพิ่ม <code>c.n++</code> จึงเกิดกับสำเนาและหายไปเมื่อเมธอดจบ ตัวแปร <code>c</code> ใน main ยังมี <code>n</code> เป็น 0 วิธีแก้คือเปลี่ยนเป็น <code>func (c *Counter) Inc()</code></p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>0</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะจะได้ 2 ก็ต่อเมื่อใช้ Pointer Receiver ซึ่งแก้ไขตัวจริง โค้ดนี้ใช้ Value Receiver</li>
+<li><strong>B</strong> ผิดเพราะไม่มีการสะสมค่าระหว่างการเรียกสองครั้ง แต่ละครั้งได้สำเนาใหม่ที่ <code>n</code> เป็น 0 แล้วเพิ่มเป็น 1 ในสำเนานั้น ตัวจริงไม่เปลี่ยนเลย</li>
+<li><strong>D</strong> ผิดเพราะการเรียกเมธอด Value Receiver บนตัวแปรธรรมดาทำได้ปกติ และแม้เป็น Pointer Receiver Go ก็แปลง <code>c.Inc()</code> เป็น <code>(&amp;c).Inc()</code> ให้เองเมื่อ <code>c</code> เป็นตัวแปรที่หาที่อยู่ได้</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 4</summary><div>
+<p><strong>คำตอบ: D</strong> <code>defer</code> เลื่อนการเรียกฟังก์ชันไปทำตอนที่ฟังก์ชันรอบนอก (ในที่นี้คือ <code>main</code>) กำลังจะจบ และทำแบบ LIFO (เข้าทีหลังออกก่อน) เหมือนกองจาน บรรทัด <code>C</code> พิมพ์ทันที จากนั้นตอน <code>main</code> จบ จึงทำ defer ตัวล่าสุดคือ <code>B</code> แล้วจึง <code>A</code></p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>C
+B
+A</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะลำดับ defer ไม่ใช่ FIFO ตัวที่ประกาศก่อน (<code>A</code>) จะทำหลังสุด</li>
+<li><strong>B</strong> ผิดเพราะ <code>defer</code> ไม่ได้เรียกทันทีที่ประกาศ ถ้าเป็นอย่างนั้นก็ไม่ต่างจากการเรียกธรรมดา</li>
+<li><strong>C</strong> ผิดเพราะ <code>C</code> ไม่ได้ถูก defer จึงพิมพ์ก่อนทั้งสองตัวที่ถูกเลื่อนไว้</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 5</summary><div>
+<p><strong>คำตอบ: A</strong> <code>b := a[:2]</code> ไม่ได้ copy ข้อมูล แต่สร้าง Slice Header ใหม่ที่ชี้ Backing Array เดียวกับ <code>a</code> มี len 2 และ cap 4 (นับจากตำแหน่งเริ่มถึงท้าย Array) เมื่อ <code>append(b, 99)</code> ยังมีที่ว่างใน cap จึงเขียน 99 ลงตำแหน่ง index 2 ของ Array เดิม ทับเลข 3 ของ <code>a</code> ไปด้วย นี่คือ bug ที่เจอบ่อยมาก แก้ได้ด้วย <code>b := slices.Clone(a[:2])</code> หรือ Full Slice Expression <code>a[:2:2]</code> ที่จำกัด cap ให้เป็น 2 เพื่อบังคับให้ <code>append</code> สร้าง Array ใหม่</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[1 2 99 4] [1 2 99] 3 4</code></pre>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะ <code>a</code> ไม่ได้ปลอดภัยจากการเปลี่ยนแปลง <code>a</code> และ <code>b</code> ใช้ Backing Array ร่วมกัน <code>append</code> ที่ไม่ต้องขยาย cap จึงแก้ข้อมูลที่ <code>a</code> มองเห็นด้วย</li>
+<li><strong>C</strong> ผิดเพราะ cap ของ <code>b</code> คือ 4 ตั้งแต่ตอน slice (cap ของ <code>a[:2]</code> เท่ากับ cap ของ <code>a</code> ลบตำแหน่งเริ่ม 0) และ <code>append</code> ที่ยังมีที่ว่างไม่เปลี่ยน cap</li>
+<li><strong>D</strong> ผิดเพราะ <code>append</code> เขียนต่อจาก len ของ <code>b</code> (ตำแหน่ง 2) ไม่ได้เขียนต่อท้าย <code>a</code> และ len ของ <code>a</code> ยังเป็น 4 เท่าเดิม</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 6</summary><div>
+<p><strong>คำตอบ: C</strong> Channel ที่สร้างด้วย <code>make(chan int)</code> เป็นแบบ Unbuffered การส่ง <code>ch &lt;- 1</code> จะบล็อกจนกว่าจะมี Goroutine อื่นมารับ แต่โปรแกรมนี้มี Goroutine เดียวคือ main ซึ่งค้างอยู่ที่บรรทัดส่งเอง จึงไม่มีใครไปถึงบรรทัดรับ Runtime ของ Go ตรวจพบว่าทุก Goroutine หลับหมดจึงหยุดโปรแกรม (ค่า path ในบรรทัดล่างจะเป็น path บนเครื่องของคุณ)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>fatal error: all goroutines are asleep - deadlock!
+
+goroutine 1 [chan send]:
+main.main()
+	/home/somchai/projects/go-lab/practice/mcq/q06/main.go:7 +0x36
+exit status 2</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะโปรแกรมไปไม่ถึงบรรทัด <code>Println</code> เลย ถ้าต้องการให้พิมพ์ 1 ต้องใช้ <code>make(chan int, 1)</code> (Buffered) หรือให้ส่งใน Goroutine อื่น</li>
+<li><strong>B</strong> ผิดเพราะการรับได้ Zero Value จะเกิดเมื่อรับจาก Channel ที่ถูกปิดแล้ว ไม่ใช่กรณีนี้ และที่นี่ไม่มีการรับเกิดขึ้นเลย</li>
+<li><strong>D</strong> ผิดเพราะการไม่ระบุขนาดเป็นเรื่องปกติ ได้ Unbuffered Channel คอมไพเลอร์ไม่ตรวจ deadlock ปัญหานี้เกิดตอนรันเท่านั้น</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 7</summary><div>
+<p><strong>คำตอบ: D</strong> <code>switch</code> ที่ไม่มีนิพจน์ (tagless switch) ทำงานเหมือน <code>if / else if</code> ไล่ตรวจจากบนลงล่างและทำเฉพาะ case แรกที่เป็นจริง 75 ไม่ถึง 80 แต่ถึง 70 จึงพิมพ์ <code>B</code> แล้วออกจาก switch ทันที Go ไม่ไหลลง case ถัดไปเอง เว้นแต่จะเขียน <code>fallthrough</code></p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>B</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะเงื่อนไข <code>score &gt;= 80</code> เป็นเท็จสำหรับ 75</li>
+<li><strong>B</strong> ผิดเพราะ Go ต่างจาก C, Java และ JavaScript ตรงที่ไม่ต้องเขียน <code>break</code> แต่ละ case จบในตัวเอง</li>
+<li><strong>C</strong> ผิดเพราะ <code>default</code> ทำงานเฉพาะเมื่อไม่มี case ใดเป็นจริงเลย แต่ที่นี่ case <code>score &gt;= 70</code> เป็นจริง</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 8</summary><div>
+<p><strong>คำตอบ: B</strong> <code>%v</code> แปลง <code>ErrNotFound</code> เป็นข้อความแล้วต่อเข้าไป error ใหม่ไม่มีความเชื่อมโยงกับตัวเดิม <code>errors.Is(e1, ...)</code> จึงได้ <code>false</code> ส่วน <code>%w</code> ห่อ error เดิมไว้ เมธอด <code>Unwrap</code> คืนตัวเดิมได้ <code>errors.Is(e2, ...)</code> จึงแกะเจอและได้ <code>true</code> ทั้งที่ข้อความของ <code>e1</code> และ <code>e2</code> เหมือนกันทุกตัวอักษร</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>false true</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ <code>errors.Is</code> ไม่ได้เทียบข้อความ แต่เทียบตัว error จริงตามสาย Unwrap ซึ่ง <code>e1</code> ไม่มี</li>
+<li><strong>C</strong> ผิดเพราะสลับกัน <code>%w</code> คือตัวที่ทำให้ <code>errors.Is</code> ทำงาน ไม่ใช่ <code>%v</code></li>
+<li><strong>D</strong> ผิดเพราะ <code>e2</code> ห่อ <code>ErrNotFound</code> ไว้จริง ด้วย <code>%w</code> การตรวจจึงเจอ</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 9</summary><div>
+<p><strong>คำตอบ: C</strong> context หมดเวลาที่ 30 ms ซึ่งเร็วกว่า <code>time.After(100ms)</code> <code>select</code> จึงเลือก case <code>&lt;-ctx.Done()</code> และ <code>ctx.Err()</code> ที่หมดเวลาเพราะ deadline คืน <code>context.DeadlineExceeded</code> ซึ่งพิมพ์เป็น <code>context deadline exceeded</code></p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>stop: context deadline exceeded</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ <code>time.After</code> ต้องรอ 100 ms ซึ่งช้ากว่า Timeout ของ context</li>
+<li><strong>B</strong> ผิดเพราะ <code>context canceled</code> (<code>context.Canceled</code>) เกิดเมื่อมีคนเรียก <code>cancel()</code> ก่อนหมดเวลา ที่นี่ <code>cancel</code> ถูกเรียกผ่าน <code>defer</code> หลังจาก select จบแล้ว ส่วนสาเหตุที่ Done ถูกปิดคือหมดเวลา</li>
+<li><strong>D</strong> ผิดเพราะ <code>select</code> ทำงานเพียง case เดียวต่อครั้ง ถ้ามีหลาย case พร้อมพร้อมกันจะสุ่มเลือกหนึ่ง case</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 10</summary><div>
+<p><strong>คำตอบ: A</strong> Method Set ของ Type <code>Console</code> (ค่า) มีเฉพาะเมธอดที่เป็น Value Receiver ส่วนเมธอด Pointer Receiver อยู่ใน Method Set ของ <code>*Console</code> เท่านั้น การกำหนด <code>Console{}</code> ให้ตัวแปร Interface จึงไม่ผ่าน แก้โดยเขียน <code>var n Notifier = &amp;Console{}</code></p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code># example.com/go-lab/practice/mcq/q10
+practice/mcq/q10/main.go:12:19: cannot use Console{} (value of struct type Console) as Notifier value in variable declaration: Console does not implement Notifier (method Notify has pointer receiver)</code></pre>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะการแปลงเป็น <code>&amp;</code> อัตโนมัติเกิดเฉพาะตอนเรียกเมธอดบนตัวแปรที่หาที่อยู่ได้ (เช่น <code>c.Notify()</code>) ไม่เกิดตอนกำหนดค่าให้ Interface</li>
+<li><strong>C</strong> ผิดเพราะปัญหานี้ถูกจับตั้งแต่ตอนคอมไพล์ โปรแกรมไม่ได้รันเลย และ <code>Notify</code> ก็ไม่ได้อ่านข้อมูลผ่าน Pointer จึงไม่มีสาเหตุให้ panic</li>
+<li><strong>D</strong> ผิดเพราะนี่คือ error ของ Type System ที่ทำให้คอมไพล์ไม่ผ่าน ไม่ใช่แค่คำเตือนของ <code>go vet</code></li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 11</summary><div>
+<p><strong>คำตอบ: D</strong> Buffered Channel ขนาด 2 รับค่า "a" และ "b" ได้โดยไม่บล็อก การ <code>close</code> ไม่ได้ลบค่าที่ค้างอยู่ <code>range</code> จึงอ่าน "a" และ "b" ออกมาครบแล้วหยุดเมื่อ Channel ว่างและปิดแล้ว การรับครั้งต่อไปจาก Channel ที่ปิดและว่างได้ทันที คืน Zero Value ของ string คือ <code>""</code> และ <code>ok</code> เป็น <code>false</code> นี่คือวิธีที่ผู้รับใช้ตรวจว่า Channel ถูกปิดแล้ว</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>a b "" false</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะการรับจาก Channel ที่ปิดแล้วไม่ panic เลย สิ่งที่ panic คือการส่งเข้า Channel ที่ปิดแล้ว (<code>send on closed channel</code>) และการปิดซ้ำ (<code>close of closed channel</code>)</li>
+<li><strong>B</strong> ผิดเพราะ <code>range</code> อ่าน "b" ออกไปแล้ว ค่าที่อ่านไปแล้วไม่ถูกเก็บไว้ซ้ำ และ <code>ok</code> เป็น <code>true</code> เฉพาะเมื่อได้ค่าที่มีคนส่งมาจริงเท่านั้น</li>
+<li><strong>C</strong> ผิดเพราะ Channel ถูกปิดแล้ว <code>range</code> จึงจบได้ และการรับจาก Channel ที่ปิดไม่บล็อก ถ้าไม่มี <code>close(ch)</code> ถึงจะเกิด deadlock ที่ <code>range</code></li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 12</summary><div>
+<p><strong>คำตอบ: C</strong> Constraint <code>any</code> บอกว่า <code>T</code> เป็น Type อะไรก็ได้ รวมถึง Struct หรือ Map ซึ่งบวกกันไม่ได้ คอมไพเลอร์จึงไม่ยอมให้ใช้ <code>+</code> กับ <code>T</code> ต้องเปลี่ยนเป็น Constraint ที่รวมเฉพาะตัวเลข เช่น <code>type Number interface { ~int | ~int64 | ~float64 }</code> แล้วเขียน <code>func Sum[T Number](xs []T) T</code></p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code># example.com/go-lab/practice/mcq/q12
+practice/mcq/q12/main.go:8:3: invalid operation: operator + not defined on total (variable of type T constrained by any)</code></pre>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะโปรแกรมคอมไพล์ไม่ผ่าน แม้เราจะเรียกด้วย <code>[]int</code> ก็ตาม Go ตรวจ Generic Function จาก Constraint ไม่ได้ตรวจจาก Type ที่ส่งเข้ามาในแต่ละครั้ง</li>
+<li><strong>B</strong> ผิดเพราะไม่มีการรันเกิดขึ้น ค่า 0 จะเกิดได้ถ้าคอมไพล์ผ่านแล้วส่ง Slice ว่าง</li>
+<li><strong>D</strong> ผิดเพราะ Generics ของ Go ตรวจ Type ทั้งหมดตอนคอมไพล์ ไม่มีการเลื่อนไปตรวจตอนรันแบบภาษา Dynamic</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 13</summary><div>
+<p><strong>คำตอบ: B</strong> <code>count++</code> ไม่ใช่การทำงานแบบ atomic มันคือ อ่านค่า, บวก 1, เขียนกลับ ถ้า 2 Goroutine อ่านค่าเดียวกันพร้อมกัน การเพิ่มหนึ่งครั้งจะหายไป นี่คือ Data Race <code>wg.Wait()</code> แค่รอให้ทุกตัวจบ ไม่ได้ป้องกันการเขียนพร้อมกัน ตอนทดสอบในเครื่องตัวอย่างได้ <code>958</code> และ Race Detector รายงานทันที ค่าที่คุณได้จะต่างไปในแต่ละครั้ง วิธีแก้คือใช้ <code>var count atomic.Int64</code> แล้วเรียก <code>count.Add(1)</code> หรือครอบ <code>count++</code> ด้วย <code>mu.Lock()</code> และ <code>mu.Unlock()</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+# -race ต้องใช้ gcc (sudo apt install -y gcc)
+go run -race ./practice/mcq/q13</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>==================
+WARNING: DATA RACE
+Read at 0x00c00011c028 by goroutine 13:
+  main.main.func1()
+      /home/somchai/projects/go-lab/practice/mcq/q13/main.go:15 +0x7b
+
+Previous write at 0x00c00011c028 by goroutine 10:
+  main.main.func1()
+      /home/somchai/projects/go-lab/practice/mcq/q13/main.go:15 +0x8d</code></pre>
+<p><span class="muted small">ผลลัพธ์ถูกตัดให้สั้นลง address และเลข goroutine บนเครื่องของคุณจะต่างไป</span></p>
+<ul class="why-wrong">
+<li><strong>A</strong> ผิดเพราะ WaitGroup รับประกันแค่ว่า main จะรอจนทุกตัวจบ ไม่ได้ทำให้การเพิ่มค่าเป็นลำดับ การเพิ่มบางครั้งจึงหายได้</li>
+<li><strong>C</strong> ผิดเพราะ Closure ใน Go เข้าถึงตัวแปรของฟังก์ชันรอบนอกได้ตามปกติ (จับตัวแปรแบบอ้างอิง) จึงคอมไพล์ผ่าน และนี่คือสาเหตุที่ทุก Goroutine แย่งกันเขียนตัวแปรเดียวกัน</li>
+<li><strong>D</strong> ผิดเพราะ Closure ไม่ได้ copy <code>count</code> ทุกตัวอ้างถึงตัวแปรเดียวกัน ค่าจึงเพิ่มขึ้นจริงแต่บางครั้งเพิ่มทับกัน</li>
+</ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 14</summary><div>
+<p><strong>คำตอบ: A</strong> <code>GET /items/7</code> ตรงกับ Pattern จึงได้ 200 <code>DELETE /items/7</code> Path ตรงแต่ Method ไม่ตรง ServeMux จึงตอบ 405 Method Not Allowed ให้อัตโนมัติ <code>GET /items/</code> ไม่ตรงเพราะ Wildcard <code>{id}</code> ต้องจับ segment ที่ไม่ว่าง ส่วน <code>GET /items/7/reviews</code> มี segment เกินมา ซึ่ง <code>{id}</code> จับได้แค่ segment เดียว ทั้งสองกรณีจึงได้ 404 (ถ้าต้องการจับทุกอย่างที่เหลือต้องเขียน <code>{rest...}</code>)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>GET /items/7 200
+DELETE /items/7 405
+GET /items/ 404
+GET /items/7/reviews 404</code></pre>
+<ul class="why-wrong">
+<li><strong>B</strong> ผิดเพราะ ServeMux ของ Go 1.22 ขึ้นไปแยกได้ว่า Path มีอยู่แต่ Method ไม่ตรง จึงตอบ 405 พร้อม Header <code>Allow: GET, HEAD</code> ไม่ใช่ 404</li>
+<li><strong>C</strong> ผิดเพราะ Pattern ที่ไม่ได้ลงท้ายด้วย <code>/</code> หรือ Wildcard แบบหลาย segment เช่น <code>{rest...}</code> จะจับเฉพาะ Path ที่มีจำนวน segment ตรงกันเท่านั้น ไม่จับแบบ prefix</li>
+<li><strong>D</strong> ผิดเพราะ <code>{id}</code> จับได้หนึ่ง segment ไม่รวม <code>/reviews</code> ที่ตามมา Request สุดท้ายจึงไม่ตรงกับ Pattern ใด</li>
+</ul>
+</div></details>
+
+<h4>เฉลย Hands-on Challenge</h4>
+<details class="ans"><summary>โจทย์ที่ 1: logsum (Beginner)</summary><div>
+<p>สร้างไฟล์ <code>practice/ch1/access.log</code> ตามที่ให้ไว้ในโจทย์ก่อน แล้วสร้างไฟล์โปรแกรมดังนี้</p>
+<pre class="code" data-env="file" data-label="Go · practice/ch1/main.go"><code class="language-go">package main
+
+import (
+	"errors"
+	"fmt"
+	"maps"
+	"os"
+	"slices"
+	"strconv"
+	"strings"
+)
+
+// Entry คือข้อมูลของ request หนึ่งบรรทัดใน log
+type Entry struct {
+	Method    string
+	Path      string
+	Status    int
+	LatencyMS int
+}
+
+// ErrBadFormat ใช้บอกว่าบรรทัดมีจำนวนช่องไม่ครบ
+var ErrBadFormat = errors.New("bad format")
+
+// parseLine แปลงหนึ่งบรรทัดเป็น Entry
+// รูปแบบ: &lt;time&gt; &lt;method&gt; &lt;path&gt; &lt;status&gt; &lt;latency_ms&gt;
+func parseLine(line string) (Entry, error) {
+	f := strings.Fields(line)
+	if len(f) != 5 {
+		return Entry{}, fmt.Errorf("want 5 fields, got %d: %w", len(f), ErrBadFormat)
+	}
+	status, err := strconv.Atoi(f[3])
+	if err != nil {
+		return Entry{}, fmt.Errorf("status %q: %w", f[3], err)
+	}
+	lat, err := strconv.Atoi(f[4])
+	if err != nil {
+		return Entry{}, fmt.Errorf("latency %q: %w", f[4], err)
+	}
+	return Entry{Method: f[1], Path: f[2], Status: status, LatencyMS: lat}, nil
+}
+
+// statusClass แปลง status code เป็นกลุ่ม เช่น 404 -&gt; "4xx"
+func statusClass(code int) string {
+	switch {
+	case code &gt;= 500:
+		return "5xx"
+	case code &gt;= 400:
+		return "4xx"
+	case code &gt;= 300:
+		return "3xx"
+	case code &gt;= 200:
+		return "2xx"
+	default:
+		return "other"
+	}
+}
+
+func main() {
+	path := "practice/ch1/access.log"
+	if len(os.Args) &gt; 1 {
+		path = os.Args[1]
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(2) // ไฟล์เปิดไม่ได้ = ปัญหาการใช้งาน
+	}
+
+	var entries []Entry
+	badLines := 0
+	for i, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue // ข้ามบรรทัดว่างและ comment
+		}
+		e, err := parseLine(line)
+		if err != nil {
+			badLines++
+			fmt.Fprintf(os.Stderr, "skip line %d: %v\n", i+1, err)
+			continue
+		}
+		entries = append(entries, e)
+	}
+	if len(entries) == 0 {
+		fmt.Fprintln(os.Stderr, "error: no valid entries")
+		os.Exit(2)
+	}
+
+	byClass := make(map[string]int)
+	byPath := make(map[string]int)
+	total := 0
+	slowest := entries[0]
+	for _, e := range entries {
+		byClass[statusClass(e.Status)]++
+		byPath[e.Path]++
+		total += e.LatencyMS
+		if e.LatencyMS &gt; slowest.LatencyMS {
+			slowest = e
+		}
+	}
+
+	fmt.Printf("requests: %d (skipped %d bad lines)\n", len(entries), badLines)
+	fmt.Println("by status class:")
+	for _, k := range slices.Sorted(maps.Keys(byClass)) {
+		fmt.Printf("  %s: %d\n", k, byClass[k])
+	}
+	fmt.Println("by path:")
+	for _, k := range slices.Sorted(maps.Keys(byPath)) {
+		fmt.Printf("  %-14s %d\n", k, byPath[k])
+	}
+	avg := float64(total) / float64(len(entries))
+	fmt.Printf("avg latency: %.2f ms\n", avg)
+	fmt.Printf("slowest: %s %s %d (%d ms)\n", slowest.Method, slowest.Path, slowest.Status, slowest.LatencyMS)
+
+	errRate := float64(byClass["5xx"]) / float64(len(entries)) * 100
+	fmt.Printf("5xx rate: %.1f%%\n", errRate)
+	if errRate &gt; 10 {
+		fmt.Println("ALERT: 5xx rate is above 10%")
+		os.Exit(1) // พบปัญหา
+	}
+}</code></pre>
+<p>ตรวจรูปแบบโค้ดและ build เป็นไฟล์ binary เพื่อดู Exit Code จริง (ถ้าใช้ <code>go run</code> ตัว <code>go</code> จะพิมพ์ <code>exit status 1</code> และจบด้วย 1 เสมอ ไม่ว่าโปรแกรมจะจบด้วยเลขอะไร)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+gofmt -l practice/ch1
+go vet ./practice/ch1
+go build -o bin/logsum ./practice/ch1
+./bin/logsum
+echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>skip line 11: want 5 fields, got 3: bad format
+skip line 12: latency "abc": strconv.Atoi: parsing "abc": invalid syntax
+requests: 9 (skipped 2 bad lines)
+by status class:
+  2xx: 5
+  3xx: 1
+  4xx: 1
+  5xx: 2
+by path:
+  /cart          1
+  /checkout      3
+  /login         1
+  /products      2
+  /products/42   1
+  /products/99   1
+avg latency: 517.56 ms
+slowest: POST /checkout 503 (2010 ms)
+5xx rate: 22.2%
+ALERT: 5xx rate is above 10%
+exit code: 1</code></pre>
+<p><code>gofmt -l</code> และ <code>go vet</code> ไม่พิมพ์อะไรเลย แปลว่าโค้ดจัดรูปแบบถูกและไม่พบจุดน่าสงสัย ตรวจตัวเลขด้วยมือได้ว่าถูก Latency รวมของ 9 บรรทัดที่ใช้ได้คือ 120 + 85 + 230 + 15 + 1450 + 98 + 40 + 610 + 2010 = 4658 หารด้วย 9 ได้ 517.56 และ 5xx มี 2 จาก 9 คือ 22.2%</p>
+<p>ต่อไปทดสอบอีก 2 กรณี คือ log ที่ปกติดี (ต้องได้ Exit Code 0) และไฟล์ที่ไม่มีอยู่ (ต้องได้ Exit Code 2)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+# สร้าง log ตัวอย่างที่ไม่มี error
+printf '2026-10-19T10:00:01Z GET /products 200 80\n2026-10-19T10:00:02Z GET /cart 200 60\n' &gt; practice/ch1/healthy.log
+./bin/logsum practice/ch1/healthy.log
+echo "exit code: $?"
+./bin/logsum nope.log
+echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>requests: 2 (skipped 0 bad lines)
+by status class:
+  2xx: 2
+by path:
+  /cart          1
+  /products      1
+avg latency: 70.00 ms
+slowest: GET /products 200 (80 ms)
+5xx rate: 0.0%
+exit code: 0
+error: open nope.log: no such file or directory
+exit code: 2</code></pre>
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>แยกงาน parse ออกเป็นฟังก์ชัน</strong> <code>parseLine</code> รับ string คืน <code>(Entry, error)</code> ตามแบบฉบับของ Go ทำให้ทดสอบง่าย และ main ไม่ต้องรู้รายละเอียดว่าแต่ละช่องคืออะไร</li>
+<li><strong>Error ที่บอกบริบท</strong> ห่อ error ด้วย <code>%w</code> พร้อมบอกว่าช่องไหนผิด เช่น <code>latency "abc": ...</code> แล้ว main เติมเลขบรรทัดอีกชั้น คนอ่าน log จึงหาบรรทัดเสียเจอทันที และถ้าต้องการแยกประเภทภายหลังก็ใช้ <code>errors.Is(err, ErrBadFormat)</code> ได้</li>
+<li><strong>ไม่ล่มเพราะข้อมูลเสียบางบรรทัด</strong> ข้ามบรรทัดที่ผิดแล้วนับไว้ เป็นพฤติกรรมที่ต้องการในงานวิเคราะห์ log จริง ข้อความ skip ออกทาง stderr ทำให้ stdout ยังเป็นรายงานสะอาดที่ redirect ลงไฟล์ได้</li>
+<li><strong>ผลลัพธ์ต้องเหมือนเดิมทุกครั้ง</strong> ลำดับการวน Map สุ่ม จึงเรียง key ด้วย <code>slices.Sorted(maps.Keys(m))</code> ก่อนพิมพ์ ทำให้นำผลไปเทียบ (diff) หรือเขียนเทสต์ได้</li>
+<li><strong>ระวังการหารจำนวนเต็ม</strong> แปลงเป็น <code>float64</code> ก่อนหาร Go ไม่แปลง Type ให้อัตโนมัติ การหาร <code>int</code> ด้วย <code>int</code> จะตัดทศนิยมทิ้ง</li>
+<li><strong>Exit Code ตามมาตรฐานของหลักสูตร</strong> 0 คือปกติ, 1 คือพบปัญหา (5xx เกินเกณฑ์), 2 คือใช้งานผิดหรือเปิดไฟล์ไม่ได้ ทำให้นำไปใช้ใน Script หรือ Cron Job ที่แจ้งเตือนเมื่อ Exit Code ไม่ใช่ 0 ได้ทันที</li>
+</ul>
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+<li>เปลี่ยนการอ่านไฟล์จาก <code>os.ReadFile</code> เป็น <code>bufio.Scanner</code> ที่อ่านทีละบรรทัด เพื่อรองรับไฟล์ log ขนาดหลาย GB โดยไม่ต้องโหลดทั้งไฟล์เข้าหน่วยความจำ และรองรับการอ่านจาก stdin เช่น <code>cat access.log | ./bin/logsum -</code></li>
+<li>เพิ่มการคำนวณ Percentile ของ Latency (p50, p95, p99) ด้วยการเรียง Slice ของ latency ด้วย <code>slices.Sort</code> แล้วเลือกตำแหน่ง เพราะค่าเฉลี่ยมักถูกค่าสุดโต่งดึงจนไม่สะท้อนประสบการณ์ของผู้ใช้ส่วนใหญ่</li>
+<li>เพิ่ม Flag <code>-threshold</code> (เกณฑ์ % ของ 5xx) และ <code>-format json</code> เพื่อส่งผลให้ระบบ Monitoring หรือ Dashboard อ่านต่อ</li>
+<li>แยก <code>parseLine</code> และ <code>statusClass</code> ไปเป็น Package <code>practice/ch1/logparse</code> แล้วเขียน Table-driven Test ครอบคลุมบรรทัดที่ถูก, ช่องไม่ครบ, status ไม่ใช่ตัวเลข และ latency ติดลบ</li>
+<li>จัดกลุ่ม Path ที่มี ID เช่น <code>/products/42</code> และ <code>/products/99</code> ให้เป็น <code>/products/{id}</code> ด้วยการตรวจว่า segment เป็นตัวเลขหรือไม่ เพื่อให้สรุปตาม Endpoint ได้จริง</li>
+</ol>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 2: svccheck (Intermediate)</summary><div>
+<p>เฉลยแบ่งเป็น 3 ไฟล์ คือ Package <code>svcconf</code> ที่เก็บกฎการตรวจ, ไฟล์เทสต์ และ <code>main.go</code> ที่ทำหน้าที่เป็น CLI การแยกแบบนี้ทำให้นำกฎไปใช้ซ้ำในโปรแกรมอื่นได้ เช่น ใน API ที่รับ config ผ่าน HTTP</p>
+<pre class="code" data-env="file" data-label="Go · practice/ch2/svcconf/svcconf.go"><code class="language-go">// Package svcconf ตรวจสอบไฟล์ config ของ service ก่อน deploy
+package svcconf
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"strings"
+)
+
+// Service คือการตั้งค่าของ service หนึ่งตัว
+type Service struct {
+	Name       string `json:"name"`
+	Port       int    `json:"port"`
+	Replicas   int    `json:"replicas"`
+	HealthPath string `json:"health_path"`
+}
+
+// FieldError บอกว่า field ไหนของ service ไหนผิด และผิดเพราะอะไร
+type FieldError struct {
+	Service string
+	Field   string
+	Reason  string
+}
+
+func (e *FieldError) Error() string {
+	return fmt.Sprintf("%s.%s: %s", e.Service, e.Field, e.Reason)
+}
+
+// ErrDuplicateName ใช้เมื่อชื่อ service ซ้ำกัน
+var ErrDuplicateName = errors.New("duplicate service name")
+
+// Validate ตรวจ service หนึ่งตัว และคืน error ทุกข้อรวมกันด้วย errors.Join
+func (s Service) Validate() error {
+	name := s.Name
+	if name == "" {
+		name = "(no-name)"
+	}
+	var errs []error
+	if strings.TrimSpace(s.Name) == "" {
+		errs = append(errs, &amp;FieldError{name, "name", "must not be empty"})
+	}
+	if s.Port &lt; 1 || s.Port &gt; 65535 {
+		errs = append(errs, &amp;FieldError{name, "port", fmt.Sprintf("%d is out of range 1-65535", s.Port)})
+	}
+	if s.Replicas &lt; 1 || s.Replicas &gt; 10 {
+		errs = append(errs, &amp;FieldError{name, "replicas", fmt.Sprintf("%d is out of range 1-10", s.Replicas)})
+	}
+	if !strings.HasPrefix(s.HealthPath, "/") {
+		errs = append(errs, &amp;FieldError{name, "health_path", fmt.Sprintf("%q must start with /", s.HealthPath)})
+	}
+	return errors.Join(errs...) // คืน nil ถ้าไม่มี error เลย
+}
+
+// Load อ่าน JSON array ของ Service จาก r
+func Load(r io.Reader) ([]Service, error) {
+	var list []Service
+	dec := json.NewDecoder(r)
+	dec.DisallowUnknownFields() // พิมพ์ชื่อ field ผิดจะถูกจับได้ทันที
+	if err := dec.Decode(&amp;list); err != nil {
+		return nil, fmt.Errorf("decode config: %w", err)
+	}
+	return list, nil
+}
+
+// Result คือผลตรวจของ service หนึ่งตัว
+type Result struct {
+	Name     string   `json:"name"`
+	OK       bool     `json:"ok"`
+	Problems []string `json:"problems,omitempty"`
+}
+
+// ValidateAll ตรวจทุก service รวมถึงชื่อซ้ำ และคืนผลตามลำดับเดิมในไฟล์
+func ValidateAll(list []Service) []Result {
+	seen := make(map[string]bool)
+	results := make([]Result, 0, len(list))
+	for _, s := range list {
+		r := Result{Name: s.Name, OK: true}
+		var errs []error
+		if err := s.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+		if s.Name != "" &amp;&amp; seen[s.Name] {
+			errs = append(errs, fmt.Errorf("%s.name: %w", s.Name, ErrDuplicateName))
+		}
+		seen[s.Name] = true
+		if err := errors.Join(errs...); err != nil {
+			r.OK = false
+			r.Problems = strings.Split(err.Error(), "\n")
+		}
+		results = append(results, r)
+	}
+	return results
+}</code></pre>
+<pre class="code" data-env="file" data-label="Go · practice/ch2/svcconf/svcconf_test.go"><code class="language-go">package svcconf
+
+import (
+	"errors"
+	"strings"
+	"testing"
+)
+
+func TestServiceValidate(t *testing.T) {
+	valid := Service{Name: "api", Port: 8080, Replicas: 2, HealthPath: "/health"}
+	tests := []struct {
+		name      string
+		svc       Service
+		wantField string // "" แปลว่าต้องไม่มี error
+	}{
+		{"valid service", valid, ""},
+		{"empty name", Service{Port: 80, Replicas: 1, HealthPath: "/"}, "name"},
+		{"port zero", Service{Name: "db", Port: 0, Replicas: 1, HealthPath: "/h"}, "port"},
+		{"port too high", Service{Name: "db", Port: 70000, Replicas: 1, HealthPath: "/h"}, "port"},
+		{"replicas zero", Service{Name: "web", Port: 80, Replicas: 0, HealthPath: "/h"}, "replicas"},
+		{"health without slash", Service{Name: "web", Port: 80, Replicas: 1, HealthPath: "health"}, "health_path"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.svc.Validate()
+			if tc.wantField == "" {
+				if err != nil {
+					t.Fatalf("want no error, got %v", err)
+				}
+				return
+			}
+			var fe *FieldError
+			if !errors.As(err, &amp;fe) {
+				t.Fatalf("want *FieldError, got %v", err)
+			}
+			if fe.Field != tc.wantField {
+				t.Errorf("field = %q, want %q", fe.Field, tc.wantField)
+			}
+		})
+	}
+}
+
+func TestValidateAllDuplicate(t *testing.T) {
+	list := []Service{
+		{Name: "api", Port: 8080, Replicas: 2, HealthPath: "/health"},
+		{Name: "api", Port: 8081, Replicas: 2, HealthPath: "/health"},
+	}
+	got := ValidateAll(list)
+	if !got[0].OK {
+		t.Errorf("first api should be ok, got %+v", got[0])
+	}
+	if got[1].OK || !strings.Contains(got[1].Problems[0], "duplicate") {
+		t.Errorf("second api should be duplicate, got %+v", got[1])
+	}
+}
+
+func TestLoadUnknownField(t *testing.T) {
+	_, err := Load(strings.NewReader(`[{"name":"api","prot":8080}]`))
+	if err == nil || !strings.Contains(err.Error(), `unknown field "prot"`) {
+		t.Fatalf("want unknown field error, got %v", err)
+	}
+}</code></pre>
+<pre class="code" data-env="file" data-label="Go · practice/ch2/main.go"><code class="language-go">package main
+
+import (
+	"encoding/json"
+	"flag"
+	"fmt"
+	"log/slog"
+	"os"
+	"text/tabwriter"
+
+	"example.com/go-lab/practice/ch2/svcconf"
+)
+
+func main() {
+	file := flag.String("file", "practice/ch2/services.json", "path ของไฟล์ config (JSON)")
+	format := flag.String("format", "table", "รูปแบบผลลัพธ์: table หรือ json")
+	flag.Parse()
+
+	// Log ไปที่ stderr เพื่อให้ stdout มีแต่ผลลัพธ์
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
+	if *format != "table" &amp;&amp; *format != "json" {
+		fmt.Fprintf(os.Stderr, "invalid -format %q (use table or json)\n", *format)
+		os.Exit(2)
+	}
+	f, err := os.Open(*file)
+	if err != nil {
+		logger.Error("open config", "err", err)
+		os.Exit(2)
+	}
+	defer f.Close()
+
+	list, err := svcconf.Load(f)
+	if err != nil {
+		logger.Error("load config", "err", err)
+		os.Exit(2)
+	}
+	results := svcconf.ValidateAll(list)
+
+	bad := 0
+	for _, r := range results {
+		if !r.OK {
+			bad++
+		}
+	}
+
+	switch *format {
+	case "json":
+		out, _ := json.MarshalIndent(results, "", "  ")
+		fmt.Println(string(out))
+	default:
+		tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+		fmt.Fprintln(tw, "SERVICE\tSTATUS\tPROBLEM")
+		for _, r := range results {
+			if r.OK {
+				fmt.Fprintf(tw, "%s\tOK\t-\n", r.Name)
+				continue
+			}
+			for i, p := range r.Problems {
+				name, status := r.Name, "FAIL"
+				if i &gt; 0 {
+					name, status = "", "" // แถวต่อเนื่องของ service เดิม
+				}
+				fmt.Fprintf(tw, "%s\t%s\t%s\n", name, status, p)
+			}
+		}
+		tw.Flush() // ต้อง Flush ไม่อย่างนั้นตารางไม่ออก
+		fmt.Printf("checked %d services: %d ok, %d failed\n", len(results), len(results)-bad, bad)
+	}
+	if bad &gt; 0 {
+		os.Exit(1)
+	}
+}</code></pre>
+<p>สร้างไฟล์ทดสอบเพิ่มอีก 2 ไฟล์ คือ config ที่ถูกทั้งหมด และ config ที่พิมพ์ชื่อ field ผิด</p>
+<pre class="code" data-env="file" data-label="JSON · practice/ch2/good.json"><code class="language-json">[
+  {"name": "api", "port": 8080, "replicas": 3, "health_path": "/health"},
+  {"name": "web", "port": 3000, "replicas": 2, "health_path": "/healthz"}
+]</code></pre>
+<pre class="code" data-env="file" data-label="JSON · practice/ch2/typo.json"><code class="language-json">[{"name":"api","prot":8080,"replicas":1,"health_path":"/h"}]</code></pre>
+<p>รันเทสต์ก่อน แล้วจึง build และทดลองทุกกรณีของ Exit Code</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+gofmt -l practice/ch2
+go vet ./practice/ch2/...
+go test -v ./practice/ch2/...</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>?   	example.com/go-lab/practice/ch2	[no test files]
+=== RUN   TestServiceValidate
+=== RUN   TestServiceValidate/valid_service
+=== RUN   TestServiceValidate/empty_name
+=== RUN   TestServiceValidate/port_zero
+=== RUN   TestServiceValidate/port_too_high
+=== RUN   TestServiceValidate/replicas_zero
+=== RUN   TestServiceValidate/health_without_slash
+--- PASS: TestServiceValidate (0.00s)
+    --- PASS: TestServiceValidate/valid_service (0.00s)
+    --- PASS: TestServiceValidate/empty_name (0.00s)
+    --- PASS: TestServiceValidate/port_zero (0.00s)
+    --- PASS: TestServiceValidate/port_too_high (0.00s)
+    --- PASS: TestServiceValidate/replicas_zero (0.00s)
+    --- PASS: TestServiceValidate/health_without_slash (0.00s)
+=== RUN   TestValidateAllDuplicate
+--- PASS: TestValidateAllDuplicate (0.00s)
+=== RUN   TestLoadUnknownField
+--- PASS: TestLoadUnknownField (0.00s)
+PASS
+ok  	example.com/go-lab/practice/ch2/svcconf	0.003s</code></pre>
+<p><span class="muted small">เวลาท้ายบรรทัด <code>ok</code> บนเครื่องของคุณจะต่างไป และถ้ารันซ้ำโดยไม่แก้โค้ด Go จะแสดง <code>(cached)</code> แทนเวลา</span></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go build -o bin/svccheck ./practice/ch2
+./bin/svccheck
+echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>SERVICE  STATUS  PROBLEM
+api      OK      -
+worker   FAIL    worker.port: 0 is out of range 1-65535
+                 worker.replicas: 12 is out of range 1-10
+web      FAIL    web.health_path: "healthz" must start with /
+api      FAIL    api.name: duplicate service name
+checked 4 services: 1 ok, 3 failed
+exit code: 1</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+./bin/svccheck -format json -file practice/ch2/services.json
+echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[
+  {
+    "name": "api",
+    "ok": true
+  },
+  {
+    "name": "worker",
+    "ok": false,
+    "problems": [
+      "worker.port: 0 is out of range 1-65535",
+      "worker.replicas: 12 is out of range 1-10"
+    ]
+  },
+  {
+    "name": "web",
+    "ok": false,
+    "problems": [
+      "web.health_path: \"healthz\" must start with /"
+    ]
+  },
+  {
+    "name": "api",
+    "ok": false,
+    "problems": [
+      "api.name: duplicate service name"
+    ]
+  }
+]
+exit code: 1</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+./bin/svccheck -file practice/ch2/good.json
+echo "exit code: $?"
+./bin/svccheck -file practice/ch2/typo.json
+echo "exit code: $?"
+./bin/svccheck -format yaml
+echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>SERVICE  STATUS  PROBLEM
+api      OK      -
+web      OK      -
+checked 2 services: 2 ok, 0 failed
+exit code: 0
+time=2026-10-19T09:15:42.318+07:00 level=ERROR msg="load config" err="decode config: json: unknown field \"prot\""
+exit code: 2
+invalid -format "yaml" (use table or json)
+exit code: 2</code></pre>
+<p><span class="muted small">ค่า <code>time=</code> ในบรรทัด log ของ slog จะเป็นวันเวลาบนเครื่องของคุณ</span></p>
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>รวบรวม error ทุกข้อ ไม่หยุดที่ข้อแรก</strong> ใช้ <code>errors.Join</code> รวม error หลายตัวเป็นตัวเดียว ผู้ใช้แก้ config ได้ครบในรอบเดียว ไม่ต้องรันแก้ทีละข้อ และ <code>errors.Join</code> คืน <code>nil</code> เมื่อไม่มี error ทำให้โค้ดผู้เรียกยังเขียน <code>if err != nil</code> ได้ตามปกติ</li>
+<li><strong>Custom Error Type ที่มีข้อมูล</strong> <code>*FieldError</code> เก็บ Service, Field และ Reason แยกกัน โค้ดอื่นจึงใช้ <code>errors.As</code> ดึงข้อมูลไปใช้ต่อได้ (เช่น ไฮไลต์ field ใน UI) ไม่ต้อง parse ข้อความ เทสต์ก็ตรวจที่ <code>fe.Field</code> แทนการเทียบข้อความทั้งบรรทัด ทำให้เทสต์ไม่พังเมื่อแก้ถ้อยคำ</li>
+<li><strong>เข้มงวดกับ Input</strong> <code>DisallowUnknownFields</code> จับการพิมพ์ชื่อ field ผิด ซึ่งถ้าไม่เปิด <code>encoding/json</code> จะเงียบและได้ <code>Port</code> เป็น 0 ซึ่งเป็นบั๊กที่หายาก</li>
+<li><strong>แยก Logic ออกจาก I/O</strong> <code>Load</code> รับ <code>io.Reader</code> ไม่ใช่ชื่อไฟล์ จึงเทสต์ได้ด้วย <code>strings.NewReader</code> โดยไม่ต้องสร้างไฟล์จริง ส่วน <code>main</code> ทำแค่อ่าน Flag, เปิดไฟล์, เรียก Package และแสดงผล</li>
+<li><strong>stdout สำหรับผลลัพธ์, stderr สำหรับ log</strong> เมื่อสั่ง <code>./bin/svccheck -format json &gt; report.json</code> ไฟล์จะมีแต่ JSON ที่ถูกต้อง ส่วน log ของ slog ยังแสดงบนจอ</li>
+<li><strong>Exit Code ที่ CI เข้าใจ</strong> 1 แปลว่า config ผิดกฎ (ต้องแก้ config) 2 แปลว่าเรียกใช้เครื่องมือผิดหรือไฟล์เสีย (ต้องแก้ Pipeline) แยกกันชัดเจน หมายเหตุ <code>os.Exit</code> จะไม่เรียก <code>defer</code> ที่ค้างอยู่ ในโปรแกรมนี้ยอมรับได้ เพราะระบบปฏิบัติการปิดไฟล์ให้เมื่อ Process จบ แต่ถ้ามีงานสำคัญใน defer เช่น flush buffer ให้ย้าย logic ไปไว้ในฟังก์ชัน <code>run() int</code> แล้วเรียก <code>os.Exit(run())</code> จาก main</li>
+</ul>
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+<li>เพิ่มกฎตรวจว่า <code>port</code> ห้ามซ้ำกันระหว่าง Service และเพิ่ม field <code>env</code> ที่ต้องเป็น <code>dev</code>, <code>staging</code> หรือ <code>prod</code> เท่านั้น พร้อมเพิ่มกรณีทดสอบในตาราง</li>
+<li>เพิ่ม <code>-format csv</code> ด้วย <code>encoding/csv</code> (หนึ่งแถวต่อหนึ่งปัญหา) เพื่อเปิดดูใน Spreadsheet ได้ และเขียนเทสต์ของฟังก์ชันแสดงผลโดยส่ง <code>bytes.Buffer</code> เป็น <code>io.Writer</code></li>
+<li>นำไปรันใน GitHub Actions (ดูหัวข้อ <a data-t="17"></a>) ให้ Workflow รัน <code>go run ./practice/ch2 -file services.json</code> ทุกครั้งที่มี Pull Request ที่แก้ไฟล์ config และให้ PR ไม่ผ่านเมื่อ Exit Code ไม่ใช่ 0</li>
+<li>ห่อ <code>svcconf.ValidateAll</code> เป็น HTTP API <code>POST /validate</code> ด้วย <code>net/http</code> ที่รับ JSON แล้วตอบ 200 เมื่อผ่าน หรือ 422 พร้อมรายการปัญหาเมื่อไม่ผ่าน และเทสต์ด้วย <code>httptest.NewRecorder</code></li>
+<li>เพิ่ม Example Test <code>ExampleValidateAll</code> ที่มี comment <code>// Output:</code> เพื่อให้ <code>go doc</code> แสดงตัวอย่างการใช้งาน และใช้ <code>go test -cover</code> ดูว่าเทสต์ครอบคลุมกี่เปอร์เซ็นต์</li>
+</ol>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 3: farefind (Advanced)</summary><div>
+<p>เฉลยมี 2 ไฟล์ คือ <code>main.go</code> ที่รวมทั้ง Logic, Supplier ปลอม และ CLI กับ <code>main_test.go</code> ที่ทดสอบทุกกรณีด้วย <code>httptest</code> ต้องติดตั้ง <code>gcc</code> ก่อนจึงจะใช้ <code>-race</code> ได้</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">sudo apt update
+sudo apt install -y gcc</code></pre>
+<pre class="code" data-env="file" data-label="Go · practice/ch3/main.go"><code class="language-go">package main
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"sync"
+	"sync/atomic"
+	"text/tabwriter"
+	"time"
+)
+
+// Supplier คือสายการบินหนึ่งเจ้าที่เราจะขอราคา
+type Supplier struct {
+	Name    string
+	BaseURL string
+}
+
+// Quote คือราคาที่ได้กลับมาจาก Supplier
+type Quote struct {
+	Route    string `json:"route"`
+	PriceTHB int    `json:"price_thb"`
+}
+
+// Result คือผลของ Supplier หนึ่งเจ้า
+type Result struct {
+	Supplier string
+	Quote    *Quote
+	Attempts int
+	Err      error
+}
+
+// StatusError ใช้เมื่อ Supplier ตอบกลับด้วย status ที่ไม่ใช่ 200
+type StatusError struct{ Code int }
+
+func (e *StatusError) Error() string { return fmt.Sprintf("status %d", e.Code) }
+
+// retryable บอกว่า error นี้ควรลองใหม่หรือไม่: ลองใหม่เฉพาะ 5xx และ network error
+func retryable(err error) bool {
+	var se *StatusError
+	if errors.As(err, &amp;se) {
+		return se.Code &gt;= 500
+	}
+	return !errors.Is(err, context.DeadlineExceeded) &amp;&amp; !errors.Is(err, context.Canceled)
+}
+
+// getOnce ยิง request หนึ่งครั้ง
+func getOnce(ctx context.Context, c *http.Client, url string) (*Quote, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		io.Copy(io.Discard, resp.Body) // อ่านทิ้งให้หมด เพื่อให้นำ connection กลับมาใช้ใหม่ได้
+		return nil, &amp;StatusError{Code: resp.StatusCode}
+	}
+	var q Quote
+	if err := json.NewDecoder(resp.Body).Decode(&amp;q); err != nil {
+		return nil, fmt.Errorf("decode quote: %w", err)
+	}
+	return &amp;q, nil
+}
+
+// fetchQuote ขอราคาจาก Supplier พร้อม Retry แบบ Backoff
+func fetchQuote(ctx context.Context, c *http.Client, s Supplier, route string, retries int, backoff time.Duration) Result {
+	res := Result{Supplier: s.Name}
+	url := s.BaseURL + "/quotes/" + route
+	for attempt := 1; attempt &lt;= retries+1; attempt++ {
+		res.Attempts = attempt
+		q, err := getOnce(ctx, c, url)
+		if err == nil {
+			res.Quote, res.Err = q, nil
+			return res
+		}
+		res.Err = err
+		if !retryable(err) || attempt == retries+1 {
+			break
+		}
+		// รอก่อนลองใหม่ แต่ถ้า context หมดเวลาให้เลิกทันที
+		select {
+		case &lt;-time.After(backoff * time.Duration(attempt)):
+		case &lt;-ctx.Done():
+			res.Err = ctx.Err()
+			return res
+		}
+	}
+	return res
+}
+
+// aggregate ขอราคาจากทุก Supplier พร้อมกัน ผลลัพธ์เรียงตามลำดับ Supplier เดิม
+func aggregate(ctx context.Context, c *http.Client, sups []Supplier, route string, retries int) []Result {
+	results := make([]Result, len(sups))
+	var wg sync.WaitGroup
+	for i, s := range sups {
+		wg.Go(func() {
+			// แต่ละ Goroutine เขียนลงช่อง index ของตัวเอง จึงไม่เกิด Data Race
+			results[i] = fetchQuote(ctx, c, s, route, retries, 20*time.Millisecond)
+		})
+	}
+	wg.Wait()
+	return results
+}
+
+// cheapest คืนผลที่ราคาถูกที่สุด หรือ false ถ้าไม่มีใครตอบสำเร็จ
+func cheapest(results []Result) (Result, bool) {
+	var best Result
+	found := false
+	for _, r := range results {
+		if r.Err != nil {
+			continue
+		}
+		if !found || r.Quote.PriceTHB &lt; best.Quote.PriceTHB {
+			best, found = r, true
+		}
+	}
+	return best, found
+}
+
+// describe แปลง error ให้อ่านง่ายและไม่มีเลข port ที่สุ่มทุกครั้ง
+func describe(err error) string {
+	var se *StatusError
+	switch {
+	case err == nil:
+		return "-"
+	case errors.Is(err, context.DeadlineExceeded):
+		return "timeout"
+	case errors.As(err, &amp;se):
+		return se.Error()
+	default:
+		return err.Error()
+	}
+}
+
+// quoteHandler สร้าง Handler ของ Supplier ปลอม
+func quoteHandler(price int, delay time.Duration, failFirst int32, alwaysStatus int) http.Handler {
+	var calls atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /quotes/{route}", func(w http.ResponseWriter, r *http.Request) {
+		n := calls.Add(1)
+		select {
+		case &lt;-time.After(delay):
+		case &lt;-r.Context().Done():
+			return // client ยกเลิกแล้ว ไม่ต้องตอบ
+		}
+		if alwaysStatus != 0 {
+			http.Error(w, "unavailable", alwaysStatus)
+			return
+		}
+		if n &lt;= failFirst {
+			http.Error(w, "temporary error", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(Quote{Route: r.PathValue("route"), PriceTHB: price})
+	})
+	return mux
+}
+
+func main() {
+	timeout := flag.Duration("timeout", 300*time.Millisecond, "เวลารวมสูงสุดในการรอราคา")
+	retries := flag.Int("retries", 2, "จำนวนครั้งที่ลองใหม่เพิ่ม (0-5)")
+	route := flag.String("route", "BKK-CNX", "เส้นทางบิน")
+	flag.Parse()
+	if *retries &lt; 0 || *retries &gt; 5 {
+		fmt.Fprintln(os.Stderr, "-retries must be between 0 and 5")
+		os.Exit(2)
+	}
+
+	// Supplier ปลอม 4 เจ้า ทำงานบนเครื่องเราเอง ไม่ต้องใช้อินเทอร์เน็ต
+	servers := []struct {
+		name string
+		h    http.Handler
+	}{
+		{"fastair", quoteHandler(2890, 10*time.Millisecond, 0, 0)},
+		{"budgetfly", quoteHandler(2450, 10*time.Millisecond, 1, 0)},
+		{"slowjet", quoteHandler(1990, 2*time.Second, 0, 0)},
+		{"brokenair", quoteHandler(0, 5*time.Millisecond, 0, http.StatusServiceUnavailable)},
+	}
+	var sups []Supplier
+	for _, s := range servers {
+		srv := httptest.NewServer(s.h)
+		defer srv.Close()
+		sups = append(sups, Supplier{Name: s.name, BaseURL: srv.URL})
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+	defer cancel()
+	client := &amp;http.Client{Timeout: 2 * time.Second} // กันไว้อีกชั้น เผื่อลืมส่ง ctx
+
+	start := time.Now()
+	results := aggregate(ctx, client, sups, *route, *retries)
+	elapsed := time.Since(start)
+
+	tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(tw, "SUPPLIER\tPRICE_THB\tATTEMPTS\tERROR")
+	for _, r := range results {
+		price := "-"
+		if r.Quote != nil {
+			price = fmt.Sprint(r.Quote.PriceTHB)
+		}
+		fmt.Fprintf(tw, "%s\t%s\t%d\t%s\n", r.Supplier, price, r.Attempts, describe(r.Err))
+	}
+	tw.Flush()
+	fmt.Fprintf(os.Stderr, "elapsed: %v\n", elapsed.Round(10*time.Millisecond))
+
+	best, ok := cheapest(results)
+	if !ok {
+		fmt.Println("no quotes available")
+		os.Exit(1)
+	}
+	fmt.Printf("best for %s: %s %d THB\n", *route, best.Supplier, best.Quote.PriceTHB)
+}</code></pre>
+<pre class="code" data-env="file" data-label="Go · practice/ch3/main_test.go"><code class="language-go">package main
+
+import (
+	"context"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+)
+
+func TestFetchQuote(t *testing.T) {
+	tests := []struct {
+		name         string
+		handler      http.Handler
+		wantPrice    int
+		wantAttempts int
+		wantErr      error // ใช้กับ errors.Is (nil = ไม่ตรวจ)
+		wantStatus   int   // ใช้กับ errors.As (0 = ไม่ตรวจ)
+	}{
+		{"ok first try", quoteHandler(2890, 0, 0, 0), 2890, 1, nil, 0},
+		{"500 then 200", quoteHandler(2450, 0, 1, 0), 2450, 2, nil, 0},
+		{"always 503", quoteHandler(0, 0, 0, 503), 0, 3, nil, 503},
+		{"404 no retry", quoteHandler(0, 0, 0, 404), 0, 1, nil, 404},
+		{"too slow", quoteHandler(1990, time.Second, 0, 0), 0, 1, context.DeadlineExceeded, 0},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := httptest.NewServer(tc.handler)
+			defer srv.Close()
+			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+			defer cancel()
+
+			r := fetchQuote(ctx, srv.Client(), Supplier{"test", srv.URL}, "BKK-CNX", 2, time.Millisecond)
+
+			if r.Attempts != tc.wantAttempts {
+				t.Errorf("attempts = %d, want %d", r.Attempts, tc.wantAttempts)
+			}
+			if tc.wantErr != nil &amp;&amp; !errors.Is(r.Err, tc.wantErr) {
+				t.Errorf("err = %v, want %v", r.Err, tc.wantErr)
+			}
+			if tc.wantStatus != 0 {
+				var se *StatusError
+				if !errors.As(r.Err, &amp;se) || se.Code != tc.wantStatus {
+					t.Errorf("err = %v, want status %d", r.Err, tc.wantStatus)
+				}
+			}
+			if tc.wantPrice != 0 {
+				if r.Err != nil || r.Quote.PriceTHB != tc.wantPrice {
+					t.Fatalf("got quote %+v err %v, want price %d", r.Quote, r.Err, tc.wantPrice)
+				}
+			}
+		})
+	}
+}
+
+func TestAggregateOrderAndCheapest(t *testing.T) {
+	var sups []Supplier
+	for i, price := range []int{3000, 1500, 2200} {
+		// ให้เจ้าแรกช้าที่สุด เพื่อพิสูจน์ว่าผลลัพธ์ยังเรียงตามลำดับเดิม
+		delay := time.Duration(3-i) * 15 * time.Millisecond
+		srv := httptest.NewServer(quoteHandler(price, delay, 0, 0))
+		defer srv.Close()
+		sups = append(sups, Supplier{Name: string(rune('a' + i)), BaseURL: srv.URL})
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	got := aggregate(ctx, http.DefaultClient, sups, "BKK-HKT", 0)
+
+	for i, want := range []string{"a", "b", "c"} {
+		if got[i].Supplier != want {
+			t.Errorf("results[%d] = %s, want %s", i, got[i].Supplier, want)
+		}
+	}
+	best, ok := cheapest(got)
+	if !ok || best.Supplier != "b" || best.Quote.Route != "BKK-HKT" {
+		t.Errorf("cheapest = %+v (ok=%v), want supplier b on BKK-HKT", best, ok)
+	}
+}
+
+func TestCheapestNone(t *testing.T) {
+	_, ok := cheapest([]Result{{Supplier: "x", Err: errors.New("boom")}})
+	if ok {
+		t.Fatal("want ok=false when every supplier failed")
+	}
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+gofmt -l practice/ch3
+go vet ./practice/ch3
+go test -race -v ./practice/ch3</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>=== RUN   TestFetchQuote
+=== RUN   TestFetchQuote/ok_first_try
+=== RUN   TestFetchQuote/500_then_200
+=== RUN   TestFetchQuote/always_503
+=== RUN   TestFetchQuote/404_no_retry
+=== RUN   TestFetchQuote/too_slow
+--- PASS: TestFetchQuote (0.12s)
+    --- PASS: TestFetchQuote/ok_first_try (0.00s)
+    --- PASS: TestFetchQuote/500_then_200 (0.00s)
+    --- PASS: TestFetchQuote/always_503 (0.01s)
+    --- PASS: TestFetchQuote/404_no_retry (0.00s)
+    --- PASS: TestFetchQuote/too_slow (0.10s)
+=== RUN   TestAggregateOrderAndCheapest
+--- PASS: TestAggregateOrderAndCheapest (0.05s)
+=== RUN   TestCheapestNone
+--- PASS: TestCheapestNone (0.00s)
+PASS
+ok  	example.com/go-lab/practice/ch3	1.182s</code></pre>
+<p><span class="muted small">เวลาในวงเล็บและเวลารวมท้ายบรรทัด <code>ok</code> ขึ้นกับเครื่อง ส่วนสำคัญคือทุกบรรทัดเป็น <code>PASS</code> และไม่มีคำว่า <code>WARNING: DATA RACE</code></span></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go build -o bin/farefind ./practice/ch3
+./bin/farefind
+echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>SUPPLIER   PRICE_THB  ATTEMPTS  ERROR
+fastair    2890       1         -
+budgetfly  2450       2         -
+slowjet    -          1         timeout
+brokenair  -          3         status 503
+elapsed: 300ms
+best for BKK-CNX: budgetfly 2450 THB
+exit code: 0</code></pre>
+<p>ทดลองกรณีที่ Timeout สั้นมากจนไม่มีเจ้าไหนตอบทัน และกรณีส่ง Flag ผิดช่วง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+./bin/farefind -timeout 5ms
+echo "exit code: $?"
+./bin/farefind -retries 9
+echo "exit code: $?"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>SUPPLIER   PRICE_THB  ATTEMPTS  ERROR
+fastair    -          1         timeout
+budgetfly  -          1         timeout
+slowjet    -          1         timeout
+brokenair  -          1         timeout
+elapsed: 10ms
+no quotes available
+exit code: 1
+-retries must be between 0 and 5
+exit code: 2</code></pre>
+<p><span class="muted small">กรณี <code>-timeout 5ms</code> ขึ้นกับความเร็วเครื่อง ถ้าเครื่องเร็วมาก <code>brokenair</code> อาจตอบ 503 ทันก่อนหมดเวลา ทำให้คอลัมน์ ERROR เป็น <code>status 503</code> ได้ ค่า <code>elapsed</code> ก็จะต่างไปเล็กน้อย</span></p>
+<p>สุดท้ายรันทั้งโปรแกรมภายใต้ Race Detector อีกครั้ง เพื่อยืนยันว่าโค้ดจริง (ไม่ใช่แค่เทสต์) ไม่มี Data Race</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run -race ./practice/ch3 -route BKK-HKT</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>SUPPLIER   PRICE_THB  ATTEMPTS  ERROR
+fastair    2890       1         -
+budgetfly  2450       2         -
+slowjet    -          1         timeout
+brokenair  -          3         status 503
+elapsed: 300ms
+best for BKK-HKT: budgetfly 2450 THB</code></pre>
+<h5>แนวคิด</h5>
+<ul>
+<li><strong>Fan-out ด้วย Goroutine ต่อ Supplier</strong> จำนวน Supplier มีน้อยและรู้ล่วงหน้า จึงเปิด Goroutine หนึ่งตัวต่อหนึ่งเจ้าด้วย <code>wg.Go</code> เวลารวมจึงเท่ากับเจ้าที่ช้าที่สุด (ถูกตัดที่ 300 ms) ไม่ใช่ผลรวมของทุกเจ้า ถ้าจำนวนเป้าหมายมีมากหรือไม่จำกัด ควรเปลี่ยนเป็น Worker Pool ที่จำกัดจำนวน Worker เหมือนใน Mini Project ของ Part 4</li>
+<li><strong>เก็บผลตาม index แทนการใช้ Channel</strong> แต่ละ Goroutine เขียนลง <code>results[i]</code> ของตัวเองเท่านั้น ไม่มีสองตัวไหนเขียนช่องเดียวกัน จึงไม่ต้องใช้ Mutex และ <code>wg.Wait()</code> รับประกันว่าทุกการเขียนเสร็จก่อน main อ่าน ผลยังเรียงตามลำดับเดิมเสมอ ซึ่งเทสต์ <code>TestAggregateOrderAndCheapest</code> พิสูจน์โดยให้เจ้าแรกช้าที่สุด</li>
+<li><strong>context ตัวเดียวคุมเวลารวมของทุกงาน</strong> ทุก Request สร้างด้วย <code>http.NewRequestWithContext(ctx, ...)</code> เมื่อครบ 300 ms Request ที่ค้างอยู่ทั้งหมดถูกยกเลิกพร้อมกัน และการรอ Backoff ก็ <code>select</code> กับ <code>ctx.Done()</code> จึงไม่มีงานไหนเลยเวลา <code>http.Client{Timeout}</code> เป็นเพียงตาข่ายกันพลาดอีกชั้น</li>
+<li><strong>Retry อย่างมีเหตุผล</strong> ลองใหม่เฉพาะ 5xx และ Network Error ซึ่งมักหายได้เอง ไม่ลองใหม่กับ 4xx เพราะคำขอผิดตั้งแต่ต้น ลองกี่ครั้งก็ผิด และไม่ลองใหม่เมื่อ context หมดเวลา Backoff เพิ่มขึ้นตามรอบ (20 ms, 40 ms) เพื่อไม่ถล่ม Server ที่กำลังมีปัญหา</li>
+<li><strong>Error แบบมี Type</strong> <code>*StatusError</code> ให้ <code>retryable</code> และ <code>describe</code> ใช้ <code>errors.As</code> อ่าน Status Code ได้ตรง ๆ และ <code>errors.Is(err, context.DeadlineExceeded)</code> ทำงานได้แม้ error ถูก <code>net/http</code> ห่อไว้หลายชั้น ผลลัพธ์จึงอ่านง่ายและไม่มีเลข port ที่สุ่มทุกครั้ง</li>
+<li><strong>ทดสอบโดยไม่ต้องใช้อินเทอร์เน็ต</strong> <code>httptest.NewServer</code> เปิด Server จริงบน 127.0.0.1 ที่ port สุ่ม เทสต์จึงรันได้ทุกที่ รวมถึงใน CI และ Handler ปลอมเคารพ <code>r.Context().Done()</code> ทำให้ <code>srv.Close()</code> ไม่ต้องรอ Handler ที่ถูกยกเลิกไปแล้ว</li>
+</ul>
+<h5>ไอเดียต่อยอด</h5>
+<ol>
+<li>เปลี่ยนจาก <code>sync.WaitGroup</code> เป็น <code>errgroup.Group</code> จาก <code>golang.org/x/sync</code> v0.24.0 แล้วใช้ <code>g.SetLimit(n)</code> จำกัดจำนวน Request พร้อมกัน เมื่อต้องรองรับ Supplier หลายสิบเจ้า</li>
+<li>ห่อ <code>aggregate</code> เป็น HTTP API <code>GET /search/{route}</code> ด้วย ServeMux ของ Go 1.22+ ที่ตอบ JSON ของทุกเจ้าและราคาที่ถูกที่สุด ใช้ <code>r.Context()</code> เป็น context ตั้งต้น เพื่อให้การค้นหาถูกยกเลิกทันทีเมื่อผู้ใช้ปิดหน้าเว็บ</li>
+<li>เพิ่ม Jitter (สุ่มเวลาบวกลบเล็กน้อย) ให้ Backoff และอ่าน Header <code>Retry-After</code> เมื่อ Supplier ตอบ 503 หรือ 429 เพื่อไม่ให้ Client ทุกตัวลองใหม่พร้อมกันจนเกิด Thundering Herd</li>
+<li>เพิ่ม Cache ในหน่วยความจำ (<code>map[string]Quote</code> ป้องกันด้วย <code>sync.RWMutex</code> พร้อมเวลาหมดอายุ) เพื่อตอบเส้นทางที่ถูกค้นบ่อยโดยไม่ต้องเรียก Supplier ทุกครั้ง แล้วเขียนเทสต์ด้วย <code>-race</code> ยืนยันว่าไม่มี Data Race</li>
+<li>เพิ่ม Circuit Breaker แบบง่ายต่อ Supplier เช่น ถ้าล้มเหลว 5 ครั้งติดกันให้ข้ามเจ้านั้น 30 วินาที และบันทึก log ทุกครั้งที่เปิดหรือปิดวงจรด้วย <code>log/slog</code> แบบ JSONHandler</li>
+</ol>
+</div></details>
+</section>

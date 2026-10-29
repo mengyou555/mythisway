@@ -1,0 +1,2889 @@
+<section class="part" data-part="2">
+<h2 id="s6-2"><span class="sec-no">6.2</span>Core Concept &amp; Quick Guide</h2>
+<p>ส่วนนี้คือแกนหลักของหัวข้อ Go เราจะเรียน 12 แนวคิดเรียงจากง่ายไปยาก เริ่มจากการติดตั้งและคำสั่ง <code>go</code> พื้นฐาน ไล่ไปจนถึง Goroutine, Channel, Worker Pool, <code>context</code> และการสร้าง HTTP Server ที่พร้อมใช้งานจริง ทุกแนวคิดมีโค้ดที่รันได้ครบ ผลลัพธ์ที่ได้จากการรันจริง ตารางอธิบายโค้ด ข้อผิดพลาดที่เจอบ่อยพร้อมข้อความ Error จริง และแบบฝึกหัด "ลองเอง"</p>
+<p>ก่อนเริ่ม คุณควรใช้ Terminal ของ Ubuntu ได้คล่อง (<a data-t="19"></a>) ใช้ Git ได้ (<a data-t="17"></a>) และเขียนโปรแกรมพื้นฐานมาแล้วจากหัวข้อ <a data-t="9"></a> ถ้าเรียน <a data-t="12"></a> และ <a data-t="8"></a> มาแล้ว แนวคิดที่ 12 เรื่อง HTTP Server จะง่ายขึ้นมาก เพราะคุณเข้าใจ REST, Status Code และ JSON อยู่แล้ว เราจะโฟกัสที่ "วิธีเขียนแบบ Go" แทน</p>
+<p>ตัวอย่างทั้งหมดในส่วนนี้อยู่ใน Module เดียวชื่อ <code>example.com/go-lab</code> ที่โฟลเดอร์ <code>~/projects/go-lab</code> แต่ละแนวคิดมีโฟลเดอร์ของตัวเองคือ <code>concepts/c01</code> ถึง <code>concepts/c12</code> และ <strong>รันจาก Root ของ Module เสมอ</strong> เช่น <code>go run ./concepts/c03</code> โค้ดทุกตัวอย่างทดสอบด้วย Go 1.27.2 ผ่าน <code>gofmt</code> และ <code>go vet</code> แล้ว</p>
+
+<h3 id="s6-2-setup">เตรียมเครื่องสำหรับหัวข้อนี้</h3>
+<p>Go ที่อยู่ใน <code>apt</code> ของ Ubuntu 24.04 (แพ็กเกจ <code>golang-go</code>) เก่ากว่ารุ่นปัจจุบันมาก และขาดฟีเจอร์ที่เราใช้ เช่น <code>sync.WaitGroup.Go</code> (Go 1.25+) และ <code>b.Loop()</code> (Go 1.24+) เราจึง<strong>ติดตั้งจากไฟล์ tarball ทางการของ go.dev</strong> ซึ่งเป็นวิธีที่เอกสารของ Go แนะนำ</p>
+<div class="tbl wide"><table class="tools"><thead><tr><th>เครื่องมือ</th><th>เวอร์ชันที่ใช้</th><th>ติดตั้งแบบไหน</th><th>หน้าที่</th></tr></thead><tbody>
+<tr><td>Ubuntu (WSL2)</td><td class="nw">24.04 LTS</td><td>ติดตั้งแล้วจากหัวข้อ Linux</td><td>ที่รันคำสั่งและโค้ดทั้งหมด</td></tr>
+<tr><td>Go</td><td class="nw">1.27.2 (ออกเมื่อ 2026-10-08)</td><td>tarball จาก <a href="https://go.dev/dl/" target="_blank" rel="noopener">go.dev/dl</a></td><td>Compiler, คำสั่ง <code>go</code>, <code>gofmt</code> และ Standard Library</td></tr>
+<tr><td>gcc</td><td class="nw">จาก apt</td><td><code>sudo apt install -y gcc</code></td><td>จำเป็นสำหรับ Race Detector (<code>go run -race</code>, <code>go test -race</code>) ในแนวคิดที่ 11</td></tr>
+<tr><td>curl</td><td class="nw">8.5.0 (มากับ Ubuntu)</td><td>apt</td><td>ยิง HTTP Request ทดสอบ Server ในแนวคิดที่ 12</td></tr>
+<tr><td>file</td><td class="nw">5.45</td><td>apt (มักมีอยู่แล้ว)</td><td>ตรวจว่าไฟล์ที่ Cross-compile เป็นไฟล์ของระบบปฏิบัติการไหน</td></tr>
+<tr><td>VS Code + ส่วนขยาย WSL และ Go</td><td class="nw">รุ่นเสถียรล่าสุด, gopls v0.24.0</td><td>ติดตั้งบน Windows</td><td>เขียนโค้ด เติมคำอัตโนมัติ จัดรูปแบบตอนบันทึก และ Debug</td></tr>
+</tbody></table></div>
+
+<h4>ขั้นที่ 1: ตรวจสถาปัตยกรรมเครื่อง และติดตั้งเครื่องมือพื้นฐาน</h4>
+<p>ไฟล์ของ Go แยกตามสถาปัตยกรรม CPU ถ้า <code>uname -m</code> แสดง <code>x86_64</code> ให้ใช้ไฟล์ <code>linux-amd64</code> ถ้าแสดง <code>aarch64</code> (เครื่อง Windows on ARM) ให้เปลี่ยนเป็น <code>linux-arm64</code> ในทุกคำสั่งด้านล่าง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ดูสถาปัตยกรรมของ CPU
+uname -m
+
+# อัปเดตรายการแพ็กเกจ แล้วติดตั้ง wget, gcc (ใช้กับ -race) และ file
+sudo apt update
+sudo apt install -y wget gcc file
+gcc --version | head -1</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>x86_64
+gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0</code></pre>
+<p class="muted small">ข้อความระหว่าง <code>apt update</code> และ <code>apt install</code> ยาวและต่างกันไปตามเครื่อง จึงไม่ได้แสดงไว้ สิ่งที่ต้องดูคือบรรทัดสุดท้ายที่บอกเวอร์ชันของ gcc</p>
+
+<h4>ขั้นที่ 2: ดาวน์โหลด Go 1.27.2 และตรวจ Checksum</h4>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ไปที่ Home แล้วดาวน์โหลดไฟล์ทางการ (ประมาณ 70 MB)
+cd ~
+wget https://go.dev/dl/go1.27.2.linux-amd64.tar.gz
+
+# คำนวณ SHA256 ของไฟล์ที่ได้ แล้วเทียบกับค่าบนหน้า https://go.dev/dl/
+sha256sum go1.27.2.linux-amd64.tar.gz</code></pre>
+<p>คำสั่ง <code>sha256sum</code> จะพิมพ์ตัวอักษร 64 ตัวตามด้วยชื่อไฟล์ ให้เปิดหน้า <a href="https://go.dev/dl/" target="_blank" rel="noopener">go.dev/dl</a> หาแถว <code>go1.27.2.linux-amd64.tar.gz</code> แล้วเทียบค่าในคอลัมน์ SHA256 Checksum ต้องตรงกันทุกตัว ถ้าไม่ตรง ให้ลบไฟล์แล้วดาวน์โหลดใหม่ ห้ามติดตั้งไฟล์ที่ Checksum ไม่ตรง เพราะไฟล์อาจเสียหายหรือถูกแก้ไขระหว่างทาง</p>
+
+<h4>ขั้นที่ 3: แตกไฟล์ไปที่ /usr/local/go และตั้งค่า PATH</h4>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ลบ Go รุ่นเก่า (ถ้ามี) ก่อนแตกไฟล์ใหม่ ห้ามแตกทับโฟลเดอร์เดิม เพราะไฟล์เก่าจะปนกับไฟล์ใหม่
+sudo rm -rf /usr/local/go &amp;&amp; sudo tar -C /usr/local -xzf go1.27.2.linux-amd64.tar.gz
+
+# เพิ่มที่อยู่ของคำสั่ง go และโปรแกรมที่เราจะ go install ลงใน PATH (ทำครั้งเดียว)
+echo 'export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin' &gt;&gt; ~/.bashrc
+
+# โหลด .bashrc ใหม่ในหน้าต่างเดิม (หรือปิดแล้วเปิด Terminal ใหม่)
+source ~/.bashrc
+
+# ตรวจเวอร์ชันและที่อยู่ของคำสั่ง
+go version
+which go</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>go version go1.27.2 linux/amd64
+/usr/local/go/bin/go</code></pre>
+<p>ถ้าเห็น <code>go version go1.27.2 linux/amd64</code> แสดงว่าติดตั้งสำเร็จ ลบไฟล์ tarball ทิ้งได้ด้วย <code>rm ~/go1.27.2.linux-amd64.tar.gz</code></p>
+
+<h4>ขั้นที่ 4: ดูค่าตั้งค่าสำคัญของ Go</h4>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># GOROOT = ที่อยู่ของตัว Go, GOPATH = พื้นที่ของผู้ใช้ (cache และโปรแกรมที่ go install)
+go env GOROOT GOPATH GOMODCACHE GOOS GOARCH</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>/usr/local/go
+/home/somchai/go
+/home/somchai/go/pkg/mod
+linux
+amd64</code></pre>
+<p>บนเครื่องของคุณ ชื่อผู้ใช้ในที่อยู่จะเป็นชื่อของคุณเองแทน <code>somchai</code> โฟลเดอร์ <code>~/go</code> ถูกสร้างอัตโนมัติเมื่อเราดาวน์โหลด Module หรือ <code>go install</code> ครั้งแรก ไม่ต้องสร้างเอง</p>
+
+<h4>ขั้นที่ 5: สร้าง Module สำหรับฝึก</h4>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างโฟลเดอร์ฝึก แล้วสร้าง Module (ทำครั้งเดียว ทุกแนวคิดใช้ Module นี้ร่วมกัน)
+mkdir -p ~/projects/go-lab
+cd ~/projects/go-lab
+go mod init example.com/go-lab
+cat go.mod</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>go: creating new go.mod: module example.com/go-lab
+
+module example.com/go-lab
+
+go 1.27.2</code></pre>
+
+<h4>ขั้นที่ 6: ตั้งค่า VS Code</h4>
+<ol>
+<li>ติดตั้ง VS Code บน Windows และส่วนขยาย <strong>WSL</strong> (ของ Microsoft)</li>
+<li>ใน Terminal ของ Ubuntu พิมพ์ <code>cd ~/projects/go-lab &amp;&amp; code .</code> VS Code จะเปิดโฟลเดอร์นี้ผ่าน WSL</li>
+<li>ติดตั้งส่วนขยาย <strong>Go</strong> (ของทีม Go ที่ Google) ในหน้าต่าง WSL นั้น แล้วกด <strong>Install All</strong> เมื่อมันขอติดตั้งเครื่องมือ ส่วนขยายจะติดตั้ง <code>gopls</code> (Language Server, v0.24.0 ณ วันที่เขียน) และ <code>dlv</code> (Debugger) ให้</li>
+<li>ส่วนขยาย Go จะจัดรูปแบบโค้ดด้วย <code>gofmt</code> และจัด import ให้อัตโนมัติทุกครั้งที่บันทึกไฟล์</li>
+</ol>
+<div class="callout"><span class="c-label tip">Tip</span><p>ถ้าต้องการทดสอบโค้ดกับ Go รุ่นอื่นโดยไม่ติดตั้งใหม่ ใช้ตัวแปร <code>GOTOOLCHAIN</code> ได้ เช่น <code>GOTOOLCHAIN=go1.25.0 go version</code> คำสั่ง <code>go</code> จะดาวน์โหลด Toolchain รุ่นนั้นผ่าน Module Proxy มาเก็บใน <code>~/go/pkg/mod</code> ให้เอง นอกจากนี้ ถ้า <code>go.mod</code> ของโปรเจกต์ระบุรุ่นที่ใหม่กว่าที่ติดตั้งไว้ Go ก็จะดาวน์โหลดรุ่นที่ต้องการให้อัตโนมัติเช่นกัน</p></div>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไปแนวคิดที่ 1 คุณต้องได้ผลเหล่านี้: <code>go version</code> แสดง <code>go1.27.2</code>, <code>which go</code> แสดง <code>/usr/local/go/bin/go</code>, <code>gcc --version</code> ทำงานได้ และมีไฟล์ <code>~/projects/go-lab/go.mod</code> ที่มีบรรทัด <code>module example.com/go-lab</code></p></div>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 1</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h3 id="s6-2-c01">ติดตั้ง Go, Go Modules และคำสั่ง go</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>Go เป็นภาษาแบบ <strong>Compiled</strong> คือแปลงโค้ดทั้งหมดเป็นไฟล์โปรแกรม (Binary) ไฟล์เดียวก่อนรัน ต่างจาก Python ที่ต้องมีตัว Interpreter อยู่บนเครื่องที่รัน ไฟล์ Binary ของ Go นำไปวางบนเครื่องอื่นแล้วรันได้ทันที นี่คือเหตุผลที่ Go ได้รับความนิยมในงาน Cloud, Docker และเครื่องมือ Command Line</p>
+<p>โค้ด Go ทุกชิ้นอยู่ใน <strong>Module</strong> ซึ่งคือโฟลเดอร์ที่มีไฟล์ <code>go.mod</code> ไฟล์นี้บอก 2 อย่าง คือ <em>ชื่อ Module</em> (Module Path เช่น <code>example.com/go-lab</code> ซึ่งเป็นคำนำหน้าของทุก import ใน Module) และ <em>รุ่น Go</em> ที่โค้ดต้องการ (บรรทัด <code>go 1.27.2</code>) ภายใน Module แบ่งเป็น <strong>Package</strong> ตามโฟลเดอร์ หนึ่งโฟลเดอร์ = หนึ่ง Package โปรแกรมที่รันได้ต้องเป็น <code>package main</code> และมี <code>func main()</code> เป็นจุดเริ่มทำงาน</p>
+<p>คำสั่ง <code>go</code> ตัวเดียวทำได้ทุกอย่าง คุณจะใช้คำสั่งเหล่านี้ทุกวัน:</p>
+<ul>
+<li><code>go run</code> คอมไพล์แล้วรันทันที (ไม่เก็บไฟล์ Binary) ใช้ตอนพัฒนา</li>
+<li><code>go build -o bin/ชื่อ</code> สร้างไฟล์ Binary เก็บไว้ ใช้ตอนจะนำโปรแกรมไปใช้จริง</li>
+<li><code>go install</code> สร้าง Binary แล้ววางไว้ที่ <code>~/go/bin</code> เรียกใช้ได้จากทุกที่ (เพราะเราใส่ไว้ใน PATH แล้ว)</li>
+<li><code>gofmt -l .</code> / <code>gofmt -w .</code> ตรวจหรือจัดรูปแบบโค้ดให้เป็นมาตรฐานเดียวกันทั้งโลก</li>
+<li><code>go vet ./...</code> ตรวจหาโค้ดที่น่าจะผิด แม้คอมไพล์ผ่าน (<code>./...</code> แปลว่าทุก Package ในโฟลเดอร์นี้และโฟลเดอร์ย่อย)</li>
+<li><code>go doc</code> อ่านเอกสารของ Package หรือฟังก์ชันใน Terminal</li>
+</ul>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Module เหมือน "ร้านอาหารหนึ่งร้าน" ที่มีป้ายชื่อร้าน (<code>go.mod</code>) แต่ละ Package คือ "แผนก" ในครัว เช่น แผนกทอด แผนกต้ม ส่วน <code>package main</code> คือ "หน้าร้าน" ที่ลูกค้าเดินเข้ามา <code>go run</code> เหมือนทำอาหารให้ชิมทันทีในครัว ส่วน <code>go build</code> คือการแพ็กอาหารใส่กล่องพร้อมส่ง เปิดกินที่ไหนก็ได้โดยไม่ต้องมีครัว</p></div>
+
+<h4>ตัวอย่างโค้ด</h4>
+<p>สร้างโฟลเดอร์ของแนวคิดนี้ (ถ้ายังไม่ได้สร้าง Module ให้ทำขั้นที่ 5 ของหัวข้อเตรียมเครื่องก่อน)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+mkdir -p concepts/c01 bin
+code concepts/c01/main.go   # หรือใช้ nano concepts/c01/main.go</code></pre>
+<pre class="code" data-env="file" data-label="Go · concepts/c01/main.go"><code class="language-go">// Package main คือโปรแกรมที่รันได้ ต้องมี func main เสมอ
+package main
+
+import (
+	"fmt"
+	"os"
+	"runtime"
+)
+
+func main() {
+	// ชื่อเริ่มต้น ถ้าผู้ใช้ไม่ได้ส่งชื่อมาทาง command line
+	name := "Gopher"
+	// os.Args[0] คือชื่อโปรแกรม ตัวถัดไปคือ argument ที่ผู้ใช้พิมพ์
+	if len(os.Args) &gt; 1 {
+		name = os.Args[1]
+	}
+
+	fmt.Printf("สวัสดี %s! ยินดีต้อนรับสู่ Go\n", name)
+	fmt.Println("Go version:", runtime.Version())
+	fmt.Printf("OS/Arch: %s/%s\n", runtime.GOOS, runtime.GOARCH)
+	fmt.Println("จำนวน argument:", len(os.Args)-1)
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+
+# 1) รันทันทีพร้อมส่งชื่อเป็น argument
+go run ./concepts/c01 somchai
+
+# 2) สร้าง Binary แล้วรันโดยไม่ส่ง argument
+go build -o bin/hello ./concepts/c01
+./bin/hello
+
+# 3) ติดตั้งลง ~/go/bin (ชื่อไฟล์ = ชื่อโฟลเดอร์ คือ c01)
+go install ./concepts/c01
+ls ~/go/bin
+
+# 4) ตรวจรูปแบบและตรวจโค้ด
+gofmt -l .
+go vet ./...
+
+# 5) อ่านเอกสารของฟังก์ชัน
+go doc strings.ToUpper</code></pre>
+
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>สวัสดี somchai! ยินดีต้อนรับสู่ Go
+Go version: go1.27.2
+OS/Arch: linux/amd64
+จำนวน argument: 1
+สวัสดี Gopher! ยินดีต้อนรับสู่ Go
+Go version: go1.27.2
+OS/Arch: linux/amd64
+จำนวน argument: 0
+c01
+package strings // import "strings"
+
+func ToUpper(s string) string
+    ToUpper returns s with all Unicode letters mapped to their upper case.</code></pre>
+<p><code>gofmt -l .</code> และ <code>go vet ./...</code> <strong>ไม่พิมพ์อะไรเลยเมื่อทุกอย่างถูกต้อง</strong> ความเงียบคือข่าวดี ถ้า <code>gofmt -l</code> พิมพ์ชื่อไฟล์ออกมา แปลว่าไฟล์นั้นยังจัดรูปแบบไม่ถูก ตัวอย่างด้านล่างคือไฟล์ที่เขียนไม่เป็นระเบียบ และสิ่งที่ <code>gofmt -d</code> (แสดง diff) บอก</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>$ gofmt -l .
+concepts/ugly/main.go
+$ gofmt -d concepts/ugly/main.go
+diff concepts/ugly/main.go.orig concepts/ugly/main.go
+--- concepts/ugly/main.go.orig
++++ concepts/ugly/main.go
+@@ -1,4 +1,7 @@
+ package main
++
+ import "fmt"
+-func main(){
+-fmt.Println("hi")}
++
++func main() {
++	fmt.Println("hi")
++}</code></pre>
+<p>สั่ง <code>gofmt -w concepts/ugly/main.go</code> เพื่อแก้ไฟล์ตามนั้นจริง หลังจากนั้น <code>gofmt -l .</code> จะเงียบอีกครั้ง</p>
+
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>package main</code></td><td>บอกว่าไฟล์นี้อยู่ใน Package ชื่อ <code>main</code> ซึ่งเป็น Package พิเศษที่คอมไพล์เป็นโปรแกรมรันได้ Package ชื่ออื่นเป็น Library ให้คนอื่น import</td></tr>
+<tr><td><code>import ( "fmt" "os" "runtime" )</code></td><td>นำ Package จาก Standard Library มาใช้: <code>fmt</code> พิมพ์ข้อความ, <code>os</code> ติดต่อระบบปฏิบัติการ, <code>runtime</code> ข้อมูลของตัว Go ที่กำลังรัน</td></tr>
+<tr><td><code>func main() { ... }</code></td><td>จุดเริ่มทำงานของโปรแกรม ไม่รับ parameter และไม่คืนค่า เมื่อ <code>main</code> จบ โปรแกรมก็จบ</td></tr>
+<tr><td><code>name := "Gopher"</code></td><td>ประกาศตัวแปรพร้อมกำหนดค่า Go เดา type เป็น <code>string</code> ให้เอง (อธิบายละเอียดในแนวคิดที่ 2)</td></tr>
+<tr><td><code>os.Args</code></td><td>Slice ของ string ที่เก็บคำบน command line ตัวแรก <code>os.Args[0]</code> คือชื่อโปรแกรม ตัวถัดไปคือสิ่งที่ผู้ใช้พิมพ์ต่อท้าย</td></tr>
+<tr><td><code>fmt.Printf("สวัสดี %s!...\n", name)</code></td><td>พิมพ์แบบมีรูปแบบ <code>%s</code> ถูกแทนด้วย string และ <code>\n</code> คือขึ้นบรรทัดใหม่ (<code>Printf</code> ไม่ขึ้นบรรทัดให้เอง)</td></tr>
+<tr><td><code>fmt.Println("Go version:", runtime.Version())</code></td><td><code>Println</code> พิมพ์ค่าหลายตัวคั่นด้วยช่องว่างแล้วขึ้นบรรทัดใหม่ <code>runtime.Version()</code> คืนรุ่นของ Go ที่ใช้คอมไพล์</td></tr>
+<tr><td><code>runtime.GOOS</code>, <code>runtime.GOARCH</code></td><td>ระบบปฏิบัติการและสถาปัตยกรรมที่โปรแกรมถูกคอมไพล์มา ค่านี้จะเปลี่ยนเมื่อเรา Cross-compile ในแนวคิดที่ 12</td></tr>
+<tr><td><code>go run ./concepts/c01 somchai</code></td><td><code>./concepts/c01</code> คือที่อยู่ของ Package (ขึ้นต้นด้วย <code>./</code> เสมอ) ส่วน <code>somchai</code> ถูกส่งเข้า <code>os.Args[1]</code></td></tr>
+<tr><td><code>go build -o bin/hello ./concepts/c01</code></td><td>สร้างไฟล์ Binary ชื่อ <code>hello</code> ในโฟลเดอร์ <code>bin</code> ไฟล์นี้รันได้เลยโดยไม่ต้องมี Go บนเครื่อง</td></tr>
+<tr><td><code>go install ./concepts/c01</code></td><td>สร้าง Binary แล้ววางที่ <code>~/go/bin/c01</code> เครื่องมือของคนอื่นก็ติดตั้งแบบนี้ เช่น <code>go install honnef.co/go/tools/cmd/staticcheck@v0.8.2</code></td></tr>
+</tbody></table></div>
+
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>Command 'go' not found, but can be installed with:</code></td><td>ยังไม่ได้เพิ่ม <code>/usr/local/go/bin</code> ลง PATH หรือเพิ่มแล้วแต่ยังไม่ได้โหลด <code>.bashrc</code> ใหม่ ข้อความนี้จะแนะนำให้ติดตั้งผ่าน snap หรือ apt ซึ่งได้รุ่นเก่า อย่าทำตาม</td><td>ตรวจด้วย <code>grep go/bin ~/.bashrc</code> ถ้าไม่มี ให้ทำขั้นที่ 3 ของการเตรียมเครื่องอีกครั้ง แล้วสั่ง <code>source ~/.bashrc</code> หรือเปิด Terminal ใหม่</td></tr>
+<tr><td><code>go: go.mod file not found in current directory or any parent directory; see 'go help modules'</code></td><td>รันคำสั่งนอกโฟลเดอร์ของ Module เช่น อยู่ที่ <code>~</code> หรือยังไม่ได้ <code>go mod init</code></td><td><code>cd ~/projects/go-lab</code> ก่อนทุกครั้ง ถ้าเป็นโปรเจกต์ใหม่ให้สั่ง <code>go mod init ชื่อmodule</code> หนึ่งครั้งที่ Root ของโปรเจกต์</td></tr>
+<tr><td><code>./main.go:9:2: declared and not used: x</code></td><td>Go ไม่ยอมให้มีตัวแปร Local ที่ประกาศแล้วไม่ใช้ เพื่อกันโค้ดค้างและบั๊กจากการพิมพ์ชื่อผิด</td><td>ลบตัวแปรนั้นทิ้ง หรือนำไปใช้จริง ถ้าต้องการทิ้งค่าที่ฟังก์ชันคืนมา ใช้ <code>_</code> แทนชื่อตัวแปร</td></tr>
+<tr><td><code>./main.go:5:2: "os" imported and not used</code></td><td>import Package แล้วไม่ได้ใช้ Go ถือเป็น Error ไม่ใช่แค่คำเตือน</td><td>ลบบรรทัด import นั้น หรือเปิดการจัด import อัตโนมัติใน VS Code (ส่วนขยาย Go ทำให้ตอนบันทึก)</td></tr>
+<tr><td><code>package command-line-arguments is not a main package</code></td><td>สั่ง <code>go run</code> กับไฟล์ที่ไม่ได้เป็น <code>package main</code></td><td>โปรแกรมที่รันได้ต้องขึ้นต้นด้วย <code>package main</code> และมี <code>func main()</code> ส่วน Package อื่นให้ import ไปใช้จาก main</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>หนึ่งโปรเจกต์ = หนึ่ง <code>go.mod</code> ที่ Root ตั้งชื่อ Module เป็นที่อยู่ Repository จริง เช่น <code>github.com/ชื่อคุณ/ชื่อโปรเจกต์</code> เพื่อให้คนอื่น <code>go get</code> ได้</li>
+<li>ตั้ง VS Code ให้จัดรูปแบบตอนบันทึก และสั่ง <code>gofmt -l .</code> กับ <code>go vet ./...</code> ก่อน commit ทุกครั้ง ทีมจริงใส่ทั้งสองคำสั่งไว้ใน CI</li>
+<li>เก็บไฟล์ Binary ไว้ในโฟลเดอร์ <code>bin/</code> และใส่ <code>bin/</code> ใน <code>.gitignore</code> ห้าม commit ไฟล์ Binary ขึ้น Git</li>
+<li>ใช้ <code>go doc</code> หรือ <a href="https://pkg.go.dev" target="_blank" rel="noopener">pkg.go.dev</a> อ่านเอกสาร Standard Library ก่อนค้นหาในเว็บอื่น เพราะตรงกับรุ่นที่คุณใช้</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>แก้โปรแกรม <code>c01</code> ให้ทักทายได้หลายคน</p><ol>
+<li>วนทักทายทุกชื่อใน <code>os.Args[1:]</code> เช่น <code>go run ./concepts/c01 somchai suda</code> ต้องได้ 2 บรรทัด (ใช้ <code>for _, n := range os.Args[1:]</code>)</li>
+<li>ถ้าไม่ส่งชื่อเลย ให้ทักทาย <code>Gopher</code> เหมือนเดิม</li>
+<li>สร้าง Binary ใหม่ด้วย <code>go build -o bin/hello ./concepts/c01</code> แล้วรัน <code>./bin/hello anan malee</code></li>
+<li>ตั้งใจประกาศตัวแปรที่ไม่ใช้ แล้วดูว่า <code>go build</code> แจ้ง Error ที่บรรทัดไหน จากนั้นแก้ให้ผ่าน และตรวจด้วย <code>gofmt -l .</code> ว่าเงียบ</li>
+</ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 2</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h3 id="s6-2-c02">ตัวแปร, Type, Zero Value และ Control Flow</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>Go เป็นภาษาแบบ <strong>Static Typing</strong> ตัวแปรทุกตัวมี type ที่แน่นอนตั้งแต่ตอนคอมไพล์ และเปลี่ยน type ไม่ได้ ถ้าเขียนผิด type Go จะแจ้งตั้งแต่ตอน build ไม่ต้องรอไปพังตอนรันเหมือน Python หรือ JavaScript การประกาศตัวแปรมี 2 แบบหลัก: <code>var ชื่อ type</code> (ใช้ได้ทุกที่ และใช้เมื่ออยากได้ Zero Value) กับ <code>ชื่อ := ค่า</code> (ใช้ได้เฉพาะในฟังก์ชัน Go เดา type จากค่าให้)</p>
+<p>type พื้นฐานที่ใช้บ่อย ได้แก่ <code>int</code>, <code>int64</code>, <code>float64</code>, <code>string</code>, <code>bool</code>, <code>byte</code> (ชื่อเล่นของ <code>uint8</code> ใช้กับข้อมูลดิบ) และ <code>rune</code> (ชื่อเล่นของ <code>int32</code> ใช้แทนตัวอักษร Unicode หนึ่งตัว) จุดสำคัญ 3 ข้อที่ต่างจากภาษาอื่น:</p>
+<ul>
+<li><strong>Zero Value</strong>: ตัวแปรที่ไม่ได้กำหนดค่าจะมีค่าเริ่มต้นเสมอ คือ <code>0</code>, <code>""</code>, <code>false</code> หรือ <code>nil</code> ไม่มีค่า "undefined" หรือค่าขยะ</li>
+<li><strong>ไม่แปลง type ให้อัตโนมัติ</strong>: <code>int</code> บวกกับ <code>float64</code> ไม่ได้ ต้องแปลงเองด้วย <code>float64(n)</code> และแปลงตัวเลขเป็นข้อความด้วย <code>strconv.Itoa(n)</code> (ไม่ใช่ <code>string(n)</code>)</li>
+<li><strong>มี <code>for</code> เป็นคำสั่งวนซ้ำเพียงคำสั่งเดียว</strong> แต่เขียนได้ 4 แบบ (3 ส่วน, เงื่อนไขอย่างเดียว, ไม่มีเงื่อนไข, <code>range</code>) ส่วน <code>switch</code> ไม่ต้องเขียน <code>break</code> เพราะ Go หยุดที่ case แรกที่ตรงเสมอ</li>
+</ul>
+<p>ใช้ <code>const</code> กับค่าที่ไม่เปลี่ยน เช่น คะแนนผ่าน และใช้ <code>iota</code> สร้างค่าคงที่ที่เรียงต่อกัน เช่น ระดับความสำคัญ ตั้งแต่ Go 1.22 ยังเขียน <code>for i := range 3</code> เพื่อวน 0, 1, 2 ได้ทันที</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ตัวแปรใน Go เหมือน "กล่องที่ติดป้ายประเภทไว้" กล่องที่เขียนว่า "เหรียญ" (int) ใส่ธนบัตร (float64) ไม่ได้ ต้องแลกเงินก่อน (แปลง type) ส่วน Zero Value คือ "กล่องใหม่ไม่เคยว่างเปล่าแบบไม่รู้ว่ามีอะไร" กล่องเหรียญใหม่มี 0 เหรียญเสมอ กล่องข้อความใหม่มีข้อความว่างเสมอ</p></div>
+
+<h4>ตัวอย่างโค้ด</h4>
+<p>โปรแกรมคิดเกรดนักเรียน 4 คน นับจำนวนคนต่อเกรด หาค่าเฉลี่ย และสาธิต <code>for</code> ทั้ง 4 แบบกับ <code>switch</code> ทุกรูปแบบ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+mkdir -p concepts/c02</code></pre>
+<pre class="code" data-env="file" data-label="Go · concepts/c02/main.go"><code class="language-go">package main
+
+import (
+	"fmt"
+	"strconv"
+)
+
+// ค่าคงที่ (constant) เปลี่ยนค่าไม่ได้ตลอดโปรแกรม
+const passMark = 50
+
+// iota เริ่มที่ 0 และเพิ่มทีละ 1 ในแต่ละบรรทัดของกลุ่ม const
+const (
+	LevelLow  = iota // 0
+	LevelMid         // 1
+	LevelHigh        // 2
+)
+
+// gradeOf แปลงคะแนนเป็นเกรดด้วย tagless switch (switch ที่ไม่มีตัวแปรตามหลัง)
+func gradeOf(score int) string {
+	switch {
+	case score &gt;= 80:
+		return "A"
+	case score &gt;= 70:
+		return "B"
+	case score &gt;= 60:
+		return "C"
+	case score &gt;= passMark:
+		return "D"
+	default:
+		return "F"
+	}
+}
+
+func main() {
+	// Zero Value: ประกาศแล้วไม่กำหนดค่า Go จะใส่ค่าเริ่มต้นให้เสมอ
+	var count int
+	var label string
+	var passed bool
+	var ratio float64
+	fmt.Printf("zero values: %d %q %t %v\n", count, label, passed, ratio)
+
+	names := []string{"somchai", "suda", "anan", "malee"}
+	scores := []int{82, 67, 49, 95}
+
+	total := 0                     // := ประกาศพร้อมกำหนดค่า Go เดา type เป็น int
+	gradeCount := map[string]int{} // นับจำนวนคนในแต่ละเกรด (Map อธิบายละเอียดในแนวคิดที่ 4)
+
+	// for แบบ range: ได้ทั้ง index (i) และค่า (s)
+	for i, s := range scores {
+		g := gradeOf(s)
+		gradeCount[g]++
+		total += s
+		fmt.Printf("%-8s %3d -&gt; %s\n", names[i], s, g)
+	}
+
+	// พิมพ์จำนวนต่อเกรดตามลำดับที่เรากำหนดเอง
+	for _, g := range []string{"A", "B", "C", "D", "F"} {
+		fmt.Printf("เกรด %s: %d คน\n", g, gradeCount[g])
+	}
+
+	// int หาร int ได้ int จึงต้องแปลงเป็น float64 เองก่อนหาร
+	avg := float64(total) / float64(len(scores))
+	fmt.Printf("คะแนนรวม %d เฉลี่ย %.2f\n", total, avg)
+
+	// if แบบมี init statement: ตัวแปร n ใช้ได้เฉพาะใน if/else นี้
+	if n := gradeCount["F"]; n &gt; 0 {
+		fmt.Println("มีคนไม่ผ่าน " + strconv.Itoa(n) + " คน")
+	} else {
+		fmt.Println("ทุกคนผ่าน")
+	}
+
+	// for แบบ 3 ส่วน: init; condition; post
+	for i := 0; i &lt; len(names); i += 2 {
+		fmt.Println("คนลำดับคู่:", names[i])
+	}
+
+	// for แบบมีแค่เงื่อนไข ทำหน้าที่เหมือน while ในภาษาอื่น
+	bonus := 0
+	for total+bonus &lt; 300 {
+		bonus += 5
+	}
+	fmt.Println("ต้องเพิ่มคะแนนรวมอีก", bonus, "จึงถึง 300")
+
+	// for แบบไม่มีเงื่อนไข (infinite loop) แล้วออกด้วย break
+	i := 0
+	for {
+		if scores[i] &gt; 90 {
+			fmt.Println("คนแรกที่ได้เกิน 90 คือ", names[i])
+			break
+		}
+		i++
+	}
+
+	// range over int (Go 1.22+): lvl มีค่า 0, 1, 2
+	for lvl := range 3 {
+		fmt.Printf("level %d: ", lvl)
+		switch lvl { // switch ตามค่า ไม่ต้องเขียน break
+		case LevelLow:
+			fmt.Println("ปกติ")
+		case LevelMid:
+			fmt.Println("ติดตาม")
+		case LevelHigh:
+			fmt.Print("เร่งด่วน + ")
+			fallthrough // ไหลลงไปทำ case ถัดไปต่อ (ใช้น้อยมาก)
+		default:
+			fmt.Println("แจ้งครู")
+		}
+	}
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./concepts/c02</code></pre>
+
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>zero values: 0 "" false 0
+somchai   82 -&gt; A
+suda      67 -&gt; C
+anan      49 -&gt; F
+malee     95 -&gt; A
+เกรด A: 2 คน
+เกรด B: 0 คน
+เกรด C: 1 คน
+เกรด D: 0 คน
+เกรด F: 1 คน
+คะแนนรวม 293 เฉลี่ย 73.25
+มีคนไม่ผ่าน 1 คน
+คนลำดับคู่: somchai
+คนลำดับคู่: anan
+ต้องเพิ่มคะแนนรวมอีก 10 จึงถึง 300
+คนแรกที่ได้เกิน 90 คือ malee
+level 0: ปกติ
+level 1: ติดตาม
+level 2: เร่งด่วน + แจ้งครู</code></pre>
+
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>const passMark = 50</code></td><td>ค่าคงที่ระดับ Package ใช้ได้ทุกฟังก์ชันในไฟล์ ถ้าพยายามแก้ค่า Go จะไม่ยอมคอมไพล์</td></tr>
+<tr><td><code>const ( LevelLow = iota ... )</code></td><td><code>iota</code> มีค่า 0 ที่บรรทัดแรกของกลุ่ม แล้วเพิ่มทีละ 1 บรรทัดถัดไปไม่ต้องเขียน <code>= iota</code> ซ้ำ จึงได้ 0, 1, 2</td></tr>
+<tr><td><code>switch { case score &gt;= 80: ... }</code></td><td>Tagless switch คือ switch ที่ไม่มีตัวแปร แต่ละ case เป็นเงื่อนไข bool ใช้แทน if-else ยาว ๆ ได้อ่านง่ายกว่า Go ตรวจจากบนลงล่างและหยุดที่ case แรกที่เป็นจริง</td></tr>
+<tr><td><code>var count int</code> ถึง <code>var ratio float64</code></td><td>ประกาศโดยไม่กำหนดค่า จึงได้ Zero Value: <code>0</code>, <code>""</code>, <code>false</code>, <code>0</code> ผลลัพธ์บรรทัดแรกยืนยันเรื่องนี้ (<code>%q</code> พิมพ์ string พร้อมเครื่องหมายคำพูด จึงเห็น <code>""</code>)</td></tr>
+<tr><td><code>names := []string{...}</code></td><td>สร้าง Slice ของ string ด้วย <code>:=</code> (Slice อธิบายละเอียดในแนวคิดที่ 4)</td></tr>
+<tr><td><code>for i, s := range scores</code></td><td>วนทุกตัวใน Slice ได้ index <code>i</code> และค่า <code>s</code> ถ้าไม่ใช้ index ให้เขียน <code>for _, s := range</code></td></tr>
+<tr><td><code>gradeCount[g]++</code></td><td>เพิ่มจำนวนใน Map ถ้ายังไม่มี key นี้ ค่าเริ่มต้นคือ Zero Value <code>0</code> จึงบวกต่อได้เลย</td></tr>
+<tr><td><code>fmt.Printf("%-8s %3d -&gt; %s\n", ...)</code></td><td><code>%-8s</code> = string ชิดซ้ายกว้าง 8 ช่อง, <code>%3d</code> = ตัวเลขชิดขวากว้าง 3 ช่อง ทำให้ผลลัพธ์เป็นคอลัมน์ตรงกัน</td></tr>
+<tr><td><code>float64(total) / float64(len(scores))</code></td><td>แปลงทั้งสองฝั่งเป็น <code>float64</code> ก่อนหาร ถ้าหาร int ด้วย int จะได้ 73 (ตัดทศนิยมทิ้ง) แทน 73.25</td></tr>
+<tr><td><code>if n := gradeCount["F"]; n &gt; 0</code></td><td>if แบบมี init statement: ประกาศ <code>n</code> แล้วตรวจเงื่อนไขในบรรทัดเดียว <code>n</code> ใช้ได้เฉพาะใน if และ else นี้</td></tr>
+<tr><td><code>strconv.Itoa(n)</code></td><td>แปลง int เป็น string อย่างถูกต้อง ("1") ต่อด้วย <code>+</code> กับ string อื่นได้</td></tr>
+<tr><td><code>for i := 0; i &lt; len(names); i += 2</code></td><td>for แบบ 3 ส่วน: เริ่มต้น; เงื่อนไข; สิ่งที่ทำหลังจบแต่ละรอบ ที่นี่เพิ่มทีละ 2 จึงได้คนลำดับ 0 และ 2</td></tr>
+<tr><td><code>for total+bonus &lt; 300</code></td><td>for ที่มีแค่เงื่อนไข ทำงานเหมือน <code>while</code> ของภาษาอื่น (Go ไม่มีคำว่า while)</td></tr>
+<tr><td><code>for { ... break }</code></td><td>for ที่ไม่มีเงื่อนไข วนไปเรื่อย ๆ จนกว่าจะเจอ <code>break</code> หรือ <code>return</code> ใช้กับงานที่ไม่รู้ล่วงหน้าว่าวนกี่รอบ</td></tr>
+<tr><td><code>for lvl := range 3</code></td><td>range over int (Go 1.22+) วนค่า 0, 1, 2 สั้นกว่า for แบบ 3 ส่วน</td></tr>
+<tr><td><code>switch lvl { case LevelLow: ... }</code></td><td>switch ตามค่า ไม่ต้องใส่ break ท้ายแต่ละ case</td></tr>
+<tr><td><code>fallthrough</code></td><td>สั่งให้ไหลลงไปทำ case ถัดไปต่อโดยไม่ตรวจเงื่อนไข จึงเห็น "เร่งด่วน + แจ้งครู" ในบรรทัดสุดท้าย ใช้น้อยมากในงานจริง</td></tr>
+</tbody></table></div>
+
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>invalid operation: total / n (mismatched types float64 and int)</code></td><td>นำ <code>float64</code> กับ <code>int</code> มาคำนวณด้วยกัน Go ไม่แปลง type ให้เอง</td><td>แปลงให้เป็น type เดียวกันก่อน เช่น <code>total / float64(n)</code></td></tr>
+<tr><td><code>cannot use n (variable of type int) as string value in variable declaration</code></td><td>กำหนดค่า int ให้ตัวแปร string บางคนลองแก้ด้วย <code>string(n)</code> ซึ่งคอมไพล์ผ่าน แต่ได้ตัวอักษรที่มีรหัส Unicode เท่ากับ n แทนตัวเลข (<code>go vet</code> จะเตือนเรื่องนี้)</td><td>ใช้ <code>strconv.Itoa(n)</code> หรือ <code>fmt.Sprint(n)</code> เพื่อได้ข้อความ "82"</td></tr>
+<tr><td><code>non-boolean condition in if statement</code></td><td>เขียน <code>if n { }</code> เหมือน Python หรือ JavaScript ที่ถือว่าเลขไม่ใช่ 0 เป็นจริง Go ต้องการเงื่อนไขที่เป็น bool เท่านั้น</td><td>เขียนเงื่อนไขให้ชัด เช่น <code>if n &gt; 0 { }</code> หรือ <code>if name != "" { }</code></td></tr>
+<tr><td><code>missing return</code></td><td>ฟังก์ชันที่ประกาศว่าคืนค่า แต่มีเส้นทางที่จบโดยไม่มี <code>return</code> เช่น มีแค่ <code>if x &gt; 0 { return 1 }</code></td><td>เพิ่ม <code>return</code> ท้ายฟังก์ชัน หรือใช้ <code>switch</code> ที่มี <code>default</code> ซึ่ง return ทุกกรณี เหมือนใน <code>gradeOf</code></td></tr>
+<tr><td><code>syntax error: unexpected newline, expected { after if clause</code></td><td>ขึ้นบรรทัดใหม่ก่อนวงเล็บปีกกา <code>{</code> Go ใส่ <code>;</code> ให้อัตโนมัติท้ายบรรทัด จึงตีความผิด</td><td>วาง <code>{</code> ไว้ท้ายบรรทัดเดียวกับ <code>if</code>, <code>for</code>, <code>func</code> เสมอ <code>gofmt</code> จะจัดรูปแบบนี้ให้</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ในฟังก์ชันใช้ <code>:=</code> เป็นหลัก ใช้ <code>var x T</code> เมื่อตั้งใจใช้ Zero Value เช่น <code>var total int</code> หรือ <code>var sb strings.Builder</code></li>
+<li>ตั้งชื่อตัวแปรสั้นเมื่อขอบเขตสั้น (<code>i</code>, <code>s</code>, <code>n</code> ในลูปเล็ก) และชื่อยาวที่สื่อความหมายเมื่อใช้ไกล (<code>gradeCount</code>, <code>passMark</code>) นี่คือสไตล์ของ Go</li>
+<li>เลือกใช้ tagless switch แทน if-else-if ที่ยาวเกิน 3 ชั้น และหลีกเลี่ยง <code>fallthrough</code> เพราะทำให้คนอ่านพลาดได้ง่าย</li>
+<li>ใช้ <code>const</code> แทนตัวเลขลอย ๆ (Magic Number) ในโค้ด เช่น <code>passMark</code> แทน <code>50</code> เวลาเปลี่ยนเกณฑ์จะแก้ที่เดียว</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ปรับโปรแกรมคิดเกรดให้ทำงานได้มากขึ้น</p><ol>
+<li>เพิ่มนักเรียน <code>"niran"</code> คะแนน <code>73</code> ทั้งใน <code>names</code> และ <code>scores</code> แล้วตรวจว่าเกรด B มี 1 คน</li>
+<li>หาคะแนนสูงสุดและต่ำสุดด้วยลูป <code>range</code> แล้วพิมพ์ชื่อเจ้าของคะแนนทั้งสอง</li>
+<li>เปลี่ยน <code>passMark</code> เป็น <code>60</code> แล้วสังเกตว่าเกรด D หายไป เพราะ case <code>score &gt;= 60</code> ถูกตรวจก่อน</li>
+<li>ลองลบ <code>float64(...)</code> ออกจากการคำนวณค่าเฉลี่ย อ่าน Error ที่ได้ แล้วแก้กลับ</li>
+</ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 3</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h3 id="s6-2-c03">Function, Closure และ Error Handling</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>ฟังก์ชันใน Go <strong>คืนค่าได้หลายตัว</strong> และนี่คือหัวใจของการจัดการ Error แบบ Go: ฟังก์ชันที่อาจล้มเหลวจะคืน <code>(ผลลัพธ์, error)</code> เสมอ ผู้เรียกต้องตรวจ <code>if err != nil</code> ทันที Go <strong>ไม่มี try/catch</strong> เหมือน Python หรือ JavaScript การเห็น Error ชัดเจนทุกจุดทำให้โค้ดยาวขึ้นเล็กน้อย แต่ทำให้รู้เสมอว่าบรรทัดไหนพังได้</p>
+<p><code>error</code> คือ Interface ที่มี method เดียวคือ <code>Error() string</code> เราสร้าง error ได้ 3 แบบ และตรวจได้ 2 วิธี:</p>
+<ul>
+<li><strong>Sentinel Error</strong>: <code>var ErrNegative = errors.New("...")</code> ประกาศไว้ให้ผู้เรียกเทียบด้วย <code>errors.Is(err, ErrNegative)</code></li>
+<li><strong>Wrapping</strong>: <code>fmt.Errorf("context: %w", err)</code> เพิ่มบริบทว่าเกิดที่ไหน โดยยังเก็บ error เดิมไว้ข้างใน (<code>%w</code> เท่านั้นที่ห่อได้ <code>%v</code> แค่แปลงเป็นข้อความ)</li>
+<li><strong>Custom Error Type</strong>: struct ที่มี method <code>Error()</code> เก็บข้อมูลเพิ่มได้ เช่น ชื่อ field ดึงออกมาด้วย <code>errors.As(err, &amp;target)</code></li>
+</ul>
+<p>นอกจากนี้ยังมี <strong>variadic</strong> (รับกี่ค่าก็ได้), ฟังก์ชันเป็นค่าที่ส่งต่อได้, <strong>Closure</strong> (ฟังก์ชันที่จำตัวแปรภายนอกไว้), <code>defer</code> (สั่งให้ทำตอนฟังก์ชันจบ ใช้ปิดไฟล์หรือปลดล็อก) และ <code>panic</code>/<code>recover</code> ซึ่งใช้เฉพาะความผิดพลาดของโปรแกรมเมอร์ที่ไม่ควรเกิด ไม่ใช่ Error ปกติอย่างข้อมูลผู้ใช้ผิด</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>การคืน <code>(ค่า, error)</code> เหมือนพนักงานส่งของที่ส่ง "พัสดุพร้อมใบรายงาน" ทุกครั้ง ถ้าใบรายงานว่าง (<code>nil</code>) แปลว่าของเรียบร้อย ถ้ามีข้อความ คุณต้องอ่านก่อนเปิดกล่อง การห่อ Error ด้วย <code>%w</code> เหมือนแต่ละจุดที่พัสดุผ่านเขียนหมายเหตุเพิ่มบนซองเดิม ("ศูนย์คัดแยกบางนา: ที่อยู่ไม่ครบ") โดยไม่ทิ้งใบเดิม ใครอยากรู้สาเหตุต้นทางก็ยังเปิดดูได้</p></div>
+
+<h4>ตัวอย่างโค้ด</h4>
+<p>ฟังก์ชัน <code>parseAge</code> แปลงข้อความเป็นอายุ และคืน Error 2 ชนิด จากนั้นสาธิต named results, variadic, ฟังก์ชันเป็นค่า, closure, defer และ recover</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+mkdir -p concepts/c03</code></pre>
+<pre class="code" data-env="file" data-label="Go · concepts/c03/main.go"><code class="language-go">package main
+
+import (
+	"errors"
+	"fmt"
+	"strconv"
+)
+
+// ErrNegative คือ Sentinel Error: ประกาศเป็นตัวแปรไว้ให้ผู้เรียกเทียบด้วย errors.Is
+var ErrNegative = errors.New("age must not be negative")
+
+// ValidationError คือ custom error type ที่เก็บรายละเอียดเพิ่มได้
+type ValidationError struct {
+	Field  string
+	Reason string
+}
+
+// Error ทำให้ *ValidationError เป็น error (implement interface error)
+func (e *ValidationError) Error() string {
+	return e.Field + ": " + e.Reason
+}
+
+// parseAge คืนค่า 2 ตัว: อายุ และ error (nil แปลว่าสำเร็จ)
+func parseAge(s string) (int, error) {
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		// ห่อ ValidationError ด้วย %w เพื่อให้ errors.As ยังหาเจอ
+		return 0, fmt.Errorf("parseAge(%q): %w", s, &amp;ValidationError{Field: "age", Reason: "not a number"})
+	}
+	if n &lt; 0 {
+		// ห่อ Sentinel Error ด้วย %w เพื่อให้ errors.Is ยังหาเจอ
+		return 0, fmt.Errorf("parseAge(%q): %w", s, ErrNegative)
+	}
+	return n, nil
+}
+
+// divmod ใช้ named results: q และ r ถูกประกาศไว้แล้ว เป็น zero value ตั้งต้น
+func divmod(a, b int) (q, r int) {
+	q = a / b
+	r = a % b
+	return
+}
+
+// sum รับกี่ตัวก็ได้ (variadic) ภายในฟังก์ชัน nums คือ []int
+func sum(nums ...int) int {
+	total := 0
+	for _, n := range nums {
+		total += n
+	}
+	return total
+}
+
+// apply รับฟังก์ชันเป็น parameter (function เป็นค่าแบบหนึ่ง)
+func apply(n int, f func(int) int) int {
+	return f(n)
+}
+
+// newCounter คืน closure ที่ "จำ" ตัวแปร count ไว้ข้ามการเรียกแต่ละครั้ง
+func newCounter() func() int {
+	count := 0
+	return func() int {
+		count++
+		return count
+	}
+}
+
+// demoDefer แสดงว่า defer ทำงานตอนฟังก์ชันจบ และทำย้อนลำดับ (LIFO)
+func demoDefer() {
+	defer fmt.Println("defer 1: ปิดไฟล์")
+	defer fmt.Println("defer 2: ปลดล็อก")
+	fmt.Println("กำลังทำงานใน demoDefer")
+}
+
+// mustPositive ใช้ panic เฉพาะกรณีที่เป็นความผิดของโปรแกรมเมอร์
+func mustPositive(n int) int {
+	if n &lt; 0 {
+		panic("mustPositive: got negative number")
+	}
+	return n
+}
+
+// safeCall ใช้ recover จับ panic ไม่ให้โปรแกรมล้มทั้งหมด
+func safeCall() {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("recovered:", r)
+		}
+	}()
+	mustPositive(-1)
+}
+
+func main() {
+	for _, in := range []string{"25", "-3", "abc"} {
+		age, err := parseAge(in)
+		if err != nil {
+			fmt.Println("error:", err)
+			// errors.Is: ตรวจว่าใน chain มี Sentinel Error ตัวนี้ไหม
+			fmt.Println("  is ErrNegative?", errors.Is(err, ErrNegative))
+			// errors.As: ดึง custom error type ออกมาใช้ field ได้
+			var ve *ValidationError
+			if errors.As(err, &amp;ve) {
+				fmt.Println("  validation field:", ve.Field, "| reason:", ve.Reason)
+			}
+			continue
+		}
+		fmt.Println("ok: age =", age)
+	}
+
+	q, r := divmod(17, 5)
+	fmt.Println("17 / 5 =", q, "เศษ", r)
+
+	ages := []int{25, 30, 41}
+	fmt.Println("sum(1, 2, 3) =", sum(1, 2, 3))
+	fmt.Println("sum(ages...) =", sum(ages...)) // กระจาย slice เข้า variadic
+
+	double := func(x int) int { return x * 2 } // anonymous function เก็บในตัวแปร
+	fmt.Println("apply(21, double) =", apply(21, double))
+
+	next := newCounter()
+	fmt.Println("counter:", next(), next(), next())
+
+	demoDefer()
+	safeCall()
+	fmt.Println("โปรแกรมยังทำงานต่อหลัง recover")
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./concepts/c03</code></pre>
+
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ok: age = 25
+error: parseAge("-3"): age must not be negative
+  is ErrNegative? true
+error: parseAge("abc"): age: not a number
+  is ErrNegative? false
+  validation field: age | reason: not a number
+17 / 5 = 3 เศษ 2
+sum(1, 2, 3) = 6
+sum(ages...) = 96
+apply(21, double) = 42
+counter: 1 2 3
+กำลังทำงานใน demoDefer
+defer 2: ปลดล็อก
+defer 1: ปิดไฟล์
+recovered: mustPositive: got negative number
+โปรแกรมยังทำงานต่อหลัง recover</code></pre>
+
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>var ErrNegative = errors.New(...)</code></td><td>Sentinel Error ตั้งชื่อขึ้นต้นด้วย <code>Err</code> ตามธรรมเนียม ข้อความ error เขียนตัวพิมพ์เล็กและไม่มีจุดท้าย เพราะมักถูกนำไปต่อกับข้อความอื่น</td></tr>
+<tr><td><code>type ValidationError struct { Field, Reason }</code></td><td>Custom Error Type เก็บข้อมูลที่โปรแกรมนำไปใช้ต่อได้ เช่น บอกผู้ใช้ว่าช่องไหนกรอกผิด</td></tr>
+<tr><td><code>func (e *ValidationError) Error() string</code></td><td>method ที่ทำให้ <code>*ValidationError</code> เป็น <code>error</code> (Interface จะอธิบายเต็มในแนวคิดที่ 6)</td></tr>
+<tr><td><code>func parseAge(s string) (int, error)</code></td><td>คืน 2 ค่า ธรรมเนียมคือ <code>error</code> อยู่ตัวสุดท้ายเสมอ เมื่อสำเร็จคืน <code>n, nil</code> เมื่อล้มเหลวคืน Zero Value <code>0</code> คู่กับ error</td></tr>
+<tr><td><code>fmt.Errorf("parseAge(%q): %w", s, ErrNegative)</code></td><td>สร้าง error ใหม่ที่มีบริบท (ฟังก์ชันไหน ค่าอะไร) และห่อ <code>ErrNegative</code> ไว้ด้วย <code>%w</code> ผลลัพธ์จึงเป็น <code>parseAge("-3"): age must not be negative</code></td></tr>
+<tr><td><code>errors.Is(err, ErrNegative)</code></td><td>ไล่ดูทุกชั้นที่ห่อไว้ว่ามี <code>ErrNegative</code> ไหม จึงได้ <code>true</code> กับ "-3" และ <code>false</code> กับ "abc"</td></tr>
+<tr><td><code>var ve *ValidationError</code> + <code>errors.As(err, &amp;ve)</code></td><td>ไล่หาชั้นที่เป็น type <code>*ValidationError</code> ถ้าเจอจะใส่ค่าลงใน <code>ve</code> และคืน <code>true</code> แล้วเราใช้ <code>ve.Field</code> ได้</td></tr>
+<tr><td><code>continue</code></td><td>ข้ามไปรอบถัดไปของลูปทันทีหลังจัดการ Error ทำให้โค้ดส่วนที่สำเร็จไม่ต้องซ้อนอยู่ใน else</td></tr>
+<tr><td><code>func divmod(a, b int) (q, r int)</code></td><td>Named results: ตั้งชื่อค่าที่คืน <code>return</code> เปล่า ๆ จะคืน <code>q, r</code> ให้ ใช้เฉพาะฟังก์ชันสั้น เพราะฟังก์ชันยาวจะอ่านยาก</td></tr>
+<tr><td><code>func sum(nums ...int) int</code></td><td>Variadic: รับ int กี่ตัวก็ได้ ภายในฟังก์ชัน <code>nums</code> เป็น <code>[]int</code> เรียกด้วย Slice ได้โดยใส่ <code>...</code> ต่อท้าย เช่น <code>sum(ages...)</code></td></tr>
+<tr><td><code>func apply(n int, f func(int) int) int</code></td><td>รับฟังก์ชันเป็น parameter type ของ <code>f</code> คือ "ฟังก์ชันที่รับ int คืน int" เราส่ง <code>double</code> ที่เป็น anonymous function เข้าไป</td></tr>
+<tr><td><code>newCounter()</code></td><td>คืน Closure ที่จับตัวแปร <code>count</code> ไว้ แต่ละครั้งที่เรียก <code>next()</code> ค่า <code>count</code> ยังอยู่และเพิ่มขึ้น จึงได้ 1 2 3</td></tr>
+<tr><td><code>defer fmt.Println(...)</code></td><td>คำสั่งที่ defer ถูกเก็บไว้ทำตอนฟังก์ชันจบ และทำแบบ LIFO (เข้าทีหลังออกก่อน) จึงเห็น "defer 2" ก่อน "defer 1"</td></tr>
+<tr><td><code>panic(...)</code> / <code>recover()</code></td><td><code>panic</code> หยุดการทำงานปกติ <code>recover</code> ที่อยู่ในฟังก์ชันที่ถูก defer จับ panic นั้นได้ โปรแกรมจึงพิมพ์ "recovered" แล้วทำงานต่อ</td></tr>
+</tbody></table></div>
+
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td>โปรแกรมพิมพ์ <code>age: 0</code> ทั้งที่ผู้ใช้กรอก <code>abc</code> (ไม่มี Error ใด ๆ)</td><td>ทิ้ง error ด้วย <code>age, _ := strconv.Atoi("abc")</code> เมื่อแปลงไม่ได้ ฟังก์ชันคืน Zero Value <code>0</code> โปรแกรมจึงทำงานต่อด้วยค่าผิดอย่างเงียบ ๆ</td><td>ห้ามใช้ <code>_</code> กับ error ยกเว้นมั่นใจจริง ๆ ว่าไม่มีทางผิด ตรวจ <code>if err != nil</code> ทุกครั้ง</td></tr>
+<tr><td><code>errors.Is</code> คืน <code>false</code> ทั้งที่ข้อความ Error มีคำว่า "age must not be negative"</td><td>ห่อด้วย <code>fmt.Errorf("...: %v", ErrNegative)</code> ซึ่งแปลง error เป็นข้อความธรรมดา ข้อมูลว่าเป็น <code>ErrNegative</code> หายไป</td><td>ใช้ <code>%w</code> เมื่อต้องการให้ผู้เรียกตรวจด้วย <code>errors.Is</code> หรือ <code>errors.As</code> ได้</td></tr>
+<tr><td>โค้ด <code>if err.Error() == "age must not be negative"</code> พังเมื่อมีคนแก้ข้อความ</td><td>เทียบ Error ด้วยข้อความ ซึ่งเปลี่ยนได้ทุกเมื่อ และไม่ตรงอีกเลยเมื่อถูกห่อเพิ่มบริบท</td><td>เทียบด้วย <code>errors.Is(err, ErrNegative)</code> หรือ <code>errors.As</code> เสมอ</td></tr>
+<tr><td><code>panic: runtime error: invalid memory address or nil pointer dereference</code><br><code>[signal SIGSEGV: segmentation violation ...]</code></td><td>ใช้ค่าที่ฟังก์ชันคืนมาก่อนตรวจ error เช่น ได้ pointer เป็น <code>nil</code> เมื่อเกิด error แล้วเรียก field ของมัน</td><td>ตรวจ <code>if err != nil { return ... }</code> ทันทีหลังเรียก แล้วจึงใช้ผลลัพธ์ อ่านบรรทัด <code>main.go:13</code> ใต้ <code>goroutine 1 [running]</code> เพื่อหาจุดที่พัง</td></tr>
+<tr><td>ใช้ <code>panic</code> กับข้อมูลผู้ใช้ผิด แล้ว Server ล่มทั้งตัว</td><td>เข้าใจผิดว่า <code>panic</code> คือ <code>throw</code> ของภาษาอื่น</td><td>ข้อมูลผิดจากภายนอก (ไฟล์ เครือข่าย ผู้ใช้) ให้คืน <code>error</code> ใช้ <code>panic</code> เฉพาะสถานการณ์ที่ "เป็นไปไม่ได้" ถ้าโค้ดถูก</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>จัดการ Error ทันทีและ "ออกเร็ว" (early return) ให้เส้นทางที่สำเร็จอยู่ชิดซ้าย ไม่ซ้อนใน else หลายชั้น</li>
+<li>ห่อ Error ด้วยบริบทที่มีประโยชน์ทุกครั้งที่ส่งต่อขึ้นไป เช่น <code>fmt.Errorf("load config %s: %w", path, err)</code> จะได้ข้อความที่บอกเส้นทางครบตอน log</li>
+<li>Export Sentinel Error (<code>ErrXxx</code>) หรือ Custom Error Type เฉพาะเมื่อผู้เรียกต้องแยกกรณีได้จริง ไม่ต้องสร้างทุกกรณี</li>
+<li>ใช้ <code>defer</code> ปิดทรัพยากรทันทีหลังเปิดสำเร็จ เช่น <code>f, err := os.Open(p)</code> ตรวจ err แล้วเขียน <code>defer f.Close()</code> ในบรรทัดถัดไป</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>เพิ่มการตรวจอายุที่มากเกินจริง</p><ol>
+<li>เพิ่มเงื่อนไขใน <code>parseAge</code>: ถ้า <code>n &gt; 150</code> ให้คืน <code>&amp;ValidationError{Field: "age", Reason: "too large"}</code> ที่ห่อด้วย <code>%w</code></li>
+<li>เพิ่ม <code>"200"</code> และ <code>"42"</code> ในรายการ input แล้วรันดูว่า <code>errors.As</code> ดึง Reason <code>too large</code> ออกมาได้</li>
+<li>เปลี่ยน <code>%w</code> เป็น <code>%v</code> ในกรณีเลขติดลบ รันดูว่า <code>is ErrNegative?</code> กลายเป็น <code>false</code> แล้วแก้กลับ</li>
+<li>เขียนฟังก์ชัน <code>average(nums ...float64) (float64, error)</code> ที่คืน Error เมื่อไม่ได้ส่งตัวเลขมาเลย</li>
+</ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 4</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h3 id="s6-2-c04">Array, Slice, Map และ String/Rune</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p><strong>Array</strong> ใน Go มีขนาดคงที่ และขนาดเป็นส่วนหนึ่งของ type (<code>[3]int</code> กับ <code>[4]int</code> เป็นคนละ type) จึงใช้น้อยในงานจริง สิ่งที่ใช้แทบทุกที่คือ <strong>Slice</strong> (<code>[]int</code>) ซึ่งยืดหดได้ เบื้องหลัง Slice คือโครงสร้างเล็ก ๆ 3 ช่อง (Slice Header): pointer ชี้ไปที่ <strong>Backing Array</strong>, <code>len</code> (จำนวนที่ใช้อยู่) และ <code>cap</code> (ความจุก่อนต้องจองที่ใหม่) เมื่อ <code>append</code> แล้วที่ไม่พอ Go จะจอง Array ใหม่ที่ใหญ่ขึ้นแล้วคัดลอกข้อมูลไป</p>
+<p>ความรู้นี้สำคัญเพราะ <strong>Slice ที่ตัดมาจากกันใช้ Backing Array ร่วมกัน</strong> การ append ลง Slice ย่อยจึงอาจเขียนทับข้อมูลของ Slice หลักโดยไม่ตั้งใจ ซึ่งเป็นบั๊กที่หายากมาก</p>
+<p><strong>Map</strong> (<code>map[string]int</code>) เก็บคู่ key-value ค้นหาเร็ว ใช้นับความถี่ ทำ cache หรือจัดกลุ่ม จุดที่ต้องจำ: Map ต้องสร้างด้วย <code>make</code> หรือ literal ก่อนเขียน (Map ที่เป็น <code>nil</code> อ่านได้แต่เขียนไม่ได้) และ<strong>ลำดับการวน Map สุ่มทุกครั้ง</strong> ถ้าต้องการผลลัพธ์ที่เรียงแน่นอนต้องเรียง key เอง</p>
+<p><strong>String</strong> ใน Go คือลำดับของ byte ในรูปแบบ UTF-8 ตัวอักษรอังกฤษใช้ 1 byte แต่ตัวอักษรไทยใช้ 3 byte ดังนั้น <code>len("สวัสดี")</code> ได้ 18 ไม่ใช่ 6 ถ้าต้องการนับหรือตัดเป็นตัวอักษร ต้องใช้ <strong>rune</strong> (รหัส Unicode หนึ่งตัว) ผ่าน <code>utf8.RuneCountInString</code>, <code>[]rune(s)</code> หรือ <code>for range</code> บน string</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Backing Array เหมือน "ตู้ล็อกเกอร์แถวยาว" ส่วน Slice คือ "บัตรที่เขียนว่าใช้ได้ตั้งแต่ช่องที่เท่าไร กี่ช่อง" ถ้าคุณกับเพื่อนถือบัตรที่ชี้ตู้แถวเดียวกัน แล้วเพื่อนเก็บของลงช่องถัดไป ของในช่องที่คุณคิดว่าเป็นของคุณก็ถูกแทนที่ ส่วน Map เหมือน "สมุดโทรศัพท์" เปิดหาชื่อได้ทันที แต่หน้าในสมุดไม่ได้เรียงตามตัวอักษรให้</p></div>
+
+<h4>ตัวอย่างโค้ด</h4>
+<p>โปรแกรมเดียวที่ครอบคลุมทุกเรื่อง: การเติบโตของ <code>cap</code>, บั๊ก Backing Array และวิธีแก้ 2 แบบ, package <code>slices</code>, นับความถี่คำในประโยคไทยปนอังกฤษ, นับ URL ต่อ host และความต่างของ byte กับ rune</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+mkdir -p concepts/c04</code></pre>
+<pre class="code" data-env="file" data-label="Go · concepts/c04/main.go"><code class="language-go">package main
+
+import (
+	"fmt"
+	"maps"
+	"slices"
+	"strings"
+	"unicode/utf8"
+)
+
+func main() {
+	// 1) Array: ขนาดคงที่ และขนาดเป็นส่วนหนึ่งของ type ([3]int ไม่ใช่ type เดียวกับ [4]int)
+	ports := [3]int{80, 443, 8080}
+	fmt.Println("array:", ports, "len:", len(ports))
+
+	// 2) Slice: ยืดหดได้ มี len (จำนวนที่ใช้) และ cap (ความจุของ Backing Array)
+	nums := make([]int, 0, 2)
+	for i := range 5 {
+		nums = append(nums, i*10) // ต้องรับค่าที่ append คืนมาเสมอ
+		fmt.Printf("append %2d -&gt; len=%d cap=%d %v\n", i*10, len(nums), cap(nums), nums)
+	}
+
+	// 3) กับดัก: slice ที่ตัดจากกันใช้ Backing Array ร่วมกัน
+	base := []string{"a", "b", "c", "d"}
+	first := base[:2]          // len=2 แต่ cap=4
+	first = append(first, "X") // ยังมีที่ว่าง จึงเขียนทับ base[2]!
+	fmt.Println("bug  : base =", base, "first =", first)
+
+	// วิธีแก้ 1: full slice expression [low:high:max] จำกัด cap ให้ append ต้องจองที่ใหม่
+	base2 := []string{"a", "b", "c", "d"}
+	safe := base2[:2:2]
+	safe = append(safe, "X")
+	fmt.Println("fix 1: base =", base2, "safe =", safe)
+
+	// วิธีแก้ 2: slices.Clone สร้างสำเนาที่ไม่แชร์ข้อมูล
+	base3 := []string{"a", "b", "c", "d"}
+	cloned := append(slices.Clone(base3[:2]), "X")
+	fmt.Println("fix 2: base =", base3, "cloned =", cloned)
+
+	// 4) package slices: เรียง ค้นหา
+	latency := []int{120, 45, 900, 30}
+	slices.Sort(latency)
+	fmt.Println("sorted:", latency, "contains 900?", slices.Contains(latency, 900), "index of 45:", slices.Index(latency, 45))
+
+	// 5) Map: นับความถี่ของคำ
+	sentence := "Go เร็ว go ง่าย Go สนุก เร็ว"
+	freq := make(map[string]int)
+	for _, w := range strings.Fields(sentence) { // Fields แยกด้วยช่องว่าง
+		freq[strings.ToLower(w)]++
+	}
+	// ลำดับการวน Map สุ่มทุกครั้ง จึงเรียง key ก่อนพิมพ์
+	for _, k := range slices.Sorted(maps.Keys(freq)) {
+		fmt.Printf("  %-6s %d\n", k, freq[k])
+	}
+
+	// comma-ok: แยก "ไม่มี key" ออกจาก "มี key แต่ค่าเป็น 0"
+	if n, ok := freq["python"]; !ok {
+		fmt.Println("ไม่มีคำว่า python (n =", n, ")")
+	}
+	delete(freq, "สนุก")
+	fmt.Println("หลัง delete เหลือ", len(freq), "คำ")
+
+	// 6) นับจำนวน URL ต่อ host ด้วย strings.Cut
+	urls := []string{
+		"https://go.dev/doc",
+		"https://example.com/a",
+		"https://go.dev/blog",
+		"http://example.com/b",
+		"https://pkg.go.dev",
+	}
+	hosts := map[string]int{}
+	for _, u := range urls {
+		_, rest, _ := strings.Cut(u, "://")  // ตัด scheme ออก
+		host, _, _ := strings.Cut(rest, "/") // เอาส่วนก่อน / แรก
+		hosts[host]++
+	}
+	for _, h := range slices.Sorted(maps.Keys(hosts)) {
+		fmt.Printf("  %-12s %d\n", h, hosts[h])
+	}
+
+	// 7) String เป็น byte แบบ UTF-8: ตัวอักษรไทย 1 ตัว = 3 byte
+	th := "สวัสดี Go"
+	fmt.Println("bytes:", len(th), "runes:", utf8.RuneCountInString(th))
+	fmt.Printf("ตัดแบบ byte [:4] = %q\n", th[:4])                 // ได้ตัวอักษรขาดครึ่ง
+	fmt.Printf("ตัดแบบ rune [:2] = %q\n", string([]rune(th)[:2])) // ถูกต้อง
+	// range บน string ได้ rune และตำแหน่ง byte
+	for i, r := range "สวัส" {
+		fmt.Printf("  byte %d: %c\n", i, r)
+	}
+
+	// 8) strings.Builder ต่อ string จำนวนมากอย่างมีประสิทธิภาพ
+	var b strings.Builder
+	for i, p := range strings.Split(" 80, 443 ,8080", ",") {
+		if i &gt; 0 {
+			b.WriteString("|")
+		}
+		b.WriteString(strings.TrimSpace(p))
+	}
+	fmt.Println("ports:", b.String())
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./concepts/c04</code></pre>
+
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>array: [80 443 8080] len: 3
+append  0 -&gt; len=1 cap=2 [0]
+append 10 -&gt; len=2 cap=2 [0 10]
+append 20 -&gt; len=3 cap=4 [0 10 20]
+append 30 -&gt; len=4 cap=4 [0 10 20 30]
+append 40 -&gt; len=5 cap=8 [0 10 20 30 40]
+bug  : base = [a b X d] first = [a b X]
+fix 1: base = [a b c d] safe = [a b X]
+fix 2: base = [a b c d] cloned = [a b X]
+sorted: [30 45 120 900] contains 900? true index of 45: 1
+  go     3
+  ง่าย   1
+  สนุก   1
+  เร็ว   2
+ไม่มีคำว่า python (n = 0 )
+หลัง delete เหลือ 3 คำ
+  example.com  2
+  go.dev       2
+  pkg.go.dev   1
+bytes: 21 runes: 9
+ตัดแบบ byte [:4] = "ส\xe0"
+ตัดแบบ rune [:2] = "สว"
+  byte 0: ส
+  byte 3: ว
+  byte 6: ั
+  byte 9: ส
+ports: 80|443|8080</code></pre>
+<p>คอลัมน์ของคำภาษาไทยอาจดูไม่ตรงกันใน Terminal เพราะสระและวรรณยุกต์บางตัว (เช่น ั ี ่ ้) เป็นตัวอักษรที่ไม่มีความกว้าง แต่ <code>%-6s</code> นับเป็น 1 ตัว นี่ไม่ใช่บั๊กของโปรแกรม</p>
+
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>ports := [3]int{80, 443, 8080}</code></td><td>Array ขนาด 3 ช่อง เมื่อส่งเข้าฟังก์ชันจะถูกคัดลอกทั้งก้อน ต่างจาก Slice ที่ส่งแค่ Header</td></tr>
+<tr><td><code>make([]int, 0, 2)</code></td><td>สร้าง Slice ที่ len = 0 และ cap = 2 การจอง cap ล่วงหน้าเมื่อรู้จำนวนคร่าว ๆ ช่วยลดการคัดลอกข้อมูล</td></tr>
+<tr><td><code>nums = append(nums, i*10)</code></td><td>ต้องรับค่าคืนของ <code>append</code> เสมอ เพราะเมื่อ cap ไม่พอ มันคืน Slice ที่ชี้ Array ใหม่ ผลลัพธ์แสดงว่า cap โตจาก 2 เป็น 4 เป็น 8</td></tr>
+<tr><td><code>first := base[:2]</code> แล้ว <code>append(first, "X")</code></td><td><code>first</code> มี len = 2 แต่ cap = 4 (ใช้ Array เดียวกับ <code>base</code>) append จึงเขียน "X" ลงช่องที่ 3 ของ <code>base</code> ทำให้ <code>base</code> กลายเป็น <code>[a b X d]</code></td></tr>
+<tr><td><code>base2[:2:2]</code></td><td>Full slice expression <code>[low:high:max]</code> กำหนด cap = max - low = 2 append จึงต้องจอง Array ใหม่ <code>base2</code> ไม่ถูกแตะ</td></tr>
+<tr><td><code>slices.Clone(base3[:2])</code></td><td>สร้างสำเนาใหม่ที่ไม่แชร์ข้อมูล อ่านง่ายที่สุด ใช้เมื่อจะส่ง Slice ออกไปให้โค้ดอื่นแก้ไข</td></tr>
+<tr><td><code>slices.Sort</code>, <code>slices.Contains</code>, <code>slices.Index</code></td><td>ฟังก์ชันสำเร็จรูปจาก package <code>slices</code> (Go 1.21+) <code>Sort</code> เรียงในที่เดิม <code>Index</code> คืน -1 ถ้าไม่เจอ</td></tr>
+<tr><td><code>freq := make(map[string]int)</code></td><td>สร้าง Map ว่างที่พร้อมเขียน แบบ literal <code>map[string]int{}</code> ก็ได้ผลเหมือนกัน</td></tr>
+<tr><td><code>strings.Fields(sentence)</code> + <code>strings.ToLower(w)</code></td><td>แยกคำด้วยช่องว่างทุกชนิด แล้วแปลงเป็นตัวพิมพ์เล็ก "Go" กับ "go" จึงนับรวมเป็น 3</td></tr>
+<tr><td><code>slices.Sorted(maps.Keys(freq))</code></td><td><code>maps.Keys</code> คืน Iterator ของ key (Go 1.23+) <code>slices.Sorted</code> เก็บเป็น Slice ที่เรียงแล้ว ทำให้ผลลัพธ์เหมือนเดิมทุกครั้งที่รัน</td></tr>
+<tr><td><code>n, ok := freq["python"]</code></td><td>รูปแบบ comma-ok: <code>ok</code> เป็น <code>false</code> เมื่อไม่มี key ใช้แยกระหว่าง "ไม่มี key" กับ "มี key แต่ค่าเป็น 0"</td></tr>
+<tr><td><code>delete(freq, "สนุก")</code></td><td>ลบ key ออกจาก Map ถ้าไม่มี key นั้นก็ไม่ Error</td></tr>
+<tr><td><code>strings.Cut(u, "://")</code></td><td>แบ่ง string ที่ตัวคั่นแรก คืน (ก่อน, หลัง, เจอหรือไม่) สะดวกกว่า <code>strings.Split</code> เมื่อต้องการแค่ 2 ส่วน</td></tr>
+<tr><td><code>len(th)</code> vs <code>utf8.RuneCountInString(th)</code></td><td>"สวัสดี Go" มี 6 ตัวอักษรไทย × 3 byte + 3 byte = 21 byte แต่มี 9 rune</td></tr>
+<tr><td><code>th[:4]</code> vs <code>string([]rune(th)[:2])</code></td><td>ตัดแบบ byte ได้ "ส" กับ byte แรกของ "ว" ที่ขาดครึ่ง (<code>\xe0</code>) ตัดแบบ rune ได้ "สว" ถูกต้อง</td></tr>
+<tr><td><code>for i, r := range "สวัส"</code></td><td>range บน string ให้ตำแหน่ง byte (<code>i</code> = 0, 3, 6, 9) และ rune (<code>r</code>) ทีละตัวอักษร</td></tr>
+<tr><td><code>strings.Builder</code></td><td>ต่อ string ทีละส่วนโดยไม่สร้าง string ใหม่ทุกครั้ง เร็วกว่าการใช้ <code>+=</code> ในลูปมาก</td></tr>
+</tbody></table></div>
+
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>panic: assignment to entry in nil map</code></td><td>ประกาศ <code>var m map[string]int</code> แล้วเขียน <code>m["go"] = 1</code> ทันที Map ที่ยังเป็น <code>nil</code> อ่านได้ (ได้ Zero Value) แต่เขียนไม่ได้</td><td>สร้างก่อนใช้: <code>m := make(map[string]int)</code> หรือ <code>m := map[string]int{}</code> ถ้าเป็น field ใน struct ให้สร้างใน constructor</td></tr>
+<tr><td><code>panic: runtime error: index out of range [3] with length 3</code></td><td>เข้าถึงตำแหน่งที่ไม่มี Slice ยาว 3 มีแค่ index 0, 1, 2 มักเกิดจากลูปที่ใช้ <code>&lt;=</code> แทน <code>&lt;</code></td><td>ใช้ <code>for i := range s</code> หรือ <code>for _, v := range s</code> แทนการคำนวณ index เอง และตรวจ <code>len(s)</code> ก่อนเข้าถึง</td></tr>
+<tr><td>ข้อความไทยที่ตัดแล้วแสดงเป็น <code>ส&#xFFFD;</code> หรือ <code>"ส\xe0"</code></td><td>ตัด string ด้วย index แบบ byte เช่น <code>s[:4]</code> ตัวอักษรไทยหนึ่งตัวจึงถูกผ่ากลาง</td><td>แปลงเป็น <code>[]rune</code> ก่อนตัด หรือวนด้วย <code>for range</code> และนับด้วย <code>utf8.RuneCountInString</code></td></tr>
+<tr><td>ข้อมูลใน Slice หลักเปลี่ยนเอง หลัง append ลง Slice ย่อย (<code>base = [a b X d]</code>)</td><td>Slice ย่อยใช้ Backing Array ร่วมกับ Slice หลัก และยังมี cap เหลือ</td><td>ใช้ <code>slices.Clone</code> หรือ full slice expression <code>s[:n:n]</code> ก่อน append เมื่อไม่ต้องการแชร์</td></tr>
+<tr><td>ผลลัพธ์ที่วน Map ออกมาสลับลำดับทุกครั้งที่รัน และ Test ผ่านบ้างไม่ผ่านบ้าง</td><td>Go สุ่มลำดับการวน Map โดยตั้งใจ เพื่อไม่ให้ใครพึ่งพาลำดับ</td><td>เรียง key ก่อนด้วย <code>slices.Sorted(maps.Keys(m))</code> แล้ววนตาม key ที่เรียงแล้ว</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>จอง cap ล่วงหน้าด้วย <code>make([]T, 0, n)</code> เมื่อรู้จำนวนโดยประมาณ ลดการจองหน่วยความจำและการคัดลอกซ้ำ</li>
+<li>Slice ที่เป็น <code>nil</code> ใช้งานได้เหมือน Slice ว่าง (<code>len</code> = 0, append ได้, range ได้) ไม่ต้องสร้าง <code>[]T{}</code> ทุกครั้ง แต่ Map ต้องสร้างก่อนเขียนเสมอ</li>
+<li>เมื่อฟังก์ชันรับ Slice มาและเก็บไว้ใช้ต่อ ให้ <code>slices.Clone</code> เก็บสำเนา เพื่อไม่ให้ผู้เรียกแก้ข้อมูลภายในของเราได้</li>
+<li>ข้อความที่มีภาษาไทยหรือ emoji ให้คิดเป็น rune เสมอเมื่อนับ ตัด หรือกลับลำดับตัวอักษร</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ต่อยอดตัวนับความถี่</p><ol>
+<li>เปลี่ยนประโยคเป็น <code>"Go Go Python Go JavaScript Python"</code> แล้วพิมพ์คำที่พบบ่อยที่สุดพร้อมจำนวน</li>
+<li>เรียงผลลัพธ์ตามจำนวนจากมากไปน้อยแทนตามตัวอักษร (ใช้ <code>slices.SortFunc</code> กับ Slice ของ key)</li>
+<li>เพิ่ม URL <code>"https://go.dev/play"</code> ลงในรายการ แล้วตรวจว่า <code>go.dev</code> นับได้ 3</li>
+<li>เขียนฟังก์ชัน <code>reverse(s string) string</code> ที่กลับลำดับตัวอักษร แล้วทดสอบกับ <code>"Go"</code> และ <code>"สวัสดี"</code> สังเกตว่าภาษาไทยที่มีสระบนล่างจะกลับแล้วอ่านแปลก เพราะสระเป็น rune แยก</li>
+</ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 5</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h3 id="s6-2-c05">Struct, Method, Pointer และ Embedding</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>Go ไม่มี class แต่มี <strong>Struct</strong> สำหรับรวมข้อมูลที่เกี่ยวข้องไว้ด้วยกัน และ <strong>Method</strong> คือฟังก์ชันที่ผูกกับ type ผ่าน <em>receiver</em> เช่น <code>func (a *Account) Deposit(n int)</code> การมองเห็นถูกกำหนดด้วยตัวอักษรแรกของชื่อ: <strong>ขึ้นต้นตัวใหญ่ = Exported</strong> (คนนอก Package ใช้ได้) <strong>ขึ้นต้นตัวเล็ก = Unexported</strong> (ใช้ได้เฉพาะใน Package เดียวกัน) กฎนี้ใช้กับทุกอย่าง ทั้ง type, field, ฟังก์ชัน และ method</p>
+<p><strong>Pointer</strong> (<code>*T</code>) เก็บที่อยู่ของค่า <code>&amp;x</code> เอาที่อยู่ของ x และ <code>*p</code> อ่านหรือเขียนค่าที่ p ชี้ Go ส่งค่าแบบคัดลอก (pass by value) เสมอ ดังนั้นการเลือก receiver สำคัญมาก:</p>
+<ul>
+<li><strong>Pointer Receiver</strong> <code>(a *Account)</code>: ใช้เมื่อ method ต้องแก้ค่าใน struct, struct มีขนาดใหญ่, หรือมี field ที่ห้ามคัดลอก เช่น <code>sync.Mutex</code></li>
+<li><strong>Value Receiver</strong> <code>(t Timestamps)</code>: ใช้กับ struct เล็กที่ method แค่อ่านค่า method จะได้สำเนา การแก้ไขภายในจะหายไป</li>
+<li>ถ้า type มี method บางตัวเป็น Pointer Receiver ให้ใช้ Pointer Receiver ทุกตัวเพื่อความสม่ำเสมอ</li>
+</ul>
+<p><strong>Embedding</strong> คือการใส่ type หนึ่งไว้ใน struct โดยไม่ตั้งชื่อ field ทำให้ field และ method ของ type นั้น "ถูกยกขึ้นมา" ใช้ได้ตรง ๆ นี่คือวิธี reuse โค้ดของ Go แทนการสืบทอด (inheritance) ธรรมเนียมการสร้างค่าคือเขียนฟังก์ชัน <code>NewXxx</code> เป็น constructor ส่วน <strong>struct tag</strong> (ข้อความใน backtick หลัง field) เป็นข้อมูลเสริมที่ Package อื่นอ่านได้ เช่น <code>encoding/json</code> ใช้กำหนดชื่อ key (ใช้จริงในแนวคิดที่ 9)</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Value Receiver เหมือนส่ง "สำเนาสมุดบัญชี" ให้พนักงาน เขาจะเขียนอะไรลงไปก็ไม่กระทบสมุดจริงของคุณ ส่วน Pointer Receiver คือการยื่น "สมุดเล่มจริง" ให้ ฝากเงินแล้วยอดในเล่มเปลี่ยนจริง Field ที่ขึ้นต้นตัวเล็กเหมือน "ยอดเงินในระบบหลังเคาน์เตอร์" ลูกค้าดูผ่าน getter <code>Balance()</code> ได้ แต่เอื้อมไปแก้เองไม่ได้</p></div>
+
+<h4>ตัวอย่างโค้ด</h4>
+<p>บัญชีเงินฝากที่มี constructor, method ฝากถอน (ถอนเกินยอดคืน error), getter, <code>String()</code> และฝัง <code>Timestamps</code> ไว้ ใช้เวลาคงที่ <code>time.Date(2026, 10, 19, 9, 0, 0, 0, time.UTC)</code> เพื่อให้ผลลัพธ์เหมือนกันทุกเครื่อง พร้อมสาธิตบั๊ก Value Receiver</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+mkdir -p concepts/c05</code></pre>
+<pre class="code" data-env="file" data-label="Go · concepts/c05/main.go"><code class="language-go">package main
+
+import (
+	"errors"
+	"fmt"
+	"time"
+)
+
+// ErrInsufficientFunds คือ error เมื่อถอนเงินเกินยอดคงเหลือ
+var ErrInsufficientFunds = errors.New("insufficient funds")
+
+// Timestamps เป็น struct เล็ก ๆ ที่นำไปฝัง (embed) ใน struct อื่นเพื่อใช้ซ้ำ
+type Timestamps struct {
+	CreatedAt time.Time
+}
+
+// CreatedDate คืนวันที่สร้างในรูปแบบอ่านง่าย (Go ใช้วันอ้างอิง 2006-01-02 15:04)
+func (t Timestamps) CreatedDate() string {
+	return t.CreatedAt.Format("2006-01-02 15:04")
+}
+
+// Account คือบัญชีเงินฝาก
+type Account struct {
+	Timestamps        // embedding: field และ method ของ Timestamps ถูกยกขึ้นมาใช้ได้ตรง ๆ
+	Owner      string `json:"owner"` // ขึ้นต้นตัวใหญ่ = exported, ข้อความใน backtick คือ struct tag
+	balance    int    // ขึ้นต้นตัวเล็ก = unexported ใช้ได้เฉพาะใน package นี้
+}
+
+// NewAccount คือ constructor: สร้างค่าเริ่มต้นที่ถูกต้องแล้วคืน pointer
+func NewAccount(owner string, created time.Time) *Account {
+	return &amp;Account{Owner: owner, Timestamps: Timestamps{CreatedAt: created}}
+}
+
+// Deposit ใช้ Pointer Receiver เพราะต้องแก้ค่าในตัว Account จริง
+func (a *Account) Deposit(amount int) {
+	a.balance += amount
+}
+
+// Withdraw คืน error ถ้ายอดเงินไม่พอ
+func (a *Account) Withdraw(amount int) error {
+	if amount &gt; a.balance {
+		return fmt.Errorf("withdraw %d from %s: %w", amount, a.Owner, ErrInsufficientFunds)
+	}
+	a.balance -= amount
+	return nil
+}
+
+// Balance คือ getter ให้คนนอก package อ่านยอดได้ แต่แก้ตรง ๆ ไม่ได้
+func (a *Account) Balance() int {
+	return a.balance
+}
+
+// String ทำให้ fmt.Println พิมพ์ Account ในรูปแบบที่เรากำหนด (fmt.Stringer)
+func (a *Account) String() string {
+	return fmt.Sprintf("Account(%s, balance=%d)", a.Owner, a.balance)
+}
+
+// Wallet ใช้สาธิตความต่างของ Value Receiver กับ Pointer Receiver
+type Wallet struct {
+	Coins int
+}
+
+// AddWrong ใช้ Value Receiver: w เป็นสำเนา การแก้ไขจึงหายไปเมื่อจบ method
+func (w Wallet) AddWrong(n int) {
+	w.Coins += n
+}
+
+// Add ใช้ Pointer Receiver: แก้ค่าตัวจริง
+func (w *Wallet) Add(n int) {
+	w.Coins += n
+}
+
+func main() {
+	// Pointer พื้นฐาน: &amp; เอาที่อยู่, * อ่านหรือเขียนค่าที่ที่อยู่นั้น
+	x := 10
+	p := &amp;x
+	*p = 20
+	fmt.Println("x =", x, "| *p =", *p)
+
+	created := time.Date(2026, 10, 19, 9, 0, 0, 0, time.UTC) // เวลาคงที่ ผลลัพธ์จึงเหมือนกันทุกเครื่อง
+	acc := NewAccount("somchai", created)
+	acc.Deposit(1000)
+	if err := acc.Withdraw(300); err != nil {
+		fmt.Println("error:", err)
+	}
+	if err := acc.Withdraw(5000); err != nil {
+		fmt.Println("error:", err)
+		fmt.Println("is ErrInsufficientFunds?", errors.Is(err, ErrInsufficientFunds))
+	}
+	fmt.Println(acc)                                         // เรียก String() ให้อัตโนมัติ
+	fmt.Println("balance:", acc.Balance())                   // อ่านผ่าน getter
+	fmt.Println("created:", acc.CreatedDate())               // method ที่ได้จาก embedding
+	fmt.Println("created (เต็ม):", acc.Timestamps.CreatedAt) // เข้าถึงแบบเต็มก็ได้
+
+	// Value Receiver vs Pointer Receiver
+	w := Wallet{Coins: 5}
+	w.AddWrong(10)
+	fmt.Println("หลัง AddWrong:", w.Coins) // ยังเป็น 5
+	w.Add(10)                              // Go แปลงเป็น (&amp;w).Add(10) ให้เอง
+	fmt.Println("หลัง Add:", w.Coins)
+
+	// struct เป็น value: กำหนดค่าให้ตัวแปรใหม่ = คัดลอกทั้งก้อน
+	w2 := w
+	w2.Coins = 999
+	fmt.Println("w =", w.Coins, "| w2 =", w2.Coins)
+
+	// pointer ที่ยังไม่ชี้อะไรมีค่าเป็น nil ต้องเช็กก่อนใช้
+	var missing *Account
+	if missing == nil {
+		fmt.Println("missing เป็น nil ยังไม่มีบัญชี")
+	}
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./concepts/c05</code></pre>
+
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>x = 20 | *p = 20
+error: withdraw 5000 from somchai: insufficient funds
+is ErrInsufficientFunds? true
+Account(somchai, balance=700)
+balance: 700
+created: 2026-10-19 09:00
+created (เต็ม): 2026-10-19 09:00:00 +0000 UTC
+หลัง AddWrong: 5
+หลัง Add: 15
+w = 15 | w2 = 999
+missing เป็น nil ยังไม่มีบัญชี</code></pre>
+
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>x := 10; p := &amp;x; *p = 20</code></td><td><code>p</code> มี type <code>*int</code> เก็บที่อยู่ของ <code>x</code> การเขียน <code>*p = 20</code> คือเขียนลงที่ <code>x</code> จริง จึงได้ <code>x = 20</code></td></tr>
+<tr><td><code>type Timestamps struct { CreatedAt time.Time }</code></td><td>struct เล็กที่ตั้งใจนำไปฝังใน type อื่นหลายตัว เช่น Account, Order, User</td></tr>
+<tr><td><code>func (t Timestamps) CreatedDate() string</code></td><td>Value Receiver เพราะแค่อ่านค่า รูปแบบ <code>"2006-01-02 15:04"</code> คือวันเวลาอ้างอิงของ Go (ปี 2006 เดือน 01 วัน 02 ชั่วโมง 15 นาที 04) ไม่ใช่ YYYY-MM-DD</td></tr>
+<tr><td><code>Timestamps</code> ที่อยู่ใน <code>Account</code> แบบไม่มีชื่อ</td><td>Embedding: <code>acc.CreatedDate()</code> และ <code>acc.CreatedAt</code> ใช้ได้ตรง ๆ หรือเข้าถึงเต็มแบบ <code>acc.Timestamps.CreatedAt</code> ก็ได้</td></tr>
+<tr><td><code>Owner string `json:"owner"`</code></td><td>Field ที่ Export (ตัวใหญ่) พร้อม struct tag บอก <code>encoding/json</code> ให้ใช้ key ชื่อ <code>owner</code></td></tr>
+<tr><td><code>balance int</code></td><td>Field ที่ไม่ Export (ตัวเล็ก) ป้องกันโค้ดนอก Package ตั้งยอดเงินเองโดยไม่ผ่านกฎของ <code>Withdraw</code></td></tr>
+<tr><td><code>func NewAccount(...) *Account</code></td><td>Constructor ตามธรรมเนียม Go คืน pointer เพราะ method ส่วนใหญ่เป็น Pointer Receiver และไม่อยากให้คัดลอกบัญชี</td></tr>
+<tr><td><code>func (a *Account) Withdraw(amount int) error</code></td><td>ตรวจกฎทางธุรกิจ ถ้าไม่ผ่านคืน error ที่ห่อ <code>ErrInsufficientFunds</code> ไว้ ผู้เรียกจึงใช้ <code>errors.Is</code> ได้</td></tr>
+<tr><td><code>func (a *Account) String() string</code></td><td>เมื่อ type มี method <code>String()</code> (Interface <code>fmt.Stringer</code>) คำสั่ง <code>fmt.Println(acc)</code> จะเรียกให้อัตโนมัติ</td></tr>
+<tr><td><code>func (w Wallet) AddWrong(n int)</code></td><td>Value Receiver ได้สำเนาของ <code>w</code> การบวกเหรียญจึงเกิดกับสำเนาแล้วทิ้งไป ผลลัพธ์ยังเป็น 5</td></tr>
+<tr><td><code>w.Add(10)</code></td><td>แม้ <code>w</code> ไม่ใช่ pointer แต่เป็นตัวแปรที่หาที่อยู่ได้ Go แปลงเป็น <code>(&amp;w).Add(10)</code> ให้เอง ค่าจึงเป็น 15</td></tr>
+<tr><td><code>w2 := w</code></td><td>การกำหนด struct ให้ตัวแปรใหม่คือการคัดลอกทั้งก้อน แก้ <code>w2</code> แล้ว <code>w</code> ไม่เปลี่ยน</td></tr>
+<tr><td><code>var missing *Account</code></td><td>Zero Value ของ pointer คือ <code>nil</code> ต้องตรวจก่อนใช้ ไม่อย่างนั้นจะ panic</td></tr>
+</tbody></table></div>
+
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td>เรียก method แก้ค่าแล้ว แต่ค่าไม่เปลี่ยน (เช่น <code>หลัง AddWrong: 5</code>) ไม่มี Error ใด ๆ</td><td>method ใช้ Value Receiver จึงแก้สำเนา ไม่ใช่ตัวจริง</td><td>เปลี่ยนเป็น Pointer Receiver <code>func (w *Wallet) Add(n int)</code> ทุก method ที่แก้ state ต้องเป็น pointer</td></tr>
+<tr><td><code>panic: runtime error: invalid memory address or nil pointer dereference</code><br><code>[signal SIGSEGV: segmentation violation code=0x1 addr=0x10 ...]</code></td><td>เรียก method ที่เข้าถึง field ผ่าน pointer ที่เป็น <code>nil</code> เช่น <code>var acc *bank.Account; acc.Deposit(10)</code></td><td>สร้างค่าด้วย constructor เสมอ (<code>NewAccount</code>) และตรวจ <code>if acc == nil</code> เมื่อรับ pointer จากภายนอก</td></tr>
+<tr><td><code>./main.go:11:18: acc.balance undefined (cannot refer to unexported field balance)</code></td><td>โค้ดอยู่คนละ Package กับ <code>Account</code> และพยายามอ่าน field ที่ขึ้นต้นตัวเล็ก</td><td>ใช้ method ที่ Export ไว้ เช่น <code>acc.Balance()</code> ถ้าจำเป็นต้องให้แก้จากภายนอกจริง ให้เพิ่ม method ที่ตรวจกฎก่อน</td></tr>
+<tr><td>ใช้ <code>"YYYY-MM-DD"</code> ใน <code>Format</code> แล้วได้ข้อความ <code>YYYY-MM-DD</code> กลับมาตรง ๆ</td><td>Go ไม่ใช้ตัวอักษรแทนรูปแบบวันที่ แต่ใช้วันอ้างอิง <code>Mon Jan 2 15:04:05 MST 2006</code></td><td>เขียนรูปแบบด้วยตัวเลขของวันอ้างอิง เช่น <code>"2006-01-02"</code> หรือใช้ค่าคงที่ <code>time.RFC3339</code></td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ซ่อน state ที่มีกฎ (เช่น ยอดเงิน) เป็น field ตัวเล็ก แล้วให้แก้ผ่าน method ที่ตรวจกฎเท่านั้น</li>
+<li>เลือก receiver ให้เหมือนกันทั้ง type ถ้ามีตัวใดตัวหนึ่งเป็น pointer ให้เป็น pointer ทั้งหมด และตั้งชื่อ receiver สั้น 1–2 ตัวอักษร (<code>a</code>, <code>w</code>) ไม่ใช้ <code>this</code> หรือ <code>self</code></li>
+<li>ออกแบบให้ Zero Value ใช้งานได้ทันทีเมื่อทำได้ (เช่น <code>var sb strings.Builder</code> ใช้ได้เลย) ถ้าทำไม่ได้ ให้มี <code>NewXxx</code></li>
+<li>ใช้ Embedding เพื่อ reuse พฤติกรรมเล็ก ๆ ไม่ใช่สร้างลำดับชั้นยาวแบบ inheritance</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>เพิ่มความสามารถให้บัญชี</p><ol>
+<li>เพิ่ม method <code>Transfer(to *Account, amount int) error</code> ที่ถอนจากบัญชีนี้แล้วฝากเข้าบัญชี <code>to</code> ถ้าถอนไม่ได้ต้องไม่ฝาก</li>
+<li>ให้ <code>Deposit</code> คืน error เมื่อจำนวนเงินน้อยกว่าหรือเท่ากับ 0 แล้วแก้ทุกจุดที่เรียกให้ตรวจ error</li>
+<li>สร้างบัญชีของ <code>suda</code> แล้วโอน 200 บาทจาก <code>somchai</code> พิมพ์ทั้งสองบัญชีด้วย <code>fmt.Println</code></li>
+<li>ลองเปลี่ยน <code>Deposit</code> เป็น Value Receiver แล้วดูว่ายอดเงินไม่เพิ่ม จากนั้นแก้กลับ</li>
+</ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 6</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h3 id="s6-2-c06">Interface, Package และโครงสร้างโปรเจกต์</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p><strong>Interface</strong> คือรายการ method ที่ type หนึ่งต้องมี เช่น <code>Notifier</code> ต้องมี <code>Notify(msg string) error</code> จุดที่ทำให้ Go ต่างจาก Java หรือ TypeScript คือ <strong>Implement แบบอัตโนมัติ (implicit)</strong>: ไม่ต้องเขียน <code>implements</code> type ใดมี method ครบก็ใช้แทน Interface นั้นได้ทันที ผลคือเราเขียนโค้ดที่ "รับอะไรก็ได้ที่ทำสิ่งนี้ได้" เช่น ฟังก์ชันที่รับ <code>io.Writer</code> เขียนลงหน้าจอ ไฟล์ หรือ buffer ได้โดยไม่ต้องแก้โค้ด และตอนเทสต์ก็ส่งของปลอมเข้าไปแทนได้ง่าย</p>
+<p>Interface มาตรฐานที่เจอทุกวัน: <code>error</code> (<code>Error() string</code>), <code>fmt.Stringer</code> (<code>String() string</code>), <code>io.Reader</code> (<code>Read([]byte) (int, error)</code>) และ <code>io.Writer</code> (<code>Write([]byte) (int, error)</code>) ทั้งหมดมี method เดียว นี่คือแนวทางของ Go: <strong>Interface ยิ่งเล็กยิ่งดี</strong> ค่าใน Interface ถอดกลับเป็น type จริงได้ด้วย type assertion <code>v, ok := x.(T)</code> หรือ type switch <code>switch v := x.(type)</code> ส่วน <code>any</code> คือ Interface ว่างที่รับได้ทุก type</p>
+<p>เมื่อโปรเจกต์โตขึ้น เราแบ่งโค้ดเป็นหลาย Package ใน Module เดียว ทุก import ขึ้นต้นด้วย Module Path เช่น <code>example.com/go-lab/concepts/c06/internal/notify</code> โฟลเดอร์ชื่อ <strong><code>internal/</code></strong> พิเศษ: Package ข้างใน import ได้เฉพาะโค้ดที่อยู่ในโฟลเดอร์แม่ของ <code>internal</code> เท่านั้น ใช้ซ่อนโค้ดภายในไม่ให้โปรเจกต์อื่นพึ่งพา และ Go <strong>ห้าม import วน</strong> (A import B และ B import A) ส่วน Library ภายนอกติดตั้งด้วย <code>go get</code> แล้วจัดระเบียบด้วย <code>go mod tidy</code> ซึ่งบันทึก checksum ไว้ใน <code>go.sum</code></p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Interface เหมือน "ประกาศรับสมัครงาน" ที่เขียนว่า "ต้องขับรถได้" บริษัทไม่สนว่าคุณจบที่ไหน ขอแค่ขับรถได้จริงก็รับ คุณไม่ต้องไปลงทะเบียนว่า "ฉันเป็นคนขับรถ" ล่วงหน้า ส่วนโฟลเดอร์ <code>internal/</code> เหมือน "ห้องพักพนักงาน" คนในบริษัทเข้าได้ แต่ลูกค้าหรือบริษัทอื่นเข้าไม่ได้</p></div>
+
+<h4>ตัวอย่างโค้ด</h4>
+<p>ระบบแจ้งเตือนที่มี 2 ช่องทาง: <code>ConsoleNotifier</code> (เขียนออก <code>io.Writer</code>) และ <code>MemoryNotifier</code> (เก็บข้อความใน Slice ใช้ตอนเทสต์) อยู่ใน Package <code>internal/notify</code> ส่วน <code>main</code> ส่งข้อความผ่าน <code>[]notify.Notifier</code> โดยไม่สนว่าแต่ละตัวเป็นอะไร โครงสร้างไฟล์:</p>
+<pre class="code" data-kind="tpl" data-env="tpl" data-label="โครงสร้างไฟล์"><code class="language-plaintext">go-lab/
+├── go.mod                          (module example.com/go-lab)
+└── concepts/
+    └── c06/
+        ├── main.go                 (package main)
+        └── internal/
+            └── notify/
+                └── notify.go       (package notify)</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+mkdir -p concepts/c06/internal/notify</code></pre>
+<pre class="code" data-env="file" data-label="Go · concepts/c06/internal/notify/notify.go"><code class="language-go">// Package notify รวมช่องทางแจ้งเตือนแบบต่าง ๆ ไว้หลัง Interface เดียวกัน
+package notify
+
+import (
+	"fmt"
+	"io"
+)
+
+// Notifier คือ Interface เล็ก ๆ ที่มี method เดียว
+// type ใดมี method Notify(string) error ก็ถือว่า implement โดยอัตโนมัติ
+type Notifier interface {
+	Notify(msg string) error
+}
+
+// ConsoleNotifier เขียนข้อความออกทาง io.Writer (เช่น os.Stdout)
+type ConsoleNotifier struct {
+	Prefix string
+	Out    io.Writer
+}
+
+// Notify ใช้ Value Receiver เพราะไม่ต้องแก้ค่าใน struct
+func (c ConsoleNotifier) Notify(msg string) error {
+	_, err := fmt.Fprintf(c.Out, "%s %s\n", c.Prefix, msg)
+	return err
+}
+
+// MemoryNotifier เก็บข้อความไว้ใน slice (เหมาะกับการเขียน test)
+type MemoryNotifier struct {
+	Messages []string
+}
+
+// Notify ใช้ Pointer Receiver เพราะต้อง append ลง Messages ของตัวจริง
+func (m *MemoryNotifier) Notify(msg string) error {
+	m.Messages = append(m.Messages, msg)
+	return nil
+}
+
+// Severity คือระดับความรุนแรง และ implement fmt.Stringer ด้วย method String
+type Severity int
+
+const (
+	Info Severity = iota
+	Warning
+	Critical
+)
+
+// String ทำให้ fmt พิมพ์ Severity เป็นคำแทนตัวเลข
+func (s Severity) String() string {
+	switch s {
+	case Info:
+		return "INFO"
+	case Warning:
+		return "WARNING"
+	case Critical:
+		return "CRITICAL"
+	default:
+		return fmt.Sprintf("Severity(%d)", int(s))
+	}
+}</code></pre>
+<pre class="code" data-env="file" data-label="Go · concepts/c06/main.go"><code class="language-go">package main
+
+import (
+	"fmt"
+	"os"
+	"strings"
+
+	"example.com/go-lab/concepts/c06/internal/notify"
+)
+
+// broadcast รับ Interface (ไม่สนว่าเบื้องหลังเป็น type อะไร) แล้วส่งข้อความให้ทุกช่องทาง
+func broadcast(ns []notify.Notifier, sev notify.Severity, msg string) int {
+	failed := 0
+	for _, n := range ns {
+		if err := n.Notify(fmt.Sprintf("[%v] %s", sev, msg)); err != nil {
+			failed++
+		}
+	}
+	return failed
+}
+
+// describe ใช้ type switch แยกการทำงานตาม type จริงที่อยู่ใน Interface
+func describe(n notify.Notifier) string {
+	switch v := n.(type) {
+	case notify.ConsoleNotifier:
+		return "console prefix=" + v.Prefix
+	case *notify.MemoryNotifier:
+		return fmt.Sprintf("memory (%d messages)", len(v.Messages))
+	default:
+		return "unknown"
+	}
+}
+
+func main() {
+	mem := &amp;notify.MemoryNotifier{}
+	var sb strings.Builder // strings.Builder เป็น io.Writer ได้เหมือน os.Stdout
+
+	notifiers := []notify.Notifier{
+		notify.ConsoleNotifier{Prefix: "[console]", Out: os.Stdout},
+		notify.ConsoleNotifier{Prefix: "[buffer]", Out: &amp;sb},
+		mem, // ต้องเป็น pointer เพราะ Notify ของ MemoryNotifier เป็น Pointer Receiver
+	}
+
+	failed := broadcast(notifiers, notify.Warning, "disk usage 91%")
+	failed += broadcast(notifiers, notify.Critical, "api down")
+	fmt.Println("failed:", failed)
+
+	fmt.Print("buffer เก็บได้:\n", sb.String())
+	fmt.Println("memory เก็บได้:", mem.Messages)
+
+	for _, n := range notifiers {
+		fmt.Println("-", describe(n))
+	}
+
+	// type assertion แบบ comma-ok: ถามว่าใน Interface นี้เป็น *MemoryNotifier ไหม
+	if m, ok := notifiers[2].(*notify.MemoryNotifier); ok {
+		fmt.Println("ตัวที่ 3 เป็น MemoryNotifier มี", len(m.Messages), "ข้อความ")
+	}
+
+	// any (ชื่อย่อของ interface{}) รับค่าได้ทุก type
+	values := []any{42, "go", notify.Info, 3.5}
+	for _, v := range values {
+		fmt.Printf("%v (%T)\n", v, v)
+	}
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./concepts/c06
+go vet ./...
+go list ./concepts/c06/...</code></pre>
+
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[console] [WARNING] disk usage 91%
+[console] [CRITICAL] api down
+failed: 0
+buffer เก็บได้:
+[buffer] [WARNING] disk usage 91%
+[buffer] [CRITICAL] api down
+memory เก็บได้: [[WARNING] disk usage 91% [CRITICAL] api down]
+- console prefix=[console]
+- console prefix=[buffer]
+- memory (2 messages)
+ตัวที่ 3 เป็น MemoryNotifier มี 2 ข้อความ
+42 (int)
+go (string)
+INFO (notify.Severity)
+3.5 (float64)
+example.com/go-lab/concepts/c06
+example.com/go-lab/concepts/c06/internal/notify</code></pre>
+<p><code>go vet ./...</code> ไม่พิมพ์อะไร แปลว่าไม่พบปัญหา ส่วน <code>go list</code> แสดง Package ทั้งสองที่อยู่ใต้ <code>c06</code></p>
+<h5>ติดตั้ง Library ภายนอกด้วย go get และ go mod tidy</h5>
+<p>ตัวอย่างนี้ใช้แค่ Standard Library จึงไม่มี dependency ถ้าต้องการ Library ภายนอก เช่น <code>golang.org/x/sync</code> (มี <code>errgroup</code> และ <code>semaphore</code>) ให้ทำแบบนี้ในโปรเจกต์ทดลอง:</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># ดาวน์โหลดและเพิ่มรุ่นที่ระบุลงใน go.mod
+go get golang.org/x/sync@v0.24.0
+cat go.mod
+
+# ลบ dependency ที่ไม่มีโค้ดใช้ และเพิ่มที่ขาด ให้ go.mod กับ go.sum ตรงกับโค้ดจริง
+go mod tidy
+cat go.mod</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>go: downloading golang.org/x/sync v0.24.0
+go: added golang.org/x/sync v0.24.0
+module example.com/m10
+
+go 1.27.2
+
+require golang.org/x/sync v0.24.0 // indirect
+module example.com/m10
+
+go 1.27.2</code></pre>
+<p>หลัง <code>go get</code> บรรทัด <code>require</code> ถูกเพิ่ม (มี <code>// indirect</code> เพราะยังไม่มีโค้ดใด import) และ <code>go.sum</code> ถูกสร้างพร้อม checksum ของ Module นั้น เมื่อสั่ง <code>go mod tidy</code> โดยยังไม่มีโค้ดใช้ Go จะลบออกให้ ในโปรเจกต์จริง ให้เขียน import ในโค้ดก่อนแล้วสั่ง <code>go mod tidy</code> ครั้งเดียว และ commit ทั้ง <code>go.mod</code> และ <code>go.sum</code></p>
+
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>// Package notify ...</code> + <code>package notify</code></td><td>ชื่อ Package ตรงกับชื่อโฟลเดอร์ และคอมเมนต์บรรทัดแรกคือเอกสารของ Package ที่ <code>go doc</code> แสดง</td></tr>
+<tr><td><code>type Notifier interface { Notify(msg string) error }</code></td><td>Interface ที่มี method เดียว type ใดมี method นี้ (ชื่อ, parameter, ค่าคืน ตรงกันทั้งหมด) ถือว่าเป็น <code>Notifier</code></td></tr>
+<tr><td><code>ConsoleNotifier{ Prefix, Out io.Writer }</code></td><td>ไม่ผูกกับหน้าจอ แต่รับ <code>io.Writer</code> ใน main เราส่งทั้ง <code>os.Stdout</code> และ <code>&amp;sb</code> (<code>strings.Builder</code>) เข้าไปได้</td></tr>
+<tr><td><code>func (c ConsoleNotifier) Notify(...)</code></td><td>Value Receiver ดังนั้นทั้ง <code>ConsoleNotifier</code> และ <code>*ConsoleNotifier</code> เป็น <code>Notifier</code> ได้</td></tr>
+<tr><td><code>func (m *MemoryNotifier) Notify(...)</code></td><td>Pointer Receiver ดังนั้นเฉพาะ <code>*MemoryNotifier</code> เท่านั้นที่เป็น <code>Notifier</code> ใน main จึงสร้างด้วย <code>&amp;notify.MemoryNotifier{}</code></td></tr>
+<tr><td><code>type Severity int</code> + <code>String()</code></td><td>type ใหม่ที่มี underlying type เป็น int และ implement <code>fmt.Stringer</code> <code>%v</code> จึงพิมพ์ <code>WARNING</code> แทนเลข 1</td></tr>
+<tr><td><code>import "example.com/go-lab/concepts/c06/internal/notify"</code></td><td>import ด้วย Module Path เต็ม แล้วเรียกผ่านชื่อ Package <code>notify.Xxx</code> ใช้ได้เพราะ main อยู่ใน <code>c06</code> ซึ่งเป็นโฟลเดอร์แม่ของ <code>internal</code></td></tr>
+<tr><td><code>func broadcast(ns []notify.Notifier, ...)</code></td><td>รับ Interface ไม่สนว่าเบื้องหลังเป็น type อะไร เพิ่มช่องทางใหม่ในอนาคต (เช่น LINE, Email) ได้โดยไม่ต้องแก้ฟังก์ชันนี้</td></tr>
+<tr><td><code>switch v := n.(type)</code></td><td>Type switch: แยกการทำงานตาม type จริง ในแต่ละ case <code>v</code> มี type ของ case นั้น จึงอ่าน <code>v.Prefix</code> หรือ <code>v.Messages</code> ได้</td></tr>
+<tr><td><code>m, ok := notifiers[2].(*notify.MemoryNotifier)</code></td><td>Type assertion แบบ comma-ok ถ้าไม่ใช่ type นั้น <code>ok</code> เป็น <code>false</code> และไม่ panic (ถ้าไม่ใส่ <code>ok</code> แล้ว type ไม่ตรง จะ panic)</td></tr>
+<tr><td><code>[]any{42, "go", notify.Info, 3.5}</code></td><td><code>any</code> รับได้ทุก type <code>%T</code> พิมพ์ชื่อ type จริง ใช้ <code>any</code> เท่าที่จำเป็น เพราะเสียการตรวจ type ตอนคอมไพล์</td></tr>
+</tbody></table></div>
+
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>cannot use SlackNotifier{} (value of struct type SlackNotifier) as Notifier value in variable declaration: SlackNotifier does not implement Notifier (missing method Notify)</code></td><td>type ไม่มี method ที่ Interface ต้องการ หรือชื่อ/signature ไม่ตรง เช่น ตั้งชื่อว่า <code>Send</code> แทน <code>Notify</code></td><td>เพิ่มหรือแก้ method ให้ตรงทุกตัวอักษร ทั้งชื่อ, type ของ parameter และค่าคืน</td></tr>
+<tr><td><code>cannot use MemoryNotifier{} (value of struct type MemoryNotifier) as Notifier value in variable declaration: MemoryNotifier does not implement Notifier (method Notify has pointer receiver)</code></td><td>method เป็น Pointer Receiver แต่ส่งค่า struct ธรรมดาเข้าไป</td><td>ส่ง pointer แทน: <code>&amp;MemoryNotifier{}</code></td></tr>
+<tr><td><code>package example.com/go-lab</code><br><code>imports example.com/go-lab/a from main.go</code><br><code>imports example.com/go-lab/b from a.go</code><br><code>imports example.com/go-lab/a from b.go: import cycle not allowed</code></td><td>Package <code>a</code> import <code>b</code> และ <code>b</code> import <code>a</code> กลับ Go ไม่อนุญาตเลย</td><td>ย้ายส่วนที่ใช้ร่วมกันไป Package ที่สาม หรือให้ฝั่งหนึ่งประกาศ Interface ที่ต้องการแทนการ import อีกฝั่งโดยตรง</td></tr>
+<tr><td><code>package example.com/go-lab/concepts/zz</code><br><code>concepts/zz/main.go:3:8: use of internal package example.com/go-lab/concepts/c06/internal/notify not allowed</code></td><td>import Package ใน <code>internal/</code> จากโฟลเดอร์ที่ไม่ได้อยู่ใต้ <code>concepts/c06</code></td><td>ย้ายโค้ดที่ต้องการใช้ไปอยู่ใต้โฟลเดอร์แม่ของ <code>internal</code> หรือย้าย Package ออกจาก <code>internal</code> ถ้าตั้งใจให้คนอื่นใช้</td></tr>
+<tr><td><code>panic: interface conversion: notify.Notifier is notify.ConsoleNotifier, not *notify.MemoryNotifier</code></td><td>Type assertion แบบไม่มี <code>ok</code> (<code>n.(*notify.MemoryNotifier)</code>) กับค่าที่ type ไม่ตรง</td><td>ใช้รูปแบบ <code>v, ok := n.(T)</code> หรือ type switch เสมอ</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li><strong>Accept interfaces, return structs</strong>: ฟังก์ชันรับ Interface (ยืดหยุ่น เทสต์ง่าย) แต่คืน type จริง (ผู้เรียกได้ทุก method)</li>
+<li>ประกาศ Interface ไว้ฝั่ง "ผู้ใช้" ไม่ใช่ฝั่ง "ผู้สร้าง" และให้มีแค่ method ที่ใช้จริง 1–3 ตัว</li>
+<li>ใช้ <code>internal/</code> กับโค้ดที่ไม่ต้องการให้โปรเจกต์อื่นพึ่งพา จะเปลี่ยน API ภายในได้โดยไม่ทำให้ใครพัง</li>
+<li>ตั้งชื่อ Package สั้น ตัวพิมพ์เล็ก คำเดียว ไม่ซ้ำกับชื่อในฟังก์ชัน (<code>notify.Notifier</code> ดีกว่า <code>notify.NotifyNotifier</code>) และหลีกเลี่ยงชื่อกว้าง ๆ อย่าง <code>utils</code> หรือ <code>common</code></li>
+<li>commit <code>go.mod</code> และ <code>go.sum</code> คู่กันเสมอ และสั่ง <code>go mod tidy</code> ก่อน commit เมื่อเปลี่ยน import</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>เพิ่มช่องทางแจ้งเตือนใหม่</p><ol>
+<li>สร้าง <code>type FileNotifier struct{ Path string }</code> ใน <code>notify.go</code> ที่ append ข้อความลงไฟล์ (ใช้ <code>os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)</code> และ <code>defer f.Close()</code>)</li>
+<li>เพิ่ม <code>notify.FileNotifier{Path: "alerts.log"}</code> ลงใน Slice <code>notifiers</code> โดยไม่แก้ฟังก์ชัน <code>broadcast</code> แล้วตรวจไฟล์ด้วย <code>cat alerts.log</code></li>
+<li>เพิ่ม case ของ <code>FileNotifier</code> ใน type switch ของ <code>describe</code></li>
+<li>สร้าง <code>FailingNotifier</code> ที่คืน <code>errors.New("network down")</code> ทุกครั้ง แล้วตรวจว่า <code>failed</code> นับได้ 2</li>
+</ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 7</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h3 id="s6-2-c07">Generics: Type Parameters และ Constraints</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p><strong>Generics</strong> (มีตั้งแต่ Go 1.18) ทำให้เขียนฟังก์ชันหรือ type ครั้งเดียวแล้วใช้กับหลาย type ได้ โดยยังตรวจ type ตอนคอมไพล์ครบ ก่อนมี Generics ถ้าต้องการ <code>Filter</code> สำหรับ <code>[]int</code> และ <code>[]string</code> ต้องเขียน 2 ฟังก์ชัน หรือใช้ <code>any</code> ซึ่งเสียความปลอดภัยของ type เราประกาศ <strong>Type Parameter</strong> ไว้ในวงเล็บเหลี่ยม เช่น <code>func Filter[T any](s []T, ...) []T</code> แล้วตอนเรียก Go มัก<strong>อนุมาน (infer)</strong> type ให้เองจาก argument</p>
+<p>ทุก Type Parameter ต้องมี <strong>Constraint</strong> บอกว่า T ทำอะไรได้บ้าง:</p>
+<ul>
+<li><code>any</code>: type อะไรก็ได้ แต่ทำได้แค่เก็บ ส่งต่อ หรือคืนค่า ใช้ <code>+</code> หรือ <code>&lt;</code> ไม่ได้</li>
+<li><code>comparable</code>: เทียบด้วย <code>==</code> และ <code>!=</code> ได้ จำเป็นเมื่อใช้ T เป็น key ของ Map</li>
+<li><code>cmp.Ordered</code>: เทียบ <code>&lt;</code> <code>&gt;</code> ได้ (ตัวเลขทุกชนิดและ string) ใช้กับการหาค่ามากสุดหรือเรียงลำดับ</li>
+<li><strong>Type set ที่เขียนเอง</strong> เช่น <code>~int | ~int64 | ~float64</code> เครื่องหมาย <code>~</code> แปลว่า "รวม type ที่มี underlying type นี้ด้วย" เช่น <code>type Millis int64</code></li>
+</ul>
+<p>Package มาตรฐาน <code>slices</code>, <code>maps</code> และ <code>cmp</code> ก็เป็น Generic อยู่แล้ว ให้ใช้ของเหล่านี้ก่อนเขียนเอง และเลือก Generics เมื่อ <em>อัลกอริทึมเหมือนกันทุก type</em> (Filter, Map, Set, Stack) ถ้าแต่ละ type <em>ทำงานต่างกัน</em> (Console กับ File ส่งข้อความคนละวิธี) ให้ใช้ Interface แบบแนวคิดที่ 6</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ฟังก์ชัน Generic เหมือน "แม่พิมพ์ขนม" อันเดียวที่เทแป้งได้หลายรส (ใบเตย, ช็อกโกแลต, สตรอว์เบอร์รี) รูปทรงเหมือนกันทุกชิ้น ส่วน Constraint คือ "ป้ายบนแม่พิมพ์" ที่บอกว่าเทอะไรได้บ้าง เช่น "เฉพาะของเหลวที่แข็งตัวได้" ถ้าเทน้ำเปล่าลงไป (string ใน Sum) เครื่องจะปฏิเสธตั้งแต่ก่อนเริ่มอบ</p></div>
+
+<h4>ตัวอย่างโค้ด</h4>
+<p>ชุดเครื่องมือ Generic สำหรับข้อมูล Latency ของเว็บ (<code>[]int{120, 45, 900, 30}</code>) และรายชื่อ host: <code>Map</code>, <code>Filter</code>, <code>Sum</code>, <code>MaxOf</code>, <code>Set</code> และ <code>Stack</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+mkdir -p concepts/c07</code></pre>
+<pre class="code" data-env="file" data-label="Go · concepts/c07/main.go"><code class="language-go">package main
+
+import (
+	"cmp"
+	"fmt"
+	"slices"
+	"strconv"
+)
+
+// Number คือ constraint แบบ type set: ~ แปลว่ารับ type ที่มี underlying type นั้นด้วย
+type Number interface {
+	~int | ~int64 | ~float64
+}
+
+// Millis มี underlying type เป็น int64 จึงใช้กับ Sum ได้เพราะ ~int64
+type Millis int64
+
+// Map แปลง []T เป็น []U ด้วยฟังก์ชัน f
+func Map[T, U any](s []T, f func(T) U) []U {
+	out := make([]U, 0, len(s))
+	for _, v := range s {
+		out = append(out, f(v))
+	}
+	return out
+}
+
+// Filter เก็บเฉพาะค่าที่ keep คืน true
+func Filter[T any](s []T, keep func(T) bool) []T {
+	var out []T
+	for _, v := range s {
+		if keep(v) {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
+// Sum ใช้ + ได้เพราะ constraint Number รับประกันว่า T เป็นตัวเลข
+func Sum[T Number](s []T) T {
+	var total T // zero value ของ T
+	for _, v := range s {
+		total += v
+	}
+	return total
+}
+
+// MaxOf ใช้ cmp.Ordered (type ที่เทียบ &lt; &gt; ได้) และคืน zero value เมื่อ slice ว่าง
+func MaxOf[T cmp.Ordered](s []T) (T, bool) {
+	var zero T
+	if len(s) == 0 {
+		return zero, false
+	}
+	m := s[0]
+	for _, v := range s[1:] {
+		m = max(m, v) // built-in max (Go 1.21+)
+	}
+	return m, true
+}
+
+// Set เป็น generic type: T ต้องเป็น comparable เพราะใช้เป็น key ของ map
+type Set[T comparable] struct {
+	items map[T]struct{} // struct{} ไม่ใช้หน่วยความจำ ใช้แทน "มีอยู่"
+}
+
+// NewSet สร้าง Set ว่าง
+func NewSet[T comparable]() *Set[T] {
+	return &amp;Set[T]{items: make(map[T]struct{})}
+}
+
+// Add เพิ่มค่า (ค่าซ้ำจะถูกเก็บครั้งเดียว)
+func (s *Set[T]) Add(v T) { s.items[v] = struct{}{} }
+
+// Has ตรวจว่ามีค่านี้ไหม
+func (s *Set[T]) Has(v T) bool {
+	_, ok := s.items[v]
+	return ok
+}
+
+// Len คืนจำนวนสมาชิก
+func (s *Set[T]) Len() int { return len(s.items) }
+
+// Stack เป็น generic type แบบ LIFO
+type Stack[T any] struct {
+	data []T
+}
+
+// Push ใส่ค่าลงบนสุด
+func (s *Stack[T]) Push(v T) { s.data = append(s.data, v) }
+
+// Pop เอาค่าบนสุดออก ถ้าว่างคืน zero value และ false
+func (s *Stack[T]) Pop() (T, bool) {
+	var zero T
+	if len(s.data) == 0 {
+		return zero, false
+	}
+	v := s.data[len(s.data)-1]
+	s.data = s.data[:len(s.data)-1]
+	return v, true
+}
+
+func main() {
+	latencies := []int{120, 45, 900, 30}
+
+	slow := Filter(latencies, func(ms int) bool { return ms &gt; 100 }) // Go อนุมาน T = int ให้เอง
+	labels := Map(latencies, func(ms int) string { return strconv.Itoa(ms) + "ms" })
+	fmt.Println("slow:", slow)
+	fmt.Println("labels:", labels)
+	fmt.Println("sum int:", Sum(latencies))
+	fmt.Println("sum float64:", Sum([]float64{0.5, 1.25, 2}))
+	fmt.Println("sum Millis:", Sum([]Millis{100, 250}))
+
+	if m, ok := MaxOf(latencies); ok {
+		fmt.Println("max latency:", m)
+	}
+	if m, ok := MaxOf([]string{"suda", "anan", "malee"}); ok {
+		fmt.Println("max string:", m) // เทียบตามลำดับตัวอักษร
+	}
+	_, ok := MaxOf([]int{})
+	fmt.Println("max of empty ok?", ok)
+
+	hosts := NewSet[string]() // สร้าง generic type ต้องระบุ type argument เอง
+	for _, h := range []string{"go.dev", "example.com", "go.dev", "pkg.go.dev"} {
+		hosts.Add(h)
+	}
+	fmt.Println("unique hosts:", hosts.Len(), "| has go.dev?", hosts.Has("go.dev"), "| has python.org?", hosts.Has("python.org"))
+
+	var st Stack[string]
+	st.Push("job-1")
+	st.Push("job-2")
+	v1, _ := st.Pop()
+	v2, _ := st.Pop()
+	v3, ok3 := st.Pop()
+	fmt.Printf("pop: %q %q %q (ok=%t)\n", v1, v2, v3, ok3)
+
+	// ใช้ package slices ที่เป็น generic อยู่แล้วแทนการเขียนเอง
+	sorted := slices.Sorted(slices.Values(latencies))
+	fmt.Println("sorted copy:", sorted, "| original:", latencies)
+	fmt.Println("compare:", cmp.Compare(3, 7), cmp.Compare("b", "a"))
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./concepts/c07</code></pre>
+
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>slow: [120 900]
+labels: [120ms 45ms 900ms 30ms]
+sum int: 1095
+sum float64: 3.75
+sum Millis: 350
+max latency: 900
+max string: suda
+max of empty ok? false
+unique hosts: 3 | has go.dev? true | has python.org? false
+pop: "job-2" "job-1" "" (ok=false)
+sorted copy: [30 45 120 900] | original: [120 45 900 30]
+compare: -1 1</code></pre>
+
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>type Number interface { ~int | ~int64 | ~float64 }</code></td><td>Constraint แบบ type set ใช้ได้เฉพาะเป็น Constraint (ประกาศตัวแปร type <code>Number</code> ไม่ได้) บอกว่า T ต้องเป็นหนึ่งใน type เหล่านี้หรือ type ที่สร้างจากมัน</td></tr>
+<tr><td><code>type Millis int64</code></td><td>type ใหม่ที่มี underlying type เป็น int64 ใช้กับ <code>Sum</code> ได้เพราะมี <code>~int64</code> ถ้าเขียน <code>int64</code> โดยไม่มี <code>~</code> จะใช้ไม่ได้</td></tr>
+<tr><td><code>func Map[T, U any](s []T, f func(T) U) []U</code></td><td>Type Parameter 2 ตัว รับ Slice ของ T คืน Slice ของ U ตัวอย่างแปลง <code>[]int</code> เป็น <code>[]string</code></td></tr>
+<tr><td><code>make([]U, 0, len(s))</code></td><td>จอง cap เท่ากับขนาด input เพราะรู้ว่าผลลัพธ์มีจำนวนเท่ากัน</td></tr>
+<tr><td><code>Filter(latencies, func(ms int) bool {...})</code></td><td>ไม่ต้องเขียน <code>Filter[int](...)</code> Go อนุมาน <code>T = int</code> จาก <code>latencies</code> ให้เอง</td></tr>
+<tr><td><code>func Sum[T Number](s []T) T</code> + <code>var total T</code></td><td>ใช้ <code>+=</code> ได้เพราะทุก type ใน <code>Number</code> รองรับ <code>+</code> และ <code>var total T</code> ได้ Zero Value ของ T (0 หรือ 0.0)</td></tr>
+<tr><td><code>func MaxOf[T cmp.Ordered](s []T) (T, bool)</code></td><td>ใช้ได้ทั้ง int และ string เมื่อ Slice ว่างคืน <code>zero, false</code> แทนการ panic <code>max</code> เป็นฟังก์ชัน built-in ตั้งแต่ Go 1.21</td></tr>
+<tr><td><code>type Set[T comparable] struct { items map[T]struct{} }</code></td><td>Generic type: T ต้องเป็น <code>comparable</code> เพราะใช้เป็น key ของ Map ค่า <code>struct{}</code> ไม่ใช้หน่วยความจำ เหมาะกับการบอกแค่ว่า "มีอยู่"</td></tr>
+<tr><td><code>func (s *Set[T]) Add(v T)</code></td><td>method ของ Generic type ใช้ T ได้เลยโดยไม่ต้องประกาศซ้ำ (method เพิ่ม Type Parameter ของตัวเองไม่ได้)</td></tr>
+<tr><td><code>NewSet[string]()</code></td><td>ต้องระบุ type เองเพราะไม่มี argument ให้ Go อนุมาน</td></tr>
+<tr><td><code>var st Stack[string]</code></td><td>Zero Value ของ <code>Stack</code> ใช้ได้ทันที (Slice <code>nil</code> append ได้) <code>Pop</code> ตอนว่างคืน <code>""</code> กับ <code>false</code></td></tr>
+<tr><td><code>slices.Sorted(slices.Values(latencies))</code></td><td>สร้าง Slice ใหม่ที่เรียงแล้วโดยไม่แตะของเดิม ผลลัพธ์จึงเห็น original ยังเป็น <code>[120 45 900 30]</code></td></tr>
+<tr><td><code>cmp.Compare(3, 7)</code></td><td>คืน -1, 0 หรือ 1 ใช้คู่กับ <code>slices.SortFunc</code> เวลาเรียงตามเงื่อนไขของเราเอง</td></tr>
+</tbody></table></div>
+
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>./main.go:16:7: cannot use generic function Map without instantiation</code></td><td>นำฟังก์ชัน Generic ไปเก็บในตัวแปร (<code>f := Map</code>) โดยไม่ระบุ type Go ไม่รู้ว่าจะสร้างฟังก์ชันสำหรับ type ไหน</td><td>ระบุ type ให้ครบ: <code>f := Map[int, string]</code> หรือเรียกใช้ตรง ๆ พร้อม argument ให้ Go อนุมาน</td></tr>
+<tr><td><code>./main.go:9:36: invalid operation: operator + not defined on a (variable of type T constrained by any)</code></td><td>ใช้ <code>+</code> กับ T ที่มี Constraint เป็น <code>any</code> ซึ่งไม่รับประกันว่าบวกได้</td><td>เปลี่ยน Constraint เป็น type set ที่บวกได้ เช่น <code>Number</code> หรือ <code>cmp.Ordered</code> (string ก็บวกได้)</td></tr>
+<tr><td><code>./main.go:17:20: string does not satisfy Number (string missing in ~int | ~int64 | ~float64)</code></td><td>เรียก <code>Sum([]string{"a"})</code> แต่ string ไม่อยู่ใน type set ของ <code>Number</code></td><td>ส่ง type ที่อยู่ใน Constraint หรือถ้าต้องการรองรับจริง ให้เพิ่ม <code>~string</code> ลงใน Constraint</td></tr>
+<tr><td><code>./main.go:13:35: invalid map key type T (missing comparable constraint)</code></td><td>ประกาศ <code>Set[T any]</code> แล้วใช้ T เป็น key ของ Map แต่ <code>any</code> รวม type ที่เทียบ <code>==</code> ไม่ได้ (เช่น Slice)</td><td>เปลี่ยนเป็น <code>Set[T comparable]</code></td></tr>
+<tr><td><code>./main.go:8:13: in call to NewSet, cannot infer T (declared at ./main.go:5:13)</code></td><td>เรียก <code>NewSet()</code> ซึ่งไม่มี argument ให้อนุมาน type</td><td>ระบุ type ตอนเรียก: <code>NewSet[string]()</code></td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>เริ่มจากโค้ดธรรมดาก่อน เมื่อพบว่าเขียนฟังก์ชันเดียวกันซ้ำให้หลาย type ค่อยเปลี่ยนเป็น Generic อย่าทำ Generic ล่วงหน้า</li>
+<li>ใช้ <code>slices</code>, <code>maps</code>, <code>cmp</code> จาก Standard Library ก่อนเขียน helper เอง เพราะเทสต์มาแล้วและทีมอื่นอ่านเข้าใจทันที</li>
+<li>เลือก Constraint ที่แคบที่สุดที่พอใช้ (<code>comparable</code> แทน <code>any</code> เมื่อต้องเทียบ) ข้อความ Error จะชัดเจนและป้องกันการใช้ผิด</li>
+<li>ตั้งชื่อ Type Parameter สั้นตามธรรมเนียม: <code>T</code>, <code>U</code>, <code>K</code> (key), <code>V</code> (value), <code>E</code> (element)</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>เพิ่มเครื่องมือ Generic ของคุณเอง</p><ol>
+<li>เขียน <code>func Average[T Number](s []T) float64</code> แล้วหาค่าเฉลี่ยของ <code>latencies</code> (ต้องได้ <code>273.75</code>)</li>
+<li>เขียน <code>func GroupBy[T any, K comparable](s []T, key func(T) K) map[K][]T</code> แล้วจัดกลุ่ม latency เป็น <code>"fast"</code> (&lt; 100) กับ <code>"slow"</code></li>
+<li>เพิ่ม method <code>Items() []T</code> ให้ <code>Set</code> แล้วสังเกตว่าเรียงลำดับไม่ได้ เพราะ <code>comparable</code> ไม่รองรับ <code>&lt;</code> ลองสร้าง <code>SortedItems</code> เป็นฟังก์ชันแยก <code>func SortedItems[T cmp.Ordered](s *Set[T]) []T</code></li>
+<li>ลองเรียก <code>Sum([]string{"a"})</code> เพื่ออ่าน Error จริง แล้วลบออก</li>
+</ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 8</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h3 id="s6-2-c08">Testing: Table-driven Test, Benchmark และ Coverage</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>Go มีระบบทดสอบมาในตัว ไม่ต้องติดตั้ง framework เพิ่ม กฎมีแค่ 3 ข้อ: ไฟล์เทสต์ต้องลงท้ายด้วย <code>_test.go</code>, ฟังก์ชันเทสต์ต้องชื่อ <code>TestXxx</code> (Xxx ขึ้นต้นตัวใหญ่) และรับ <code>t *testing.T</code> หนึ่งตัว แล้วสั่ง <code>go test ./...</code> ไฟล์ <code>_test.go</code> จะไม่ถูกรวมเข้าไปใน Binary ตอน <code>go build</code></p>
+<p>รูปแบบที่ทีม Go ใช้มากที่สุดคือ <strong>Table-driven Test</strong>: เขียนกรณีทดสอบเป็น Slice ของ struct (input และผลที่คาดหวัง) แล้ววนทดสอบทีละกรณีด้วย <code>t.Run</code> ซึ่งสร้าง <strong>Subtest</strong> ที่มีชื่อของตัวเอง เลือกรันเฉพาะกรณีได้ด้วย <code>-run</code> เพิ่มกรณีใหม่ทำได้ด้วยการเพิ่มหนึ่งบรรทัดในตาราง เครื่องมือที่ต้องรู้:</p>
+<ul>
+<li><code>t.Errorf</code> รายงานว่าผิดแล้ว<em>ทำต่อ</em> ส่วน <code>t.Fatalf</code> รายงานแล้ว<em>หยุดเทสต์นั้นทันที</em> (ใช้เมื่อทำต่อไม่ได้ เช่น เปิดไฟล์ไม่ได้)</li>
+<li><code>t.Helper()</code> ในฟังก์ชันช่วยตรวจ ทำให้ Go รายงานบรรทัดที่เรียก helper แทนบรรทัดใน helper</li>
+<li><code>ExampleXxx</code> ที่มีคอมเมนต์ <code>// Output:</code> เป็นทั้งเอกสารบน pkg.go.dev และเทสต์ที่เทียบผลที่พิมพ์</li>
+<li><code>BenchmarkXxx(b *testing.B)</code> วัดความเร็ว ตั้งแต่ Go 1.24 เขียน <code>for b.Loop() { ... }</code> แทนลูป <code>b.N</code> แบบเดิม</li>
+<li><code>-cover</code> และ <code>-coverprofile</code> วัดว่าโค้ดถูกเทสต์ไปกี่เปอร์เซ็นต์ และ <code>t.TempDir()</code> ให้โฟลเดอร์ชั่วคราวที่ลบเองเมื่อเทสต์จบ</li>
+</ul>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Table-driven Test เหมือน "ข้อสอบปรนัยพร้อมเฉลย" ครูเขียนโจทย์และคำตอบเป็นตาราง แล้วให้เครื่องตรวจทีละข้อ ถ้าอยากเพิ่มโจทย์ก็เติมอีกแถว ไม่ต้องเขียนวิธีตรวจใหม่ ส่วน Subtest คือ "เลขข้อ" ที่ทำให้รู้ทันทีว่าผิดข้อไหน และเรียกตรวจเฉพาะข้อนั้นซ้ำได้</p></div>
+
+<h4>ตัวอย่างโค้ด</h4>
+<p>Package <code>textutil</code> มี 2 ฟังก์ชัน: <code>Slugify</code> (แปลงหัวข้อเป็น slug สำหรับ URL) และ <code>Truncate</code> (ตัดข้อความตามจำนวนตัวอักษรแบบนับ rune จึงตัดภาษาไทยได้ถูกต้อง) พร้อมไฟล์เทสต์ที่มี Table-driven Test 2 ชุด, Example และ Benchmark</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+mkdir -p concepts/c08/textutil</code></pre>
+<pre class="code" data-env="file" data-label="Go · concepts/c08/textutil/textutil.go"><code class="language-go">// Package textutil รวมฟังก์ชันจัดการข้อความที่ใช้บ่อย
+package textutil
+
+import "strings"
+
+// Slugify แปลงข้อความเป็น slug สำหรับ URL:
+// ตัดช่องว่างหัวท้าย, เปลี่ยนเป็นตัวพิมพ์เล็ก, รวมช่องว่างหลายช่องเป็น "-" ตัวเดียว
+func Slugify(s string) string {
+	words := strings.Fields(strings.ToLower(s))
+	return strings.Join(words, "-")
+}
+
+// Truncate ตัดข้อความให้เหลือไม่เกิน n ตัวอักษร (นับเป็น rune ไม่ใช่ byte)
+// ถ้าตัดจริงจะต่อท้ายด้วย "..." และถ้า n &lt;= 0 คืน string ว่าง
+func Truncate(s string, n int) string {
+	if n &lt;= 0 {
+		return ""
+	}
+	runes := []rune(s)
+	if len(runes) &lt;= n {
+		return s
+	}
+	return string(runes[:n]) + "..."
+}</code></pre>
+<pre class="code" data-env="file" data-label="Go · concepts/c08/textutil/textutil_test.go"><code class="language-go">package textutil
+
+import (
+	"fmt"
+	"testing"
+)
+
+// TestSlugify เป็น Table-driven Test: รวมกรณีทดสอบไว้ใน slice แล้ววนทดสอบทีละกรณี
+func TestSlugify(t *testing.T) {
+	tests := []struct {
+		name string // ชื่อกรณี ใช้เป็นชื่อ Subtest
+		in   string
+		want string
+	}{
+		{"simple", "Hello World", "hello-world"},
+		{"trim spaces", "  Go Lang  ", "go-lang"},
+		{"many spaces", "a   b    c", "a-b-c"},
+		{"already slug", "go-lab", "go-lab"},
+		{"empty", "", ""},
+		{"thai", "สวัสดี ชาวโลก", "สวัสดี-ชาวโลก"},
+	}
+	for _, tc := range tests {
+		// t.Run สร้าง Subtest แต่ละกรณีมีชื่อของตัวเอง เลือกรันได้ด้วย -run
+		t.Run(tc.name, func(t *testing.T) {
+			got := Slugify(tc.in)
+			if got != tc.want {
+				t.Errorf("Slugify(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
+// assertEqual เป็น helper: t.Helper ทำให้บรรทัดที่รายงานเป็นบรรทัดที่เรียก ไม่ใช่บรรทัดใน helper
+func assertEqual(t *testing.T, got, want string) {
+	t.Helper()
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestTruncate(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		n    int
+		want string
+	}{
+		{"shorter than n", "go", 5, "go"},
+		{"exact length", "hello", 5, "hello"},
+		{"cut english", "hello world", 5, "hello..."},
+		{"cut thai by rune", "สวัสดีครับ", 4, "สวัส..."},
+		{"zero n", "abc", 0, ""},
+		{"negative n", "abc", -1, ""},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assertEqual(t, Truncate(tc.in, tc.n), tc.want)
+		})
+	}
+}
+
+// ExampleSlugify เป็นทั้งเอกสารและ test: go test เทียบผลที่พิมพ์กับคอมเมนต์ Output
+func ExampleSlugify() {
+	fmt.Println(Slugify("  Go Health Checker "))
+	// Output: go-health-checker
+}
+
+// BenchmarkTruncate วัดความเร็ว ใช้ b.Loop() (Go 1.24+) แทน for i := 0; i &lt; b.N; i++
+func BenchmarkTruncate(b *testing.B) {
+	s := "สวัสดีครับ นี่คือข้อความทดสอบความเร็ว"
+	for b.Loop() {
+		Truncate(s, 10)
+	}
+}</code></pre>
+<p>และโปรแกรมเล็ก ๆ ที่เรียกใช้ Package นี้ เพื่อให้เห็นว่าโค้ดเดียวกันใช้ได้ทั้งในเทสต์และโปรแกรมจริง:</p>
+<pre class="code" data-env="file" data-label="Go · concepts/c08/main.go"><code class="language-go">package main
+
+import (
+	"fmt"
+
+	"example.com/go-lab/concepts/c08/textutil"
+)
+
+func main() {
+	fmt.Println(textutil.Slugify("  My First Go Post  "))
+	fmt.Println(textutil.Truncate("สวัสดีครับ ยินดีต้อนรับ", 6))
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+
+# 1) รันเทสต์ทั้งหมดใต้ c08 แบบแสดงรายละเอียด
+go test -v ./concepts/c08/...</code></pre>
+
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>?   	example.com/go-lab/concepts/c08	[no test files]
+=== RUN   TestSlugify
+=== RUN   TestSlugify/simple
+=== RUN   TestSlugify/trim_spaces
+=== RUN   TestSlugify/many_spaces
+=== RUN   TestSlugify/already_slug
+=== RUN   TestSlugify/empty
+=== RUN   TestSlugify/thai
+--- PASS: TestSlugify (0.00s)
+    --- PASS: TestSlugify/simple (0.00s)
+    --- PASS: TestSlugify/trim_spaces (0.00s)
+    --- PASS: TestSlugify/many_spaces (0.00s)
+    --- PASS: TestSlugify/already_slug (0.00s)
+    --- PASS: TestSlugify/empty (0.00s)
+    --- PASS: TestSlugify/thai (0.00s)
+=== RUN   TestTruncate
+=== RUN   TestTruncate/shorter_than_n
+=== RUN   TestTruncate/exact_length
+=== RUN   TestTruncate/cut_english
+=== RUN   TestTruncate/cut_thai_by_rune
+=== RUN   TestTruncate/zero_n
+=== RUN   TestTruncate/negative_n
+--- PASS: TestTruncate (0.00s)
+    --- PASS: TestTruncate/shorter_than_n (0.00s)
+    --- PASS: TestTruncate/exact_length (0.00s)
+    --- PASS: TestTruncate/cut_english (0.00s)
+    --- PASS: TestTruncate/cut_thai_by_rune (0.00s)
+    --- PASS: TestTruncate/zero_n (0.00s)
+    --- PASS: TestTruncate/negative_n (0.00s)
+=== RUN   ExampleSlugify
+--- PASS: ExampleSlugify (0.00s)
+PASS
+ok  	example.com/go-lab/concepts/c08/textutil	(cached)</code></pre>
+<p>ตัวเลข <code>0.003s</code> คือเวลาที่ใช้ บนเครื่องของคุณจะต่างไปเล็กน้อย สังเกตว่าชื่อ Subtest ที่มีช่องว่างถูกแปลงเป็น <code>_</code> เช่น <code>trim spaces</code> กลายเป็น <code>trim_spaces</code> ต่อไปลองคำสั่งอื่น ๆ:</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+
+# 2) ดู Coverage แบบสรุป
+go test -cover ./concepts/c08/...
+
+# 3) รันเฉพาะ Subtest ที่ชื่อตรงกับรูปแบบ (TestTruncate/กรณีที่มีคำว่า thai)
+go test -run 'TestTruncate/thai' -v ./concepts/c08/textutil
+
+# 4) บันทึก Coverage เป็นไฟล์ แล้วดูรายฟังก์ชัน
+go test -coverprofile=cover.out ./concepts/c08/textutil &amp;&amp; go tool cover -func=cover.out
+
+# 5) สร้างรายงาน HTML ที่ไฮไลต์บรรทัดที่ยังไม่ถูกเทสต์ (เปิดไฟล์ด้วยเบราว์เซอร์บน Windows)
+go tool cover -html=cover.out -o cover.html
+explorer.exe cover.html
+
+# 6) รัน Benchmark อย่างเดียว (-run='^$' แปลว่าไม่รันเทสต์ปกติ) พร้อมดูการจองหน่วยความจำ
+go test -bench=. -benchmem -run='^$' ./concepts/c08/textutil</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>	example.com/go-lab/concepts/c08		coverage: 0.0% of statements
+ok  	example.com/go-lab/concepts/c08/textutil	(cached)	coverage: 100.0% of statements
+=== RUN   TestTruncate
+=== RUN   TestTruncate/cut_thai_by_rune
+--- PASS: TestTruncate (0.00s)
+    --- PASS: TestTruncate/cut_thai_by_rune (0.00s)
+PASS
+ok  	example.com/go-lab/concepts/c08/textutil	(cached)
+ok  	example.com/go-lab/concepts/c08/textutil	(cached)	coverage: 100.0% of statements
+example.com/go-lab/concepts/c08/textutil/textutil.go:8:		Slugify		100.0%
+example.com/go-lab/concepts/c08/textutil/textutil.go:15:	Truncate	100.0%
+total:								(statements)	100.0%
+goos: linux
+goarch: amd64
+pkg: example.com/go-lab/concepts/c08/textutil
+cpu: Intel(R) Xeon(R) Processor @ 2.10GHz
+BenchmarkTruncate-4   	 2326347	       492.8 ns/op	     256 B/op	       3 allocs/op
+PASS
+ok  	example.com/go-lab/concepts/c08/textutil	1.151s</code></pre>
+<p>ผลของ Benchmark ขึ้นกับเครื่องเสมอ ทั้งชื่อ CPU, ตัวเลข <code>-4</code> (จำนวน CPU ที่ใช้), จำนวนรอบ และ <code>ns/op</code> ของคุณจะต่างจากนี้ ตัวเลขที่ควรสนใจคือ <code>B/op</code> และ <code>allocs/op</code> ซึ่งมักคงที่ และใช้เปรียบเทียบก่อนกับหลังปรับโค้ด</p>
+
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>strings.Fields(strings.ToLower(s))</code> + <code>strings.Join(words, "-")</code></td><td>แยกคำ (ตัดช่องว่างหัวท้ายและช่องว่างซ้ำไปในตัว) แล้วต่อด้วย <code>-</code> จึงผ่านทั้งกรณี <code>trim spaces</code> และ <code>many spaces</code></td></tr>
+<tr><td><code>runes := []rune(s)</code> ใน <code>Truncate</code></td><td>นับและตัดเป็น rune "สวัสดีครับ" ตัด 4 rune ได้ "สวัส" (ส ว ั ส) เพราะสระ ั เป็น rune แยก</td></tr>
+<tr><td><code>package textutil</code> ในไฟล์เทสต์</td><td>เทสต์อยู่ Package เดียวกับโค้ด จึงเข้าถึงของที่ไม่ Export ได้ (ถ้าต้องการเทสต์แบบคนนอก ใช้ <code>package textutil_test</code>)</td></tr>
+<tr><td><code>tests := []struct{ name, in, want string }{...}</code></td><td>ตารางกรณีทดสอบ ใช้ anonymous struct เพราะใช้แค่ในเทสต์นี้ ทุกกรณีมี <code>name</code> สำหรับตั้งชื่อ Subtest</td></tr>
+<tr><td><code>t.Run(tc.name, func(t *testing.T) {...})</code></td><td>สร้าง Subtest ถ้ากรณีหนึ่งล้มเหลว กรณีอื่นยังรันต่อ และเห็นชื่อกรณีที่ล้มชัดเจน</td></tr>
+<tr><td><code>t.Errorf("Slugify(%q) = %q, want %q", ...)</code></td><td>รูปแบบข้อความมาตรฐานของ Go: "ฟังก์ชัน(input) = ได้อะไร, want ต้องการอะไร" อ่านแล้วรู้ทันทีว่าผิดตรงไหน</td></tr>
+<tr><td><code>func assertEqual(t *testing.T, got, want string)</code> + <code>t.Helper()</code></td><td>helper ที่ใช้ซ้ำ <code>t.Helper()</code> ทำให้เวลาเทสต์ล้ม ข้อความชี้บรรทัดใน <code>TestTruncate</code> ที่เรียก helper</td></tr>
+<tr><td><code>func ExampleSlugify()</code> + <code>// Output: go-health-checker</code></td><td><code>go test</code> รันฟังก์ชันนี้และเทียบสิ่งที่พิมพ์กับคอมเมนต์ ถ้าไม่ตรงจะ FAIL และยังแสดงเป็นตัวอย่างในเอกสารด้วย</td></tr>
+<tr><td><code>func BenchmarkTruncate(b *testing.B)</code> + <code>for b.Loop()</code></td><td>Go จะวนจนได้เวลาวัดที่เชื่อถือได้ <code>b.Loop()</code> (Go 1.24+) จัดการจับเวลาและกันไม่ให้ Compiler ตัดโค้ดที่ผลไม่ถูกใช้ทิ้ง</td></tr>
+<tr><td><code>-run 'TestTruncate/thai'</code></td><td>รูปแบบ regex แยกระดับด้วย <code>/</code> ส่วนแรกเลือกเทสต์ ส่วนที่สองเลือก Subtest</td></tr>
+<tr><td><code>coverage: 100.0% of statements</code> / <code>0.0%</code> ของ <code>concepts/c08</code></td><td><code>textutil</code> ถูกเทสต์ครบทุกบรรทัด ส่วน <code>main</code> ของ c08 ไม่มีเทสต์ ในงานจริงเราเก็บ logic ไว้ใน Package ที่เทสต์ได้ ให้ <code>main</code> บางที่สุด</td></tr>
+<tr><td><code>256 B/op  3 allocs/op</code></td><td>แต่ละครั้งที่เรียก <code>Truncate</code> จองหน่วยความจำ 3 ครั้ง (แปลงเป็น <code>[]rune</code>, แปลงกลับเป็น string, ต่อ "...")</td></tr>
+</tbody></table></div>
+
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>?   	example.com/go-lab/textutil	[no test files]</code></td><td>ตั้งชื่อไฟล์ผิดเป็น <code>textutil_tests.go</code> (มี s) หรือ <code>textutil-test.go</code> Go จึงมองว่าเป็นไฟล์โค้ดปกติ ไม่ใช่ไฟล์เทสต์</td><td>ชื่อไฟล์ต้องลงท้ายด้วย <code>_test.go</code> พอดี เช่น <code>textutil_test.go</code></td></tr>
+<tr><td><code>sig_test.go:5:1: wrong signature for TestX, must be: func TestX(t *testing.T)</code><br><code>FAIL	example.com/go-lab/textutil [setup failed]</code></td><td>เขียน <code>func TestX(t testing.T)</code> ลืม <code>*</code> <code>go test</code> รัน <code>go vet</code> บางส่วนให้อัตโนมัติจึงจับได้</td><td>ใช้ <code>t *testing.T</code> สำหรับเทสต์ และ <code>b *testing.B</code> สำหรับ Benchmark เสมอ</td></tr>
+<tr><td><code>--- FAIL: TestTruncate (0.00s)</code><br><code>    --- FAIL: TestTruncate/cut_english (0.00s)</code><br><code>        textutil_test.go:57: got "hello...", want "hello…"</code><br><code>FAIL</code></td><td>ค่าที่คาดหวังในตารางไม่ตรงกับผลจริง (ในตัวอย่างนี้ตารางเขียนตัวอักษร … ตัวเดียว แทนจุด 3 จุด)</td><td>อ่านจากล่างขึ้นบน: Subtest ไหนล้ม, ไฟล์และบรรทัดไหน, got กับ want ต่างกันอย่างไร แล้วตัดสินว่าโค้ดผิดหรือตารางผิด</td></tr>
+<tr><td>เทสต์ผ่านบนเครื่อง แต่ล้มสลับไปมาใน CI</td><td>เทสต์พึ่งพาสิ่งที่ไม่แน่นอน เช่น ลำดับการวน Map, เวลาปัจจุบัน หรืออินเทอร์เน็ต</td><td>เรียงผลก่อนเทียบ, ส่งเวลาเข้าไปเป็น parameter, ใช้ <code>httptest</code> แทนเว็บจริง (แนวคิดที่ 12)</td></tr>
+<tr><td>กังวลว่า Closure ใน <code>t.Run</code> จะจับ <code>tc</code> ตัวสุดท้ายทุกรอบ (บทความเก่าแนะนำให้เขียน <code>tc := tc</code>)</td><td>ปัญหานี้มีจริงใน Go 1.21 และเก่ากว่า เพราะตัวแปรลูปใช้ตัวเดียวทุกรอบ</td><td>ตั้งแต่ Go 1.22 ตัวแปรลูปเป็นตัวใหม่ทุกรอบแล้ว ไม่ต้องเขียน <code>tc := tc</code> อีก (ตราบใดที่ <code>go.mod</code> ระบุ <code>go 1.22</code> ขึ้นไป)</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ทุกครั้งที่แก้บั๊ก ให้เพิ่มกรณีที่ทำให้เกิดบั๊กลงในตารางก่อน (เห็นเทสต์ล้ม) แล้วจึงแก้โค้ดจนผ่าน</li>
+<li>ใส่กรณีขอบ (edge case) ในตารางเสมอ: ค่าว่าง, ศูนย์, ติดลบ, ภาษาไทย, ยาวพอดี, ยาวเกิน</li>
+<li>ใน CI ใช้ <code>go test -race -cover ./...</code> และอย่าไล่ Coverage 100% เป็นเป้าหมาย ให้เน้นเทสต์ logic สำคัญและกรณีที่เคยพัง</li>
+<li>เปรียบเทียบ Benchmark ก่อนกับหลังปรับปรุงด้วยการรันหลายรอบ (<code>-count=6</code>) แล้วดูความต่าง อย่าตัดสินจากการรันครั้งเดียว</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>เพิ่มฟังก์ชันและเทสต์ใหม่ใน <code>textutil</code></p><ol>
+<li>เพิ่มกรณีใน <code>TestSlugify</code>: <code>{"tabs and newlines", "Go\tLang\nTH", "go-lang-th"}</code> แล้วรันว่าผ่าน</li>
+<li>เขียน <code>func WordCount(s string) int</code> พร้อม Table-driven Test อย่างน้อย 5 กรณี (รวมข้อความว่างและข้อความที่มีช่องว่างซ้ำ)</li>
+<li>เขียน <code>ExampleTruncate</code> ที่พิมพ์ <code>Truncate("สวัสดีครับ", 4)</code> พร้อม <code>// Output: สวัส...</code></li>
+<li>รัน <code>go test -cover ./concepts/c08/textutil</code> ให้ Coverage ยังเป็น 100% แล้วลองตั้งใจทำให้เทสต์หนึ่งกรณีล้ม เพื่อฝึกอ่านผล <code>--- FAIL</code></li>
+</ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 9</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h3 id="s6-2-c09">สร้าง CLI: flag, File I/O, JSON, CSV และ slog</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>Go เหมาะกับการสร้างเครื่องมือ Command Line มาก เพราะได้ Binary ไฟล์เดียว เริ่มทำงานเร็ว และ Standard Library มีทุกอย่างที่ต้องใช้โดยไม่ต้องติดตั้ง Library เพิ่ม แนวคิดนี้รวม Package ที่คุณจะใช้ใน Mini Project <code>gohealth</code>:</p>
+<ul>
+<li><code>flag</code>: อ่าน option จาก command line เช่น <code>-format json</code> มีชนิด String, Int, Bool, Duration พร้อมข้อความช่วยเหลือ <code>-h</code> ในตัว</li>
+<li><code>os</code> + <code>bufio</code>: <code>os.Open</code> + <code>bufio.Scanner</code> อ่านไฟล์ทีละบรรทัด (ประหยัดหน่วยความจำกับไฟล์ใหญ่) ส่วน <code>os.ReadFile</code> / <code>os.WriteFile</code> อ่านหรือเขียนทั้งไฟล์ในคำสั่งเดียว</li>
+<li><code>encoding/json</code>: แปลง struct เป็น JSON (Marshal) และกลับ (Unmarshal) โดยใช้ struct tag กำหนดชื่อ key</li>
+<li><code>encoding/csv</code> และ <code>text/tabwriter</code>: เขียน CSV ที่ escape ถูกต้อง และตารางที่จัดคอลัมน์ตรงกัน</li>
+<li><code>log/slog</code>: Structured Logging แบบ key=value หรือ JSON มีระดับ DEBUG, INFO, WARN, ERROR</li>
+</ul>
+<p>หลักการสำคัญของ CLI ที่ดีคือ <strong>แยก stdout กับ stderr</strong>: ข้อมูลผลลัพธ์ออก stdout ส่วน log และข้อความ Error ออก stderr ผู้ใช้จึงส่งผลลัพธ์ต่อด้วย pipe (<code>| jq</code>) หรือ redirect ลงไฟล์ได้โดยไม่มี log ปน และ <strong>ใช้ Exit Code ที่มีความหมาย</strong> ตามธรรมเนียมของหลักสูตรนี้: <code>0</code> = ทุกอย่างเรียบร้อย, <code>1</code> = พบปัญหา (เช่น เว็บล่ม), <code>2</code> = ใช้งานผิดหรือ config ผิด ระบบ CI และ Shell Script ตัดสินใจจาก Exit Code นี้</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>CLI ที่ดีเหมือน "ร้านถ่ายเอกสาร" ที่ส่งงาน (stdout) ให้ลูกค้าในซองสะอาด ส่วนบันทึกการทำงานของพนักงาน (stderr) อยู่ในสมุดหลังร้าน ไม่ปนไปกับงานของลูกค้า และเมื่อเสร็จก็บอกสถานะเป็นรหัสสั้น ๆ (Exit Code) "0 = เรียบร้อย, 1 = มีหน้าเสีย, 2 = ต้นฉบับที่ให้มาใช้ไม่ได้"</p></div>
+
+<h4>ตัวอย่างโค้ด</h4>
+<p>โปรแกรม <code>targets</code> อ่านรายการ URL จากไฟล์ (ข้ามบรรทัดว่างและบรรทัดคอมเมนต์ <code>#</code>) หรือจากไฟล์ JSON ที่เคยบันทึกไว้ แล้วแสดงผลเป็น <code>table</code>, <code>json</code> หรือ <code>csv</code> ไฟล์ข้อมูลตัวอย่าง:</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+mkdir -p concepts/c09</code></pre>
+<pre class="code" data-env="file" data-label="Text · concepts/c09/urls.txt"><code class="language-plaintext"># รายการเว็บที่จะตรวจ
+https://go.dev
+
+https://example.com</code></pre>
+<pre class="code" data-env="file" data-label="Go · concepts/c09/main.go"><code class="language-go">// โปรแกรม targets: อ่านรายการ URL จากไฟล์ แล้วแสดงผลเป็น table, json หรือ csv
+package main
+
+import (
+	"bufio"
+	"encoding/csv"
+	"encoding/json"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"log/slog"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"text/tabwriter"
+	"time"
+)
+
+// Target คือ URL หนึ่งรายการ struct tag บอกชื่อ key ตอนแปลงเป็น JSON
+type Target struct {
+	Line int    `json:"line"`
+	URL  string `json:"url"`
+	Host string `json:"host"`
+	Note string `json:"note,omitempty"` // omitempty: ถ้าเป็นค่าว่างจะไม่ใส่ key นี้
+}
+
+// readTargets อ่านไฟล์ข้อความทีละบรรทัด ข้ามบรรทัดว่างและบรรทัดที่ขึ้นต้นด้วย #
+func readTargets(path string) ([]Target, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close() // ปิดไฟล์เสมอเมื่อฟังก์ชันจบ
+
+	var out []Target
+	sc := bufio.NewScanner(f)
+	line := 0
+	for sc.Scan() {
+		line++
+		text := strings.TrimSpace(sc.Text())
+		if text == "" || strings.HasPrefix(text, "#") {
+			continue
+		}
+		_, rest, _ := strings.Cut(text, "://")
+		host, _, _ := strings.Cut(rest, "/")
+		out = append(out, Target{Line: line, URL: text, Host: host})
+	}
+	return out, sc.Err() // sc.Err() บอก error ที่เกิดระหว่างอ่าน (ถ้ามี)
+}
+
+// readJSON อ่านไฟล์ .json ทั้งไฟล์ด้วย os.ReadFile แล้วแปลงกลับเป็น struct ด้วย json.Unmarshal
+func readJSON(path string) ([]Target, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var out []Target
+	if err := json.Unmarshal(data, &amp;out); err != nil {
+		return nil, fmt.Errorf("parse %s: %w", path, err)
+	}
+	return out, nil
+}
+
+// write เขียนผลลัพธ์ไปที่ io.Writer ใดก็ได้ (os.Stdout, ไฟล์, หรือ bytes.Buffer ตอนเทสต์)
+func write(w io.Writer, format string, targets []Target) error {
+	switch format {
+	case "json":
+		enc := json.NewEncoder(w)
+		enc.SetIndent("", "  ")
+		return enc.Encode(targets)
+	case "csv":
+		cw := csv.NewWriter(w)
+		cw.Write([]string{"line", "url", "host"})
+		for _, t := range targets {
+			cw.Write([]string{strconv.Itoa(t.Line), t.URL, t.Host})
+		}
+		cw.Flush() // csv.Writer มี buffer ต้อง Flush ไม่อย่างนั้นข้อมูลอาจไม่ถูกเขียน
+		return cw.Error()
+	case "table":
+		tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+		fmt.Fprintln(tw, "LINE\tHOST\tURL")
+		for _, t := range targets {
+			fmt.Fprintf(tw, "%d\t%s\t%s\n", t.Line, t.Host, t.URL)
+		}
+		return tw.Flush() // tabwriter จัดคอลัมน์ตอน Flush
+	default:
+		return fmt.Errorf("unknown format %q (use table, json or csv)", format)
+	}
+}
+
+func main() {
+	// ประกาศ flag: ชื่อ, ค่าเริ่มต้น, คำอธิบาย
+	file := flag.String("file", "concepts/c09/urls.txt", "ไฟล์รายการ URL (.txt หรือ .json)")
+	format := flag.String("format", "table", "รูปแบบผลลัพธ์: table, json, csv")
+	limit := flag.Int("limit", 0, "แสดงไม่เกินกี่รายการ (0 = ทั้งหมด)")
+	timeout := flag.Duration("timeout", 3*time.Second, "timeout ต่อ request (ใช้ในหัวข้อถัดไป)")
+	save := flag.String("save", "", "บันทึกผลเป็นไฟล์ JSON ด้วย os.WriteFile")
+	verbose := flag.Bool("verbose", false, "แสดง log ระดับ DEBUG")
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), "usage: targets [flags]\n")
+		flag.PrintDefaults()
+	}
+	flag.Parse()
+
+	// slog เขียน log ไปที่ stderr เพื่อให้ stdout มีแต่ข้อมูลจริง (ส่งต่อด้วย pipe ได้)
+	level := slog.LevelInfo
+	if *verbose {
+		level = slog.LevelDebug
+	}
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &amp;slog.HandlerOptions{Level: level}))
+
+	if flag.NArg() &gt; 0 {
+		logger.Warn("ignoring extra arguments", "args", flag.Args())
+	}
+	logger.Debug("config", "file", *file, "format", *format, "timeout", *timeout)
+
+	var targets []Target
+	var err error
+	if filepath.Ext(*file) == ".json" {
+		targets, err = readJSON(*file)
+	} else {
+		targets, err = readTargets(*file)
+	}
+	if err != nil {
+		logger.Error("cannot read targets", "err", err)
+		if errors.Is(err, os.ErrNotExist) {
+			logger.Error("hint: check the -file path")
+		}
+		os.Exit(2) // 2 = ใช้งานผิด หรือ config ผิด
+	}
+	if *limit &gt; 0 &amp;&amp; *limit &lt; len(targets) {
+		targets = targets[:*limit]
+	}
+	logger.Info("loaded targets", "count", len(targets))
+
+	if *save != "" {
+		data, _ := json.MarshalIndent(targets, "", "  ")
+		if err := os.WriteFile(*save, append(data, '\n'), 0o644); err != nil {
+			logger.Error("cannot save", "err", err)
+			os.Exit(2)
+		}
+		logger.Info("saved", "path", *save)
+	}
+
+	if err := write(os.Stdout, *format, targets); err != nil {
+		logger.Error("cannot write output", "err", err)
+		os.Exit(2)
+	}
+	// ไม่มีปัญหา: จบด้วย exit code 0 โดยอัตโนมัติ
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+
+# 1) ค่าเริ่มต้น: อ่าน concepts/c09/urls.txt แสดงเป็นตาราง
+go run ./concepts/c09
+
+# 2) แสดงเป็น JSON และบันทึกลงไฟล์ targets.json ด้วย
+go run ./concepts/c09 -format json -save targets.json
+
+# 3) แสดงเป็น CSV แค่ 1 รายการ พร้อม log ระดับ DEBUG
+go run ./concepts/c09 -format=csv -limit 1 -verbose</code></pre>
+
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>time=2026-10-19T09:31:00.485Z level=INFO msg="loaded targets" count=2
+LINE  HOST         URL
+2     go.dev       https://go.dev
+4     example.com  https://example.com
+time=2026-10-19T09:31:12.892Z level=INFO msg="loaded targets" count=2
+time=2026-10-19T09:31:12.892Z level=INFO msg=saved path=targets.json
+[
+  {
+    "line": 2,
+    "url": "https://go.dev",
+    "host": "go.dev"
+  },
+  {
+    "line": 4,
+    "url": "https://example.com",
+    "host": "example.com"
+  }
+]
+time=2026-10-19T09:31:00.601Z level=DEBUG msg=config file=concepts/c09/urls.txt format=csv timeout=3s
+time=2026-10-19T09:31:00.602Z level=INFO msg="loaded targets" count=1
+line,url,host
+2,https://go.dev,go.dev</code></pre>
+<p>บรรทัดที่ขึ้นต้นด้วย <code>time=</code> คือ log จาก <code>slog</code> ที่ออกทาง stderr วันเวลาบนเครื่องของคุณจะต่างไป ถ้าสั่ง <code>go run ./concepts/c09 2&gt;/dev/null</code> จะเห็นแค่ตาราง เพราะ stderr ถูกทิ้ง</p>
+<h5>ทดสอบ Exit Code ด้วย Binary จริง</h5>
+<p><code>go run</code> ไม่ส่ง Exit Code ของโปรแกรมออกมาตรง ๆ: เมื่อโปรแกรมจบด้วยรหัสที่ไม่ใช่ 0 มันจะพิมพ์ <code>exit status N</code> แล้วตัว <code>go run</code> เองจบด้วยรหัส 1 เสมอ จึงต้อง build เป็น Binary เพื่อดูรหัสจริง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go build -o bin/targets ./concepts/c09
+
+./bin/targets -format csv &gt; /dev/null; echo "exit code: $?"   # สำเร็จ
+./bin/targets -file nope.txt; echo "exit code: $?"            # ไม่มีไฟล์
+./bin/targets -format xml; echo "exit code: $?"               # format ผิด
+go run ./concepts/c09 -file nope.txt; echo "exit code: $?"    # ผ่าน go run ได้ 1 เสมอ</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>time=2026-10-19T09:31:00.672Z level=INFO msg="loaded targets" count=2
+exit code: 0
+time=2026-10-19T09:31:00.674Z level=ERROR msg="cannot read targets" err="open nope.txt: no such file or directory"
+time=2026-10-19T09:31:00.675Z level=ERROR msg="hint: check the -file path"
+exit code: 2
+time=2026-10-19T09:31:00.677Z level=INFO msg="loaded targets" count=2
+time=2026-10-19T09:31:00.677Z level=ERROR msg="cannot write output" err="unknown format \"xml\" (use table, json or csv)"
+exit code: 2
+time=2026-10-19T09:31:00.734Z level=ERROR msg="cannot read targets" err="open nope.txt: no such file or directory"
+time=2026-10-19T09:31:00.734Z level=ERROR msg="hint: check the -file path"
+exit status 2
+exit code: 1</code></pre>
+
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>type Target struct { Line int `json:"line"` ... }</code></td><td>struct tag กำหนดชื่อ key ใน JSON (ตัวพิมพ์เล็ก) field ต้องขึ้นต้นตัวใหญ่ <code>encoding/json</code> จึงมองเห็น</td></tr>
+<tr><td><code>`json:"note,omitempty"`</code></td><td>ถ้า <code>Note</code> เป็นค่าว่างจะไม่ใส่ key <code>note</code> ใน JSON ผลลัพธ์จึงไม่มี <code>"note": ""</code></td></tr>
+<tr><td><code>f, err := os.Open(path)</code> + <code>defer f.Close()</code></td><td>เปิดไฟล์แบบอ่านอย่างเดียว ตรวจ error ก่อน แล้วสั่งปิดเมื่อฟังก์ชันจบ</td></tr>
+<tr><td><code>sc := bufio.NewScanner(f)</code> + <code>for sc.Scan()</code></td><td>อ่านทีละบรรทัด <code>sc.Text()</code> คือบรรทัดปัจจุบัน (ไม่มี <code>\n</code>) เมื่อจบให้ตรวจ <code>sc.Err()</code> เสมอ</td></tr>
+<tr><td><code>os.ReadFile</code> + <code>json.Unmarshal(data, &amp;out)</code></td><td>อ่านทั้งไฟล์เป็น <code>[]byte</code> แล้วแปลงเป็น <code>[]Target</code> ต้องส่ง pointer (<code>&amp;out</code>) เพื่อให้ Unmarshal เขียนค่าลงไปได้</td></tr>
+<tr><td><code>func write(w io.Writer, ...)</code></td><td>รับ <code>io.Writer</code> แทนการเขียนลง <code>os.Stdout</code> ตรง ๆ ตอนเทสต์ส่ง <code>&amp;bytes.Buffer{}</code> เข้าไปแล้วตรวจข้อความได้</td></tr>
+<tr><td><code>json.NewEncoder(w)</code> + <code>SetIndent("", "  ")</code></td><td>เขียน JSON ลง Writer โดยตรงแบบจัดย่อหน้า <code>json.MarshalIndent</code> จัดย่อหน้าได้เหมือนกัน ต่างกันตรงที่คืนเป็น <code>[]byte</code> (ใช้ตอนบันทึกไฟล์)</td></tr>
+<tr><td><code>csv.NewWriter(w)</code> + <code>cw.Flush()</code> + <code>cw.Error()</code></td><td>csv.Writer มี buffer ภายใน ต้อง Flush ข้อมูลจึงออกไปจริง แล้วตรวจ error ด้วย <code>cw.Error()</code></td></tr>
+<tr><td><code>tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)</code></td><td>จัดคอลัมน์ที่คั่นด้วย <code>\t</code> ให้ตรงกัน ห่างกันอย่างน้อย 2 ช่องว่าง คำนวณตอน <code>Flush()</code></td></tr>
+<tr><td><code>flag.String</code>, <code>flag.Int</code>, <code>flag.Bool</code>, <code>flag.Duration</code></td><td>แต่ละตัวคืน pointer จึงต้องอ่านค่าด้วย <code>*format</code> หลัง <code>flag.Parse()</code> Duration รับรูปแบบอย่าง <code>3s</code>, <code>500ms</code>, <code>1m</code></td></tr>
+<tr><td><code>flag.Usage = func() {...}</code></td><td>กำหนดข้อความช่วยเหลือเอง แสดงเมื่อพิมพ์ <code>-h</code> หรือใส่ flag ผิด <code>flag.PrintDefaults()</code> พิมพ์รายการ flag ทั้งหมด</td></tr>
+<tr><td><code>flag.NArg()</code> / <code>flag.Args()</code></td><td>argument ที่เหลือหลัง flag เช่น <code>targets -format json a b</code> จะได้ <code>[a b]</code></td></tr>
+<tr><td><code>slog.New(slog.NewTextHandler(os.Stderr, &amp;slog.HandlerOptions{Level: level}))</code></td><td>สร้าง logger ที่เขียน key=value ออก stderr ระดับต่ำกว่า <code>level</code> ถูกทิ้ง เปลี่ยนเป็น <code>NewJSONHandler</code> เมื่อต้องส่ง log เข้าระบบรวม log</td></tr>
+<tr><td><code>logger.Info("loaded targets", "count", len(targets))</code></td><td>ข้อความหลักตามด้วยคู่ key, value ไม่ต้องประกอบข้อความเอง ระบบค้นหา log กรองตาม key ได้</td></tr>
+<tr><td><code>errors.Is(err, os.ErrNotExist)</code></td><td>ตรวจว่าเป็น Error "ไม่มีไฟล์" เพื่อให้คำแนะนำที่ตรงจุดกับผู้ใช้</td></tr>
+<tr><td><code>os.WriteFile(*save, ..., 0o644)</code></td><td>เขียนทั้งไฟล์ในคำสั่งเดียว (สร้างใหม่หรือเขียนทับ) <code>0o644</code> คือสิทธิ์ไฟล์: เจ้าของอ่านเขียนได้ คนอื่นอ่านได้</td></tr>
+<tr><td><code>os.Exit(2)</code></td><td>จบโปรแกรมทันทีด้วยรหัส 2 ระวัง: <code>defer</code> ที่ค้างอยู่จะไม่ทำงาน จึงเรียก <code>os.Exit</code> ใน <code>main</code> เท่านั้น</td></tr>
+</tbody></table></div>
+
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>flag provided but not defined: -fromat</code><br>ตามด้วยข้อความ usage และ Exit Code 2</td><td>พิมพ์ชื่อ flag ผิด (<code>-fromat</code>) หรือใส่ flag หลัง argument ปกติ (flag ต้องมาก่อน argument)</td><td>ตรวจรายชื่อด้วย <code>./bin/targets -h</code> และเขียนข้อความใน <code>flag.Usage</code> ให้ชัดเจน</td></tr>
+<tr><td><code>json: cannot unmarshal string into Go struct field .0.line of type int</code></td><td>ไฟล์ JSON มี <code>"line": "2"</code> (string) แต่ field ใน struct เป็น <code>int</code> (<code>.0.line</code> คือ element แรกของ array, key <code>line</code>)</td><td>แก้ข้อมูลให้ตรง type หรือเปลี่ยน type ของ field ถ้าข้อมูลภายนอกเป็น string จริง ใช้ tag <code>`json:"line,string"`</code></td></tr>
+<tr><td>JSON ออกมาเป็น <code>{}</code> ทั้งที่ struct มีข้อมูล</td><td>field ขึ้นต้นด้วยตัวเล็ก (<code>url</code>, <code>host</code>) ซึ่งไม่ Export <code>encoding/json</code> จึงมองไม่เห็นและข้ามไปเงียบ ๆ</td><td>เปลี่ยนชื่อ field เป็นตัวใหญ่ แล้วใช้ struct tag กำหนดชื่อ key ตัวเล็ก เช่น <code>URL string `json:"url"`</code></td></tr>
+<tr><td>สั่ง <code>-format csv</code> หรือ <code>table</code> แล้วไม่มีผลลัพธ์ออกมาเลย</td><td>ลืมเรียก <code>Flush()</code> ของ <code>csv.Writer</code> หรือ <code>tabwriter.Writer</code> ข้อมูลค้างอยู่ใน buffer แล้วโปรแกรมจบไปก่อน</td><td>เรียก <code>Flush()</code> ท้ายฟังก์ชันเสมอ และตรวจ error ที่ได้</td></tr>
+<tr><td>สคริปต์ CI เห็น Exit Code 1 ทั้งที่โปรแกรมสั่ง <code>os.Exit(2)</code></td><td>รันผ่าน <code>go run</code> ซึ่งพิมพ์ <code>exit status 2</code> แล้วจบด้วยรหัส 1 ของตัวเอง</td><td>ใน CI และสคริปต์ ให้ <code>go build</code> แล้วรัน Binary เสมอ</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ข้อมูลออก stdout, log และ Error ออก stderr เสมอ และกำหนด Exit Code ให้ชัดเจนพร้อมเขียนไว้ใน README</li>
+<li>เขียน logic ให้รับ <code>io.Reader</code> / <code>io.Writer</code> แทนการผูกกับไฟล์หรือหน้าจอ จะเทสต์ด้วย <code>strings.NewReader</code> และ <code>bytes.Buffer</code> ได้ทันที</li>
+<li>ให้ <code>main</code> ทำแค่ อ่าน flag → เรียก logic → แปลง error เป็น Exit Code ส่วนงานจริงอยู่ในฟังก์ชันที่คืน error</li>
+<li>ใช้ <code>slog</code> แทน <code>fmt.Println</code> สำหรับ log และใช้ <code>NewJSONHandler</code> เมื่อรันบน Server ที่มีระบบรวม log</li>
+<li>เมื่อ CLI ซับซ้อนขึ้น (มีคำสั่งย่อยหลายตัว เช่น <code>tool add</code>, <code>tool list</code>) พิจารณา Library <code>github.com/spf13/cobra</code> (v1.10.2) ที่ Docker และ Kubernetes ใช้</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>เพิ่มความสามารถให้ <code>targets</code></p><ol>
+<li>เพิ่ม URL <code>http://127.0.0.1:8080/health</code> ลงใน <code>urls.txt</code> แล้วรันใหม่ ต้องได้ 3 แถว และ <code>LINE</code> ตรงกับบรรทัดในไฟล์</li>
+<li>ตรวจ URL ที่ไม่ขึ้นต้นด้วย <code>http://</code> หรือ <code>https://</code> ให้ log ระดับ WARN พร้อมเลขบรรทัด แล้วข้ามไป</li>
+<li>เปลี่ยน logger เป็น <code>slog.NewJSONHandler</code> เมื่อมี flag <code>-log-json</code></li>
+<li>ทดสอบว่า <code>./bin/targets -file targets.json -format csv</code> อ่านไฟล์ JSON ที่บันทึกไว้ได้ และ Exit Code เป็น 0</li>
+</ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 10</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h3 id="s6-2-c10">Goroutine, Channel และ select</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p><strong>Goroutine</strong> คือหน่วยการทำงานที่เบามาก สร้างได้ด้วยการเขียน <code>go</code> หน้าการเรียกฟังก์ชัน เช่น <code>go fetch(url)</code> แต่ละตัวใช้หน่วยความจำเริ่มต้นเพียงไม่กี่ KB (Thread ของระบบปฏิบัติการใช้ระดับ MB) จึงสร้างได้เป็นหมื่นตัว Go Runtime กระจาย Goroutine ไปทำงานบน CPU ทุก Core ให้เอง นี่คือเหตุผลที่ Go เด่นเรื่อง Server และเครื่องมือที่ต้องทำงานพร้อมกันจำนวนมาก เช่น ตรวจ URL 1,000 รายการพร้อมกัน</p>
+<p>ต้องแยก 2 คำนี้ให้ออก: <strong>Concurrency</strong> คือการ<em>จัดโครงสร้าง</em>โปรแกรมให้หลายงานคืบหน้าสลับกันได้ ส่วน <strong>Parallelism</strong> คือการ<em>ทำงานพร้อมกันจริง</em>บนหลาย CPU โปรแกรมที่ออกแบบแบบ Concurrent ดี จะได้ Parallelism ฟรีเมื่อมีหลาย Core</p>
+<p>Goroutine สื่อสารกันผ่าน <strong>Channel</strong> (<code>chan T</code>) ตามหลักของ Go: "Don't communicate by sharing memory; share memory by communicating" สิ่งที่ต้องรู้:</p>
+<ul>
+<li><strong>Unbuffered Channel</strong> (<code>make(chan int)</code>): ผู้ส่งรอจนกว่าจะมีผู้รับ เป็นการนัดพบ (synchronization) ในตัว</li>
+<li><strong>Buffered Channel</strong> (<code>make(chan int, 2)</code>): ส่งได้ทันทีจนกว่า buffer เต็ม</li>
+<li><strong>ทิศทาง</strong>: <code>&lt;-chan int</code> รับอย่างเดียว, <code>chan&lt;- int</code> ส่งอย่างเดียว ใช้ใน signature เพื่อกันการใช้ผิด</li>
+<li><strong><code>close(ch)</code></strong>: ผู้ส่งปิดเพื่อบอกว่า "ไม่มีข้อมูลแล้ว" ผู้รับใช้ <code>for v := range ch</code> วนจนกว่าจะถูกปิด กฎคือ <em>ผู้ส่งเป็นคนปิดเสมอ</em></li>
+<li><strong><code>select</code></strong>: รอหลาย Channel พร้อมกัน ทำ case ที่พร้อมก่อน ใช้ทำ Timeout (<code>time.After</code>) หรือส่งแบบไม่บล็อก (<code>default</code>)</li>
+</ul>
+<p>รูปแบบที่ใช้บ่อยคือ <strong>Pipeline</strong> (ต่อขั้นตอนด้วย Channel), <strong>Fan-out</strong> (หลาย worker อ่าน Channel เดียวกันเพื่อแบ่งงาน) และ <strong>Fan-in</strong> (รวมผลจากหลาย Channel เป็นช่องเดียว)</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Goroutine เหมือน "พนักงานในครัว" Channel คือ "ช่องส่งจาน" ระหว่างสถานี Unbuffered Channel คือการยื่นจานจากมือถึงมือ คนส่งต้องรอจนคนรับยื่นมือมา ส่วน Buffered Channel คือชั้นวางจานที่วางได้ 2 ใบ วางแล้วไปทำต่อได้เลยจนกว่าชั้นจะเต็ม <code>close</code> คือการตะโกนว่า "จานสุดท้ายแล้ว!" และ <code>select</code> คือพนักงานที่ยืนรอหลายช่องพร้อมกัน ช่องไหนมีจานก่อนก็หยิบช่องนั้น</p></div>
+
+<h4>ตัวอย่างโค้ด</h4>
+<p>Pipeline 3 ขั้น: <code>generate</code> ส่งเลข 1 ถึง 10 → <code>square</code> 3 worker (fan-out) ยกกำลังสอง → <code>merge</code> รวมผล (fan-in) แล้วหาผลรวม (ต้องได้ 385 เสมอ) ลำดับที่ได้รับไม่แน่นอนเพราะ worker แข่งกัน จึงเรียงก่อนพิมพ์ ต่อด้วยตัวอย่าง Buffered Channel, <code>select</code> กับ <code>default</code> และ Timeout</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+mkdir -p concepts/c10</code></pre>
+<pre class="code" data-env="file" data-label="Go · concepts/c10/main.go"><code class="language-go">package main
+
+import (
+	"fmt"
+	"slices"
+	"sync"
+	"time"
+)
+
+// generate คือ stage 1: ส่งตัวเลขออกทาง channel แล้วปิด channel เมื่อส่งครบ
+// คืน &lt;-chan int (receive-only) เพื่อบอกว่าคนเรียกมีหน้าที่ "รับ" อย่างเดียว
+func generate(nums ...int) &lt;-chan int {
+	out := make(chan int)
+	go func() {
+		defer close(out) // ผู้ส่งเป็นคนปิด channel เสมอ
+		for _, n := range nums {
+			out &lt;- n
+		}
+	}()
+	return out
+}
+
+// square คือ stage 2: รับตัวเลขจาก in ยกกำลังสองแล้วส่งต่อ
+func square(in &lt;-chan int) &lt;-chan int {
+	out := make(chan int)
+	go func() {
+		defer close(out)
+		for n := range in { // วนรับจนกว่า in จะถูกปิด
+			out &lt;- n * n
+		}
+	}()
+	return out
+}
+
+// merge คือ fan-in: รวมหลาย channel ให้เหลือ channel เดียว
+func merge(chans ...&lt;-chan int) &lt;-chan int {
+	out := make(chan int)
+	var wg sync.WaitGroup
+	for _, c := range chans {
+		wg.Add(1)
+		go func(c &lt;-chan int) {
+			defer wg.Done()
+			for v := range c {
+				out &lt;- v
+			}
+		}(c)
+	}
+	// ปิด out เมื่อทุก goroutine ส่งครบแล้วเท่านั้น
+	go func() {
+		wg.Wait()
+		close(out)
+	}()
+	return out
+}
+
+// slowOp จำลองงานที่ใช้เวลา d แล้วส่งผลลัพธ์ทาง buffered channel ขนาด 1
+// buffer ทำให้ goroutine ส่งค่าได้แม้ไม่มีใครรอรับแล้ว จึงไม่ค้าง (ไม่เกิด goroutine leak)
+func slowOp(d time.Duration) &lt;-chan string {
+	ch := make(chan string, 1)
+	go func() {
+		time.Sleep(d)
+		ch &lt;- fmt.Sprintf("done in %v", d)
+	}()
+	return ch
+}
+
+func main() {
+	// 1) Pipeline: generate -&gt; square (fan-out 3 worker) -&gt; merge (fan-in)
+	src := generate(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+	w1, w2, w3 := square(src), square(src), square(src) // 3 worker แย่งกันอ่าน src เดียวกัน
+	var results []int
+	sum := 0
+	for v := range merge(w1, w2, w3) {
+		results = append(results, v)
+		sum += v
+	}
+	slices.Sort(results) // ลำดับที่ได้รับไม่แน่นอน จึงเรียงก่อนพิมพ์
+	fmt.Println("squares:", results)
+	fmt.Println("sum:", sum)
+
+	// 2) Unbuffered vs Buffered
+	buf := make(chan string, 2) // buffered ความจุ 2: ส่งได้ 2 ค่าโดยยังไม่ต้องมีคนรับ
+	buf &lt;- "job-1"
+	buf &lt;- "job-2"
+	fmt.Println("buffered len/cap:", len(buf), cap(buf))
+	fmt.Println("receive:", &lt;-buf, &lt;-buf)
+
+	// 3) select + default: ส่งแบบไม่บล็อก ถ้า channel เต็มให้ทำ default แทน
+	full := make(chan int, 1)
+	full &lt;- 1
+	select {
+	case full &lt;- 2:
+		fmt.Println("sent 2")
+	default:
+		fmt.Println("channel เต็ม ข้ามไปก่อน (default)")
+	}
+
+	// 4) select + time.After: รอผลไม่เกินเวลาที่กำหนด
+	for _, limit := range []time.Duration{20 * time.Millisecond, 200 * time.Millisecond} {
+		select {
+		case res := &lt;-slowOp(80 * time.Millisecond):
+			fmt.Printf("limit %v: %s\n", limit, res)
+		case &lt;-time.After(limit):
+			fmt.Printf("limit %v: timeout\n", limit)
+		}
+	}
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run ./concepts/c10
+
+# รันซ้ำด้วย Race Detector (ต้องติดตั้ง gcc แล้ว) ถ้ามี Data Race จะมีคำเตือน
+go run -race ./concepts/c10</code></pre>
+
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>squares: [1 4 9 16 25 36 49 64 81 100]
+sum: 385
+buffered len/cap: 2 2
+receive: job-1 job-2
+channel เต็ม ข้ามไปก่อน (default)
+limit 20ms: timeout
+limit 200ms: done in 80ms</code></pre>
+<p>ผลลัพธ์เหมือนกันทุกครั้งที่รัน ทั้งแบบปกติและแบบ <code>-race</code> (ไม่มีคำเตือน) เพราะเราเรียงผลก่อนพิมพ์ และใช้ผลรวมซึ่งไม่ขึ้นกับลำดับ ถ้าตัด <code>slices.Sort</code> ออก ลำดับของ <code>squares</code> จะสลับไปมาในแต่ละครั้ง</p>
+
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>func generate(nums ...int) &lt;-chan int</code></td><td>คืน Channel แบบรับอย่างเดียว ผู้เรียกจึงส่งหรือปิด Channel นี้ไม่ได้ (Compiler ไม่ยอม)</td></tr>
+<tr><td><code>out := make(chan int)</code> + <code>go func() {...}()</code></td><td>สร้าง Unbuffered Channel แล้วเริ่ม Goroutine ที่ส่งข้อมูล ฟังก์ชันคืน Channel ทันทีโดยไม่รอให้ส่งครบ</td></tr>
+<tr><td><code>defer close(out)</code></td><td>ผู้ส่งปิด Channel เมื่อส่งครบ ผู้รับที่ใช้ <code>for range</code> จะออกจากลูปเอง</td></tr>
+<tr><td><code>for n := range in</code> ใน <code>square</code></td><td>รับค่าไปเรื่อย ๆ จนกว่า <code>in</code> ถูกปิด แล้วจึงปิด <code>out</code> ของตัวเอง ทำให้การปิดส่งต่อเป็นทอด ๆ ตลอด Pipeline</td></tr>
+<tr><td><code>square(src), square(src), square(src)</code></td><td>Fan-out: 3 worker อ่านจาก <code>src</code> เดียวกัน ค่าแต่ละตัวถูกรับโดย worker ตัวเดียวเท่านั้น งานจึงถูกแบ่งโดยอัตโนมัติ</td></tr>
+<tr><td><code>merge(chans ...&lt;-chan int)</code></td><td>Fan-in: สร้าง Goroutine ต่อ 1 Channel ให้คัดลอกค่าเข้า <code>out</code> ใช้ <code>sync.WaitGroup</code> นับว่าทุกตัวเสร็จหรือยัง (อธิบายเต็มในแนวคิดที่ 11)</td></tr>
+<tr><td><code>go func() { wg.Wait(); close(out) }()</code></td><td>ปิด <code>out</code> หลังทุก Goroutine ส่งครบ ต้องทำใน Goroutine แยก ถ้าเรียก <code>wg.Wait()</code> ตรง ๆ จะค้าง เพราะยังไม่มีใครรับจาก <code>out</code></td></tr>
+<tr><td><code>go func(c &lt;-chan int) {...}(c)</code></td><td>ส่ง <code>c</code> เป็น argument ให้ชัดเจน (ตั้งแต่ Go 1.22 ตัวแปรลูปเป็นตัวใหม่ทุกรอบ จึงใช้ <code>c</code> ตรง ๆ ได้เช่นกัน)</td></tr>
+<tr><td><code>buf := make(chan string, 2)</code></td><td>Buffered Channel ส่ง 2 ค่าได้ทันทีโดยยังไม่มีผู้รับ <code>len</code> คือจำนวนที่รออยู่ <code>cap</code> คือความจุ ถ้าส่งค่าที่ 3 โดยไม่มีผู้รับ จะค้าง</td></tr>
+<tr><td><code>select { case full &lt;- 2: ... default: ... }</code></td><td>ถ้าไม่มี case ใดพร้อม (Channel เต็ม) จะทำ <code>default</code> ทันทีแทนการรอ ใช้ทำ "ลองส่ง ถ้าไม่ได้ก็ข้าม"</td></tr>
+<tr><td><code>case &lt;-time.After(limit)</code></td><td><code>time.After</code> คืน Channel ที่จะได้ค่าเมื่อครบเวลา ใช้แข่งกับงานจริง: ครั้งแรกจำกัด 20ms งานใช้ 80ms จึง timeout ครั้งที่สองจำกัด 200ms จึงได้ผล</td></tr>
+<tr><td><code>ch := make(chan string, 1)</code> ใน <code>slowOp</code></td><td>ใช้ buffer 1 ช่อง เพื่อเมื่อเกิด timeout แล้วไม่มีใครรับ Goroutine ก็ยังส่งค่าลง buffer แล้วจบได้ ไม่ค้างตลอดไป (กัน Goroutine Leak)</td></tr>
+</tbody></table></div>
+
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>fatal error: all goroutines are asleep - deadlock!</code><br><code>goroutine 1 [chan send]:</code></td><td>ส่งลง Unbuffered Channel ใน Goroutine เดียวกับที่จะรับ (<code>ch &lt;- 1</code> แล้วค่อย <code>&lt;-ch</code>) ผู้ส่งรอผู้รับตลอดไป หรือวน <code>range</code> Channel ที่ไม่มีใครปิด</td><td>ให้การส่งกับการรับอยู่คนละ Goroutine ใช้ Buffered Channel เมื่อเหมาะสม และให้ผู้ส่ง <code>close</code> เมื่อส่งครบ <code>[chan send]</code> หรือ <code>[chan receive]</code> บอกว่าค้างที่ฝั่งไหน</td></tr>
+<tr><td><code>panic: send on closed channel</code></td><td>ส่งค่าลง Channel ที่ถูกปิดแล้ว มักเกิดเมื่อผู้รับหรือคนกลางเป็นคนปิด ขณะที่ผู้ส่งยังทำงานอยู่</td><td>ยึดกฎ "ผู้ส่งเป็นคนปิด" ถ้ามีผู้ส่งหลายตัว ใช้ <code>WaitGroup</code> รอทุกตัวจบแล้วค่อยปิดจากที่เดียว เหมือนใน <code>merge</code></td></tr>
+<tr><td><code>panic: close of closed channel</code></td><td>เรียก <code>close</code> ซ้ำกับ Channel เดิม เช่น หลาย worker ต่างคนต่างปิด</td><td>ให้มีเจ้าของเพียงคนเดียวที่ปิด ถ้าจำเป็นต้องปิดจากหลายจุดจริง ห่อด้วย <code>sync.Once</code></td></tr>
+<tr><td>โปรแกรมพิมพ์แค่ <code>main จบแล้ว</code> ไม่เห็นข้อความจาก Goroutine เลย</td><td>เมื่อ <code>main</code> จบ โปรแกรมจบทันที Goroutine ที่ยังไม่ได้ทำงานถูกตัดทิ้งโดยไม่มีคำเตือน</td><td>รอ Goroutine ให้เสร็จด้วย Channel หรือ <code>sync.WaitGroup</code> ห้ามใช้ <code>time.Sleep</code> เพื่อรอ เพราะเดาเวลาไม่ได้</td></tr>
+<tr><td>หน่วยความจำของ Server ค่อย ๆ เพิ่มขึ้น จำนวน Goroutine (<code>runtime.NumGoroutine()</code>) ไม่ลดลง</td><td>Goroutine Leak: Goroutine ค้างรอส่งหรือรับจาก Channel ที่ไม่มีใครสนใจแล้ว เช่น หลัง timeout</td><td>ใช้ Buffered Channel ขนาด 1 สำหรับผลลัพธ์เดียว หรือส่ง <code>context</code> ให้ Goroutine ยกเลิกตัวเองได้ (แนวคิดที่ 11)</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ทุกครั้งที่เขียน <code>go</code> ให้ตอบได้ว่า "Goroutine นี้จะจบเมื่อไร และใครรอมัน" ถ้าตอบไม่ได้ คือจุดเสี่ยง Leak</li>
+<li>ใช้ทิศทางของ Channel ใน signature (<code>&lt;-chan</code>, <code>chan&lt;-</code>) เพื่อให้ Compiler ช่วยกันการใช้ผิด</li>
+<li>เริ่มจาก Unbuffered Channel ใช้ Buffered เมื่อมีเหตุผลชัดเจน (เช่น กัน Leak หรือรู้จำนวนงานแน่นอน) อย่าใช้ buffer ใหญ่ ๆ เพื่อ "แก้" Deadlock เพราะเป็นแค่การซ่อนปัญหา</li>
+<li>รัน <code>go test -race</code> และ <code>go run -race</code> กับโค้ดที่มี Goroutine เสมอก่อน commit</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ปรับ Pipeline ให้ทำงานมากขึ้น</p><ol>
+<li>เพิ่ม Stage <code>filterEven(in &lt;-chan int) &lt;-chan int</code> ที่ส่งต่อเฉพาะเลขคู่ ต่อระหว่าง <code>merge</code> กับการรวมผล ผลรวมของกำลังสองของเลขคู่ 2 ถึง 10 ต้องได้ <code>220</code></li>
+<li>เปลี่ยนจำนวน worker เป็น 5 ด้วยลูป <code>for range 5</code> และเก็บ Channel ใน Slice แล้วส่ง <code>merge(workers...)</code></li>
+<li>ลบ <code>defer close(out)</code> ใน <code>generate</code> ออก รันดูว่าได้ Deadlock แล้วอ่านข้อความว่า Goroutine ค้างที่สถานะใด จากนั้นแก้กลับ</li>
+<li>เปลี่ยน <code>slowOp</code> ให้ใช้ Unbuffered Channel แล้วพิมพ์ <code>runtime.NumGoroutine()</code> ท้าย <code>main</code> เทียบกับแบบ buffered เพื่อเห็น Goroutine ที่ค้าง</li>
+</ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 11</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h3 id="s6-2-c11">sync, Data Race, Worker Pool และ context</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>เมื่อหลาย Goroutine อ่านและเขียนตัวแปรเดียวกันพร้อมกันโดยไม่มีการป้องกัน จะเกิด <strong>Data Race</strong> ผลลัพธ์ผิดแบบสุ่ม บางครั้งถูก บางครั้งผิด และหาสาเหตุยากที่สุดในงาน Backend Go มีเครื่องมือจัดการใน Package <code>sync</code> และ <code>sync/atomic</code>:</p>
+<ul>
+<li><code>sync.WaitGroup</code>: รอให้ Goroutine กลุ่มหนึ่งทำงานเสร็จ ตั้งแต่ Go 1.25 เขียน <code>wg.Go(func() {...})</code> ได้เลย (เทียบเท่ารูปแบบเดิม <code>wg.Add(1)</code> + <code>go func() { defer wg.Done(); ... }()</code>)</li>
+<li><code>sync.Mutex</code> / <code>sync.RWMutex</code>: ล็อกให้เข้าถึงข้อมูลได้ทีละคน (RWMutex ให้อ่านพร้อมกันได้หลายคน แต่เขียนได้ทีละคน)</li>
+<li><code>atomic.Int64</code>: ตัวนับที่เพิ่มค่าได้ปลอดภัยโดยไม่ต้องล็อก เหมาะกับสถิติง่าย ๆ</li>
+<li><code>sync.Once</code>: รับประกันว่าโค้ดทำครั้งเดียว แม้หลาย Goroutine เรียกพร้อมกัน</li>
+<li><strong>Race Detector</strong>: เพิ่ม <code>-race</code> ตอน <code>go run</code> หรือ <code>go test</code> Go จะเฝ้าดูการเข้าถึงหน่วยความจำและรายงาน <code>WARNING: DATA RACE</code> พร้อมบรรทัดที่ชนกัน (ต้องมี <code>gcc</code> ติดตั้งไว้)</li>
+</ul>
+<p><strong>Worker Pool</strong> คือการสร้าง worker จำนวนจำกัด (เช่น 3 ตัว) ให้ดึงงานจาก Channel เดียวกัน แทนการสร้าง Goroutine ต่องานแบบไม่จำกัด ซึ่งอาจเปิด connection เป็นพันพร้อมกันจนเครื่องหรือเว็บปลายทางรับไม่ไหว ส่วน <strong><code>context</code></strong> คือกลไกมาตรฐานสำหรับ<em>ยกเลิกงาน</em>และ<em>กำหนดเวลา</em>ข้าม Goroutine: <code>context.WithTimeout</code> สร้าง ctx ที่หมดอายุเอง, <code>context.WithCancel</code> ยกเลิกด้วยมือ งานที่รับ ctx ต้องฟัง <code>ctx.Done()</code> และหยุดเมื่อถูกยกเลิก ธรรมเนียมคือส่ง ctx เป็น <strong>parameter ตัวแรก</strong>เสมอ</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Worker Pool เหมือน "ร้านล้างรถที่มีพนักงาน 3 คน" รถมาเท่าไรก็ต่อคิว (Channel) พนักงานว่างก็เรียกคันถัดไป ไม่ใช่จ้างพนักงานใหม่ต่อรถหนึ่งคัน Mutex คือ "กุญแจห้องเก็บเงิน" ที่มีดอกเดียว ใครถือกุญแจจึงนับเงินได้ ส่วน <code>context</code> คือ "เวลาปิดร้าน" เมื่อถึงเวลา ผู้จัดการตะโกนครั้งเดียว (<code>ctx.Done()</code>) พนักงานทุกคนหยุดงานที่ค้าง แล้วรายงานว่าคันไหนล้างไม่ทัน</p></div>
+
+<h4>ตัวอย่างโค้ด</h4>
+<p>Worker Pool ที่มี 3 worker (ปรับได้ด้วย <code>-workers</code>) ประมวลผลงานจำลอง 8 งาน แต่ละงานใช้เวลาคงที่ 30–80ms ภายใต้เวลารวม 150ms จาก <code>context.WithTimeout</code> ผลลัพธ์พิมพ์ตามลำดับงานเดิม (เก็บตาม index) พร้อมสถานะ <code>ok</code> หรือ <code>timeout</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+mkdir -p concepts/c11/race
+
+# Race Detector ต้องใช้ gcc (ถ้ายังไม่ได้ติดตั้งในหัวข้อเตรียมเครื่อง)
+sudo apt install -y gcc</code></pre>
+<pre class="code" data-env="file" data-label="Go · concepts/c11/main.go"><code class="language-go">package main
+
+import (
+	"context"
+	"errors"
+	"flag"
+	"fmt"
+	"sync"
+	"sync/atomic"
+	"time"
+)
+
+// Job คืองานหนึ่งชิ้น: index ใช้เก็บผลให้ตรงลำดับเดิม
+type Job struct {
+	Index    int
+	Name     string
+	Duration time.Duration // เวลาที่งานนี้ใช้ (จำลองด้วย time.Sleep)
+}
+
+// Result คือผลของงานหนึ่งชิ้น
+type Result struct {
+	Name   string
+	Status string // ok หรือ timeout
+}
+
+// Stats นับผลรวม ใช้ Mutex ป้องกันหลาย goroutine แก้พร้อมกัน
+type Stats struct {
+	mu      sync.Mutex
+	ok      int
+	timeout int
+}
+
+// Record ล็อกก่อนแก้ค่า และใช้ defer ปลดล็อกเสมอ
+func (s *Stats) Record(status string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if status == "ok" {
+		s.ok++
+	} else {
+		s.timeout++
+	}
+}
+
+// process ทำงานหนึ่งชิ้น โดยรับ ctx เป็น parameter ตัวแรกเสมอ
+// ถ้า ctx ถูกยกเลิกหรือหมดเวลาก่อนงานเสร็จ จะคืน error ของ ctx ทันที
+func process(ctx context.Context, j Job) error {
+	select {
+	case &lt;-time.After(j.Duration): // งานเสร็จ
+		return nil
+	case &lt;-ctx.Done(): // หมดเวลา หรือถูก cancel
+		return ctx.Err()
+	}
+}
+
+func main() {
+	workers := flag.Int("workers", 3, "จำนวน worker")
+	flag.Parse()
+
+	durations := []int{30, 80, 40, 60, 70, 50, 80, 60} // มิลลิวินาที
+	jobs := make(chan Job)
+	results := make([]Result, len(durations)) // จองไว้ก่อน แต่ละ worker เขียนช่องของตัวเอง (index ไม่ซ้ำกัน จึงไม่ race)
+
+	// ทั้งงานต้องเสร็จใน 150ms ถ้าเกินให้ยกเลิก
+	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
+	defer cancel() // คืนทรัพยากรของ context เสมอ แม้จะหมดเวลาเองแล้วก็ตาม
+
+	var stats Stats
+	var processed atomic.Int64 // ตัวนับแบบ atomic ไม่ต้องใช้ Mutex
+	var once sync.Once         // ทำบางอย่างครั้งเดียว แม้หลาย goroutine เรียก
+
+	var wg sync.WaitGroup
+	for w := 1; w &lt;= *workers; w++ {
+		// wg.Go (Go 1.25+) = wg.Add(1) + go func + defer wg.Done() ในคำสั่งเดียว
+		wg.Go(func() {
+			for j := range jobs {
+				status := "ok"
+				if err := process(ctx, j); err != nil {
+					status = "timeout"
+					if errors.Is(err, context.DeadlineExceeded) {
+						once.Do(func() {
+							fmt.Println("! context deadline exceeded: เริ่มยกเลิกงานที่เหลือ")
+						})
+					}
+				}
+				results[j.Index] = Result{Name: j.Name, Status: status}
+				stats.Record(status)
+				processed.Add(1)
+			}
+		})
+	}
+
+	// ส่งงานเข้า channel ตามลำดับ แล้วปิดเพื่อบอก worker ว่าไม่มีงานแล้ว
+	for i, ms := range durations {
+		jobs &lt;- Job{Index: i, Name: fmt.Sprintf("job-%d", i+1), Duration: time.Duration(ms) * time.Millisecond}
+	}
+	close(jobs)
+	wg.Wait() // รอทุก worker จบ
+
+	for i, r := range results {
+		fmt.Printf("%-6s %3dms  %s\n", r.Name, durations[i], r.Status)
+	}
+	fmt.Printf("processed=%d ok=%d timeout=%d\n", processed.Load(), stats.ok, stats.timeout)
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+
+# รันพร้อม Race Detector: ถ้าโค้ดปลอดภัยจะไม่มีคำเตือนใด ๆ
+go run -race ./concepts/c11
+
+# เพิ่ม worker เป็น 8: ทุกงานเริ่มพร้อมกัน จึงเสร็จทันเวลาทั้งหมด
+go run ./concepts/c11 -workers 8</code></pre>
+
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>! context deadline exceeded: เริ่มยกเลิกงานที่เหลือ
+job-1   30ms  ok
+job-2   80ms  ok
+job-3   40ms  ok
+job-4   60ms  ok
+job-5   70ms  ok
+job-6   50ms  ok
+job-7   80ms  timeout
+job-8   60ms  timeout
+processed=8 ok=6 timeout=2
+job-1   30ms  ok
+job-2   80ms  ok
+job-3   40ms  ok
+job-4   60ms  ok
+job-5   70ms  ok
+job-6   50ms  ok
+job-7   80ms  ok
+job-8   60ms  ok
+processed=8 ok=8 timeout=0</code></pre>
+<p>ทำไม job-7 และ job-8 ถึง timeout: worker 3 ตัวเริ่ม job-1, 2, 3 ที่เวลา 0 เมื่อ job-1 เสร็จที่ 30ms worker ว่างจึงรับ job-4 (เสร็จที่ 90ms), job-3 เสร็จที่ 40ms จึงรับ job-5 (เสร็จ 110ms), job-2 เสร็จที่ 80ms จึงรับ job-6 (เสร็จ 130ms) ต่อมา job-7 เริ่มที่ 90ms ต้องเสร็จที่ 170ms และ job-8 เริ่มที่ 110ms ต้องเสร็จที่ 170ms ซึ่งเกิน 150ms ทั้งคู่ ctx จึงยกเลิก</p>
+<h5>ตัวอย่าง Data Race ที่ Race Detector จับได้</h5>
+<p>โปรแกรมนี้ตั้งใจเขียนผิด: 2 Goroutine บวก <code>counter</code> คนละ 1,000 ครั้งโดยไม่มีล็อก</p>
+<pre class="code" data-env="file" data-label="Go · concepts/c11/race/main.go"><code class="language-go">// โปรแกรมนี้ตั้งใจเขียนผิด เพื่อให้ Race Detector จับ Data Race ได้
+package main
+
+import (
+	"fmt"
+	"sync"
+)
+
+func main() {
+	counter := 0
+	var wg sync.WaitGroup
+	for range 2 {
+		wg.Go(func() {
+			for range 1000 {
+				counter++ // อ่าน-แก้-เขียน พร้อมกันจากหลาย goroutine โดยไม่มีล็อก
+			}
+		})
+	}
+	wg.Wait()
+	fmt.Println("counter =", counter, "(ควรเป็น 2000)")
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go run -race ./concepts/c11/race</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>==================
+WARNING: DATA RACE
+Read at 0x00c00019c028 by goroutine 8:
+  main.main.func1()
+      /home/somchai/projects/go-lab/concepts/c11/race/main.go:15 +0x37
+
+Previous write at 0x00c00019c028 by goroutine 9:
+  main.main.func1()
+      /home/somchai/projects/go-lab/concepts/c11/race/main.go:15 +0x49
+
+Goroutine 8 (running) created at:
+  sync.(*WaitGroup).Go()
+      /usr/local/go/src/sync/waitgroup.go:238 +0x72
+
+Goroutine 9 (finished) created at:
+  sync.(*WaitGroup).Go()
+      /usr/local/go/src/sync/waitgroup.go:238 +0x72
+==================
+counter = 2000 (ควรเป็น 2000)
+Found 1 data race(s)
+exit status 66</code></pre>
+<p>ที่อยู่หน่วยความจำ (<code>0x00c...</code>) หมายเลข Goroutine และ offset (<code>+0x37</code>) บนเครื่องของคุณจะต่างไป บางครั้ง <code>counter</code> อาจได้ 2000 พอดี (อย่างในผลด้านบน) ซึ่งอันตรายมาก เพราะทำให้คิดว่าโค้ดถูก Race Detector จึงสำคัญ: มันจับการเข้าถึงที่ชนกันได้แม้ผลลัพธ์บังเอิญถูก และจบด้วย <code>exit status 66</code> ให้ CI รู้ว่าล้ม จุดที่ต้องอ่านคือบรรทัด <code>race/main.go:15</code> ซึ่งคือ <code>counter++</code> วิธีแก้คือใช้ <code>atomic.Int64</code> หรือห่อด้วย <code>sync.Mutex</code></p>
+
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>type Stats struct { mu sync.Mutex; ok, timeout int }</code></td><td>วาง Mutex ไว้คู่กับข้อมูลที่มันป้องกัน และไม่ Export (<code>mu</code>) เพื่อให้ล็อกผ่าน method เท่านั้น</td></tr>
+<tr><td><code>s.mu.Lock()</code> + <code>defer s.mu.Unlock()</code></td><td>ล็อกก่อนแก้ค่า และปลดล็อกด้วย defer เพื่อให้ปลดแน่นอนแม้ฟังก์ชันจบกลางทางหรือ panic</td></tr>
+<tr><td><code>func process(ctx context.Context, j Job) error</code></td><td>รับ ctx เป็น parameter แรกตามธรรมเนียม ใช้ <code>select</code> แข่งระหว่าง "งานเสร็จ" กับ "ctx ถูกยกเลิก" อะไรมาก่อนก็จบตามนั้น</td></tr>
+<tr><td><code>return ctx.Err()</code></td><td>คืน <code>context.DeadlineExceeded</code> เมื่อหมดเวลา หรือ <code>context.Canceled</code> เมื่อถูกยกเลิกด้วยมือ</td></tr>
+<tr><td><code>results := make([]Result, len(durations))</code></td><td>จองช่องผลลัพธ์ไว้ก่อน worker แต่ละตัวเขียนเฉพาะช่อง <code>j.Index</code> ของงานตัวเอง ไม่มีสองตัวเขียนช่องเดียวกัน จึงไม่ต้องล็อก และผลออกมาตรงลำดับเดิม</td></tr>
+<tr><td><code>context.WithTimeout(context.Background(), 150*time.Millisecond)</code></td><td>สร้าง ctx ที่หมดอายุใน 150ms <code>context.Background()</code> คือราก ใช้ใน <code>main</code> หรือเทสต์ ส่วนใน Handler ของ HTTP ให้ใช้ <code>r.Context()</code></td></tr>
+<tr><td><code>defer cancel()</code></td><td>คืนทรัพยากรของ ctx เสมอ แม้ ctx จะหมดเวลาเองแล้ว ถ้าลืม <code>go vet</code> จะเตือน</td></tr>
+<tr><td><code>var processed atomic.Int64</code> + <code>processed.Add(1)</code> + <code>Load()</code></td><td>ตัวนับที่ปลอดภัยต่อการเรียกพร้อมกันโดยไม่ต้องใช้ Mutex</td></tr>
+<tr><td><code>once.Do(func() {...})</code></td><td>แม้ 2 worker เจอ timeout พร้อมกัน ข้อความ "context deadline exceeded" ก็พิมพ์ครั้งเดียว</td></tr>
+<tr><td><code>wg.Go(func() { for j := range jobs {...} })</code></td><td>สร้าง worker แต่ละตัว (Go 1.25+) worker วนรับงานจาก Channel จนกว่า <code>jobs</code> ถูกปิด</td></tr>
+<tr><td><code>errors.Is(err, context.DeadlineExceeded)</code></td><td>แยกกรณีหมดเวลาออกจาก Error อื่น เพื่อรายงานสถานะ <code>timeout</code> ให้ถูกต้อง</td></tr>
+<tr><td><code>jobs &lt;- Job{...}</code> ในลูป แล้ว <code>close(jobs)</code></td><td>main เป็นผู้ส่งงาน จึงเป็นผู้ปิด Channel เมื่อส่งครบ worker จะออกจากลูป range เอง</td></tr>
+<tr><td><code>wg.Wait()</code></td><td>รอจนทุก worker จบ แล้วจึงอ่าน <code>results</code> และ <code>stats</code> ได้อย่างปลอดภัย</td></tr>
+</tbody></table></div>
+
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>WARNING: DATA RACE</code><br><code>Read at 0x00c00019c028 by goroutine 8:</code><br><code>Found 2 data race(s)</code></td><td>หลาย Goroutine อ่านและเขียนตัวแปรเดียวกันโดยไม่มี Mutex, atomic หรือ Channel คั่น</td><td>ป้องกันด้วย <code>sync.Mutex</code> หรือ <code>atomic</code> หรือออกแบบให้แต่ละ Goroutine เขียนข้อมูลของตัวเอง (เช่น ช่อง index ของตัวเอง) แล้วรัน <code>-race</code> ซ้ำจนไม่มีคำเตือน</td></tr>
+<tr><td><code>panic: sync: negative WaitGroup counter</code></td><td>เรียก <code>wg.Done()</code> มากกว่า <code>wg.Add()</code> เช่น เรียก Done ทั้งใน defer และท้ายฟังก์ชัน</td><td>ใช้ <code>wg.Go</code> (Go 1.25+) ซึ่งจัดการ Add/Done ให้เอง หรือเรียก <code>wg.Add(1)</code> หนึ่งครั้งก่อน <code>go</code> และ <code>defer wg.Done()</code> หนึ่งครั้งใน Goroutine</td></tr>
+<tr><td><code>main.go:15:13: show passes lock by value: example.com/go-lab.Stats contains sync.Mutex</code><br><code>main.go:19:7: call of show copies lock value: example.com/go-lab.Stats contains sync.Mutex</code></td><td>ส่ง struct ที่มี Mutex แบบ value (คัดลอก) ทำให้ได้ล็อกคนละตัว การป้องกันจึงไม่ทำงาน (<code>go vet</code> จับได้)</td><td>ส่งเป็น pointer (<code>*Stats</code>) และใช้ Pointer Receiver กับทุก method ของ type ที่มี Mutex</td></tr>
+<tr><td><code>main.go:20:7: the cancel function returned by context.WithTimeout should be called, not discarded, to avoid a context leak</code></td><td>เขียน <code>ctx, _ := context.WithTimeout(...)</code> ทิ้ง cancel ทรัพยากรของ ctx จะค้างจนกว่าจะหมดเวลา</td><td>เขียน <code>ctx, cancel := context.WithTimeout(...)</code> แล้ว <code>defer cancel()</code> ในบรรทัดถัดไปทันที</td></tr>
+<tr><td><code>go run -race</code> แจ้งว่าต้องใช้ cgo หรือหา compiler <code>gcc</code> ไม่เจอ</td><td>Race Detector บน Linux ต้องใช้ cgo ซึ่งต้องมี C compiler</td><td>ติดตั้งด้วย <code>sudo apt install -y gcc</code> แล้วรันใหม่</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>จำกัดจำนวน Goroutine ที่ทำงานกับทรัพยากรภายนอกด้วย Worker Pool เสมอ และให้ผู้ใช้ปรับจำนวนได้ (มีขอบเขตบนล่าง เช่น 1–100)</li>
+<li>ทุกฟังก์ชันที่อาจรอนาน (เครือข่าย, ฐานข้อมูล, ไฟล์ใหญ่) ต้องรับ <code>ctx context.Context</code> เป็น parameter แรก และส่งต่อลงไปทุกชั้น ห้ามเก็บ ctx ไว้ใน struct</li>
+<li>เลือกเครื่องมือตามงาน: Channel สำหรับส่งต่องานหรือข้อมูล, Mutex สำหรับปกป้อง state ที่ใช้ร่วม, atomic สำหรับตัวนับง่าย ๆ</li>
+<li>เปิด <code>-race</code> ใน CI ทุกครั้ง (<code>go test -race ./...</code>) เพราะ Data Race มักไม่แสดงอาการบนเครื่องนักพัฒนา</li>
+<li>เมื่อต้องการ "รันหลายงานแล้วหยุดทั้งหมดเมื่อมีงานหนึ่ง error" ดู <code>errgroup</code> ใน <code>golang.org/x/sync</code> (v0.24.0) ซึ่งรวม WaitGroup กับ context ไว้ให้</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ทดลองปรับ Worker Pool</p><ol>
+<li>รัน <code>go run ./concepts/c11 -workers 1</code> หลายครั้ง แล้วอธิบายว่าทำไม job-3 บางครั้งได้ <code>ok</code> บางครั้งได้ <code>timeout</code> (คำนวณเวลาสะสม 30 + 80 + 40 = 150 ซึ่งชนกับเส้นตายพอดี) ตัวอย่างนี้สอนว่าอย่าออกแบบระบบให้ทำงานชิดเส้นตาย</li>
+<li>เพิ่มสถานะ <code>skipped</code> สำหรับงานที่ worker หยิบขึ้นมาตอนที่ <code>ctx.Err() != nil</code> แล้ว (ยังไม่ได้เริ่มทำ) และนับใน <code>Stats</code></li>
+<li>แก้ไฟล์ <code>race/main.go</code> ให้ใช้ <code>atomic.Int64</code> แล้วรัน <code>go run -race ./concepts/c11/race</code> จนไม่มีคำเตือน</li>
+<li>เปลี่ยนจาก <code>WithTimeout</code> เป็น <code>WithCancel</code> แล้วเรียก <code>cancel()</code> เองเมื่อพบงาน timeout ครบ 1 งาน สังเกตข้อความ Error ที่เปลี่ยนเป็น <code>context canceled</code></li>
+</ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 12</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h3 id="s6-2-c12">net/http Server และ Client, Retry และ httptest</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>Package <code>net/http</code> ใน Standard Library ของ Go แข็งแรงพอสำหรับ Production โดยไม่ต้องใช้ framework บริษัทจำนวนมากรัน API ด้วย <code>net/http</code> ล้วน ตั้งแต่ Go 1.22 ตัว Router มาตรฐาน <code>http.ServeMux</code> รองรับ<strong>รูปแบบที่ระบุ Method และ Wildcard</strong> เช่น <code>mux.HandleFunc("GET /items/{id}", h)</code> แล้วอ่านค่าด้วย <code>r.PathValue("id")</code> ถ้าเรียกด้วย Method ที่ไม่ได้ลงทะเบียน Go ตอบ <code>405 Method Not Allowed</code> พร้อม Header <code>Allow</code> ให้อัตโนมัติ ก่อนหน้านี้ต้องใช้ Library อย่าง chi (v5.5.0) หรือ gin (v1.12.0) ซึ่งยังเป็นตัวเลือกที่ดีเมื่อต้องการฟีเจอร์เพิ่ม</p>
+<p>ฝั่ง Server ที่พร้อมใช้งานจริงต้องมี:</p>
+<ul>
+<li><strong>Handler</strong>: ฟังก์ชัน <code>func(w http.ResponseWriter, r *http.Request)</code> ที่ตั้ง Header, เรียก <code>WriteHeader</code> หนึ่งครั้ง แล้วเขียน body</li>
+<li><strong>Middleware</strong>: ฟังก์ชันที่รับ <code>http.Handler</code> แล้วคืน <code>http.Handler</code> ใหม่ ใช้ทำงานที่ทุก request ต้องผ่าน เช่น log, วัดเวลา, ตรวจสิทธิ์</li>
+<li><strong>Timeout ของ Server</strong>: <code>http.Server{ReadHeaderTimeout: ...}</code> กันการโจมตีแบบส่ง Header ช้า ๆ (Slowloris) การใช้ <code>http.ListenAndServe</code> เฉย ๆ จะไม่มี Timeout เลย</li>
+<li><strong>Graceful Shutdown</strong>: เมื่อได้สัญญาณ Ctrl+C หรือ SIGTERM (ตอน Deploy) ให้หยุดรับ request ใหม่และรอ request ที่ค้างทำให้จบด้วย <code>srv.Shutdown(ctx)</code></li>
+</ul>
+<p>ฝั่ง Client ต้องมี <code>http.Client{Timeout: ...}</code> เสมอ (<code>http.DefaultClient</code> ไม่มี Timeout อาจค้างตลอดไป), สร้าง request ด้วย <code>http.NewRequestWithContext</code> เพื่อยกเลิกได้, <code>defer resp.Body.Close()</code> ทุกครั้ง และ <strong>Retry แบบมี Backoff</strong> เฉพาะ Error ชั่วคราว (เครือข่ายขัดข้อง หรือ 5xx) ไม่ Retry 4xx เพราะส่งซ้ำก็ผิดซ้ำ สุดท้าย Package <code>net/http/httptest</code> ให้เราเทสต์ Handler ได้โดยไม่ต้องเปิด port จริง (<code>NewRecorder</code>) หรือเปิด Server ชั่วคราวบน port สุ่ม (<code>NewServer</code>) ทำให้เทสต์ไม่ต้องพึ่งอินเทอร์เน็ต</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Server เหมือน "ร้านอาหาร" ServeMux คือพนักงานต้อนรับที่ดูใบสั่ง ("GET /items/1") แล้วส่งไปให้พ่อครัวที่ถูกคน (Handler) Middleware คือ "แคชเชียร์ที่จดบันทึกทุกออร์เดอร์" ก่อนและหลังส่งเข้าครัว Graceful Shutdown คือการปิดร้านอย่างสุภาพ: แขวนป้ายปิด ไม่รับลูกค้าใหม่ แต่ทำอาหารให้โต๊ะที่สั่งแล้วจนเสร็จ ส่วน Client ที่มี Retry คือ "คนโทรสั่งอาหาร" ถ้าสายไม่ว่าง (503) ก็รอสักพักแล้วโทรใหม่ แต่ถ้าร้านบอกว่า "ไม่มีเมนูนี้" (404) ก็ไม่ต้องโทรซ้ำ</p></div>
+
+<h4>ตัวอย่างโค้ด</h4>
+<p>API ของสินค้า (ข้อมูลเริ่มต้น <code>{1: keyboard, 2: mouse}</code>) ทำงานที่ <code>127.0.0.1:8080</code> มี <code>GET /health</code>, <code>GET /items/{id}</code>, <code>POST /items</code> (ตอบ 201) และ <code>GET /flaky</code> ที่ตอบ 503 สองครั้งแรกเพื่อทดสอบ Retry พร้อมไฟล์เทสต์และโปรแกรม Client แยก ทั้งหมดใช้ Standard Library ล้วน</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+mkdir -p concepts/c12/client
+sudo apt install -y curl file   # ปกติมีอยู่แล้ว</code></pre>
+<pre class="code" data-env="file" data-label="Go · concepts/c12/main.go"><code class="language-go">// itemsapi: REST API เล็ก ๆ ด้วย net/http ล้วน (ไม่มี framework)
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"strconv"
+	"sync"
+	"sync/atomic"
+	"syscall"
+	"time"
+)
+
+// version ถูกแทนค่าตอน build ด้วย -ldflags "-X main.version=v1.0.0"
+var version = "dev"
+
+// Item คือสินค้าหนึ่งชิ้น
+type Item struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+// Store เก็บข้อมูลในหน่วยความจำ ใช้ RWMutex เพราะ Handler หลายตัวทำงานพร้อมกัน
+type Store struct {
+	mu     sync.RWMutex
+	items  map[int]Item
+	nextID int
+}
+
+// NewStore สร้าง Store พร้อมข้อมูลตัวอย่าง
+func NewStore() *Store {
+	return &amp;Store{
+		items:  map[int]Item{1: {1, "keyboard"}, 2: {2, "mouse"}},
+		nextID: 3,
+	}
+}
+
+// Get อ่านข้อมูล ใช้ RLock ให้อ่านพร้อมกันหลายคนได้
+func (s *Store) Get(id int) (Item, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	it, ok := s.items[id]
+	return it, ok
+}
+
+// Add เขียนข้อมูล ใช้ Lock เขียนได้ทีละคน
+func (s *Store) Add(name string) Item {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	it := Item{ID: s.nextID, Name: name}
+	s.items[it.ID] = it
+	s.nextID++
+	return it
+}
+
+// writeJSON ตั้ง header, เขียน status code และ body ในที่เดียว
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status) // ต้องเรียกก่อนเขียน body และเรียกได้ครั้งเดียว
+	json.NewEncoder(w).Encode(v)
+}
+
+// newMux สร้าง router แยกจาก main เพื่อให้เทสต์ด้วย httptest ได้
+func newMux(store *Store) *http.ServeMux {
+	mux := http.NewServeMux()
+	var flakyCalls atomic.Int64
+
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "version": version})
+	})
+
+	// {id} คือ wildcard อ่านค่าด้วย r.PathValue("id") (Go 1.22+)
+	mux.HandleFunc("GET /items/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "id must be a number"})
+			return
+		}
+		it, ok := store.Get(id)
+		if !ok {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "item not found"})
+			return
+		}
+		writeJSON(w, http.StatusOK, it)
+	})
+
+	mux.HandleFunc("POST /items", func(w http.ResponseWriter, r *http.Request) {
+		var in struct {
+			Name string `json:"name"`
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, 1&lt;&lt;20) // จำกัดขนาด body 1 MB
+		if err := json.NewDecoder(r.Body).Decode(&amp;in); err != nil || in.Name == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "body must be {\"name\": \"...\"}"})
+			return
+		}
+		writeJSON(w, http.StatusCreated, store.Add(in.Name))
+	})
+
+	// /flaky ตอบ 503 สองครั้งแรก แล้วจึงตอบ 200 (ไว้ทดสอบ Retry ของ client)
+	mux.HandleFunc("GET /flaky", func(w http.ResponseWriter, r *http.Request) {
+		if flakyCalls.Add(1) &lt;= 2 {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "try again"})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "recovered"})
+	})
+	return mux
+}
+
+// statusRecorder ห่อ ResponseWriter เพื่อจำ status code ไว้ให้ middleware log
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *statusRecorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+// logging คือ Middleware: รับ Handler แล้วคืน Handler ใหม่ที่ log ทุก request
+func logging(logger *slog.Logger, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		rec := &amp;statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rec, r)
+		logger.Info("request", "method", r.Method, "path", r.URL.Path,
+			"status", rec.status, "duration", time.Since(start).Round(time.Microsecond))
+	})
+}
+
+func main() {
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
+	srv := &amp;http.Server{
+		Addr:              "127.0.0.1:8080",
+		Handler:           logging(logger, newMux(NewStore())),
+		ReadHeaderTimeout: 5 * time.Second, // กัน client ที่ส่ง header ช้า ๆ (Slowloris)
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	// ctx จะถูกยกเลิกเมื่อกด Ctrl+C (SIGINT) หรือได้ SIGTERM
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		logger.Info("listening", "addr", srv.Addr, "version", version)
+		if err := srv.ListenAndServe(); err != nil &amp;&amp; !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("server failed", "err", err)
+			os.Exit(1)
+		}
+	}()
+
+	&lt;-ctx.Done() // รอสัญญาณปิด
+	logger.Info("shutting down")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	// Graceful Shutdown: หยุดรับ request ใหม่ แล้วรอ request ที่ค้างอยู่ทำงานให้จบ
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logger.Error("shutdown error", "err", err)
+	}
+	logger.Info("bye")
+}</code></pre>
+<pre class="code" data-env="file" data-label="Go · concepts/c12/main_test.go"><code class="language-go">package main
+
+import (
+	"encoding/json"
+	"io"
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
+
+// TestRoutes ทดสอบ Handler โดยไม่เปิด port จริง ด้วย httptest.NewRecorder
+func TestRoutes(t *testing.T) {
+	tests := []struct {
+		name       string
+		method     string
+		path       string
+		body       string
+		wantStatus int
+		wantBody   string // ข้อความที่ต้องมีอยู่ใน body
+	}{
+		{"health", "GET", "/health", "", 200, `"status":"ok"`},
+		{"get item", "GET", "/items/1", "", 200, `"name":"keyboard"`},
+		{"bad id", "GET", "/items/abc", "", 400, "id must be a number"},
+		{"not found", "GET", "/items/99", "", 404, "item not found"},
+		{"wrong method", "DELETE", "/items/1", "", 405, "Method Not Allowed"},
+		{"create", "POST", "/items", `{"name":"monitor"}`, 201, `"id":3`},
+		{"create empty", "POST", "/items", `{}`, 400, "body must be"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mux := newMux(NewStore()) // Store ใหม่ทุกกรณี เทสต์จึงไม่กระทบกัน
+			req := httptest.NewRequest(tc.method, tc.path, strings.NewReader(tc.body))
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != tc.wantStatus {
+				t.Fatalf("status = %d, want %d (body: %s)", rec.Code, tc.wantStatus, rec.Body)
+			}
+			if !strings.Contains(rec.Body.String(), tc.wantBody) {
+				t.Errorf("body = %q, want it to contain %q", rec.Body, tc.wantBody)
+			}
+		})
+	}
+}
+
+// TestServerRoundTrip เปิด server จริงบน port สุ่มด้วย httptest.NewServer แล้วยิงด้วย http.Client
+func TestServerRoundTrip(t *testing.T) {
+	ts := httptest.NewServer(newMux(NewStore()))
+	defer ts.Close()
+
+	resp, err := ts.Client().Get(ts.URL + "/items/2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	data, _ := io.ReadAll(resp.Body)
+
+	var it Item
+	if err := json.Unmarshal(data, &amp;it); err != nil {
+		t.Fatalf("invalid json %q: %v", data, err)
+	}
+	if it.Name != "mouse" {
+		t.Errorf("name = %q, want mouse", it.Name)
+	}
+}</code></pre>
+<pre class="code" data-env="file" data-label="Go · concepts/c12/client/main.go"><code class="language-go">// client: เรียก API พร้อม Timeout และ Retry แบบมี Backoff
+package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"time"
+)
+
+// fetch ยิง GET หนึ่งครั้ง คืน status code และ body
+func fetch(ctx context.Context, client *http.Client, url string) (int, string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return 0, "", err
+	}
+	req.Header.Set("User-Agent", "go-lab-client/1.0")
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, "", err // network error: ต่อไม่ได้ หมดเวลา DNS ผิด
+	}
+	defer resp.Body.Close() // ต้องปิด body เสมอ ไม่อย่างนั้น connection รั่ว
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1&lt;&lt;20))
+	return resp.StatusCode, string(body), err
+}
+
+// fetchWithRetry ลองใหม่เฉพาะ network error และ 5xx สูงสุด maxAttempts ครั้ง
+// รอ 100ms * ครั้งที่ ระหว่างแต่ละรอบ (linear backoff) และหยุดทันทีถ้า ctx ถูกยกเลิก
+func fetchWithRetry(ctx context.Context, client *http.Client, url string, maxAttempts int) (int, string, int, error) {
+	var lastErr error
+	for attempt := 1; attempt &lt;= maxAttempts; attempt++ {
+		code, body, err := fetch(ctx, client, url)
+		switch {
+		case err == nil &amp;&amp; code &lt; 500:
+			return code, body, attempt, nil // สำเร็จ หรือ 4xx ซึ่ง retry ไปก็ไม่ช่วย
+		case err == nil:
+			lastErr = fmt.Errorf("server error %d", code)
+		default:
+			lastErr = err
+		}
+		fmt.Printf("  attempt %d failed: %v\n", attempt, lastErr)
+		if attempt == maxAttempts {
+			break
+		}
+		select {
+		case &lt;-time.After(time.Duration(attempt) * 100 * time.Millisecond):
+		case &lt;-ctx.Done():
+			return 0, "", attempt, ctx.Err()
+		}
+	}
+	return 0, "", maxAttempts, fmt.Errorf("giving up after %d attempts: %w", maxAttempts, lastErr)
+}
+
+func main() {
+	// Timeout ของ client ครอบทั้ง request (ต่อ, ส่ง, รอ, อ่าน body)
+	client := &amp;http.Client{Timeout: 2 * time.Second}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	base := "http://127.0.0.1:8080"
+	if len(os.Args) &gt; 1 {
+		base = os.Args[1]
+	}
+	exit := 0
+	for _, path := range []string{"/health", "/items/1", "/items/99", "/flaky"} {
+		fmt.Println("GET", path)
+		code, body, attempts, err := fetchWithRetry(ctx, client, base+path, 3)
+		if err != nil {
+			fmt.Println("  error:", err)
+			if errors.Is(err, context.DeadlineExceeded) {
+				fmt.Println("  (หมดเวลารวม 5 วินาที)")
+			}
+			exit = 1
+			continue
+		}
+		fmt.Printf("  %d after %d attempt(s): %s", code, attempts, body)
+	}
+	os.Exit(exit)
+}</code></pre>
+<p><strong>ขั้นที่ 1: รันเทสต์ก่อน</strong> (ไม่ต้องเปิด Server)</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+go test -v ./concepts/c12
+go test -race -cover ./concepts/c12/...</code></pre>
+<p><strong>ขั้นที่ 2: build พร้อมฝังเวอร์ชัน แล้วเปิด Server</strong> ในหน้าต่าง Terminal ที่ 1</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+# -s -w ตัดข้อมูล debug ให้ไฟล์เล็กลง, -X แทนค่าตัวแปร main.version, CGO_ENABLED=0 ได้ Binary แบบ static
+CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=v1.0.0" -o bin/itemsapi ./concepts/c12
+./bin/itemsapi</code></pre>
+<p><strong>ขั้นที่ 3: ยิง request</strong> จาก Terminal ที่ 2</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">curl -s http://127.0.0.1:8080/health
+curl -s -i http://127.0.0.1:8080/items/1
+curl -s -i http://127.0.0.1:8080/items/abc
+curl -s http://127.0.0.1:8080/items/99
+curl -s -i -X DELETE http://127.0.0.1:8080/items/1
+curl -s -i -X POST -H 'Content-Type: application/json' -d '{"name":"monitor"}' http://127.0.0.1:8080/items
+
+# รัน Client ที่มี Retry (Server ต้องเปิดอยู่)
+cd ~/projects/go-lab
+go run ./concepts/c12/client</code></pre>
+<p><strong>ขั้นที่ 4: กด <kbd>Ctrl</kbd>+<kbd>C</kbd> ใน Terminal ที่ 1</strong> เพื่อปิด Server แบบ Graceful แล้ว Cross-compile สำหรับ Windows และ macOS</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/go-lab
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-s -w -X main.version=v1.0.0" -o bin/itemsapi.exe ./concepts/c12
+CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o bin/itemsapi-darwin-arm64 ./concepts/c12
+file bin/itemsapi.exe bin/itemsapi-darwin-arm64
+go tool dist list | wc -l   # จำนวนคู่ระบบปฏิบัติการ/สถาปัตยกรรมที่ Go รองรับ</code></pre>
+
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<p>ผลของขั้นที่ 1 (เวลา <code>0.007s</code> และ <code>1.029s</code> จะต่างไปตามเครื่อง):</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>=== RUN   TestRoutes
+=== RUN   TestRoutes/health
+=== RUN   TestRoutes/get_item
+=== RUN   TestRoutes/bad_id
+=== RUN   TestRoutes/not_found
+=== RUN   TestRoutes/wrong_method
+=== RUN   TestRoutes/create
+=== RUN   TestRoutes/create_empty
+--- PASS: TestRoutes (0.00s)
+    --- PASS: TestRoutes/health (0.00s)
+    --- PASS: TestRoutes/get_item (0.00s)
+    --- PASS: TestRoutes/bad_id (0.00s)
+    --- PASS: TestRoutes/not_found (0.00s)
+    --- PASS: TestRoutes/wrong_method (0.00s)
+    --- PASS: TestRoutes/create (0.00s)
+    --- PASS: TestRoutes/create_empty (0.00s)
+=== RUN   TestServerRoundTrip
+--- PASS: TestServerRoundTrip (0.00s)
+PASS
+ok  	example.com/go-lab/concepts/c12	(cached)
+ok  	example.com/go-lab/concepts/c12	(cached)	coverage: 57.8% of statements
+	example.com/go-lab/concepts/c12/client		coverage: 0.0% of statements</code></pre>
+<p>ผลของขั้นที่ 3 (Header <code>Date</code> บนเครื่องคุณจะเป็นเวลาปัจจุบัน):</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>{"status":"ok","version":"v1.0.0"}
+HTTP/1.1 200 OK
+Content-Type: application/json
+Date: Mon, 19 Oct 2026 09:29:55 GMT
+Content-Length: 27
+
+{"id":1,"name":"keyboard"}
+
+HTTP/1.1 400 Bad Request
+Content-Type: application/json
+Date: Mon, 19 Oct 2026 09:29:55 GMT
+Content-Length: 32
+
+{"error":"id must be a number"}
+{"error":"item not found"}
+HTTP/1.1 405 Method Not Allowed
+Allow: GET, HEAD
+Content-Type: text/plain; charset=utf-8
+X-Content-Type-Options: nosniff
+Date: Mon, 19 Oct 2026 09:29:55 GMT
+Content-Length: 19
+
+Method Not Allowed
+
+HTTP/1.1 201 Created
+Content-Type: application/json
+Date: Mon, 19 Oct 2026 09:29:55 GMT
+Content-Length: 26
+
+{"id":3,"name":"monitor"}
+GET /health
+  200 after 1 attempt(s): {"status":"ok","version":"v1.0.0"}
+GET /items/1
+  200 after 1 attempt(s): {"id":1,"name":"keyboard"}
+GET /items/99
+  404 after 1 attempt(s): {"error":"item not found"}
+GET /flaky
+  attempt 1 failed: server error 503
+  attempt 2 failed: server error 503
+  200 after 3 attempt(s): {"status":"recovered"}</code></pre>
+<p>สังเกตว่า <code>DELETE /items/1</code> ได้ 405 พร้อม <code>Allow: GET, HEAD</code> โดยเราไม่ได้เขียนโค้ดเลย (Go เพิ่ม HEAD ให้ทุก route ที่เป็น GET) ส่วน <code>/items/99</code> ได้ 404 แล้ว Client <strong>ไม่ Retry</strong> เพราะเป็น 4xx แต่ <code>/flaky</code> ได้ 503 สองครั้งจึง Retry จนสำเร็จในครั้งที่ 3 ใน Terminal ที่ 1 ซึ่งเปิด Server อยู่ จะเห็น log จาก Middleware ทุก request และข้อความตอนปิด (เวลาและ <code>duration</code> จะต่างไป):</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>time=2026-10-19T09:29:54.251Z level=INFO msg=listening addr=127.0.0.1:8080 version=v1.0.0
+time=2026-10-19T09:29:55.257Z level=INFO msg=request method=GET path=/health status=200 duration=109µs
+time=2026-10-19T09:29:55.264Z level=INFO msg=request method=GET path=/items/1 status=200 duration=102µs
+time=2026-10-19T09:29:55.270Z level=INFO msg=request method=GET path=/items/abc status=400 duration=28µs
+time=2026-10-19T09:29:55.276Z level=INFO msg=request method=GET path=/items/99 status=404 duration=39µs
+time=2026-10-19T09:29:55.282Z level=INFO msg=request method=DELETE path=/items/1 status=405 duration=23µs
+time=2026-10-19T09:29:55.288Z level=INFO msg=request method=POST path=/items status=201 duration=84µs
+time=2026-10-19T09:29:55.599Z level=INFO msg=request method=GET path=/health status=200 duration=84µs
+time=2026-10-19T09:29:55.599Z level=INFO msg=request method=GET path=/items/1 status=200 duration=16µs
+time=2026-10-19T09:29:55.599Z level=INFO msg=request method=GET path=/items/99 status=404 duration=16µs
+time=2026-10-19T09:29:55.600Z level=INFO msg=request method=GET path=/flaky status=503 duration=9µs
+time=2026-10-19T09:29:55.701Z level=INFO msg=request method=GET path=/flaky status=503 duration=30µs
+time=2026-10-19T09:29:55.902Z level=INFO msg=request method=GET path=/flaky status=200 duration=27µs
+^Ctime=2026-10-19T09:29:58.911Z level=INFO msg="shutting down"
+time=2026-10-19T09:29:58.911Z level=INFO msg=bye</code></pre>
+<p>ระยะห่างของ request <code>/flaky</code> คือประมาณ 100ms และ 200ms ตรงกับ Backoff <code>100ms × ครั้งที่</code> ผลของขั้นที่ 4:</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>bin/itemsapi.exe:          PE32+ executable (console) x86-64, for MS Windows, 8 sections
+bin/itemsapi-darwin-arm64: Mach-O 64-bit arm64 executable, flags:&lt;|DYLDLINK|PIE&gt;
+47</code></pre>
+<p>ไฟล์ <code>itemsapi.exe</code> นำไปดับเบิลคลิกหรือรันใน PowerShell บน Windows ได้ทันทีโดยไม่ต้องติดตั้ง Go จำนวน <code>47</code> อาจต่างไปเล็กน้อยในรุ่นอื่นของ Go ถ้าหลังจากปิด Server แล้วรัน Client อีกครั้ง จะเห็น Retry กับ Network Error ครบ 3 ครั้ง แล้วจบด้วยรหัส 1:</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>GET /health
+  attempt 1 failed: Get "http://127.0.0.1:8080/health": dial tcp 127.0.0.1:8080: connect: connection refused
+  attempt 2 failed: Get "http://127.0.0.1:8080/health": dial tcp 127.0.0.1:8080: connect: connection refused
+  attempt 3 failed: Get "http://127.0.0.1:8080/health": dial tcp 127.0.0.1:8080: connect: connection refused
+  error: giving up after 3 attempts: Get "http://127.0.0.1:8080/health": dial tcp 127.0.0.1:8080: connect: connection refused</code></pre>
+<p class="muted small">ผลด้านบนแสดงเฉพาะ <code>/health</code> ส่วน <code>/items/1</code>, <code>/items/99</code> และ <code>/flaky</code> แสดงข้อความ connection refused รูปแบบเดียวกันอีก path ละ 4 บรรทัด และบรรทัดสุดท้ายคือ <code>exit status 1</code></p>
+
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>var version = "dev"</code></td><td>ตัวแปรระดับ Package ที่ <code>-ldflags "-X main.version=v1.0.0"</code> แทนค่าตอน build ได้ <code>/health</code> จึงตอบ <code>"version":"v1.0.0"</code> ช่วยให้รู้ว่า Server ที่รันอยู่เป็นรุ่นไหน</td></tr>
+<tr><td><code>Store</code> + <code>sync.RWMutex</code></td><td>Server ของ Go รันแต่ละ request ใน Goroutine แยก ข้อมูลที่ใช้ร่วมจึงต้องล็อก <code>RLock</code> ให้อ่านพร้อมกันได้ <code>Lock</code> ให้เขียนทีละคน</td></tr>
+<tr><td><code>writeJSON(w, status, v)</code></td><td>รวมขั้นตอนตอบ JSON ไว้ที่เดียว ลำดับสำคัญ: ตั้ง Header → <code>WriteHeader</code> → เขียน body ถ้าเขียน body ก่อน Go จะส่ง 200 ให้อัตโนมัติ</td></tr>
+<tr><td><code>func newMux(store *Store) *http.ServeMux</code></td><td>แยกการสร้าง Router ออกจาก <code>main</code> เทสต์จึงสร้าง mux พร้อม Store ใหม่ได้ทุกกรณี โดยไม่ต้องเปิด port</td></tr>
+<tr><td><code>mux.HandleFunc("GET /items/{id}", ...)</code> + <code>r.PathValue("id")</code></td><td>รูปแบบ Method + Path + Wildcard (Go 1.22+) <code>PathValue</code> คืน string เสมอ จึงต้อง <code>strconv.Atoi</code> และตอบ 400 เมื่อแปลงไม่ได้</td></tr>
+<tr><td><code>http.MaxBytesReader(w, r.Body, 1&lt;&lt;20)</code></td><td>จำกัดขนาด body ไม่เกิน 1 MB กันผู้ไม่หวังดีส่งข้อมูลใหญ่จนหน่วยความจำเต็ม</td></tr>
+<tr><td><code>json.NewDecoder(r.Body).Decode(&amp;in)</code></td><td>อ่าน JSON จาก body ตรง ๆ ตรวจทั้ง Error และค่าว่าง (<code>in.Name == ""</code>) แล้วตอบ 400 ถ้าไม่ผ่าน</td></tr>
+<tr><td><code>flakyCalls.Add(1) &lt;= 2</code></td><td>ตัวนับ atomic ที่ปลอดภัยเมื่อหลาย request เข้ามาพร้อมกัน ใช้จำลอง Server ที่ล่มชั่วคราว</td></tr>
+<tr><td><code>type statusRecorder struct { http.ResponseWriter; status int }</code></td><td>Embedding ResponseWriter แล้ว override แค่ <code>WriteHeader</code> เพื่อจำ status code ไว้ให้ Middleware log ได้</td></tr>
+<tr><td><code>func logging(logger, next http.Handler) http.Handler</code></td><td>Middleware: ทำงานก่อน (จับเวลา) → เรียก <code>next.ServeHTTP</code> → ทำงานหลัง (log method, path, status, duration)</td></tr>
+<tr><td><code>&amp;http.Server{ ReadHeaderTimeout: 5 * time.Second, ... }</code></td><td>กำหนด Timeout ทุกขั้นของการเชื่อมต่อ ค่าที่เหมาะสมขึ้นกับงาน ค่าเหล่านี้เป็นจุดเริ่มต้นที่ปลอดภัย</td></tr>
+<tr><td><code>signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)</code></td><td>คืน ctx ที่ถูกยกเลิกเมื่อได้สัญญาณ Ctrl+C หรือ SIGTERM (Docker และ Kubernetes ส่ง SIGTERM ตอนหยุด container)</td></tr>
+<tr><td><code>go func() { srv.ListenAndServe() }()</code> + <code>errors.Is(err, http.ErrServerClosed)</code></td><td>เปิด Server ใน Goroutine แยก ให้ main รอสัญญาณได้ เมื่อ Shutdown แล้ว ListenAndServe คืน <code>ErrServerClosed</code> ซึ่งเป็นเรื่องปกติ ไม่ใช่ Error</td></tr>
+<tr><td><code>srv.Shutdown(shutdownCtx)</code></td><td>Graceful Shutdown: ปิด listener แล้วรอ request ที่ค้างจบ ไม่เกิน 5 วินาทีตาม <code>shutdownCtx</code></td></tr>
+<tr><td><code>httptest.NewRequest</code> + <code>httptest.NewRecorder()</code> + <code>mux.ServeHTTP(rec, req)</code></td><td>สร้าง request ปลอมและตัวบันทึก response เรียก Handler ตรง ๆ แล้วตรวจ <code>rec.Code</code> และ <code>rec.Body</code> เร็วมากเพราะไม่ผ่านเครือข่าย</td></tr>
+<tr><td><code>httptest.NewServer(newMux(NewStore()))</code></td><td>เปิด Server จริงบน port สุ่มที่ <code>127.0.0.1</code> ใช้ทดสอบ Client ทั้งเส้นทาง <code>ts.URL</code> คือที่อยู่ และ <code>defer ts.Close()</code> ปิดเมื่อเทสต์จบ</td></tr>
+<tr><td><code>http.NewRequestWithContext(ctx, http.MethodGet, url, nil)</code></td><td>ผูก request กับ ctx เมื่อ ctx ถูกยกเลิก request ที่ค้างจะหยุดทันที</td></tr>
+<tr><td><code>defer resp.Body.Close()</code> + <code>io.LimitReader</code></td><td>ปิด body ทุกครั้งเพื่อคืน connection ให้ pool และจำกัดขนาดที่อ่านไม่เกิน 1 MB</td></tr>
+<tr><td><code>case err == nil &amp;&amp; code &lt; 500: return</code></td><td>สำเร็จหรือ 4xx ให้คืนทันที (ไม่ Retry) เฉพาะ 5xx และ Network Error เท่านั้นที่ลองใหม่</td></tr>
+<tr><td><code>time.After(time.Duration(attempt) * 100 * time.Millisecond)</code></td><td>Linear Backoff: รอ 100ms, 200ms ระหว่างรอบ และใช้ <code>select</code> กับ <code>ctx.Done()</code> เพื่อเลิกรอทันทีถ้าหมดเวลารวม</td></tr>
+<tr><td><code>CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build</code></td><td>Cross-compile: build บน Linux ได้ไฟล์ <code>.exe</code> ของ Windows โดยไม่ต้องมีเครื่อง Windows <code>CGO_ENABLED=0</code> ทำให้ไม่พึ่ง C Library จึงได้ Binary แบบ static ที่ย้ายเครื่องได้ง่าย</td></tr>
+</tbody></table></div>
+
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>level=ERROR msg="server failed" err="listen tcp 127.0.0.1:8080: bind: address already in use"</code></td><td>มีโปรแกรมอื่น (หรือ Server ตัวเดิมที่ยังไม่ได้ปิด) ใช้ port 8080 อยู่</td><td>หาโปรแกรมที่ใช้ port ด้วย <code>ss -ltnp | grep 8080</code> แล้วปิดด้วย Ctrl+C หรือ <code>kill PID</code> หรือเปลี่ยน port ของเรา</td></tr>
+<tr><td><code>panic: pattern "GET /items/{name}" (registered at .../main.go:8) conflicts with pattern "GET /items/{id}" (registered at .../main.go:7):</code><br><code>GET /items/{name} matches the same requests as GET /items/{id}</code></td><td>ลงทะเบียน 2 รูปแบบที่จับ request ชุดเดียวกัน ServeMux ตรวจตอนลงทะเบียนและ panic ทันทีตั้งแต่เริ่มโปรแกรม</td><td>ใช้ Wildcard ชื่อเดียวต่อตำแหน่ง หรือแยก path ให้ต่างกัน เช่น <code>/items/{id}</code> กับ <code>/items/by-name/{name}</code></td></tr>
+<tr><td><code>http: superfluous response.WriteHeader call from main.handler (main.go:10)</code></td><td>เรียก <code>WriteHeader</code> หลังเขียน body ไปแล้ว (หรือเรียกซ้ำ) Status ที่ส่งจริงคือ 200 ไม่ใช่ค่าที่ตั้งใจ</td><td>ตั้ง Header และเรียก <code>WriteHeader</code> ก่อนเขียน body เสมอ และ <code>return</code> ทันทีหลังตอบ Error เหมือนใน <code>writeJSON</code></td></tr>
+<tr><td>หลังรันนาน ๆ Client ช้าลงเรื่อย ๆ หรือเจอ <code>dial tcp ...: socket: too many open files</code></td><td>ลืม <code>resp.Body.Close()</code> connection จึงไม่ถูกคืนให้ pool และสะสมจนเต็มขีดจำกัดของระบบ</td><td>เขียน <code>defer resp.Body.Close()</code> ทันทีหลังตรวจ err ของ <code>client.Do</code> และอ่าน body ให้จบ (หรือทิ้งด้วย <code>io.Copy(io.Discard, resp.Body)</code>)</td></tr>
+<tr><td>Client ค้างไม่จบเมื่อ Server ปลายทางไม่ตอบ</td><td>ใช้ <code>http.Get</code> หรือ <code>http.DefaultClient</code> ซึ่งไม่มี Timeout</td><td>สร้าง <code>&amp;http.Client{Timeout: 2 * time.Second}</code> ใช้ร่วมกันทั้งโปรแกรม และส่ง ctx ผ่าน <code>NewRequestWithContext</code></td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul>
+<li>ตั้ง Timeout ทั้งฝั่ง Server (<code>ReadHeaderTimeout</code> อย่างน้อย) และฝั่ง Client เสมอ ห้ามใช้ค่าเริ่มต้นใน Production</li>
+<li>Bind ที่ <code>127.0.0.1</code> ตอนพัฒนา และเปลี่ยนเป็น <code>:8080</code> (ทุก interface) เฉพาะเมื่อรันใน container หรือหลัง Reverse Proxy</li>
+<li>แยก <code>newMux</code>/Handler ออกจาก <code>main</code> แล้วเทสต์ด้วย <code>httptest</code> ครบทุก status code ที่ API ตอบได้ (200, 201, 400, 404, 405)</li>
+<li>Retry เฉพาะ Error ชั่วคราว จำกัดจำนวนครั้ง ใช้ Backoff และเคารพ ctx ถ้าเรียก API ของคนอื่นบ่อย ควรเพิ่ม Jitter (สุ่มเวลารอเล็กน้อย) เพื่อไม่ให้ Client ทุกตัว Retry พร้อมกัน</li>
+<li>ฝังเวอร์ชันด้วย <code>-ldflags "-X main.version=..."</code> และเปิดเผยผ่าน <code>/health</code> เพื่อตรวจได้ว่า Deploy รุ่นที่ถูกต้องแล้ว</li>
+<li>ตรวจเฉพาะ Server ที่คุณเป็นเจ้าของหรือได้รับอนุญาต การยิง request จำนวนมากใส่ระบบของผู้อื่นโดยไม่ได้รับอนุญาตอาจผิด พ.ร.บ.ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์</li>
+</ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>เพิ่ม endpoint และเทสต์</p><ol>
+<li>เพิ่ม <code>DELETE /items/{id}</code> ที่ตอบ <code>204 No Content</code> เมื่อลบสำเร็จ และ 404 เมื่อไม่มี แล้วแก้กรณี <code>wrong method</code> ในเทสต์ให้ใช้ <code>PUT</code> แทน</li>
+<li>เพิ่ม <code>GET /items</code> ที่คืนสินค้าทั้งหมดเรียงตาม id (ใช้ <code>slices.Sorted(maps.Keys(...))</code>) พร้อมเทสต์</li>
+<li>เพิ่ม Middleware <code>requireJSON</code> ที่ตอบ 415 เมื่อ <code>POST</code> โดยไม่มี Header <code>Content-Type: application/json</code></li>
+<li>เปิด Server สองตัวพร้อมกันเพื่อดู Error <code>address already in use</code> แล้วเพิ่ม flag <code>-addr</code> ให้เลือก port ได้ (เช่น <code>-addr 127.0.0.1:8081</code>)</li>
+</ol></div>
+</article>
+<p>ครบทั้ง 12 แนวคิดของส่วน Core Concept แล้ว ก่อนไปต่อ ให้ลองรัน <code>go vet ./...</code> และ <code>go test -race ./...</code> กับโค้ดทุกตัวอย่างที่คุณพิมพ์ตามใน <code>~/projects/go-lab</code> ถ้าผ่านทั้งหมดแปลว่าพื้นฐานพร้อมสำหรับ Mini Project ในส่วนถัดไป</p>
+</section>
