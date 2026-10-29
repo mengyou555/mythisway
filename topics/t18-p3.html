@@ -1,0 +1,1759 @@
+<section class="part" data-part="3">
+<h2 id="s18-3"><span class="sec-no">18.3</span>Practice Exercises &amp; Quizzes</h2>
+
+<p>ส่วนนี้ให้คุณทบทวนแนวคิดทั้ง 12 ข้อของ Part 2 ด้วยตัวเอง เริ่มจากเติมคำในช่องว่าง 9 ข้อ ต่อด้วยข้อสอบปรนัย 12 ข้อ แล้วปิดท้ายด้วยโจทย์ลงมือทำ 3 ข้อ โจทย์ทั้ง 3 ข้อจำลองงานจริงของทีมที่ดูแลแอปจดโน้ต คือ ย้ายโน้ตจากแอปเวอร์ชันเก่า แก้บั๊กหน้ารายการที่พังหลังเพิ่มการซิงก์ และเพิ่มปุ่มซิงก์จากเซิร์ฟเวอร์พร้อม Unit Test ก่อน Merge เฉลยทั้งหมดอยู่ท้ายหน้า ขอให้ลองคิดและลองรันเองก่อนเปิดเฉลยทุกครั้ง</p>
+
+<h3 id="s18-3-howto">เตรียมเครื่องและวิธีใช้หน้านี้</h3>
+<ul>
+  <li>โจทย์ที่เป็น Kotlin ล้วนทำใน WSL ที่โฟลเดอร์ <code>~/projects/android-kotlin-lab/practice/</code> ซึ่งแยกเป็น <code>fill</code> (โค้ดจากข้อเติมคำและข้อสอบปรนัย), <code>ch1</code>, <code>ch2</code> และ <code>ch3</code> (โจทย์ลงมือทำข้อ 1 ถึง 3) ไฟล์ Jar ของไลบรารีใช้ชุดเดียวกับ Part 2 ที่ <code>~/projects/android-kotlin-lab/libs</code> ทุกโฟลเดอร์ย่อยใน <code>practice</code> จึงอ้างถึง Jar ได้ด้วย Path <code>../../libs/</code> เหมือนกันหมด</li>
+  <li>โจทย์ที่เป็นโค้ด Android ทำในโปรเจกต์ AndroidLab ที่ <code>C:\Users\somchai\AndroidStudioProjects\AndroidLab</code> ใน Package ใหม่ชื่อ <code>com.somchai.androidlab.practice</code> สร้างได้โดยคลิกขวาที่ <code>app/src/main/java/com.somchai.androidlab</code> ในแผง Project เลือก New &gt; Package แล้วพิมพ์ <code>practice</code> ต่อท้ายชื่อที่ Android Studio เติมไว้ให้ ไฟล์ของโจทย์ทั้ง 3 ข้ออยู่ใน Package เดียวกัน ชื่อ Class ในแต่ละโจทย์จึงตั้งไม่ให้ซ้ำกัน</li>
+  <li>ทุกข้อบอกเลขแนวคิดของ Part 2 ไว้ในวงเล็บ ถ้าตอบข้อไหนไม่ได้ ให้กลับไปอ่านแนวคิดนั้นและรันตัวอย่างอีกครั้งก่อนเปิดเฉลย</li>
+  <li>วิธี Compile ใช้แบบเดียวกับ Part 1 และ Part 2 ไฟล์ที่ไม่ใช้ไลบรารีใช้ <code>kotlinc file.kt -include-runtime -d file.jar &amp;&amp; java -jar file.jar</code> ถ้าใช้ไลบรารีต้องใส่ Jar ใน <code>-cp</code> ทั้งตอน Compile และตอนรัน แล้วระบุ Main class ซึ่งคือชื่อไฟล์ที่ขึ้นต้นด้วยตัวใหญ่และต่อท้ายด้วย <code>Kt</code> เช่น <code>f7.kt</code> มี Main class ชื่อ <code>F7Kt</code> โค้ดที่ใช้ <code>@Serializable</code> ต้องเพิ่ม <code>-Xplugin=$HOME/tools/kotlinc/lib/kotlinx-serialization-compiler-plugin.jar</code> ตอน Compile ด้วย</li>
+  <li>เมื่อโจทย์ให้ดู Logcat ให้เปิดแผง Logcat ใน Android Studio แล้วพิมพ์ตัวกรอง <code>package:mine tag:AndroidLab</code> เพื่อให้เห็นเฉพาะบรรทัดที่แอปของเราพิมพ์ด้วยคำสั่ง <code>Log</code></li>
+</ul>
+
+<p>เปิด Ubuntu (WSL) แล้วสร้างโฟลเดอร์สำหรับหน้านี้ จากนั้นตรวจว่ามี Jar ครบ 6 ไฟล์และใช้ Kotlin compiler เวอร์ชันเดียวกับหลักสูตร</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># สร้างโฟลเดอร์ของแบบฝึกหัดในหน้านี้ทั้ง 4 โฟลเดอร์ในคำสั่งเดียว
+mkdir -p ~/projects/android-kotlin-lab/practice/{fill,ch1,ch2,ch3}
+# แสดงชื่อ Jar บรรทัดละไฟล์ ต้องมีครบ 6 ไฟล์จาก Part 2
+ls -1 ~/projects/android-kotlin-lab/libs
+# ตรวจเวอร์ชันของ Kotlin compiler
+kotlinc -version</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>hamcrest-core-1.3.jar
+junit-4.13.2.jar
+kotlinx-coroutines-core-jvm-1.11.0.jar
+kotlinx-coroutines-test-jvm-1.11.0.jar
+kotlinx-serialization-core-jvm-1.11.0.jar
+kotlinx-serialization-json-jvm-1.11.0.jar
+info: kotlinc-jvm 2.4.21 (JRE 21.0.12.1+1-1-24.04.4-Ubuntu)</code></pre>
+<p class="muted small">เลขเวอร์ชันย่อยของ OpenJDK ในวงเล็บอาจต่างจากนี้ตามการอัปเดตของ Ubuntu สิ่งที่ต้องเห็นคือ <code>kotlinc-jvm 2.4.21</code> และ JRE ที่ขึ้นต้นด้วย <code>21.</code> ถ้า Jar ไม่ครบ ให้กลับไปดาวน์โหลดตามหัวข้อเตรียมเครื่องของ Part 2</p>
+
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>โค้ด Kotlin ล้วนในหน้านี้รันจริงด้วย kotlinc 2.4.21 บน OpenJDK 21 และผลลัพธ์ที่แสดงคัดลอกมาจากการรันจริง ได้แก่ โค้ดของข้อเติมคำข้อ 1, 2 และ 7 โค้ดของข้อสอบปรนัยข้อ 1, 2, 3, 8, 9, 10 และ 12 และส่วน Kotlin ล้วนของโจทย์ลงมือทำทั้ง 3 ข้อ ซึ่งรวม Unit Test 6 ข้อที่รันด้วย JUnit 4.13.2 และการเรียก API จำลองที่เสิร์ฟด้วย <code>python3 -m http.server</code> ส่วนโค้ด Android (Compose, Navigation, ViewModel, Room, Retrofit และไฟล์ Gradle) เขียนตามเอกสารทางการบน developer.android.com เพราะระบบที่เราใช้ทดสอบเนื้อหาไม่มี Android SDK บรรทัด Logcat ที่แสดงคือข้อความที่คำสั่ง <code>Log</code> ในโค้ดพิมพ์ออกมา ไม่ได้จับมาจากเครื่องจริง</p></div>
+
+<h3 id="s18-3-fill">Fill-in-the-blank</h3>
+<p>เติมคำในช่อง <code>_____</code> ให้ถูกต้อง แต่ละข้อมี 3 ช่อง ให้ตอบเรียงตามเลข (1) (2) (3) ที่อยู่ในโจทย์หรือใน Comment ของโค้ด ข้อ 1 ถึง 3 เป็นระดับง่าย ข้อ 4 ถึง 6 ระดับกลาง และข้อ 7 ถึง 9 ระดับยาก ข้อที่เป็นไฟล์ <code>.kt</code> ให้เติมคำแล้วบันทึกลงโฟลเดอร์ <code>practice/fill</code> แล้วรันเพื่อตรวจว่าได้ผลตามที่โจทย์บอก</p>
+
+<ol class="qlist fill">
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>(แนวคิดที่ 1) แอปได้ชื่อโน้ตและ Tag มาจากฟอร์มที่ผู้ใช้อาจเว้นว่างไว้ ส่วนจำนวนหน้าได้มาเป็นข้อความ เติมโค้ดให้โปรแกรมพิมพ์ <code>ไม่มีชื่อ | 3 | 0</code> โดยห้ามใช้ <code>!!</code></p>
+<pre class="code" data-env="file" data-label="Kotlin · practice/fill/f1.kt"><code class="language-kotlin">fun main() {
+    val title: String? = null
+    val tag: String? = "งาน"
+    // (1) ถ้า title เป็น null ให้ใช้ค่าสำรอง
+    val shown = title _____ "ไม่มีชื่อ"
+    // (2) เรียก length เฉพาะตอนที่ tag ไม่เป็น null ผลจึงเป็น Int?
+    val tagLength = tag_____length
+    // (3) "abc" แปลงเป็นตัวเลขไม่ได้ ให้ได้ null แล้วใช้ 0 แทน
+    val count = "abc"._____() ?: 0
+    println("$shown | $tagLength | $count")
+}</code></pre>
+  </li>
+
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>(แนวคิดที่ 3) เติมโค้ดให้ (1) <code>when</code> ด้านล่างไม่ต้องมี <code>else</code> (2) เรียก <code>preview()</code> ได้จากโน้ตทุกตัว และ (3) ปักหมุดโน้ตโดยสร้าง Object ใหม่แทนการแก้ Object เดิม เมื่อรันแล้วต้องได้ 3 บรรทัดคือ <code>Note(id=3, title=ทบทวน Kotlin Flow, pinned=true)</code>, <code>ทบทวน Kotlin...</code> และ <code>มี 1 โน้ต</code></p>
+<pre class="code" data-env="file" data-label="Kotlin · practice/fill/f2.kt"><code class="language-kotlin">data class Note(val id: Int, val title: String, val pinned: Boolean = false)
+
+// (1) บอก Compiler ว่า NotesUiState มีลูกครบแค่ที่ประกาศในไฟล์นี้
+_____ interface NotesUiState {
+    data object Loading : NotesUiState
+    data class Success(val notes: List&lt;Note&gt;) : NotesUiState
+}
+
+// (2) Extension function: ย่อชื่อที่ยาวเกิน max ตัวอักษร
+fun _____.preview(max: Int): String =
+    if (title.length &lt;= max) title else title.take(max - 3) + "..."
+
+fun main() {
+    val note = Note(3, "ทบทวน Kotlin Flow")
+    // (3) สร้าง Object ใหม่ที่เปลี่ยนเฉพาะ pinned
+    val pinned = note._____(pinned = true)
+    println(pinned)
+    println(note.preview(15))
+    val state: NotesUiState = NotesUiState.Success(listOf(pinned))
+    val text = when (state) {
+        NotesUiState.Loading -&gt; "กำลังโหลด"
+        is NotesUiState.Success -&gt; "มี ${state.notes.size} โน้ต"
+    }
+    println(text)
+}</code></pre>
+  </li>
+
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>(แนวคิดที่ 4) MainActivity ของ AndroidLab เรียก <code>Log.d(TAG, ...)</code> ในทุก Lifecycle callback เมื่อเปิดแอปครั้งแรก Logcat แสดง <code>onCreate</code>, <code>onStart</code> แล้วตามด้วย (1) _____ เมื่อกดปุ่ม Home แอปจะได้ <code>onPause</code> แล้วตามด้วย (2) _____ และถ้าต้องการให้แผง Logcat แสดงเฉพาะ Log ของแอปที่กำลังรันจาก Android Studio ให้พิมพ์ตัวกรอง (3) <code>_____:mine</code></p>
+  </li>
+
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>(แนวคิดที่ 6) หน้าเขียนโน้ตร่างแบ่งเป็น Composable ที่ถือ State (Stateful) กับ Composable ที่แสดงผลอย่างเดียว (Stateless) ทีมต้องการให้ข้อความที่พิมพ์ไว้ไม่หายเมื่อผู้ใช้หมุนจอ เติมโค้ดให้ถูกต้อง</p>
+<pre class="code" data-env="app" data-label="Kotlin · Android Studio"><code class="language-kotlin">@Composable
+fun DraftScreen() {
+    // (1) เก็บ State ให้รอดการหมุนจอ
+    var title by _____ { mutableStateOf("") }
+    DraftTitleInput(
+        title = title,
+        // (2) Event ไหลขึ้นมา แล้ว Stateful composable เป็นผู้แก้ State เอง
+        onTitleChange = { newTitle -&gt; _____ = newTitle },
+    )
+}
+
+@Composable
+fun DraftTitleInput(
+    title: String,
+    // (3) ชนิดของ Callback ที่รับข้อความใหม่หนึ่งตัวและไม่คืนค่า
+    onTitleChange: _____,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        value = title,
+        onValueChange = onTitleChange,
+        label = { Text("ชื่อโน้ต") },
+        modifier = modifier,
+    )
+}</code></pre>
+  </li>
+
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>(แนวคิดที่ 7) หน้าคลังโน้ตแสดงโน้ต 200 รายการใน Scaffold ที่มี TopAppBar ผู้ทดสอบแจ้งว่าโน้ตรายการแรกถูก TopAppBar บังอยู่ และทีมต้องการให้ Compose จำแต่ละแถวได้ถูกตัวแม้รายการจะถูกเรียงใหม่ เติมโค้ดให้ถูกต้อง</p>
+<pre class="code" data-env="app" data-label="Kotlin · Android Studio"><code class="language-kotlin">// (1) TopAppBar ใน Material3 1.4.0 ยังเป็น API แบบ Experimental
+@OptIn(_____::class)
+@Composable
+fun ArchiveList(notes: List&lt;Note&gt;, modifier: Modifier = Modifier) {
+    Scaffold(
+        modifier = modifier,
+        topBar = { TopAppBar(title = { Text("คลังโน้ต") }) },
+    ) { innerPadding -&gt;
+        // (2) ส่งระยะที่ Scaffold คำนวณไว้ให้รายการ
+        LazyColumn(contentPadding = _____) {
+            // (3) key ที่ไม่ซ้ำกันและไม่เปลี่ยนเมื่อเรียงลำดับใหม่
+            items(notes, key = { note -&gt; _____ }) { note -&gt;
+                Text(note.title, modifier = Modifier.padding(16.dp))
+            }
+        }
+    }
+}</code></pre>
+  </li>
+
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>(แนวคิดที่ 8) แอปมี Bottom navigation 2 แท็บ คือ <code>NotesTabRoute</code> กับ <code>SettingsTabRoute</code> และมีหน้ารายละเอียดที่รับ <code>noteId</code> ผ่าน <code>NoteDetailRoute</code> เติมโค้ดให้ถูกต้อง</p>
+<pre class="code" data-env="app" data-label="Kotlin · Android Studio"><code class="language-kotlin">composable&lt;NoteDetailRoute&gt; { backStackEntry -&gt;
+    // (1) สร้าง Route object คืนจาก Back stack entry
+    val route = backStackEntry._____&lt;NoteDetailRoute&gt;()
+    NoteDetailScreen(
+        noteId = route.noteId,
+        // (2) ปุ่ม "กลับ" เอาหน้าปัจจุบันออกจาก Back stack
+        onBack = { navController._____() },
+    )
+}
+
+// เมื่อผู้ใช้กดแท็บ "ตั้งค่า"
+navController.navigate(SettingsTabRoute) {
+    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+    // (3) กดแท็บเดิมซ้ำแล้วต้องไม่ซ้อนหน้าเดิมเพิ่มใน Back stack
+    _____ = true
+    restoreState = true
+}</code></pre>
+  </li>
+
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>(แนวคิดที่ 9) หน้ารายการโน้ตต้องโหลดโน้ตและธีมก่อนแสดงผล งานละ 300 ms ทีมต้องการให้โหลดทั้งสองอย่างพร้อมกัน และให้งานนับคำซึ่งเป็นงานคำนวณไปทำบน Thread pool ที่ออกแบบมาสำหรับงาน CPU เติมโค้ดให้โปรแกรมพิมพ์ <code>3 โน้ต ธีมมืด รวม 6 คำ</code> และ <code>ทำงานพร้อมกัน: true</code></p>
+<pre class="code" data-env="file" data-label="Kotlin · practice/fill/f7.kt"><code class="language-kotlin">import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlin.system.measureTimeMillis
+
+// จำลองการอ่านโน้ตจากฐานข้อมูล ใช้เวลา 300 ms
+suspend fun loadNotes(): List&lt;String&gt; {
+    delay(300)
+    return listOf("ซื้อของเข้าบ้าน", "ประชุมทีม 10:00", "ทบทวน Kotlin Flow")
+}
+
+// จำลองการอ่านธีมจาก DataStore ใช้เวลา 300 ms
+suspend fun loadTheme(): String {
+    delay(300)
+    return "มืด"
+}
+
+// (1) ย้ายงานคำนวณไปทำบน Dispatcher สำหรับงาน CPU
+suspend fun countWords(notes: List&lt;String&gt;): Int = withContext(Dispatchers._____) {
+    notes.sumOf { it.split(" ").size }
+}
+
+fun main() = runBlocking {
+    val ms = measureTimeMillis {
+        // (2) เริ่มงานแรกโดยไม่รอให้เสร็จ
+        val notes = _____ { loadNotes() }
+        val theme = async { loadTheme() }
+        // (3) รอผลของงานแรก
+        val list = notes._____()
+        println("${list.size} โน้ต ธีม${theme.await()} รวม ${countWords(list)} คำ")
+    }
+    // ถ้าทำทีละงานจะใช้เวลาอย่างน้อย 600 ms
+    println("ทำงานพร้อมกัน: ${ms &lt; 550}")
+}</code></pre>
+  </li>
+
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>(แนวคิดที่ 10) <code>NotesViewModel</code> รวมรายการโน้ตจาก Repository กับคำค้น แล้วส่งออกเป็น <code>StateFlow</code> ทีมต้องการให้ Flow ต้นทางหยุดทำงานเมื่อไม่มีหน้าจอใดดูอยู่นานเกิน 5 วินาที และให้ Composable เก็บค่าเฉพาะตอนที่หน้าจออยู่ในสถานะ STARTED ขึ้นไป เติมโค้ดให้ถูกต้อง</p>
+<pre class="code" data-env="app" data-label="Kotlin · Android Studio"><code class="language-kotlin">class NotesViewModel(repository: NoteRepository) : ViewModel() {
+    private val query = MutableStateFlow("")
+
+    val uiState: StateFlow&lt;NotesUiState&gt; =
+        combine(repository.observeNotes(), query) { notes, q -&gt;
+            NotesUiState.Success(
+                query = q,
+                notes = notes.filter { it.title.contains(q, ignoreCase = true) },
+            )
+        }.stateIn(
+            // (1) Scope ที่ถูกยกเลิกอัตโนมัติเมื่อ ViewModel ถูกทำลาย
+            scope = _____,
+            // (2) หยุดต้นทางเมื่อไม่มีผู้ดูนานเกิน 5 วินาที
+            started = SharingStarted._____(5_000),
+            initialValue = NotesUiState.Loading,
+        )
+
+    fun onQueryChange(newQuery: String) {
+        query.value = newQuery
+    }
+}
+
+// ใน Composable ของหน้ารายการ
+// (3) เก็บค่าจาก StateFlow โดยเคารพ Lifecycle ของหน้าจอ
+val state by viewModel.uiState._____()</code></pre>
+  </li>
+
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>(แนวคิดที่ 11) ทีมเขียน Dao ของตาราง <code>notes</code> ด้วย Room 2.8.5 และต้องการให้ (1) หน้ารายการอัปเดตเองทุกครั้งที่ข้อมูลในตารางเปลี่ยน (2) คำสั่งปักหมุดไม่ทำงานบน Main thread และ (3) โค้ดของ Dao และ Database ถูกสร้างตอน Build โดยไม่ใช้ kapt เติมโค้ดให้ถูกต้อง</p>
+<pre class="code" data-env="app" data-label="Kotlin · Android Studio"><code class="language-kotlin">@Dao
+interface NoteDao {
+    // (1) คืนค่าที่ส่งข้อมูลชุดใหม่ออกมาทุกครั้งที่ตารางเปลี่ยน
+    @Query("SELECT * FROM notes ORDER BY pinned DESC, updated_at DESC")
+    fun observeAll(): _____&lt;List&lt;NoteEntity&gt;&gt;
+
+    // (2) ฟังก์ชันที่ Room จะย้ายไปรันนอก Main thread ให้
+    @Query("UPDATE notes SET pinned = :pinned WHERE id = :id")
+    _____ fun setPinned(id: Int, pinned: Boolean)
+}</code></pre>
+<pre class="code" data-env="file" data-label="Kotlin · app/build.gradle.kts"><code class="language-kotlin">dependencies {
+    implementation(libs.androidx.room.runtime)
+    // (3) ให้ Annotation processor ของ Room ทำงานผ่าน KSP
+    _____(libs.androidx.room.compiler)
+}</code></pre>
+  </li>
+</ol>
+
+<h3 id="s18-3-mcq">Multiple Choice</h3>
+<p>เลือกคำตอบที่ถูกที่สุดเพียงข้อเดียว ข้อ 1 ถึง 4 เป็นระดับง่าย ข้อ 5 ถึง 8 ระดับกลาง และข้อ 9 ถึง 12 ระดับยาก ตัวเลือกเรียงเป็น A ถึง D ข้อที่ให้ไฟล์ <code>.kt</code> มา ให้ตอบก่อนแล้วค่อยบันทึกลง <code>practice/fill</code> และรันเพื่อตรวจ เฉลยของทุกข้ออธิบายทั้งเหตุผลที่ข้อถูกนั้นถูก และเหตุผลที่ตัวเลือกอีก 3 ข้อผิด</p>
+
+<ol class="qlist mcq">
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>(แนวคิดที่ 1) โปรแกรมนี้พิมพ์อะไรออกมา</p>
+<pre class="code" data-env="file" data-label="Kotlin · practice/fill/m1.kt"><code class="language-kotlin">fun main() {
+    val name: String? = null
+    println(name?.length)
+    println(name?.length ?: 0)
+    println("ชื่อ: $name")
+}</code></pre>
+    <ol class="choices">
+      <li>พังด้วย <code>NullPointerException</code> ตั้งแต่บรรทัดแรกที่พิมพ์ เพราะ <code>name</code> เป็น <code>null</code></li>
+      <li><code>null</code>, <code>0</code> และ <code>ชื่อ: null</code> อย่างละบรรทัด</li>
+      <li><code>0</code>, <code>0</code> และ <code>ชื่อ: </code> ที่ไม่มีอะไรต่อท้าย</li>
+      <li>Compile ไม่ผ่าน เพราะเรียก <code>length</code> จากตัวแปรชนิด <code>String?</code> ไม่ได้</li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>(แนวคิดที่ 2) โปรแกรมนี้พิมพ์อะไรออกมา สังเกตบรรทัดที่เรียก <code>filter</code> ให้ดี</p>
+<pre class="code" data-env="file" data-label="Kotlin · practice/fill/m2.kt"><code class="language-kotlin">data class Note(val id: Int, val title: String, val pinned: Boolean = false)
+
+fun main() {
+    val notes = listOf(
+        Note(1, "ซื้อของเข้าบ้าน", pinned = true),
+        Note(2, "ประชุมทีม 10:00"),
+        Note(3, "ทบทวน Kotlin Flow"),
+    )
+    notes.filter { it.pinned }
+    val ids = notes.map { it.id * 10 }
+    println(notes.size)
+    println(ids)
+    println(notes.firstOrNull { it.id == 9 }?.title ?: "ไม่พบ")
+}</code></pre>
+    <ol class="choices">
+      <li><code>1</code>, <code>[10]</code> และ <code>ไม่พบ</code></li>
+      <li><code>1</code>, <code>[10, 20, 30]</code> และ <code>null</code></li>
+      <li><code>3</code>, <code>[10, 20, 30]</code> และ <code>ไม่พบ</code></li>
+      <li><code>3</code>, <code>[10, 20, 30]</code> แล้วพังด้วย <code>NoSuchElementException</code> เพราะไม่มีโน้ต id 9</li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>(แนวคิดที่ 3) ทีมเพิ่มสถานะ <code>Offline</code> ลงใน <code>NotesUiState</code> สำหรับตอนที่ไม่มีอินเทอร์เน็ต แต่ลืมแก้ฟังก์ชัน <code>render()</code> เมื่อสั่ง <code>kotlinc m3.kt -include-runtime -d m3.jar</code> จะเกิดอะไรขึ้น</p>
+<pre class="code" data-env="file" data-label="Kotlin · practice/fill/m3.kt"><code class="language-kotlin">sealed interface NotesUiState {
+    data object Loading : NotesUiState
+    data object Empty : NotesUiState
+    data class Success(val count: Int) : NotesUiState
+    data class Error(val message: String) : NotesUiState
+    data class Offline(val cached: Int) : NotesUiState
+}
+
+fun render(state: NotesUiState): String = when (state) {
+    NotesUiState.Loading -&gt; "กำลังโหลด"
+    NotesUiState.Empty -&gt; "ยังไม่มีโน้ต"
+    is NotesUiState.Success -&gt; "มี ${state.count} โน้ต"
+    is NotesUiState.Error -&gt; "ผิดพลาด: ${state.message}"
+}
+
+fun main() {
+    println(render(NotesUiState.Offline(3)))
+}</code></pre>
+    <ol class="choices">
+      <li>Compile ไม่ผ่าน และ Compiler บอกให้เพิ่มกรณี <code>is Offline</code> หรือ <code>else</code></li>
+      <li>Compile ผ่าน แต่ตอนรันจะพังเพราะไม่มีกรณีที่ตรงกับ <code>Offline</code></li>
+      <li>Compile ผ่านพร้อม Warning และ <code>render()</code> คืนข้อความว่างสำหรับ <code>Offline</code></li>
+      <li>Compile ผ่าน และ <code>Offline</code> จะเข้ากรณี <code>Empty</code> เพราะเป็นกรณีที่ใกล้เคียงที่สุด</li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="b">ง่าย</span>
+    <p>(แนวคิดที่ 4) MainActivity ของ AndroidLab พิมพ์ Log ในทุก Lifecycle callback โทรศัพท์เปิด Auto-rotate ไว้ และ Activity ไม่ได้ตั้งค่า <code>android:configChanges</code> ไว้ใน AndroidManifest.xml หลังจากเปิดแอปจน Logcat แสดง <code>onResume</code> แล้ว ผู้ใช้หมุนจอจากแนวตั้งเป็นแนวนอน Logcat จะแสดง Callback ใดต่อจากนั้น</p>
+    <ol class="choices">
+      <li><code>onPause</code> แล้ว <code>onResume</code> เพราะ Activity เดิมแค่หยุดชั่วครู่ระหว่างหมุนจอ</li>
+      <li><code>onStop</code> แล้ว <code>onStart</code> เพราะ Activity เดิมถูกซ่อนแล้วแสดงใหม่ในแนวนอน</li>
+      <li><code>onDestroy</code> เพียงตัวเดียว แล้วแอปปิดลงและกลับไปที่หน้า Home ของโทรศัพท์</li>
+      <li><code>onPause</code>, <code>onStop</code>, <code>onDestroy</code> ของ Activity เดิม แล้วตามด้วย <code>onCreate</code>, <code>onStart</code>, <code>onResume</code> ของ Activity ตัวใหม่</li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>(แนวคิดที่ 5) Text นี้จะแสดงผลบนหน้าจออย่างไร</p>
+<pre class="code" data-env="app" data-label="Kotlin · Android Studio"><code class="language-kotlin">Text(
+    text = "ซื้อของเข้าบ้าน",
+    modifier = Modifier
+        .padding(16.dp)
+        .background(MaterialTheme.colorScheme.primaryContainer)
+        .padding(8.dp),
+)</code></pre>
+    <ol class="choices">
+      <li>พื้นหลังสีเต็มพื้นที่จนถึงขอบนอกสุด และข้อความอยู่ห่างจากขอบสี 24 dp</li>
+      <li>รอบนอกเป็นช่องว่างโปร่งใส 16 dp ถัดเข้ามาเป็นกล่องสี และข้อความห่างจากขอบกล่องสี 8 dp</li>
+      <li>Compile ไม่ผ่าน เพราะใช้ <code>padding</code> ซ้ำสองครั้งใน Modifier chain เดียวกันไม่ได้</li>
+      <li>ได้ผลเหมือน <code>Modifier.background(...).padding(24.dp)</code> เพราะ Compose รวม padding ทั้งหมดก่อนแล้วค่อยวาดพื้นหลัง</li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>(แนวคิดที่ 6) ผู้ใช้พิมพ์ <code>ซื้อนม</code> ในช่องข้อความ กดปุ่ม 2 ครั้ง แล้วหมุนจอ หลังหมุนจอหน้าจอจะแสดงอะไร</p>
+<pre class="code" data-env="app" data-label="Kotlin · Android Studio"><code class="language-kotlin">@Composable
+fun DraftCounter() {
+    var draft by remember { mutableStateOf("") }
+    var saved by rememberSaveable { mutableIntStateOf(0) }
+    Column {
+        OutlinedTextField(
+            value = draft,
+            onValueChange = { draft = it },
+            label = { Text("โน้ตร่าง") },
+        )
+        Button(onClick = { saved++ }) {
+            Text("บันทึกแล้ว $saved ครั้ง")
+        }
+    }
+}</code></pre>
+    <ol class="choices">
+      <li>ช่องข้อความยังเป็น <code>ซื้อนม</code> และปุ่มแสดง <code>บันทึกแล้ว 2 ครั้ง</code></li>
+      <li>ช่องข้อความยังเป็น <code>ซื้อนม</code> แต่ปุ่มกลับเป็น <code>บันทึกแล้ว 0 ครั้ง</code></li>
+      <li>ช่องข้อความว่าง แต่ปุ่มยังแสดง <code>บันทึกแล้ว 2 ครั้ง</code></li>
+      <li>ช่องข้อความว่าง และปุ่มกลับเป็น <code>บันทึกแล้ว 0 ครั้ง</code> เพราะการหมุนจอล้าง State ทุกชนิด</li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>(แนวคิดที่ 7) หน้าจอนี้พังทันทีที่เปิด และ Logcat แสดง <code>java.lang.IllegalStateException</code> ที่ขึ้นต้นว่า <code>Vertically scrollable component was measured with an infinity maximum height constraints, which is disallowed.</code> วิธีแก้ที่ดีที่สุดคือข้อใด</p>
+<pre class="code" data-env="app" data-label="Kotlin · Android Studio"><code class="language-kotlin">Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+    Text("โน้ตทั้งหมด", style = MaterialTheme.typography.titleLarge)
+    LazyColumn {
+        items(notes, key = { it.id }) { note -&gt;
+            Text(note.title, modifier = Modifier.padding(16.dp))
+        }
+    }
+}</code></pre>
+    <ol class="choices">
+      <li>เอา <code>verticalScroll</code> ออก แล้วย้ายหัวข้อเข้าไปเป็น <code>item { }</code> แรกใน LazyColumn</li>
+      <li>ใส่ <code>Modifier.verticalScroll(rememberScrollState())</code> ให้ LazyColumn ด้วย เพื่อให้ทั้งสองชั้นเลื่อนไปพร้อมกัน</li>
+      <li>เปลี่ยน LazyColumn เป็น Column แล้ววนลูปด้วย <code>notes.forEach</code> ซึ่งได้ผลเหมือนกันทุกอย่าง</li>
+      <li>ลบ <code>key</code> ออกจาก <code>items()</code> เพราะ key ทำให้ LazyColumn คำนวณความสูงของตัวเองไม่ได้</li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="i">กลาง</span>
+    <p>(แนวคิดที่ 8) เพื่อนในทีมสร้างโปรเจกต์ใหม่แล้วคัดลอกไฟล์ Navigation ที่มี Route ด้านล่างไปใช้ เขาเพิ่ม <code>navigation-compose</code> และ <code>kotlinx-serialization-json</code> ใน <code>dependencies</code> ครบแล้ว แต่ Block <code>plugins</code> ของ <code>app/build.gradle.kts</code> เป็นแบบนี้ เมื่อกด Run จะเกิดอะไรขึ้น</p>
+<pre class="code" data-env="app" data-label="Kotlin · Android Studio"><code class="language-kotlin">@Serializable
+data class NoteDetailRoute(val noteId: Int)</code></pre>
+<pre class="code" data-env="file" data-label="Kotlin · app/build.gradle.kts"><code class="language-kotlin">plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
+    // ไม่มีบรรทัด alias(libs.plugins.kotlin.serialization)
+}</code></pre>
+    <ol class="choices">
+      <li>Gradle sync ไม่ผ่าน เพราะไม่รู้จัก Annotation <code>@Serializable</code></li>
+      <li>Compile ไม่ผ่านที่บรรทัด <code>navController.navigate(NoteDetailRoute(3))</code> เพราะ Route ยังไม่มี Serializer</li>
+      <li>แอปทำงานได้ตามปกติ แต่ <code>noteId</code> ที่หน้ารายละเอียดได้รับจะเป็น 0 เสมอ</li>
+      <li>Build ผ่าน แต่แอปพังตอนรันด้วย <code>SerializationException: Serializer for class 'NoteDetailRoute' is not found.</code></li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>(แนวคิดที่ 9) โปรแกรมนี้พิมพ์อะไรออกมา และพิมพ์ตามลำดับใด</p>
+<pre class="code" data-env="file" data-label="Kotlin · practice/fill/m9.kt"><code class="language-kotlin">import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val notes = flow {
+        println("เริ่มโหลด")
+        emit("ซื้อของเข้าบ้าน")
+        emit("ประชุมทีม 10:00")
+        emit("ทบทวน Kotlin Flow")
+    }
+    println("สร้าง Flow แล้ว")
+    notes.map { "โน้ต: $it" }.take(2).collect { println(it) }
+    println("จบ")
+}</code></pre>
+    <ol class="choices">
+      <li><code>เริ่มโหลด</code> ขึ้นก่อน <code>สร้าง Flow แล้ว</code> เพราะ <code>flow { }</code> เริ่มทำงานทันทีที่สร้าง แล้วตามด้วยโน้ต 2 บรรทัดและ <code>จบ</code></li>
+      <li><code>สร้าง Flow แล้ว</code>, <code>เริ่มโหลด</code>, โน้ตครบ 3 บรรทัด แล้วจึง <code>จบ</code> เพราะ <code>take(2)</code> มีผลเฉพาะกับ StateFlow</li>
+      <li><code>สร้าง Flow แล้ว</code>, <code>เริ่มโหลด</code>, <code>โน้ต: ซื้อของเข้าบ้าน</code>, <code>โน้ต: ประชุมทีม 10:00</code> แล้ว <code>จบ</code></li>
+      <li>พิมพ์ <code>สร้าง Flow แล้ว</code> แล้วโปรแกรมค้าง เพราะ <code>collect</code> รอค่าใหม่จาก Flow ไปตลอด</li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>(แนวคิดที่ 10) <code>NotesViewModel</code> สร้าง <code>uiState</code> ด้วย <code>stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NotesUiState.Loading)</code> Flow ต้นทางพิมพ์ Log ว่า <code>เริ่มอ่านฐานข้อมูล</code> ทุกครั้งที่เริ่มทำงาน และหน้าจอเก็บค่าด้วย <code>collectAsStateWithLifecycle()</code> ผู้ใช้ทำตามลำดับนี้</p>
+    <ol>
+      <li>เปิดหน้ารายการโน้ต</li>
+      <li>หมุนจอ หน้าจอใหม่เริ่มเก็บค่าภายใน 1 วินาที</li>
+      <li>กด Home แล้วทิ้งไว้ 10 วินาที</li>
+      <li>กลับเข้าแอป</li>
+    </ol>
+    <p>ถ้าระบบไม่ได้ปิด Process ของแอประหว่างนั้น ข้อความ <code>เริ่มอ่านฐานข้อมูล</code> จะถูกพิมพ์ทั้งหมดกี่ครั้ง</p>
+    <ol class="choices">
+      <li>1 ครั้ง เพราะ <code>stateIn</code> เริ่มต้นทางเพียงครั้งเดียวตลอดอายุของ ViewModel</li>
+      <li>2 ครั้ง คือตอนเปิดหน้าจอครั้งแรก และตอนกลับเข้าแอปหลังจากไม่มีผู้ดูนานเกิน 5 วินาที</li>
+      <li>3 ครั้ง เพราะทุกครั้งที่มีผู้เก็บค่ารายใหม่ ต้นทางจะเริ่มทำงานใหม่เสมอ</li>
+      <li>พิมพ์ทุกครั้งที่เกิด Recomposition เพราะ <code>collectAsStateWithLifecycle()</code> เริ่ม Flow ใหม่ทุกครั้งที่ Composable ถูกวาดใหม่</li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>(แนวคิดที่ 11) แอปเวอร์ชัน 1.0 อยู่บน Google Play แล้ว และใช้ <code>NotesDatabase</code> ที่ประกาศ <code>version = 1</code> ในเวอร์ชัน 1.1 ทีมเพิ่ม <code>val content: String</code> ลงใน <code>NoteEntity</code> ข้อใดเป็นวิธีที่ถูกต้องที่สุด เพื่อให้ผู้ใช้เดิมอัปเดตแอปได้โดยโน้ตไม่หาย</p>
+    <ol class="choices">
+      <li>แก้แค่ <code>NoteEntity</code> ก็พอ Room จะเพิ่มคอลัมน์ให้เองเมื่อผู้ใช้อัปเดตแอป</li>
+      <li>เปลี่ยนเป็น <code>version = 2</code> อย่างเดียวโดยไม่ต้องเขียนอะไรเพิ่ม เพราะ Room เทียบ Schema เก่ากับใหม่แล้วแก้ตารางให้เอง</li>
+      <li>เปิด Destructive migration ใน Builder ให้ Room ลบฐานข้อมูลเดิมแล้วสร้างใหม่ ซึ่งเป็นวิธีมาตรฐานของแอปที่มีผู้ใช้จริง</li>
+      <li>เปลี่ยนเป็น <code>version = 2</code> เขียน <code>Migration(1, 2)</code> ที่รัน <code>ALTER TABLE notes ADD COLUMN content TEXT NOT NULL DEFAULT ''</code> แล้วลงทะเบียนด้วย <code>addMigrations()</code></li>
+    </ol>
+  </li>
+
+  <li><span class="lvl" data-lvl="a">ยาก</span>
+    <p>(แนวคิดที่ 12) เซิร์ฟเวอร์ส่ง JSON ที่มี key ซึ่งแอปไม่รู้จัก และบางโน้ตไม่มี <code>is_pinned</code> โปรแกรมนี้พิมพ์อะไรออกมา</p>
+<pre class="code" data-env="file" data-label="Kotlin · practice/fill/m12.kt"><code class="language-kotlin">import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+
+@Serializable
+data class NoteDto(
+    val id: Int,
+    val title: String,
+    @SerialName("is_pinned") val isPinned: Boolean = false,
+)
+
+fun main() {
+    val body = """[{"id":1,"title":"ซื้อของเข้าบ้าน","is_pinned":true,"created_at":"2026-10-19"},{"id":2,"title":"ประชุมทีม 10:00"}]"""
+    val json = Json { ignoreUnknownKeys = true }
+    val notes = json.decodeFromString&lt;List&lt;NoteDto&gt;&gt;(body)
+    println(notes.map { "${it.id}:${it.isPinned}" })
+}</code></pre>
+    <ol class="choices">
+      <li><code>[1:true, 2:false]</code></li>
+      <li>พังด้วย <code>JsonDecodingException</code> เพราะโน้ตแรกมี key <code>created_at</code> ที่ <code>NoteDto</code> ไม่มี</li>
+      <li>พังด้วย <code>MissingFieldException</code> เพราะโน้ตที่ 2 ไม่มี key <code>is_pinned</code></li>
+      <li><code>[1:true, 2:null]</code> เพราะโน้ตที่ 2 ไม่มีค่าของ <code>is_pinned</code></li>
+    </ol>
+  </li>
+</ol>
+
+<h3 id="s18-3-hands">Hands-on Challenge</h3>
+<p>โจทย์ทั้ง 3 ข้อเรียงจากง่ายไปยาก แต่ละข้อมีส่วน Kotlin ล้วนที่รันตรวจผลใน WSL ได้ทันที และส่วน Android ที่นำโค้ดชุดเดียวกันไปใช้ใน AndroidLab การแยกตรรกะออกจากหน้าจอแบบนี้คือวิธีที่ทีมจริงใช้ เพราะตรวจตรรกะบน JVM ได้ในไม่กี่วินาที โดยไม่ต้อง Build แอปและเปิด Emulator ทุกครั้ง</p>
+
+<article class="challenge" data-lvl="b">
+  <div class="concept-meta"><span class="c-no">โจทย์ที่ 1</span><span class="lvl" data-lvl="b">Beginner</span></div>
+  <h4>ย้ายโน้ตจากแอปเวอร์ชันเก่า</h4>
+
+  <h5>สถานการณ์</h5>
+  <p>แอปจดโน้ตเวอร์ชันเก่าของบริษัท Export โน้ตเป็นไฟล์ข้อความ บรรทัดละ 1 โน้ต รูปแบบ <code>id;title;pinned;tag</code> โดย <code>pinned</code> เป็น <code>1</code> หรือ <code>0</code> ก่อนสร้างหน้าจอนำเข้าใน AndroidLab หัวหน้าทีมขอตรรกะการแปลงแบบ Kotlin ล้วนที่ทดสอบใน WSL ได้ก่อน ไฟล์จริงมีบรรทัดเสียปนมาเสมอ แอปต้องไม่พังเพราะบรรทัดเสีย และต้องบอกผู้ใช้ว่าข้ามบรรทัดไหนเพราะอะไร</p>
+
+  <h5>สิ่งที่ต้องทำ</h5>
+  <ol>
+    <li>ในไฟล์ <code>~/projects/android-kotlin-lab/practice/ch1/importer.kt</code> ประกาศ <code>data class LegacyNote(val id: Int, val title: String, val pinned: Boolean = false, val tag: String = "ทั่วไป")</code> และ <code>sealed interface ImportResult</code> ที่มีลูก <code>Ok(val note: LegacyNote)</code> กับ <code>Skipped(val lineNo: Int, val reason: String)</code> (แนวคิดที่ 3)</li>
+    <li>เขียน <code>parseLine(lineNo: Int, line: String): ImportResult</code> ที่แยกช่องด้วย <code>;</code> และตัดช่องว่างหัวท้ายทุกช่อง ถ้าไม่ครบ 4 ช่องให้ข้ามด้วยเหตุผล <code>ข้อมูลไม่ครบ 4 ช่อง</code> ถ้า id ไม่ใช่ตัวเลขให้ข้ามด้วย <code>id ไม่ใช่ตัวเลข (ค่าที่อ่านได้)</code> ถ้าชื่อว่างให้ข้ามด้วย <code>ไม่มีชื่อโน้ต</code> ให้ <code>pinned</code> เป็น <code>true</code> เฉพาะเมื่อช่องที่ 3 คือ <code>1</code> และให้ Tag ว่างเป็น <code>ทั่วไป</code> ห้ามใช้ <code>!!</code> และ <code>toInt()</code> (แนวคิดที่ 1)</li>
+    <li>เขียน <code>importNotes(raw: String): List&lt;ImportResult&gt;</code> ที่ข้ามบรรทัดว่างและบรรทัดที่ขึ้นต้นด้วย <code>#</code> โดยเลขบรรทัดในรายงานต้องตรงกับเลขบรรทัดจริงในไฟล์ (แนวคิดที่ 2)</li>
+    <li>เขียน Extension function <code>LegacyNote.preview(max: Int = 20)</code> ที่คืนชื่อเดิมถ้ายาวไม่เกิน <code>max</code> และถ้ายาวเกินให้ตัดเหลือ <code>max - 3</code> ตัวอักษรแล้วต่อด้วย <code>...</code></li>
+    <li>ใน <code>main()</code> ใช้ข้อมูลตัวอย่างด้านล่าง แล้วพิมพ์จำนวนที่นำเข้าได้และที่ข้าม เหตุผลของทุกบรรทัดที่ข้าม (ใช้ <code>when</code> กับ <code>ImportResult</code>) รายการโน้ตที่ให้โน้ตปักหมุดขึ้นก่อนโดยคงลำดับเดิมจากไฟล์ และจำนวนโน้ตแยกตาม Tag จากนั้นรันด้วย <code>kotlinc importer.kt -include-runtime -d importer.jar &amp;&amp; java -jar importer.jar</code></li>
+    <li>ส่วน Android (แนวคิดที่ 4): นำโค้ดทั้งหมดยกเว้น <code>main()</code> ไปไว้ในไฟล์ <code>LegacyImport.kt</code> ใน Package <code>com.somchai.androidlab.practice</code> เพิ่มข้อมูลตัวอย่างเป็น <code>val LEGACY_SAMPLE</code> แล้วเรียก <code>importNotes()</code> ใน <code>onCreate</code> ของ MainActivity พร้อม <code>Log.i</code> สรุปจำนวนที่นำเข้าได้และที่ข้าม</li>
+  </ol>
+  <p>ข้อมูลตัวอย่างมี 8 บรรทัด ให้วางเป็น Raw string (<code>"""..."""</code>) แล้วเรียก <code>trimIndent()</code></p>
+<pre class="code" data-env="file" data-label="Text · ข้อมูลตัวอย่างจากไฟล์ Export"><code class="language-plaintext"># ไฟล์ export จากแอปเวอร์ชัน 1
+1;ซื้อของเข้าบ้าน;1;บ้าน
+2;ประชุมทีม 10:00;0;งาน
+abc;โน้ตเสีย;0;งาน
+3;ทบทวน Kotlin Flow;0;
+4;  ;1;งาน
+5;อ่านเอกสาร Kotlin Coroutines;1;งาน
+6;โน้ตไม่ครบ</code></pre>
+
+  <h5>ผลลัพธ์ที่คาดหวัง</h5>
+  <p>นำเข้าได้ 4 โน้ต ข้ามบรรทัดที่ 4, 6 และ 8 ของไฟล์ (บรรทัดที่ 1 เป็น Comment จึงไม่นับเป็นบรรทัดที่ข้าม) ชื่อโน้ตที่ 5 ยาว 28 ตัวอักษรจึงถูกย่อ เมื่อรันใน WSL ต้องได้ผลดังนี้</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>นำเข้าได้ 4 โน้ต ข้าม 3 บรรทัด
+- บรรทัด 4: id ไม่ใช่ตัวเลข (abc)
+- บรรทัด 6: ไม่มีชื่อโน้ต
+- บรรทัด 8: ข้อมูลไม่ครบ 4 ช่อง
+รายการโน้ต (ปักหมุดขึ้นก่อน):
+[ปักหมุด] #1 ซื้อของเข้าบ้าน (บ้าน)
+[ปักหมุด] #5 อ่านเอกสาร Kotlin... (งาน)
+#2 ประชุมทีม 10:00 (งาน)
+#3 ทบทวน Kotlin Flow (ทั่วไป)
+จำนวนตาม Tag: บ้าน=1, งาน=2, ทั่วไป=1</code></pre>
+  <p>บน Emulator แผง Logcat ที่กรองด้วย <code>package:mine tag:AndroidLab</code> ต้องมีบรรทัดระดับ <code>I</code> ว่า <code>นำเข้าโน้ตเก่า 4 รายการ ข้าม 3 บรรทัด</code></p>
+
+  <details class="hint"><summary>Hint</summary><div>
+    <ul>
+      <li><code>line.split(";").map { it.trim() }</code> ได้ทุกช่องที่ตัดช่องว่างแล้ว และ <code>val id = parts[0].toIntOrNull() ?: return ImportResult.Skipped(...)</code> ใช้ Elvis คู่กับ <code>return</code> เพื่อออกจากฟังก์ชันทันทีเมื่อแปลงไม่ได้</li>
+      <li>ใส่เลขบรรทัดด้วย <code>mapIndexed { index, line -&gt; index + 1 to line }</code> ก่อนเรียก <code>filter</code> เลขบรรทัดจึงไม่เลื่อนเมื่อบรรทัด Comment ถูกกรองออก</li>
+      <li><code>filterIsInstance&lt;ImportResult.Ok&gt;()</code> เลือกเฉพาะผลที่สำเร็จ และ <code>sortedByDescending { it.pinned }</code> เป็น Stable sort ที่คงลำดับเดิมของโน้ตที่ค่าเท่ากัน</li>
+      <li>สระและวรรณยุกต์ภาษาไทยนับใน <code>length</code> ด้วย เช่น <code>"ซื้อของเข้าบ้าน".length</code> ได้ 15</li>
+    </ul>
+  </div></details>
+</article>
+
+<article class="challenge" data-lvl="i">
+  <div class="concept-meta"><span class="c-no">โจทย์ที่ 2</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+  <h4>แก้บั๊กหน้ารวมโน้ตที่พังหลังเพิ่มการซิงก์</h4>
+
+  <h5>สถานการณ์</h5>
+  <p>หลังเพิ่มการซิงก์โน้ตกับเซิร์ฟเวอร์ ผู้ทดสอบแจ้งว่าแอปพังทันทีที่เปิดหน้ารวมโน้ต และ Logcat แสดง <code>java.lang.IllegalArgumentException: Key "3" was already used. If you are using LazyColumn/Row please make sure you provide a unique key for each item.</code> โค้ดเดิมนำลิสต์ในเครื่องมาต่อกับลิสต์จากเซิร์ฟเวอร์ตรงๆ (<code>local + remote</code>) แล้วใช้ <code>items(notes, key = { it.id })</code> โน้ต id 3 ถูกแก้ทั้งสองฝั่งจึงอยู่ในทั้งสองลิสต์ Product Owner ยังขอให้แยกโน้ตปักหมุดเป็นส่วนบนสุดพร้อมหัวข้อ และเพิ่มสวิตช์ "เฉพาะที่ปักหมุด" ที่ค่าไม่หายเมื่อหมุนจอ</p>
+
+  <h5>สิ่งที่ต้องทำ</h5>
+  <ol>
+    <li>ในไฟล์ <code>~/projects/android-kotlin-lab/practice/ch2/rows.kt</code> ประกาศ <code>data class SyncedNote(val id: Int, val title: String, val pinned: Boolean = false, val updatedAt: Long)</code></li>
+    <li>เขียน <code>mergeNotes(local, remote)</code> ที่รวมสองลิสต์ ถ้า id ซ้ำให้เก็บตัวที่ <code>updatedAt</code> มากที่สุด และถ้าเวลาเท่ากันให้ใช้ของเซิร์ฟเวอร์ (แนวคิดที่ 2)</li>
+    <li>ประกาศ <code>sealed interface NoteRow</code> ที่มี <code>val key: String</code> และลูก 2 แบบ คือ <code>Header(section, title)</code> ที่มี key เป็น <code>header-</code> ตามด้วย <code>section</code> และ <code>Item(note)</code> ที่มี key เป็น <code>note-</code> ตามด้วย id ห้ามใส่จำนวนโน้ตใน key เพราะ key ต้องคงที่ (แนวคิดที่ 3 และ 7)</li>
+    <li>เขียน <code>buildRows(notes, pinnedOnly)</code> ที่เรียงตาม <code>updatedAt</code> ใหม่สุดก่อน แบ่งเป็นส่วน <code>ปักหมุด (n)</code> และ <code>โน้ตอื่น (n)</code> ไม่สร้างหัวข้อให้ส่วนที่ว่าง และเมื่อ <code>pinnedOnly</code> เป็น <code>true</code> ให้เหลือเฉพาะส่วนปักหมุด</li>
+    <li>เขียน <code>duplicateKeys(rows)</code> ที่คืน key ที่ซ้ำ แล้วใน <code>main()</code> พิสูจน์ด้วยข้อมูลด้านล่างว่าโค้ดเดิมมี key ซ้ำแต่โค้ดใหม่ไม่มี พิมพ์แถวทั้งแบบปกติและแบบเฉพาะที่ปักหมุด และแสดงว่าเมื่อไม่มีโน้ตจะได้ลิสต์ว่าง จากนั้นรันด้วย <code>kotlinc rows.kt -include-runtime -d rows.jar &amp;&amp; java -jar rows.jar</code></li>
+    <li>ส่วน Android (แนวคิดที่ 6 และ 7): ใน Package <code>com.somchai.androidlab.practice</code> สร้าง <code>NoteRows.kt</code> ที่มีโค้ดจาก <code>rows.kt</code> (ยกเว้น <code>duplicateKeys</code>, <code>printRows</code> และ <code>main()</code>) พร้อมข้อมูลตัวอย่าง แล้วสร้าง <code>MergedNotesScreen.kt</code> ที่มี <code>MergedNotesRoute</code> แบบ Stateful ซึ่งถือค่าสวิตช์ด้วย <code>rememberSaveable</code> และ <code>MergedNotesScreen</code> แบบ Stateless ซึ่งมี Scaffold, TopAppBar ชื่อ <code>โน้ตหลังซิงก์</code>, แถวสวิตช์ และ LazyColumn ที่ใช้ <code>items(rows, key = { it.key })</code> ให้ <code>Log.d</code> เมื่อแตะโน้ตและเมื่อเปลี่ยนสวิตช์</li>
+  </ol>
+<pre class="code" data-env="file" data-label="Kotlin · ข้อมูลตัวอย่างใน rows.kt"><code class="language-kotlin">val local = listOf(
+    SyncedNote(1, "ซื้อของเข้าบ้าน", pinned = true, updatedAt = 1_000),
+    SyncedNote(2, "ประชุมทีม 10:00", updatedAt = 2_000),
+    SyncedNote(3, "ทบทวน Kotlin Flow", updatedAt = 3_000),
+)
+val remote = listOf(
+    SyncedNote(3, "ทบทวน Kotlin Flow และ StateFlow", updatedAt = 5_000),
+    SyncedNote(4, "อ่านเอกสาร Kotlin Coroutines", pinned = true, updatedAt = 4_000),
+)</code></pre>
+
+  <h5>ผลลัพธ์ที่คาดหวัง</h5>
+  <p>โค้ดเดิมมี key <code>note-3</code> ซ้ำ หลังรวมแล้วโน้ต id 3 เหลือฉบับเดียวคือฉบับจากเซิร์ฟเวอร์ที่ใหม่กว่า และไม่มี key ซ้ำเลย</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ก่อนแก้: key ซ้ำ = [note-3]
+== ปักหมุด (2)  [key=header-pinned]
+   อ่านเอกสาร Kotlin Coroutines  [key=note-4]
+   ซื้อของเข้าบ้าน  [key=note-1]
+== โน้ตอื่น (2)  [key=header-others]
+   ทบทวน Kotlin Flow และ StateFlow  [key=note-3]
+   ประชุมทีม 10:00  [key=note-2]
+หลังแก้: key ซ้ำ = []
+-- เฉพาะที่ปักหมุด --
+== ปักหมุด (2)  [key=header-pinned]
+   อ่านเอกสาร Kotlin Coroutines  [key=note-4]
+   ซื้อของเข้าบ้าน  [key=note-1]
+ไม่มีโน้ตเลย ได้แถวว่าง: true</code></pre>
+  <p>บน Emulator หน้าจอต้องเปิดได้โดยไม่พัง เมื่อเปิดสวิตช์ ส่วนโน้ตอื่นต้องหายไป และหลังหมุนจอสวิตช์ต้องยังเปิดอยู่</p>
+
+  <details class="hint"><summary>Hint</summary><div>
+    <ul>
+      <li><code>groupBy { it.id }</code> แล้วใช้ <code>maxBy { it.updatedAt }</code> เลือกตัวล่าสุดของแต่ละกลุ่ม เมื่อค่าเท่ากัน <code>maxBy</code> คืนตัวแรกที่เจอ ลำดับของการต่อลิสต์จึงตัดสินว่าฝั่งไหนชนะ</li>
+      <li><code>val (pinned, others) = list.partition { it.pinned }</code> แบ่ง List เป็นสองส่วนในบรรทัดเดียว และ <code>groupingBy { it.key }.eachCount()</code> นับจำนวนครั้งของแต่ละ key</li>
+      <li>Property ใน Body ของ <code>data class</code> เขียนได้เป็น <code>override val key: String get() = "note-${note.id}"</code> ค่านี้ไม่ไปอยู่ใน <code>toString()</code></li>
+      <li>key ของ LazyColumn ต้องเป็นชนิดที่เก็บลง Bundle ได้ เช่น <code>String</code> และต้องไม่ซ้ำกับ key ของ <code>item(key = ...)</code> อื่นใน LazyColumn เดียวกัน</li>
+    </ul>
+  </div></details>
+</article>
+
+<article class="challenge" data-lvl="a">
+  <div class="concept-meta"><span class="c-no">โจทย์ที่ 3</span><span class="lvl" data-lvl="a">Advanced</span></div>
+  <h4>ปุ่มซิงก์จากเซิร์ฟเวอร์พร้อม Unit Test ก่อน Merge</h4>
+
+  <h5>สถานการณ์</h5>
+  <p>ทีม Backend จะเปิด Endpoint <code>GET /sync.json</code> ให้แอปดึงโน้ตล่าสุด ระหว่างรอ ทีมจำลอง API ด้วยไฟล์ JSON ที่เสิร์ฟด้วย <code>python3 -m http.server</code> ใน WSL แบบเดียวกับแนวคิดที่ 12 Tech Lead กำหนดว่า Pull Request นี้ต้องมี Unit Test ผ่านก่อน Merge และต้องรองรับ JSON ที่มี key ใหม่ (<code>created_at</code>) หรือขาด <code>is_pinned</code>, เครือข่ายล่ม, HTTP status ผิดพลาด, ข้อมูลที่ไม่ใช่ JSON, การกดปุ่มซ้ำระหว่างรอซึ่งต้องไม่ส่งคำขอซ้ำ และการกด "ลองอีกครั้ง" หลังผิดพลาด</p>
+
+  <h5>สิ่งที่ต้องทำ</h5>
+  <ol>
+    <li>สร้าง <code>~/projects/notes-api/sync.json</code> ตามด้านล่าง เปิดเซิร์ฟเวอร์ด้วย <code>cd ~/projects/notes-api &amp;&amp; python3 -m http.server 8000 --bind 0.0.0.0</code> ทิ้งไว้ใน Terminal หนึ่ง แล้วตรวจจากอีก Terminal ด้วย <code>curl</code></li>
+    <li>ใน <code>~/projects/android-kotlin-lab/practice/ch3/SyncPresenter.kt</code> (Package <code>com.somchai.androidlab.practice</code>) ประกาศ <code>@Serializable SyncNoteDto</code> ที่ให้ <code>is_pinned</code> มีค่าเริ่มต้น <code>false</code>, <code>CloudNote(id, title, pinned)</code>, <code>ServerException(code: Int)</code>, <code>interface NotesRemoteSource { suspend fun fetchNotesJson(): String }</code> และ <code>sealed interface SyncUiState</code> ที่มี <code>Idle</code>, <code>Syncing</code>, <code>Success(notes)</code> และ <code>Error(message)</code> (แนวคิดที่ 3 และ 12)</li>
+    <li>เขียน <code>class SyncPresenter(source, scope)</code> ที่มี <code>val state: StateFlow&lt;SyncUiState&gt;</code> และ <code>fun sync(): Boolean</code> ถ้างานเดิมยังไม่เสร็จให้คืน <code>false</code> ถ้าเริ่มใหม่ให้เปลี่ยนเป็น <code>Syncing</code> ทันทีแล้วคืน <code>true</code> แปลง JSON ด้วย <code>Json { ignoreUnknownKeys = true }</code> เรียงโน้ตปักหมุดก่อนตามด้วย id และแปลง <code>IOException</code> เป็น <code>เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง</code>, <code>ServerException</code> เป็น <code>เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP รหัส)</code> และ <code>SerializationException</code> เป็น <code>ข้อมูลจากเซิร์ฟเวอร์ผิดรูปแบบ</code> (แนวคิดที่ 9 และ 10)</li>
+    <li>เขียน <code>SyncPresenterTest.kt</code> อย่างน้อย 6 Test ด้วย JUnit 4.13.2 และ kotlinx-coroutines-test 1.11.0 โดยใช้ <code>FakeRemoteSource</code> ที่ตอบตามลำดับขั้นและนับจำนวนครั้งที่ถูกเรียก ครอบคลุมสถานะเริ่มต้น, ซิงก์สำเร็จ, กดซ้ำระหว่างรอ, เครือข่ายล่มแล้วลองใหม่สำเร็จ, HTTP 500 และ JSON เสีย</li>
+    <li>เขียน <code>SyncDemo.kt</code> ที่มี <code>HttpNotesSource</code> เรียก URL จริงด้วย <code>HttpURLConnection</code> ภายใน <code>withContext(Dispatchers.IO)</code> แล้วรัน 3 แบบ คือ ตอนเซิร์ฟเวอร์เปิดอยู่ ตอนเรียก <code>/missing.json</code> และหลังปิดเซิร์ฟเวอร์ด้วย <kbd>Ctrl</kbd>+<kbd>C</kbd></li>
+    <li>ส่วน Android (แนวคิดที่ 10 และ 12): คัดลอก <code>SyncPresenter.kt</code> เข้า Package <code>com.somchai.androidlab.practice</code> แล้วเขียน <code>SyncApi.kt</code> (Retrofit คืน <code>ResponseBody</code>, แปลง <code>HttpException</code> เป็น <code>ServerException</code>, <code>BASE_URL</code> เป็น <code>http://10.0.2.2:8000/</code>), <code>SyncViewModel.kt</code> (ใช้ <code>viewModelScope</code>, มี Factory และ Log ทุกสถานะ) และ <code>SyncScreen.kt</code> (ปุ่มกดไม่ได้ระหว่างซิงก์, วงกลมหมุน, ข้อความ Error สีแดงพร้อมปุ่ม <code>ลองอีกครั้ง</code>) แล้วทดสอบบน Emulator ทั้งตอนเปิดและปิดเซิร์ฟเวอร์</li>
+  </ol>
+<pre class="code" data-env="file" data-label="JSON · ~/projects/notes-api/sync.json"><code class="language-json">[
+  {"id": 2, "title": "ประชุมทีม 10:00", "is_pinned": false, "created_at": "2026-10-18T09:00:00Z"},
+  {"id": 1, "title": "ซื้อของเข้าบ้าน", "is_pinned": true, "created_at": "2026-10-17T08:30:00Z"},
+  {"id": 3, "title": "ทบทวน Kotlin Flow", "created_at": "2026-10-19T07:45:00Z"},
+  {"id": 4, "title": "อ่านเอกสาร Kotlin Coroutines", "is_pinned": true, "created_at": "2026-10-19T08:10:00Z"}
+]</code></pre>
+
+  <h5>ผลลัพธ์ที่คาดหวัง</h5>
+  <p>Test ทั้ง 6 ข้อต้องผ่าน (ค่า <code>Time</code> ต่างกันในแต่ละเครื่อง) และ Demo ตอนเซิร์ฟเวอร์เปิดอยู่ต้องปฏิเสธการกดครั้งที่ 2 แสดงสถานะ <code>Syncing</code> ทันทีหลังกด และเรียงโน้ตปักหมุดขึ้นก่อน</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>JUnit version 4.13.2
+......
+Time: 0.246
+
+OK (6 tests)</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>กดซิงก์ครั้งที่ 1: เริ่มใหม่ = true
+กดซิงก์ครั้งที่ 2: เริ่มใหม่ = false
+สถานะตอนนี้: Syncing
+[ปักหมุด] #1 ซื้อของเข้าบ้าน
+[ปักหมุด] #4 อ่านเอกสาร Kotlin Coroutines
+#2 ประชุมทีม 10:00
+#3 ทบทวน Kotlin Flow</code></pre>
+  <p>Demo แบบ <code>/missing.json</code> ต้องจบด้วย <code>ผิดพลาด: เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP 404)</code> และหลังปิดเซิร์ฟเวอร์ต้องจบด้วย <code>ผิดพลาด: เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง</code> โดยไม่มี Exception หลุดออกมา</p>
+
+  <details class="hint"><summary>Hint</summary><div>
+    <ul>
+      <li>เก็บ <code>Job</code> จาก <code>scope.launch</code> ไว้ แล้วตรวจ <code>syncJob?.isActive == true</code> ก่อนเริ่มงานใหม่ วิธีนี้กันการกดซ้ำได้แม้หน้าจอยังไม่ทันวาดปุ่มเป็นสีเทา</li>
+      <li>อย่าเขียน <code>catch (e: Exception)</code> เพราะจะจับ <code>CancellationException</code> ไปด้วย ให้จับเฉพาะชนิดที่รู้วิธีจัดการ ส่วน <code>JsonDecodingException</code> และ <code>MissingFieldException</code> เป็นลูกของ <code>SerializationException</code></li>
+      <li>Fake ที่ตอบได้หลายครั้งเขียนได้ด้วย <code>class FakeRemoteSource(private vararg val steps: suspend () -&gt; String)</code> ขั้นที่ต้องการให้ล้มก็ <code>throw</code> ใน Lambda</li>
+      <li>ใน <code>runTest</code> ส่ง <code>this</code> เป็น Scope ให้ Presenter แล้วเรียก <code>advanceUntilIdle()</code> ซึ่งเป็น API แบบ Experimental จึงต้องใส่ <code>@OptIn(ExperimentalCoroutinesApi::class)</code> ที่ Class ของ Test</li>
+      <li>Compile ต้องใส่ <code>-Xplugin</code> ของ Serialization และ Main class ของ Demo คือ <code>com.somchai.androidlab.practice.SyncDemoKt</code> ส่วน Emulator เรียกเครื่อง Windows ได้ที่ <code>10.0.2.2</code> และต้องมี <code>INTERNET</code> Permission กับ <code>network_security_config.xml</code> ตาม Part 1 Step 11</li>
+    </ul>
+  </div></details>
+</article>
+
+<h3 id="s18-3-answers">เฉลย</h3>
+<div class="callout warn"><span class="c-label warn">ระวัง</span><p>ลองทำทุกข้อด้วยตัวเองให้เสร็จก่อนเปิดเฉลย โดยเฉพาะโจทย์ลงมือทำ การเปิดเฉลยเร็วเกินไปทำให้รู้สึกว่าเข้าใจ แต่พอต้องเขียนเองกลับเขียนไม่ออก ถ้าติด ให้เปิด Hint หรือกลับไปอ่านแนวคิดใน Part 2 ที่โจทย์อ้างถึงก่อน</p></div>
+
+<h4>เฉลย Fill-in-the-blank</h4>
+
+<details class="ans"><summary>ข้อ 1</summary><div>
+  <p><strong>คำตอบ:</strong> (1) <code>?:</code> (2) <code>?.</code> (3) <code>toIntOrNull</code></p>
+  <p>Elvis <code>?:</code> คืนค่าทางขวาเมื่อทางซ้ายเป็น null ส่วน Safe call <code>tag?.length</code> เรียก <code>length</code> เฉพาะตอนที่ <code>tag</code> มีค่า ผลจึงเป็น <code>Int?</code> และได้ 3 เพราะ <code>"งาน"</code> มี 3 ตัวอักษร <code>toIntOrNull()</code> คืน null แทนการพัง ถ้าใช้ <code>toInt()</code> จะได้ <code>NumberFormatException</code> และถ้าใช้ <code>title!!</code> จะได้ <code>java.lang.NullPointerException</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/android-kotlin-lab/practice/fill
+kotlinc f1.kt -include-runtime -d f1.jar &amp;&amp; java -jar f1.jar</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ไม่มีชื่อ | 3 | 0</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 2</summary><div>
+  <p><strong>คำตอบ:</strong> (1) <code>sealed</code> (2) <code>Note</code> (3) <code>copy</code></p>
+  <p><code>sealed interface</code> บังคับให้ลูกทุกตัวอยู่ใน Package และ Module เดียวกัน Compiler จึงรู้รายชื่อลูกครบ และยอมให้ <code>when</code> ไม่มี <code>else</code> ถ้าลบ <code>sealed</code> ออก kotlinc 2.4.21 จะแจ้ง <code>'when' expression must be exhaustive. Add an 'else' branch.</code> ช่องที่สองคือ Receiver type ของ Extension function จึงเรียก <code>note.preview(15)</code> และใช้ <code>title</code> ในฟังก์ชันได้ ชื่อยาว 17 ตัวอักษรเกิน 15 จึงถูกตัดเหลือ 12 ตัว ส่วน <code>copy()</code> คืน Object ใหม่ที่เปลี่ยนเฉพาะ <code>pinned</code> และ <code>note</code> เดิมยังเป็น <code>pinned=false</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/android-kotlin-lab/practice/fill
+kotlinc f2.kt -include-runtime -d f2.jar &amp;&amp; java -jar f2.jar</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Note(id=3, title=ทบทวน Kotlin Flow, pinned=true)
+ทบทวน Kotlin...
+มี 1 โน้ต</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 3</summary><div>
+  <p><strong>คำตอบ:</strong> (1) <code>onResume</code> (2) <code>onStop</code> (3) <code>package</code></p>
+  <p><code>onResume</code> แปลว่า Activity อยู่หน้าสุดและพร้อมรับการแตะ เมื่อกด Home Activity เสียโฟกัส (<code>onPause</code>) แล้วมองไม่เห็น (<code>onStop</code>) แต่ยังไม่ถูกทำลาย จึงไม่มี <code>onDestroy</code> และเมื่อกลับเข้าแอปจะได้ <code>onStart</code> กับ <code>onResume</code> อีกครั้ง ตัวกรอง <code>package:mine</code> แสดงเฉพาะ Log ของแอปจากโปรเจกต์ที่เปิดอยู่ ถ้าเติม <code>tag:AndroidLab</code> จะเหลือเฉพาะบรรทัดที่เราเรียก <code>Log</code> เอง</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 4</summary><div>
+  <p><strong>คำตอบ:</strong> (1) <code>rememberSaveable</code> (2) <code>title</code> (3) <code>(String) -&gt; Unit</code></p>
+  <p><code>remember</code> จำค่าข้าม Recomposition แต่หายเมื่อ Activity ถูกสร้างใหม่ตอนหมุนจอ ส่วน <code>rememberSaveable</code> บันทึกค่าลง Saved instance state จึงรอดทั้งการหมุนจอและตอนที่ระบบปิด Process แล้วเปิดกลับมา ช่องที่สองคือหลัก State hoisting: State ไหลลงไปที่ <code>DraftTitleInput</code> และ Event ไหลขึ้นมาให้ <code>DraftScreen</code> ซึ่งเป็นเจ้าของ State แก้ค่าเอง ถ้าลืมบรรทัดนี้ช่องข้อความจะไม่ขยับเลยเวลาพิมพ์ ช่องสุดท้ายคือ Function type ที่รับ <code>String</code> และไม่คืนค่า ตรงกับที่ <code>onValueChange</code> ต้องการ และอย่าลืม import <code>getValue</code> กับ <code>setValue</code> เมื่อใช้ <code>by</code></p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 5</summary><div>
+  <p><strong>คำตอบ:</strong> (1) <code>ExperimentalMaterial3Api</code> (2) <code>innerPadding</code> (3) <code>note.id</code></p>
+  <p>TopAppBar ใน Material3 1.4.0 ยังเป็น API แบบ Experimental ถ้าไม่มี <code>@OptIn(ExperimentalMaterial3Api::class)</code> จะ Build ไม่ผ่าน <code>innerPadding</code> คือระยะที่ Scaffold คำนวณจากความสูงของ TopAppBar และขอบระบบ เมื่อส่งเป็น <code>contentPadding</code> รายการแรกจะเริ่มใต้ TopAppBar พอดีแต่ยังเลื่อนผ่านใต้แถบได้ ส่วน <code>note.id</code> เป็น key ที่ไม่ซ้ำและไม่เปลี่ยนเมื่อเรียงใหม่ Compose จึงย้าย State ของแถวไปพร้อมกับโน้ตตัวนั้นได้ถูกต้อง ถ้าใช้ Index เป็น key แถวจะสลับ State กันเมื่อรายการเปลี่ยนลำดับ</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 6</summary><div>
+  <p><strong>คำตอบ:</strong> (1) <code>toRoute</code> (2) <code>popBackStack</code> (3) <code>launchSingleTop</code></p>
+  <p>ตามเอกสาร Type safety ของ Navigation Compose <code>toRoute()</code> สร้าง Route object กลับคืนจาก <code>NavBackStackEntry</code> และ Argument ของมัน จึงได้ <code>route.noteId</code> เป็น <code>Int</code> ทันที (import <code>androidx.navigation.toRoute</code>) <code>popBackStack()</code> เอาหน้าปัจจุบันออกจาก Back stack เหมือนปุ่ม Back ของระบบ ส่วน <code>launchSingleTop = true</code> ไม่สร้างสำเนาซ้อนเมื่อปลายทางอยู่บนสุดแล้ว ถ้าไม่ใส่ ผู้ใช้ที่แตะแท็บตั้งค่า 3 ครั้งต้องกด Back 3 ครั้ง และ <code>saveState</code> คู่กับ <code>restoreState</code> ทำให้แต่ละแท็บจำ Back stack ของตัวเองไว้</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 7</summary><div>
+  <p><strong>คำตอบ:</strong> (1) <code>Default</code> (2) <code>async</code> (3) <code>await</code></p>
+  <p><code>Dispatchers.Default</code> มี Thread เท่ากับจำนวน CPU core จึงเหมาะกับงานคำนวณ ส่วน <code>Dispatchers.IO</code> มีไว้สำหรับงานที่รอ I/O ถ้าใส่ <code>IO</code> ผลจะเหมือนกันแต่ผิดเจตนา <code>async { }</code> เริ่มงานทันทีและคืน <code>Deferred</code> โดยไม่รอ งานทั้งสองจึงเดินพร้อมกัน แล้ว <code>await()</code> Suspend จนได้ผล เวลารวมจึงประมาณ 300 ms แทน 600 ms ถ้าใช้ <code>launch</code> จะได้ <code>Job</code> ที่ไม่มี <code>await()</code> และ Compile ไม่ผ่าน โจทย์พิมพ์เป็น <code>true</code> แทนตัวเลขมิลลิวินาที เพราะเวลาจริงต่างกันในแต่ละเครื่อง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/android-kotlin-lab/practice/fill
+kotlinc -cp ../../libs/kotlinx-coroutines-core-jvm-1.11.0.jar f7.kt -include-runtime -d f7.jar
+java -cp f7.jar:../../libs/kotlinx-coroutines-core-jvm-1.11.0.jar F7Kt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>3 โน้ต ธีมมืด รวม 6 คำ
+ทำงานพร้อมกัน: true</code></pre>
+</div></details>
+
+<details class="ans"><summary>ข้อ 8</summary><div>
+  <p><strong>คำตอบ:</strong> (1) <code>viewModelScope</code> (2) <code>WhileSubscribed</code> (3) <code>collectAsStateWithLifecycle</code></p>
+  <p><code>viewModelScope</code> ถูกยกเลิกอัตโนมัติเมื่อ ViewModel ถูกทำลาย งานที่ <code>stateIn</code> เปิดไว้จึงไม่รั่ว <code>WhileSubscribed(5_000)</code> เริ่มต้นทางเมื่อมีผู้เก็บค่ารายแรก และหยุดเมื่อไม่มีผู้เก็บค่านานเกิน 5 วินาที ซึ่งยาวพอให้การหมุนจอไม่ทำให้ต้นทางเริ่มใหม่ (ผลจำลองจริงอยู่ในเฉลย Multiple Choice ข้อ 10) ส่วน <code>collectAsStateWithLifecycle()</code> จาก lifecycle-runtime-compose เก็บค่าเฉพาะตอน Lifecycle อยู่ที่ STARTED ขึ้นไป เมื่อแอปไปอยู่เบื้องหลังจึงหยุดเก็บค่า ต่างจาก <code>collectAsState()</code> ที่เก็บค่าต่อแม้มองไม่เห็นหน้าจอ</p>
+</div></details>
+
+<details class="ans"><summary>ข้อ 9</summary><div>
+  <p><strong>คำตอบ:</strong> (1) <code>Flow</code> (2) <code>suspend</code> (3) <code>ksp</code></p>
+  <p>Query ที่คืน <code>Flow</code> เป็น Observable query คือ Room รัน Query ใหม่และส่งรายการชุดใหม่ทุกครั้งที่ตาราง <code>notes</code> เปลี่ยน ฟังก์ชันนี้ไม่ต้องเป็น <code>suspend</code> เพราะการอ่านเกิดตอนที่มีผู้ <code>collect</code> ส่วน <code>suspend</code> ทำให้ Room รัน UPDATE นอก Main thread ถ้าไม่ใส่แล้วเรียกจาก Main thread แอปจะพังด้วยข้อความที่ขึ้นต้นว่า <code>Cannot access database on the main thread since it may potentially lock the UI for a long period of time.</code> ช่องสุดท้าย <code>ksp(...)</code> ให้ Room compiler สร้างโค้ดของ Dao และ <code>NotesDatabase_Impl</code> ตอน Build (ต้องมี <code>alias(libs.plugins.ksp)</code> ด้วย) ถ้าเขียน <code>implementation(...)</code> แทน แอปจะพังตอนรันเพราะหา <code>NotesDatabase_Impl</code> ไม่เจอ</p>
+</div></details>
+
+<h4>เฉลย Multiple Choice</h4>
+
+<details class="ans"><summary>ข้อ 1</summary><div>
+  <p><strong>คำตอบ: B</strong> <code>name?.length</code> ได้ null เมื่อ <code>name</code> เป็น null และ <code>println(null)</code> พิมพ์คำว่า <code>null</code> บรรทัดที่สองมี <code>?: 0</code> จึงได้ 0 ส่วน String template แปลง null เป็นข้อความ <code>"null"</code> ในแอปจริงจึงควรใส่ค่าสำรองด้วย <code>?:</code> ก่อนแสดงผล ไม่อย่างนั้นผู้ใช้จะเห็นคำว่า null บนหน้าจอ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/android-kotlin-lab/practice/fill
+kotlinc m1.kt -include-runtime -d m1.jar &amp;&amp; java -jar m1.jar</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>null
+0
+ชื่อ: null</code></pre>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะ Safe call <code>?.</code> คืน null แทนการโยน <code>NullPointerException</code> ตัวที่ทำให้พังคือ <code>!!</code> ซึ่งโค้ดนี้ไม่ได้ใช้</li>
+    <li><strong>C</strong> ผิดเพราะบรรทัดแรกไม่มี Elvis จึงพิมพ์ <code>null</code> ไม่ใช่ 0 และ String template แปลง null เป็นคำว่า <code>null</code> ไม่ใช่ข้อความว่าง</li>
+    <li><strong>D</strong> ผิดเพราะ <code>?.</code> คือวิธีที่ Kotlin อนุญาตให้เรียก Property ของ <code>String?</code> ที่ Compile ไม่ผ่านคือ <code>name.length</code> แบบไม่มี <code>?</code></li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 2</summary><div>
+  <p><strong>คำตอบ: C</strong> <code>filter</code> คืน List ใหม่และไม่แก้ List เดิม โค้ดไม่ได้เก็บผลไว้ ผลจึงถูกทิ้ง <code>notes</code> ยังมี 3 ตัว <code>map</code> ได้ <code>[10, 20, 30]</code> และ <code>firstOrNull</code> คืน null เมื่อหาไม่เจอ แล้ว Elvis เปลี่ยนเป็น <code>ไม่พบ</code> ถ้าต้องการใช้ผลของ <code>filter</code> ต้องเขียน <code>val pinned = notes.filter { it.pinned }</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/android-kotlin-lab/practice/fill
+kotlinc m2.kt -include-runtime -d m2.jar &amp;&amp; java -jar m2.jar</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>3
+[10, 20, 30]
+ไม่พบ</code></pre>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะคิดว่า <code>filter</code> แก้ List เดิม และ <code>map</code> ทำงานกับโน้ตทั้ง 3 ตัว จึงไม่มีทางได้ <code>[10]</code></li>
+    <li><strong>B</strong> ผิดเพราะขนาดยังเป็น 3 และบรรทัดสุดท้ายมี <code>?: "ไม่พบ"</code> รองรับ null ไว้แล้ว</li>
+    <li><strong>D</strong> ผิดเพราะ <code>firstOrNull { }</code> ไม่โยน Exception ตัวที่โยนคือ <code>first { }</code> ซึ่งจะพังด้วย <code>java.util.NoSuchElementException: Collection contains no element matching the predicate.</code></li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 3</summary><div>
+  <p><strong>คำตอบ: A</strong> <code>when</code> ที่ใช้เป็นนิพจน์ต้องครอบคลุมทุกกรณี Compiler รู้รายชื่อลูกทั้งหมดของ <code>sealed interface</code> จึงหยุด Compile และบอกกรณีที่ขาด เมื่อทีมเพิ่มสถานะใหม่ Compiler จะชี้ทุกจุดที่ต้องแก้ให้ วิธีแก้ที่ดีคือเพิ่ม <code>is NotesUiState.Offline -&gt; "ออฟไลน์ มีโน้ตในเครื่อง ${state.cached} รายการ"</code> แทนการเติม <code>else</code> ที่จะกลืนสถานะใหม่ในอนาคตไปเงียบๆ</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/android-kotlin-lab/practice/fill
+kotlinc m3.kt -include-runtime -d m3.jar</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>m3.kt:9:43: error: 'when' expression must be exhaustive. Add the 'is Offline' branch or an 'else' branch.
+fun render(state: NotesUiState): String = when (state) {
+                                          ^^^^</code></pre>
+  <ul class="why-wrong">
+    <li><strong>B</strong> ผิดเพราะการตรวจความครบของ <code>when</code> กับ Sealed type เกิดตอน Compile จึงไม่มีไฟล์ Jar ให้รันเลย</li>
+    <li><strong>C</strong> ผิดเพราะ kotlinc แจ้งเป็น <code>error</code> ไม่ใช่ <code>warning</code> และ Kotlin ไม่มีการคืนข้อความว่างให้เอง</li>
+    <li><strong>D</strong> ผิดเพราะ Kotlin ไม่เดาว่าชนิดไหนคล้ายกัน <code>Offline</code> กับ <code>Empty</code> เป็นคนละชนิดกัน</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 4</summary><div>
+  <p><strong>คำตอบ: D</strong> การหมุนจอเป็น Configuration change เมื่อ Activity ไม่ได้ประกาศ <code>android:configChanges</code> ระบบจะทำลาย Activity เดิม (<code>onPause</code>, <code>onStop</code>, <code>onDestroy</code>) แล้วสร้างตัวใหม่ (<code>onCreate</code>, <code>onStart</code>, <code>onResume</code>) ตรงกับ Logcat ในแนวคิดที่ 4 นี่คือเหตุผลที่ค่าใน <code>remember</code> หายเมื่อหมุนจอ และเหตุผลที่ต้องมี ViewModel ซึ่งอยู่รอดข้ามการสร้าง Activity ใหม่</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะ <code>onPause</code> แล้ว <code>onResume</code> เกิดเมื่อมีสิ่งอื่นบังชั่วครู่ เช่นหน้าต่างขอ Permission ของระบบ โดย Activity เดิมยังอยู่ตลอด</li>
+    <li><strong>B</strong> ผิดเพราะ <code>onStop</code> แล้วกลับมา <code>onStart</code> ของ Activity ตัวเดิมคือกรณีกด Home แล้วกลับเข้าแอป ส่วนการหมุนจอได้ Activity ตัวใหม่</li>
+    <li><strong>C</strong> ผิดเพราะการหมุนจอไม่ได้ปิดแอป และ Activity ที่แสดงอยู่บนจอจะผ่าน <code>onPause</code> กับ <code>onStop</code> ก่อนถึง <code>onDestroy</code> เสมอ</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 5</summary><div>
+  <p><strong>คำตอบ: B</strong> Modifier ทำงานตามลำดับที่เขียนจากชั้นนอกเข้าชั้นใน <code>padding(16.dp)</code> ตัวแรกกันพื้นที่ว่างรอบนอก พื้นที่ที่เหลือถูก <code>background</code> ระบายสี แล้ว <code>padding(8.dp)</code> ดันข้อความเข้ามาจากขอบสีอีก 8 dp ผลจึงเหมือนป้ายสีที่มีระยะห่างจากสิ่งรอบข้าง ซึ่งเป็นวิธีที่ใช้แทน Margin เพราะ Compose ไม่มี Modifier ชื่อ Margin</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะสีจะเต็มถึงขอบนอกก็ต่อเมื่อ <code>background</code> อยู่ก่อน <code>padding</code> ทุกตัว</li>
+    <li><strong>C</strong> ผิดเพราะใส่ <code>padding</code> ซ้ำกี่ครั้งก็ได้ และการคั่น <code>background</code> ด้วย <code>padding</code> เป็นรูปแบบที่ใช้กันทั่วไป</li>
+    <li><strong>D</strong> ผิดเพราะ Compose ไม่รวมหรือสลับลำดับ Modifier ให้ ลำดับยังมีผลกับพื้นที่ของ <code>clickable</code> ด้วย</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 6</summary><div>
+  <p><strong>คำตอบ: C</strong> การหมุนจอสร้าง Activity และ Composition ใหม่ <code>draft</code> ที่ใช้ <code>remember</code> จึงกลับเป็นข้อความว่าง ส่วน <code>saved</code> ที่ใช้ <code>rememberSaveable</code> ถูกบันทึกลง Saved instance state ก่อน Activity เดิมถูกทำลาย แล้วอ่านคืนตอนสร้างใหม่ ปุ่มจึงยังแสดง <code>บันทึกแล้ว 2 ครั้ง</code> ข้อความที่ผู้ใช้กำลังพิมพ์จึงควรใช้ <code>rememberSaveable</code> หรือเก็บใน ViewModel เสมอ</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะข้อความจะรอดได้ก็ต่อเมื่อ <code>draft</code> ใช้ <code>rememberSaveable</code> ด้วย</li>
+    <li><strong>B</strong> ผิดเพราะสลับกัน ค่าที่หายคือค่าที่ใช้ <code>remember</code> ส่วนตัวนับที่ใช้ <code>rememberSaveable</code> ยังอยู่</li>
+    <li><strong>D</strong> ผิดเพราะ <code>rememberSaveable</code> ถูกออกแบบมาให้รอดการสร้าง Activity ใหม่โดยเฉพาะ</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 7</summary><div>
+  <p><strong>คำตอบ: A</strong> Column ที่มี <code>verticalScroll</code> ให้ลูกสูงได้ไม่จำกัด แต่ LazyColumn ต้องรู้ความสูงสูงสุดของตัวเองเพื่อคำนวณว่าจะสร้างกี่แถว เมื่อได้ความสูงเป็นอนันต์จึงหยุดด้วย <code>IllegalStateException</code> วิธีที่ถูกคือให้มีตัวเลื่อนชั้นเดียว เอา <code>verticalScroll</code> ออกแล้วใส่หัวข้อเป็น <code>item { }</code> ก่อน <code>items(...)</code> ภายใน LazyColumn ซึ่งข้อความ Error ฉบับเต็มของ Compose ก็แนะนำไว้ หัวข้อจะเลื่อนไปพร้อมรายการ และ LazyColumn ยังสร้างเฉพาะแถวที่มองเห็น</p>
+  <ul class="why-wrong">
+    <li><strong>B</strong> ผิดเพราะ LazyColumn ยังได้ความสูงอนันต์จาก Column ชั้นนอกเหมือนเดิมจึงยังพัง และตัวเลื่อนทิศเดียวกันสองชั้นทำให้ไม่รู้ว่าการลากนิ้วควรเลื่อนชั้นไหน</li>
+    <li><strong>C</strong> ผิดเพราะ Column กับ <code>forEach</code> สร้างทุกรายการพร้อมกันแม้รายการที่อยู่นอกจอ ถ้ามี 200 รายการหน้าจอจะเปิดช้าและใช้หน่วยความจำมาก จึงไม่ได้ผลเหมือนกันทุกอย่าง</li>
+    <li><strong>D</strong> ผิดเพราะ key ไม่เกี่ยวกับการวัดความสูง การลบ key ไม่แก้ปัญหา และยังทำให้ State ของแถวสลับกันเมื่อรายการเปลี่ยนลำดับ</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 8</summary><div>
+  <p><strong>คำตอบ: D</strong> Annotation <code>@Serializable</code> มาจากไลบรารี kotlinx-serialization-core ที่อยู่ใน Classpath แล้ว Gradle sync และการ Compile จึงผ่าน แต่โค้ด Serializer ของ Route ถูกสร้างโดย Serialization compiler plugin เท่านั้น เมื่อ <code>NavHost</code> สร้าง Graph และเรียก <code>serializer&lt;NoteDetailRoute&gt;()</code> แอปจึงพัง จำลองบน JVM ได้ด้วยไฟล์นี้ โดย Compile ครั้งแรกไม่ใส่ Plugin และครั้งที่สองใส่ <code>-Xplugin</code></p>
+<pre class="code" data-env="file" data-label="Kotlin · practice/fill/m8.kt"><code class="language-kotlin">import kotlinx.serialization.Serializable
+import kotlinx.serialization.serializer
+
+@Serializable
+data class NoteDetailRoute(val noteId: Int)
+
+fun main() {
+    // Navigation เรียก serializer&lt;T&gt;() แบบนี้ตอนสร้าง Graph
+    println(serializer&lt;NoteDetailRoute&gt;().descriptor.serialName)
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/android-kotlin-lab/practice/fill
+L=../../libs
+# ครั้งที่ 1: ไม่มี Serialization plugin
+kotlinc -cp $L/kotlinx-serialization-core-jvm-1.11.0.jar m8.kt -include-runtime -d m8.jar
+java -cp m8.jar:$L/kotlinx-serialization-core-jvm-1.11.0.jar M8Kt
+# ครั้งที่ 2: ใส่ Serialization plugin
+kotlinc -Xplugin=$HOME/tools/kotlinc/lib/kotlinx-serialization-compiler-plugin.jar -cp $L/kotlinx-serialization-core-jvm-1.11.0.jar m8.kt -include-runtime -d m8.jar
+java -cp m8.jar:$L/kotlinx-serialization-core-jvm-1.11.0.jar M8Kt</code></pre>
+  <p>ครั้งแรก Compile ผ่านโดยไม่มี Warning แต่พังตอนรัน (แสดง 2 บรรทัดแรก บรรทัดที่เหลือเป็น Stack trace)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Exception in thread "main" kotlinx.serialization.SerializationException: Serializer for class 'NoteDetailRoute' is not found.
+Please ensure that class is marked as '@Serializable' and that the serialization compiler plugin is applied.</code></pre>
+  <p>ครั้งที่สองพิมพ์ชื่อของ Serializer ที่ถูกสร้างขึ้น วิธีแก้ในแอปจึงเป็นการเพิ่ม <code>alias(libs.plugins.kotlin.serialization)</code> ใน Block <code>plugins</code> ตามแนวคิดที่ 8 แล้วกด Sync</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>NoteDetailRoute</code></pre>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะ Gradle sync ไม่ได้ตรวจ Annotation ในโค้ด และตัว Annotation มีอยู่ในไลบรารีที่ใส่ไว้แล้ว</li>
+    <li><strong>B</strong> ผิดเพราะ Compiler ที่ไม่มี Plugin ไม่ตรวจว่า Class มี Serializer หรือไม่ ดังที่การ Compile ครั้งแรกด้านบนผ่านโดยไม่มีข้อความใดเลย ปัญหาจึงไปโผล่ตอนรัน</li>
+    <li><strong>C</strong> ผิดเพราะแอปพังตั้งแต่สร้าง Graph จึงไปไม่ถึงหน้ารายละเอียด และ Navigation ไม่ใส่ค่า 0 ให้ Argument ที่อ่านไม่ได้</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 9</summary><div>
+  <p><strong>คำตอบ: C</strong> <code>flow { }</code> เป็น Cold flow โค้ดในบล็อกยังไม่ทำงานตอนสร้าง จึงพิมพ์ <code>สร้าง Flow แล้ว</code> ก่อน แล้วเริ่มทำงานเมื่อมีผู้เรียก <code>collect</code> <code>take(2)</code> ยกเลิกต้นทางทันทีที่ได้ครบ 2 ค่า <code>emit</code> ตัวที่สามจึงไม่ถูกเรียก เมื่อ Flow จบ <code>collect</code> คืนการทำงานและโปรแกรมพิมพ์ <code>จบ</code></p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/android-kotlin-lab/practice/fill
+kotlinc -cp ../../libs/kotlinx-coroutines-core-jvm-1.11.0.jar m9.kt -include-runtime -d m9.jar
+java -cp m9.jar:../../libs/kotlinx-coroutines-core-jvm-1.11.0.jar M9Kt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>สร้าง Flow แล้ว
+เริ่มโหลด
+โน้ต: ซื้อของเข้าบ้าน
+โน้ต: ประชุมทีม 10:00
+จบ</code></pre>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะ <code>flow { }</code> ไม่เริ่มทำงานตอนสร้าง ถ้าไม่มีใคร <code>collect</code> ข้อความ <code>เริ่มโหลด</code> จะไม่ถูกพิมพ์เลย</li>
+    <li><strong>B</strong> ผิดเพราะ <code>take(2)</code> ใช้ได้กับ Flow ทุกชนิด โน้ตบรรทัดที่สามจึงไม่ถูกพิมพ์</li>
+    <li><strong>D</strong> ผิดเพราะ Flow นี้มีจำนวนค่าจำกัด เมื่อบล็อกจบหรือ <code>take(2)</code> ได้ครบ Flow ก็จบ ที่ค้างตลอดคือ Flow ที่ไม่มีวันจบ เช่น StateFlow</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 10</summary><div>
+  <p><strong>คำตอบ: B</strong> <code>WhileSubscribed(5_000)</code> เริ่มต้นทางเมื่อมีผู้เก็บค่ารายแรก และหยุดเมื่อผู้เก็บค่ารายสุดท้ายหายไปนานเกิน 5 วินาที ตอนหมุนจอ ViewModel ไม่ถูกสร้างใหม่ และหน้าจอใหม่กลับมาเก็บค่าภายใน 1 วินาที ต้นทางจึงไม่หยุด ตอนกด Home <code>collectAsStateWithLifecycle()</code> หยุดเก็บค่า ผ่านไป 5 วินาทีต้นทางจึงหยุด และเริ่มใหม่เป็นครั้งที่ 2 เมื่อกลับเข้าแอป จำลองบน JVM ได้ด้วยเวลาเสมือนของ <code>runTest</code> ซึ่ง <code>delay(10_000)</code> ไม่ต้องรอจริง</p>
+<pre class="code" data-env="file" data-label="Kotlin · practice/fill/m10.kt"><code class="language-kotlin">import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runTest
+
+// จำลอง ViewModel ที่ใช้ stateIn(WhileSubscribed(5_000)) ด้วยเวลาเสมือนของ runTest
+fun main() = runTest {
+    var starts = 0
+    val upstream = flow {
+        starts++
+        println("  -&gt; เริ่มอ่านฐานข้อมูล (ครั้งที่ $starts)")
+        emit("3 โน้ต")
+        awaitCancellation()
+    }
+    val uiState = upstream.stateIn(backgroundScope, SharingStarted.WhileSubscribed(5_000), "Loading")
+
+    println("เปิดหน้าจอ")
+    val screen1 = backgroundScope.launch { uiState.collect { } }
+    delay(2_000)
+    println("หมุนจอ (หน้าจอใหม่กลับมาใน 1 วินาที)")
+    screen1.cancel()
+    delay(1_000)
+    val screen2 = backgroundScope.launch { uiState.collect { } }
+    delay(2_000)
+    println("กด Home ค้างไว้ 10 วินาที")
+    screen2.cancel()
+    delay(10_000)
+    println("กลับเข้าแอป")
+    val screen3 = backgroundScope.launch { uiState.collect { } }
+    delay(1_000)
+    screen3.cancel()
+    println("เริ่มอ่านทั้งหมด $starts ครั้ง")
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/android-kotlin-lab/practice/fill
+L=../../libs
+kotlinc -cp $L/kotlinx-coroutines-core-jvm-1.11.0.jar:$L/kotlinx-coroutines-test-jvm-1.11.0.jar m10.kt -include-runtime -d m10.jar
+java -cp m10.jar:$L/kotlinx-coroutines-core-jvm-1.11.0.jar:$L/kotlinx-coroutines-test-jvm-1.11.0.jar M10Kt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>เปิดหน้าจอ
+  -&gt; เริ่มอ่านฐานข้อมูล (ครั้งที่ 1)
+หมุนจอ (หน้าจอใหม่กลับมาใน 1 วินาที)
+กด Home ค้างไว้ 10 วินาที
+กลับเข้าแอป
+  -&gt; เริ่มอ่านฐานข้อมูล (ครั้งที่ 2)
+เริ่มอ่านทั้งหมด 2 ครั้ง</code></pre>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะ <code>WhileSubscribed</code> หยุดต้นทางเมื่อไม่มีผู้เก็บค่านานเกินเวลาที่กำหนด การเริ่มครั้งเดียวแล้วไม่หยุดเลยคือพฤติกรรมของ <code>SharingStarted.Eagerly</code> หรือ <code>Lazily</code></li>
+    <li><strong>C</strong> ผิดเพราะ <code>stateIn</code> แชร์ต้นทางตัวเดียวให้ผู้เก็บค่าทุกราย ผู้เก็บค่ารายใหม่ที่มาก่อนหมดเวลา 5 วินาทีจะได้ค่าล่าสุดต่อเลย</li>
+    <li><strong>D</strong> ผิดเพราะ <code>collectAsStateWithLifecycle()</code> เก็บค่าต่อเนื่องตลอดที่ Lifecycle อยู่ที่ STARTED ขึ้นไป Recomposition แค่อ่านค่าล่าสุดของ State ไม่ได้เริ่ม Flow ใหม่</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 11</summary><div>
+  <p><strong>คำตอบ: D</strong> ทุกครั้งที่ Schema เปลี่ยน ต้องเพิ่ม <code>version</code> และบอก Room ว่าจะแปลงฐานข้อมูลของผู้ใช้เดิมอย่างไร <code>Migration(1, 2)</code> ที่รัน <code>ALTER TABLE</code> เพิ่มคอลัมน์โดยไม่แตะข้อมูลเดิม โน้ตเก่าได้ <code>content</code> เป็นข้อความว่าง แล้วลงทะเบียนด้วย <code>.addMigrations(MIGRATION_1_2)</code> ใน <code>Room.databaseBuilder(...)</code> ตามแนวคิดที่ 11 คอลัมน์ต้องเป็น <code>NOT NULL</code> ให้ตรงกับ <code>String</code> ที่ไม่เป็น null ใน Entity ด้วย อีกทางเลือกคือ Auto migration ซึ่งต้องเปิด <code>exportSchema</code> และประกาศ <code>autoMigrations</code> ใน <code>@Database</code> เอง</p>
+  <ul class="why-wrong">
+    <li><strong>A</strong> ผิดเพราะ Room ตรวจ Hash ของ Schema ทุกครั้งที่เปิดฐานข้อมูล แอปจะพังด้วยข้อความที่ขึ้นต้นว่า <code>Room cannot verify the data integrity. Looks like you've changed schema but forgot to update the version number.</code></li>
+    <li><strong>B</strong> ผิดเพราะเมื่อเพิ่ม <code>version</code> แต่ไม่มี Migration แอปจะพังด้วยข้อความที่ขึ้นต้นว่า <code>A migration from 1 to 2 was required but not found.</code></li>
+    <li><strong>C</strong> ผิดเพราะ Destructive migration ลบตารางเดิมแล้วสร้างใหม่ โน้ตทั้งหมดของผู้ใช้จะหายหลังอัปเดต ใช้ได้เฉพาะช่วงพัฒนาหรือกับข้อมูลที่ดาวน์โหลดใหม่ได้ทั้งหมด</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>ข้อ 12</summary><div>
+  <p><strong>คำตอบ: A</strong> <code>ignoreUnknownKeys = true</code> ข้าม <code>created_at</code> ที่ <code>NoteDto</code> ไม่มี ส่วน <code>isPinned</code> มีค่าเริ่มต้น <code>false</code> จึงเป็น Field ไม่บังคับ โน้ตที่ 2 จึงได้ <code>false</code> การตั้งค่าแบบนี้ทำให้แอปไม่พังเมื่อ Backend เพิ่ม Field ใหม่ในภายหลัง</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/android-kotlin-lab/practice/fill
+L=../../libs
+kotlinc -Xplugin=$HOME/tools/kotlinc/lib/kotlinx-serialization-compiler-plugin.jar -cp $L/kotlinx-serialization-core-jvm-1.11.0.jar:$L/kotlinx-serialization-json-jvm-1.11.0.jar m12.kt -include-runtime -d m12.jar
+java -cp m12.jar:$L/kotlinx-serialization-core-jvm-1.11.0.jar:$L/kotlinx-serialization-json-jvm-1.11.0.jar M12Kt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[1:true, 2:false]</code></pre>
+  <p>ถ้าแก้เป็น <code>val json = Json</code> ซึ่งไม่ข้าม key แปลกปลอม แล้วรันใหม่ จะได้ Error ตามตัวเลือก B (แสดง 2 บรรทัดแรก)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Exception in thread "main" kotlinx.serialization.json.JsonDecodingException: Unexpected JSON token at offset 53: Encountered an unknown key 'created_at' at path: $[0]
+Use 'ignoreUnknownKeys = true' in 'Json {}' builder or '@JsonIgnoreUnknownKeys' annotation to ignore unknown keys.</code></pre>
+  <ul class="why-wrong">
+    <li><strong>B</strong> ผิดเพราะ Error นี้เกิดเฉพาะกับ <code>Json</code> ค่าตั้งต้นดังที่แสดงด้านบน ส่วนโค้ดในโจทย์เปิด <code>ignoreUnknownKeys</code> ไว้แล้ว</li>
+    <li><strong>C</strong> ผิดเพราะ <code>MissingFieldException</code> เกิดกับ Property ที่ไม่มีค่าเริ่มต้นเท่านั้น เช่นถ้าไม่มี <code>title</code> จะได้ข้อความที่ขึ้นต้นว่า <code>Field 'title' is required for type with serial name 'NoteDto'</code></li>
+    <li><strong>D</strong> ผิดเพราะ <code>isPinned</code> เป็น <code>Boolean</code> ที่ไม่เป็น null จึงเก็บ null ไม่ได้ ไลบรารีใช้ค่าเริ่มต้น <code>false</code> แทน</li>
+  </ul>
+</div></details>
+
+<h4>เฉลย Hands-on Challenge</h4>
+
+<details class="ans"><summary>โจทย์ที่ 1 · ย้ายโน้ตจากแอปเวอร์ชันเก่า</summary><div>
+  <h5>ขั้นที่ 1: ตรรกะการแปลงแบบ Kotlin ล้วนใน WSL</h5>
+<pre class="code" data-env="file" data-label="Kotlin · practice/ch1/importer.kt"><code class="language-kotlin">// โน้ตหนึ่งรายการจากแอปเวอร์ชันเก่า
+data class LegacyNote(
+    val id: Int,
+    val title: String,
+    val pinned: Boolean = false,
+    val tag: String = "ทั่วไป",
+)
+
+// ผลของการแปลงหนึ่งบรรทัด: สำเร็จ หรือ ข้ามพร้อมเหตุผล
+sealed interface ImportResult {
+    data class Ok(val note: LegacyNote) : ImportResult
+    data class Skipped(val lineNo: Int, val reason: String) : ImportResult
+}
+
+// แปลงบรรทัดรูปแบบ id;title;pinned;tag
+fun parseLine(lineNo: Int, line: String): ImportResult {
+    val parts = line.split(";").map { it.trim() }
+    if (parts.size &lt; 4) return ImportResult.Skipped(lineNo, "ข้อมูลไม่ครบ 4 ช่อง")
+    // toIntOrNull() คืน null เมื่อไม่ใช่ตัวเลข แล้ว ?: ออกจากฟังก์ชันทันที
+    val id = parts[0].toIntOrNull()
+        ?: return ImportResult.Skipped(lineNo, "id ไม่ใช่ตัวเลข (${parts[0]})")
+    val title = parts[1]
+    if (title.isBlank()) return ImportResult.Skipped(lineNo, "ไม่มีชื่อโน้ต")
+    val note = LegacyNote(
+        id = id,
+        title = title,
+        pinned = parts[2] == "1",
+        tag = parts[3].ifBlank { "ทั่วไป" },
+    )
+    return ImportResult.Ok(note)
+}
+
+// แปลงทั้งไฟล์ ข้ามบรรทัดว่างและบรรทัด Comment ที่ขึ้นต้นด้วย #
+fun importNotes(raw: String): List&lt;ImportResult&gt; =
+    raw.lines()
+        .mapIndexed { index, line -&gt; index + 1 to line }
+        .filter { (_, line) -&gt; line.isNotBlank() &amp;&amp; !line.trimStart().startsWith("#") }
+        .map { (lineNo, line) -&gt; parseLine(lineNo, line) }
+
+// Extension function: ย่อชื่อที่ยาวเกินให้พอดีกับการ์ด
+fun LegacyNote.preview(max: Int = 20): String =
+    if (title.length &lt;= max) title else title.take(max - 3) + "..."
+
+fun main() {
+    val raw = """
+        # ไฟล์ export จากแอปเวอร์ชัน 1
+        1;ซื้อของเข้าบ้าน;1;บ้าน
+        2;ประชุมทีม 10:00;0;งาน
+        abc;โน้ตเสีย;0;งาน
+        3;ทบทวน Kotlin Flow;0;
+        4;  ;1;งาน
+        5;อ่านเอกสาร Kotlin Coroutines;1;งาน
+        6;โน้ตไม่ครบ
+    """.trimIndent()
+
+    val results = importNotes(raw)
+    val notes = results.filterIsInstance&lt;ImportResult.Ok&gt;().map { it.note }
+    val skippedCount = results.count { it is ImportResult.Skipped }
+    println("นำเข้าได้ ${notes.size} โน้ต ข้าม $skippedCount บรรทัด")
+
+    // when ครบทุกกรณีของ sealed interface จึงไม่ต้องมี else
+    for (result in results) {
+        when (result) {
+            is ImportResult.Ok -&gt; Unit
+            is ImportResult.Skipped -&gt; println("- บรรทัด ${result.lineNo}: ${result.reason}")
+        }
+    }
+
+    println("รายการโน้ต (ปักหมุดขึ้นก่อน):")
+    // sortedByDescending เป็น Stable sort โน้ตที่ค่าเท่ากันจึงคงลำดับเดิม
+    notes.sortedByDescending { it.pinned }.forEach { note -&gt;
+        val pin = if (note.pinned) "[ปักหมุด] " else ""
+        println("$pin#${note.id} ${note.preview()} (${note.tag})")
+    }
+
+    val byTag = notes.groupBy { it.tag }.map { (tag, list) -&gt; "$tag=${list.size}" }
+    println("จำนวนตาม Tag: ${byTag.joinToString(", ")}")
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/android-kotlin-lab/practice/ch1
+kotlinc importer.kt -include-runtime -d importer.jar &amp;&amp; java -jar importer.jar</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>นำเข้าได้ 4 โน้ต ข้าม 3 บรรทัด
+- บรรทัด 4: id ไม่ใช่ตัวเลข (abc)
+- บรรทัด 6: ไม่มีชื่อโน้ต
+- บรรทัด 8: ข้อมูลไม่ครบ 4 ช่อง
+รายการโน้ต (ปักหมุดขึ้นก่อน):
+[ปักหมุด] #1 ซื้อของเข้าบ้าน (บ้าน)
+[ปักหมุด] #5 อ่านเอกสาร Kotlin... (งาน)
+#2 ประชุมทีม 10:00 (งาน)
+#3 ทบทวน Kotlin Flow (ทั่วไป)
+จำนวนตาม Tag: บ้าน=1, งาน=2, ทั่วไป=1</code></pre>
+
+  <h5>ขั้นที่ 2: นำตรรกะเดียวกันไปใช้ใน AndroidLab</h5>
+  <p>คลิกขวาที่ Package <code>com.somchai.androidlab.practice</code> เลือก New &gt; Kotlin Class/File ชนิด File ชื่อ <code>LegacyImport</code> วางโค้ดจาก <code>importer.kt</code> ตั้งแต่ <code>data class LegacyNote</code> จนจบฟังก์ชัน <code>preview</code> (ไม่ต้องคัดลอก <code>main()</code>) แล้วเพิ่ม 2 ส่วนนี้ คือบรรทัด <code>package</code> ไว้บนสุดของไฟล์ และข้อมูลตัวอย่างไว้ท้ายไฟล์ โค้ดชุดนี้ไม่มี import ของ Android จึงเป็นโค้ดเดียวกับที่ทดสอบใน WSL แล้ว</p>
+<pre class="code" data-env="app" data-label="Kotlin · Android Studio"><code class="language-kotlin">// บรรทัดแรกของ LegacyImport.kt
+package com.somchai.androidlab.practice
+
+// ท้ายไฟล์ LegacyImport.kt: ข้อมูลตัวอย่างชุดเดียวกับใน WSL
+val LEGACY_SAMPLE = """
+    # ไฟล์ export จากแอปเวอร์ชัน 1
+    1;ซื้อของเข้าบ้าน;1;บ้าน
+    2;ประชุมทีม 10:00;0;งาน
+    abc;โน้ตเสีย;0;งาน
+    3;ทบทวน Kotlin Flow;0;
+    4;  ;1;งาน
+    5;อ่านเอกสาร Kotlin Coroutines;1;งาน
+    6;โน้ตไม่ครบ
+""".trimIndent()</code></pre>
+  <p>ใน <code>MainActivity.kt</code> เพิ่ม import 3 บรรทัด แล้วเพิ่มโค้ด 3 บรรทัดใน <code>onCreate</code> ต่อจาก <code>Log.d</code> ของ <code>onCreate</code> จากแนวคิดที่ 4 (<code>TAG</code> คือ <code>"AndroidLab"</code> ตัวเดิม)</p>
+<pre class="code" data-env="app" data-label="Kotlin · Android Studio"><code class="language-kotlin">import com.somchai.androidlab.practice.ImportResult
+import com.somchai.androidlab.practice.LEGACY_SAMPLE
+import com.somchai.androidlab.practice.importNotes
+
+// เพิ่มใน onCreate ของ MainActivity
+val results = importNotes(LEGACY_SAMPLE)
+val imported = results.count { it is ImportResult.Ok }
+Log.i(TAG, "นำเข้าโน้ตเก่า $imported รายการ ข้าม ${results.size - imported} บรรทัด")</code></pre>
+  <p>กด Run หน้าจอยังเหมือนเดิมเพราะขั้นนี้ยังไม่แก้ UI แต่แผง Logcat ที่กรองด้วย <code>package:mine tag:AndroidLab</code> จะมีบรรทัดระดับ <code>I</code> เพิ่มขึ้นมา</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>2026-10-19 11:05:12.441  12345-12345  AndroidLab              com.somchai.androidlab               I  นำเข้าโน้ตเก่า 4 รายการ ข้าม 3 บรรทัด</code></pre>
+  <p class="muted small">บรรทัดนี้คือข้อความที่คำสั่ง <code>Log.i</code> ในโค้ดพิมพ์ ไม่ได้จับจากอุปกรณ์จริงในระบบทดสอบของเรา วันที่ เวลา และหมายเลข Process ในเครื่องของคุณจะต่างจากนี้ ถ้าหมุนจอ บรรทัดนี้จะขึ้นซ้ำเพราะ <code>onCreate</code> ถูกเรียกใหม่</p>
+
+  <h5>แนวคิด</h5>
+  <ul>
+    <li><strong>แยกตรรกะออกจาก UI:</strong> ฟังก์ชันแปลงไม่มี import ของ Android จึงทดสอบใน WSL ได้ในไม่กี่วินาที แล้วนำไปใช้ในแอปได้ทันที ในโปรเจกต์จริงโค้ดนี้จะอยู่ใน Layer ข้อมูลและมี Unit Test ใน <code>src/test</code></li>
+    <li><strong>Sealed interface แทน Exception:</strong> บรรทัดเสียเป็นเรื่องปกติของข้อมูลจากผู้ใช้ การคืน <code>Skipped</code> พร้อมเหตุผลทำให้แอปไม่พัง และ <code>when</code> บังคับให้ผู้เรียกจัดการครบทุกกรณี</li>
+    <li><strong>Elvis คู่กับ <code>return</code>:</strong> <code>toIntOrNull() ?: return ...</code> แปลงค่าและออกจากฟังก์ชันในบรรทัดเดียว หลังจากนั้น <code>id</code> เป็น <code>Int</code> ที่ไม่เป็น null แน่นอน</li>
+    <li><strong>เลขบรรทัดต้องตรงกับไฟล์:</strong> จับคู่เลขบรรทัดด้วย <code>mapIndexed</code> ก่อน <code>filter</code> รายงานจึงบอก <code>บรรทัด 8</code> ได้ถูก ถ้ากรองก่อนแล้วค่อยนับ ตัวเลขจะเลื่อนและผู้ใช้จะไปแก้ผิดบรรทัด ส่วน Stable sort กับ <code>groupBy</code> คงลำดับเดิม ผลลัพธ์จึงคาดเดาได้ทุกครั้ง</li>
+  </ul>
+
+  <h5>ไอเดียต่อยอด</h5>
+  <ul>
+    <li>ตรวจ id ซ้ำในไฟล์ด้วย <code>mutableMapOf&lt;Int, Int&gt;()</code> ที่เก็บ id กับเลขบรรทัดแรกที่พบ แล้วข้ามบรรทัดหลังด้วยเหตุผล <code>id ซ้ำกับบรรทัด 2</code></li>
+    <li>เขียน JUnit Test ให้ <code>parseLine</code> ครบทุกกรณี แล้วรันด้วย <code>JUnitCore</code> แบบเดียวกับโจทย์ที่ 3</li>
+    <li>ให้ผู้ใช้เลือกไฟล์ Export จริงด้วย <code>rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument())</code> แล้วอ่านจาก <code>contentResolver.openInputStream(uri)</code> ภายใน <code>withContext(Dispatchers.IO)</code></li>
+    <li>บันทึกโน้ตที่นำเข้าลง Room ผ่าน <code>NoteDao</code> ตามแนวคิดที่ 11 แล้วแสดงสรุปเป็น Snackbar ให้ผู้ใช้เห็นแทน Logcat</li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 2 · แก้บั๊กหน้ารวมโน้ตที่พังหลังเพิ่มการซิงก์</summary><div>
+  <h5>ขั้นที่ 1: ตรรกะรวมโน้ตและสร้างแถวแบบ Kotlin ล้วนใน WSL</h5>
+  <p>ส่วนแรกของ <code>main()</code> จำลองโค้ดเดิมที่ทำให้แอปพัง เพื่อพิสูจน์ว่าบั๊กมาจาก key ซ้ำจริงก่อนจะแก้</p>
+<pre class="code" data-env="file" data-label="Kotlin · practice/ch2/rows.kt"><code class="language-kotlin">// โน้ตที่มาได้ทั้งจากเครื่องและจากเซิร์ฟเวอร์
+data class SyncedNote(
+    val id: Int,
+    val title: String,
+    val pinned: Boolean = false,
+    val updatedAt: Long, // เวลาที่แก้ไขล่าสุด หน่วยมิลลิวินาที
+)
+
+// แถวของ LazyColumn มี 2 แบบ ทุกแถวต้องมี key ที่ไม่ซ้ำและไม่เปลี่ยนไปมา
+sealed interface NoteRow {
+    val key: String
+
+    data class Header(val section: String, val title: String) : NoteRow {
+        override val key: String get() = "header-$section"
+    }
+
+    data class Item(val note: SyncedNote) : NoteRow {
+        override val key: String get() = "note-${note.id}"
+    }
+}
+
+// รวมสองแหล่ง id ซ้ำให้เก็บตัวที่แก้ไขล่าสุด ถ้าเวลาเท่ากันให้ใช้ของเซิร์ฟเวอร์
+fun mergeNotes(local: List&lt;SyncedNote&gt;, remote: List&lt;SyncedNote&gt;): List&lt;SyncedNote&gt; =
+    (remote + local)
+        .groupBy { it.id }
+        .map { (_, versions) -&gt; versions.maxBy { it.updatedAt } }
+
+// สร้างแถวสำหรับหน้าจอ: ส่วนปักหมุดอยู่บน ส่วนโน้ตอื่นอยู่ล่าง
+fun buildRows(notes: List&lt;SyncedNote&gt;, pinnedOnly: Boolean): List&lt;NoteRow&gt; {
+    val (pinned, others) = notes.sortedByDescending { it.updatedAt }.partition { it.pinned }
+    val rows = mutableListOf&lt;NoteRow&gt;()
+    if (pinned.isNotEmpty()) {
+        rows += NoteRow.Header("pinned", "ปักหมุด (${pinned.size})")
+        rows += pinned.map { NoteRow.Item(it) }
+    }
+    if (!pinnedOnly &amp;&amp; others.isNotEmpty()) {
+        rows += NoteRow.Header("others", "โน้ตอื่น (${others.size})")
+        rows += others.map { NoteRow.Item(it) }
+    }
+    return rows
+}
+
+// คืน key ที่ใช้ซ้ำ ถ้าได้ลิสต์ว่างแปลว่าส่งให้ LazyColumn ได้อย่างปลอดภัย
+fun duplicateKeys(rows: List&lt;NoteRow&gt;): List&lt;String&gt; =
+    rows.groupingBy { it.key }.eachCount().filter { it.value &gt; 1 }.keys.toList()
+
+fun printRows(rows: List&lt;NoteRow&gt;) {
+    for (row in rows) {
+        when (row) {
+            is NoteRow.Header -&gt; println("== ${row.title}  [key=${row.key}]")
+            is NoteRow.Item -&gt; println("   ${row.note.title}  [key=${row.key}]")
+        }
+    }
+}
+
+fun main() {
+    val local = listOf(
+        SyncedNote(1, "ซื้อของเข้าบ้าน", pinned = true, updatedAt = 1_000),
+        SyncedNote(2, "ประชุมทีม 10:00", updatedAt = 2_000),
+        SyncedNote(3, "ทบทวน Kotlin Flow", updatedAt = 3_000),
+    )
+    val remote = listOf(
+        SyncedNote(3, "ทบทวน Kotlin Flow และ StateFlow", updatedAt = 5_000),
+        SyncedNote(4, "อ่านเอกสาร Kotlin Coroutines", pinned = true, updatedAt = 4_000),
+    )
+
+    // 1) จำลองบั๊กเดิม: ต่อสองลิสต์กันตรงๆ แล้วใช้ id เป็น key
+    val naive = (local + remote).map { NoteRow.Item(it) }
+    println("ก่อนแก้: key ซ้ำ = ${duplicateKeys(naive)}")
+
+    // 2) รวมแบบถูกต้องแล้วสร้างแถว
+    val merged = mergeNotes(local, remote)
+    val rows = buildRows(merged, pinnedOnly = false)
+    printRows(rows)
+    println("หลังแก้: key ซ้ำ = ${duplicateKeys(rows)}")
+
+    // 3) เปิดสวิตช์ "เฉพาะที่ปักหมุด"
+    println("-- เฉพาะที่ปักหมุด --")
+    printRows(buildRows(merged, pinnedOnly = true))
+    println("ไม่มีโน้ตเลย ได้แถวว่าง: ${buildRows(emptyList(), pinnedOnly = false).isEmpty()}")
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/android-kotlin-lab/practice/ch2
+kotlinc rows.kt -include-runtime -d rows.jar &amp;&amp; java -jar rows.jar</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ก่อนแก้: key ซ้ำ = [note-3]
+== ปักหมุด (2)  [key=header-pinned]
+   อ่านเอกสาร Kotlin Coroutines  [key=note-4]
+   ซื้อของเข้าบ้าน  [key=note-1]
+== โน้ตอื่น (2)  [key=header-others]
+   ทบทวน Kotlin Flow และ StateFlow  [key=note-3]
+   ประชุมทีม 10:00  [key=note-2]
+หลังแก้: key ซ้ำ = []
+-- เฉพาะที่ปักหมุด --
+== ปักหมุด (2)  [key=header-pinned]
+   อ่านเอกสาร Kotlin Coroutines  [key=note-4]
+   ซื้อของเข้าบ้าน  [key=note-1]
+ไม่มีโน้ตเลย ได้แถวว่าง: true</code></pre>
+
+  <h5>ขั้นที่ 2: ตรรกะชุดเดียวกันใน AndroidLab</h5>
+  <p>สร้างไฟล์ <code>NoteRows.kt</code> ใน Package <code>com.somchai.androidlab.practice</code> วางโค้ดจาก <code>rows.kt</code> ตั้งแต่ <code>data class SyncedNote</code> จนจบฟังก์ชัน <code>buildRows</code> โดยไม่ต้องแก้ (ไม่ต้องคัดลอก <code>duplicateKeys</code>, <code>printRows</code> และ <code>main()</code> ซึ่งใช้ตรวจใน WSL เท่านั้น) แล้วเพิ่มบรรทัด <code>package</code> ไว้บนสุดและข้อมูลตัวอย่างไว้ท้ายไฟล์</p>
+<pre class="code" data-env="app" data-label="Kotlin · Android Studio"><code class="language-kotlin">// บรรทัดแรกของ NoteRows.kt
+package com.somchai.androidlab.practice
+
+// ท้ายไฟล์ NoteRows.kt: ข้อมูลตัวอย่างชุดเดียวกับใน WSL
+val sampleLocalNotes = listOf(
+    SyncedNote(1, "ซื้อของเข้าบ้าน", pinned = true, updatedAt = 1_000),
+    SyncedNote(2, "ประชุมทีม 10:00", updatedAt = 2_000),
+    SyncedNote(3, "ทบทวน Kotlin Flow", updatedAt = 3_000),
+)
+val sampleRemoteNotes = listOf(
+    SyncedNote(3, "ทบทวน Kotlin Flow และ StateFlow", updatedAt = 5_000),
+    SyncedNote(4, "อ่านเอกสาร Kotlin Coroutines", pinned = true, updatedAt = 4_000),
+)</code></pre>
+
+  <h5>ขั้นที่ 3: หน้าจอแบบ Stateful และ Stateless</h5>
+  <p><code>MergedNotesRoute</code> เป็นเจ้าของ State ส่วน <code>MergedNotesScreen</code> แสดงผลจากพารามิเตอร์อย่างเดียว ตามหลัก State hoisting ของแนวคิดที่ 6</p>
+<pre class="code" data-env="file" data-label="Kotlin · app/src/main/java/com/somchai/androidlab/practice/MergedNotesScreen.kt"><code class="language-kotlin">package com.somchai.androidlab.practice
+
+import android.util.Log
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+
+private const val TAG = "AndroidLab"
+
+// Stateful: ถือค่าสวิตช์ไว้เอง และให้รอดการหมุนจอด้วย rememberSaveable
+@Composable
+fun MergedNotesRoute(
+    local: List&lt;SyncedNote&gt;,
+    remote: List&lt;SyncedNote&gt;,
+    modifier: Modifier = Modifier,
+) {
+    var pinnedOnly by rememberSaveable { mutableStateOf(false) }
+    // คำนวณใหม่เฉพาะเมื่อข้อมูลหรือค่าสวิตช์เปลี่ยน ไม่ใช่ทุกครั้งที่ Recomposition
+    val merged = remember(local, remote) { mergeNotes(local, remote) }
+    val rows = remember(merged, pinnedOnly) { buildRows(merged, pinnedOnly) }
+    MergedNotesScreen(
+        rows = rows,
+        pinnedOnly = pinnedOnly,
+        onPinnedOnlyChange = { checked -&gt;
+            Log.d(TAG, "เฉพาะที่ปักหมุด: $checked")
+            pinnedOnly = checked
+        },
+        onNoteClick = { note -&gt; Log.d(TAG, "เปิดโน้ต id=${note.id} ${note.title}") },
+        modifier = modifier,
+    )
+}
+
+// Stateless: รับข้อมูลเข้ามาและส่ง Event ออกไป จึง Preview และ Test ได้ง่าย
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MergedNotesScreen(
+    rows: List&lt;NoteRow&gt;,
+    pinnedOnly: Boolean,
+    onPinnedOnlyChange: (Boolean) -&gt; Unit,
+    onNoteClick: (SyncedNote) -&gt; Unit,
+    modifier: Modifier = Modifier,
+) {
+    Scaffold(
+        modifier = modifier,
+        topBar = { TopAppBar(title = { Text("โน้ตหลังซิงก์") }) },
+    ) { innerPadding -&gt;
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = innerPadding,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // แถวสวิตช์มี key ของตัวเองที่ไม่ชนกับ key ของโน้ต
+            item(key = "filter") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("เฉพาะที่ปักหมุด", modifier = Modifier.weight(1f))
+                    Switch(checked = pinnedOnly, onCheckedChange = onPinnedOnlyChange)
+                }
+            }
+            if (rows.isEmpty()) {
+                item(key = "empty") {
+                    Text("ยังไม่มีโน้ต", modifier = Modifier.padding(16.dp))
+                }
+            }
+            items(
+                items = rows,
+                key = { row -&gt; row.key },
+                contentType = { row -&gt; if (row is NoteRow.Header) "header" else "note" },
+            ) { row -&gt;
+                when (row) {
+                    is NoteRow.Header -&gt; Text(
+                        text = row.title,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                    is NoteRow.Item -&gt; Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .clickable { onNoteClick(row.note) },
+                    ) {
+                        Text(row.note.title, modifier = Modifier.padding(16.dp))
+                    }
+                }
+            }
+        }
+    }
+}</code></pre>
+  <p>เปลี่ยนเนื้อหาใน <code>setContent</code> ของ MainActivity ชั่วคราวให้แสดงหน้าจอนี้ (import <code>MergedNotesRoute</code>, <code>sampleLocalNotes</code> และ <code>sampleRemoteNotes</code> จาก Package <code>practice</code>)</p>
+<pre class="code" data-env="app" data-label="Kotlin · Android Studio"><code class="language-kotlin">setContent {
+    AndroidLabTheme {
+        MergedNotesRoute(local = sampleLocalNotes, remote = sampleRemoteNotes)
+    }
+}</code></pre>
+  <p>เมื่อกด Run หน้าจอเปิดได้โดยไม่พัง ด้านบนเป็น TopAppBar <code>โน้ตหลังซิงก์</code> ถัดลงมาเป็นแถว <code>เฉพาะที่ปักหมุด</code> ที่มีสวิตช์ชิดขวา แล้วเป็นหัวข้อ <code>ปักหมุด (2)</code> สี Primary ของธีม การ์ดโน้ต 4 และ 1 หัวข้อ <code>โน้ตอื่น (2)</code> และการ์ดโน้ต 3 กับ 2 ทดลองแตะการ์ดโน้ต id 3 เปิดสวิตช์ (ส่วนโน้ตอื่นหายไปทันที) หมุนจอ (สวิตช์ยังเปิดอยู่) แล้วแตะการ์ดโน้ต id 4 แผง Logcat จะแสดง 3 บรรทัดนี้</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>2026-10-19 13:40:18.207  12345-12345  AndroidLab              com.somchai.androidlab               D  เปิดโน้ต id=3 ทบทวน Kotlin Flow และ StateFlow
+2026-10-19 13:40:25.633  12345-12345  AndroidLab              com.somchai.androidlab               D  เฉพาะที่ปักหมุด: true
+2026-10-19 13:40:41.918  12345-12345  AndroidLab              com.somchai.androidlab               D  เปิดโน้ต id=4 อ่านเอกสาร Kotlin Coroutines</code></pre>
+  <p class="muted small">บรรทัดเหล่านี้คือข้อความที่คำสั่ง <code>Log.d</code> ในโค้ดพิมพ์ ไม่ได้จับจากอุปกรณ์จริงในระบบทดสอบของเรา วันที่ เวลา และหมายเลข Process ในเครื่องของคุณจะต่างจากนี้ ถ้า MainActivity มี Log ของ Lifecycle จากแนวคิดที่ 4 จะเห็นบรรทัด <code>onPause</code> ถึง <code>onResume</code> คั่นอยู่ตอนหมุนจอด้วย</p>
+
+  <h5>แนวคิด</h5>
+  <ul>
+    <li><strong>แก้ที่ข้อมูล ไม่ใช่ที่ key:</strong> การเอา Index มาต่อท้าย key ทำให้แอปเลิกพังก็จริง แต่ผู้ใช้จะเห็นโน้ตเดียวกันสองใบ ต้นเหตุคือข้อมูลซ้ำ จึงต้องรวมให้เหลือฉบับเดียวก่อน แล้ว key จะไม่ซ้ำตามมาเอง</li>
+    <li><strong>กติกาการรวมต้องชัดและทดสอบได้:</strong> <code>groupBy</code> กับ <code>maxBy</code> เลือกฉบับที่แก้ไขล่าสุด และการวาง <code>remote</code> ไว้ก่อนทำให้กรณีเวลาเท่ากันได้ของเซิร์ฟเวอร์ เพราะ <code>maxBy</code> คืนตัวแรกที่เจอเมื่อค่าเท่ากัน</li>
+    <li><strong>Sealed interface สำหรับแถวหลายแบบ และ key ที่คงที่:</strong> หัวข้อกับโน้ตอยู่ใน List เดียวกัน ส่งให้ <code>items()</code> ครั้งเดียว และ <code>when (row)</code> บังคับให้วาดครบทุกแบบ key ของหัวข้อใช้ <code>section</code> ไม่ใช่ข้อความที่มีจำนวนโน้ต เพราะถ้า key เปลี่ยน Compose จะคิดว่าเป็นแถวใหม่ ส่วน <code>contentType</code> ช่วยให้นำ Composition ของแถวชนิดเดียวกันกลับมาใช้ซ้ำตอนเลื่อน</li>
+    <li><strong>State hoisting:</strong> <code>MergedNotesScreen</code> ไม่ถือ State เลย จึงทำ <code>@Preview</code> หรือ UI test ได้ด้วยการส่งค่าเข้าไปตรงๆ ส่วน <code>rememberSaveable</code> ทำให้สวิตช์รอดการหมุนจอ และ <code>remember(merged, pinnedOnly)</code> กันการคำนวณแถวใหม่ทุกครั้งที่ Recomposition</li>
+  </ul>
+
+  <h5>ไอเดียต่อยอด</h5>
+  <ul>
+    <li>ย้าย <code>mergeNotes</code> และ <code>buildRows</code> ไปไว้ใน ViewModel ที่รวม Flow จาก Room กับ Flow จากเซิร์ฟเวอร์ด้วย <code>combine</code> แล้วส่งออกเป็น <code>StateFlow&lt;List&lt;NoteRow&gt;&gt;</code> ตามแนวคิดที่ 10</li>
+    <li>เพิ่ม <code>Modifier.animateItem()</code> ให้การ์ด เพื่อให้มี Animation ตอนโน้ตหายไปหรือย้ายตำแหน่ง ซึ่งทำงานถูกต้องได้เพราะ key ไม่ซ้ำและคงที่</li>
+    <li>เขียน JUnit Test ให้ <code>mergeNotes</code> ครบทุกกรณี คือ id ไม่ซ้ำ, ฝั่งเครื่องใหม่กว่า, ฝั่งเซิร์ฟเวอร์ใหม่กว่า และเวลาเท่ากัน</li>
+    <li>เขียน Compose UI test ด้วย <code>createComposeRule()</code> ส่ง <code>buildRows(..., pinnedOnly = true)</code> ให้ <code>MergedNotesScreen</code> แล้วตรวจว่าไม่มีข้อความ <code>โน้ตอื่น (2)</code></li>
+  </ul>
+</div></details>
+
+<details class="ans"><summary>โจทย์ที่ 3 · ปุ่มซิงก์จากเซิร์ฟเวอร์พร้อม Unit Test ก่อน Merge</summary><div>
+  <h5>ขั้นที่ 1: เปิด API จำลองใน WSL</h5>
+  <p>บันทึกเนื้อหา JSON จากโจทย์เป็นไฟล์ <code>~/projects/notes-api/sync.json</code> (เช่นด้วย <code>nano ~/projects/notes-api/sync.json</code>) แล้วเปิดเซิร์ฟเวอร์ทิ้งไว้ใน Terminal ที่ 1 การใช้ <code>--bind 0.0.0.0</code> ทำให้ Emulator บน Windows เรียกเข้ามาได้ในขั้นที่ 5 ด้วย</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Terminal ที่ 1: เปิดเซิร์ฟเวอร์ทิ้งไว้ กด Ctrl+C เมื่อต้องการปิด
+cd ~/projects/notes-api
+python3 -m http.server 8000 --bind 0.0.0.0</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Terminal ที่ 2: ตรวจว่าเซิร์ฟเวอร์ตอบรหัส HTTP 200 สำหรับไฟล์นี้
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8000/sync.json</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>200</code></pre>
+
+  <h5>ขั้นที่ 2: SyncPresenter ที่ไม่มี import ของ Android</h5>
+  <p>บันทึกเป็น <code>~/projects/android-kotlin-lab/practice/ch3/SyncPresenter.kt</code> ไฟล์นี้คือตรรกะทั้งหมดของ ViewModel แต่รับ <code>CoroutineScope</code> เข้ามาแทนการใช้ <code>viewModelScope</code> เอง จึงรันและทดสอบบน JVM ได้</p>
+<pre class="code" data-env="file" data-label="Kotlin · practice/ch3/SyncPresenter.kt"><code class="language-kotlin">package com.somchai.androidlab.practice
+
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
+import java.io.IOException
+
+// รูปแบบข้อมูลที่ API ส่งมา (key เป็น snake_case)
+@Serializable
+data class SyncNoteDto(
+    val id: Int,
+    val title: String,
+    @SerialName("is_pinned") val isPinned: Boolean = false,
+)
+
+// รูปแบบที่หน้าจอใช้
+data class CloudNote(val id: Int, val title: String, val pinned: Boolean)
+
+// เซิร์ฟเวอร์ตอบกลับด้วย HTTP status ที่ไม่ใช่ 2xx
+class ServerException(val code: Int) : Exception("HTTP $code")
+
+// แหล่งข้อมูลระยะไกล: แอปจริงใช้ Retrofit ส่วน Test ใช้ Fake
+interface NotesRemoteSource {
+    suspend fun fetchNotesJson(): String
+}
+
+sealed interface SyncUiState {
+    data object Idle : SyncUiState
+    data object Syncing : SyncUiState
+    data class Success(val notes: List&lt;CloudNote&gt;) : SyncUiState
+    data class Error(val message: String) : SyncUiState
+}
+
+// ตรรกะของ ViewModel ที่ไม่มี import ของ Android จึง Test บน JVM ได้
+class SyncPresenter(
+    private val source: NotesRemoteSource,
+    private val scope: CoroutineScope,
+) {
+    private val json = Json { ignoreUnknownKeys = true }
+    private val _state = MutableStateFlow&lt;SyncUiState&gt;(SyncUiState.Idle)
+    val state: StateFlow&lt;SyncUiState&gt; = _state.asStateFlow()
+    private var syncJob: Job? = null
+
+    // คืน true เมื่อเริ่มซิงก์ใหม่ และ false เมื่อกำลังซิงก์อยู่แล้ว
+    fun sync(): Boolean {
+        if (syncJob?.isActive == true) return false
+        _state.value = SyncUiState.Syncing
+        syncJob = scope.launch {
+            _state.value = try {
+                val body = source.fetchNotesJson()
+                val notes = json.decodeFromString&lt;List&lt;SyncNoteDto&gt;&gt;(body)
+                    .map { CloudNote(it.id, it.title, it.isPinned) }
+                    .sortedWith(compareByDescending&lt;CloudNote&gt; { it.pinned }.thenBy { it.id })
+                SyncUiState.Success(notes)
+            } catch (e: IOException) {
+                SyncUiState.Error("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง")
+            } catch (e: ServerException) {
+                SyncUiState.Error("เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP ${e.code})")
+            } catch (e: SerializationException) {
+                SyncUiState.Error("ข้อมูลจากเซิร์ฟเวอร์ผิดรูปแบบ")
+            }
+        }
+        return true
+    }
+}</code></pre>
+
+  <h5>ขั้นที่ 3: Unit Test 6 ข้อด้วย Fake</h5>
+  <p>บันทึกเป็น <code>~/projects/android-kotlin-lab/practice/ch3/SyncPresenterTest.kt</code> Fake ตอบตามลำดับขั้นที่ส่งเข้าไป และ <code>runTest</code> ใช้เวลาเสมือน <code>delay(1_000)</code> ใน Fake จึงไม่ต้องรอ 1 วินาทีจริง</p>
+<pre class="code" data-env="file" data-label="Kotlin · practice/ch3/SyncPresenterTest.kt"><code class="language-kotlin">package com.somchai.androidlab.practice
+
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.IOException
+
+// JSON ตัวอย่าง: มี key created_at ที่แอปไม่รู้จัก และโน้ต id 3 ไม่มี is_pinned
+private const val SAMPLE_JSON = """[
+  {"id": 2, "title": "ประชุมทีม 10:00", "is_pinned": false, "created_at": "2026-10-18T09:00:00Z"},
+  {"id": 1, "title": "ซื้อของเข้าบ้าน", "is_pinned": true, "created_at": "2026-10-17T08:30:00Z"},
+  {"id": 3, "title": "ทบทวน Kotlin Flow", "created_at": "2026-10-19T07:45:00Z"}
+]"""
+
+// Fake ที่ตอบตามลำดับขั้นที่กำหนด และนับจำนวนครั้งที่ถูกเรียก
+class FakeRemoteSource(private vararg val steps: suspend () -&gt; String) : NotesRemoteSource {
+    var calls = 0
+        private set
+
+    override suspend fun fetchNotesJson(): String {
+        val step = steps[calls]
+        calls++
+        return step()
+    }
+}
+
+// advanceUntilIdle() ยังเป็น API แบบ Experimental จึงต้อง Opt-in
+@OptIn(ExperimentalCoroutinesApi::class)
+class SyncPresenterTest {
+
+    @Test
+    fun startsIdle() = runTest {
+        val presenter = SyncPresenter(FakeRemoteSource(), this)
+        assertEquals(SyncUiState.Idle, presenter.state.value)
+    }
+
+    @Test
+    fun successIgnoresUnknownKeysAndSortsPinnedFirst() = runTest {
+        val presenter = SyncPresenter(FakeRemoteSource({ SAMPLE_JSON }), this)
+        presenter.sync()
+        advanceUntilIdle()
+        val state = presenter.state.value as SyncUiState.Success
+        assertEquals(listOf(1, 2, 3), state.notes.map { it.id })
+        // id 3 ไม่มี is_pinned จึงได้ค่าเริ่มต้น false
+        assertFalse(state.notes.last().pinned)
+    }
+
+    @Test
+    fun showsSyncingAndIgnoresSecondTap() = runTest {
+        val fake = FakeRemoteSource({ delay(1_000); SAMPLE_JSON })
+        val presenter = SyncPresenter(fake, this)
+        assertTrue(presenter.sync())
+        // กดซ้ำระหว่างรอคำตอบ ต้องไม่เริ่มงานใหม่
+        assertFalse(presenter.sync())
+        assertEquals(SyncUiState.Syncing, presenter.state.value)
+        advanceUntilIdle()
+        assertEquals(1, fake.calls)
+        assertTrue(presenter.state.value is SyncUiState.Success)
+    }
+
+    @Test
+    fun networkErrorThenRetrySucceeds() = runTest {
+        val fake = FakeRemoteSource({ throw IOException("timeout") }, { SAMPLE_JSON })
+        val presenter = SyncPresenter(fake, this)
+        presenter.sync()
+        advanceUntilIdle()
+        assertEquals(SyncUiState.Error("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง"), presenter.state.value)
+        // ผู้ใช้กดปุ่ม "ลองอีกครั้ง"
+        assertTrue(presenter.sync())
+        advanceUntilIdle()
+        assertEquals(2, fake.calls)
+        assertTrue(presenter.state.value is SyncUiState.Success)
+    }
+
+    @Test
+    fun serverErrorShowsHttpCode() = runTest {
+        val presenter = SyncPresenter(FakeRemoteSource({ throw ServerException(500) }), this)
+        presenter.sync()
+        advanceUntilIdle()
+        assertEquals(SyncUiState.Error("เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP 500)"), presenter.state.value)
+    }
+
+    @Test
+    fun brokenJsonShowsFormatError() = runTest {
+        val presenter = SyncPresenter(FakeRemoteSource({ "&lt;html&gt;502 Bad Gateway&lt;/html&gt;" }), this)
+        presenter.sync()
+        advanceUntilIdle()
+        assertEquals(SyncUiState.Error("ข้อมูลจากเซิร์ฟเวอร์ผิดรูปแบบ"), presenter.state.value)
+    }
+}</code></pre>
+  <p>Compile ไฟล์ Presenter กับไฟล์ Test เข้าด้วยกัน แล้วรันด้วย <code>JUnitCore</code> ตัวแปร <code>CP</code> และ <code>PLUGIN</code> ใช้ต่อในขั้นที่ 4 ได้ ถ้ายังอยู่ใน Terminal เดิม</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/android-kotlin-lab/practice/ch3
+L=../../libs
+CP=$L/kotlinx-coroutines-core-jvm-1.11.0.jar:$L/kotlinx-coroutines-test-jvm-1.11.0.jar:$L/kotlinx-serialization-core-jvm-1.11.0.jar:$L/kotlinx-serialization-json-jvm-1.11.0.jar:$L/junit-4.13.2.jar:$L/hamcrest-core-1.3.jar
+PLUGIN=$HOME/tools/kotlinc/lib/kotlinx-serialization-compiler-plugin.jar
+kotlinc -Xplugin=$PLUGIN -cp $CP SyncPresenter.kt SyncPresenterTest.kt -include-runtime -d tests.jar
+java -cp tests.jar:$CP org.junit.runner.JUnitCore com.somchai.androidlab.practice.SyncPresenterTest</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>JUnit version 4.13.2
+......
+Time: 0.246
+
+OK (6 tests)</code></pre>
+  <p class="muted small">จุด 6 จุดคือ Test 6 ข้อที่ผ่าน ค่า <code>Time</code> ในเครื่องของคุณจะต่างจากนี้ ถ้าลบบรรทัด <code>@OptIn(ExperimentalCoroutinesApi::class)</code> ออก Test ยังผ่าน แต่ตอน Compile จะมี Warning <code>this declaration needs opt-in</code> ที่ทุกบรรทัดที่เรียก <code>advanceUntilIdle()</code></p>
+
+  <h5>ขั้นที่ 4: เรียก API จริงจาก JVM</h5>
+  <p>บันทึกเป็น <code>~/projects/android-kotlin-lab/practice/ch3/SyncDemo.kt</code> <code>HttpNotesSource</code> คือ <code>NotesRemoteSource</code> ตัวที่สาม ต่อจาก Fake ใน Test และ Retrofit ในแอป Presenter ไม่ต้องแก้แม้แต่บรรทัดเดียว</p>
+<pre class="code" data-env="file" data-label="Kotlin · practice/ch3/SyncDemo.kt"><code class="language-kotlin">package com.somchai.androidlab.practice
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URI
+
+// แหล่งข้อมูลจริงบน JVM ใช้ HttpURLConnection (ในแอป Android ใช้ Retrofit แทน)
+class HttpNotesSource(private val url: String) : NotesRemoteSource {
+    override suspend fun fetchNotesJson(): String = withContext(Dispatchers.IO) {
+        val conn = URI(url).toURL().openConnection() as HttpURLConnection
+        try {
+            conn.connectTimeout = 3_000
+            conn.readTimeout = 3_000
+            val code = conn.responseCode
+            if (code != HttpURLConnection.HTTP_OK) throw ServerException(code)
+            conn.inputStream.bufferedReader().use { it.readText() }
+        } finally {
+            conn.disconnect()
+        }
+    }
+}
+
+fun main(args: Array&lt;String&gt;) = runBlocking {
+    val url = args.firstOrNull() ?: "http://127.0.0.1:8000/sync.json"
+    val presenter = SyncPresenter(HttpNotesSource(url), this)
+    println("กดซิงก์ครั้งที่ 1: เริ่มใหม่ = ${presenter.sync()}")
+    println("กดซิงก์ครั้งที่ 2: เริ่มใหม่ = ${presenter.sync()}")
+    println("สถานะตอนนี้: ${presenter.state.value}")
+    // รอจนได้ผลลัพธ์สุดท้าย ไม่ว่าจะสำเร็จหรือผิดพลาด
+    when (val result = presenter.state.first { it is SyncUiState.Success || it is SyncUiState.Error }) {
+        is SyncUiState.Success -&gt; result.notes.forEach { note -&gt;
+            val pin = if (note.pinned) "[ปักหมุด] " else ""
+            println("$pin#${note.id} ${note.title}")
+        }
+        is SyncUiState.Error -&gt; println("ผิดพลาด: ${result.message}")
+        else -&gt; Unit
+    }
+}</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># Terminal ที่ 2 (ใช้ตัวแปร CP และ PLUGIN จากขั้นที่ 3)
+kotlinc -Xplugin=$PLUGIN -cp $CP SyncPresenter.kt SyncDemo.kt -include-runtime -d demo.jar
+# แบบที่ 1: เซิร์ฟเวอร์เปิดอยู่
+java -cp demo.jar:$CP com.somchai.androidlab.practice.SyncDemoKt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>กดซิงก์ครั้งที่ 1: เริ่มใหม่ = true
+กดซิงก์ครั้งที่ 2: เริ่มใหม่ = false
+สถานะตอนนี้: Syncing
+[ปักหมุด] #1 ซื้อของเข้าบ้าน
+[ปักหมุด] #4 อ่านเอกสาร Kotlin Coroutines
+#2 ประชุมทีม 10:00
+#3 ทบทวน Kotlin Flow</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># แบบที่ 2: เรียกไฟล์ที่ไม่มีบนเซิร์ฟเวอร์
+java -cp demo.jar:$CP com.somchai.androidlab.practice.SyncDemoKt http://127.0.0.1:8000/missing.json</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>กดซิงก์ครั้งที่ 1: เริ่มใหม่ = true
+กดซิงก์ครั้งที่ 2: เริ่มใหม่ = false
+สถานะตอนนี้: Syncing
+ผิดพลาด: เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP 404)</code></pre>
+  <p>กด <kbd>Ctrl</kbd>+<kbd>C</kbd> ใน Terminal ที่ 1 เพื่อปิดเซิร์ฟเวอร์ แล้วรันแบบที่ 3 ใน Terminal ที่ 2</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash"># แบบที่ 3: เซิร์ฟเวอร์ปิดแล้ว
+java -cp demo.jar:$CP com.somchai.androidlab.practice.SyncDemoKt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>กดซิงก์ครั้งที่ 1: เริ่มใหม่ = true
+กดซิงก์ครั้งที่ 2: เริ่มใหม่ = false
+สถานะตอนนี้: Syncing
+ผิดพลาด: เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง</code></pre>
+  <p>แบบที่ 3 <code>HttpURLConnection</code> โยน <code>java.net.ConnectException</code> ซึ่งเป็นลูกของ <code>IOException</code> Presenter จึงแปลงเป็นข้อความที่ผู้ใช้อ่านเข้าใจได้ และไม่มี Stack trace หลุดออกมา</p>
+
+  <h5>ขั้นที่ 5: นำ Presenter ไปใช้ใน AndroidLab</h5>
+  <p>คัดลอก <code>SyncPresenter.kt</code> ไปไว้ใน Package <code>com.somchai.androidlab.practice</code> โดยไม่ต้องแก้ แล้วสร้างอีก 3 ไฟล์ด้านล่าง ไลบรารี Retrofit, kotlinx-serialization-json พร้อม Plugin, lifecycle-viewmodel-compose และ lifecycle-runtime-compose ถูกเพิ่มไว้แล้วใน Part 1 Step 8, 9 และ 11 รวมถึง <code>INTERNET</code> Permission และ <code>network_security_config.xml</code> ที่อนุญาต Cleartext เฉพาะ <code>10.0.2.2</code></p>
+<pre class="code" data-env="file" data-label="Kotlin · app/src/main/java/com/somchai/androidlab/practice/SyncApi.kt"><code class="language-kotlin">package com.somchai.androidlab.practice
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.ResponseBody
+import retrofit2.HttpException
+import retrofit2.Retrofit
+import retrofit2.http.GET
+
+// Endpoint ของ API จำลอง: คืน Body ดิบ เพื่อให้ SyncPresenter เป็นผู้แปลง JSON เอง
+interface NotesSyncApi {
+    @GET("sync.json")
+    suspend fun getSyncJson(): ResponseBody
+}
+
+// แหล่งข้อมูลจริงของแอป: แปลง Error ของ Retrofit เป็น ServerException ของเราเอง
+class RetrofitNotesSource(private val api: NotesSyncApi) : NotesRemoteSource {
+    override suspend fun fetchNotesJson(): String =
+        try {
+            // อ่าน Body บน Dispatchers.IO เพราะ string() อ่านข้อมูลจาก Network
+            withContext(Dispatchers.IO) {
+                api.getSyncJson().use { body -&gt; body.string() }
+            }
+        } catch (e: HttpException) {
+            throw ServerException(e.code())
+        }
+}
+
+object SyncApiClient {
+    // 10.0.2.2 คือเครื่อง Windows ที่รัน Emulator อยู่ และ Base URL ต้องลงท้ายด้วย /
+    private const val BASE_URL = "http://10.0.2.2:8000/"
+
+    val api: NotesSyncApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .build()
+            .create(NotesSyncApi::class.java)
+    }
+}</code></pre>
+<pre class="code" data-env="file" data-label="Kotlin · app/src/main/java/com/somchai/androidlab/practice/SyncViewModel.kt"><code class="language-kotlin">package com.somchai.androidlab.practice
+
+import android.util.Log
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+
+private const val TAG = "AndroidLab"
+
+class SyncViewModel(source: NotesRemoteSource) : ViewModel() {
+    // ตรรกะทั้งหมดอยู่ใน SyncPresenter ที่ทดสอบบน JVM แล้ว ViewModel แค่ส่ง viewModelScope ให้
+    private val presenter = SyncPresenter(source, viewModelScope)
+    val state: StateFlow&lt;SyncUiState&gt; = presenter.state
+
+    init {
+        // เขียนทุกสถานะลง Logcat เพื่อใช้ตรวจตอนพัฒนา
+        viewModelScope.launch {
+            state.collect { Log.d(TAG, "สถานะ: ${it.label()}") }
+        }
+    }
+
+    fun onSyncClick() {
+        if (!presenter.sync()) Log.d(TAG, "ข้ามคำขอซ้ำ เพราะกำลังซิงก์อยู่")
+    }
+
+    companion object {
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer { SyncViewModel(RetrofitNotesSource(SyncApiClient.api)) }
+        }
+    }
+}
+
+// ข้อความสั้นสำหรับ Log โดยไม่พิมพ์รายการโน้ตทั้งหมด
+private fun SyncUiState.label(): String = when (this) {
+    SyncUiState.Idle -&gt; "Idle"
+    SyncUiState.Syncing -&gt; "Syncing"
+    is SyncUiState.Success -&gt; "Success ${notes.size} โน้ต"
+    is SyncUiState.Error -&gt; "Error $message"
+}</code></pre>
+<pre class="code" data-env="file" data-label="Kotlin · app/src/main/java/com/somchai/androidlab/practice/SyncScreen.kt"><code class="language-kotlin">package com.somchai.androidlab.practice
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+
+// Route: สร้าง ViewModel ผ่าน Factory และเก็บค่า State โดยเคารพ Lifecycle
+@Composable
+fun SyncRoute(
+    modifier: Modifier = Modifier,
+    viewModel: SyncViewModel = viewModel(factory = SyncViewModel.Factory),
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    SyncScreen(state = state, onSyncClick = viewModel::onSyncClick, modifier = modifier)
+}
+
+// Stateless: วาดหน้าจอตาม SyncUiState ที่ได้รับ
+@Composable
+fun SyncScreen(
+    state: SyncUiState,
+    onSyncClick: () -&gt; Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        // กดไม่ได้ระหว่างซิงก์ ผู้ใช้จึงเห็นชัดว่าระบบกำลังทำงาน
+        Button(onClick = onSyncClick, enabled = state !is SyncUiState.Syncing) {
+            Text("ซิงก์จากเซิร์ฟเวอร์")
+        }
+        when (state) {
+            SyncUiState.Idle -&gt; Text("ยังไม่ได้ซิงก์")
+            SyncUiState.Syncing -&gt; CircularProgressIndicator()
+            is SyncUiState.Success -&gt; state.notes.forEach { note -&gt;
+                val pin = if (note.pinned) "[ปักหมุด] " else ""
+                Text("$pin${note.title}")
+            }
+            is SyncUiState.Error -&gt; {
+                Text(state.message, color = MaterialTheme.colorScheme.error)
+                OutlinedButton(onClick = onSyncClick) { Text("ลองอีกครั้ง") }
+            }
+        }
+    }
+}</code></pre>
+  <p>เปลี่ยนเนื้อหาใน <code>setContent</code> ของ MainActivity ชั่วคราวให้แสดงหน้าจอนี้ภายใน Scaffold แบบเดียวกับที่ Template สร้างไว้ เพื่อให้เนื้อหาไม่ซ้อนใต้แถบสถานะ (import <code>com.somchai.androidlab.practice.SyncRoute</code>)</p>
+<pre class="code" data-env="app" data-label="Kotlin · Android Studio"><code class="language-kotlin">setContent {
+    AndroidLabTheme {
+        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding -&gt;
+            SyncRoute(modifier = Modifier.padding(innerPadding))
+        }
+    }
+}</code></pre>
+  <p>เปิดเซิร์ฟเวอร์ใน WSL ไว้แล้วกด Run หน้าจอแสดงปุ่ม <code>ซิงก์จากเซิร์ฟเวอร์</code> กับข้อความ <code>ยังไม่ได้ซิงก์</code> เมื่อแตะปุ่ม ปุ่มเป็นสีเทาและมีวงกลมหมุนครู่หนึ่ง แล้วแสดงโน้ต 4 บรรทัดที่ 2 บรรทัดแรกขึ้นต้นด้วย <code>[ปักหมุด]</code> จากนั้นกด <kbd>Ctrl</kbd>+<kbd>C</kbd> ปิดเซิร์ฟเวอร์แล้วแตะปุ่มอีกครั้ง จะเห็นข้อความ Error สีแดงพร้อมปุ่ม <code>ลองอีกครั้ง</code> แผง Logcat จะแสดงสถานะตามลำดับนี้</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>2026-10-19 14:20:03.015  12345-12345  AndroidLab              com.somchai.androidlab               D  สถานะ: Idle
+2026-10-19 14:20:05.112  12345-12345  AndroidLab              com.somchai.androidlab               D  สถานะ: Syncing
+2026-10-19 14:20:05.398  12345-12345  AndroidLab              com.somchai.androidlab               D  สถานะ: Success 4 โน้ต
+2026-10-19 14:21:47.560  12345-12345  AndroidLab              com.somchai.androidlab               D  สถานะ: Syncing
+2026-10-19 14:21:47.602  12345-12345  AndroidLab              com.somchai.androidlab               D  สถานะ: Error เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง</code></pre>
+  <p class="muted small">บรรทัด Logcat เหล่านี้คือข้อความที่คำสั่ง <code>Log.d</code> ในโค้ดพิมพ์ ไม่ได้จับจากอุปกรณ์จริงในระบบทดสอบของเรา วันที่ เวลา และหมายเลข Process ในเครื่องของคุณจะต่างจากนี้ บรรทัด <code>ข้ามคำขอซ้ำ เพราะกำลังซิงก์อยู่</code> จะขึ้นเฉพาะเมื่อแตะปุ่มเร็วมากจนสองครั้งเข้ามาก่อนที่ปุ่มจะถูกวาดเป็นสีเทา</p>
+
+  <h5>แนวคิด</h5>
+  <ul>
+    <li><strong>แยก ViewModel เป็น Presenter ที่รับ Scope:</strong> ตรรกะทั้งหมดอยู่ใน <code>SyncPresenter</code> ที่ไม่มี import ของ Android ใน Test ส่ง <code>TestScope</code> ของ <code>runTest</code> ในแอปส่ง <code>viewModelScope</code> Test 6 ข้อจึงรันจบในเสี้ยววินาทีโดยไม่ต้องเปิด Emulator</li>
+    <li><strong>Interface ของแหล่งข้อมูลคือจุดเปลี่ยนตัว:</strong> <code>NotesRemoteSource</code> มี 3 ตัวทำงาน คือ Fake ใน Test, <code>HttpNotesSource</code> บน JVM และ <code>RetrofitNotesSource</code> ในแอป ส่วน <code>ServerException</code> เป็นของเราเอง Presenter จึงไม่ผูกกับ Retrofit</li>
+    <li><strong>กันการกดซ้ำด้วย <code>Job</code>:</strong> ปุ่มสีเทาช่วยผู้ใช้ แต่ระหว่างที่หน้าจอยังวาดใหม่ไม่ทัน การแตะครั้งที่สองยังเข้ามาได้ การตรวจ <code>syncJob?.isActive</code> จึงเป็นด่านที่เชื่อถือได้ และ Test <code>showsSyncingAndIgnoresSecondTap</code> ยืนยันว่า Fake ถูกเรียกครั้งเดียว</li>
+    <li><strong>จับ Exception เฉพาะชนิด และทนต่อ API ที่เปลี่ยน:</strong> แต่ละชนิดได้ข้อความที่บอกผู้ใช้ว่าควรทำอะไรต่อ และ <code>CancellationException</code> ยังผ่านออกไปได้เมื่อ ViewModel ถูกทำลาย ส่วน <code>ignoreUnknownKeys</code> คู่กับค่าเริ่มต้นของ <code>isPinned</code> ทำให้แอปที่อยู่ในมือผู้ใช้ไม่พังเมื่อ Backend เพิ่มหรือละ Field</li>
+  </ul>
+
+  <h5>ไอเดียต่อยอด</h5>
+  <ul>
+    <li>ทำแอปแบบ Offline-first โดยบันทึกผลซิงก์ลง Room ด้วย <code>upsert</code> แล้วให้หน้ารายการอ่านจาก <code>Flow</code> ของ Room เพียงแหล่งเดียวผ่าน Repository ตามแนวคิดที่ 10 และ 11</li>
+    <li>เพิ่มการลองใหม่อัตโนมัติแบบ Exponential backoff เฉพาะ <code>IOException</code> (รอ 1, 2 และ 4 วินาที) แล้วเขียน Test ด้วยเวลาเสมือนของ <code>runTest</code> ตรวจว่าลองครบตามจำนวน</li>
+    <li>ใช้ Turbine 1.2.1 (<code>app.cash.turbine:turbine</code>) ทดสอบลำดับสถานะ Idle, Syncing และ Success ทั้งเส้น แทนการตรวจเฉพาะค่าสุดท้าย</li>
+    <li>เก็บเวลาที่ซิงก์สำเร็จล่าสุดลง DataStore ตามแนวคิดที่ 11 แล้วแสดงใต้ปุ่ม และพิจารณาใช้ WorkManager 2.12.0 ซิงก์เบื้องหลังเป็นระยะ</li>
+  </ul>
+</div></details>
+</section>
+
