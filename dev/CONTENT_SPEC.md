@@ -55,6 +55,8 @@ Certification status on 2026-10-19:
 
 ## 3. Your sandbox (for testing code before you publish it)
 
+> **Local clone note (Nov 2026):** this section describes the cloud sandbox that topics 1–9, 11–17 and 19 were tested in. In a local clone (Windows + WSL2 Ubuntu), check your own tool versions first (`python3 -V`, `node -v`, ...), install what the topic needs, and keep writing code for the target versions below. The rules about real outputs and machine-specific values still apply. Run every command from the repository root.
+
 - Testing runs on Linux **Ubuntu 24.04.5**, as root, with 4 CPUs.
 - Installed: **Python 3.13**, **Node 22**, **Go 1.24.7**, the **PostgreSQL 16** server (not running; start it with `service postgresql start`), and `tsc` 6.0.2.
 - `sqlite3` CLI is not installed; run `apt-get install -y sqlite3`. Python's `sqlite3` module is 3.45.1.
@@ -63,7 +65,7 @@ Certification status on 2026-10-19:
 - Some outputs differ by machine: usernames, dates, hashes, PIDs, IP addresses, file sizes. For these, show realistic output that uses the learner's username `somchai` and the folder `/home/somchai/...`, and say in Thai that the values on the learner's machine will differ.
 - The sandbox versions differ slightly from the target versions (Python 3.12, Node LTS 24/26, Go 1.27). **Write code that runs on the target versions.** Do not use a feature that exists only in a newer version than the target.
 - Some code cannot be run here (Windows PowerShell, Android, Godot, GUI programs, real network devices). For that code, be extra careful: follow official syntax and state the version.
-- Do your scratch work in `/tmp/claude-0/-home-user/fe474bf2-4538-5703-885b-2ffd0c503494/scratchpad/work/<topic>/`. Never write scratch files into the `site/` folder.
+- Do your scratch work in `work/<topic>/` (git-ignored). Never write scratch files into `topics/` or the repository root.
 
 ## 4. Safety and API rules
 
@@ -81,12 +83,12 @@ For topic **N**, written as two digits `NN`:
 
 | File | Content |
 |---|---|
-| `site/topics/tNN-p1.html` | Part 1 |
-| `site/topics/tNN-p2.html` | Part 2 |
-| `site/topics/tNN-p3.html` | Part 3 |
-| `site/topics/tNN-p4.html` | Part 4 |
+| `topics/tNN-p1.html` | Part 1 |
+| `topics/tNN-p2.html` | Part 2 |
+| `topics/tNN-p3.html` | Part 3 |
+| `topics/tNN-p4.html` | Part 4 |
 
-The full path of `site/` is `/tmp/claude-0/-home-user/fe474bf2-4538-5703-885b-2ffd0c503494/scratchpad/site/`.
+In this repository the site is the repository root: `index.html` is the page (its `var CONTENT` sets how many parts of each topic are visible) and the parts are in `topics/`.
 
 ### Writing big files
 
@@ -312,7 +314,7 @@ Callouts may contain `p`, `ul`, `ol` and code blocks.
 Run the validator on your file, and fix **every** error before you finish. Warnings should also be fixed unless they are clearly fine.
 
 ```bash
-python3 /tmp/claude-0/-home-user/fe474bf2-4538-5703-885b-2ffd0c503494/scratchpad/spec/validate_fragment.py <file> --topic N --part K
+python3 dev/validate_fragment.py <file> --topic N --part K
 ```
 
 The validator checks:

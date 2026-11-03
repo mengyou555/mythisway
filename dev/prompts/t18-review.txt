@@ -1,0 +1,26 @@
+(Local clone of https://github.com/mengyou555/mythisway: run every command from the repository root; all paths below are relative to it.)
+
+If build/t18-p3.reviewed exists, the review is already finished: run python3 dev/validate_fragment.py topics/t18-p3.html --topic 18 --part 3 once and return immediately without reading the file.
+You are a strict reviewer for a Thai self-study tech curriculum. Read the spec dev/CONTENT_SPEC.md (section 6, Part 3) and the outline dev/outlines/t18.json.
+FILE: topics/t18-p3.html (Part 3 of topic 18 "Android"). ASSUME it contains mistakes. Your focus is correctness of the answers:
+1. For EVERY MCQ, solve it yourself first, then compare with the answer key. Check that the "why-wrong" explanation of each wrong option is accurate. If a question is ambiguous (two defensible answers), rewrite the options.
+2. Verify every fill-in-the-blank answer. Where possible, verify it by running the code.
+3. Extract and RUN every hands-on solution in work/t18-p3-review, and make sure the shown output is the real output.
+4. Fix everything directly in the file with Edit. Never delete content just to pass a check.
+5. Run python3 dev/validate_fragment.py topics/t18-p3.html --topic 18 --part 3 (it must PASS), then: touch build/t18-p3.reviewed
+WORK EFFICIENTLY (usage limits are tight): plan before writing, write in chunks as described below, batch your test runs, and never re-read files you have already written. Keep depth, but stay near the size target.
+Return the structured report, listing what you fixed in notes.
+
+FINAL MESSAGE FORMAT (this replaces "the structured report"): your last message must start with a line "VALIDATOR: " followed by the validator's RESULT line and COUNTS line, then a line "NOTES: " followed by what you ran and tested, what could not be tested, any concerns, and every fix you made.
+
+ANDROID TESTING (topic 18), LOCAL MACHINE: Parts 1-3 were written on a cloud machine that had no Android SDK. First check this machine: `kotlinc -version` (need 2.4.21), `java -version` (need 21), and whether an Android SDK exists (`adb version`, `echo $ANDROID_HOME`). The SANDBOX TESTING note in dev/outlines/t18.json describes that cloud machine: its kotlinc and libs paths do not exist here. Install kotlinc 2.4.21 if it is missing (for example with SDKMAN in WSL: `sdk install kotlin 2.4.21`) and download the same jar versions from Maven Central into work/t18/libs (URL pattern in the outline notes). If an Android SDK is installed and the code builds, you may show real Gradle/Logcat output from it. Otherwise follow these rules, which Parts 1-3 follow: run every pure-Kotlin example (logic, data classes, coroutines/Flow, serialization, unit tests) for real with kotlinc 2.4.21 / JDK 21 and paste the real output. For Android-only code (Compose, Room, DataStore, Retrofit, Navigation, Gradle), follow the official developer.android.com docs exactly; never invent Gradle, build, emulator or adb output; for Logcat show only the lines the code's Log calls print, followed by a muted Thai note that it was not captured on a device in our test system. Part 1 already has a หมายเหตุ callout explaining this; add one short หมายเหตุ callout in your part's setup/intro that says which examples were run and which follow the official docs.
+
+KNOWN ISSUES FROM THE WRITERS (check and resolve each one):
+- This clone has no chunk folders for Parts 2-3, so edit topics/t18-p2.html and topics/t18-p3.html directly with Edit. Do not read them whole (Part 2 is 407 KB, Part 3 is 180 KB): use grep -n and read only the line ranges you need. After editing Part 2, also run: python3 dev/validate_fragment.py topics/t18-p2.html --topic 18 --part 2
+- (a) Part 3: the python3 http.server request log shows 19/Oct/2026 instead of the captured 29/Oct/2026, with a muted note that dates differ. dev/CONTENT_SPEC.md section 3 allows this (machine-specific values), so no change is needed.
+- (b) Part 3, MCQ 7: the quoted Compose message "Vertically scrollable component was measured with an infinity maximum height constraints, which is disallowed." was verified word for word in the androidx-main source. Only make sure the page presents it as the message text from the Compose source, not as output captured on our machine.
+- (c) Part 2, concept s18-2-c08: the back-stack walkthrough (tapping the Notes tab brings back the open detail page) was reasoned, not run. Check it against the Navigation docs (saveState/restoreState with launchSingleTop for bottom navigation) and correct the wording if needed.
+- (d) Part 2, concept s18-2-c12: the Android-side ConnectException when the WSL server is down was predicted from the JVM run. Make sure the text labels it as expected behaviour, not captured output.
+- Any plain-text URL longer than about 40 characters must be inside <code> or <a>, or it overflows on a 390 px phone screen (check with: node dev/qa/check-render.js 18).
+
+LOCAL WRAP-UP: when your part passes the validator, do the after-PASS steps in dev/HANDOFF.md (index.html var CONTENT, README.md, the task table in dev/HANDOFF.md, then git commit and push), and finish with a short Thai summary for the repository owner.

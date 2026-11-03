@@ -1,0 +1,39 @@
+(Local clone of https://github.com/mengyou555/mythisway: run every command from the repository root; all paths below are relative to it.)
+
+You are an expert tech educator and senior engineer writing one part of a Thai self-study curriculum website.
+
+TOPIC 10: "AI and Data Scientist".
+FIRST read the full spec dev/CONTENT_SPEC.md (mandatory rules), then print your topic brief and follow it:
+python3 -c "import json;b=[x for x in json.load(open('dev/briefs.json')) if x['n']==10][0];print(json.dumps(b,ensure_ascii=False,indent=1))"
+(The brief gives the summary, hours, prerequisites and topics already finished, career tracks, the planned Mini Project, and detailed guidance you must cover.)
+
+Then read the agreed topic outline at dev/outlines/t10.json and follow it exactly (concept ids and order, mini project, versions, notes).
+
+WORK EFFICIENTLY (usage limits are tight): plan before writing, write in chunks as described below, batch your test runs, and never re-read files you have already written. Keep depth, but stay near the size target.
+HOW TO WRITE (resume-safe; never re-read finished work):
+- Build the part from chunk files in build/t10-p4/ (mkdir -p it). FIRST write build/t10-p4/PLAN.txt listing the chunk file names in order (e.g. 00-intro.html, 01-c01.html, 02-c02.html, ...), one per line.
+- Write each chunk with ONE Write call (aim for 10–25 KB). Its LAST line must be exactly: <!-- chunk-complete -->
+- Never read a chunk back after writing it, unless the validator reports an error inside it (then grep -n for the problem and Edit only that spot).
+- Assemble when all chunks exist: (cd build/t10-p4 && cat $(cat PLAN.txt) | grep -v 'chunk-complete' > topics/t10-p4.html), then run the validator. Fix the specific chunk and re-assemble until PASS.
+- When the validator PASSES, run: touch build/t10-p4.done
+RESUME (an earlier run may have been interrupted, e.g. by a usage limit):
+- If build/t10-p4.done exists: run the validator once. If PASS, return your report immediately without reading any content.
+- Else if build/t10-p4/PLAN.txt exists: cat PLAN.txt, then run: grep -L 'chunk-complete' build/t10-p4/*.html (and ls) to see which chunks are unfinished or missing. Do NOT open finished chunks. Delete unfinished ones and write only the missing chunks, then assemble.
+- Else if an older single file topics/t10-p4.html exists: run the validator. If PASS, touch build/t10-p4.done and return. Otherwise do NOT read the whole file: read only its last 150 lines (tail -n 150) to see where it stopped, and grep -n '<h3 id=' to list the sections it already has. Then move it into build/t10-p4/00-existing.html, append the chunk marker line to it, list it first in PLAN.txt, and write the remaining content as new chunks (including any missing closing tags).
+
+Write your file to: topics/t10-p4.html
+Use the folder work/t10-p4 (git-ignored) to create and RUN every example on this machine. Copy the real output into the page.
+When finished, run: python3 dev/validate_fragment.py topics/t10-p4.html --topic 10 --part 4 and fix until RESULT: PASS. Check each chunk carefully BEFORE writing it (real outputs, working code, natural Thai, escaped HTML) instead of re-reading the file afterwards. Return the structured report.
+
+YOUR PART: Part 4 — ส่วนเสริม. Size target: 70–120 KB.
+- Mini Project: exactly the outline's project. BUILD AND TEST it for real in the scratch directory, then document it as at least 6 steps with complete code for every file, a verification step with real output, a README template, how to push it to GitHub, and extension ideas.
+- Cheat Sheet: at least 30 rows, grouped by theme.
+- Exactly 5 interview questions with strong model answers.
+- At least 6 resources, using real URLs you are confident about (official docs home pages are safest).
+
+FINAL MESSAGE FORMAT (this replaces "the structured report"): your last message must start with a line "VALIDATOR: " followed by the validator's RESULT line and COUNTS line, then a line "NOTES: " followed by what you ran and tested, what could not be tested, any concerns.
+
+
+PYTORCH VENV (topic 10), LOCAL MACHINE: create ONE virtual environment at work/t10/torchvenv (`python3 -m venv work/t10/torchvenv`) and reuse it for every part; work/ is git-ignored, so it is never committed. To save disk space, install the CPU-only PyTorch wheel: `work/t10/torchvenv/bin/pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu`. Versions verified on the cloud machine in Oct 2026 (Python 3.13): torch 2.14.1, numpy 2.5.4, scikit-learn 1.9.1, scipy 1.18.1. The curriculum targets Python 3.12 (dev/CONTENT_SPEC.md section 3), so write code that runs there. Part 1 records the final versions in dev/outlines/t10.json; Parts 2-4 must use exactly those.
+
+LOCAL WRAP-UP: when your part passes the validator, do the after-PASS steps in dev/HANDOFF.md (index.html var CONTENT, README.md, the task table in dev/HANDOFF.md, then git commit and push), and finish with a short Thai summary for the repository owner.

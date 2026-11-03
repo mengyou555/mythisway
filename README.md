@@ -58,6 +58,8 @@
 | `topics/tNN-pK.html` | เนื้อหาส่วนที่ K ของหัวข้อที่ NN เช่น `t03-p2.html` คือ Game Developer ส่วนที่ 2 |
 | `dev/` | เครื่องมือที่ใช้สร้างและตรวจเนื้อหา: กติกาการเขียน (`CONTENT_SPEC.md`), ตัวตรวจ (`validate_fragment.py`), โครงเนื้อหาแต่ละหัวข้อ (`outlines/`), Brief ของหัวข้อ (`briefs.json`), สคริปต์สร้าง Prompt (`scripts/`) และคิวงาน (`QUEUE.md`) |
 
+ทำส่วนที่เหลือต่อบนเครื่องตัวเอง (VS Code + Claude Code) ดูขั้นตอนใน `dev/HANDOFF.md`
+
 ตรวจไฟล์เนื้อหาด้วยตัวตรวจ
 
 ```bash
