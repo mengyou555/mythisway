@@ -4,10 +4,16 @@
 
 ## สถานะ (4 พ.ย. 2026)
 
-ผ่านตัวตรวจแล้ว **72 จาก 76 ส่วน (95%)** ทุกหัวข้อครบ 4 ส่วน ยกเว้น
+ผ่านตัวตรวจแล้ว **73 จาก 76 ส่วน (96%)** ทุกหัวข้อครบ 4 ส่วน ยกเว้น
 
 - **18 Android:** ครบ 4 ส่วนบนเว็บแล้ว และรีวิวส่วนที่ 2–3 เสร็จแล้ว (งานที่ 2)
-- **10 AI and Data Scientist:** ยังไม่เริ่ม
+- **10 AI and Data Scientist:** มีส่วนที่ 1 และ `dev/outlines/t10.json` แล้ว (งานที่ 3) ส่วนที่ 2–4 ยังไม่เริ่ม
+
+### venv ของหัวข้อ 10 บนเครื่อง local
+
+- WSL ของเครื่องนี้เป็น Ubuntu 26.04 ซึ่ง `python3` เป็น 3.14 จึงใช้ uv (`~/venvs/uvboot/bin/uv`) ติดตั้ง CPython 3.12.3 แล้วสร้าง venv ไว้ที่ `~/venvs/torchvenv` (ext4 เร็วกว่า `/mnt/f`) และทำ symlink เป็น `work/t10/torchvenv`
+- มีครบทุกเวอร์ชันใน `versions` ของ `dev/outlines/t10.json`: numpy 2.5.4, pandas 3.1.0, matplotlib 3.11.2, scipy 1.18.1, scikit-learn 1.9.1, jupyterlab 4.6.5, torch 2.14.1+cpu, anthropic 1.15.0
+- รันด้วย `wsl -e bash -c 'export LANG=C.UTF-8; work/t10/torchvenv/bin/python ไฟล์.py'` ไฟล์ทดลองของส่วนที่ 1 อยู่ใน `work/t10/p1/` รวมถึง `generate_members.py` ของ Mini Project
 
 ### สิ่งที่พบตอนทำ Android บนเครื่อง local (งานที่ 1–2 แก้ครบแล้ว)
 
@@ -23,7 +29,7 @@
 |---|---|---|---|---|---|
 | 1 | Android ส่วนที่ 4 | `dev/prompts/t18-p4.txt` | `topics/t18-p4.html` | `18:3` → `18:4` | ✅ |
 | 2 | รีวิว Android ส่วนที่ 2–3 | `dev/prompts/t18-review.txt` | แก้ `topics/t18-p2.html`, `topics/t18-p3.html` | ไม่ต้องแก้ | ✅ |
-| 3 | AI and Data Scientist ส่วนที่ 1 + โครงเนื้อหา | `dev/prompts/t10-p1.txt` | `topics/t10-p1.html`, `dev/outlines/t10.json` | แทรก `10:1, ` ต่อจาก `9:4, ` | ⬜ |
+| 3 | AI and Data Scientist ส่วนที่ 1 + โครงเนื้อหา | `dev/prompts/t10-p1.txt` | `topics/t10-p1.html`, `dev/outlines/t10.json` | แทรก `10:1, ` ต่อจาก `9:4, ` | ✅ |
 | 4 | AI and Data Scientist ส่วนที่ 2 | `dev/prompts/t10-p2.txt` | `topics/t10-p2.html` | `10:1` → `10:2` | ⬜ |
 | 5 | AI and Data Scientist ส่วนที่ 3 | `dev/prompts/t10-p3.txt` | `topics/t10-p3.html` | `10:2` → `10:3` | ⬜ |
 | 6 | AI and Data Scientist ส่วนที่ 4 | `dev/prompts/t10-p4.txt` | `topics/t10-p4.html` | `10:3` → `10:4` | ⬜ |
