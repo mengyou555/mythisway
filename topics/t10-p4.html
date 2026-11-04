@@ -1,0 +1,876 @@
+<section class="part" data-part="4">
+<h2 id="s10-4"><span class="sec-no">10.4</span>ส่วนเสริม: Mini Project, Cheat Sheet, Interview</h2>
+<p>ส่วนสุดท้ายของหัวข้อนี้รวมทุกแนวคิดจาก Part 2 และ 3 เป็นโปรเจกต์เดียวที่ใส่ Portfolio ได้ ตามด้วย Cheat Sheet สำหรับเปิดดูระหว่างทำงาน คำถามสัมภาษณ์ 5 ข้อพร้อมแนวคำตอบ และแหล่งเรียนต่อ โค้ดทุกไฟล์ในโปรเจกต์ผ่านการรันจริงตั้งแต่ต้นจนจบด้วยเวอร์ชันเดียวกับ Part 2 และรันซ้ำในโฟลเดอร์ใหม่ได้ผลเหมือนเดิมทุกตัวเลข</p>
+
+<h3 id="s10-4-project">Mini Project: Churn ML ทำนายสมาชิกฟิตเนสที่จะยกเลิกสมาชิก</h3>
+<h4>เป้าหมาย</h4>
+<p>ฟิตเนสเครือข่ายสมมติชื่อ <strong>FitSomchai</strong> มีสาขาใน 5 จังหวัด ฝ่ายบริหารอยากรู้ล่วงหน้าว่าสมาชิกคนไหนกำลังจะยกเลิก (Churn) เพื่อให้ทีมดูแลลูกค้าโทรหาก่อน คุณจะสร้างโปรเจกต์ <strong>End-to-End</strong> ที่ครบทุกขั้นของงาน Data Science ได้แก่ ตั้งโจทย์ สร้างและโหลดข้อมูล สำรวจข้อมูล สร้าง Feature เทียบโมเดลกับ Baseline เลือก Threshold ตามต้นทุน ตรวจความเป็นธรรม ตีความโมเดล และเขียนรายงาน เกณฑ์ทางธุรกิจที่ตกลงกันคือ การพลาดสมาชิกที่จะยกเลิกเสียหาย <strong>3 เท่า</strong>ของการโทรหาสมาชิกที่ไม่ได้จะยกเลิก ใช้ ROC-AUC เทียบโมเดล และใช้ต้นทุนเลือก Threshold</p>
+<h4>ฟีเจอร์ของโปรเจกต์</h4>
+<ul>
+  <li>สร้างข้อมูลสมาชิกจำลอง 2,000 คนที่รันกี่ครั้งก็ได้ไฟล์เดิม (Seed 42) บันทึกทั้ง CSV และ SQLite</li>
+  <li>โหลดข้อมูลจาก SQLite ด้วย Query ที่ใช้ <code>params</code> และตรวจ Schema ก่อนใช้งาน</li>
+  <li>EDA ที่พิมพ์อัตรายกเลิกแยกกลุ่ม และบันทึกกราฟ 4 รูปใน <code>reports/figures/</code></li>
+  <li>Feature ใหม่ 2 ตัว และ <code>ColumnTransformer</code> ที่จัดการค่าว่าง ปรับสเกล และทำ One-hot ใน Pipeline</li>
+  <li>เทียบ 4 โมเดลด้วย 5-fold Cross-validation และปรับจูนตัวที่ชนะด้วย <code>GridSearchCV</code></li>
+  <li>เลือก Threshold จากต้นทุนบนข้อมูลฝึก วัดผลบนข้อมูลทดสอบครั้งเดียว ตรวจ Recall รายจังหวัด และ Permutation importance แล้วบันทึกเป็น <code>reports/metrics.json</code></li>
+  <li>ผู้ช่วย LLM ร่างบทสรุปผู้บริหารจากตัวเลขสรุปเท่านั้น และทำงานแบบจำลองอัตโนมัติเมื่อไม่มี <code>ANTHROPIC_API_KEY</code></li>
+  <li>README ที่เป็นรายงานพร้อมข้อจำกัด และคำสั่งเดียว <code>bash run_all.sh</code> ที่รันซ้ำได้ทั้งโปรเจกต์</li>
+</ul>
+<h4>โครงสร้างโฟลเดอร์เมื่อเสร็จ</h4>
+<pre class="code" data-env="file" data-label="Text · โครงสร้างโปรเจกต์"><code class="language-plaintext">~/projects/churn-ml/
+├── .gitignore
+├── README.md
+├── requirements.txt
+├── run_all.sh
+├── src/
+│   ├── generate_members.py   # สร้างข้อมูลจำลอง (Step 2)
+│   ├── load_data.py          # โหลดจาก SQLite และตรวจ Schema (Step 3)
+│   ├── eda.py                # สำรวจข้อมูลและกราฟ (Step 4)
+│   ├── features.py           # Feature, การแบ่งข้อมูล, ColumnTransformer (Step 5)
+│   ├── check_features.py     # ตรวจ Feature ก่อนฝึก (Step 5)
+│   ├── train.py              # เทียบโมเดลและปรับจูน (Step 6)
+│   ├── evaluate.py           # วัดผล Threshold ความเป็นธรรม (Step 7)
+│   └── report_assistant.py   # บทสรุปด้วย LLM + Mock mode (Step 8)
+├── data/                     # members.csv, members.db (สร้างใหม่ได้ ไม่ Commit)
+├── models/                   # churn_model.joblib (ไม่ Commit)
+└── reports/
+    ├── cv_results.csv
+    ├── metrics.json
+    ├── summary.md
+    └── figures/              # กราฟ PNG 4 รูป</code></pre>
+
+<ol class="proj-steps">
+  <li>
+    <h4>Step 1: สร้างโฟลเดอร์ venv และไฟล์ตั้งค่าโปรเจกต์</h4>
+    <p>โปรเจกต์นี้มี venv ของตัวเองแยกจาก <code>ds-lab</code> เพื่อให้ <code>requirements.txt</code> มีเฉพาะสิ่งที่โปรเจกต์ใช้จริง ใครก็ติดตั้งซ้ำได้ <code>.gitignore</code> กันไม่ให้ venv ข้อมูลที่สร้างใหม่ได้ ไฟล์โมเดล และไฟล์ <code>.env</code> ที่อาจมี API Key หลุดขึ้น GitHub ส่วน <code>run_all.sh</code> รันทุกขั้นตามลำดับและหยุดทันทีถ้าขั้นใดล้ม (<code>set -euo pipefail</code>)</p>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/churn-ml/src ~/projects/churn-ml/data
+cd ~/projects/churn-ml
+git init
+python3 -m venv .venv
+source .venv/bin/activate</code></pre>
+    <pre class="code" data-env="file" data-label="Text · requirements.txt"><code class="language-plaintext">numpy==2.5.4
+pandas==3.1.0
+matplotlib==3.11.2
+scipy==1.18.1
+scikit-learn==1.9.1
+joblib==1.6.0
+# ไม่บังคับ: ใช้เฉพาะ report_assistant.py เมื่อมี ANTHROPIC_API_KEY
+anthropic==1.15.0</code></pre>
+    <pre class="code" data-env="file" data-label="Text · .gitignore"><code class="language-plaintext">.venv/
+__pycache__/
+data/*.csv
+data/*.db
+models/
+.env</code></pre>
+    <pre class="code" data-env="file" data-label="Bash · run_all.sh"><code class="language-bash">#!/usr/bin/env bash
+# รันทุกขั้นตั้งแต่สร้างข้อมูลจนเขียนบทสรุป หยุดทันทีถ้าขั้นใดล้ม
+set -euo pipefail
+python3 src/generate_members.py
+python3 src/load_data.py
+python3 src/eda.py
+python3 src/train.py
+python3 src/evaluate.py
+python3 src/report_assistant.py</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 -m pip install -r requirements.txt
+python3 -m pip freeze | grep -iE "^(numpy|pandas|scikit-learn|anthropic)=="</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>anthropic==1.15.0
+numpy==2.5.4
+pandas==3.1.0
+scikit-learn==1.9.1</code></pre>
+  </li>
+  <li>
+    <h4>Step 2: สร้างข้อมูลสมาชิกจำลองที่ทำซ้ำได้</h4>
+    <p>ข้อมูลจริงของสมาชิกฟิตเนสเป็นข้อมูลส่วนบุคคลตาม PDPA และบางส่วน เช่น ข้อมูลสุขภาพ เป็นข้อมูลอ่อนไหว จึงไม่ควรนำขึ้น Portfolio สาธารณะ Script นี้สร้างข้อมูลจำลองที่มีรูปแบบเหมือนจริง สมาชิกที่มาน้อย ร้องเรียนบ่อย อายุสมาชิกสั้น จ่ายเงินสด และใช้แพ็กเกจ basic มีโอกาสยกเลิกสูงกว่า และจงใจให้มีค่าว่าง 60 แถวในคอลัมน์ <code>avg_session_min</code> เหมือนเครื่องสแกนบัตรที่บันทึกพลาด เพราะใช้ Seed 42 ทุกคนจะได้ไฟล์เดียวกันทุกไบต์</p>
+    <pre class="code" data-env="file" data-label="Python · src/generate_members.py"><code class="language-python"># สร้างข้อมูลสมาชิกฟิตเนสจำลอง (Synthetic) ด้วย Seed คงที่ รันกี่ครั้งก็ได้ไฟล์เหมือนเดิม
+import sqlite3
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+SEED = 42
+N = 2000
+rng = np.random.default_rng(SEED)
+
+provinces = np.array(["กรุงเทพมหานคร", "เชียงใหม่", "ขอนแก่น", "ชลบุรี", "ภูเก็ต"])
+plans = np.array(["basic", "standard", "premium"])
+fees = {"basic": 590, "standard": 990, "premium": 1590}
+
+province = rng.choice(provinces, N, p=[0.45, 0.15, 0.12, 0.16, 0.12])
+plan = rng.choice(plans, N, p=[0.5, 0.35, 0.15])
+age = rng.integers(18, 66, N)
+tenure_months = rng.integers(1, 49, N)
+visits_last_30d = rng.poisson(np.select([plan == "basic", plan == "standard"], [6, 9], 12))
+avg_session_min = rng.normal(55, 15, N).clip(15, 120).round(1)
+classes_booked = rng.poisson(np.where(plan == "premium", 4, 1.5))
+support_tickets = rng.poisson(0.6, N)
+payment_method = rng.choice(["card", "qr", "cash"], N, p=[0.45, 0.4, 0.15])
+has_trainer = (rng.random(N) &lt; np.where(plan == "premium", 0.5, 0.15)).astype(int)
+signup_date = pd.Timestamp("2026-10-01") - pd.to_timedelta(tenure_months * 30, unit="D")
+
+# โอกาสยกเลิกสมาชิก: มาน้อย ร้องเรียนบ่อย อายุสมาชิกสั้น จ่ายเงินสด ยิ่งมีโอกาสยกเลิกสูง
+logit = (
+    0.2
+    - 0.22 * visits_last_30d
+    + 0.55 * support_tickets
+    - 0.035 * tenure_months
+    + 0.6 * (payment_method == "cash")
+    + 0.35 * (plan == "basic")
+    - 0.7 * has_trainer
+    - 0.1 * classes_booked
+)
+churned = (rng.random(N) &lt; 1 / (1 + np.exp(-logit))).astype(int)
+
+df = pd.DataFrame({
+    "member_id": [f"M{i:04d}" for i in range(1, N + 1)],
+    "signup_date": signup_date.strftime("%Y-%m-%d"),
+    "province": province,
+    "plan": plan,
+    "monthly_fee": [fees[p] for p in plan],
+    "age": age,
+    "tenure_months": tenure_months,
+    "visits_last_30d": visits_last_30d,
+    "avg_session_min": avg_session_min,
+    "classes_booked": classes_booked,
+    "support_tickets": support_tickets,
+    "payment_method": payment_method,
+    "has_trainer": has_trainer,
+    "churned": churned,
+})
+# ทำให้ข้อมูลเหมือนของจริง: บางแถวไม่มีค่า avg_session_min (เครื่องสแกนบัตรไม่ได้บันทึก)
+df.loc[rng.choice(N, 60, replace=False), "avg_session_min"] = np.nan
+
+out = Path("data")
+out.mkdir(exist_ok=True)
+df.to_csv(out / "members.csv", index=False)
+with sqlite3.connect(out / "members.db") as con:
+    df.to_sql("members", con, if_exists="replace", index=False)
+
+print("บันทึก", len(df), "แถว ลง data/members.csv และ data/members.db")
+print("อัตรายกเลิกสมาชิก (churn rate):", f"{df['churned'].mean():.1%}")
+print("ค่าว่างใน avg_session_min:", df["avg_session_min"].isna().sum())</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 src/generate_members.py
+md5sum data/members.csv</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>บันทึก 2000 แถว ลง data/members.csv และ data/members.db
+อัตรายกเลิกสมาชิก (churn rate): 13.6%
+ค่าว่างใน avg_session_min: 60
+40ebe645c97f7159aa2af7375b914e2f  data/members.csv</code></pre>
+    <p>ค่า md5 ต้องตรงกันทุกตัวอักษร ถ้าไม่ตรง ให้ตรวจเวอร์ชันของ NumPy และ pandas ก่อน เพราะเวอร์ชันอื่นอาจสุ่มหรือเขียนไฟล์ต่างออกไปเล็กน้อย</p>
+  </li>
+  <li>
+    <h4>Step 3: โหลดข้อมูลจาก SQLite และตรวจ Schema</h4>
+    <p>ในงานจริง ข้อมูลอยู่ในฐานข้อมูล ไม่ใช่ CSV ฟังก์ชัน <code>load_members</code> ดึงข้อมูลด้วย SQL ที่ส่งค่าผ่าน <code>params</code> แปลงวันที่ตอนอ่าน และตรวจว่าคอลัมน์ครบและ <code>churned</code> มีแค่ 0 กับ 1 ก่อนส่งต่อ ถ้าวันหนึ่งทีมฐานข้อมูลเปลี่ยนชื่อคอลัมน์ โปรเจกต์จะหยุดพร้อมข้อความที่บอกปัญหาชัดเจน แทนที่จะฝึกโมเดลผิดแบบเงียบๆ ทุกไฟล์ต่อจากนี้เรียกฟังก์ชันนี้</p>
+    <pre class="code" data-env="file" data-label="Python · src/load_data.py"><code class="language-python"># โหลดข้อมูลสมาชิกจาก SQLite พร้อมตรวจ Schema ก่อนส่งต่อให้ขั้นอื่น
+import sqlite3
+from pathlib import Path
+
+import pandas as pd
+
+DB_PATH = Path("data/members.db")
+EXPECTED_COLUMNS = [
+    "member_id", "signup_date", "province", "plan", "monthly_fee", "age", "tenure_months",
+    "visits_last_30d", "avg_session_min", "classes_booked", "support_tickets",
+    "payment_method", "has_trainer", "churned",
+]
+
+
+def load_members(db_path: Path = DB_PATH, min_tenure: int = 0) -&gt; pd.DataFrame:
+    """อ่านตาราง members ที่ tenure_months &gt;= min_tenure แล้วตรวจคอลัมน์และค่าของ churned"""
+    if not db_path.exists():
+        raise FileNotFoundError(f"ไม่พบ {db_path} ให้รัน python3 src/generate_members.py ก่อน")
+    with sqlite3.connect(db_path) as con:
+        df = pd.read_sql("SELECT * FROM members WHERE tenure_months &gt;= ?", con,
+                         params=(min_tenure,), parse_dates=["signup_date"])
+    missing = set(EXPECTED_COLUMNS) - set(df.columns)
+    if missing:
+        raise ValueError(f"คอลัมน์หายไป: {sorted(missing)}")
+    if not set(df["churned"].unique()) &lt;= {0, 1}:
+        raise ValueError("คอลัมน์ churned ต้องมีแค่ 0 และ 1")
+    return df
+
+
+if __name__ == "__main__":
+    members = load_members()
+    assert len(members) == 2000, f"คาดว่าได้ 2000 แถว แต่ได้ {len(members)}"
+    print("shape:", members.shape)
+    print("ช่วงวันที่สมัคร:", members["signup_date"].min().date(), "ถึง", members["signup_date"].max().date())
+    print("ค่าว่างแต่ละคอลัมน์ (เฉพาะที่มี):", members.isna().sum()[lambda s: s &gt; 0].to_dict())
+    print("สมาชิกที่อยู่มาอย่างน้อย 24 เดือน:", len(load_members(min_tenure=24)), "คน")</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 src/load_data.py</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>shape: (2000, 14)
+ช่วงวันที่สมัคร: 2022-10-22 ถึง 2026-09-01
+ค่าว่างแต่ละคอลัมน์ (เฉพาะที่มี): {'avg_session_min': 60}
+สมาชิกที่อยู่มาอย่างน้อย 24 เดือน: 1056 คน</code></pre>
+  </li>
+  <li>
+    <h4>Step 4: สำรวจข้อมูลและบันทึกกราฟ</h4>
+    <p>EDA ตอบคำถามว่ามีสัญญาณอะไรให้โมเดลเรียนรู้บ้าง Script พิมพ์อัตรายกเลิกแยกตามแพ็กเกจ วิธีจ่ายเงิน การมีเทรนเนอร์ และจังหวัด พร้อมจำนวนคนในแต่ละกลุ่ม เพื่อไม่ให้ตื่นเต้นกับเปอร์เซ็นต์ที่มาจากคนไม่กี่คน แล้วบันทึกกราฟ 4 รูปที่ชื่อกราฟบอกข้อสรุป</p>
+    <pre class="code" data-env="file" data-label="Python · src/eda.py"><code class="language-python"># สำรวจข้อมูล: อัตรายกเลิกแยกกลุ่ม และกราฟ 4 รูปใน reports/figures/
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+
+from load_data import load_members
+
+FIG = Path("reports/figures")
+FIG.mkdir(parents=True, exist_ok=True)
+df = load_members()
+
+print(f"อัตรายกเลิกรวม: {df['churned'].mean():.1%} ({df['churned'].sum()} จาก {len(df)} คน)")
+for col in ["plan", "payment_method", "has_trainer", "province"]:
+    rate = df.groupby(col)["churned"].agg(["mean", "count"]).sort_values("mean", ascending=False)
+    print(f"\nอัตรายกเลิกตาม {col}:")
+    print(rate.assign(mean=rate["mean"].map("{:.1%}".format)).to_string())
+
+by_visits = df.groupby("churned")["visits_last_30d"].median()
+print("\nมัธยฐานจำนวนครั้งที่เข้ายิมใน 30 วัน (0 = อยู่ต่อ, 1 = ยกเลิก):", by_visits.to_dict())
+
+# 1) อัตรายกเลิกตามแพ็กเกจ
+plan_rate = df.groupby("plan")["churned"].mean().reindex(["basic", "standard", "premium"])
+fig, ax = plt.subplots(figsize=(6, 4))
+ax.bar(plan_rate.index, plan_rate.values * 100)
+ax.set_title("Basic members churn the most")
+ax.set_ylabel("churn rate (%)")
+fig.savefig(FIG / "churn_by_plan.png", dpi=150, bbox_inches="tight")
+plt.close(fig)
+
+# 2) การกระจายของจำนวนครั้งที่เข้ายิม แยกคนที่อยู่ต่อกับคนที่ยกเลิก
+fig, ax = plt.subplots(figsize=(6, 4))
+for label, part in df.groupby("churned")["visits_last_30d"]:
+    ax.hist(part, bins=range(0, 30), alpha=0.6, density=True, label=f"churned = {label}")
+ax.set_title("Members who churn visit less")
+ax.set_xlabel("visits in last 30 days")
+ax.set_ylabel("share of members")
+ax.legend()
+fig.savefig(FIG / "visits_hist.png", dpi=150, bbox_inches="tight")
+plt.close(fig)
+
+# 3) อัตรายกเลิกตามจำนวนเรื่องร้องเรียน
+tickets = df.assign(t=df["support_tickets"].clip(upper=3)).groupby("t")["churned"].mean()
+fig, ax = plt.subplots(figsize=(6, 4))
+ax.bar(["0", "1", "2", "3+"], tickets.values * 100)
+ax.set_title("More support tickets, higher churn")
+ax.set_xlabel("support tickets")
+ax.set_ylabel("churn rate (%)")
+fig.savefig(FIG / "churn_by_tickets.png", dpi=150, bbox_inches="tight")
+plt.close(fig)
+print("อัตรายกเลิกตามเรื่องร้องเรียน (0, 1, 2, 3+):", [f"{v:.1%}" for v in tickets.values])
+
+# 4) สหสัมพันธ์ของคอลัมน์ตัวเลขกับ churned
+corr = df.select_dtypes("number").corr()["churned"].drop("churned").sort_values()
+fig, ax = plt.subplots(figsize=(6, 4))
+ax.barh(corr.index, corr.values)
+ax.axvline(0, color="black", linewidth=0.8)
+ax.set_title("Visits and tenure relate to lower churn")
+ax.set_xlabel("correlation with churned")
+fig.savefig(FIG / "correlation.png", dpi=150, bbox_inches="tight")
+plt.close(fig)
+print("\nสหสัมพันธ์กับ churned:", corr.round(3).to_dict())
+print("บันทึกกราฟ:", sorted(p.name for p in FIG.glob("*.png")))</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 src/eda.py</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>อัตรายกเลิกรวม: 13.6% (272 จาก 2000 คน)
+
+อัตรายกเลิกตาม plan:
+           mean  count
+plan                  
+basic     19.7%   1015
+standard   9.2%    687
+premium    3.0%    298
+
+อัตรายกเลิกตาม payment_method:
+                 mean  count
+payment_method              
+cash            21.6%    292
+qr              12.4%    805
+card            12.1%    903
+
+อัตรายกเลิกตาม has_trainer:
+              mean  count
+has_trainer              
+0            15.6%   1560
+1             6.4%    440
+
+อัตรายกเลิกตาม province:
+                mean  count
+province                   
+ชลบุรี         15.0%    341
+กรุงเทพมหานคร  14.7%    897
+ภูเก็ต         13.8%    246
+เชียงใหม่      10.7%    298
+ขอนแก่น        10.6%    218
+
+มัธยฐานจำนวนครั้งที่เข้ายิมใน 30 วัน (0 = อยู่ต่อ, 1 = ยกเลิก): {0: 8.0, 1: 6.0}
+อัตรายกเลิกตามเรื่องร้องเรียน (0, 1, 2, 3+): ['9.8%', '15.2%', '23.2%', '43.9%']
+
+สหสัมพันธ์กับ churned: {'visits_last_30d': -0.218, 'monthly_fee': -0.183, 'tenure_months': -0.169, 'has_trainer': -0.112, 'classes_booked': -0.102, 'age': -0.001, 'avg_session_min': 0.033, 'support_tickets': 0.168}
+บันทึกกราฟ: ['churn_by_plan.png', 'churn_by_tickets.png', 'correlation.png', 'visits_hist.png']</code></pre>
+    <p>สิ่งที่ EDA บอก: แพ็กเกจ basic ยกเลิก 19.7% สูงกว่า premium (3.0%) มากกว่า 6 เท่า คนจ่ายเงินสดยกเลิก 21.6% และคนที่ร้องเรียน 3 เรื่องขึ้นไปยกเลิกถึง 43.9% เทียบกับ 9.8% ของคนที่ไม่เคยร้องเรียน ส่วนจังหวัดต่างกันไม่มาก (10.6–15.0%) กราฟในโฟลเดอร์ <code>reports/figures/</code> มีดังนี้ <code>churn_by_plan.png</code> เป็นแท่ง 3 แท่งที่ลดหลั่นจาก basic ไป premium <code>visits_hist.png</code> เป็น Histogram สองสีซ้อนกัน กลุ่มที่ยกเลิกเอียงไปทางซ้าย (มัธยฐาน 6 ครั้ง เทียบกับ 8 ครั้ง) <code>churn_by_tickets.png</code> เป็นแท่งที่สูงขึ้นตามจำนวนเรื่องร้องเรียน และ <code>correlation.png</code> เป็นแท่งแนวนอนที่ <code>visits_last_30d</code> ติดลบมากที่สุด (−0.218) และ <code>support_tickets</code> เป็นบวกมากที่สุด (0.168)</p>
+  </li>
+  <li>
+    <h4>Step 5: สร้าง Feature และตัวเตรียมข้อมูลที่ใช้ร่วมกัน</h4>
+    <p>รวมทุกอย่างที่เกี่ยวกับ Feature ไว้ในไฟล์เดียว ทั้งการสร้าง Feature ใหม่ รายชื่อคอลัมน์ การแบ่งข้อมูล และ <code>ColumnTransformer</code> เพื่อให้ <code>train.py</code> และ <code>evaluate.py</code> ใช้ชุดเดียวกันเสมอ ถ้าแบ่งข้อมูลคนละแบบในสองไฟล์ ข้อมูลทดสอบจะรั่วเข้าไปในการฝึกโดยไม่รู้ตัว Feature ใหม่มี 2 ตัว <code>fee_per_visit</code> คือค่าสมาชิกต่อการเข้ายิมหนึ่งครั้ง (บวก 1 ที่ตัวหารเพื่อกันการหารด้วยศูนย์) ซึ่งบอกว่าสมาชิก "คุ้มค่า" แค่ไหน และ <code>tenure_bucket</code> คือกลุ่มอายุสมาชิก ค่าว่างของ <code>avg_session_min</code> เติมด้วยมัธยฐานภายใน Pipeline จึงคำนวณจากข้อมูลฝึกเท่านั้น</p>
+    <pre class="code" data-env="file" data-label="Python · src/features.py"><code class="language-python"># สร้าง Feature เพิ่ม กำหนดคอลัมน์ แบ่งข้อมูล และสร้างตัวเตรียมข้อมูล (ใช้ร่วมกันทุกไฟล์)
+import pandas as pd
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+NUM = ["age", "tenure_months", "visits_last_30d", "avg_session_min", "classes_booked",
+       "support_tickets", "monthly_fee", "has_trainer", "fee_per_visit"]
+CAT = ["province", "plan", "payment_method", "tenure_bucket"]
+TARGET = "churned"
+
+
+def add_features(df: pd.DataFrame) -&gt; pd.DataFrame:
+    """เพิ่มค่าสมาชิกต่อการเข้ายิม 1 ครั้ง และกลุ่มอายุสมาชิก โดยไม่แก้ DataFrame เดิม"""
+    out = df.copy()
+    out["fee_per_visit"] = (out["monthly_fee"] / (out["visits_last_30d"] + 1)).round(1)
+    out["tenure_bucket"] = pd.cut(out["tenure_months"], bins=[0, 6, 12, 24, 48],
+                                  labels=["0-6", "7-12", "13-24", "25-48"]).astype(str)
+    return out
+
+
+def split(df: pd.DataFrame):
+    """แบ่ง 80/20 แบบ stratify ด้วย Seed คงที่ ทุกไฟล์จึงได้ข้อมูลทดสอบชุดเดียวกัน"""
+    X, y = df[NUM + CAT], df[TARGET]
+    return train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
+
+
+def build_preprocessor() -&gt; ColumnTransformer:
+    """ตัวเลข: เติมค่าว่างด้วยมัธยฐานแล้วปรับสเกล | กลุ่ม: One-hot ที่ไม่พังเมื่อเจอค่าใหม่"""
+    return ColumnTransformer([
+        ("num", make_pipeline(SimpleImputer(strategy="median"), StandardScaler()), NUM),
+        ("cat", OneHotEncoder(handle_unknown="ignore"), CAT),
+    ])</code></pre>
+    <pre class="code" data-env="file" data-label="Python · src/check_features.py"><code class="language-python"># ตรวจ Feature ใหม่และตัวเตรียมข้อมูลก่อนฝึกโมเดล
+import numpy as np
+
+from features import add_features, build_preprocessor, split
+from load_data import load_members
+
+df = add_features(load_members())
+print(df[["monthly_fee", "visits_last_30d", "fee_per_visit", "tenure_months", "tenure_bucket"]].head(3).to_string())
+X_train, X_test, y_train, y_test = split(df)
+pre = build_preprocessor().fit(X_train)                 # fit เฉพาะข้อมูลฝึก
+Xt = pre.transform(X_train)
+print("shape หลังเตรียมข้อมูล:", Xt.shape)
+print("ค่าว่างหลังเตรียมข้อมูล:", int(np.isnan(Xt).sum()))</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 src/check_features.py</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>   monthly_fee  visits_last_30d  fee_per_visit  tenure_months tenure_bucket
+0          990                6          141.4             17         13-24
+1          590                6           84.3             11          7-12
+2         1590                7          198.8             25         25-48
+shape หลังเตรียมข้อมูล: (1600, 24)
+ค่าว่างหลังเตรียมข้อมูล: 0</code></pre>
+    <p>ข้อมูลฝึก 1,600 แถวกลายเป็น 24 คอลัมน์ คือตัวเลข 9 คอลัมน์ บวก One-hot ของจังหวัด 5 แพ็กเกจ 3 วิธีจ่ายเงิน 3 และกลุ่มอายุสมาชิก 4 และไม่มีค่าว่างเหลือ</p>
+  </li>
+  <li>
+    <h4>Step 6: เทียบโมเดลกับ Baseline และปรับจูน</h4>
+    <p>ทุกโมเดลอยู่ใน Pipeline เดียวกันและวัดด้วย Fold ชุดเดียวกัน (<code>StratifiedKFold</code> Seed 42) จึงเทียบกันได้อย่างยุติธรรม Logistic Regression และ Random Forest ใช้ <code>class_weight="balanced"</code> เพราะคนยกเลิกมีเพียง 13.6% จากนั้นปรับจูนเฉพาะโมเดลที่ชนะด้วย Grid ที่เตรียมไว้ของแต่ละตระกูล ไฟล์นี้ใช้เวลารันประมาณ 15–60 วินาทีตาม CPU</p>
+    <pre class="code" data-env="file" data-label="Python · src/train.py"><code class="language-python"># เทียบ Baseline กับ 3 โมเดลด้วย 5-fold CV ปรับจูนตัวที่ชนะด้วย GridSearchCV แล้วบันทึกโมเดล
+from pathlib import Path
+
+import joblib
+import pandas as pd
+from sklearn.dummy import DummyClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GridSearchCV, StratifiedKFold, cross_val_score
+from sklearn.pipeline import Pipeline
+
+from features import add_features, build_preprocessor, split
+from load_data import load_members
+
+CV = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+CANDIDATES = {
+    "dummy": DummyClassifier(strategy="most_frequent"),
+    "logistic": LogisticRegression(max_iter=1000, class_weight="balanced"),
+    "random_forest": RandomForestClassifier(random_state=42, class_weight="balanced", n_jobs=-1),
+    "hist_gb": HistGradientBoostingClassifier(random_state=42),
+}
+GRIDS = {
+    "logistic": {"model__C": [0.01, 0.1, 1.0, 10.0]},
+    "random_forest": {"model__max_depth": [4, 8, None], "model__min_samples_leaf": [1, 10]},
+    "hist_gb": {"model__learning_rate": [0.03, 0.1], "model__max_depth": [3, None]},
+}
+
+
+def make_pipeline(model) -&gt; Pipeline:
+    return Pipeline([("pre", build_preprocessor()), ("model", model)])
+
+
+if __name__ == "__main__":
+    X_train, X_test, y_train, y_test = split(add_features(load_members()))
+    print(f"ข้อมูลฝึก {len(X_train)} แถว (ยกเลิก {y_train.mean():.1%}) | ข้อมูลทดสอบ {len(X_test)} แถว")
+
+    rows = []
+    for name, model in CANDIDATES.items():
+        scores = cross_val_score(make_pipeline(model), X_train, y_train, cv=CV, scoring="roc_auc")
+        rows.append({"model": name, "cv_roc_auc": scores.mean(), "cv_std": scores.std()})
+    table = pd.DataFrame(rows).sort_values("cv_roc_auc", ascending=False)
+    print("\nเทียบโมเดลด้วย 5-fold CV (ROC-AUC):")
+    print(table.round(4).to_string(index=False))
+
+    winner = table.loc[table["model"] != "dummy", "model"].iloc[0]
+    search = GridSearchCV(make_pipeline(CANDIDATES[winner]), GRIDS[winner], cv=CV,
+                          scoring="roc_auc", n_jobs=-1).fit(X_train, y_train)
+    print(f"\nโมเดลที่ชนะ: {winner}")
+    print("best_params_:", search.best_params_)
+    print(f"best_score_ (CV ROC-AUC): {search.best_score_:.4f}")
+
+    Path("models").mkdir(exist_ok=True)
+    Path("reports").mkdir(exist_ok=True)
+    joblib.dump(search.best_estimator_, "models/churn_model.joblib")
+    table.to_csv("reports/cv_results.csv", index=False)
+    print("บันทึก models/churn_model.joblib และ reports/cv_results.csv แล้ว")</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 src/train.py</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ข้อมูลฝึก 1600 แถว (ยกเลิก 13.6%) | ข้อมูลทดสอบ 400 แถว
+
+เทียบโมเดลด้วย 5-fold CV (ROC-AUC):
+        model  cv_roc_auc  cv_std
+     logistic      0.7695  0.0175
+random_forest      0.7143  0.0202
+      hist_gb      0.6890  0.0283
+        dummy      0.5000  0.0000
+
+โมเดลที่ชนะ: logistic
+best_params_: {'model__C': 0.01}
+best_score_ (CV ROC-AUC): 0.7731
+บันทึก models/churn_model.joblib และ reports/cv_results.csv แล้ว</code></pre>
+    <p>โมเดลที่ง่ายที่สุดชนะ Logistic Regression ได้ ROC-AUC 0.7695 สูงกว่า Random Forest (0.7143) และ HistGradientBoosting (0.6890) ชัดเจน เกินค่า ± ของ CV ผลนี้สมเหตุสมผล เพราะข้อมูลถูกสร้างจากสูตรเชิงเส้น ในงานจริงอย่าเดาว่าโมเดลซับซ้อนจะชนะ ให้เทียบเสมอ GridSearchCV เลือก <code>C=0.01</code> ซึ่งเป็น Regularization ที่แรงที่สุดใน Grid ทำให้ CV ขึ้นเป็น 0.7731 แปลว่าโมเดลได้ประโยชน์จากการลดความซับซ้อนลงอีก</p>
+  </li>
+  <li>
+    <h4>Step 7: วัดผลบนข้อมูลทดสอบ เลือก Threshold ตามต้นทุน และตรวจความเป็นธรรม</h4>
+    <p>ไฟล์นี้แตะข้อมูลทดสอบเพียงครั้งเดียว ก่อนหน้านั้นเลือก Threshold จาก <code>cross_val_predict</code> บนข้อมูลฝึก โดยคิดต้นทุน 3 หน่วยต่อสมาชิกที่พลาด และ 1 หน่วยต่อการโทรที่เสียเปล่า จากนั้นรายงาน Confusion Matrix เทียบต้นทุนกับ Threshold 0.5 และกับการไม่ทำอะไรเลย ตรวจ Recall แยกจังหวัด หา Feature สำคัญด้วย Permutation importance และบันทึกตัวเลขสรุปลง <code>reports/metrics.json</code> ให้ขั้นถัดไป</p>
+    <pre class="code" data-env="file" data-label="Python · src/evaluate.py"><code class="language-python"># ประเมินโมเดลบนข้อมูลทดสอบครั้งเดียว: Threshold ตามต้นทุน ความเป็นธรรมรายจังหวัด และ Feature สำคัญ
+import json
+
+import joblib
+import numpy as np
+import pandas as pd
+from sklearn.base import clone
+from sklearn.inspection import permutation_importance
+from sklearn.metrics import (average_precision_score, classification_report, confusion_matrix,
+                             precision_score, recall_score, roc_auc_score)
+from sklearn.model_selection import cross_val_predict
+
+from features import add_features, split
+from load_data import load_members
+from train import CV
+
+COST_FN, COST_FP = 3, 1        # พลาดคนที่จะยกเลิก เสียหาย 3 เท่าของการโทรหาคนที่ไม่ได้จะยกเลิก
+THRESHOLDS = np.round(np.arange(0.20, 0.81, 0.05), 2)
+
+
+def cost(y_true, proba, t):
+    pred = proba &gt;= t
+    return int(COST_FN * ((~pred) &amp; (y_true == 1)).sum() + COST_FP * (pred &amp; (y_true == 0)).sum())
+
+
+X_train, X_test, y_train, y_test = split(add_features(load_members()))
+model = joblib.load("models/churn_model.joblib")
+
+# 1) เลือก Threshold จากผลทำนายแบบ CV บนข้อมูลฝึก (ไม่แตะข้อมูลทดสอบ)
+oof = cross_val_predict(clone(model), X_train, y_train, cv=CV, method="predict_proba")[:, 1]
+train_costs = {float(t): cost(y_train.to_numpy(), oof, t) for t in THRESHOLDS}
+threshold = min(train_costs, key=train_costs.get)
+print("ต้นทุนบนข้อมูลฝึก (CV) ตาม Threshold:", {t: c for t, c in train_costs.items() if t in (0.3, 0.4, 0.5, 0.6, 0.7)})
+print(f"Threshold ที่เลือก: {threshold}")
+
+# 2) วัดผลบนข้อมูลทดสอบครั้งเดียว
+proba = model.predict_proba(X_test)[:, 1]
+pred = (proba &gt;= threshold).astype(int)
+tn, fp, fn, tp = confusion_matrix(y_test, pred).ravel()
+print(f"\nข้อมูลทดสอบ {len(y_test)} คน ยกเลิกจริง {int(y_test.sum())} คน")
+print(f"ROC-AUC {roc_auc_score(y_test, proba):.3f} | Average precision {average_precision_score(y_test, proba):.3f}"
+      f" (Baseline = อัตรายกเลิก {y_test.mean():.3f})")
+print(f"Confusion Matrix ที่ Threshold {threshold}: TP={tp} FP={fp} FN={fn} TN={tn}")
+print(classification_report(y_test, pred, target_names=["อยู่ต่อ", "ยกเลิก"], digits=3))
+print(f"ต้นทุนเทียบ: Threshold 0.5 = {cost(y_test.to_numpy(), proba, 0.5)} หน่วย | "
+      f"Threshold {threshold} = {cost(y_test.to_numpy(), proba, threshold)} หน่วย | "
+      f"ไม่โทรหาใครเลย = {COST_FN * int(y_test.sum())} หน่วย")
+
+# 3) ความเป็นธรรม: Recall แยกจังหวัด
+res = X_test.assign(churned=y_test.to_numpy(), flagged=pred)
+by_prov = (res[res["churned"] == 1].groupby("province")["flagged"]
+           .agg(churners="count", recall="mean").sort_values("recall"))
+print("\nRecall แยกจังหวัด:")
+print(by_prov.round(3).to_string())
+
+# 4) Feature ที่สำคัญด้วย Permutation importance บนข้อมูลทดสอบ
+perm = permutation_importance(model, X_test, y_test, scoring="roc_auc", n_repeats=10, random_state=42)
+top = pd.Series(perm.importances_mean, index=X_test.columns).sort_values(ascending=False).head(8)
+print("\nPermutation importance (ROC-AUC ที่ลดลง) 8 อันดับแรก:")
+print(top.round(4).to_string())
+
+metrics = {
+    "n_test": len(y_test), "churn_rate_test": round(float(y_test.mean()), 3),
+    "roc_auc": round(roc_auc_score(y_test, proba), 3),
+    "average_precision": round(average_precision_score(y_test, proba), 3),
+    "threshold": threshold, "precision": round(precision_score(y_test, pred), 3),
+    "recall": round(recall_score(y_test, pred), 3),
+    "confusion_matrix": {"tp": int(tp), "fp": int(fp), "fn": int(fn), "tn": int(tn)},
+    "recall_by_province": by_prov["recall"].round(3).to_dict(),
+    "top_features": top.round(4).to_dict(),
+}
+with open("reports/metrics.json", "w", encoding="utf-8") as f:
+    json.dump(metrics, f, ensure_ascii=False, indent=2)
+print("\nบันทึก reports/metrics.json แล้ว")</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 src/evaluate.py</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ต้นทุนบนข้อมูลฝึก (CV) ตาม Threshold: {0.3: 940, 0.4: 762, 0.5: 612, 0.6: 555, 0.7: 551}
+Threshold ที่เลือก: 0.65
+
+ข้อมูลทดสอบ 400 คน ยกเลิกจริง 54 คน
+ROC-AUC 0.754 | Average precision 0.295 (Baseline = อัตรายกเลิก 0.135)
+Confusion Matrix ที่ Threshold 0.65: TP=24 FP=48 FN=30 TN=298
+              precision    recall  f1-score   support
+
+     อยู่ต่อ      0.909     0.861     0.884       346
+      ยกเลิก      0.333     0.444     0.381        54
+
+    accuracy                          0.805       400
+   macro avg      0.621     0.653     0.633       400
+weighted avg      0.831     0.805     0.816       400
+
+ต้นทุนเทียบ: Threshold 0.5 = 160 หน่วย | Threshold 0.65 = 138 หน่วย | ไม่โทรหาใครเลย = 162 หน่วย
+
+Recall แยกจังหวัด:
+               churners  recall
+province                       
+ภูเก็ต                8   0.125
+ชลบุรี               11   0.273
+ขอนแก่น               4   0.500
+กรุงเทพมหานคร        26   0.577
+เชียงใหม่             5   0.600
+
+Permutation importance (ROC-AUC ที่ลดลง) 8 อันดับแรก:
+support_tickets    0.0459
+tenure_months      0.0413
+visits_last_30d    0.0364
+monthly_fee        0.0206
+has_trainer        0.0156
+plan               0.0064
+payment_method     0.0061
+classes_booked     0.0033
+
+บันทึก reports/metrics.json แล้ว</code></pre>
+    <p>อ่านผลแบบที่ต้องอธิบายให้ผู้บริหารฟัง</p>
+    <ul>
+      <li><strong>เทียบกับ Baseline:</strong> ROC-AUC 0.754 บนข้อมูลทดสอบใกล้กับ CV (0.773) โมเดลจึงไม่ได้ Overfit และ Average precision 0.295 สูงกว่าอัตรายกเลิก 0.135 ราว 2 เท่า</li>
+      <li><strong>Threshold:</strong> ต้นทุนบนข้อมูลฝึกต่ำสุดที่ 0.65 ค่าที่สูงกว่า 0.5 เป็นผลของ <code>class_weight="balanced"</code> ซึ่งดันความน่าจะเป็นของคลาสยกเลิกให้สูงขึ้น บนข้อมูลทดสอบ Threshold นี้ใช้ต้นทุน 138 หน่วย ถูกกว่า Threshold 0.5 (160) และถูกกว่าการไม่โทรหาใครเลย (162)</li>
+      <li><strong>ความหมายเชิงปฏิบัติ:</strong> ทีมจะได้รายชื่อ 72 คน (TP 24 + FP 48) ในจำนวนนี้ 1 ใน 3 จะยกเลิกจริง และหาคนที่จะยกเลิกเจอ 24 จาก 54 คน (44%)</li>
+      <li><strong>ความเป็นธรรม:</strong> Recall ของภูเก็ต (0.125) และชลบุรี (0.273) ต่ำกว่ากรุงเทพมหานคร (0.577) มาก แต่ภูเก็ตมีคนยกเลิกในข้อมูลทดสอบเพียง 8 คน ต้องเก็บข้อมูลเพิ่มหรือใช้ Cross-validation ตรวจซ้ำก่อนสรุปว่าโมเดลลำเอียง</li>
+      <li><strong>ปัจจัยสำคัญ:</strong> จำนวนเรื่องร้องเรียน อายุสมาชิก และจำนวนครั้งที่เข้ายิม สอดคล้องกับ EDA ในขั้นที่ 4 แต่ยังเป็นความสัมพันธ์ ไม่ใช่เหตุและผล</li>
+    </ul>
+  </li>
+  <li>
+    <h4>Step 8: ให้ LLM ร่างบทสรุปผู้บริหาร พร้อม Mock mode</h4>
+    <p>ไฟล์นี้ส่งเฉพาะตัวเลขสรุปจาก <code>metrics.json</code> ให้ Claude ผ่าน Anthropic SDK <code>anthropic==1.15.0</code> ไม่มีรหัสสมาชิกหรือข้อมูลรายบุคคล จึงสอดคล้องกับหลักเก็บและส่งข้อมูลเท่าที่จำเป็นของ PDPA ถ้าไม่มีตัวแปร <code>ANTHROPIC_API_KEY</code> จะใช้บทสรุปจำลองที่สร้างจากตัวเลขจริงทันที ถ้าเรียก API แล้วล้ม เช่น Key ผิดหรือเชื่อมต่อไม่ได้ จะแจ้ง Error แล้วใช้บทสรุปจำลองแทน โค้ดไม่ส่ง <code>temperature</code> เพราะ <code>claude-opus-5-5</code> ไม่รับพารามิเตอร์นี้ และตรวจ <code>stop_reason</code> ก่อนใช้ข้อความ</p>
+    <pre class="code" data-env="file" data-label="Python · src/report_assistant.py"><code class="language-python"># ให้ LLM ร่างบทสรุปผู้บริหารจากตัวเลขสรุปเท่านั้น (ไม่มีข้อมูลรายบุคคล) พร้อม Mock mode เมื่อไม่มี Key
+import json
+import os
+from pathlib import Path
+
+MODEL = os.environ.get("CLAUDE_MODEL", "claude-opus-5-5")
+SYSTEM = ("คุณคือนักวิเคราะห์ข้อมูลที่เขียนสรุปให้ผู้บริหารฟิตเนส ตอบเป็นภาษาไทย 5 ประโยค "
+          "ใช้เฉพาะตัวเลขที่ให้มา ห้ามแต่งตัวเลขเพิ่ม และต้องบอกข้อจำกัด 1 ข้อ")
+
+
+def make_client():
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        import anthropic
+        return anthropic.Anthropic()
+    return None                                         # โหมดจำลอง
+
+
+def mock_summary(m: dict) -&gt; str:
+    """คำตอบจำลองที่สร้างจากตัวเลขจริงใน metrics.json ทำให้รันได้โดยไม่ต้องมี API Key"""
+    cm = m["confusion_matrix"]
+    worst = min(m["recall_by_province"], key=m["recall_by_province"].get)
+    top = list(m["top_features"])[:2]
+    return (f"[MOCK] โมเดลทำนายการยกเลิกสมาชิกได้ ROC-AUC {m['roc_auc']} บนข้อมูลทดสอบ {m['n_test']} คน "
+            f"ที่ยกเลิกจริง {cm['tp'] + cm['fn']} คน "
+            f"ที่ Threshold {m['threshold']} ระบบหาคนที่จะยกเลิกเจอ {cm['tp']} คน (Recall {m['recall']:.0%}) "
+            f"แต่ในรายชื่อที่ให้ทีมโทรมีคนที่จะยกเลิกจริงเพียง {m['precision']:.0%} "
+            f"ปัจจัยที่สำคัญที่สุดคือ {top[0]} และ {top[1]} "
+            f"ควรเริ่มโทรหาสมาชิกกลุ่มนี้ก่อน และติดตาม {worst} ที่ Recall ต่ำสุด ({m['recall_by_province'][worst]:.0%}) "
+            "ข้อจำกัด: ข้อมูลเป็นข้อมูลจำลอง ต้องทดสอบกับข้อมูลจริงก่อนใช้งาน")
+
+
+def ask_llm(client, m: dict) -&gt; str:
+    import anthropic
+    prompt = "สรุปผลโมเดลทำนายการยกเลิกสมาชิกจากตัวเลขนี้:\n" + json.dumps(m, ensure_ascii=False)
+    try:
+        response = client.messages.create(model=MODEL, max_tokens=4000, system=SYSTEM,
+                                          messages=[{"role": "user", "content": prompt}])
+    except anthropic.AuthenticationError:
+        return "ERROR: API Key ไม่ถูกต้อง"
+    except anthropic.RateLimitError:
+        return "ERROR: เรียกบ่อยเกินไป ลองใหม่ภายหลัง"
+    except anthropic.APIStatusError as e:
+        return f"ERROR: API ตอบกลับสถานะ {e.status_code}"
+    except anthropic.APIConnectionError:
+        return "ERROR: เชื่อมต่อ API ไม่ได้"
+    if response.stop_reason not in ("end_turn", "max_tokens"):
+        return f"ERROR: โมเดลหยุดด้วยเหตุผล {response.stop_reason}"
+    text = "".join(b.text for b in response.content if b.type == "text")
+    return text + ("\n(คำตอบถูกตัดเพราะ max_tokens)" if response.stop_reason == "max_tokens" else "")
+
+
+if __name__ == "__main__":
+    metrics = json.loads(Path("reports/metrics.json").read_text(encoding="utf-8"))
+    client = make_client()
+    print("โหมด:", "Claude API (" + MODEL + ")" if client else "จำลอง (ไม่มี ANTHROPIC_API_KEY)")
+    summary = mock_summary(metrics) if client is None else ask_llm(client, metrics)
+    if summary.startswith("ERROR"):
+        print(summary, "-&gt; ใช้บทสรุปจำลองแทน")
+        summary = mock_summary(metrics)
+    Path("reports/summary.md").write_text(summary + "\n", encoding="utf-8")
+    print(summary)
+    print("บันทึก reports/summary.md แล้ว")</code></pre>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 src/report_assistant.py</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>โหมด: จำลอง (ไม่มี ANTHROPIC_API_KEY)
+[MOCK] โมเดลทำนายการยกเลิกสมาชิกได้ ROC-AUC 0.754 บนข้อมูลทดสอบ 400 คน ที่ยกเลิกจริง 54 คน ที่ Threshold 0.65 ระบบหาคนที่จะยกเลิกเจอ 24 คน (Recall 44%) แต่ในรายชื่อที่ให้ทีมโทรมีคนที่จะยกเลิกจริงเพียง 33% ปัจจัยที่สำคัญที่สุดคือ support_tickets และ tenure_months ควรเริ่มโทรหาสมาชิกกลุ่มนี้ก่อน และติดตาม ภูเก็ต ที่ Recall ต่ำสุด (12%) ข้อจำกัด: ข้อมูลเป็นข้อมูลจำลอง ต้องทดสอบกับข้อมูลจริงก่อนใช้งาน
+บันทึก reports/summary.md แล้ว</code></pre>
+    <p>ผลด้านบนคือโหมดจำลอง (ขึ้นต้นด้วย <code>[MOCK]</code>) ซึ่งตัวเลขทุกตัวมาจาก <code>metrics.json</code> ถ้าตั้ง <code>export ANTHROPIC_API_KEY=...</code> แล้วรันใหม่ Claude จะเขียนบทสรุปด้วยถ้อยคำของตัวเองที่ต่างจากนี้ ให้ตรวจทุกตัวเลขที่ LLM เขียนกับ <code>metrics.json</code> ก่อนส่งให้ใครเสมอ เราทดสอบกรณีใส่ Key ผิดแล้ว ได้ข้อความ <code>ERROR: API Key ไม่ถูกต้อง -&gt; ใช้บทสรุปจำลองแทน</code> และโปรแกรมทำงานต่อจนจบ</p>
+    <div class="callout sec"><span class="c-label sec">Security</span><p>อย่าเขียน API Key ลงในไฟล์ใดใน Repository ให้ตั้งเป็นตัวแปรสภาพแวดล้อมใน Terminal หรือเก็บในไฟล์ <code>.env</code> ที่อยู่ใน <code>.gitignore</code> แล้ว และอย่าส่งตาราง <code>members</code> ทั้งตารางให้ LLM แม้จะเป็นข้อมูลจำลอง เพื่อฝึกนิสัยที่ถูกต้องก่อนทำงานกับข้อมูลจริง</p></div>
+  </li>
+  <li>
+    <h4>Step 9: ตรวจว่ารันซ้ำได้ตั้งแต่ศูนย์</h4>
+    <p>โปรเจกต์ที่ดีต้องให้คนอื่นได้ตัวเลขเดียวกัน ขั้นนี้จำลองการ Clone ไปเครื่องใหม่ คัดลอกเฉพาะไฟล์ที่จะ Commit ไปโฟลเดอร์ว่าง ติดตั้งจาก <code>requirements.txt</code> รัน <code>run_all.sh</code> แล้วเทียบ md5 ของ <code>metrics.json</code> กับของเดิม ถ้าตรงกันแปลว่าทุกตัวเลขในรายงานทำซ้ำได้</p>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/churn-ml
+md5sum reports/metrics.json
+rm -rf /tmp/churn-fresh &amp;&amp; mkdir -p /tmp/churn-fresh/data
+cp -r src run_all.sh requirements.txt .gitignore /tmp/churn-fresh/
+cd /tmp/churn-fresh
+python3 -m venv .venv &amp;&amp; source .venv/bin/activate
+python3 -m pip install -q -r requirements.txt
+bash run_all.sh &gt; run.log 2&gt;&amp;1 &amp;&amp; echo "exit=$?"
+md5sum data/members.csv reports/metrics.json
+ls reports reports/figures</code></pre>
+    <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>8da39fa4b2417c813710d1ffa4ce04f6  reports/metrics.json
+exit=0
+40ebe645c97f7159aa2af7375b914e2f  data/members.csv
+8da39fa4b2417c813710d1ffa4ce04f6  reports/metrics.json
+reports:
+cv_results.csv
+figures
+metrics.json
+summary.md
+
+reports/figures:
+churn_by_plan.png
+churn_by_tickets.png
+correlation.png
+visits_hist.png</code></pre>
+    <p>md5 ของ <code>metrics.json</code> ในโฟลเดอร์ใหม่ตรงกับของเดิมทุกตัวอักษร ทุกตัวเลขในรายงานจึงทำซ้ำได้ ส่วนเวลาที่ใช้รันต่างกันตามเครื่อง ถ้าคุณได้ md5 ต่างจากนี้ ให้ตรวจ <code>pip freeze</code> ว่าเวอร์ชันตรงกับ <code>requirements.txt</code> และอย่าลืมว่าบทสรุปใน <code>summary.md</code> จะต่างไปเมื่อใช้ API จริง</p>
+  </li>
+  <li>
+    <h4>Step 10: เขียน README แล้ว Push ขึ้น GitHub</h4>
+    <p>README คือรายงานของโปรเจกต์ ผู้คัดเลือกส่วนใหญ่อ่านแค่ย่อหน้าแรก จึงใส่ข้อสรุป ตัวเลขสำคัญ และคำเตือนว่าเป็นข้อมูลจำลองไว้บนสุด ตามด้วยโจทย์ ข้อมูล วิธีการ ผลลัพธ์ ข้อจำกัด และวิธีรัน ใช้แม่แบบนี้แล้วแก้ตัวเลขให้ตรงกับผลของคุณ</p>
+    <pre class="code" data-env="file" data-label="Markdown · README.md"><code class="language-markdown"># Churn ML: ทำนายสมาชิกฟิตเนสที่จะยกเลิกสมาชิก
+
+**สรุป:** โมเดล Logistic Regression ทำนายสมาชิกที่จะยกเลิกได้ ROC-AUC 0.754 บนข้อมูลทดสอบ 400 คน
+ที่ Threshold 0.65 หาคนที่จะยกเลิกเจอ 44% และลดต้นทุนจาก 160 เหลือ 138 หน่วยเมื่อเทียบกับ Threshold 0.5
+ข้อมูลเป็นข้อมูลจำลอง (Synthetic) จึงใช้แสดงวิธีทำงาน ไม่ใช่ข้อสรุปของธุรกิจจริง
+
+## โจทย์
+ฟิตเนสเครือข่าย FitSomchai (5 จังหวัด) อยากรู้ล่วงหน้าว่าสมาชิกคนไหนจะยกเลิก
+เพื่อให้ทีมดูแลลูกค้าโทรหาก่อน การพลาดคนที่จะยกเลิกเสียหาย 3 เท่าของการโทรหาคนที่ไม่ได้จะยกเลิก
+
+## ข้อมูล
+- สมาชิก 2,000 คน สร้างด้วย `src/generate_members.py` (Seed 42) อัตรายกเลิก 13.6%
+- คอลัมน์: จังหวัด แพ็กเกจ ค่าสมาชิก อายุ อายุสมาชิก จำนวนครั้งที่เข้ายิม ชั่วโมงเฉลี่ย คลาสที่จอง เรื่องร้องเรียน วิธีจ่ายเงิน เทรนเนอร์ส่วนตัว
+- ไม่มีชื่อ เบอร์โทร หรือเลขบัตรประชาชน (`member_id` เป็นรหัสสุ่ม)
+
+## วิธีการ
+1. โหลดจาก SQLite ด้วย `pd.read_sql` และตรวจ Schema
+2. EDA และกราฟ 4 รูปใน `reports/figures/`
+3. เพิ่ม Feature `fee_per_visit` และ `tenure_bucket` เตรียมข้อมูลด้วย `ColumnTransformer`
+4. เทียบ Dummy, Logistic Regression, Random Forest และ HistGradientBoosting ด้วย 5-fold CV แล้วปรับจูนด้วย GridSearchCV
+5. เลือก Threshold จากต้นทุนบนข้อมูลฝึก วัดผลบนข้อมูลทดสอบครั้งเดียว ตรวจ Recall รายจังหวัด และ Permutation importance
+
+## ผลลัพธ์
+| โมเดล | CV ROC-AUC |
+|---|---|
+| Logistic Regression (C=0.01) | 0.773 |
+| Random Forest | 0.714 |
+| HistGradientBoosting | 0.689 |
+| Dummy (Baseline) | 0.500 |
+
+ข้อมูลทดสอบ: ROC-AUC 0.754, Average precision 0.295 (Baseline 0.135), Precision 0.333, Recall 0.444
+ปัจจัยสำคัญ: จำนวนเรื่องร้องเรียน อายุสมาชิก และจำนวนครั้งที่เข้ายิม
+
+## ข้อจำกัด
+- ข้อมูลจำลองที่สร้างจากสูตรเชิงเส้น โมเดลเชิงเส้นจึงได้เปรียบ ผลกับข้อมูลจริงอาจต่างออกไป
+- ไม่มีมิติเวลา (ไม่รู้ว่าพฤติกรรมเปลี่ยนไปอย่างไรก่อนยกเลิก)
+- Recall รายจังหวัดต่างกันมาก แต่บางจังหวัดมีคนยกเลิกในข้อมูลทดสอบเพียง 4–11 คน
+- ความสำคัญของ Feature ไม่ได้แปลว่าเป็นสาเหตุ
+
+## วิธีรัน
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+mkdir -p data
+bash run_all.sh
+```
+`src/report_assistant.py` ใช้ Claude เมื่อมี `ANTHROPIC_API_KEY` ถ้าไม่มีจะใช้บทสรุปจำลองอัตโนมัติ และส่งเฉพาะตัวเลขสรุปเท่านั้น (PDPA)</code></pre>
+    <p>จากนั้นสร้าง Repository ใหม่ชื่อ <code>churn-ml</code> บน GitHub (ไม่ต้องติ๊กสร้าง README) แล้ว Push ตามที่เรียนใน <a data-t="17"></a> ไฟล์ข้อมูลและโมเดลจะไม่ถูก Commit เพราะอยู่ใน <code>.gitignore</code> ส่วนกราฟใน <code>reports/figures/</code> ถูก Commit เพื่อให้คนที่เปิด Repository เห็นผลได้ทันที</p>
+    <pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/churn-ml
+git status --short
+git add .
+git commit -m "Churn ML: end-to-end churn prediction with cost-based threshold"
+git branch -M main
+git remote add origin https://github.com/somchai/churn-ml.git
+git push -u origin main</code></pre>
+    <p>ก่อน <code>git add .</code> ให้ดู <code>git status --short</code> ว่าไม่มี <code>.venv/</code>, <code>data/members.db</code>, <code>models/</code> หรือ <code>.env</code> อยู่ในรายการ ชื่อผู้ใช้ <code>somchai</code> ใน URL ให้เปลี่ยนเป็นชื่อบัญชี GitHub ของคุณ</p>
+  </li>
+</ol>
+
+<h4>ไอเดียต่อยอด</h4>
+<ul>
+  <li><strong>เพิ่มมิติเวลา:</strong> สร้างข้อมูลรายเดือนของสมาชิกแต่ละคน แล้วสร้าง Feature อย่าง "จำนวนครั้งที่เข้ายิมลดลงกี่เปอร์เซ็นต์เทียบกับเดือนก่อน" ซึ่งมักเป็นสัญญาณการยกเลิกที่แรงที่สุดในงานจริง และแบ่งข้อมูลตามเวลาแทนการสุ่ม</li>
+  <li><strong>ทำ API ทำนาย:</strong> ห่อ <code>models/churn_model.joblib</code> เป็น API ที่รับข้อมูลสมาชิกเป็น JSON แล้วคืนความน่าจะเป็นและคำตัดสินตาม Threshold ตามที่เรียนใน <a data-t="8"></a> และ <a data-t="12"></a></li>
+  <li><strong>ทดสอบอัตโนมัติ:</strong> เขียน pytest ตรวจว่า <code>load_members</code> พังเมื่อคอลัมน์หาย <code>add_features</code> ไม่มีค่าว่าง และ <code>metrics.json</code> มี ROC-AUC มากกว่า 0.7 แล้วรันใน GitHub Actions ทุกครั้งที่ Push</li>
+  <li><strong>ตรวจความเป็นธรรมให้แน่นขึ้น:</strong> ใช้ <code>cross_val_predict</code> คำนวณ Recall รายจังหวัดบนข้อมูลฝึกทั้ง 1,600 แถว และทำ Bootstrap หา CI ของแต่ละจังหวัด ก่อนตัดสินว่าต้องปรับ Threshold แยกจังหวัดหรือไม่</li>
+  <li><strong>วัดผลทางธุรกิจ:</strong> ออกแบบ A/B Test ที่สุ่มครึ่งหนึ่งของรายชื่อเสี่ยงให้ทีมโทร อีกครึ่งไม่โทร แล้ววัดว่าการโทรลดการยกเลิกได้จริงหรือไม่ ด้วย <code>chi2_contingency</code> จากแนวคิดที่ 7</li>
+</ul>
+
+<h3 id="s10-4-cheat">Cheat Sheet</h3>
+<p>รวมคำสั่งที่ใช้บ่อยที่สุดในหัวข้อนี้ จัดกลุ่มตามขั้นของงาน ทุกตัวอย่างใช้ได้กับเวอร์ชันที่หลักสูตรล็อกไว้ (NumPy 2.5.4, pandas 3.1.0, scikit-learn 1.9.1, PyTorch 2.14.1)</p>
+
+<h4>NumPy</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>np.random.default_rng(seed)</code></td><td>สร้างตัวสุ่มที่ทำซ้ำได้</td><td><code>rng = np.random.default_rng(42); rng.integers(40, 101, size=(6, 3))</code></td></tr>
+<tr><td><code>a.shape</code>, <code>a.ndim</code>, <code>a.dtype</code></td><td>ดูขนาด จำนวนมิติ และชนิดข้อมูล</td><td><code>np.zeros((30, 3)).shape</code> ได้ <code>(30, 3)</code></td></tr>
+<tr><td><code>a.mean(axis=0)</code> / <code>axis=1</code></td><td>คำนวณลงตามคอลัมน์ / ข้ามตามแถว</td><td><code>scores.mean(axis=0)</code> ได้ค่าเฉลี่ยรายวิชา</td></tr>
+<tr><td><code>a[a &gt;= 80]</code></td><td>Boolean mask เลือกค่าตามเงื่อนไข</td><td><code>(scores &gt;= 80).sum()</code> นับจำนวนที่ตรงเงื่อนไข</td></tr>
+<tr><td><code>keepdims=True</code></td><td>คงมิติไว้เพื่อให้ Broadcasting ได้</td><td><code>scores - scores.mean(axis=1, keepdims=True)</code></td></tr>
+<tr><td><code>np.where(cond, x, y)</code></td><td>เลือกค่าทีละช่องตามเงื่อนไข</td><td><code>np.where(scores &gt;= 50, "ผ่าน", "ไม่ผ่าน")</code></td></tr>
+</tbody></table></div>
+
+<h4>pandas และ SQLite</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>pd.read_csv(path, parse_dates=[...])</code></td><td>อ่าน CSV และแปลงคอลัมน์วันที่</td><td><code>pd.read_csv("data/sales.csv", parse_dates=["date"])</code></td></tr>
+<tr><td><code>df.shape</code>, <code>df.dtypes</code>, <code>df.info()</code></td><td>สำรวจตารางทันทีหลังโหลด</td><td><code>print(df.shape, df.dtypes, sep="\n")</code></td></tr>
+<tr><td><code>df.loc[mask, cols]</code> / <code>df.iloc[i, j]</code></td><td>เลือกด้วย Label หรือเงื่อนไข / ด้วยตำแหน่ง</td><td><code>df.loc[df["order_id"] == 4, ["menu", "amount"]]</code></td></tr>
+<tr><td><code>df[(c1) &amp; (c2)]</code> / <code>df.query("...")</code></td><td>กรองหลายเงื่อนไข</td><td><code>df.query("payment == 'qr' and qty &gt;= 2")</code></td></tr>
+<tr><td><code>df.isna().sum()</code>, <code>df.duplicated().sum()</code></td><td>นับค่าว่างและแถวซ้ำ</td><td><code>raw.isna().sum().to_dict()</code></td></tr>
+<tr><td><code>pd.to_numeric(s, errors="coerce")</code></td><td>แปลงข้อความเป็นตัวเลข ค่าที่แปลงไม่ได้เป็น NaN</td><td><code>pd.to_numeric(s.str.replace("บาท", "").str.strip(), errors="coerce")</code></td></tr>
+<tr><td><code>pd.to_datetime(s, format=...)</code> และ <code>.dt</code></td><td>แปลงเป็นวันที่ แล้วดึงชื่อวันหรือเดือน</td><td><code>df["date"].dt.day_name()</code></td></tr>
+<tr><td><code>groupby(...).agg(name=(col, func))</code></td><td>สรุปแยกกลุ่มพร้อมตั้งชื่อคอลัมน์ผลลัพธ์</td><td><code>df.groupby("menu", as_index=False).agg(revenue=("amount", "sum"))</code></td></tr>
+<tr><td><code>merge(..., validate="many_to_one")</code></td><td>รวมตาราง และตรวจว่าคีย์ฝั่งขวาไม่ซ้ำ</td><td><code>sales.merge(branches, on="branch_id", how="left", validate="many_to_one")</code></td></tr>
+<tr><td><code>pivot_table(index, columns, values, aggfunc)</code></td><td>ตารางสรุปสองมิติ</td><td><code>df.pivot_table(index="branch_name", columns="category", values="amount", aggfunc="sum", fill_value=0)</code></td></tr>
+<tr><td><code>pd.read_sql(sql, con, params=(...))</code></td><td>อ่านผล Query จาก SQLite อย่างปลอดภัย</td><td><code>pd.read_sql("SELECT * FROM members WHERE tenure_months &gt;= ?", con, params=(24,))</code></td></tr>
+</tbody></table></div>
+
+<h4>สถิติและกราฟ</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>np.percentile(x, [25, 75])</code></td><td>หาควอร์ไทล์เพื่อคำนวณ IQR และ Outlier</td><td><code>q1, q3 = np.percentile(salary, [25, 75])</code></td></tr>
+<tr><td><code>stats.norm.ppf(0.975)</code></td><td>ค่า z สำหรับ CI 95% แบบสองด้าน</td><td><code>diff ± stats.norm.ppf(0.975) * se</code></td></tr>
+<tr><td><code>stats.ttest_ind(a, b, equal_var=False)</code></td><td>Welch's t-test เทียบค่าเฉลี่ยสองกลุ่ม</td><td><code>t = stats.ttest_ind(malignant, benign, equal_var=False); t.pvalue</code></td></tr>
+<tr><td><code>stats.chi2_contingency(table)</code></td><td>ทดสอบสัดส่วนของข้อมูลนับจำนวน เช่น A/B Test</td><td><code>stats.chi2_contingency([[82, 918], [113, 887]]).pvalue</code></td></tr>
+<tr><td><code>stats.bootstrap(data, statistic, random_state=42)</code></td><td>CI ของสถิติใดก็ได้ด้วยการสุ่มซ้ำ</td><td><code>stats.bootstrap((b, a), diff_fn, method="percentile").confidence_interval</code></td></tr>
+<tr><td><code>fig, ax = plt.subplots()</code></td><td>สร้างรูปและแกนสำหรับวาดกราฟ</td><td><code>ax.hist(df["target"], bins=20); ax.set_title("...")</code></td></tr>
+<tr><td><code>fig.savefig(path, dpi=150, bbox_inches="tight")</code> + <code>plt.close(fig)</code></td><td>บันทึกกราฟเป็น PNG แล้วคืนหน่วยความจำ</td><td><code>fig.savefig("charts/clt.png", dpi=150, bbox_inches="tight")</code></td></tr>
+</tbody></table></div>
+
+<h4>scikit-learn</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)</code></td><td>แบ่งข้อมูลฝึกกับข้อมูลทดสอบ</td><td><code>X_train, X_test, y_train, y_test = train_test_split(...)</code></td></tr>
+<tr><td><code>DummyClassifier</code> / <code>DummyRegressor</code></td><td>Baseline ที่ต้องเทียบทุกครั้ง</td><td><code>DummyClassifier(strategy="most_frequent")</code></td></tr>
+<tr><td><code>ColumnTransformer([...])</code></td><td>เตรียมคอลัมน์ตัวเลขและคอลัมน์กลุ่มต่างกัน</td><td><code>ColumnTransformer([("num", StandardScaler(), num), ("cat", OneHotEncoder(handle_unknown="ignore"), cat)])</code></td></tr>
+<tr><td><code>Pipeline([("pre", ...), ("model", ...)])</code></td><td>ต่อขั้นเตรียมข้อมูลกับโมเดลเป็นชิ้นเดียว กัน Data leakage</td><td><code>Pipeline([("pre", build_preprocessor()), ("model", LogisticRegression())])</code></td></tr>
+<tr><td><code>cross_val_score(model, X, y, cv=cv, scoring=...)</code></td><td>วัดผลด้วย Cross-validation</td><td><code>cross_val_score(pipe, X_train, y_train, cv=StratifiedKFold(5, shuffle=True, random_state=42), scoring="roc_auc")</code></td></tr>
+<tr><td><code>GridSearchCV(pipe, {"step__param": [...]})</code></td><td>ปรับจูน Hyperparameter ใน Pipeline</td><td><code>GridSearchCV(pipe, {"model__C": [0.01, 0.1, 1.0]}, cv=5, scoring="roc_auc")</code></td></tr>
+<tr><td><code>mean_absolute_error</code>, <code>root_mean_squared_error</code>, <code>r2_score</code></td><td>Metric ของ Regression</td><td><code>root_mean_squared_error(y_test, pred)</code></td></tr>
+<tr><td><code>confusion_matrix</code>, <code>classification_report</code></td><td>สรุปผล Classification (แถว = ค่าจริง)</td><td><code>tn, fp, fn, tp = confusion_matrix(y_test, pred).ravel()</code></td></tr>
+<tr><td><code>predict_proba(X)[:, 1]</code> + <code>roc_auc_score</code></td><td>ความน่าจะเป็นของคลาส 1 และวัดการเรียงลำดับ</td><td><code>roc_auc_score(y_test, model.predict_proba(X_test)[:, 1])</code></td></tr>
+<tr><td><code>cross_val_predict(..., method="predict_proba")</code></td><td>ผลทำนายแบบ CV ของข้อมูลฝึก ใช้เลือก Threshold</td><td><code>oof = cross_val_predict(clone(model), X_train, y_train, cv=cv, method="predict_proba")[:, 1]</code></td></tr>
+<tr><td><code>permutation_importance(model, X, y, scoring=...)</code></td><td>วัดความสำคัญของ Feature บนข้อมูลทดสอบ</td><td><code>permutation_importance(model, X_test, y_test, n_repeats=10, random_state=42).importances_mean</code></td></tr>
+<tr><td><code>KMeans(n_clusters=k, n_init=10, random_state=42)</code> / <code>PCA(n_components=2)</code></td><td>แบ่งกลุ่ม / ลดมิติ (ปรับสเกลก่อนเสมอ)</td><td><code>PCA(2).fit(X_scaled).explained_variance_ratio_</code></td></tr>
+<tr><td><code>joblib.dump</code> / <code>joblib.load</code></td><td>บันทึกและโหลดโมเดลทั้ง Pipeline</td><td><code>joblib.dump(search.best_estimator_, "models/churn_model.joblib")</code></td></tr>
+</tbody></table></div>
+
+<h4>PyTorch</h4>
+<div class="tbl"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+<tr><td><code>torch.tensor(x, dtype=torch.float32)</code></td><td>สร้าง Tensor ชนิดเดียวกับน้ำหนักของโมเดล</td><td><code>torch.tensor(X_train, dtype=torch.float32)</code></td></tr>
+<tr><td><code>nn.Sequential(nn.Linear(...), nn.ReLU(), ...)</code></td><td>สร้าง Neural Network แบบเรียงชั้น</td><td><code>nn.Sequential(nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, 10))</code></td></tr>
+<tr><td><code>DataLoader(TensorDataset(X, y), batch_size, shuffle=True)</code></td><td>แบ่งข้อมูลเป็น Batch และสลับทุก Epoch</td><td><code>DataLoader(TensorDataset(X_t, y_t), batch_size=64, shuffle=True)</code></td></tr>
+<tr><td>Training loop 5 บรรทัด</td><td>ล้าง Gradient → ทำนาย → Loss → Backward → ปรับน้ำหนัก</td><td><code>optimizer.zero_grad(); loss = loss_fn(model(xb), yb); loss.backward(); optimizer.step()</code></td></tr>
+<tr><td><code>model.eval()</code> + <code>with torch.no_grad():</code></td><td>เข้าโหมดวัดผลและปิดการเก็บ Gradient</td><td><code>pred = model(X_test_t).argmax(dim=1)</code></td></tr>
+</tbody></table></div>
+
+<h3 id="s10-4-interview">Interview Questions</h3>
+<p>คำถามเหล่านี้พบบ่อยในการสัมภาษณ์ตำแหน่ง Junior Data Scientist ถึง Data Scientist ระดับ Mid คำตอบตัวอย่างแสดงสิ่งที่ผู้สมัครที่ดีพูด ให้ฝึกตอบด้วยคำพูดของตัวเองภายใน 2–3 นาที และยกตัวอย่างจากโปรเจกต์ของคุณเสมอ</p>
+
+<details class="iq"><summary>1. Precision กับ Recall ต่างกันอย่างไร และคุณเลือก Threshold อย่างไร (Junior)</summary><div>
+  <p><strong>แนวคำตอบ:</strong> Precision คือ ในบรรดาที่โมเดลทายว่าใช่ ถูกกี่เปอร์เซ็นต์ ส่วน Recall คือ ของจริงทั้งหมด โมเดลหาเจอกี่เปอร์เซ็นต์ สองค่านี้มักแลกกัน ลด Threshold แล้ว Recall เท่าเดิมหรือเพิ่ม แต่ Precision มักลดลง การเลือกจึงขึ้นกับต้นทุนของความผิดพลาดแต่ละแบบ ไม่ใช่ตัวเลข 0.5 ตายตัว</p>
+  <ul>
+    <li>งานคัดกรองมะเร็งเน้น Recall เพราะพลาดผู้ป่วยเสียหายกว่าการตรวจซ้ำมาก ส่วนระบบแนะนำสินค้าเน้น Precision เพราะคำแนะนำที่ไม่ตรงทำให้ผู้ใช้เลิกเชื่อ</li>
+    <li>วิธีเลือกที่ถูก: กำหนดต้นทุนเป็นตัวเลขกับทีมธุรกิจ คำนวณต้นทุนรวมของแต่ละ Threshold จากผลทำนายแบบ Cross-validation บนข้อมูลฝึก แล้วยืนยันบนข้อมูลทดสอบครั้งเดียว</li>
+    <li>ตัวอย่างจากโปรเจกต์ Churn ML: พลาดคนที่จะยกเลิกเสีย 3 หน่วย โทรเสียเปล่าเสีย 1 หน่วย ได้ Threshold 0.65 ต้นทุนบนข้อมูลทดสอบ 138 หน่วย ถูกกว่า 0.5 (160) และถูกกว่าการไม่โทรเลย (162)</li>
+  </ul>
+</div></details>
+
+<details class="iq"><summary>2. Data leakage คืออะไร ยกตัวอย่างและบอกวิธีป้องกัน (Junior–Mid)</summary><div>
+  <p><strong>แนวคำตอบ:</strong> Data leakage คือการที่ข้อมูลซึ่งโมเดลไม่ควรรู้ตอนใช้งานจริง หลุดเข้าไปตอนฝึกหรือตอนเลือกโมเดล ทำให้ผลวัดดีเกินจริงแล้วโมเดลพังเมื่อขึ้นระบบ เป็นสาเหตุอันดับต้นของโมเดลที่ "ดีแค่ในโน้ตบุ๊ก"</p>
+  <ul>
+    <li><strong>ตัวอย่าง 1:</strong> ปรับสเกลหรือเติมค่าว่างด้วยค่าเฉลี่ยของข้อมูลทั้งหมดก่อนแบ่ง Train / Test</li>
+    <li><strong>ตัวอย่าง 2:</strong> ใช้ Feature ที่เกิดหลังเหตุการณ์ที่ทำนาย เช่น ใช้ "วันที่ขอคืนเงินค่าสมาชิก" ทำนายการยกเลิก ซึ่งข้อมูลนี้มีเฉพาะคนที่ยกเลิกไปแล้ว</li>
+    <li><strong>ตัวอย่าง 3:</strong> เลือก Hyperparameter หรือ Threshold จากคะแนนบนข้อมูลทดสอบ</li>
+    <li><strong>วิธีป้องกัน:</strong> ใส่ทุกขั้นเตรียมข้อมูลไว้ใน <code>Pipeline</code> แล้วส่ง Pipeline เข้า <code>cross_val_score</code> หรือ <code>GridSearchCV</code> ถามทุก Feature ว่า "ตอนทำนายจริงเรารู้ค่านี้แล้วหรือยัง" แยกฟังก์ชัน <code>split()</code> ไว้ที่เดียวให้ทุกไฟล์ใช้ร่วมกัน และแตะข้อมูลทดสอบครั้งเดียวตอนท้าย</li>
+    <li>สัญญาณเตือน: คะแนนดีผิดปกติ เช่น ROC-AUC 0.99 กับปัญหาธุรกิจที่ยาก หรือ Feature เดียวมีความสำคัญสูงกว่าตัวอื่นมาก ให้สงสัยไว้ก่อน</li>
+  </ul>
+</div></details>
+
+<details class="iq"><summary>3. อธิบาย p-value และบอกข้อผิดพลาดที่พบบ่อยในการทำ A/B Test (Mid)</summary><div>
+  <p><strong>แนวคำตอบ:</strong> p-value คือโอกาสที่จะเห็นผลต่างอย่างน้อยเท่าที่เห็น ถ้าสมมติว่า H0 เป็นจริง คือไม่มีผลต่างจริง ไม่ใช่โอกาสที่ H0 จริง และไม่ได้บอกว่าผลต่างใหญ่แค่ไหน จึงต้องรายงานขนาดผลต่างพร้อม CI เสมอ เช่น "อัตราสมัครเพิ่มขึ้น 3.1 จุดเปอร์เซ็นต์ (CI 95%: 0.5 ถึง 5.7) p = 0.0237"</p>
+  <ul>
+    <li><strong>Peeking:</strong> ดูผลทุกวันแล้วหยุดทันทีที่ p &lt; 0.05 ทำให้โอกาสสรุปผิดสูงกว่า 5% มาก ต้องกำหนดขนาดตัวอย่างและวันสิ้นสุดก่อนเริ่ม</li>
+    <li><strong>เปลี่ยน Metric หลังเห็นผล:</strong> ดูหลายสิบ Metric แล้วรายงานตัวที่มีนัยสำคัญ ต้องกำหนด Metric หลักไว้ก่อน ถ้าทดสอบหลาย Metric ต้องปรับเกณฑ์ เช่น Bonferroni correction</li>
+    <li><strong>การสุ่มแบ่งกลุ่มไม่ดี:</strong> เช่น ให้ผู้ใช้ iOS เห็นหน้าใหม่ทั้งหมด ผลต่างอาจมาจากชนิดอุปกรณ์ ไม่ใช่หน้าเว็บ</li>
+    <li><strong>สับสนนัยสำคัญทางสถิติกับความคุ้มค่า:</strong> ข้อมูลหลายล้านคนทำให้ผลต่าง 0.05% มีนัยสำคัญได้ แต่อาจไม่คุ้มค่าการพัฒนา</li>
+    <li><strong>เลือก Test ผิด:</strong> ข้อมูลนับจำนวนใช้ <code>chi2_contingency</code> ค่าเฉลี่ยสองกลุ่มอิสระใช้ Welch's t-test (<code>equal_var=False</code>) และข้อมูลจับคู่ใช้ <code>ttest_rel</code></li>
+  </ul>
+</div></details>
+
+<details class="iq"><summary>4. Overfitting คืออะไร ตรวจและแก้อย่างไร (Junior–Mid)</summary><div>
+  <p><strong>แนวคำตอบ:</strong> Overfitting คือโมเดลจำข้อมูลฝึกรวมถึง Noise จนทำนายข้อมูลใหม่ได้แย่ ตรวจได้จากช่องว่างระหว่างคะแนนข้อมูลฝึกกับคะแนน Cross-validation เช่น Decision Tree ที่ไม่จำกัดความลึกได้ Accuracy ข้อมูลฝึก 1.000 แต่ CV 0.916 ขณะที่ <code>max_depth=3</code> ได้ CV 0.927 นี่คือ Bias-Variance trade-off โมเดลง่ายเกินมี Bias สูง โมเดลซับซ้อนเกินมี Variance สูง</p>
+  <ul>
+    <li><strong>ลดความซับซ้อน:</strong> จำกัด <code>max_depth</code> เพิ่ม <code>min_samples_leaf</code> หรือเพิ่ม Regularization เช่น <code>Ridge</code>, <code>Lasso</code> และ <code>C</code> ที่เล็กลงใน Logistic Regression (ในโปรเจกต์ Churn ML GridSearchCV เลือก <code>C=0.01</code> แล้ว CV ดีขึ้น)</li>
+    <li><strong>ใช้ Ensemble:</strong> Random Forest ลด Variance ด้วยการเฉลี่ยต้นไม้หลายต้น</li>
+    <li><strong>เพิ่มข้อมูล:</strong> ดู <code>learning_curve</code> ว่าคะแนน CV ยังเพิ่มเมื่อข้อมูลเพิ่มหรือไม่</li>
+    <li><strong>Early stopping:</strong> หยุดฝึก Neural Network หรือ Gradient Boosting เมื่อคะแนนบนข้อมูล Validation ไม่ดีขึ้น</li>
+    <li>ประเด็นที่ผู้สัมภาษณ์อยากได้ยิน: ต้องวัดด้วย Cross-validation ที่ไม่มี Data leakage และไม่ปรับจูนโดยดูข้อมูลทดสอบ ไม่อย่างนั้นจะ Overfit ข้อมูลทดสอบแทน</li>
+  </ul>
+</div></details>
+
+<details class="iq"><summary>5. เล่าโปรเจกต์ Churn ML ของคุณ ทำไม Logistic Regression ชนะ และโปรเจกต์มีข้อจำกัดอะไร (Mid)</summary><div>
+  <p><strong>แนวคำตอบ:</strong> เล่าด้วยโครง โจทย์ วิธี ผล และข้อจำกัด ไม่เกิน 3 นาที</p>
+  <ul>
+    <li><strong>โจทย์:</strong> ทำนายสมาชิกฟิตเนสที่จะยกเลิกเพื่อให้ทีมโทรหาก่อน การพลาดคนที่จะยกเลิกเสียหาย 3 เท่าของการโทรเสียเปล่า ใช้ ROC-AUC เทียบโมเดลและใช้ต้นทุนเลือก Threshold</li>
+    <li><strong>วิธี:</strong> ข้อมูลจำลอง 2,000 คนที่ทำซ้ำได้ด้วย Seed โหลดจาก SQLite ทำ EDA สร้าง Feature 2 ตัว ใช้ <code>ColumnTransformer</code> ใน Pipeline เทียบ 4 โมเดลด้วย 5-fold CV ปรับจูนตัวที่ชนะ เลือก Threshold จาก <code>cross_val_predict</code> และตรวจ Recall รายจังหวัด</li>
+    <li><strong>ผล:</strong> ROC-AUC 0.754 บนข้อมูลทดสอบ Average precision 0.295 เทียบกับ Baseline 0.135 ที่ Threshold 0.65 หาคนที่จะยกเลิกเจอ 44% และลดต้นทุนจาก 160 เหลือ 138 หน่วย</li>
+    <li><strong>ทำไม Logistic ชนะ:</strong> ข้อมูลถูกสร้างจากสูตรเชิงเส้น และมีเพียง 1,600 แถวฝึก โมเดลต้นไม้ที่ยืดหยุ่นกว่าจึงเรียน Noise ได้ง่ายกว่า ผลนี้สอนว่าต้องเทียบเสมอ ไม่ใช่เดาว่าโมเดลซับซ้อนดีกว่า</li>
+    <li><strong>ข้อจำกัด:</strong> ข้อมูลจำลอง ไม่มีมิติเวลา Recall รายจังหวัดต่างกันมากแต่มาจากคนยกเลิกไม่กี่คนต่อจังหวัด และ Feature ที่สำคัญเป็นความสัมพันธ์ ไม่ใช่สาเหตุ ขั้นต่อไปคือทดลองกับข้อมูลจริง เพิ่ม Feature ตามเวลา และทำ A/B Test วัดว่าการโทรลดการยกเลิกได้จริง</li>
+  </ul>
+</div></details>
+
+<h3 id="s10-4-resources">แหล่งเรียนต่อ</h3>
+<ul class="res">
+  <li><a href="https://pandas.pydata.org/docs/" target="_blank" rel="noopener">pandas documentation</a> — คู่มือทางการของ pandas มี User Guide ที่อธิบายทุกเรื่องในแนวคิดที่ 2–4 และหน้า Migration guide ของ pandas 3 <span class="pill">ฟรี</span></li>
+  <li><a href="https://numpy.org/doc/stable/" target="_blank" rel="noopener">NumPy documentation</a> — คู่มือทางการ มีบทเรียนสำหรับมือใหม่และหน้าอธิบาย Broadcasting อย่างละเอียด <span class="pill">ฟรี</span></li>
+  <li><a href="https://scikit-learn.org/stable/user_guide.html" target="_blank" rel="noopener">scikit-learn User Guide</a> — อธิบายทุกโมเดล Metric และการทำ Cross-validation พร้อมตัวอย่างโค้ด เป็นแหล่งที่ควรเปิดทุกวันในงานจริง <span class="pill">ฟรี</span></li>
+  <li><a href="https://docs.scipy.org/doc/scipy/" target="_blank" rel="noopener">SciPy documentation</a> — คู่มือของ <code>scipy.stats</code> สำหรับการแจกแจง Hypothesis Test และ Bootstrap <span class="pill">ฟรี</span></li>
+  <li><a href="https://matplotlib.org/stable/" target="_blank" rel="noopener">Matplotlib documentation</a> — คู่มือและแกลเลอรีตัวอย่างกราฟทุกชนิดพร้อมโค้ด <span class="pill">ฟรี</span></li>
+  <li><a href="https://pytorch.org/tutorials/" target="_blank" rel="noopener">PyTorch Tutorials</a> — บทเรียนทางการตั้งแต่ Tensor และ Autograd ไปจนถึงการสร้างโมเดลภาพและข้อความ <span class="pill">ฟรี</span></li>
+  <li><a href="https://www.kaggle.com/learn" target="_blank" rel="noopener">Kaggle Learn</a> — คอร์สสั้นแบบลงมือทำในเบราว์เซอร์ ทั้ง pandas, Data Visualization และ Intro to Machine Learning พร้อมชุดข้อมูลให้ฝึกต่อ <span class="pill">ฟรี</span></li>
+  <li><a href="https://jupyterlab.readthedocs.io/" target="_blank" rel="noopener">JupyterLab documentation</a> — วิธีใช้ JupyterLab ทั้ง Notebook, Kernel และคีย์ลัด <span class="pill">ฟรี</span></li>
+  <li><a href="https://www.coursera.org/professional-certificates/google-data-analytics" target="_blank" rel="noopener">Google Data Analytics Professional Certificate</a> — ชุดคอร์สสาย Data Analyst บน Coursera ที่ได้ใบรับรองเมื่อเรียนจบ (ตรวจราคาและเงื่อนไขล่าสุดก่อนสมัคร) <span class="pill">มีค่าใช้จ่าย</span></li>
+</ul>
+<div class="callout"><span class="c-label tip">Tip</span><p>หลังจบหัวข้อนี้ ให้เลือกชุดข้อมูลใหม่จาก Kaggle เดือนละหนึ่งชุด แล้วทำวงจรครบแบบโปรเจกต์ Churn ML ตั้งแต่ตั้งโจทย์จนเขียน README ที่มีข้อจำกัด เมื่อมีโปรเจกต์ 3–4 ชิ้นที่ต่างประเภทกัน Portfolio ของคุณจะพร้อมสำหรับการสมัครงานสาย Data และพร้อมต่อยอดไปหัวข้อ <a data-t="11"></a></p></div>
+</section>
