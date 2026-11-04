@@ -4,10 +4,10 @@
 
 ## สถานะ (4 พ.ย. 2026)
 
-ผ่านตัวตรวจแล้ว **74 จาก 76 ส่วน (97%)** ทุกหัวข้อครบ 4 ส่วน ยกเว้น
+ผ่านตัวตรวจแล้ว **75 จาก 76 ส่วน (99%)** ทุกหัวข้อครบ 4 ส่วน ยกเว้น
 
 - **18 Android:** ครบ 4 ส่วนบนเว็บแล้ว และรีวิวส่วนที่ 2–3 เสร็จแล้ว (งานที่ 2)
-- **10 AI and Data Scientist:** มีส่วนที่ 1–2 และ `dev/outlines/t10.json` แล้ว (งานที่ 3–4) ส่วนที่ 3–4 ยังไม่เริ่ม ไฟล์ตัวอย่างที่รันแล้วของส่วนที่ 2 อยู่ใน `work/t10-p2/` (ทุกบล็อกโค้ดบนหน้าเว็บตรงกับไฟล์ในโฟลเดอร์นี้)
+- **10 AI and Data Scientist:** มีส่วนที่ 1–3 และ `dev/outlines/t10.json` แล้ว (งานที่ 3–5) ส่วนที่ 4 ยังไม่เริ่ม ไฟล์ที่รันแล้วอยู่ใน `work/t10-p2/` และ `work/t10-p3/` (ทุกบล็อกโค้ดบนหน้าเว็บตรงกับไฟล์ในโฟลเดอร์เหล่านี้ โจทย์ลงมือทำของส่วนที่ 3 คือ `cafe_week.py`, `condo_model.py`, `fraud_model.py` และ `check_answers.py` ใช้ตรวจเฉลยข้อที่มีโค้ด)
 
 ### venv ของหัวข้อ 10 บนเครื่อง local
 
@@ -31,7 +31,7 @@
 | 2 | รีวิว Android ส่วนที่ 2–3 | `dev/prompts/t18-review.txt` | แก้ `topics/t18-p2.html`, `topics/t18-p3.html` | ไม่ต้องแก้ | ✅ |
 | 3 | AI and Data Scientist ส่วนที่ 1 + โครงเนื้อหา | `dev/prompts/t10-p1.txt` | `topics/t10-p1.html`, `dev/outlines/t10.json` | แทรก `10:1, ` ต่อจาก `9:4, ` | ✅ |
 | 4 | AI and Data Scientist ส่วนที่ 2 | `dev/prompts/t10-p2.txt` | `topics/t10-p2.html` | `10:1` → `10:2` | ✅ |
-| 5 | AI and Data Scientist ส่วนที่ 3 | `dev/prompts/t10-p3.txt` | `topics/t10-p3.html` | `10:2` → `10:3` | ⬜ |
+| 5 | AI and Data Scientist ส่วนที่ 3 | `dev/prompts/t10-p3.txt` | `topics/t10-p3.html` | `10:2` → `10:3` | ✅ |
 | 6 | AI and Data Scientist ส่วนที่ 4 | `dev/prompts/t10-p4.txt` | `topics/t10-p4.html` | `10:3` → `10:4` | ⬜ |
 | 7 | รีวิว AI and Data Scientist ส่วนที่ 3 | `dev/prompts/t10-review.txt` | แก้ `topics/t10-p3.html` | ไม่ต้องแก้ | ⬜ |
 
