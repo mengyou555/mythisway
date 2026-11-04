@@ -28,7 +28,7 @@ kotlinx-serialization-json-jvm-1.11.0.jar
 info: kotlinc-jvm 2.4.21 (JRE 21.0.12.1+1-1-24.04.4-Ubuntu)</code></pre>
 <p class="muted small">เลขเวอร์ชันย่อยของ OpenJDK ในวงเล็บอาจต่างจากนี้ตามการอัปเดตของ Ubuntu สิ่งที่ต้องเห็นคือ <code>kotlinc-jvm 2.4.21</code> และ JRE ที่ขึ้นต้นด้วย <code>21.</code> ถ้า Jar ไม่ครบ ให้กลับไปดาวน์โหลดตามหัวข้อเตรียมเครื่องของ Part 2</p>
 
-<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>โค้ด Kotlin ล้วนในหน้านี้รันจริงด้วย kotlinc 2.4.21 บน OpenJDK 21 และผลลัพธ์ที่แสดงคัดลอกมาจากการรันจริง ได้แก่ โค้ดของข้อเติมคำข้อ 1, 2 และ 7 โค้ดของข้อสอบปรนัยข้อ 1, 2, 3, 8, 9, 10 และ 12 และส่วน Kotlin ล้วนของโจทย์ลงมือทำทั้ง 3 ข้อ ซึ่งรวม Unit Test 6 ข้อที่รันด้วย JUnit 4.13.2 และการเรียก API จำลองที่เสิร์ฟด้วย <code>python3 -m http.server</code> ส่วนโค้ด Android (Compose, Navigation, ViewModel, Room, Retrofit และไฟล์ Gradle) เขียนตามเอกสารทางการบน developer.android.com เพราะระบบที่เราใช้ทดสอบเนื้อหาไม่มี Android SDK บรรทัด Logcat ที่แสดงคือข้อความที่คำสั่ง <code>Log</code> ในโค้ดพิมพ์ออกมา ไม่ได้จับมาจากเครื่องจริง</p></div>
+<div class="callout note"><span class="c-label note">หมายเหตุ</span><p>โค้ด Kotlin ล้วนในหน้านี้รันจริงด้วย kotlinc 2.4.21 บน OpenJDK 21 และผลลัพธ์ที่แสดงคัดลอกมาจากการรันจริง ได้แก่ โค้ดของข้อเติมคำข้อ 1, 2 และ 7 โค้ดของข้อสอบปรนัยข้อ 1, 2, 3, 8, 9, 10 และ 12 และส่วน Kotlin ล้วนของโจทย์ลงมือทำทั้ง 3 ข้อ ซึ่งรวม Unit Test 6 ข้อที่รันด้วย JUnit 4.13.2 และการเรียก API จำลองที่เสิร์ฟด้วย <code>python3 -m http.server</code> ส่วนโค้ด Android ของโจทย์ลงมือทำทั้ง 3 ข้อ (Compose, ViewModel และ Retrofit) เขียนตามเอกสารทางการบน developer.android.com แล้วตรวจซ้ำในเดือนพฤศจิกายน 2026 บน Windows ที่มี Android SDK โดย Build ด้วย AGP 9.4.0 ผ่านโดยไม่มี Warning และรันบน Emulator ที่ใช้ System image ของ Android 17 ข้อความ Log ทุกบรรทัดและสิ่งที่เห็นบนจอตรงกับที่หน้านี้บอก บรรทัด Logcat ในหน้านี้แสดงในรูปแบบของแผง Logcat ใน Android Studio ส่วนโค้ดสั้นๆ ในข้อเติมคำและข้อสอบปรนัยที่เป็น Compose, Navigation และ Room เป็นส่วนย่อยของไฟล์ จึงไม่ได้ Build แยก ยกเว้นโค้ดของข้อสอบปรนัยข้อ 7 ที่นำไปรันบน Emulator เพื่อยืนยันข้อความ Error</p></div>
 
 <h3 id="s18-3-fill">Fill-in-the-blank</h3>
 <p>เติมคำในช่อง <code>_____</code> ให้ถูกต้อง แต่ละข้อมี 3 ช่อง ให้ตอบเรียงตามเลข (1) (2) (3) ที่อยู่ในโจทย์หรือใน Comment ของโค้ด ข้อ 1 ถึง 3 เป็นระดับง่าย ข้อ 4 ถึง 6 ระดับกลาง และข้อ 7 ถึง 9 ระดับยาก ข้อที่เป็นไฟล์ <code>.kt</code> ให้เติมคำแล้วบันทึกลงโฟลเดอร์ <code>practice/fill</code> แล้วรันเพื่อตรวจว่าได้ผลตามที่โจทย์บอก</p>
@@ -773,7 +773,9 @@ fun render(state: NotesUiState): String = when (state) {
 </div></details>
 
 <details class="ans"><summary>ข้อ 7</summary><div>
-  <p><strong>คำตอบ: A</strong> Column ที่มี <code>verticalScroll</code> ให้ลูกสูงได้ไม่จำกัด แต่ LazyColumn ต้องรู้ความสูงสูงสุดของตัวเองเพื่อคำนวณว่าจะสร้างกี่แถว เมื่อได้ความสูงเป็นอนันต์จึงหยุดด้วย <code>IllegalStateException</code> วิธีที่ถูกคือให้มีตัวเลื่อนชั้นเดียว เอา <code>verticalScroll</code> ออกแล้วใส่หัวข้อเป็น <code>item { }</code> ก่อน <code>items(...)</code> ภายใน LazyColumn ซึ่งข้อความ Error ฉบับเต็มของ Compose ก็แนะนำไว้ หัวข้อจะเลื่อนไปพร้อมรายการ และ LazyColumn ยังสร้างเฉพาะแถวที่มองเห็น</p>
+  <p><strong>คำตอบ: A</strong> Column ที่มี <code>verticalScroll</code> ให้ลูกสูงได้ไม่จำกัด แต่ LazyColumn ต้องรู้ความสูงสูงสุดของตัวเองเพื่อคำนวณว่าจะสร้างกี่แถว เมื่อได้ความสูงเป็นอนันต์จึงหยุดด้วย <code>IllegalStateException</code> วิธีที่ถูกคือให้มีตัวเลื่อนชั้นเดียว เอา <code>verticalScroll</code> ออกแล้วใส่หัวข้อเป็น <code>item { }</code> ก่อน <code>items(...)</code> ภายใน LazyColumn ซึ่งข้อความ Error ฉบับเต็มในซอร์สโค้ดของ Compose ก็แนะนำไว้ เมื่อนำโค้ดนี้ไปรันบน Emulator (Compose UI 1.12.1) แอปพังทันทีที่เปิด และ Logcat แสดงบรรทัดนี้ (ตัดเฉพาะส่วนต้นของข้อความ)</p>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>E AndroidRuntime: java.lang.IllegalStateException: Vertically scrollable component was measured with an infinity maximum height constraints, which is disallowed. One of the common reasons is nesting layouts like LazyColumn and Column(Modifier.verticalScroll()). If you want to add a header before the list of items please add a header as a separate item() before the main items() inside the LazyColumn scope.</code></pre>
+<p> หัวข้อจะเลื่อนไปพร้อมรายการ และ LazyColumn ยังสร้างเฉพาะแถวที่มองเห็น</p>
   <ul class="why-wrong">
     <li><strong>B</strong> ผิดเพราะ LazyColumn ยังได้ความสูงอนันต์จาก Column ชั้นนอกเหมือนเดิมจึงยังพัง และตัวเลื่อนทิศเดียวกันสองชั้นทำให้ไม่รู้ว่าการลากนิ้วควรเลื่อนชั้นไหน</li>
     <li><strong>C</strong> ผิดเพราะ Column กับ <code>forEach</code> สร้างทุกรายการพร้อมกันแม้รายการที่อยู่นอกจอ ถ้ามี 200 รายการหน้าจอจะเปิดช้าและใช้หน่วยความจำมาก จึงไม่ได้ผลเหมือนกันทุกอย่าง</li>
@@ -1034,7 +1036,7 @@ val imported = results.count { it is ImportResult.Ok }
 Log.i(TAG, "นำเข้าโน้ตเก่า $imported รายการ ข้าม ${results.size - imported} บรรทัด")</code></pre>
   <p>กด Run หน้าจอยังเหมือนเดิมเพราะขั้นนี้ยังไม่แก้ UI แต่แผง Logcat ที่กรองด้วย <code>package:mine tag:AndroidLab</code> จะมีบรรทัดระดับ <code>I</code> เพิ่มขึ้นมา</p>
 <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>2026-10-19 11:05:12.441  12345-12345  AndroidLab              com.somchai.androidlab               I  นำเข้าโน้ตเก่า 4 รายการ ข้าม 3 บรรทัด</code></pre>
-  <p class="muted small">บรรทัดนี้คือข้อความที่คำสั่ง <code>Log.i</code> ในโค้ดพิมพ์ ไม่ได้จับจากอุปกรณ์จริงในระบบทดสอบของเรา วันที่ เวลา และหมายเลข Process ในเครื่องของคุณจะต่างจากนี้ ถ้าหมุนจอ บรรทัดนี้จะขึ้นซ้ำเพราะ <code>onCreate</code> ถูกเรียกใหม่</p>
+  <p class="muted small">บรรทัดนี้คือข้อความที่คำสั่ง <code>Log.i</code> ในโค้ดพิมพ์ ตรวจแล้วบน Emulator ได้ข้อความตรงกันทุกบรรทัด ส่วนวันที่ เวลา และหมายเลข Process ในเครื่องของคุณจะต่างจากนี้ ถ้าหมุนจอ บรรทัดนี้จะขึ้นซ้ำเพราะ <code>onCreate</code> ถูกเรียกใหม่</p>
 
   <h5>แนวคิด</h5>
   <ul>
@@ -1295,7 +1297,7 @@ fun MergedNotesScreen(
 <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>2026-10-19 13:40:18.207  12345-12345  AndroidLab              com.somchai.androidlab               D  เปิดโน้ต id=3 ทบทวน Kotlin Flow และ StateFlow
 2026-10-19 13:40:25.633  12345-12345  AndroidLab              com.somchai.androidlab               D  เฉพาะที่ปักหมุด: true
 2026-10-19 13:40:41.918  12345-12345  AndroidLab              com.somchai.androidlab               D  เปิดโน้ต id=4 อ่านเอกสาร Kotlin Coroutines</code></pre>
-  <p class="muted small">บรรทัดเหล่านี้คือข้อความที่คำสั่ง <code>Log.d</code> ในโค้ดพิมพ์ ไม่ได้จับจากอุปกรณ์จริงในระบบทดสอบของเรา วันที่ เวลา และหมายเลข Process ในเครื่องของคุณจะต่างจากนี้ ถ้า MainActivity มี Log ของ Lifecycle จากแนวคิดที่ 4 จะเห็นบรรทัด <code>onPause</code> ถึง <code>onResume</code> คั่นอยู่ตอนหมุนจอด้วย</p>
+  <p class="muted small">บรรทัดเหล่านี้คือข้อความที่คำสั่ง <code>Log.d</code> ในโค้ดพิมพ์ ตรวจแล้วบน Emulator ได้ข้อความตรงกันทุกบรรทัด ส่วนวันที่ เวลา และหมายเลข Process ในเครื่องของคุณจะต่างจากนี้ ถ้า MainActivity มี Log ของ Lifecycle จากแนวคิดที่ 4 จะเห็นบรรทัด <code>onPause</code> ถึง <code>onResume</code> คั่นอยู่ตอนหมุนจอด้วย</p>
 
   <h5>แนวคิด</h5>
   <ul>
@@ -1310,7 +1312,7 @@ fun MergedNotesScreen(
     <li>ย้าย <code>mergeNotes</code> และ <code>buildRows</code> ไปไว้ใน ViewModel ที่รวม Flow จาก Room กับ Flow จากเซิร์ฟเวอร์ด้วย <code>combine</code> แล้วส่งออกเป็น <code>StateFlow&lt;List&lt;NoteRow&gt;&gt;</code> ตามแนวคิดที่ 10</li>
     <li>เพิ่ม <code>Modifier.animateItem()</code> ให้การ์ด เพื่อให้มี Animation ตอนโน้ตหายไปหรือย้ายตำแหน่ง ซึ่งทำงานถูกต้องได้เพราะ key ไม่ซ้ำและคงที่</li>
     <li>เขียน JUnit Test ให้ <code>mergeNotes</code> ครบทุกกรณี คือ id ไม่ซ้ำ, ฝั่งเครื่องใหม่กว่า, ฝั่งเซิร์ฟเวอร์ใหม่กว่า และเวลาเท่ากัน</li>
-    <li>เขียน Compose UI test ด้วย <code>createComposeRule()</code> ส่ง <code>buildRows(..., pinnedOnly = true)</code> ให้ <code>MergedNotesScreen</code> แล้วตรวจว่าไม่มีข้อความ <code>โน้ตอื่น (2)</code></li>
+    <li>เขียน Compose UI test ด้วย <code>createComposeRule()</code> จาก Package <code>androidx.compose.ui.test.junit4.v2</code> ส่ง <code>buildRows(..., pinnedOnly = true)</code> ให้ <code>MergedNotesScreen</code> แล้วตรวจว่าไม่มีข้อความ <code>โน้ตอื่น (2)</code></li>
   </ul>
 </div></details>
 
@@ -1737,7 +1739,7 @@ fun SyncScreen(
 2026-10-19 14:20:05.398  12345-12345  AndroidLab              com.somchai.androidlab               D  สถานะ: Success 4 โน้ต
 2026-10-19 14:21:47.560  12345-12345  AndroidLab              com.somchai.androidlab               D  สถานะ: Syncing
 2026-10-19 14:21:47.602  12345-12345  AndroidLab              com.somchai.androidlab               D  สถานะ: Error เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง</code></pre>
-  <p class="muted small">บรรทัด Logcat เหล่านี้คือข้อความที่คำสั่ง <code>Log.d</code> ในโค้ดพิมพ์ ไม่ได้จับจากอุปกรณ์จริงในระบบทดสอบของเรา วันที่ เวลา และหมายเลข Process ในเครื่องของคุณจะต่างจากนี้ บรรทัด <code>ข้ามคำขอซ้ำ เพราะกำลังซิงก์อยู่</code> จะขึ้นเฉพาะเมื่อแตะปุ่มเร็วมากจนสองครั้งเข้ามาก่อนที่ปุ่มจะถูกวาดเป็นสีเทา</p>
+  <p class="muted small">บรรทัด Logcat เหล่านี้คือข้อความที่คำสั่ง <code>Log.d</code> ในโค้ดพิมพ์ ตรวจแล้วบน Emulator ได้ข้อความตรงกันทุกบรรทัด ส่วนวันที่ เวลา และหมายเลข Process ในเครื่องของคุณจะต่างจากนี้ บรรทัด <code>ข้ามคำขอซ้ำ เพราะกำลังซิงก์อยู่</code> จะขึ้นเฉพาะเมื่อแตะปุ่มเร็วมากจนสองครั้งเข้ามาก่อนที่ปุ่มจะถูกวาดเป็นสีเทา</p>
 
   <h5>แนวคิด</h5>
   <ul>

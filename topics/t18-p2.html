@@ -9,7 +9,7 @@
   <p>ทุกตัวอย่างต่อยอดจากของที่สร้างไว้ใน Part 1 คือโปรเจกต์ Android ชื่อ <code>AndroidLab</code> (package <code>com.somchai.androidlab</code>) ที่ <code>C:\Users\somchai\AndroidStudioProjects\AndroidLab</code> และโฟลเดอร์ฝึก Kotlin ใน WSL ที่ <code>~/projects/android-kotlin-lab</code> ซึ่ง Part 2 แยกโฟลเดอร์ย่อยให้แต่ละแนวคิดเป็น <code>concepts/c01</code> ถึง <code>concepts/c12</code> ไฟล์ Android ของ Part 2 ตั้งชื่อใหม่ทั้งหมด เช่น <code>ContactCard.kt</code>, <code>NoteComposer.kt</code>, <code>ArchiveScreen.kt</code> จึงวางเพิ่มในโปรเจกต์เดิมได้โดยไม่ชนกับไฟล์ของ Part 1 ยกเว้นแนวคิดที่ 10 และ 11 ที่ตั้งใจให้แก้ไฟล์เดิมของ Part 1 ต่อ ซึ่งจะบอกไว้ชัดเจนในแนวคิดนั้น</p>
   <div class="callout note"><span class="c-label note">หมายเหตุ</span>
     <p><strong>ตัวอย่างที่รันจริง:</strong> โปรแกรม Kotlin ล้วนของแนวคิดที่ 1, 2, 3, 4 (ส่วนฝึกอ่าน Stack trace), 9, 10 (<code>NotesPresenter</code> กับ Unit test 5 ข้อ) และ 12 (<code>parse.kt</code> กับ <code>remote.kt</code> ที่เรียก Server จริงด้วย Retrofit 3.0.0 บน JVM) รันด้วย kotlinc 2.4.21 บน OpenJDK 21 ส่วนแนวคิดที่ 11 รันคำสั่ง SQL จริงด้วย sqlite3 3.45.1 ผลลัพธ์และข้อความ Error ของตัวอย่างกลุ่มนี้คัดลอกมาจากการรันจริงทุกบรรทัด</p>
-    <p><strong>ตัวอย่างที่เขียนตามเอกสารทางการ:</strong> โค้ด Android ทั้งหมด ได้แก่ไฟล์ Gradle, Activity, Compose, Navigation, ViewModel, Room, DataStore, Retrofit ในแอป และ Permission ต้องรันใน Android Studio ซึ่งระบบที่เราใช้ทดสอบเนื้อหาไม่มี Android SDK โค้ดส่วนนี้จึงเขียนตามเอกสารบน developer.android.com สำหรับเวอร์ชันที่หลักสูตรนี้ใช้ ผลลัพธ์ Logcat ที่แสดงคือข้อความที่คำสั่ง <code>Log</code> ในโค้ดพิมพ์ออกมา ไม่ได้จับมาจากเครื่องจริง และจะไม่มีการแสดงผลลัพธ์ของ Gradle หรือ Emulator ที่เดาขึ้นเอง</p>
+    <p><strong>ตัวอย่างที่เขียนตามเอกสารทางการ:</strong> โค้ด Android ทั้งหมด ได้แก่ไฟล์ Gradle, Activity, Compose, Navigation, ViewModel, Room, DataStore, Retrofit ในแอป และ Permission ต้องรันใน Android Studio ซึ่งระบบที่เราใช้ทดสอบเนื้อหาไม่มี Android SDK โค้ดส่วนนี้จึงเขียนตามเอกสารบน developer.android.com สำหรับเวอร์ชันที่หลักสูตรนี้ใช้ ผลลัพธ์ Logcat ที่แสดงคือข้อความที่คำสั่ง <code>Log</code> ในโค้ดพิมพ์ออกมา และจะไม่มีการแสดงผลลัพธ์ของ Gradle หรือ Emulator ที่เดาขึ้นเอง ต่อมาในเดือนพฤศจิกายน 2026 ไฟล์ Android ทุกไฟล์ในหน้านี้ถูกนำมา Build รวมกับไฟล์ของ Part 1 ในโปรเจกต์ AndroidLab ด้วย AGP 9.4.0 ผ่านโดยไม่มี Error และ Warning ส่วนแนวคิดที่ 8 กับ 12 ได้รันบน Emulator ที่ใช้ System image ของ Android 17 แล้วได้ Logcat ตรงกับที่แสดงทุกบรรทัด แนวคิดอื่นยังไม่ได้จับ Logcat จากเครื่องจริง การตรวจนี้พบว่าต้องใช้ <code>compileSdk = 37</code> แทน 36 หน้านี้จึงแก้ค่านั้นแล้ว</p>
   </div>
 
   <h3 id="s18-2-setup">เตรียมเครื่องสำหรับหัวข้อนี้</h3>
@@ -33,7 +33,7 @@
     <li>ตรวจว่าเปิด Virtualization แล้ว: กด <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Esc</kbd> เปิด Task Manager ไปที่แท็บ Performance เลือก CPU แล้วดูบรรทัด Virtualization ต้องเป็น Enabled ถ้าเป็น Disabled ให้เข้า BIOS/UEFI แล้วเปิด Intel VT-x หรือ AMD-V (บางยี่ห้อเรียกว่า SVM Mode)</li>
     <li>เปิด Windows Hypervisor Platform ตามที่ทำใน Part 1 Step 1 (พิมพ์ "Turn Windows features on or off" ในเมนู Start ติ๊ก Windows Hypervisor Platform แล้วรีสตาร์ตเครื่อง)</li>
     <li>ดาวน์โหลด Android Studio Rabbit 1 (2026.2.1) จาก <a href="https://developer.android.com/studio" target="_blank" rel="noopener">developer.android.com/studio</a> เลือกไฟล์ <code>.exe</code> สำหรับ Windows ติดตั้งตามค่าเริ่มต้น แล้วเลือก Setup แบบ Standard ในหน้าต่าง Setup Wizard ครั้งแรก ตรวจเวอร์ชันได้ที่เมนู Help › About</li>
-    <li>เปิด SDK Manager (Tools › SDK Manager) แท็บ SDK Platforms ติ๊ก Android 16 (API 36) แท็บ SDK Tools ตรวจว่ามี Android SDK Build-Tools, Android SDK Platform-Tools และ Android Emulator แล้วกด Apply</li>
+    <li>เปิด SDK Manager (Tools › SDK Manager) แท็บ SDK Platforms ติ๊ก Android 16 (API 36) และ Android 17 (API 37) ซึ่งใช้เป็น <code>compileSdk</code> แท็บ SDK Tools ตรวจว่ามี Android SDK Build-Tools, Android SDK Platform-Tools และ Android Emulator แล้วกด Apply</li>
     <li>สร้าง AVD: เปิด Device Manager (View › Tool Windows › Device Manager) กดปุ่ม + เลือก Create Virtual Device หมวด Phone เลือกมือถือตระกูล Pixel รุ่นใดก็ได้ เลือก System Image API 36 แบบ x86_64 ที่มี Google Play ตั้งชื่อ <code>Pixel_API_36</code> แล้วกด Finish จากนั้นกดปุ่ม Start ให้ Emulator บูตจนถึงหน้า Home</li>
     <li>ตรวจ Gradle JDK: Settings › Build, Execution, Deployment › Build Tools › Gradle ช่อง Gradle JDK ให้คงค่าเริ่มต้นที่ชี้ไปยัง JetBrains Runtime (JBR) ซึ่งมากับ Android Studio ไม่ต้องติดตั้ง JDK แยกบน Windows</li>
     <li>ถ้ามีมือถือจริง: เข้า Settings › About phone แตะ Build number 7 ครั้ง เปิด Developer options › USB debugging ต่อสาย USB แล้วกด Allow ที่หน้าต่างยืนยันบนมือถือ</li>
@@ -648,7 +648,7 @@ run: #4 จ่ายค่าไฟ
 <p>โปรเจกต์ Android คือโฟลเดอร์ที่ Gradle (ระบบ Build) อ่านแล้วประกอบเป็นแอป ไฟล์ <code>settings.gradle.kts</code> บอกว่ามีโมดูลอะไรและดาวน์โหลด Library จากที่ไหน, <code>build.gradle.kts</code> ของแต่ละระดับบอกวิธี Build และ <code>gradle/libs.versions.toml</code> (Version Catalog) รวบรวมเวอร์ชันทั้งหมดไว้ที่เดียว ทุกครั้งที่แก้ไฟล์เหล่านี้ ต้องกด Sync Now ที่แถบด้านบนของ Editor ให้ Gradle อ่านใหม่</p>
 <p>Activity คือจุดเริ่มของหน้าจอ ระบบ Android เป็นผู้สร้างและทำลาย Activity เอง แล้วเรียกฟังก์ชัน Lifecycle ตามลำดับ เช่น <code>onCreate</code>, <code>onStart</code>, <code>onResume</code> การรู้ลำดับนี้ทำให้เข้าใจว่าทำไมข้อมูลหายตอนหมุนจอ และทำไมต้องมี ViewModel ในแนวคิดที่ 10 ส่วน Logcat คือหน้าต่างใน Android Studio ที่แสดงข้อความจาก <code>Log.d</code> และ Stack trace ตอนแอป Crash เป็นเครื่องมือดีบักที่ใช้ทุกวัน</p>
 <ul>
-<li>ใช้โปรเจกต์ <strong>AndroidLab</strong> จาก Part 1 (Empty Activity, package <code>com.somchai.androidlab</code>, Kotlin DSL, minSdk 24, compileSdk 36, targetSdk 36) ที่ <code>C:\Users\somchai\AndroidStudioProjects\AndroidLab</code></li>
+<li>ใช้โปรเจกต์ <strong>AndroidLab</strong> จาก Part 1 (Empty Activity, package <code>com.somchai.androidlab</code>, Kotlin DSL, minSdk 24, compileSdk 37, targetSdk 36) ที่ <code>C:\Users\somchai\AndroidStudioProjects\AndroidLab</code></li>
 <li>AGP 9.4.0 มี Kotlin ในตัว (Built-in Kotlin) จึง<strong>ไม่ต้อง</strong>ใส่ Plugin <code>org.jetbrains.kotlin.android</code> และใช้ <code>kotlin-kapt</code> ไม่ได้ ต้องใช้ KSP แทน (แนวคิดที่ 11)</li>
 <li>ไฟล์ที่ Template สร้างอาจต่างจากตัวอย่างเล็กน้อยตามเวอร์ชันของ Android Studio ให้ยึดโครงสร้างและบรรทัดที่อธิบายไว้เป็นหลัก</li>
 </ul>
@@ -740,7 +740,7 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 
 android {
     namespace = "com.somchai.androidlab"
-    compileSdk = 36                           // คอมไพล์ด้วย SDK ของ Android 16
+    compileSdk = 37                           // Compose BOM 2026.09.00, core-ktx 1.19.1 และ Lifecycle 2.11.0 ต้องคอมไพล์ด้วย API 37
 
     defaultConfig {
         applicationId = "com.somchai.androidlab"  // รหัสประจำแอป ห้ามซ้ำกับแอปอื่นบน Play
@@ -858,7 +858,7 @@ class MainActivity : ComponentActivity() {
 <tr><td><code>alias(libs.plugins.android.application) apply false</code></td><td>ไฟล์ระดับโปรเจกต์ประกาศ Plugin และเวอร์ชันไว้ แต่ยังไม่ใช้ (<code>apply false</code>) โมดูล <code>app</code> เป็นผู้ใช้จริง</td></tr>
 <tr><td><code>[versions]</code>, <code>[libraries]</code>, <code>[plugins]</code></td><td>Version Catalog: ตั้งเวอร์ชันครั้งเดียวใน <code>[versions]</code> แล้วอ้างด้วย <code>version.ref</code> ชื่อเรียก <code>android-application</code> กลายเป็น <code>libs.plugins.android.application</code> ในไฟล์ .kts (เครื่องหมาย <code>-</code> เปลี่ยนเป็น <code>.</code>)</td></tr>
 <tr><td><code>namespace</code>, <code>applicationId</code></td><td><code>namespace</code> คือ package ของโค้ดและคลาส <code>R</code> ส่วน <code>applicationId</code> คือรหัสของแอปบนเครื่องและบน Google Play ซึ่งเปลี่ยนไม่ได้หลังเผยแพร่</td></tr>
-<tr><td><code>compileSdk = 36</code>, <code>minSdk = 24</code>, <code>targetSdk = 36</code></td><td><code>compileSdk</code> คือ API ที่ใช้คอมไพล์ <code>minSdk</code> คือ Android รุ่นต่ำสุดที่ติดตั้งได้ (7.0) <code>targetSdk</code> บอกระบบว่าแอปทดสอบกับพฤติกรรมของ API 36 แล้ว Google Play กำหนดค่าขั้นต่ำของ <code>targetSdk</code> และเปลี่ยนทุกปี ให้ตรวจที่ developer.android.com ก่อนส่งแอป</td></tr>
+<tr><td><code>compileSdk = 37</code>, <code>minSdk = 24</code>, <code>targetSdk = 36</code></td><td><code>compileSdk</code> คือ API ที่ใช้คอมไพล์ ต้องเป็น 37 เพราะ Library เวอร์ชันที่หลักสูตรใช้กำหนดไว้ และสูงกว่า <code>targetSdk</code> ได้ <code>minSdk</code> คือ Android รุ่นต่ำสุดที่ติดตั้งได้ (7.0) <code>targetSdk</code> บอกระบบว่าแอปทดสอบกับพฤติกรรมของ API 36 แล้ว Google Play กำหนดค่าขั้นต่ำของ <code>targetSdk</code> และเปลี่ยนทุกปี ให้ตรวจที่ developer.android.com ก่อนส่งแอป</td></tr>
 <tr><td>ไม่มี <code>org.jetbrains.kotlin.android</code> ใน <code>plugins</code></td><td>AGP 9 คอมไพล์ Kotlin ได้เอง (Built-in Kotlin) Plugin ที่ต้องใส่จึงเหลือ <code>android.application</code> กับ <code>kotlin.compose</code> สำหรับ Compose</td></tr>
 <tr><td><code>class MainActivity : ComponentActivity()</code></td><td>Activity ที่รองรับ Compose ระบบสร้าง Object ให้เองจากชื่อที่ประกาศใน <code>AndroidManifest.xml</code> เราไม่สร้าง Activity ด้วย <code>MainActivity()</code> เอง</td></tr>
 <tr><td><code>override fun onCreate(savedInstanceState: Bundle?)</code></td><td>ทำครั้งเดียวต่อการสร้าง Activity ต้องเรียก <code>super.onCreate</code> ก่อน <code>savedInstanceState</code> คือข้อมูลที่ระบบเก็บไว้ให้ตอนสร้างใหม่ จึงใช้แยกการเปิดครั้งแรกกับการหมุนจอได้</td></tr>
@@ -1743,7 +1743,7 @@ setContent {
 2026-10-19 13:40:11.004  12345-12345  AndroidLab              com.somchai.androidlab               D  แตะแท็บ: ตั้งค่า
 2026-10-19 13:40:13.871  12345-12345  AndroidLab              com.somchai.androidlab               D  แตะแท็บ: โน้ต
 2026-10-19 13:40:16.229  12345-12345  AndroidLab              com.somchai.androidlab               D  กดกลับจากหน้ารายละเอียด id=2</code></pre>
-<p class="muted small">บรรทัดเหล่านี้คือข้อความที่คำสั่ง Log ในโค้ดพิมพ์ออกมา ไม่ได้จับจากเครื่องจริงในระบบทดสอบของเรา วันที่ เวลา และหมายเลข Process ในเครื่องของคุณจะต่างจากนี้</p>
+<p class="muted small">บรรทัดเหล่านี้คือข้อความที่คำสั่ง Log ในโค้ดพิมพ์ออกมา และตรวจแล้วบน Emulator (Android 17) ด้วยลำดับการแตะเดียวกันนี้ ได้ข้อความตรงกันทุกบรรทัด หน้ารายละเอียดกลับมาจริงเมื่อแตะ "โน้ต" ครั้งที่สอง และสวิตช์ยังเปิดอยู่ วันที่ เวลา และหมายเลข Process ในเครื่องของคุณจะต่างจากนี้</p>
 <p>Back stack หลังแต่ละขั้น (ซ้ายคือล่างสุด ขวาคือหน้าที่เห็นอยู่):</p>
 <ol>
 <li>เปิดแอป: <code>[NotesTabRoute]</code> (อยู่ในกราฟย่อย <code>NotesGraph</code>)</li>
@@ -3089,7 +3089,7 @@ setContent {
 <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>2026-10-19 16:31:40.207  23456-23456  AndroidLab              com.somchai.androidlab               W  โหลดไม่สำเร็จ: ConnectException
 2026-10-19 16:31:58.903  23456-23456  AndroidLab              com.somchai.androidlab               D  โหลดโน้ตจาก API สำเร็จ 3 รายการ
 2026-10-19 16:32:05.020  23456-23456  AndroidLab              com.somchai.androidlab               D  ผลการขอสิทธิ์แจ้งเตือน: true</code></pre>
-<p class="muted small">บรรทัดเหล่านี้คือข้อความที่คำสั่ง Log ในโค้ดพิมพ์ออกมา ไม่ได้จับจากเครื่องจริงในระบบทดสอบของเรา วันที่ เวลา และหมายเลข Process ในเครื่องของคุณจะต่างจากนี้ ชื่อ Exception ในบรรทัดแรกเป็นแบบเดียวกับที่ <code>remote.kt</code> ได้เมื่อ Server ปิด (ดูตารางข้อผิดพลาด) ถ้าการเชื่อมต่อล้มเหลวด้วยสาเหตุอื่น ชื่ออาจต่างไป เช่น <code>SocketTimeoutException</code> ซึ่งเป็น <code>IOException</code> เช่นกัน จึงเข้า <code>catch</code> เดียวกัน</p>
+<p class="muted small">บรรทัดเหล่านี้คือข้อความที่คำสั่ง Log ในโค้ดพิมพ์ออกมา และตรวจแล้วบน Emulator (Android 17) ตามลำดับเดียวกันนี้ ได้ 3 บรรทัดตรงกัน (ในการทดสอบ Server ที่ให้ไฟล์ <code>notes.json</code> รันบน Windows ที่พอร์ต 8000 แทน WSL ซึ่ง Emulator เรียกผ่าน <code>10.0.2.2</code> ได้เหมือนกัน) วันที่ เวลา และหมายเลข Process ในเครื่องของคุณจะต่างจากนี้ ชื่อ Exception ในบรรทัดแรกเป็นแบบเดียวกับที่ <code>remote.kt</code> ได้เมื่อ Server ปิด (ดูตารางข้อผิดพลาด) ถ้าการเชื่อมต่อล้มเหลวด้วยสาเหตุอื่น ชื่ออาจต่างไป เช่น <code>SocketTimeoutException</code> ซึ่งเป็น <code>IOException</code> เช่นกัน จึงเข้า <code>catch</code> เดียวกัน</p>
 <h4>อธิบายโค้ดทีละส่วน</h4>
 <div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
 <tr><td><code>python3 -m http.server 8000 --bind 0.0.0.0</code></td><td>Web server ที่มากับ Python ส่งไฟล์ในโฟลเดอร์ปัจจุบันทางพอร์ต 8000 และพิมพ์ Log ทุกคำขอ เหมาะเป็น API จำลองที่อ่านอย่างเดียว ไม่ต้องติดตั้งอะไรเพิ่ม</td></tr>
