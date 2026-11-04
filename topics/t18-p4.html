@@ -1,0 +1,2263 @@
+<section class="part" data-part="4">
+  <h2 id="s18-4"><span class="sec-no">18.4</span>ส่วนเสริม: Mini Project, Cheat Sheet, Interview</h2>
+  <p>ส่วนนี้รวมทุกอย่างที่เรียนมาในหัวข้อ Android เป็นแอปเดียวที่ใช้งานได้จริงและใส่ใน Portfolio ได้ คือ <strong>Notes App</strong> แอปจดโน้ตที่สร้างด้วย Kotlin และ Jetpack Compose เก็บข้อมูลใน Room, เก็บค่าตั้งค่าใน DataStore, แยกชั้นตามสถาปัตยกรรม MVVM, มี Unit test และ Compose UI Test และจบด้วยไฟล์ <code>app-release.aab</code> ที่เซ็นแล้ว หลังจากนั้นเป็น Cheat Sheet ที่จัดกลุ่มตามงาน คำถามสัมภาษณ์ 5 ข้อพร้อมคำตอบตัวอย่าง และแหล่งเรียนต่อ</p>
+
+  <div class="callout note"><span class="c-label note">หมายเหตุ</span><p>ส่วนที่ 1–3 เขียนบนเครื่องทดสอบที่ไม่มี Android SDK แต่ Notes App ในส่วนนี้ <strong>Build และทดสอบจริงทั้งโปรเจกต์</strong> บน Windows 11 ด้วย Android Studio Rabbit 1 (2026.2.1) และ Gradle 9.7.1 เมื่อเดือนพฤศจิกายน 2026 ได้แก่ <code>testDebugUnitTest</code> (Unit test 10 ตัว), <code>connectedDebugAndroidTest</code> (Compose UI Test 5 ตัวบน Emulator ที่ใช้ System image ของ Android 17), <code>bundleRelease</code> (AAB ที่เปิด R8 และเซ็นแล้ว) และติดตั้ง Release build บน Emulator เพื่อลองสร้าง แก้ไข ปักหมุด ลบ เลิกทำ และเปลี่ยนธีมด้วยมือ โค้ดทุกไฟล์ในหน้านี้คัดลอกจากโปรเจกต์ที่ผ่านการทดสอบนั้น ผลลัพธ์ทุกกล่องเป็นข้อความจริงจาก Terminal ส่วนเวลาที่ Gradle ใช้ ชื่อ Emulator และ Path ในเครื่องของคุณจะต่างไป</p></div>
+
+  <div class="callout warn"><span class="c-label warn">ระวัง</span><p>การ Build จริงพบเรื่องสำคัญ 2 เรื่องที่ส่วนก่อนหน้ายังไม่ได้บอก</p>
+    <ol>
+      <li><strong><code>compileSdk</code> ต้องเป็น 37:</strong> Library ในเวอร์ชันที่หลักสูตรใช้ ได้แก่ Compose BOM 2026.09.00 (Compose UI 1.12.1), <code>core-ktx</code> 1.19.1, Lifecycle 2.11.0 และ Navigation Compose 2.10.2 กำหนดให้แอปคอมไพล์ด้วย Android API 37 ขึ้นไป ถ้าใช้ <code>compileSdk = 36</code> งาน <code>checkDebugAarMetadata</code> จะล้มทันที ให้ติดตั้ง SDK Platform ของ Android 17 (API 37) ใน SDK Manager แล้วตั้ง <code>compileSdk = 37</code> ส่วน <code>targetSdk</code> ยังเป็น 36 ได้ตามเกณฑ์ของ Google Play เพราะ <code>compileSdk</code> แค่กำหนดว่าคอมไพล์กับ API ชุดไหน ไม่เปลี่ยนพฤติกรรมของแอปบนเครื่องผู้ใช้</li>
+      <li><strong>เครื่องที่ตั้งภาษาระบบเป็นไทย:</strong> ถ้า Windows ตั้ง System locale เป็น Thai Java จะใช้ปฏิทินพุทธศักราช (ปี 2569) และ <code>bundleRelease</code> จะล้มที่งาน <code>mergeReleaseJavaResource</code> เพราะวันที่ในไฟล์ ZIP รองรับได้ถึงปี ค.ศ. 2107 เท่านั้น วิธีแก้คือบังคับ Locale ของ Gradle เป็นภาษาอังกฤษใน <code>gradle.properties</code> ตามที่แสดงใน Step 1</li>
+    </ol>
+  </div>
+
+  <h3 id="s18-4-project">Mini Project: Notes App แอปจดโน้ตด้วย Kotlin และ Jetpack Compose</h3>
+
+  <h4>เป้าหมาย</h4>
+  <p>สร้างแอปจดโน้ตแบบ Offline ที่ทำงานครบเหมือนแอปจริง ผู้ใช้สร้าง แก้ไข ลบ ค้นหา และปักหมุดโน้ตได้ ข้อมูลอยู่ครบหลังปิดแอปหรือรีสตาร์ทเครื่อง และเลือกธีมกับวิธีเรียงโน้ตได้เอง แอปนี้ไม่ต้องใช้อินเทอร์เน็ตหรือ API Key จึงรันได้ทันทีบน Emulator และบนมือถือจริง</p>
+  <p>Notes App ดูเรียบง่าย แต่ครอบคลุมเกือบทุกเรื่องที่ผู้สัมภาษณ์งาน Android ระดับ Junior ถาม ได้แก่ Compose, State, Navigation, ViewModel, Coroutine และ Flow, Room, DataStore, Test และ Release build เมื่อทำเสร็จ คุณจะมี Repository <code>notes-app</code> บน GitHub ที่อธิบายได้ว่าแต่ละชั้นทำหน้าที่อะไร และทำไมจึงออกแบบแบบนั้น ซึ่งสำคัญกว่าจำนวนฟีเจอร์</p>
+
+  <h4>ฟีเจอร์ทั้งหมด</h4>
+  <ul>
+    <li><strong>หน้ารายการโน้ต:</strong> TopAppBar "โน้ตของฉัน" พร้อมปุ่ม "ตั้งค่า", ช่องค้นหาที่ค้นทั้งชื่อและเนื้อหา (ViewModel รอให้หยุดพิมพ์ 300 ms ด้วย <code>debounce</code> ก่อนค้น), LazyColumn ที่ใช้ <code>key = id</code>, โน้ตปักหมุดอยู่บนสุดเสมอ และการ์ดแต่ละใบแสดงชื่อ บรรทัดแรกของเนื้อหา และป้าย "ปักหมุด"</li>
+    <li><strong>สถานะว่าง 2 แบบ:</strong> "ยังไม่มีโน้ต กดปุ่ม + เพื่อเริ่มจด" เมื่อยังไม่มีโน้ตเลย และ "ไม่พบโน้ตที่ตรงกับ "คำค้น"" เมื่อค้นแล้วไม่เจอ</li>
+    <li><strong>หน้าแก้ไข:</strong> ใช้ทั้งสร้างและแก้ไข ชื่อโน้ตต้องไม่ว่างและยาวไม่เกิน 50 ตัวอักษรหลังตัดช่องว่างหัวท้าย (Error "กรุณาใส่ชื่อโน้ต" และ "ชื่อโน้ตต้องยาวไม่เกิน 50 ตัวอักษร" มาจาก <code>NoteValidator</code>) มีตัวนับจำนวนตัวอักษร และกดบันทึกแล้วกลับหน้ารายการ</li>
+    <li><strong>ลบพร้อมเลิกทำ:</strong> ปุ่ม "ลบ" มีเฉพาะตอนแก้ไข กดแล้วถามด้วย AlertDialog "ลบโน้ตนี้ไหม" เมื่อลบแล้วหน้ารายการแสดง Snackbar "ลบโน้ตแล้ว" ที่มีปุ่ม "เลิกทำ" เพื่อกู้โน้ตกลับมาด้วย id เดิม</li>
+    <li><strong>หน้าตั้งค่า:</strong> ธีม (ตามระบบ สว่าง มืด) และการเรียงโน้ต (แก้ไขล่าสุด หรือชื่อ) เก็บใน DataStore ค่าที่เลือกมีผลทันทีและยังอยู่หลังเปิดแอปใหม่</li>
+    <li><strong>Navigation แบบ Type-safe:</strong> 3 Route คือ <code>NoteListRoute</code>, <code>NoteEditorRoute(noteId: Long = 0L)</code> และ <code>SettingsRoute</code> ปุ่ม Back ของระบบทำงานถูกต้องทุกหน้า</li>
+    <li><strong>สถาปัตยกรรม MVVM และ Unidirectional Data Flow:</strong> UiState หนึ่งตัวต่อหนึ่งหน้าจอ ส่งออกเป็น <code>StateFlow</code>, Repository แยกหน้าจอออกจาก Room และ Manual Dependency Injection ผ่าน <code>AppContainer</code></li>
+    <li><strong>Test:</strong> Unit test 10 ตัวบน JVM (<code>NoteValidatorTest</code> และ <code>NoteListViewModelTest</code>) และ Compose UI Test 5 ตัวบน Emulator (<code>NoteListScreenTest</code> และ <code>NoteEditorScreenTest</code>)</li>
+    <li><strong>Release:</strong> <code>versionCode = 1</code>, <code>versionName = "1.0.0"</code>, เปิด R8 และ Resource shrinking, เซ็นด้วย Upload key ที่อ่านรหัสผ่านจาก <code>keystore.properties</code> ซึ่งไม่ Commit ขึ้น Git</li>
+  </ul>
+
+  <h4>สถาปัตยกรรม</h4>
+  <p>ข้อมูลไหลทางเดียว หน้าจอแสดง UiState ที่ได้จาก ViewModel และส่ง Event (เช่น ผู้ใช้พิมพ์คำค้น หรือกดปักหมุด) กลับไปให้ ViewModel จัดการ ViewModel คุยกับ Repository เท่านั้น ส่วน Repository เป็นชั้นเดียวที่รู้ว่าข้อมูลมาจาก Room หรือ DataStore</p>
+<pre class="code" data-env="file" data-label="Plaintext · แผนภาพสถาปัตยกรรม"><code class="language-plaintext">  UI (Compose)            ViewModel                 Repository                แหล่งข้อมูล
+┌──────────────────┐   ┌────────────────────┐   ┌──────────────────────┐   ┌──────────────┐
+│ NoteListScreen   │──▶│ NoteListViewModel  │──▶│ NoteRepository       │──▶│ Room         │
+│ NoteEditorScreen │   │ NoteEditorViewModel│   │ (OfflineNoteRepo.)   │   │ notes.db     │
+│ SettingsScreen   │◀──│ SettingsViewModel  │◀──│ SettingsRepository   │◀──│ DataStore    │
+└──────────────────┘   └────────────────────┘   └──────────────────────┘   │ settings     │
+        ▲  Event ขึ้น ──▶            StateFlow&lt;UiState&gt; ลง ◀──              └──────────────┘
+        └── NotesNavHost: NoteListRoute, NoteEditorRoute(noteId), SettingsRoute</code></pre>
+
+  <h4>Tech stack และเวอร์ชันที่ทดสอบ</h4>
+  <div class="tbl mid"><table class="tools">
+    <thead><tr><th>ส่วนประกอบ</th><th>เวอร์ชัน</th><th>ใช้ทำอะไรในแอปนี้</th></tr></thead>
+    <tbody>
+      <tr><td class="nw">Android Studio</td><td class="nw">Rabbit 1 (2026.2.1)</td><td>IDE บน Windows, Emulator และ Gradle JDK (JBR ที่มากับ Studio)</td></tr>
+      <tr><td class="nw">Android Gradle Plugin</td><td class="nw">9.4.0</td><td>Build แอป มี Built-in Kotlin จึงไม่ต้องใส่ Plugin <code>org.jetbrains.kotlin.android</code></td></tr>
+      <tr><td class="nw">Gradle Wrapper</td><td class="nw">9.7.1</td><td>เวอร์ชันที่ใช้ทดสอบ ให้ใช้ Wrapper ที่ Template ของคุณสร้างไว้ (AGP 9 ต้องใช้ Gradle 9.1.0 ขึ้นไป)</td></tr>
+      <tr><td class="nw">Kotlin</td><td class="nw">2.4.21</td><td>ภาษาหลัก พร้อม Plugin Compose compiler และ Serialization เวอร์ชันเดียวกัน</td></tr>
+      <tr><td class="nw">SDK</td><td class="nw">compileSdk 37, targetSdk 36, minSdk 24</td><td>คอมไพล์กับ API 37 ตามที่ Library ต้องการ ส่วน Target ยังเป็น API 36 ตามเกณฑ์ Google Play</td></tr>
+      <tr><td class="nw">Compose BOM</td><td class="nw">2026.09.00</td><td>Compose UI 1.12.1 และ Material3 1.4.0</td></tr>
+      <tr><td class="nw">Lifecycle</td><td class="nw">2.11.0</td><td>ViewModel, <code>viewModelScope</code>, <code>collectAsStateWithLifecycle()</code></td></tr>
+      <tr><td class="nw">Navigation Compose</td><td class="nw">2.10.2</td><td>Route แบบ Type-safe ร่วมกับ kotlinx-serialization-json 1.11.0</td></tr>
+      <tr><td class="nw">Room และ KSP</td><td class="nw">2.8.5 และ 2.3.12</td><td>ฐานข้อมูล <code>notes.db</code> พร้อม Room Gradle Plugin สำหรับ Export schema</td></tr>
+      <tr><td class="nw">DataStore Preferences</td><td class="nw">1.2.1</td><td>เก็บธีมและการเรียงโน้ตในไฟล์ <code>settings</code></td></tr>
+      <tr><td class="nw">Test</td><td class="nw">JUnit 4.13.2, coroutines-test 1.11.0</td><td>Unit test บน JVM ส่วน Compose UI Test ใช้ <code>ui-test-junit4</code> จาก BOM, <code>androidx.test.ext:junit</code> 1.3.0 และ Espresso 3.7.0</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>โครงสร้างโฟลเดอร์สุดท้าย</h4>
+  <p>โครงสร้างนี้ตรงกับ Step 13 ในส่วนที่ 1 ต่างกันตรงที่ <code>AppContainer</code> แยกเป็นไฟล์ของตัวเองแล้ว และมีโฟลเดอร์ <code>res</code> ที่ Template สร้างให้ ส่วนโฟลเดอร์ <code>build</code>, <code>.gradle</code> และ <code>local.properties</code> ไม่แสดงในแผนภาพ เพราะไม่ Commit ขึ้น Git</p>
+<pre class="code" data-env="file" data-label="Plaintext · โครงสร้างโปรเจกต์ NotesApp"><code class="language-plaintext">NotesApp/
+├── app/
+│   ├── build.gradle.kts
+│   ├── proguard-rules.pro
+│   ├── schemas/
+│   │   └── com.somchai.notes.data.local.NotesDatabase/
+│   │       └── 1.json                        ← Room สร้างให้ตอน Build (Commit ขึ้น Git)
+│   └── src/
+│       ├── main/
+│       │   ├── AndroidManifest.xml
+│       │   ├── res/                          ← ไอคอน สี และข้อความจาก Template
+│       │   └── java/com/somchai/notes/
+│       │       ├── NotesApplication.kt
+│       │       ├── AppContainer.kt
+│       │       ├── MainActivity.kt
+│       │       ├── data/
+│       │       │   ├── Note.kt
+│       │       │   ├── NoteRepository.kt
+│       │       │   ├── SettingsRepository.kt
+│       │       │   └── local/
+│       │       │       ├── NoteEntity.kt
+│       │       │       ├── NoteDao.kt
+│       │       │       └── NotesDatabase.kt
+│       │       └── ui/
+│       │           ├── navigation/NotesNavHost.kt
+│       │           ├── notes/
+│       │           │   ├── NoteListScreen.kt
+│       │           │   └── NoteListViewModel.kt
+│       │           ├── editor/
+│       │           │   ├── NoteEditorScreen.kt
+│       │           │   ├── NoteEditorViewModel.kt
+│       │           │   └── NoteValidator.kt
+│       │           ├── settings/
+│       │           │   ├── SettingsScreen.kt
+│       │           │   └── SettingsViewModel.kt
+│       │           └── theme/
+│       │               ├── Color.kt
+│       │               ├── Theme.kt
+│       │               └── Type.kt
+│       ├── test/java/com/somchai/notes/
+│       │   ├── FakeNoteRepository.kt
+│       │   ├── MainDispatcherRule.kt
+│       │   ├── NoteValidatorTest.kt
+│       │   └── NoteListViewModelTest.kt
+│       └── androidTest/java/com/somchai/notes/
+│           ├── NoteListScreenTest.kt
+│           └── NoteEditorScreenTest.kt
+├── gradle/
+│   ├── libs.versions.toml
+│   └── wrapper/
+├── build.gradle.kts
+├── settings.gradle.kts
+├── gradle.properties
+├── gradlew.bat
+├── keystore.properties                       ← ไม่ Commit
+├── README.md
+└── .gitignore</code></pre>
+
+  <p>ทำตามทีละขั้น ให้ Build หรือรันแอปทุกครั้งที่จบขั้น และ Commit เมื่อผ่าน ถ้าขั้นไหนพัง คุณจะรู้ทันทีว่าปัญหาอยู่ในโค้ดที่เพิ่งเขียน ไม่ต้องไล่หาทั้งโปรเจกต์ คำสั่ง Gradle ทั้งหมดพิมพ์ใน Terminal ของ Android Studio (แท็บ Terminal ด้านล่าง) ซึ่งเปิดที่โฟลเดอร์ <code>NotesApp</code> ให้อยู่แล้ว</p>
+  <ol class="proj-steps">
+    <li>
+      <h4>Step 1: สร้างโปรเจกต์ NotesApp และตั้งค่า Gradle</h4>
+      <p>เปิด Android Studio แล้วเลือก <strong>File &gt; New &gt; New Project</strong> จากนั้นเลือก <strong>Phone and Tablet &gt; Empty Activity</strong> แล้วกรอกค่าดังนี้</p>
+      <ul>
+        <li><strong>Name:</strong> <code>NotesApp</code> (ชื่อนี้ทำให้ Template ตั้งชื่อฟังก์ชันธีมว่า <code>NotesAppTheme</code> ใน Step 6 เราจะเปลี่ยนเป็น <code>NotesTheme</code>)</li>
+        <li><strong>Package name:</strong> <code>com.somchai.notes</code></li>
+        <li><strong>Save location:</strong> <code>C:\Users\somchai\AndroidStudioProjects\NotesApp</code></li>
+        <li><strong>Minimum SDK:</strong> API 24 ("Nougat"; Android 7.0)</li>
+        <li><strong>Build configuration language:</strong> Kotlin DSL (build.gradle.kts)</li>
+      </ul>
+      <p>กด Finish แล้วรอ Gradle Sync ครั้งแรกจนเสร็จ ต่อไปเปิด <strong>Tools &gt; SDK Manager</strong> แท็บ SDK Platforms แล้วติ๊ก <strong>Android 17 (API 37)</strong> เพิ่มจาก Android 16 (API 36) ที่ติดตั้งไว้ในส่วนที่ 2 กด Apply เพื่อดาวน์โหลด เพราะ Library ในหลักสูตรนี้ต้องคอมไพล์กับ API 37</p>
+      <p>เปิดไฟล์ <code>gradle/libs.versions.toml</code> แล้วแทนที่ทั้งไฟล์ด้วยเนื้อหาด้านล่าง ส่วน <code>[versions]</code> ตรงกับ Step 4 ในส่วนที่ 1 ทุกบรรทัด ส่วน <code>[libraries]</code> มีทั้งชื่อที่ Template สร้างให้และชื่อที่เพิ่มสำหรับแอปนี้ ชื่อ Alias ทุกตัวตรงกับที่ใช้ในส่วนที่ 1 Template ของ Studio แต่ละรุ่นอาจตั้งชื่อ Alias ของตัวเองต่างไปเล็กน้อย ถ้าแทนที่ทั้งไฟล์ ชื่อจะตรงกับ <code>app/build.gradle.kts</code> ด้านล่างแน่นอน</p>
+<pre class="code" data-env="file" data-label="TOML · gradle/libs.versions.toml"><code class="language-ini">[versions]
+agp = "9.4.0"
+kotlin = "2.4.21"
+coreKtx = "1.19.1"
+lifecycle = "2.11.0"
+activityCompose = "1.13.0"
+composeBom = "2026.09.00"
+navigation = "2.10.2"
+kotlinxSerialization = "1.11.0"
+room = "2.8.5"
+ksp = "2.3.12"
+datastore = "1.2.1"
+coroutines = "1.11.0"
+junit = "4.13.2"
+junitVersion = "1.3.0"
+espressoCore = "3.7.0"
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+room = { id = "androidx.room", version.ref = "room" }</code></pre>
+      <p>ไฟล์ <code>settings.gradle.kts</code> ที่ Template สร้างให้ใช้ได้เลยโดยไม่ต้องแก้ ไฟล์นี้บอก Gradle ว่าจะดาวน์โหลด Plugin และ Library จาก Repository ไหน และโปรเจกต์มี Module อะไรบ้าง</p>
+<pre class="code" data-env="file" data-label="Kotlin · settings.gradle.kts"><code class="language-kotlin">pluginManagement {
+    repositories {
+        google {
+            content {
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "NotesApp"
+include(":app")</code></pre>
+      <p>ไฟล์ Build ระดับโปรเจกต์ประกาศ Plugin ทุกตัวด้วย <code>apply false</code> เพื่อกำหนดเวอร์ชันไว้ที่เดียว แล้วให้ Module <code>app</code> เลือกใช้เอง</p>
+<pre class="code" data-env="file" data-label="Kotlin · build.gradle.kts"><code class="language-kotlin">// ไฟล์ Build ระดับโปรเจกต์: ประกาศ Plugin ไว้ก่อน แต่ยังไม่ใช้ (apply false)
+plugins {
+    alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.kotlin.compose) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
+    alias(libs.plugins.ksp) apply false
+    alias(libs.plugins.room) apply false
+}</code></pre>
+      <p>ไฟล์ Build ของ Module <code>app</code> คือหัวใจของการตั้งค่า แทนที่ทั้งไฟล์ด้วยเนื้อหานี้ สังเกตว่าบล็อก <code>plugins</code> ไม่มี <code>org.jetbrains.kotlin.android</code> และไม่มี <code>kotlin-kapt</code> เพราะ AGP 9 มี Built-in Kotlin และ Room ใช้ KSP แทน ส่วน <code>signingConfigs</code> อ่านไฟล์ <code>keystore.properties</code> ถ้ามี ซึ่งเราจะสร้างใน Step 8 ระหว่างนี้ Release build จึงยังไม่ถูกเซ็น แต่ Debug build ทำงานได้ตามปกติ</p>
+<pre class="code" data-env="file" data-label="Kotlin · app/build.gradle.kts"><code class="language-kotlin">import java.util.Properties
+
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)   // Route แบบ Type-safe ของ Navigation
+    alias(libs.plugins.ksp)                    // ตัวสร้างโค้ดให้ Room
+    alias(libs.plugins.room)                   // Room Gradle Plugin สำหรับ Export schema
+}
+
+// อ่านรหัสผ่านของ Keystore จากไฟล์ที่ไม่ Commit ขึ้น Git
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
+}
+
+android {
+    namespace = "com.somchai.notes"
+    compileSdk = 37    // Compose BOM 2026.09.00, core-ktx 1.19.1 และ Lifecycle 2.11.0 ต้องคอมไพล์ด้วย API 37
+
+    defaultConfig {
+        applicationId = "com.somchai.notes"
+        minSdk = 24
+        targetSdk = 36
+        versionCode = 1
+        versionName = "1.0.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        create("release") {
+            // ถ้าไม่มี keystore.properties (เช่นบนเครื่องคนอื่น) จะข้ามการตั้งค่านี้
+            if (keystorePropertiesFile.exists()) {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true        // เปิด R8 ย่อและปรับแต่งโค้ด
+            isShrinkResources = true      // ลบ Resource ที่ไม่ได้ใช้
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+    buildFeatures {
+        compose = true
+    }
+}
+
+// โฟลเดอร์ที่ Room เขียนไฟล์ Schema (JSON) ของแต่ละเวอร์ชัน
+room {
+    schemaDirectory("$projectDir/schemas")
+}
+
+// ให้ Gradle พิมพ์ชื่อ Test ทุกตัวพร้อมผล ลงใน Terminal
+tasks.withType&lt;Test&gt;().configureEach {
+    testLogging {
+        events("passed", "failed", "skipped")
+    }
+}
+
+dependencies {
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.activity.compose)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
+
+    // ไลบรารีที่เพิ่มสำหรับ Notes App
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.room.runtime)
+    ksp(libs.androidx.room.compiler)
+    implementation(libs.androidx.datastore.preferences)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+}</code></pre>
+      <p class="muted small">Template ของ Studio บางรุ่นเขียน <code>compileSdk { version = release(36) }</code> แทน <code>compileSdk = 36</code> ให้เปลี่ยนเลขเป็น 37 ตามรูปแบบที่ไฟล์ของคุณใช้ และอาจมีบล็อก <code>kotlin { compilerOptions { ... } }</code> เพิ่มมา ให้คงไว้ได้</p>
+      <p>แก้บรรทัดแรกของ <code>gradle.properties</code> โดยเพิ่ม <code>-Duser.language=en -Duser.country=US</code> ท้ายบรรทัด เพื่อให้ Gradle ใช้ปฏิทินคริสต์ศักราชเสมอ แม้ Windows ตั้งภาษาระบบเป็นไทย บรรทัดอื่นในไฟล์ Template สร้างให้แล้ว</p>
+<pre class="code" data-env="file" data-label="Properties · gradle.properties"><code class="language-ini">org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8 -Duser.language=en -Duser.country=US
+android.useAndroidX=true
+kotlin.code.style=official
+android.nonTransitiveRClass=true</code></pre>
+      <p>สุดท้ายเพิ่ม 3 บรรทัดล่างสุดลงใน <code>.gitignore</code> ที่ระดับโปรเจกต์ เพื่อกันไฟล์ Keystore และรหัสผ่านหลุดขึ้น GitHub ใน Step 8</p>
+<pre class="code" data-env="file" data-label="Plaintext · .gitignore"><code class="language-plaintext">*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+# ไฟล์ลับสำหรับเซ็นแอป ห้าม Commit
+keystore.properties
+*.jks
+*.keystore</code></pre>
+      <p>กด <strong>Sync Now</strong> ที่แถบสีเหลืองด้านบนของ Editor แล้วรอจนแท็บ Build แสดงว่า Sync สำเร็จ ครั้งแรกจะดาวน์โหลด Library หลายร้อย MB ถ้า Sync ล้มด้วยข้อความ <code>Unresolved reference</code> ในไฟล์ <code>app/build.gradle.kts</code> แปลว่าชื่อ Alias ใน TOML ไม่ตรงกับที่เรียกใช้ ให้ตรวจตัวสะกดทีละบรรทัด</p>
+      <p>ถ้าลืมเปลี่ยน <code>compileSdk</code> เป็น 37 การ Build ครั้งแรกจะล้มแบบนี้ (ตัดให้เหลือรายการสุดท้าย จากทั้งหมด 16 รายการที่ Gradle แสดง)</p>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>* What went wrong:
+Execution failed for task ':app:checkDebugAarMetadata' (registered by plugin 'com.android.internal.application').
+      16.  Dependency 'androidx.core:core-ktx:1.19.1' requires libraries and applications that
+           depend on it to compile against version 37 or later of the
+           Android APIs.
+
+           :app is currently compiled against android-36.
+
+           Recommended action: Update this project to use a newer compileSdk
+           of at least 37, for example 37.2.</code></pre>
+      <p class="muted small">รายการที่ 1–15 เป็นข้อความแบบเดียวกันสำหรับ Library อื่น เช่น <code>navigation-compose-android:2.10.2</code>, <code>ui-android:1.12.1</code> และ <code>lifecycle-viewmodel-compose-android:2.11.0</code></p>
+      <div class="callout"><span class="c-label tip">Tip</span><p>เปิด <strong>File &gt; Settings &gt; Build, Execution, Deployment &gt; Build Tools &gt; Gradle</strong> แล้วตรวจว่า Gradle JDK เป็น JBR ที่มากับ Android Studio ถ้ารัน <code>.\gradlew.bat</code> แล้วเจอข้อความ <code>ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.</code> ให้ตั้งตัวแปรนี้ใน PowerShell หน้าต่างนั้นก่อน</p>
+<pre class="code" data-env="win" data-label="PowerShell · Windows"><code class="language-powershell"># ใช้ JDK ที่มากับ Android Studio (มีผลเฉพาะหน้าต่าง PowerShell นี้)
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+.\gradlew.bat --version</code></pre></div>
+    </li>
+    <li>
+      <h4>Step 2: Data layer ด้วย Room (Note, NoteEntity, NoteDao, NotesDatabase)</h4>
+      <p>เริ่มจากชั้นข้อมูล เพราะทุกหน้าจอขึ้นกับมัน คลิกขวาที่ Package <code>com.somchai.notes</code> แล้วเลือก <strong>New &gt; Package</strong> สร้าง <code>data</code> และ <code>data.local</code> จากนั้นสร้างไฟล์ทีละไฟล์ด้วย <strong>New &gt; Kotlin Class/File</strong></p>
+      <p><code>Note</code> คือโมเดลที่หน้าจอใช้ แยกจาก <code>NoteEntity</code> ของ Room โดยตั้งใจ ถ้าวันหนึ่งเปลี่ยนไปเก็บข้อมูลบนเซิร์ฟเวอร์ หน้าจอและ ViewModel ไม่ต้องแก้เลย id เป็น <code>Long</code> เพราะ Room คืน rowId ของ SQLite เป็น Long</p>
+<pre class="code" data-env="file" data-label="Kotlin · data/Note.kt"><code class="language-kotlin">package com.somchai.notes.data
+
+// โมเดลที่หน้าจอและ ViewModel ใช้ ไม่ขึ้นกับ Room
+data class Note(
+    val id: Long,
+    val title: String,
+    val content: String,
+    val pinned: Boolean,
+    val createdAt: Long,
+    val updatedAt: Long,
+)</code></pre>
+      <p><code>NoteEntity</code> คือหนึ่งแถวในตาราง <code>notes</code> ใช้ <code>@ColumnInfo</code> ตั้งชื่อคอลัมน์แบบ snake_case ตามธรรมเนียมของ SQL ที่เรียนใน <a data-t="14"></a> ฟังก์ชัน <code>toNote()</code> และ <code>toEntity()</code> อยู่ในไฟล์นี้ เพื่อให้การแปลงไปมาอยู่ที่เดียว</p>
+<pre class="code" data-env="file" data-label="Kotlin · data/local/NoteEntity.kt"><code class="language-kotlin">package com.somchai.notes.data.local
+
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import com.somchai.notes.data.Note
+
+// หนึ่งแถวในตาราง notes ของไฟล์ notes.db
+@Entity(tableName = "notes")
+data class NoteEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0L,   // 0 = ให้ Room สร้าง id ให้
+    val title: String,
+    val content: String,
+    val pinned: Boolean = false,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "updated_at") val updatedAt: Long,
+)
+
+// แปลงไปมาระหว่าง Entity (ชั้นฐานข้อมูล) กับ Note (ชั้นหน้าจอ)
+fun NoteEntity.toNote() = Note(id, title, content, pinned, createdAt, updatedAt)
+
+fun Note.toEntity() = NoteEntity(id, title, content, pinned, createdAt, updatedAt)</code></pre>
+      <p><code>NoteDao</code> รวม SQL ทุกคำสั่งที่แอปใช้ Room ตรวจ SQL เหล่านี้ตอนคอมไพล์ ถ้าพิมพ์ชื่อคอลัมน์ผิด Build จะล้มทันทีแทนที่จะไปพังตอนผู้ใช้เปิดแอป <code>observeNotes</code> คืน <code>Flow</code> จึงไม่ต้องสั่งโหลดใหม่หลังบันทึก ลบ หรือปักหมุด เพราะ Room ส่งรายการใหม่มาให้เองทุกครั้งที่ตารางเปลี่ยน</p>
+<pre class="code" data-env="file" data-label="Kotlin · data/local/NoteDao.kt"><code class="language-kotlin">package com.somchai.notes.data.local
+
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Query
+import androidx.room.Upsert
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface NoteDao {
+    // คืนค่าเป็น Flow: เมื่อตาราง notes เปลี่ยน Room จะส่งรายการใหม่ให้อัตโนมัติ
+    @Query(
+        """
+        SELECT * FROM notes
+        WHERE title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%'
+        ORDER BY pinned DESC, updated_at DESC
+        """
+    )
+    fun observeNotes(query: String): Flow&lt;List&lt;NoteEntity&gt;&gt;
+
+    @Query("SELECT * FROM notes WHERE id = :id")
+    suspend fun getNote(id: Long): NoteEntity?
+
+    // เพิ่มแถวใหม่ หรือแทนที่แถวเดิมถ้า id ซ้ำ คืน rowId ของแถวใหม่ (คืน -1 เมื่อเป็นการแก้ไข)
+    @Upsert
+    suspend fun upsert(note: NoteEntity): Long
+
+    @Delete
+    suspend fun delete(note: NoteEntity)
+
+    @Query("UPDATE notes SET pinned = :pinned WHERE id = :id")
+    suspend fun setPinned(id: Long, pinned: Boolean)
+}</code></pre>
+      <p><code>NotesDatabase</code> เปิดไฟล์ <code>notes.db</code> เพียงครั้งเดียวทั้งแอปด้วย Singleton เพราะการเปิดฐานข้อมูลซ้ำหลายตัวเปลืองหน่วยความจำ และทำให้ Flow ของแต่ละตัวไม่เห็นการเปลี่ยนแปลงของกันและกัน</p>
+<pre class="code" data-env="file" data-label="Kotlin · data/local/NotesDatabase.kt"><code class="language-kotlin">package com.somchai.notes.data.local
+
+import android.content.Context
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+
+// version = 1 คือ Schema แรก เมื่อแก้ตารางในอนาคตต้องเพิ่มเลขนี้และเขียน Migration
+@Database(entities = [NoteEntity::class], version = 1, exportSchema = true)
+abstract class NotesDatabase : RoomDatabase() {
+    abstract fun noteDao(): NoteDao
+
+    companion object {
+        @Volatile
+        private var instance: NotesDatabase? = null
+
+        // คืน Database ตัวเดียวทั้งแอป (Singleton) เพราะการเปิดไฟล์ฐานข้อมูลมีต้นทุนสูง
+        fun getInstance(context: Context): NotesDatabase =
+            instance ?: synchronized(this) {
+                instance ?: Room.databaseBuilder(
+                    context.applicationContext,
+                    NotesDatabase::class.java,
+                    "notes.db",
+                ).build().also { instance = it }
+            }
+    }
+}</code></pre>
+      <p>สั่ง <strong>Build &gt; Make Project</strong> (<kbd>Ctrl</kbd>+<kbd>F9</kbd>) ระหว่าง Build งาน <code>kspDebugKotlin</code> จะสร้างคลาส <code>NotesDatabase_Impl</code> และ <code>NoteDao_Impl</code> ให้ และ Room Gradle Plugin จะเขียนไฟล์ Schema ไว้ที่ <code>app/schemas/com.somchai.notes.data.local.NotesDatabase/1.json</code> ในไฟล์นั้นมีคำสั่งสร้างตารางที่ Room ใช้จริง (ตัดมาเฉพาะบรรทัดเดียว)</p>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>"createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `content` TEXT NOT NULL, `pinned` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",</code></pre>
+      <p>สังเกตว่า <code>Boolean</code> ของ Kotlin กลายเป็น <code>INTEGER</code> (0 หรือ 1) เพราะ SQLite ไม่มีชนิด Boolean และ <code>ORDER BY pinned DESC</code> ใน DAO จึงทำให้แถวที่เป็น 1 ขึ้นก่อน ให้ Commit โฟลเดอร์ <code>schemas</code> ขึ้น Git ด้วย เมื่อเพิ่มคอลัมน์ในเวอร์ชัน 2 คุณจะใช้ไฟล์นี้เทียบและทดสอบ Migration ได้</p>
+      <div class="callout warn"><span class="c-label warn">ระวัง</span><p>ถ้าเขียน <code>implementation(libs.androidx.room.compiler)</code> แทน <code>ksp(...)</code> ตัวสร้างโค้ดจะไม่ทำงาน Build ผ่านแต่แอปจะ Crash ตอนเปิดเพราะหาคลาส <code>NotesDatabase_Impl</code> ไม่เจอ และหลังจากปล่อยแอปแล้ว ถ้าแก้ <code>NoteEntity</code> โดยไม่เพิ่ม <code>version</code> และไม่เขียน <code>Migration</code> ผู้ใช้ที่อัปเดตแอปจะเจอ Crash ทันที</p></div>
+    </li>
+
+    <li>
+      <h4>Step 3: Repository, DataStore และ Manual Dependency Injection</h4>
+      <p><code>NoteRepository</code> เป็น Interface ที่ ViewModel ใช้ ส่วน <code>OfflineNoteRepository</code> คือตัวจริงที่ส่งงานต่อให้ Room การมี Interface ทำให้ใน Step 7 เราส่ง <code>FakeNoteRepository</code> ที่เก็บข้อมูลในหน่วยความจำเข้าไปทดสอบ ViewModel บน JVM ได้โดยไม่ต้องมีฐานข้อมูล</p>
+      <p>ฟังก์ชัน <code>saveNote</code> รวมการสร้างและแก้ไขไว้ด้วยกัน ถ้า <code>id</code> เป็น 0 คือสร้างใหม่ ถ้าไม่ใช่ จะอ่านแถวเดิมมาแก้แล้วคง <code>createdAt</code> เดิมไว้ ส่วน <code>clock</code> เป็นพารามิเตอร์ที่มีค่าเริ่มต้น เพื่อให้ Test กำหนดเวลาเองได้ ข้อควรรู้คือ <code>@Upsert</code> คืน <code>-1</code> เมื่อเป็นการแก้แถวเดิม โค้ดจึงคืน <code>existing.id</code> แทน</p>
+<pre class="code" data-env="file" data-label="Kotlin · data/NoteRepository.kt"><code class="language-kotlin">package com.somchai.notes.data
+
+import com.somchai.notes.data.local.NoteDao
+import com.somchai.notes.data.local.NoteEntity
+import com.somchai.notes.data.local.toEntity
+import com.somchai.notes.data.local.toNote
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+// สัญญาที่ ViewModel ใช้ ทำให้สลับเป็น FakeNoteRepository ตอนเขียน Test ได้
+interface NoteRepository {
+    fun observeNotes(query: String): Flow&lt;List&lt;Note&gt;&gt;
+    suspend fun getNote(id: Long): Note?
+    suspend fun saveNote(id: Long, title: String, content: String): Long
+    suspend fun deleteNote(note: Note)
+    suspend fun restoreNote(note: Note)
+    suspend fun setPinned(id: Long, pinned: Boolean)
+}
+
+class OfflineNoteRepository(
+    private val dao: NoteDao,
+    private val clock: () -&gt; Long = System::currentTimeMillis,   // แยกออกมาเพื่อให้ Test กำหนดเวลาได้
+) : NoteRepository {
+
+    override fun observeNotes(query: String): Flow&lt;List&lt;Note&gt;&gt; =
+        dao.observeNotes(query).map { entities -&gt; entities.map { it.toNote() } }
+
+    override suspend fun getNote(id: Long): Note? = dao.getNote(id)?.toNote()
+
+    // id = 0 คือโน้ตใหม่ ค่าอื่นคือแก้ไขโน้ตเดิม คืน id ของโน้ตที่บันทึก
+    override suspend fun saveNote(id: Long, title: String, content: String): Long {
+        val now = clock()
+        val existing = if (id == 0L) null else dao.getNote(id)
+        return if (existing == null) {
+            dao.upsert(NoteEntity(title = title, content = content, createdAt = now, updatedAt = now))
+        } else {
+            dao.upsert(existing.copy(title = title, content = content, updatedAt = now))
+            existing.id
+        }
+    }
+
+    override suspend fun deleteNote(note: Note) = dao.delete(note.toEntity())
+
+    // ใส่โน้ตกลับด้วย id เดิม ใช้กับปุ่ม "เลิกทำ"
+    override suspend fun restoreNote(note: Note) {
+        dao.upsert(note.toEntity())
+    }
+
+    override suspend fun setPinned(id: Long, pinned: Boolean) = dao.setPinned(id, pinned)
+}</code></pre>
+      <p><code>SettingsRepository</code> เก็บค่าตั้งค่า 2 ค่าในไฟล์ DataStore ชื่อ <code>settings</code> คือ <code>theme_mode</code> และ <code>sort_order</code> โดยเก็บเป็น String แล้วแปลงเป็น <code>enum</code> ถ้าไฟล์ยังไม่มีค่า หรือเจอค่าที่ไม่รู้จัก (เช่นค่าจากแอปเวอร์ชันที่ใหม่กว่า) <code>fromStorage</code> จะคืนค่าเริ่มต้นแทนการ Crash</p>
+<pre class="code" data-env="file" data-label="Kotlin · data/SettingsRepository.kt"><code class="language-kotlin">package com.somchai.notes.data
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+// ค่าที่เก็บในไฟล์เป็น String เพื่อให้อ่านง่ายและเพิ่มตัวเลือกใหม่ได้ภายหลัง
+enum class ThemeMode(val storageValue: String) {
+    SYSTEM("system"), LIGHT("light"), DARK("dark");
+
+    companion object {
+        fun fromStorage(value: String?) = entries.firstOrNull { it.storageValue == value } ?: SYSTEM
+    }
+}
+
+enum class SortOrder(val storageValue: String) {
+    UPDATED("updated"), TITLE("title");
+
+    companion object {
+        fun fromStorage(value: String?) = entries.firstOrNull { it.storageValue == value } ?: UPDATED
+    }
+}
+
+data class AppSettings(
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val sortOrder: SortOrder = SortOrder.UPDATED,
+)
+
+// ประกาศที่ระดับไฟล์ครั้งเดียว: DataStore ต้องมีเพียงตัวเดียวต่อหนึ่งไฟล์
+private val Context.dataStore: DataStore&lt;Preferences&gt; by preferencesDataStore(name = "settings")
+
+class SettingsRepository(context: Context) {
+    private val dataStore = context.applicationContext.dataStore
+
+    private object Keys {
+        val THEME_MODE = stringPreferencesKey("theme_mode")
+        val SORT_ORDER = stringPreferencesKey("sort_order")
+    }
+
+    val settings: Flow&lt;AppSettings&gt; = dataStore.data.map { prefs -&gt;
+        AppSettings(
+            themeMode = ThemeMode.fromStorage(prefs[Keys.THEME_MODE]),
+            sortOrder = SortOrder.fromStorage(prefs[Keys.SORT_ORDER]),
+        )
+    }
+
+    suspend fun setThemeMode(mode: ThemeMode) {
+        dataStore.edit { it[Keys.THEME_MODE] = mode.storageValue }
+    }
+
+    suspend fun setSortOrder(order: SortOrder) {
+        dataStore.edit { it[Keys.SORT_ORDER] = order.storageValue }
+    }
+}</code></pre>
+      <p><code>AppContainer</code> สร้าง Database และ Repository ทั้งหมดของแอปครั้งเดียว ส่วน <code>NotesApplication</code> ถือ Container ไว้ตลอดอายุของแอป ทุก ViewModel Factory จะดึง Dependency จากที่นี่ ซึ่งเป็นสิ่งที่ Hilt ทำให้อัตโนมัติในโปรเจกต์ขนาดใหญ่</p>
+<pre class="code" data-env="file" data-label="Kotlin · AppContainer.kt"><code class="language-kotlin">package com.somchai.notes
+
+import android.app.Application
+import com.somchai.notes.data.NoteRepository
+import com.somchai.notes.data.OfflineNoteRepository
+import com.somchai.notes.data.SettingsRepository
+import com.somchai.notes.data.local.NotesDatabase
+
+// รวมการสร้าง Dependency ทั้งแอปไว้ที่เดียว (Manual DI)
+class AppContainer(application: Application) {
+    private val database = NotesDatabase.getInstance(application)
+    val noteRepository: NoteRepository = OfflineNoteRepository(database.noteDao())
+    val settingsRepository = SettingsRepository(application)
+}</code></pre>
+<pre class="code" data-env="file" data-label="Kotlin · NotesApplication.kt"><code class="language-kotlin">package com.somchai.notes
+
+import android.app.Application
+
+// ต้องประกาศใน AndroidManifest.xml ที่แท็ก application ด้วย android:name=".NotesApplication"
+class NotesApplication : Application() {
+    lateinit var container: AppContainer
+        private set
+
+    override fun onCreate() {
+        super.onCreate()
+        container = AppContainer(this)   // สร้างครั้งเดียวตอนแอปเริ่ม
+    }
+}</code></pre>
+      <p>เปิด <code>AndroidManifest.xml</code> แล้วเพิ่ม <code>android:name=".NotesApplication"</code> ในแท็ก <code>application</code> ถ้าลืมบรรทัดนี้ Android จะสร้าง <code>Application</code> ธรรมดาแทน และ <code>application as NotesApplication</code> ใน Factory จะ Crash ด้วย <code>ClassCastException</code> ส่วน <code>android:windowSoftInputMode="adjustResize"</code> ช่วยให้หน้าแก้ไขเลื่อนขึ้นเมื่อคีย์บอร์ดเปิด</p>
+<pre class="code" data-env="file" data-label="XML · app/src/main/AndroidManifest.xml"><code class="language-xml">&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;manifest xmlns:android="http://schemas.android.com/apk/res/android"&gt;
+
+    &lt;!-- android:name ชี้ไปที่ NotesApplication เพื่อสร้าง AppContainer ตอนแอปเริ่ม --&gt;
+    &lt;application
+        android:name=".NotesApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.NotesApp"&gt;
+        &lt;activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.NotesApp"&gt;
+            &lt;intent-filter&gt;
+                &lt;action android:name="android.intent.action.MAIN" /&gt;
+                &lt;category android:name="android.intent.category.LAUNCHER" /&gt;
+            &lt;/intent-filter&gt;
+        &lt;/activity&gt;
+    &lt;/application&gt;
+
+&lt;/manifest&gt;</code></pre>
+      <p class="muted small">Manifest ที่ Template สร้างอาจมี <code>android:dataExtractionRules</code>, <code>android:fullBackupContent</code>, <code>tools:targetApi</code> และ <code>android:label</code> ในแท็ก <code>activity</code> เพิ่มมาด้วย ให้คงไว้ตามเดิม และแก้เฉพาะ <code>android:name</code> กับ <code>android:windowSoftInputMode</code></p>
+      <div class="callout ok"><span class="c-label ok">Best Practice</span><p>ให้แต่ละชั้นรู้จักเฉพาะชั้นที่อยู่ติดกัน หน้าจอไม่ import อะไรจาก <code>data.local</code> และ ViewModel ไม่รู้ว่ามี Room อยู่ ถ้าทำตามกฎนี้ได้ การเปลี่ยนจาก Room ไปใช้ API ในอนาคตจะกระทบเฉพาะไฟล์ใน <code>data</code> และผู้สัมภาษณ์มักให้คุณอธิบายเหตุผลข้อนี้</p></div>
+    </li>
+    <li>
+      <h4>Step 4: หน้ารายการโน้ต (NoteListViewModel และ NoteListScreen)</h4>
+      <p>สร้าง Package <code>ui.notes</code> แล้วเขียน ViewModel ก่อนหน้าจอ เพราะ ViewModel กำหนดว่าหน้าจอมีข้อมูลอะไรให้แสดงบ้าง <code>NoteListUiState</code> รวมทุกอย่างที่หน้ารายการต้องใช้ไว้ใน Object เดียว หน้าจอจึงไม่ต้องรวมข้อมูลจากหลายแหล่งเอง</p>
+      <p>การทำงานของ <code>uiState</code> อ่านจากบนลงล่างได้ดังนี้</p>
+      <ol>
+        <li><code>query</code> เก็บคำค้นที่ผู้ใช้พิมพ์ ทุกตัวอักษรที่พิมพ์จะเปลี่ยนค่านี้ทันที ช่องค้นหาจึงตอบสนองเร็ว</li>
+        <li><code>searchResults</code> รอให้หยุดพิมพ์ 300 ms ด้วย <code>debounce(300)</code> ตัดช่องว่างด้วย <code>map { it.trim() }</code> ข้ามคำค้นที่ซ้ำเดิมด้วย <code>distinctUntilChanged()</code> แล้วใช้ <code>flatMapLatest</code> สลับไปฟัง Flow ของคำค้นใหม่ และยกเลิกการค้นหาเก่าให้อัตโนมัติ</li>
+        <li><code>combine</code> รวม 4 แหล่ง ได้แก่ คำค้น ผลการค้นหา วิธีเรียงจาก DataStore และโน้ตที่เพิ่งลบ ให้เป็น <code>NoteListUiState</code> ตัวเดียว ทุกครั้งที่แหล่งใดเปลี่ยน หน้าจอจะได้ State ใหม่</li>
+        <li><code>stateIn(..., SharingStarted.WhileSubscribed(5_000), ...)</code> แปลงเป็น <code>StateFlow</code> ที่หยุดทำงานเมื่อไม่มีหน้าจอเก็บค่านานเกิน 5 วินาที แต่ยังทำงานต่อระหว่างหมุนจอ ซึ่งใช้เวลาน้อยกว่านั้นมาก</li>
+      </ol>
+      <p>ฟังก์ชัน <code>sortedFor</code> เป็น Kotlin ล้วนที่ทดสอบได้ง่าย การเรียงตามชื่อใช้ <code>Collator</code> ของภาษาไทย เพราะถ้าเทียบรหัส Unicode ตรงๆ คำที่ขึ้นต้นด้วยสระหน้าอย่าง "เ" หรือ "โ" จะไปอยู่ท้ายรายการเสมอ Collator จะเรียงคำภาษาอังกฤษไว้ก่อนแล้วตามด้วยภาษาไทย ป้ายในหน้าตั้งค่าจึงเขียนว่า "ชื่อ (A-Z, ก-ฮ)"</p>
+      <p>ลองดูความต่างได้ด้วยโปรแกรม Kotlin ล้วนใน WSL โดยใช้ kotlinc 2.4.21 ที่ติดตั้งไว้ในส่วนที่ 2</p>
+<pre class="code" data-env="file" data-label="Kotlin · ~/projects/android-kotlin-lab/project/collator.kt"><code class="language-kotlin">import java.text.Collator
+import java.util.Locale
+
+fun main() {
+    // Collator ของภาษาไทย รู้ว่าสระหน้า (เ แ โ ใ ไ) ต้องข้ามไปเทียบที่พยัญชนะ
+    val c = Collator.getInstance(Locale.forLanguageTag("th-TH"))
+    val words = listOf("โน้ตใหม่", "Meeting", "ประชุมทีม", "apple", "เขียนโค้ด", "กินข้าว", "ทบทวน", "Zoo")
+    println(words.sortedWith(c))   // เรียงแบบพจนานุกรม
+    println(words.sorted())        // เรียงตามรหัส Unicode</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/android-kotlin-lab/project &amp;&amp; cd ~/projects/android-kotlin-lab/project
+kotlinc collator.kt -include-runtime -d collator.jar &amp;&amp; java -jar collator.jar</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>[apple, Meeting, Zoo, กินข้าว, เขียนโค้ด, ทบทวน, โน้ตใหม่, ประชุมทีม]
+[Meeting, Zoo, apple, กินข้าว, ทบทวน, ประชุมทีม, เขียนโค้ด, โน้ตใหม่]</code></pre>
+      <p>บรรทัดแรกเรียงถูกตามที่ผู้ใช้คาด ส่วนบรรทัดที่สองมีปัญหา 2 อย่าง คือ "Meeting" กับ "Zoo" ที่เป็นตัวพิมพ์ใหญ่มาก่อน "apple" และ "เขียนโค้ด" กับ "โน้ตใหม่" ไปอยู่ท้ายสุด เพราะรหัสของสระหน้ามีค่ามากกว่าพยัญชนะทุกตัว</p>
+<pre class="code" data-env="file" data-label="Kotlin · ui/notes/NoteListViewModel.kt"><code class="language-kotlin">package com.somchai.notes.ui.notes
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.somchai.notes.NotesApplication
+import com.somchai.notes.data.Note
+import com.somchai.notes.data.NoteRepository
+import com.somchai.notes.data.SortOrder
+import java.text.Collator
+import java.util.Locale
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+// ทุกอย่างที่หน้ารายการต้องใช้วาดจอ รวมไว้ใน Object เดียว
+data class NoteListUiState(
+    val isLoading: Boolean = true,
+    val query: String = "",
+    val notes: List&lt;Note&gt; = emptyList(),
+    val sortOrder: SortOrder = SortOrder.UPDATED,
+    val deletedNote: Note? = null,          // ไม่เป็น null = ต้องแสดง Snackbar "ลบโน้ตแล้ว"
+)
+
+// เรียงลำดับแบบ Kotlin ล้วน: โน้ตปักหมุดอยู่บนเสมอ
+private val thaiCollator: Collator = Collator.getInstance(Locale.forLanguageTag("th-TH"))
+
+fun List&lt;Note&gt;.sortedFor(order: SortOrder): List&lt;Note&gt; = when (order) {
+    SortOrder.UPDATED -&gt; sortedWith(compareByDescending&lt;Note&gt; { it.pinned }.thenByDescending { it.updatedAt })
+    SortOrder.TITLE -&gt; sortedWith(
+        compareByDescending&lt;Note&gt; { it.pinned }.thenComparator { a, b -&gt; thaiCollator.compare(a.title, b.title) }
+    )
+}
+
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
+class NoteListViewModel(
+    private val repository: NoteRepository,
+    sortOrder: Flow&lt;SortOrder&gt;,
+) : ViewModel() {
+
+    private val query = MutableStateFlow("")
+    private val deletedNote = MutableStateFlow&lt;Note?&gt;(null)
+
+    // รอให้หยุดพิมพ์ 300 ms ก่อนค้นหา และยกเลิกการค้นหาเก่าเมื่อคำค้นเปลี่ยน
+    private val searchResults: Flow&lt;List&lt;Note&gt;&gt; = query
+        .debounce(300)
+        .map { it.trim() }
+        .distinctUntilChanged()
+        .flatMapLatest { repository.observeNotes(it) }
+
+    val uiState: StateFlow&lt;NoteListUiState&gt; =
+        combine(query, searchResults, sortOrder, deletedNote) { q, notes, order, deleted -&gt;
+            NoteListUiState(
+                isLoading = false,
+                query = q,
+                notes = notes.sortedFor(order),
+                sortOrder = order,
+                deletedNote = deleted,
+            )
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = NoteListUiState(),
+        )
+
+    fun onQueryChange(newQuery: String) {
+        query.value = newQuery
+    }
+
+    fun togglePin(note: Note) {
+        viewModelScope.launch { repository.setPinned(note.id, !note.pinned) }
+    }
+
+    // ลบแล้วจำโน้ตไว้ เพื่อให้กด "เลิกทำ" ได้
+    fun deleteNote(id: Long) {
+        viewModelScope.launch {
+            val note = repository.getNote(id) ?: return@launch
+            repository.deleteNote(note)
+            deletedNote.value = note
+        }
+    }
+
+    fun undoDelete() {
+        val note = deletedNote.value ?: return
+        deletedNote.value = null
+        viewModelScope.launch { repository.restoreNote(note) }
+    }
+
+    fun onDeleteMessageShown() {
+        deletedNote.value = null
+    }
+
+    companion object {
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                val app = this[APPLICATION_KEY] as NotesApplication
+                NoteListViewModel(
+                    repository = app.container.noteRepository,
+                    sortOrder = app.container.settingsRepository.settings.map { it.sortOrder },
+                )
+            }
+        }
+    }
+}</code></pre>
+      <p>การลบทำในหน้ารายการ แม้ผู้ใช้จะกดปุ่ม "ลบ" ในหน้าแก้ไข เหตุผลคือปุ่ม "เลิกทำ" อยู่ใน Snackbar ของหน้ารายการ ViewModel ที่ลบจึงต้องเป็นตัวที่จำโน้ตที่ลบไว้ได้ หน้าแก้ไขแค่ส่ง id กลับมาผ่าน Navigation ใน Step 6 ถ้าผู้ใช้ไม่กดเลิกทำ <code>onDeleteMessageShown()</code> จะล้างค่าเพื่อไม่ให้ Snackbar แสดงซ้ำเมื่อหมุนจอ</p>
+      <p>ต่อไปคือหน้าจอ <code>NoteListScreen</code> เป็น Stateless Composable คือรับ <code>uiState</code> เข้ามาและส่ง Event ออกไปผ่าน Lambda เท่านั้น ไม่รู้จัก ViewModel เลย จึงเขียน <code>@Preview</code> และ Compose UI Test ได้โดยไม่ต้องมีฐานข้อมูล บล็อก <code>when</code> เลือกแสดงอย่างใดอย่างหนึ่งจาก 4 สถานะ คือ กำลังโหลด ยังไม่มีโน้ต ค้นไม่เจอ และมีรายการ</p>
+<pre class="code" data-env="file" data-label="Kotlin · ui/notes/NoteListScreen.kt"><code class="language-kotlin">package com.somchai.notes.ui.notes
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.somchai.notes.data.Note
+import com.somchai.notes.ui.theme.NotesTheme
+
+// Stateless: รับ UiState และส่ง Event ออกไป จึงเขียน Preview และ UI Test ได้ง่าย
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NoteListScreen(
+    uiState: NoteListUiState,
+    snackbarHostState: SnackbarHostState,
+    onQueryChange: (String) -&gt; Unit,
+    onNoteClick: (Long) -&gt; Unit,
+    onAddClick: () -&gt; Unit,
+    onTogglePin: (Note) -&gt; Unit,
+    onSettingsClick: () -&gt; Unit,
+    modifier: Modifier = Modifier,
+) {
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            TopAppBar(
+                title = { Text("โน้ตของฉัน") },
+                actions = { TextButton(onClick = onSettingsClick) { Text("ตั้งค่า") } },
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAddClick) {
+                Text("+", style = MaterialTheme.typography.headlineSmall)
+            }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ) { innerPadding -&gt;
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+        ) {
+            OutlinedTextField(
+                value = uiState.query,
+                onValueChange = onQueryChange,
+                label = { Text("ค้นหาโน้ต") },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+            when {
+                uiState.isLoading -&gt; Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+                uiState.notes.isEmpty() &amp;&amp; uiState.query.isBlank() -&gt;
+                    CenterMessage("ยังไม่มีโน้ต กดปุ่ม + เพื่อเริ่มจด")
+                uiState.notes.isEmpty() -&gt;
+                    CenterMessage("ไม่พบโน้ตที่ตรงกับ \"${uiState.query.trim()}\"")
+                else -&gt; LazyColumn(
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    // key = id ทำให้ Compose รู้ว่าแถวไหนคือโน้ตเดิมเมื่อรายการเปลี่ยนลำดับ
+                    items(uiState.notes, key = { it.id }) { note -&gt;
+                        NoteItem(
+                            note = note,
+                            onClick = { onNoteClick(note.id) },
+                            onTogglePin = { onTogglePin(note) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NoteItem(note: Note, onClick: () -&gt; Unit, onTogglePin: () -&gt; Unit) {
+    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(start = 16.dp, top = 12.dp, end = 8.dp, bottom = 4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = note.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                if (note.pinned) {
+                    Text(
+                        text = "ปักหมุด",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+            if (note.content.isNotBlank()) {
+                Text(
+                    text = note.content.lineSequence().first(),   // แสดงเฉพาะบรรทัดแรก
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            TextButton(onClick = onTogglePin, modifier = Modifier.align(Alignment.End)) {
+                Text(if (note.pinned) "เลิกปักหมุด" else "ปักหมุด")
+            }
+        }
+    }
+}
+
+@Composable
+private fun CenterMessage(text: String) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun NoteListScreenPreview() {
+    val notes = listOf(
+        Note(1, "ซื้อของเข้าบ้าน", "นม ไข่ ขนมปัง", pinned = true, createdAt = 0, updatedAt = 3),
+        Note(2, "ประชุมทีม 10:00", "สรุปงานสัปดาห์นี้", pinned = false, createdAt = 0, updatedAt = 2),
+        Note(3, "ทบทวน Kotlin Flow", "", pinned = false, createdAt = 0, updatedAt = 1),
+    )
+    NotesTheme(dynamicColor = false) {
+        NoteListScreen(
+            uiState = NoteListUiState(isLoading = false, notes = notes),
+            snackbarHostState = remember { SnackbarHostState() },
+            onQueryChange = {}, onNoteClick = {}, onAddClick = {}, onTogglePin = {}, onSettingsClick = {},
+        )
+    }
+}</code></pre>
+      <p>จุดที่ควรสังเกตในหน้าจอนี้</p>
+      <ul>
+        <li><code>@OptIn(ExperimentalMaterial3Api::class)</code> จำเป็นเพราะ <code>TopAppBar</code> ใน Material3 1.4.0 ยังเป็น Experimental API ถ้าไม่ใส่ จะ Build ไม่ผ่าน</li>
+        <li>FAB ใช้ <code>Text("+")</code> แทนไอคอน เพราะ Material3 1.4.0 ไม่ดึง <code>material-icons-core</code> มาให้แล้ว แอปจึงไม่ต้องเพิ่ม Dependency</li>
+        <li><code>contentPadding</code> ด้านล่าง 88 dp ทำให้การ์ดใบสุดท้ายเลื่อนขึ้นพ้น FAB ได้ ไม่ถูกปุ่มบังจนกดไม่ได้</li>
+        <li><code>Modifier.padding(innerPadding)</code> ที่ Column ทำให้เนื้อหาไม่ซ่อนอยู่ใต้ TopAppBar ซึ่งเป็นข้อผิดพลาดที่พบบ่อยที่สุดของ <code>Scaffold</code></li>
+      </ul>
+      <p>เปิดแผง Split หรือ Design ของไฟล์นี้ แผง Preview จะแสดงการ์ด 3 ใบ ใบแรก "ซื้อของเข้าบ้าน" มีป้าย "ปักหมุด" สีของธีมที่มุมขวา และปุ่ม "เลิกปักหมุด" อีก 2 ใบมีปุ่ม "ปักหมุด" และใบที่สามไม่มีบรรทัดเนื้อหา เพราะ <code>content</code> ว่าง</p>
+      <div class="callout"><span class="c-label tip">Tip</span><p>ใน Preview ใช้ <code>NotesTheme(dynamicColor = false)</code> เสมอ เพราะ Dynamic color ดึงสีจากวอลเปเปอร์ของเครื่อง สีใน Preview และใน Screenshot test จึงเปลี่ยนไปตามเครื่อง การปิดไว้ทำให้เห็นสีเดิมทุกครั้ง</p></div>
+    </li>
+    <li>
+      <h4>Step 5: หน้าสร้างและแก้ไขโน้ต (NoteValidator, NoteEditorViewModel, NoteEditorScreen)</h4>
+      <p>สร้าง Package <code>ui.editor</code> แล้วเริ่มที่ <code>NoteValidator</code> ซึ่งเป็น <code>object</code> ของ Kotlin ล้วนที่ไม่มี import ของ Android เลย กฎการตรวจชื่อโน้ตจึงอยู่ที่เดียว ใช้ได้ทั้งใน ViewModel และใน UI Test และทดสอบบน JVM ได้ในเวลาไม่ถึงวินาที</p>
+<pre class="code" data-env="file" data-label="Kotlin · ui/editor/NoteValidator.kt"><code class="language-kotlin">package com.somchai.notes.ui.editor
+
+// Kotlin ล้วน ไม่มี import ของ Android จึงทดสอบบน JVM ได้เร็ว
+object NoteValidator {
+    const val MAX_TITLE_LENGTH = 50
+
+    // คืนข้อความ Error หรือ null ถ้าชื่อใช้ได้
+    fun validateTitle(title: String): String? {
+        val trimmed = title.trim()
+        return when {
+            trimmed.isEmpty() -&gt; "กรุณาใส่ชื่อโน้ต"
+            trimmed.length &gt; MAX_TITLE_LENGTH -&gt; "ชื่อโน้ตต้องยาวไม่เกิน $MAX_TITLE_LENGTH ตัวอักษร"
+            else -&gt; null
+        }
+    }
+}</code></pre>
+      <p><code>NoteEditorViewModel</code> อ่าน id ของโน้ตจาก Route ด้วย <code>savedStateHandle.toRoute&lt;NoteEditorRoute&gt;()</code> ค่า 0 คือสร้างโน้ตใหม่ ค่าอื่นคือแก้ไข ซึ่ง ViewModel จะโหลดโน้ตจาก Repository ตอนเริ่มต้น หน้านี้ใช้ <code>MutableStateFlow</code> โดยตรงแทน <code>stateIn</code> เพราะแหล่งข้อมูลหลักคือสิ่งที่ผู้ใช้กำลังพิมพ์ ไม่ใช่ Flow จากฐานข้อมูล</p>
+      <p>ใน <code>onTitleChange</code> ถ้ามี Error แสดงอยู่ ViewModel จะตรวจชื่อใหม่ทุกครั้งที่ผู้ใช้พิมพ์ Error จึงหายทันทีเมื่อแก้ถูก แต่ถ้ายังไม่มี Error ก็ยังไม่ตรวจ ผู้ใช้จึงไม่เห็นข้อความ "กรุณาใส่ชื่อโน้ต" ตั้งแต่ก่อนเริ่มพิมพ์ เมื่อบันทึกสำเร็จ ViewModel ตั้ง <code>isSaved = true</code> แทนการสั่ง Navigation เอง เพราะ ViewModel ไม่ควรรู้จัก <code>NavController</code></p>
+<pre class="code" data-env="file" data-label="Kotlin · ui/editor/NoteEditorViewModel.kt"><code class="language-kotlin">package com.somchai.notes.ui.editor
+
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import androidx.navigation.toRoute
+import com.somchai.notes.NotesApplication
+import com.somchai.notes.data.NoteRepository
+import com.somchai.notes.ui.navigation.NoteEditorRoute
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+data class NoteEditorUiState(
+    val noteId: Long = 0L,
+    val title: String = "",
+    val content: String = "",
+    val titleError: String? = null,
+    val isLoading: Boolean = false,
+    val isSaved: Boolean = false,          // true = บันทึกแล้ว ให้หน้าจอกลับไปหน้ารายการ
+) {
+    val isEditMode: Boolean get() = noteId != 0L
+}
+
+class NoteEditorViewModel(
+    savedStateHandle: SavedStateHandle,
+    private val repository: NoteRepository,
+) : ViewModel() {
+
+    // อ่านอาร์กิวเมนต์ของ Route แบบ Type-safe: 0L = สร้างโน้ตใหม่
+    private val noteId: Long = savedStateHandle.toRoute&lt;NoteEditorRoute&gt;().noteId
+
+    // หน้าจอนี้มีข้อมูลที่ผู้ใช้พิมพ์เป็นแหล่งหลัก จึงเก็บใน MutableStateFlow โดยตรง
+    private val _uiState = MutableStateFlow(NoteEditorUiState(noteId = noteId, isLoading = noteId != 0L))
+    val uiState: StateFlow&lt;NoteEditorUiState&gt; = _uiState.asStateFlow()
+
+    init {
+        if (noteId != 0L) {
+            viewModelScope.launch {
+                val note = repository.getNote(noteId)
+                _uiState.update {
+                    it.copy(title = note?.title.orEmpty(), content = note?.content.orEmpty(), isLoading = false)
+                }
+            }
+        }
+    }
+
+    fun onTitleChange(title: String) {
+        // ถ้ากำลังแสดง Error อยู่ ให้ตรวจใหม่ทุกครั้งที่พิมพ์ เพื่อให้ Error หายทันทีเมื่อแก้ถูก
+        _uiState.update {
+            it.copy(title = title, titleError = if (it.titleError != null) NoteValidator.validateTitle(title) else null)
+        }
+    }
+
+    fun onContentChange(content: String) {
+        _uiState.update { it.copy(content = content) }
+    }
+
+    fun save() {
+        val state = _uiState.value
+        val error = NoteValidator.validateTitle(state.title)
+        if (error != null) {
+            _uiState.update { it.copy(titleError = error) }
+            return
+        }
+        viewModelScope.launch {
+            repository.saveNote(noteId, state.title.trim(), state.content)
+            _uiState.update { it.copy(isSaved = true) }
+        }
+    }
+
+    companion object {
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                val app = this[APPLICATION_KEY] as NotesApplication
+                NoteEditorViewModel(createSavedStateHandle(), app.container.noteRepository)
+            }
+        }
+    }
+}</code></pre>
+      <p><code>NoteEditorScreen</code> เป็น Stateless เหมือนหน้ารายการ มีข้อยกเว้นเดียวคือ <code>showDeleteDialog</code> ที่เก็บใน Composable ด้วย <code>rememberSaveable</code> เพราะเป็น State ของหน้าจอล้วน ไม่มีใครอื่นต้องรู้ และหน้าต่างยืนยันยังเปิดอยู่หลังหมุนจอ</p>
+<pre class="code" data-env="file" data-label="Kotlin · ui/editor/NoteEditorScreen.kt"><code class="language-kotlin">package com.somchai.notes.ui.editor
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.somchai.notes.ui.theme.NotesTheme
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NoteEditorScreen(
+    uiState: NoteEditorUiState,
+    onTitleChange: (String) -&gt; Unit,
+    onContentChange: (String) -&gt; Unit,
+    onSave: () -&gt; Unit,
+    onDeleteConfirmed: () -&gt; Unit,
+    onBack: () -&gt; Unit,
+    modifier: Modifier = Modifier,
+) {
+    // State ของหน้าต่างยืนยันเป็นเรื่องของหน้าจอล้วน จึงเก็บใน Composable ได้
+    var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
+
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            TopAppBar(
+                title = { Text(if (uiState.isEditMode) "แก้ไขโน้ต" else "โน้ตใหม่") },
+                navigationIcon = { TextButton(onClick = onBack) { Text("กลับ") } },
+                actions = {
+                    if (uiState.isEditMode) {
+                        TextButton(onClick = { showDeleteDialog = true }) { Text("ลบ") }
+                    }
+                },
+            )
+        },
+    ) { innerPadding -&gt;
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .imePadding()                 // เลื่อนเนื้อหาขึ้นเมื่อคีย์บอร์ดเปิด
+                .padding(16.dp)
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            OutlinedTextField(
+                value = uiState.title,
+                onValueChange = onTitleChange,
+                label = { Text("ชื่อโน้ต") },
+                singleLine = true,
+                isError = uiState.titleError != null,
+                supportingText = {
+                    Text(uiState.titleError ?: "${uiState.title.trim().length}/${NoteValidator.MAX_TITLE_LENGTH}")
+                },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = uiState.content,
+                onValueChange = onContentChange,
+                label = { Text("เนื้อหา") },
+                minLines = 5,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+            )
+            Button(onClick = onSave, enabled = !uiState.isLoading, modifier = Modifier.fillMaxWidth()) {
+                Text("บันทึก")
+            }
+        }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("ลบโน้ตนี้ไหม") },
+            text = { Text("กด \"เลิกทำ\" ในหน้ารายการได้ ถ้าเปลี่ยนใจ") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    onDeleteConfirmed()
+                }) { Text("ลบโน้ต") }
+            },
+            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("ยกเลิก") } },
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun NoteEditorScreenPreview() {
+    NotesTheme(dynamicColor = false) {
+        NoteEditorScreen(
+            uiState = NoteEditorUiState(noteId = 2, title = "ประชุมทีม 10:00", content = "สรุปงานสัปดาห์นี้"),
+            onTitleChange = {}, onContentChange = {}, onSave = {}, onDeleteConfirmed = {}, onBack = {},
+        )
+    }
+}</code></pre>
+      <p>สิ่งที่เห็นบน Emulator เมื่อเชื่อมหน้าจอนี้กับ Navigation ใน Step 6 แล้ว: กด + จากหน้ารายการจะเห็นหัวข้อ "โน้ตใหม่" พร้อมปุ่ม "กลับ" ทางซ้าย ช่อง "ชื่อโน้ต" ใต้ช่องแสดง <code>0/50</code> ช่อง "เนื้อหา" สูงเต็มพื้นที่ที่เหลือ และปุ่ม "บันทึก" ด้านล่าง ถ้ากดบันทึกตอนชื่อว่าง ช่องชื่อจะเป็นสีแดงและข้อความใต้ช่องเปลี่ยนเป็น "กรุณาใส่ชื่อโน้ต" เมื่อเปิดโน้ตเดิมมาแก้ หัวข้อจะเป็น "แก้ไขโน้ต" และมีปุ่ม "ลบ" ทางขวา กดแล้วจะขึ้นหน้าต่าง "ลบโน้ตนี้ไหม" พร้อมปุ่ม "ยกเลิก" และ "ลบโน้ต"</p>
+      <div class="callout warn"><span class="c-label warn">ระวัง</span><p>อย่าเรียก <code>navController.popBackStack()</code> ใน ViewModel หรือส่ง <code>NavController</code> เข้า ViewModel เพราะ ViewModel อยู่นานกว่าหน้าจอ (รอดจากการหมุนจอ) การถือ Object ที่ผูกกับหน้าจอไว้ทำให้เกิด Memory leak ให้ ViewModel บอกสถานะ เช่น <code>isSaved</code> แล้วให้ชั้น Navigation ตัดสินใจย้ายหน้าเอง</p></div>
+    </li>
+    <li>
+      <h4>Step 6: หน้าตั้งค่า Navigation และ MainActivity</h4>
+      <p>สร้าง Package <code>ui.settings</code> สำหรับหน้าตั้งค่า <code>SettingsViewModel</code> แปลง Flow จาก DataStore เป็น <code>StateFlow&lt;SettingsUiState&gt;</code> และส่งค่าที่ผู้ใช้เลือกกลับไปบันทึก ไม่ต้องมีปุ่ม "บันทึก" เพราะ DataStore เขียนลงไฟล์ทันทีที่เลือก</p>
+<pre class="code" data-env="file" data-label="Kotlin · ui/settings/SettingsViewModel.kt"><code class="language-kotlin">package com.somchai.notes.ui.settings
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.somchai.notes.NotesApplication
+import com.somchai.notes.data.SettingsRepository
+import com.somchai.notes.data.SortOrder
+import com.somchai.notes.data.ThemeMode
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+data class SettingsUiState(
+    val isLoading: Boolean = true,
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val sortOrder: SortOrder = SortOrder.UPDATED,
+)
+
+class SettingsViewModel(private val repository: SettingsRepository) : ViewModel() {
+
+    val uiState: StateFlow&lt;SettingsUiState&gt; = repository.settings
+        .map { SettingsUiState(isLoading = false, themeMode = it.themeMode, sortOrder = it.sortOrder) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
+
+    fun setThemeMode(mode: ThemeMode) {
+        viewModelScope.launch { repository.setThemeMode(mode) }
+    }
+
+    fun setSortOrder(order: SortOrder) {
+        viewModelScope.launch { repository.setSortOrder(order) }
+    }
+
+    companion object {
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                val app = this[APPLICATION_KEY] as NotesApplication
+                SettingsViewModel(app.container.settingsRepository)
+            }
+        }
+    }
+}</code></pre>
+      <p><code>SettingsScreen</code> มีกลุ่ม Radio button 2 กลุ่ม ฟังก์ชัน <code>RadioGroup</code> เป็น Generic (<code>&lt;T&gt;</code>) จึงใช้ร่วมกันได้ทั้ง <code>ThemeMode</code> และ <code>SortOrder</code> ใส่ <code>Modifier.selectable(..., role = Role.RadioButton)</code> ที่ทั้งแถว ผู้ใช้จึงกดที่ข้อความได้ ไม่ต้องเล็งวงกลมเล็กๆ และ TalkBack อ่านแถวนั้นเป็นปุ่มตัวเลือก ส่วน <code>RadioButton(onClick = null)</code> ทำให้วงกลมไม่รับการกดซ้อนกับแถว</p>
+<pre class="code" data-env="file" data-label="Kotlin · ui/settings/SettingsScreen.kt"><code class="language-kotlin">package com.somchai.notes.ui.settings
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.somchai.notes.data.SortOrder
+import com.somchai.notes.data.ThemeMode
+import com.somchai.notes.ui.theme.NotesTheme
+
+private val themeLabels = listOf(
+    ThemeMode.SYSTEM to "ตามระบบ",
+    ThemeMode.LIGHT to "สว่าง",
+    ThemeMode.DARK to "มืด",
+)
+private val sortLabels = listOf(
+    SortOrder.UPDATED to "แก้ไขล่าสุด",
+    SortOrder.TITLE to "ชื่อ (A-Z, ก-ฮ)",
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(
+    uiState: SettingsUiState,
+    onThemeModeChange: (ThemeMode) -&gt; Unit,
+    onSortOrderChange: (SortOrder) -&gt; Unit,
+    onBack: () -&gt; Unit,
+    modifier: Modifier = Modifier,
+) {
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            TopAppBar(
+                title = { Text("ตั้งค่า") },
+                navigationIcon = { TextButton(onClick = onBack) { Text("กลับ") } },
+            )
+        },
+    ) { innerPadding -&gt;
+        Column(Modifier.padding(innerPadding)) {
+            SectionTitle("ธีม")
+            RadioGroup(themeLabels, selected = uiState.themeMode, onSelect = onThemeModeChange)
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            SectionTitle("เรียงโน้ตตาม")
+            RadioGroup(sortLabels, selected = uiState.sortOrder, onSelect = onSortOrderChange)
+        }
+    }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+    )
+}
+
+// ทั้งแถวกดได้ และ TalkBack อ่านว่าเป็นกลุ่มปุ่มตัวเลือก
+@Composable
+private fun &lt;T&gt; RadioGroup(options: List&lt;Pair&lt;T, String&gt;&gt;, selected: T, onSelect: (T) -&gt; Unit) {
+    Column(Modifier.selectableGroup()) {
+        options.forEach { (value, label) -&gt;
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectable(selected = value == selected, onClick = { onSelect(value) }, role = Role.RadioButton)
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+            ) {
+                RadioButton(selected = value == selected, onClick = null)
+                Text(label, modifier = Modifier.padding(start = 12.dp))
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun SettingsScreenPreview() {
+    NotesTheme(dynamicColor = false) {
+        SettingsScreen(SettingsUiState(isLoading = false), onThemeModeChange = {}, onSortOrderChange = {}, onBack = {})
+    }
+}</code></pre>
+      <p>สร้าง Package <code>ui.navigation</code> แล้วเขียน <code>NotesNavHost.kt</code> ไฟล์นี้ประกาศ Route ทั้ง 3 ตัวด้วย <code>@Serializable</code> และเป็นที่เดียวที่รู้จักทั้ง ViewModel และหน้าจอ แต่ละ <code>composable&lt;Route&gt;</code> สร้าง ViewModel ด้วย Factory แล้วส่ง State กับ Lambda ลงไปให้หน้าจอที่เป็น Stateless</p>
+      <p>การลบโน้ตข้ามหน้าจอทำงานแบบนี้: หน้าแก้ไขเขียน id ลงใน <code>savedStateHandle</code> ของหน้าก่อนหน้า (<code>previousBackStackEntry</code>) แล้ว <code>popBackStack()</code> หน้ารายการอ่าน id นั้นด้วย <code>getStateFlow</code> สั่ง ViewModel ลบ และตั้งค่ากลับเป็น 0 เพื่อไม่ให้ลบซ้ำ จากนั้น <code>LaunchedEffect(uiState.deletedNote)</code> แสดง Snackbar ถ้าผู้ใช้กด "เลิกทำ" ผลลัพธ์จะเป็น <code>SnackbarResult.ActionPerformed</code></p>
+<pre class="code" data-env="file" data-label="Kotlin · ui/navigation/NotesNavHost.kt"><code class="language-kotlin">package com.somchai.notes.ui.navigation
+
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.somchai.notes.ui.editor.NoteEditorScreen
+import com.somchai.notes.ui.editor.NoteEditorViewModel
+import com.somchai.notes.ui.notes.NoteListScreen
+import com.somchai.notes.ui.notes.NoteListViewModel
+import com.somchai.notes.ui.settings.SettingsScreen
+import com.somchai.notes.ui.settings.SettingsViewModel
+import kotlinx.serialization.Serializable
+
+// Route แบบ Type-safe: ต้องมี @Serializable และ Plugin kotlin-serialization
+@Serializable
+data object NoteListRoute
+
+@Serializable
+data class NoteEditorRoute(val noteId: Long = 0L)   // 0L = สร้างโน้ตใหม่
+
+@Serializable
+data object SettingsRoute
+
+// Key สำหรับส่ง id ของโน้ตที่ต้องลบ จากหน้าแก้ไขกลับไปหน้ารายการ
+private const val DELETE_NOTE_ID_KEY = "delete_note_id"
+
+@Composable
+fun NotesNavHost(
+    modifier: Modifier = Modifier,
+    navController: NavHostController = rememberNavController(),
+) {
+    NavHost(navController = navController, startDestination = NoteListRoute, modifier = modifier) {
+
+        composable&lt;NoteListRoute&gt; { backStackEntry -&gt;
+            val viewModel: NoteListViewModel = viewModel(factory = NoteListViewModel.Factory)
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            val snackbarHostState = remember { SnackbarHostState() }
+
+            // รับ id ที่หน้าแก้ไขส่งกลับมา แล้วให้ ViewModel ลบ (จึงกด "เลิกทำ" ที่หน้านี้ได้)
+            val deleteId by backStackEntry.savedStateHandle
+                .getStateFlow(DELETE_NOTE_ID_KEY, 0L)
+                .collectAsStateWithLifecycle()
+            LaunchedEffect(deleteId) {
+                if (deleteId != 0L) {
+                    viewModel.deleteNote(deleteId)
+                    backStackEntry.savedStateHandle[DELETE_NOTE_ID_KEY] = 0L
+                }
+            }
+
+            // เมื่อมีโน้ตที่เพิ่งลบ ให้แสดง Snackbar พร้อมปุ่ม "เลิกทำ"
+            LaunchedEffect(uiState.deletedNote) {
+                if (uiState.deletedNote != null) {
+                    val result = snackbarHostState.showSnackbar(
+                        message = "ลบโน้ตแล้ว",
+                        actionLabel = "เลิกทำ",
+                        duration = SnackbarDuration.Short,
+                    )
+                    if (result == SnackbarResult.ActionPerformed) viewModel.undoDelete()
+                    else viewModel.onDeleteMessageShown()
+                }
+            }
+
+            NoteListScreen(
+                uiState = uiState,
+                snackbarHostState = snackbarHostState,
+                onQueryChange = viewModel::onQueryChange,
+                onNoteClick = { id -&gt; navController.navigate(NoteEditorRoute(noteId = id)) },
+                onAddClick = { navController.navigate(NoteEditorRoute()) },
+                onTogglePin = viewModel::togglePin,
+                onSettingsClick = { navController.navigate(SettingsRoute) },
+            )
+        }
+
+        composable&lt;NoteEditorRoute&gt; {
+            val viewModel: NoteEditorViewModel = viewModel(factory = NoteEditorViewModel.Factory)
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+            // บันทึกเสร็จแล้วกลับไปหน้ารายการ
+            LaunchedEffect(uiState.isSaved) {
+                if (uiState.isSaved) navController.popBackStack()
+            }
+
+            NoteEditorScreen(
+                uiState = uiState,
+                onTitleChange = viewModel::onTitleChange,
+                onContentChange = viewModel::onContentChange,
+                onSave = viewModel::save,
+                onDeleteConfirmed = {
+                    navController.previousBackStackEntry?.savedStateHandle?.set(DELETE_NOTE_ID_KEY, uiState.noteId)
+                    navController.popBackStack()
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable&lt;SettingsRoute&gt; {
+            val viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory)
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            SettingsScreen(
+                uiState = uiState,
+                onThemeModeChange = viewModel::setThemeMode,
+                onSortOrderChange = viewModel::setSortOrder,
+                onBack = { navController.popBackStack() },
+            )
+        }
+    }
+}</code></pre>
+      <p>ไฟล์ธีมใน <code>ui/theme</code> ที่ Template สร้างให้ใช้ได้เกือบทั้งหมด ให้เปลี่ยนชื่อฟังก์ชันใน <code>Theme.kt</code> จาก <code>NotesAppTheme</code> เป็น <code>NotesTheme</code> (คลิกขวาที่ชื่อ แล้วเลือก <strong>Refactor &gt; Rename</strong> หรือกด <kbd>Shift</kbd>+<kbd>F6</kbd> เพื่อให้ Studio แก้ทุกที่ที่เรียกใช้ด้วย) ไฟล์ทั้ง 3 ไฟล์มีเนื้อหาดังนี้</p>
+<pre class="code" data-env="file" data-label="Kotlin · ui/theme/Color.kt"><code class="language-kotlin">package com.somchai.notes.ui.theme
+
+import androidx.compose.ui.graphics.Color
+
+val Purple80 = Color(0xFFD0BCFF)
+val PurpleGrey80 = Color(0xFFCCC2DC)
+val Pink80 = Color(0xFFEFB8C8)
+
+val Purple40 = Color(0xFF6650a4)
+val PurpleGrey40 = Color(0xFF625b71)
+val Pink40 = Color(0xFF7D5260)</code></pre>
+<pre class="code" data-env="file" data-label="Kotlin · ui/theme/Type.kt"><code class="language-kotlin">package com.somchai.notes.ui.theme
+
+import androidx.compose.material3.Typography
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+
+val Typography = Typography(
+    bodyLarge = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.5.sp
+    )
+)</code></pre>
+<pre class="code" data-env="file" data-label="Kotlin · ui/theme/Theme.kt"><code class="language-kotlin">package com.somchai.notes.ui.theme
+
+import android.os.Build
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
+
+private val DarkColorScheme = darkColorScheme(
+    primary = Purple80,
+    secondary = PurpleGrey80,
+    tertiary = Pink80
+)
+
+private val LightColorScheme = lightColorScheme(
+    primary = Purple40,
+    secondary = PurpleGrey40,
+    tertiary = Pink40
+)
+
+@Composable
+fun NotesTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    // Dynamic color ใช้สีจากวอลเปเปอร์ มีใน Android 12 (API 31) ขึ้นไป
+    dynamicColor: Boolean = true,
+    content: @Composable () -&gt; Unit
+) {
+    val colorScheme = when {
+        dynamicColor &amp;&amp; Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.S -&gt; {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        darkTheme -&gt; DarkColorScheme
+        else -&gt; LightColorScheme
+    }
+
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = Typography,
+        content = content
+    )
+}</code></pre>
+      <p>สุดท้ายแทนที่ <code>MainActivity.kt</code> ทั้งไฟล์ MainActivity อ่าน <code>settings</code> จาก DataStore แล้วเลือกธีม โดยใช้ธีมของระบบเมื่อผู้ใช้เลือก "ตามระบบ" และส่ง <code>darkTheme</code> ให้ <code>NotesTheme</code></p>
+<pre class="code" data-env="file" data-label="Kotlin · MainActivity.kt"><code class="language-kotlin">package com.somchai.notes
+
+import android.graphics.Color
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.somchai.notes.data.AppSettings
+import com.somchai.notes.data.ThemeMode
+import com.somchai.notes.ui.navigation.NotesNavHost
+import com.somchai.notes.ui.theme.NotesTheme
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        val settingsRepository = (application as NotesApplication).container.settingsRepository
+
+        setContent {
+            // อ่านธีมจาก DataStore ทุกครั้งที่ค่าเปลี่ยน หน้าจอจะเปลี่ยนธีมทันที
+            val settings by settingsRepository.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
+            val darkTheme = when (settings.themeMode) {
+                ThemeMode.LIGHT -&gt; false
+                ThemeMode.DARK -&gt; true
+                ThemeMode.SYSTEM -&gt; isSystemInDarkTheme()
+            }
+
+            // ให้ไอคอนบน Status bar เปลี่ยนสีตามธีมของแอป ไม่ใช่ตามธีมของระบบ
+            LaunchedEffect(darkTheme) {
+                enableEdgeToEdge(
+                    statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { darkTheme },
+                    navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { darkTheme },
+                )
+            }
+
+            NotesTheme(darkTheme = darkTheme) {
+                NotesNavHost()
+            }
+        }
+    }
+}</code></pre>
+      <p>บล็อก <code>LaunchedEffect(darkTheme)</code> มาจากการทดสอบจริง เวอร์ชันแรกเรียก <code>enableEdgeToEdge()</code> แค่ครั้งเดียว เมื่อตั้งแอปเป็นธีมมืดขณะที่ระบบเป็นธีมสว่าง พื้นหลังเปลี่ยนเป็นสีเข้ม แต่นาฬิกาและไอคอนบน Status bar ยังเป็นสีดำ เพราะ <code>enableEdgeToEdge()</code> เลือกสีไอคอนตามธีมของ<strong>ระบบ</strong> การเรียกซ้ำพร้อม <code>SystemBarStyle.auto(...) { darkTheme }</code> ทุกครั้งที่ธีมของแอปเปลี่ยน ทำให้ไอคอนเปลี่ยนเป็นสีขาวตามธีมของแอป</p>
+      <p>กดปุ่ม Run (<kbd>Shift</kbd>+<kbd>F10</kbd>) แอปจะเปิดที่หน้า "โน้ตของฉัน" ที่มีช่อง "ค้นหาโน้ต" ข้อความ "ยังไม่มีโน้ต กดปุ่ม + เพื่อเริ่มจด" กลางจอ และปุ่ม + มุมขวาล่าง ลองทำตามลำดับนี้ แล้วตรวจว่าผลที่เห็นตรงกัน</p>
+      <ol>
+        <li>กด + พิมพ์ชื่อ "Kotlin Flow" แล้วกดบันทึก จะกลับหน้ารายการและเห็นการ์ด "Kotlin Flow" พร้อมปุ่ม "ปักหมุด"</li>
+        <li>สร้างโน้ต "Meeting 10:00" อีกใบ ใบใหม่จะอยู่บนสุดเพราะแก้ไขล่าสุด กด "ปักหมุด" ที่ใบนี้ การ์ดจะมีป้าย "ปักหมุด" และปุ่มเปลี่ยนเป็น "เลิกปักหมุด"</li>
+        <li>เปิด "Kotlin Flow" หัวข้อจะเป็น "แก้ไขโน้ต" ใต้ช่องชื่อแสดง <code>11/50</code> กด "ลบ" แล้วกด "ลบโน้ต" หน้ารายการจะเหลือ "Meeting 10:00" และ Snackbar "ลบโน้ตแล้ว" กด "เลิกทำ" ภายใน 4 วินาที โน้ตจะกลับมา</li>
+        <li>กด "ตั้งค่า" เลือก "มืด" ทั้งแอปจะเปลี่ยนเป็นธีมมืดทันที กลับไปหน้ารายการ ปิดแอปด้วยการปัดทิ้งจากหน้า Recents แล้วเปิดใหม่ ธีมมืดและโน้ตทั้งหมดต้องยังอยู่</li>
+      </ol>
+      <div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไปขั้นถัดไป คุณต้องทำสิ่งเหล่านี้ได้: (1) สร้าง แก้ไข ปักหมุด ลบ และเลิกทำได้ครบตามรายการด้านบน (2) พิมพ์ "meet" ในช่องค้นหาแล้วเหลือเฉพาะโน้ตที่ตรงกัน และพิมพ์คำที่ไม่มีแล้วเห็นข้อความ "ไม่พบโน้ตที่ตรงกับ ..." (3) หมุนจอระหว่างพิมพ์ในหน้าแก้ไขแล้วข้อความไม่หาย (4) กดปุ่ม Back ของระบบจากทุกหน้าแล้วกลับไปหน้าก่อนหน้าถูกต้อง</p></div>
+    </li>
+    <li>
+      <h4>Step 7: Unit test บน JVM และ Compose UI Test บน Emulator</h4>
+      <p>Test ของ Android มี 2 ที่ <code>src/test</code> คือ Local unit test ที่รันบน JVM ของคอมพิวเตอร์ เร็วและไม่ต้องมี Emulator ใช้กับ Logic เช่น Validator และ ViewModel ส่วน <code>src/androidTest</code> คือ Instrumented test ที่ต้องรันบน Emulator หรือมือถือจริง ใช้กับหน้าจอ Compose ทั้ง 2 โฟลเดอร์ Template สร้างไว้แล้ว ให้ลบไฟล์ตัวอย่าง <code>ExampleUnitTest.kt</code> และ <code>ExampleInstrumentedTest.kt</code> ออก</p>
+      <p>เริ่มจาก <code>FakeNoteRepository</code> ที่ทำงานเหมือน Room แต่เก็บข้อมูลใน <code>MutableStateFlow</code> ค้นหาและเรียงลำดับแบบเดียวกับ SQL ใน <code>NoteDao</code> และมีนาฬิกาปลอมที่เดินทีละ 1 ทุกครั้งที่บันทึก ผล Test จึงเหมือนเดิมทุกครั้งที่รัน</p>
+<pre class="code" data-env="file" data-label="Kotlin · app/src/test/java/com/somchai/notes/FakeNoteRepository.kt"><code class="language-kotlin">package com.somchai.notes
+
+import com.somchai.notes.data.Note
+import com.somchai.notes.data.NoteRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
+
+// Repository ปลอมที่เก็บโน้ตในหน่วยความจำ ทำงานเหมือน Room แต่ไม่ต้องใช้ Android
+class FakeNoteRepository(initial: List&lt;Note&gt; = emptyList()) : NoteRepository {
+    private val notes = MutableStateFlow(initial)
+    private var clock = 1_000L                       // เวลาปลอมที่เพิ่มขึ้นทุกครั้งที่บันทึก
+
+    val currentNotes: List&lt;Note&gt; get() = notes.value
+
+    override fun observeNotes(query: String): Flow&lt;List&lt;Note&gt;&gt; = notes.map { list -&gt;
+        list.filter { it.title.contains(query, ignoreCase = true) || it.content.contains(query, ignoreCase = true) }
+            .sortedWith(compareByDescending&lt;Note&gt; { it.pinned }.thenByDescending { it.updatedAt })
+    }
+
+    override suspend fun getNote(id: Long): Note? = notes.value.firstOrNull { it.id == id }
+
+    override suspend fun saveNote(id: Long, title: String, content: String): Long {
+        clock += 1
+        val existing = notes.value.firstOrNull { it.id == id }
+        return if (existing == null) {
+            val newId = (notes.value.maxOfOrNull { it.id } ?: 0L) + 1
+            notes.update { it + Note(newId, title, content, pinned = false, createdAt = clock, updatedAt = clock) }
+            newId
+        } else {
+            notes.update { list -&gt; list.map { if (it.id == id) it.copy(title = title, content = content, updatedAt = clock) else it } }
+            id
+        }
+    }
+
+    override suspend fun deleteNote(note: Note) {
+        notes.update { list -&gt; list.filterNot { it.id == note.id } }
+    }
+
+    override suspend fun restoreNote(note: Note) {
+        notes.update { list -&gt; list.filterNot { it.id == note.id } + note }
+    }
+
+    override suspend fun setPinned(id: Long, pinned: Boolean) {
+        notes.update { list -&gt; list.map { if (it.id == id) it.copy(pinned = pinned) else it } }
+    }
+}</code></pre>
+      <p><code>viewModelScope</code> ทำงานบน <code>Dispatchers.Main</code> ซึ่งไม่มีบน JVM <code>MainDispatcherRule</code> จึงแทนที่ด้วย <code>TestDispatcher</code> ก่อนแต่ละ Test และคืนค่าเดิมหลัง Test จบ นี่คือรูปแบบที่เอกสารการทดสอบ Coroutine ของ Android แนะนำ</p>
+<pre class="code" data-env="file" data-label="Kotlin · app/src/test/java/com/somchai/notes/MainDispatcherRule.kt"><code class="language-kotlin">package com.somchai.notes
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.TestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.rules.TestWatcher
+import org.junit.runner.Description
+
+// viewModelScope ใช้ Dispatchers.Main ซึ่งไม่มีบน JVM จึงต้องแทนด้วย TestDispatcher ระหว่าง Test
+@OptIn(ExperimentalCoroutinesApi::class)
+class MainDispatcherRule(
+    val testDispatcher: TestDispatcher = UnconfinedTestDispatcher(),
+) : TestWatcher() {
+    override fun starting(description: Description) {
+        Dispatchers.setMain(testDispatcher)
+    }
+
+    override fun finished(description: Description) {
+        Dispatchers.resetMain()
+    }
+}</code></pre>
+      <p>Test ของ <code>NoteValidator</code> ตรวจค่าขอบทั้งหมด คือชื่อว่าง ช่องว่างล้วน ยาวพอดี 50 ยาว 51 และช่องว่างหัวท้ายที่ไม่ถูกนับ ชื่อ Test เขียนเป็นประโยคที่บอกพฤติกรรม เมื่อ Test ตัวไหนล้ม ชื่อจะบอกทันทีว่ากฎข้อไหนพัง</p>
+<pre class="code" data-env="file" data-label="Kotlin · app/src/test/java/com/somchai/notes/NoteValidatorTest.kt"><code class="language-kotlin">package com.somchai.notes
+
+import com.somchai.notes.ui.editor.NoteValidator
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Test
+
+class NoteValidatorTest {
+
+    @Test
+    fun blankTitle_returnsRequiredError() {
+        assertEquals("กรุณาใส่ชื่อโน้ต", NoteValidator.validateTitle(""))
+    }
+
+    @Test
+    fun spacesOnly_isTreatedAsBlank() {
+        assertEquals("กรุณาใส่ชื่อโน้ต", NoteValidator.validateTitle("   "))
+    }
+
+    @Test
+    fun exactly50Characters_isValid() {
+        assertNull(NoteValidator.validateTitle("a".repeat(50)))
+    }
+
+    @Test
+    fun over50Characters_returnsLengthError() {
+        assertEquals("ชื่อโน้ตต้องยาวไม่เกิน 50 ตัวอักษร", NoteValidator.validateTitle("a".repeat(51)))
+    }
+
+    @Test
+    fun surroundingSpaces_areNotCounted() {
+        // 50 ตัวอักษรบวกช่องว่างหน้าและหลัง ยังถือว่าใช้ได้ เพราะ ViewModel บันทึกค่าที่ trim แล้ว
+        assertNull(NoteValidator.validateTitle("  " + "ก".repeat(50) + "  "))
+    }
+}</code></pre>
+      <p>Test ของ <code>NoteListViewModel</code> ต้องรู้ 2 เรื่องเพิ่ม เรื่องแรกคือ <code>uiState</code> ใช้ <code>WhileSubscribed</code> จึงไม่ทำงานจนกว่าจะมีผู้เก็บค่า แต่ละ Test จึงเปิด Collector ไว้ใน <code>backgroundScope</code> ซึ่ง <code>runTest</code> ยกเลิกให้เองเมื่อจบ เรื่องที่สองคือ <code>debounce(300)</code> รอเวลา 300 ms แต่ใน <code>runTest</code> เวลาเป็นเวลาเสมือน <code>advanceTimeBy(301)</code> จึงข้ามไปทันทีโดยไม่ต้องรอจริง</p>
+<pre class="code" data-env="file" data-label="Kotlin · app/src/test/java/com/somchai/notes/NoteListViewModelTest.kt"><code class="language-kotlin">package com.somchai.notes
+
+import com.somchai.notes.data.Note
+import com.somchai.notes.data.SortOrder
+import com.somchai.notes.ui.notes.NoteListViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class NoteListViewModelTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
+    // ข้อมูลตัวอย่างของหลักสูตร: updatedAt มากกว่า = แก้ไขล่าสุดกว่า
+    private val sampleNotes = listOf(
+        Note(1, "ซื้อของเข้าบ้าน", "นม ไข่ ขนมปัง", pinned = true, createdAt = 1, updatedAt = 10),
+        Note(2, "ประชุมทีม 10:00", "สรุปงาน Sprint", pinned = false, createdAt = 2, updatedAt = 30),
+        Note(3, "ทบทวน Kotlin Flow", "อ่านเรื่อง StateFlow", pinned = false, createdAt = 3, updatedAt = 20),
+    )
+
+    private val repository = FakeNoteRepository(sampleNotes)
+    private val sortOrder = MutableStateFlow(SortOrder.UPDATED)
+
+    private fun createViewModel() = NoteListViewModel(repository, sortOrder)
+
+    @Test
+    fun startsLoading_thenShowsPinnedFirstAndNewestNext() = runTest {
+        val viewModel = createViewModel()
+        assertTrue(viewModel.uiState.value.isLoading)
+
+        // stateIn(WhileSubscribed) ทำงานเมื่อมีผู้เก็บค่า จึงต้องเปิด Collector ไว้ระหว่าง Test
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+        advanceTimeBy(301)              // ผ่านช่วง debounce 300 ms
+
+        val state = viewModel.uiState.value
+        assertFalse(state.isLoading)
+        assertEquals(listOf(1L, 2L, 3L), state.notes.map { it.id })
+    }
+
+    @Test
+    fun search_matchesTitleAndContent() = runTest {
+        val viewModel = createViewModel()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        viewModel.onQueryChange("kotlin")          // ตรงกับชื่อโน้ตที่ 3 โดยไม่สนตัวพิมพ์เล็กใหญ่
+        advanceTimeBy(301)
+        assertEquals(listOf(3L), viewModel.uiState.value.notes.map { it.id })
+
+        viewModel.onQueryChange("Sprint")          // ตรงกับเนื้อหาของโน้ตที่ 2
+        advanceTimeBy(301)
+        assertEquals(listOf(2L), viewModel.uiState.value.notes.map { it.id })
+    }
+
+    @Test
+    fun sortByTitle_keepsPinnedOnTop() = runTest {
+        val viewModel = createViewModel()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        sortOrder.value = SortOrder.TITLE
+        advanceTimeBy(301)
+        // ปักหมุดก่อน แล้วเรียงชื่อ: "ทบทวน ..." มาก่อน "ประชุม ..." ตามลำดับพยัญชนะ ท ก่อน ป
+        assertEquals(
+            listOf("ซื้อของเข้าบ้าน", "ทบทวน Kotlin Flow", "ประชุมทีม 10:00"),
+            viewModel.uiState.value.notes.map { it.title },
+        )
+    }
+
+    @Test
+    fun togglePin_movesNoteToTop() = runTest {
+        val viewModel = createViewModel()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+        advanceTimeBy(301)
+
+        viewModel.togglePin(viewModel.uiState.value.notes.first { it.id == 3L })
+        advanceUntilIdle()
+
+        val notes = viewModel.uiState.value.notes
+        assertTrue(notes.first { it.id == 3L }.pinned)
+        assertEquals(listOf(3L, 1L, 2L), notes.map { it.id })   // ปักหมุดทั้งคู่ เรียงตามเวลาแก้ไข
+    }
+
+    @Test
+    fun deleteThenUndo_restoresNote() = runTest {
+        val viewModel = createViewModel()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+        advanceTimeBy(301)
+
+        viewModel.deleteNote(2L)
+        advanceUntilIdle()
+        assertEquals("ประชุมทีม 10:00", viewModel.uiState.value.deletedNote?.title)
+        assertEquals(listOf(1L, 3L), viewModel.uiState.value.notes.map { it.id })
+
+        viewModel.undoDelete()
+        advanceUntilIdle()
+        assertNull(viewModel.uiState.value.deletedNote)
+        assertEquals(listOf(1L, 2L, 3L), viewModel.uiState.value.notes.map { it.id })
+    }
+}</code></pre>
+      <p>รัน Unit test ทั้งหมดจาก Terminal ของ Android Studio ส่วนบล็อก <code>tasks.withType&lt;Test&gt;</code> ที่ใส่ไว้ใน <code>app/build.gradle.kts</code> ตั้งแต่ Step 1 ทำให้ Gradle พิมพ์ชื่อ Test ทุกตัวพร้อมผล</p>
+      <pre class="code" data-env="win" data-label="PowerShell · Windows"><code class="language-powershell">.\gradlew.bat testDebugUnitTest</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>NoteListViewModelTest &gt; sortByTitle_keepsPinnedOnTop PASSED
+
+NoteListViewModelTest &gt; togglePin_movesNoteToTop PASSED
+
+NoteListViewModelTest &gt; search_matchesTitleAndContent PASSED
+
+NoteListViewModelTest &gt; startsLoading_thenShowsPinnedFirstAndNewestNext PASSED
+
+NoteListViewModelTest &gt; deleteThenUndo_restoresNote PASSED
+
+NoteValidatorTest &gt; blankTitle_returnsRequiredError PASSED
+
+NoteValidatorTest &gt; over50Characters_returnsLengthError PASSED
+
+NoteValidatorTest &gt; exactly50Characters_isValid PASSED
+
+NoteValidatorTest &gt; surroundingSpaces_areNotCounted PASSED
+
+NoteValidatorTest &gt; spacesOnly_isTreatedAsBlank PASSED
+
+BUILD SUCCESSFUL in 18s
+26 actionable tasks: 1 executed, 25 up-to-date</code></pre>
+      <p class="muted small">ผลนี้ตัดบรรทัด <code>&gt; Task ...</code> ที่ Gradle พิมพ์ก่อนหน้าออก เวลาที่ใช้และจำนวน Task ในเครื่องของคุณจะต่างไป และลำดับของ Test อาจสลับกันได้ ครั้งแรกที่รันจะนานกว่านี้มากเพราะต้องคอมไพล์ทั้งโปรเจกต์ ถ้าอยากให้ Gradle รัน Test ซ้ำแม้โค้ดไม่เปลี่ยน ให้เพิ่ม <code>--rerun</code> ต่อท้ายคำสั่ง</p>
+      <p>ลองทำให้ Test ล้มดูหนึ่งครั้ง เพื่อรู้ว่าต้องอ่านผลอย่างไร เช่น แก้ <code>"a".repeat(50)</code> ใน <code>exactly50Characters_isValid</code> เป็น <code>"a".repeat(51)</code> แล้วรันใหม่</p>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>NoteValidatorTest &gt; exactly50Characters_isValid FAILED
+    java.lang.AssertionError at NoteValidatorTest.kt:22
+
+10 tests completed, 1 failed
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:testDebugUnitTest'.
+&gt; There were failing tests. See the report at: file:///C:/Users/somchai/AndroidStudioProjects/NotesApp/app/build/reports/tests/testDebugUnitTest/index.html</code></pre>
+      <p class="muted small">ตัดบรรทัด PASSED ของ Test ที่ผ่าน และส่วน <code>* Try:</code> ท้ายข้อความออก Path ของรายงานแสดงเป็นโฟลเดอร์ของ somchai</p>
+      <p>Gradle บอกชื่อ Test และบรรทัดที่ล้ม (<code>NoteValidatorTest.kt:22</code>) เปิดไฟล์ <code>index.html</code> ในเบราว์เซอร์เพื่อดู Stack trace เต็ม แล้วแก้ Test กลับเป็นเหมือนเดิม ถ้ารันจากปุ่มสามเหลี่ยมสีเขียวข้างชื่อคลาสใน Studio ผลจะแสดงในแท็บ Run พร้อมลิงก์ไปที่บรรทัดที่ล้ม</p>
+
+      <h5>Compose UI Test</h5>
+      <p>UI Test วาดหน้าจอจริงบน Emulator ด้วย <code>createComposeRule()</code> แล้วหา Element จากข้อความที่ผู้ใช้เห็น การหาจากข้อความเป็นการตรวจไปพร้อมกันว่าข้อความบนจอถูกต้อง Test ใช้ <code>createComposeRule</code> จาก Package <code>androidx.compose.ui.test.junit4.v2</code> เพราะใน Compose 1.12.1 ตัวเดิม <code>androidx.compose.ui.test.junit4.createComposeRule</code> ถูกประกาศว่า Deprecated แล้ว ตัว v2 จัดคิวงาน Coroutine ด้วย <code>StandardTestDispatcher</code> ตามมาตรฐานของ Coroutine</p>
+<pre class="code" data-env="file" data-label="Kotlin · app/src/androidTest/java/com/somchai/notes/NoteListScreenTest.kt"><code class="language-kotlin">package com.somchai.notes
+
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.somchai.notes.data.Note
+import com.somchai.notes.ui.notes.NoteListScreen
+import com.somchai.notes.ui.notes.NoteListUiState
+import com.somchai.notes.ui.theme.NotesTheme
+import org.junit.Assert.assertEquals
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class NoteListScreenTest {
+
+    @get:Rule
+    val composeTestRule = createComposeRule()
+
+    // วาดหน้ารายการด้วย UiState ที่กำหนดเอง ไม่ต้องใช้ ViewModel หรือฐานข้อมูล
+    private fun setScreen(uiState: NoteListUiState, onAddClick: () -&gt; Unit = {}) {
+        composeTestRule.setContent {
+            NotesTheme(dynamicColor = false) {
+                NoteListScreen(
+                    uiState = uiState,
+                    snackbarHostState = SnackbarHostState(),
+                    onQueryChange = {}, onNoteClick = {}, onAddClick = onAddClick,
+                    onTogglePin = {}, onSettingsClick = {},
+                )
+            }
+        }
+    }
+
+    @Test
+    fun emptyList_showsEmptyMessage() {
+        setScreen(NoteListUiState(isLoading = false))
+        composeTestRule.onNodeWithText("ยังไม่มีโน้ต กดปุ่ม + เพื่อเริ่มจด").assertIsDisplayed()
+    }
+
+    @Test
+    fun notes_showTitles() {
+        val notes = listOf(
+            Note(1, "ซื้อของเข้าบ้าน", "", pinned = true, createdAt = 1, updatedAt = 2),
+            Note(2, "ประชุมทีม 10:00", "", pinned = false, createdAt = 1, updatedAt = 1),
+        )
+        setScreen(NoteListUiState(isLoading = false, notes = notes))
+        composeTestRule.onNodeWithText("ซื้อของเข้าบ้าน").assertIsDisplayed()
+        composeTestRule.onNodeWithText("ประชุมทีม 10:00").assertIsDisplayed()
+    }
+
+    @Test
+    fun fabClick_callsOnAddClick() {
+        var clicks = 0
+        setScreen(NoteListUiState(isLoading = false), onAddClick = { clicks++ })
+        composeTestRule.onNodeWithText("+").performClick()
+        assertEquals(1, clicks)
+    }
+}</code></pre>
+      <p>Test ของหน้าแก้ไขต่อหน้าจอเข้ากับ <code>NoteValidator</code> ตัวจริงด้วย State ใน Test เอง แบบเดียวกับที่ <code>NoteEditorViewModel.save()</code> ทำ จึงตรวจได้ว่าข้อความ Error ไปแสดงใต้ช่องชื่อจริง และตัวนับตัวอักษรอัปเดตเมื่อพิมพ์</p>
+<pre class="code" data-env="file" data-label="Kotlin · app/src/androidTest/java/com/somchai/notes/NoteEditorScreenTest.kt"><code class="language-kotlin">package com.somchai.notes
+
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.somchai.notes.ui.editor.NoteEditorScreen
+import com.somchai.notes.ui.editor.NoteEditorUiState
+import com.somchai.notes.ui.editor.NoteValidator
+import com.somchai.notes.ui.theme.NotesTheme
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class NoteEditorScreenTest {
+
+    @get:Rule
+    val composeTestRule = createComposeRule()
+
+    // ต่อหน้าจอเข้ากับ NoteValidator ตัวจริง แบบเดียวกับที่ NoteEditorViewModel.save() ทำ
+    private fun setEditor() {
+        composeTestRule.setContent {
+            var state by remember { mutableStateOf(NoteEditorUiState()) }
+            NotesTheme(dynamicColor = false) {
+                NoteEditorScreen(
+                    uiState = state,
+                    onTitleChange = { state = state.copy(title = it, titleError = null) },
+                    onContentChange = { state = state.copy(content = it) },
+                    onSave = { state = state.copy(titleError = NoteValidator.validateTitle(state.title)) },
+                    onDeleteConfirmed = {},
+                    onBack = {},
+                )
+            }
+        }
+    }
+
+    @Test
+    fun saveBlankTitle_showsRequiredError() {
+        setEditor()
+        composeTestRule.onNodeWithText("บันทึก").performClick()
+        composeTestRule.onNodeWithText("กรุณาใส่ชื่อโน้ต").assertIsDisplayed()
+    }
+
+    @Test
+    fun typingTitle_updatesCounter() {
+        setEditor()
+        composeTestRule.onNodeWithText("ชื่อโน้ต").performTextInput("ทบทวน Kotlin Flow")
+        composeTestRule.onNodeWithText("17/50").assertIsDisplayed()
+    }
+}</code></pre>
+      <p>เปิด Emulator จาก Device Manager ให้บูตเสร็จก่อน แล้วรัน</p>
+      <pre class="code" data-env="win" data-label="PowerShell · Windows"><code class="language-powershell">.\gradlew.bat connectedDebugAndroidTest --rerun</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Running tests on devices: Me2_Phone(AVD) - 17
+
+BUILD SUCCESSFUL in 52s
+71 actionable tasks: 1 executed, 70 up-to-date</code></pre>
+      <p class="muted small">ตัดบรรทัด <code>&gt; Task ...</code> และคำเตือน <code>sun.misc.Unsafe</code> ของ Library ภายใน Gradle ออก (คำเตือนนี้ไม่ใช่ปัญหาของโค้ดคุณ) <code>Me2_Phone(AVD) - 17</code> คือชื่อ AVD ในเครื่องทดสอบตามด้วยเวอร์ชัน Android ของ System image ในเครื่องของคุณจะเป็นชื่อ AVD ที่คุณสร้างไว้ (เช่น <code>Medium_Phone_API_36</code>) งานนี้ไม่พิมพ์ชื่อ Test ทีละตัว ให้เปิดรายงานที่ <code>app\build\reports\androidTests\connected\debug\index.html</code> ในเครื่องทดสอบ ผลของ <code>NoteListScreenTest</code> 3 ตัวและ <code>NoteEditorScreenTest</code> 2 ตัวผ่านทั้งหมด</p>
+      <div class="callout warn"><span class="c-label warn">ระวัง</span><p>ถ้าเคยติดตั้ง Release build ที่เซ็นด้วย Upload key ไว้บน Emulator แล้วมารัน UI Test ที่ใช้ Debug key การติดตั้งจะล้มด้วย <code>Failure [INSTALL_FAILED_UPDATE_INCOMPATIBLE: Existing package com.somchai.notes signatures do not match newer version; ignoring!]</code> เพราะ Android ไม่ยอมให้แอปเดียวกันอัปเดตด้วยกุญแจคนละดอก ให้ถอนแอปออกก่อนด้วย <code>adb uninstall com.somchai.notes</code> (ข้อมูลในแอปบน Emulator จะหายไปด้วย)</p></div>
+      <div class="callout ok"><span class="c-label ok">Best Practice</span><p>ทดสอบ Logic ให้มากที่สุดด้วย Unit test เพราะเร็วและรันได้ทุกครั้งที่ Commit และใช้ UI Test เฉพาะสิ่งที่ต้องเห็นบนจอจริง เช่น ข้อความ Error และปุ่มที่ต้องกดได้ ทีมส่วนใหญ่ตั้ง CI ให้รัน <code>testDebugUnitTest</code> ทุก Pull Request ส่วน UI Test รันบน Emulator ใน CI หรือบริการอย่าง Firebase Test Lab</p></div>
+    </li>
+    <li>
+      <h4>Step 8: Release build ที่เซ็นแล้ว (Upload key, R8 และ app-release.aab)</h4>
+      <p>Google Play รับแอปเป็นไฟล์ Android App Bundle (<code>.aab</code>) ที่เซ็นด้วย <strong>Upload key</strong> ของคุณ เมื่อเปิด Play App Signing (ค่าเริ่มต้นของแอปใหม่) Google จะเก็บกุญแจที่ใช้เซ็นแอปจริงไว้เอง และใช้ Upload key ของคุณแค่ยืนยันว่าไฟล์มาจากคุณ ถ้าทำ Upload key หาย ยังขอเปลี่ยนกุญแจผ่าน Play Console ได้ แต่ต้องรอกระบวนการตรวจสอบ จึงควรสำรองไฟล์ <code>.jks</code> และรหัสผ่านไว้ในที่ปลอดภัย เช่น Password manager</p>
+      <p>สร้าง Upload key ได้ 2 วิธี วิธีแรกคือใช้หน้าต่าง <strong>Build &gt; Generate Signed App Bundle or APK</strong> แล้วกด <strong>Create new...</strong> ใต้ช่อง Key store path วิธีที่สองคือใช้ <code>keytool</code> ที่มากับ JDK ใน Android Studio ตามคำสั่งด้านล่าง ซึ่งเก็บไฟล์ไว้นอกโฟลเดอร์โปรเจกต์ จึงไม่มีโอกาสหลุดขึ้น Git</p>
+      <pre class="code" data-env="win" data-label="PowerShell · Windows"><code class="language-powershell"># เก็บ Keystore ไว้นอกโปรเจกต์
+New-Item -ItemType Directory -Force C:\Users\somchai\keys
+
+# keytool จะถามรหัสผ่านของ Keystore 2 ครั้ง (พิมพ์แล้วไม่แสดงบนจอ)
+&amp; "C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -genkeypair -v `
+  -keystore C:\Users\somchai\keys\notes-upload.jks -alias upload `
+  -keyalg RSA -keysize 2048 -validity 10000 `
+  -dname "CN=somchai, O=Notes, C=TH"</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Generating 2048-bit RSA key pair and self-signed certificate (SHA384withRSA) with a validity of 10,000 days
+	for: CN=somchai, O=Notes, C=TH
+[Storing C:\Users\somchai\keys\notes-upload.jks]</code></pre>
+      <p class="muted small">ผลนี้แสดงเฉพาะบรรทัดหลังใส่รหัสผ่านเสร็จ <code>-validity 10000</code> คืออายุประมาณ 27 ปี Google Play กำหนดให้กุญแจมีอายุถึงหลังวันที่ 22 ตุลาคม 2033</p>
+      <p>สร้างไฟล์ <code>keystore.properties</code> ที่ระดับโปรเจกต์ (ข้าง <code>settings.gradle.kts</code>) ใส่ Path และรหัสผ่านที่ตั้งไว้ ไฟล์นี้อยู่ใน <code>.gitignore</code> ตั้งแต่ Step 1 แล้ว ใน Path ให้ใช้เครื่องหมาย <code>/</code> แทน <code>\</code> เพราะไฟล์ Properties ถือว่า <code>\</code> เป็นอักขระพิเศษ</p>
+      <pre class="code" data-env="file" data-label="Properties · keystore.properties"><code class="language-ini">storeFile=C:/Users/somchai/keys/notes-upload.jks
+storePassword=รหัสผ่านที่ตั้งตอนสร้าง Keystore
+keyAlias=upload
+keyPassword=รหัสผ่านเดียวกัน</code></pre>
+      <p>สั่ง Build ไฟล์ AAB บล็อก <code>release</code> ใน <code>app/build.gradle.kts</code> เปิด <code>isMinifyEnabled</code> (R8 ย่อชื่อคลาส ลบโค้ดที่ไม่ได้ใช้ และปรับแต่งโค้ด) กับ <code>isShrinkResources</code> (ลบ Resource ที่ไม่ได้ใช้) ไว้แล้ว ครั้งแรกจึงนานกว่า Debug build</p>
+      <pre class="code" data-env="win" data-label="PowerShell · Windows"><code class="language-powershell">.\gradlew.bat bundleRelease
+Get-ChildItem app\build\outputs\bundle\release</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so. Run with --info option to learn more.
+BUILD SUCCESSFUL in 1m 40s
+51 actionable tasks: 51 executed
+
+Name             Length
+----             ------
+app-release.aab 4006527</code></pre>
+      <p class="muted small">ตัดบรรทัด <code>&gt; Task ...</code> ออก และแสดงผลของ <code>Get-ChildItem</code> แบบตารางย่อ ขนาดไฟล์ประมาณ 4 MB เวลาและขนาดในเครื่องของคุณจะต่างไปเล็กน้อย ข้อความ <code>Unable to strip</code> แปลว่าเครื่องไม่มี NDK ที่ใช้ตัดข้อมูล Debug ออกจาก Native library 2 ตัวที่มากับ Compose และ DataStore ไฟล์จึงใหญ่ขึ้นนิดหน่อยแต่ทำงานได้ปกติ</p>
+      <p>ตรวจว่าไฟล์ถูกเซ็นแล้วด้วย <code>jarsigner</code> บรรทัดแรกต้องเป็น <code>jar verified.</code> จากนั้นจะมีคำเตือนยาวๆ เช่น <code>This jar contains entries whose signer certificate is self-signed.</code> ซึ่งเป็นเรื่องปกติของ Upload key ที่สร้างเอง</p>
+      <pre class="code" data-env="win" data-label="PowerShell · Windows"><code class="language-powershell">&amp; "C:\Program Files\Android\Android Studio\jbr\bin\jarsigner.exe" -verify app\build\outputs\bundle\release\app-release.aab</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>jar verified.</code></pre>
+      <p class="muted small">แสดงเฉพาะบรรทัดแรก คำเตือนที่ตามมาเกี่ยวกับ Certificate ที่เซ็นเอง การไม่มี Timestamp และรายการ Entry ในไฟล์ ไม่ใช่ข้อผิดพลาด</p>
+      <p>ไฟล์ AAB ติดตั้งลงมือถือตรงๆ ไม่ได้ ต้องให้ Google Play สร้าง APK ให้ ถ้าจะลอง Release build บน Emulator ให้ใช้งาน <code>installRelease</code> ซึ่งสร้าง APK ด้วยการตั้งค่าเดียวกัน (R8 และ Upload key) แล้วติดตั้งให้ ลองสร้าง แก้ไข ลบ เลิกทำ และเปลี่ยนธีมให้ครบทุกหน้า เพราะ R8 อาจลบหรือเปลี่ยนชื่อคลาสที่ถูกเรียกผ่าน Reflection ในการทดสอบนี้ Route ทั้ง 3 ตัวทำงานถูกต้องโดยไม่ต้องเพิ่มกฎใน <code>proguard-rules.pro</code> เพราะ kotlinx.serialization และ Navigation ส่งกฎของตัวเองมากับ Library แล้ว</p>
+      <pre class="code" data-env="win" data-label="PowerShell · Windows"><code class="language-powershell">.\gradlew.bat installRelease</code></pre>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Installing APK 'app-release.apk, app-release.dm' on 'Me2_Phone(AVD) - 17' for :app:release
+Installed on 1 device.
+BUILD SUCCESSFUL in 10s</code></pre>
+      <p>ถ้า Windows ตั้ง System locale เป็นภาษาไทยและยังไม่ได้แก้ <code>gradle.properties</code> ตาม Step 1 งาน <code>bundleRelease</code> จะล้มแบบนี้ ข้อความไม่บอกสาเหตุเลย เมื่อรันซ้ำด้วย <code>--stacktrace</code> จะเห็นว่าล้มที่ <code>MsDosDateTimeUtils.packDate</code> ซึ่งแปลงวันที่ปัจจุบันเป็นรูปแบบในไฟล์ ZIP แต่ได้ปี 2569 จากปฏิทินพุทธ</p>
+      <pre class="code" data-kind="out" data-env="out" data-label="Output"><code>* What went wrong:
+Execution failed for task ':app:mergeReleaseJavaResource' (registered by plugin 'com.android.internal.application').
+&gt; A failure occurred while executing com.android.build.gradle.internal.tasks.MergeJavaResWorkAction
+   &gt; com.google.common.base.VerifyException (no error message)</code></pre>
+      <div class="callout sec"><span class="c-label sec">Security</span><p>ก่อน Commit ทุกครั้ง ให้รัน <code>git status</code> แล้วตรวจว่าไม่มี <code>keystore.properties</code>, ไฟล์ <code>.jks</code> และ <code>local.properties</code> อยู่ในรายการ ถ้าเผลอ Push ไปแล้ว การลบไฟล์ใน Commit ใหม่ไม่พอ เพราะไฟล์ยังอยู่ในประวัติของ Git ให้ถือว่ากุญแจรั่วแล้ว สร้าง Upload key ใหม่ และขอเปลี่ยนใน Play Console ถ้าเคยส่งแอปไปแล้ว</p></div>
+    </li>
+
+    <li>
+      <h4>Step 9: README สำหรับ Portfolio และ Push ขึ้น GitHub</h4>
+      <p>ผู้ดู Portfolio ส่วนใหญ่ไม่ Clone โปรเจกต์มา Build เอง และติดตั้งไฟล์ AAB ไม่ได้ README จึงต้องตอบคำถามให้ครบภายใน 1 นาทีที่เขาเปิดอ่าน: แอปทำอะไร หน้าตาเป็นอย่างไร ใช้เทคโนโลยีอะไร ออกแบบอย่างไร และรันเองอย่างไร ถ่ายภาพหน้าจอจาก Emulator ด้วยปุ่มรูปกล้องในแถบเครื่องมือของ Running Devices แล้วเก็บไว้ในโฟลเดอร์ <code>docs/</code> และอัดวิดีโอด้วยปุ่ม Record screen ข้างกัน แล้วแปลงเป็น GIF ด้วยเครื่องมือที่คุณถนัด</p>
+      <pre class="code" data-kind="tpl" data-env="tpl" data-label="Markdown · README.md"><code class="language-markdown"># Notes App
+
+แอปจดโน้ตแบบ Offline บน Android ที่เขียนด้วย Kotlin และ Jetpack Compose (Material 3)
+
+| รายการโน้ต | แก้ไขโน้ต | ธีมมืด |
+|---|---|---|
+| ![รายการโน้ต](docs/list-light.png) | ![แก้ไขโน้ต](docs/editor.png) | ![ธีมมืด](docs/list-dark.png) |
+
+![วิดีโอสาธิต](docs/demo.gif)
+
+## ฟีเจอร์
+- สร้าง แก้ไข และลบโน้ต พร้อมหน้าต่างยืนยัน และปุ่ม "เลิกทำ" ใน Snackbar
+- ค้นหาทั้งชื่อและเนื้อหา (debounce 300 ms)
+- ปักหมุดโน้ตให้อยู่บนสุด
+- ตั้งค่าธีม (ตามระบบ / สว่าง / มืด) และการเรียง (แก้ไขล่าสุด / ชื่อ) เก็บใน DataStore
+- ข้อมูลทั้งหมดอยู่ในเครื่อง ไม่ต้องใช้อินเทอร์เน็ต
+
+## สถาปัตยกรรม
+MVVM และ Unidirectional Data Flow
+
+```
+UI (Compose) → ViewModel (StateFlow&lt;UiState&gt;) → Repository → Room / DataStore
+```
+
+- หน้าจอเป็น Stateless Composable ที่รับ UiState และส่ง Event ออก
+- Manual DI ด้วย `AppContainer` ใน `NotesApplication`
+- Navigation Compose แบบ Type-safe (`@Serializable` routes)
+
+## Tech stack
+- Kotlin 2.4.21, AGP 9.4.0, compileSdk 37, targetSdk 36, minSdk 24
+- Compose BOM 2026.09.00 (Compose UI 1.12.1, Material3 1.4.0)
+- Lifecycle 2.11.0, Navigation Compose 2.10.2, kotlinx-serialization 1.11.0
+- Room 2.8.5 + KSP 2.3.12, DataStore Preferences 1.2.1
+- JUnit 4.13.2, kotlinx-coroutines-test 1.11.0, Compose UI Test
+
+## วิธีรัน
+1. Clone repo แล้วเปิดด้วย Android Studio Rabbit 1 (2026.2.1) ขึ้นไป
+2. ติดตั้ง SDK Platform Android 17 (API 37) ใน SDK Manager
+3. กด Run บน Emulator หรือมือถือที่เปิด USB debugging
+
+## วิธีรัน Test
+```
+.\gradlew.bat testDebugUnitTest          # Unit test 10 ตัว
+.\gradlew.bat connectedDebugAndroidTest  # Compose UI Test 5 ตัว (ต้องเปิด Emulator)
+```
+
+## ข้อจำกัดที่รู้อยู่
+- ยังไม่ Sync ข้ามอุปกรณ์ ข้อมูลหายถ้าถอนแอป
+- ยังไม่รองรับหน้าจอแท็บเล็ตแบบ 2 คอลัมน์
+- ปุ่ม "เลิกทำ" ใช้ได้เฉพาะโน้ตที่ลบล่าสุด
+
+## สิ่งที่ได้เรียนรู้
+(เขียน 3–5 ข้อด้วยคำของคุณเอง เช่น ปัญหาที่เจอและวิธีแก้)</code></pre>
+      <p>ใช้ Terminal ของ Android Studio ที่โฟลเดอร์ <code>NotesApp</code> แล้วทำตามคำสั่งเดียวกับ Step 13 ในส่วนที่ 1 โดยสร้าง Repository เปล่าชื่อ <code>notes-app</code> บน GitHub ก่อน (ไม่ต้องติ๊กสร้าง README เพราะมีอยู่แล้ว) ถ้ายังไม่คล่องเรื่อง Remote และ Branch ให้ทบทวน <a data-t="17"></a></p>
+      <pre class="code" data-env="win" data-label="PowerShell · Windows"><code class="language-powershell">git init
+git add .
+# ตรวจว่าไม่มี keystore.properties, ไฟล์ .jks, local.properties และโฟลเดอร์ build ในรายการ
+git status
+git commit -m "Notes App: Compose, Room, MVVM, Navigation, DataStore and tests"
+git branch -M main
+git remote add origin https://github.com/somchai/notes-app.git
+git push -u origin main</code></pre>
+      <p>เมื่อ Push แล้ว ให้เปิดหน้า Repository บน GitHub กดรูปเฟืองข้าง About ใส่คำอธิบายสั้นๆ และ Topics เช่น <code>android</code>, <code>kotlin</code>, <code>jetpack-compose</code>, <code>room</code>, <code>mvvm</code> เพื่อให้ค้นเจอง่าย แล้วปักหมุด Repository ไว้ในหน้า Profile</p>
+      <div class="callout"><span class="c-label check">Checkpoint</span><p>โปรเจกต์ถือว่าเสร็จเมื่อ: (1) <code>.\gradlew.bat testDebugUnitTest</code> และ <code>connectedDebugAndroidTest</code> ผ่านทั้งหมด (2) มีไฟล์ <code>app-release.aab</code> ที่ <code>jarsigner -verify</code> แล้วได้ <code>jar verified.</code> (3) Release build ที่ติดตั้งด้วย <code>installRelease</code> ใช้งานได้ครบทุกหน้า (4) Repository <code>notes-app</code> มี README พร้อมภาพหน้าจอ 3 ภาพและวิดีโอสาธิต และไม่มีไฟล์ลับ (5) คุณอธิบายเส้นทางของข้อมูลตั้งแต่ผู้ใช้กดบันทึกจนการ์ดใหม่ขึ้นในรายการได้ ผ่านทุกชั้นตั้งแต่ Screen, ViewModel, Repository, DAO จนถึง Flow ที่ส่งรายการใหม่กลับมา</p></div>
+    </li>
+  </ol>
+
+  <h4>ไอเดียต่อยอด</h4>
+  <p>เมื่อเวอร์ชันแรกเสร็จแล้ว ให้เพิ่มฟีเจอร์ทีละอย่างบน Branch แยก แล้ว Merge ผ่าน Pull Request พร้อม Test ของฟีเจอร์นั้น ประวัติ Commit ที่เป็นระเบียบแบบนี้ช่วยให้ผู้สัมภาษณ์เห็นวิธีทำงานของคุณ</p>
+  <ol>
+    <li><strong>Room Migration เวอร์ชัน 2:</strong> เพิ่มคอลัมน์ <code>color</code> ให้เลือกสีการ์ดได้ เปลี่ยน <code>version = 2</code> แล้วใช้ <code>@Database(autoMigrations = [AutoMigration(from = 1, to = 2)])</code> หรือเขียน <code>Migration(1, 2)</code> ที่สั่ง <code>ALTER TABLE</code> เอง และเขียน Test ด้วย <code>MigrationTestHelper</code> ที่อ่านไฟล์ใน <code>schemas/</code></li>
+    <li><strong>แท็กและตัวกรอง:</strong> สร้างตาราง <code>tags</code> และตารางเชื่อม <code>note_tags</code> แบบ Many-to-many แล้วใช้ <code>@Relation</code> กับ <code>@Junction</code> โหลดโน้ตพร้อมแท็ก และเพิ่ม <code>FilterChip</code> เหนือรายการ</li>
+    <li><strong>Hilt แทน AppContainer:</strong> ย้ายการสร้าง Dependency ไปไว้ใน <code>@Module</code> และใช้ <code>@HiltViewModel</code> แล้วเทียบให้เห็นว่าโค้ด Factory หายไปเท่าไร ตรวจเวอร์ชันและวิธีติดตั้งล่าสุดที่หน้า Hilt ของ developer.android.com ก่อนเริ่ม</li>
+    <li><strong>เตือนความจำด้วย WorkManager 2.12.0:</strong> ให้ตั้งเวลาเตือนต่อโน้ต แล้วแสดง Notification เมื่อถึงเวลา โดยขอสิทธิ์ <code>POST_NOTIFICATIONS</code> บน Android 13 ขึ้นไปตามที่เรียนในส่วนที่ 2</li>
+    <li><strong>Sync กับเซิร์ฟเวอร์:</strong> เขียน API เล็กๆ ด้วยความรู้จาก <a data-t="12"></a> แล้วใช้ Retrofit 3.0.0 ส่งโน้ตขึ้นไป ให้ Room เป็นแหล่งข้อมูลหลัก (Offline-first) และใช้ WorkManager Sync เมื่อมีอินเทอร์เน็ต</li>
+    <li><strong>หน้าจอขนาดใหญ่:</strong> ใช้ <code>currentWindowAdaptiveInfo()</code> และ List-detail layout ของ Material 3 Adaptive ให้แท็บเล็ตและมือถือพับได้แสดงรายการกับหน้าแก้ไขพร้อมกัน</li>
+    <li><strong>CI ด้วย GitHub Actions:</strong> สร้าง <code>.github/workflows/android.yml</code> ที่ใช้ <code>actions/setup-java</code> ติดตั้ง JDK 21 แล้วรัน <code>./gradlew testDebugUnitTest</code> ทุก Pull Request และแสดง Badge ผลการทดสอบใน README</li>
+    <li><strong>ส่งออกและนำเข้าโน้ต:</strong> ใช้ <code>ActivityResultContracts.CreateDocument("application/json")</code> ให้ผู้ใช้เลือกที่เก็บไฟล์ แล้วเขียนโน้ตทั้งหมดเป็น JSON ด้วย kotlinx.serialization และอ่านกลับด้วย <code>OpenDocument</code></li>
+    <li><strong>Accessibility:</strong> ทดสอบด้วย TalkBack และตัวอักษรขนาด 200% ใส่ <code>contentDescription</code> และ <code>Modifier.semantics</code> ที่ขาด และเพิ่ม UI Test ที่ตรวจด้วย <code>onNodeWithContentDescription</code></li>
+  </ol>
+
+  <h3 id="s18-4-cheat">Cheat Sheet</h3>
+  <p>สรุปคำสั่งและ Syntax ที่ใช้บ่อยที่สุดในหัวข้อนี้ จัดกลุ่มตามงาน ตัวอย่างทุกตัวใช้ชื่อจาก Notes App คำสั่ง Gradle พิมพ์ใน Terminal ของ Android Studio บน Windows</p>
+
+  <h4>Gradle และ ADB</h4>
+  <div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>.\gradlew.bat assembleDebug</code></td><td>สร้าง APK แบบ Debug ไว้ที่ <code>app\build\outputs\apk\debug</code></td><td><code>.\gradlew.bat assembleDebug</code></td></tr>
+    <tr><td><code>.\gradlew.bat testDebugUnitTest</code></td><td>รัน Unit test ใน <code>src/test</code> บน JVM</td><td><code>.\gradlew.bat testDebugUnitTest --tests "*NoteValidatorTest"</code></td></tr>
+    <tr><td><code>.\gradlew.bat connectedDebugAndroidTest</code></td><td>รัน Test ใน <code>src/androidTest</code> บน Emulator หรือมือถือที่ต่ออยู่</td><td><code>.\gradlew.bat connectedDebugAndroidTest</code></td></tr>
+    <tr><td><code>.\gradlew.bat bundleRelease</code></td><td>สร้างไฟล์ AAB ที่เซ็นแล้วสำหรับส่ง Google Play</td><td><code>app\build\outputs\bundle\release\app-release.aab</code></td></tr>
+    <tr><td><code>.\gradlew.bat installRelease</code></td><td>สร้างและติดตั้ง Release APK เพื่อทดสอบผลของ R8</td><td><code>.\gradlew.bat installRelease</code></td></tr>
+    <tr><td><code>--rerun</code> / <code>--stacktrace</code></td><td>บังคับรัน Task ซ้ำแม้ไม่มีอะไรเปลี่ยน / แสดง Stack trace เมื่อ Build ล้ม</td><td><code>.\gradlew.bat bundleRelease --stacktrace</code></td></tr>
+    <tr><td><code>adb devices</code></td><td>แสดง Emulator และมือถือที่ ADB มองเห็น</td><td><code>emulator-5554   device</code></td></tr>
+    <tr><td><code>adb uninstall &lt;package&gt;</code></td><td>ถอนแอป เช่น เมื่อเจอ <code>INSTALL_FAILED_UPDATE_INCOMPATIBLE</code></td><td><code>adb uninstall com.somchai.notes</code></td></tr>
+  </tbody></table></div>
+
+  <h4>Version Catalog และ app/build.gradle.kts</h4>
+  <div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>[versions]</code> + <code>version.ref</code></td><td>ประกาศเลขเวอร์ชันที่เดียวใน <code>libs.versions.toml</code> แล้วอ้างจาก Library หลายตัว</td><td><code>room = "2.8.5"</code></td></tr>
+    <tr><td><code>implementation(libs.x.y)</code></td><td>ใช้ Library จาก Catalog ขีด <code>-</code> ในชื่อ Alias กลายเป็นจุด</td><td><code>implementation(libs.androidx.room.runtime)</code></td></tr>
+    <tr><td><code>ksp(...)</code></td><td>ใช้ตัวสร้างโค้ดตอนคอมไพล์ เช่น Room compiler (AGP 9 ใช้ kapt ไม่ได้)</td><td><code>ksp(libs.androidx.room.compiler)</code></td></tr>
+    <tr><td><code>platform(libs.androidx.compose.bom)</code></td><td>ให้ BOM กำหนดเวอร์ชันของ Library Compose ทุกตัวให้เข้ากัน</td><td><code>implementation(platform(libs.androidx.compose.bom))</code></td></tr>
+    <tr><td><code>compileSdk</code> / <code>targetSdk</code> / <code>minSdk</code></td><td>API ที่ใช้คอมไพล์ / API ที่แอปประกาศว่ารองรับพฤติกรรมแล้ว / Android รุ่นต่ำสุดที่ติดตั้งได้</td><td><code>compileSdk = 37</code>, <code>targetSdk = 36</code>, <code>minSdk = 24</code></td></tr>
+    <tr><td><code>isMinifyEnabled = true</code></td><td>เปิด R8 ใน Release build เพื่อย่อและปรับแต่งโค้ด</td><td><code>release { isMinifyEnabled = true }</code></td></tr>
+    <tr><td><code>room { schemaDirectory(...) }</code></td><td>บอก Room Gradle Plugin ว่าจะ Export schema ไปไว้ที่ไหน</td><td><code>schemaDirectory("$projectDir/schemas")</code></td></tr>
+  </tbody></table></div>
+
+  <h4>Compose และ State</h4>
+  <div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>rememberSaveable { mutableStateOf(x) }</code></td><td>เก็บ State ในหน้าจอที่รอดจากการหมุนจอ</td><td><code>var showDeleteDialog by rememberSaveable { mutableStateOf(false) }</code></td></tr>
+    <tr><td><code>collectAsStateWithLifecycle()</code></td><td>อ่าน <code>StateFlow</code> จาก ViewModel และหยุดเก็บค่าเมื่อแอปอยู่เบื้องหลัง</td><td><code>val uiState by viewModel.uiState.collectAsStateWithLifecycle()</code></td></tr>
+    <tr><td><code>LaunchedEffect(key) { }</code></td><td>รันงาน Suspend เมื่อ Composable แสดงครั้งแรก และรันใหม่เมื่อ key เปลี่ยน</td><td><code>LaunchedEffect(uiState.isSaved) { if (uiState.isSaved) navController.popBackStack() }</code></td></tr>
+    <tr><td><code>LazyColumn { items(list, key = { it.id }) { } }</code></td><td>รายการยาวที่สร้างเฉพาะแถวที่มองเห็น <code>key</code> ช่วยให้ Compose ติดตามแถวเดิมเมื่อรายการเปลี่ยนลำดับ</td><td><code>items(uiState.notes, key = { it.id }) { note -&gt; NoteItem(note, ...) }</code></td></tr>
+    <tr><td><code>Scaffold(topBar, floatingActionButton, snackbarHost)</code></td><td>โครงหน้าจอ Material 3 ต้องใช้ <code>innerPadding</code> กับเนื้อหาเสมอ</td><td><code>Column(Modifier.padding(innerPadding))</code></td></tr>
+    <tr><td><code>snackbarHostState.showSnackbar(...)</code></td><td>แสดง Snackbar แล้วรอผล <code>ActionPerformed</code> หรือ <code>Dismissed</code></td><td><code>showSnackbar("ลบโน้ตแล้ว", actionLabel = "เลิกทำ")</code></td></tr>
+    <tr><td><code>Modifier.selectable(..., role = Role.RadioButton)</code></td><td>ทำให้ทั้งแถวกดได้ และ TalkBack อ่านเป็นปุ่มตัวเลือก</td><td><code>Modifier.selectable(selected, onClick = { onSelect(value) }, role = Role.RadioButton)</code></td></tr>
+    <tr><td><code>@OptIn(ExperimentalMaterial3Api::class)</code></td><td>ยอมรับการใช้ API ที่ยังเป็น Experimental เช่น <code>TopAppBar</code> ใน Material3 1.4.0</td><td>ใส่เหนือ <code>@Composable fun NoteListScreen(...)</code></td></tr>
+  </tbody></table></div>
+
+  <h4>ViewModel, Coroutine และ Flow</h4>
+  <div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>viewModelScope.launch { }</code></td><td>เริ่ม Coroutine ที่ถูกยกเลิกเองเมื่อ ViewModel ถูกทำลาย</td><td><code>viewModelScope.launch { repository.setPinned(id, true) }</code></td></tr>
+    <tr><td><code>stateIn(scope, WhileSubscribed(5_000), initial)</code></td><td>แปลง Flow เป็น <code>StateFlow</code> ที่หยุดเมื่อไม่มีผู้เก็บค่าเกิน 5 วินาที</td><td><code>.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NoteListUiState())</code></td></tr>
+    <tr><td><code>combine(a, b, c) { ... }</code></td><td>รวมหลาย Flow เป็นค่าเดียว ทำงานใหม่ทุกครั้งที่ Flow ใดส่งค่า</td><td><code>combine(query, searchResults, sortOrder, deletedNote) { ... }</code></td></tr>
+    <tr><td><code>debounce(ms)</code></td><td>ส่งค่าเมื่อเงียบไปครบตามเวลา ใช้กับช่องค้นหา</td><td><code>query.debounce(300)</code></td></tr>
+    <tr><td><code>flatMapLatest { }</code></td><td>สลับไปฟัง Flow ใหม่และยกเลิกตัวเก่าเมื่อค่าต้นทางเปลี่ยน</td><td><code>.flatMapLatest { repository.observeNotes(it) }</code></td></tr>
+    <tr><td><code>MutableStateFlow.update { }</code></td><td>แก้ State แบบปลอดภัยเมื่อมีหลาย Coroutine เขียนพร้อมกัน</td><td><code>_uiState.update { it.copy(titleError = error) }</code></td></tr>
+    <tr><td><code>viewModelFactory { initializer { } }</code></td><td>สร้าง ViewModel ที่มีพารามิเตอร์ โดยดึง Application ด้วย <code>APPLICATION_KEY</code></td><td><code>val app = this[APPLICATION_KEY] as NotesApplication</code></td></tr>
+  </tbody></table></div>
+
+  <h4>Navigation, Room และ DataStore</h4>
+  <div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>@Serializable data class Route(...)</code></td><td>ประกาศ Route แบบ Type-safe ที่มีอาร์กิวเมนต์</td><td><code>@Serializable data class NoteEditorRoute(val noteId: Long = 0L)</code></td></tr>
+    <tr><td><code>composable&lt;Route&gt; { }</code></td><td>ผูก Route กับหน้าจอใน <code>NavHost</code></td><td><code>composable&lt;SettingsRoute&gt; { SettingsScreen(...) }</code></td></tr>
+    <tr><td><code>navController.navigate(route)</code></td><td>ไปหน้าใหม่และเพิ่มเข้า Back stack</td><td><code>navController.navigate(NoteEditorRoute(noteId = 3))</code></td></tr>
+    <tr><td><code>savedStateHandle.toRoute&lt;Route&gt;()</code></td><td>อ่านอาร์กิวเมนต์ของ Route ใน ViewModel</td><td><code>savedStateHandle.toRoute&lt;NoteEditorRoute&gt;().noteId</code></td></tr>
+    <tr><td><code>previousBackStackEntry?.savedStateHandle</code></td><td>ส่งค่ากลับไปให้หน้าก่อนหน้าก่อน <code>popBackStack()</code></td><td><code>navController.previousBackStackEntry?.savedStateHandle?.set("delete_note_id", id)</code></td></tr>
+    <tr><td><code>@Entity</code> / <code>@PrimaryKey(autoGenerate = true)</code></td><td>ประกาศตารางและคอลัมน์ id ที่ Room สร้างให้</td><td><code>@Entity(tableName = "notes")</code></td></tr>
+    <tr><td><code>@Query("...") fun x(): Flow&lt;List&lt;T&gt;&gt;</code></td><td>Query ที่ส่งผลใหม่ทุกครั้งที่ตารางเปลี่ยน</td><td><code>fun observeNotes(query: String): Flow&lt;List&lt;NoteEntity&gt;&gt;</code></td></tr>
+    <tr><td><code>@Upsert suspend fun upsert(e): Long</code></td><td>เพิ่มแถวใหม่ หรือแทนที่ถ้า Primary key ซ้ำ (คืน <code>-1</code> เมื่อเป็นการแก้ไข)</td><td><code>dao.upsert(note.toEntity())</code></td></tr>
+    <tr><td><code>preferencesDataStore(name)</code></td><td>ประกาศ DataStore ระดับไฟล์ ครั้งเดียวต่อหนึ่งไฟล์ข้อมูล</td><td><code>private val Context.dataStore by preferencesDataStore(name = "settings")</code></td></tr>
+    <tr><td><code>dataStore.edit { it[key] = value }</code></td><td>เขียนค่าลง DataStore แบบ Transaction</td><td><code>dataStore.edit { it[Keys.THEME_MODE] = "dark" }</code></td></tr>
+  </tbody></table></div>
+
+  <h4>Test และ Release</h4>
+  <div class="tbl mid"><table class="cheat"><thead><tr><th>คำสั่ง / Syntax</th><th>ใช้ทำอะไร</th><th>ตัวอย่าง</th></tr></thead><tbody>
+    <tr><td><code>runTest { }</code></td><td>รัน Test ที่มี Coroutine ด้วยเวลาเสมือน</td><td><code>fun search_matchesTitleAndContent() = runTest { ... }</code></td></tr>
+    <tr><td><code>advanceTimeBy(ms)</code> / <code>advanceUntilIdle()</code></td><td>เลื่อนเวลาเสมือน / รันงานที่ค้างในคิวให้หมด</td><td><code>advanceTimeBy(301)</code> เพื่อข้าม <code>debounce(300)</code></td></tr>
+    <tr><td><code>backgroundScope.launch { flow.collect {} }</code></td><td>เปิด Collector ให้ <code>stateIn(WhileSubscribed)</code> ทำงานระหว่าง Test</td><td><code>backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }</code></td></tr>
+    <tr><td><code>Dispatchers.setMain(...)</code></td><td>แทน Main dispatcher ใน Unit test (ห่อไว้ใน <code>MainDispatcherRule</code>)</td><td><code>@get:Rule val mainDispatcherRule = MainDispatcherRule()</code></td></tr>
+    <tr><td><code>createComposeRule()</code> (v2)</td><td>วาด Composable ใน Instrumented test ด้วย Package <code>androidx.compose.ui.test.junit4.v2</code></td><td><code>composeTestRule.setContent { NoteListScreen(...) }</code></td></tr>
+    <tr><td><code>onNodeWithText(...).performClick()</code></td><td>หา Element จากข้อความแล้วกด</td><td><code>composeTestRule.onNodeWithText("+").performClick()</code></td></tr>
+    <tr><td><code>assertIsDisplayed()</code></td><td>ตรวจว่า Element แสดงอยู่บนจอ</td><td><code>onNodeWithText("กรุณาใส่ชื่อโน้ต").assertIsDisplayed()</code></td></tr>
+    <tr><td><code>keytool -genkeypair</code></td><td>สร้าง Upload key ในไฟล์ <code>.jks</code></td><td><code>keytool -genkeypair -keystore notes-upload.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000</code></td></tr>
+    <tr><td><code>jarsigner -verify</code></td><td>ตรวจว่าไฟล์ AAB ถูกเซ็นแล้ว (ต้องได้ <code>jar verified.</code>)</td><td><code>jarsigner -verify app-release.aab</code></td></tr>
+  </tbody></table></div>
+
+  <h3 id="s18-4-interview">Interview Questions</h3>
+  <p>คำถามเหล่านี้พบบ่อยในการสัมภาษณ์ตำแหน่ง Android Developer ระดับ Junior ถึง Mid ผู้สัมภาษณ์มักถามต่อจากโปรเจกต์ใน Portfolio ให้ลองตอบด้วยคำพูดของตัวเองก่อน แล้วจึงเปิดดูคำตอบตัวอย่าง คำตอบที่ดีมักมี 3 ส่วน คือคำอธิบายที่ถูกต้อง เหตุผลว่าทำไมจึงสำคัญ และตัวอย่างจากงานที่ทำจริง</p>
+
+  <details class="iq"><summary>1. ViewModel ทำหน้าที่อะไร และทำไมไม่เก็บข้อมูลของหน้าจอไว้ใน Activity หรือ Composable (Junior)</summary><div>
+    <p><strong>คำตอบตัวอย่าง:</strong> ViewModel ถือ State ของหน้าจอและ Logic ที่ตัดสินใจว่าจะแสดงอะไร มันอยู่รอดเมื่อเกิด Configuration change เช่นหมุนจอ เปลี่ยนภาษา หรือเปลี่ยนขนาดหน้าต่าง ซึ่ง Activity จะถูกทำลายและสร้างใหม่ ถ้าเก็บรายการโน้ตไว้ใน Activity ทุกครั้งที่หมุนจอก็ต้องโหลดใหม่ และงานที่กำลังทำอยู่จะหายไป</p>
+    <ul>
+      <li>ViewModel มี <code>viewModelScope</code> ที่ยกเลิก Coroutine ทุกตัวให้อัตโนมัติเมื่อผู้ใช้ออกจากหน้าจอนั้นจริงๆ จึงไม่มีงานค้างทำงานต่อหลังปิดหน้า</li>
+      <li>ViewModel ไม่ขึ้นกับ Android UI จึงเขียน Unit test บน JVM ได้ ใน Notes App ผมทดสอบการค้นหา การเรียง การปักหมุด และการลบพร้อมเลิกทำของ <code>NoteListViewModel</code> ด้วย <code>FakeNoteRepository</code> โดยไม่ต้องเปิด Emulator</li>
+      <li>ข้อห้ามสำคัญคือห้ามเก็บ Activity, View หรือ <code>NavController</code> ไว้ใน ViewModel เพราะ ViewModel อยู่นานกว่าหน้าจอ และจะทำให้เกิด Memory leak ถ้าต้องใช้ Context ให้ใช้ Application context ผ่าน Dependency</li>
+      <li>ViewModel ไม่ได้รอดทุกกรณี ถ้าระบบฆ่า Process ของแอปตอนอยู่เบื้องหลัง ViewModel จะหายไปด้วย ข้อมูลที่ต้องรอดกรณีนี้ต้องอยู่ใน <code>SavedStateHandle</code> หรือฐานข้อมูล</li>
+    </ul>
+  </div></details>
+
+  <details class="iq"><summary>2. remember, rememberSaveable และ ViewModel ต่างกันอย่างไร ควรเลือกใช้เมื่อไร (Junior)</summary><div>
+    <p><strong>คำตอบตัวอย่าง:</strong> ทั้ง 3 อย่างเก็บ State ได้ แต่อายุต่างกัน</p>
+    <ul>
+      <li><code>remember</code> เก็บค่าข้าม Recomposition แต่หายเมื่อหมุนจอ เพราะ Activity ถูกสร้างใหม่ เหมาะกับค่าชั่วคราวที่สร้างใหม่ได้ไม่เสียหาย เช่น <code>SnackbarHostState</code></li>
+      <li><code>rememberSaveable</code> เก็บค่าลง Bundle จึงรอดจากการหมุนจอและจากการที่ระบบฆ่า Process แต่ควรเก็บแค่ข้อมูลเล็กๆ ที่เป็นของหน้าจอล้วน ใน Notes App ผมใช้กับ <code>showDeleteDialog</code> ของหน้าต่างยืนยันการลบ</li>
+      <li>ViewModel ใช้กับ State ที่มาจากข้อมูลหรือต้องมี Logic เช่น รายการโน้ต ผลค้นหา และ Error ของการตรวจชื่อ เพราะทดสอบได้ และหลายหน้าจอใช้ Logic เดียวกันได้</li>
+    </ul>
+    <p>หลักที่ผมใช้คือถามว่า "ถ้าค่านี้หาย ผู้ใช้จะรู้สึกไหม และค่านี้มี Logic ไหม" ถ้ามี Logic ให้อยู่ใน ViewModel ถ้าเป็นแค่สถานะของ UI ให้ใช้ <code>rememberSaveable</code> และใช้ <code>remember</code> กับสิ่งที่สร้างใหม่ได้เสมอ</p>
+  </div></details>
+
+  <details class="iq"><summary>3. อธิบาย stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initialValue) และทำไมต้องเป็น 5 วินาที (Mid)</summary><div>
+    <p><strong>คำตอบตัวอย่าง:</strong> Flow จาก Room เป็น Cold flow คือจะเริ่ม Query เมื่อมีผู้ <code>collect</code> และแต่ละผู้ <code>collect</code> ได้ Query แยกกัน <code>stateIn</code> แปลงเป็น <code>StateFlow</code> ที่เป็น Hot flow แชร์ผลให้ผู้เก็บค่าทุกตัว จำค่าล่าสุด และมี <code>initialValue</code> ให้หน้าจอวาดได้ทันที ใน Notes App ค่าเริ่มต้นคือ <code>NoteListUiState(isLoading = true)</code> หน้าจอจึงแสดง Progress ก่อนข้อมูลมาถึง</p>
+    <ul>
+      <li><code>WhileSubscribed(5_000)</code> แปลว่าทำงานเมื่อมีผู้เก็บค่าอย่างน้อยหนึ่งตัว และเมื่อผู้เก็บค่าตัวสุดท้ายหายไป ให้รออีก 5 วินาทีก่อนหยุด</li>
+      <li>ตอนหมุนจอ Activity เก่าหยุดเก็บค่าและ Activity ใหม่เริ่มเก็บค่าภายในเวลาไม่ถึงวินาที การรอ 5 วินาทีจึงทำให้ Query ไม่ต้องเริ่มใหม่ ส่วนตอนผู้ใช้กด Home ไปทำอย่างอื่น <code>collectAsStateWithLifecycle()</code> หยุดเก็บค่าตามสถานะ Lifecycle และ Flow ต้นทางจะหยุดหลัง 5 วินาที ไม่เปลืองแบตเตอรี่</li>
+      <li>ถ้าใช้ <code>SharingStarted.Eagerly</code> Flow จะทำงานตลอดอายุ ViewModel แม้ไม่มีใครดู ถ้าใช้ <code>Lazily</code> จะเริ่มเมื่อมีผู้เก็บค่าครั้งแรกแต่ไม่หยุดเลย</li>
+      <li>ผลข้างเคียงที่ต้องรู้ตอนเขียน Test คือ <code>uiState.value</code> จะค้างที่ค่าเริ่มต้นถ้าไม่มีผู้เก็บค่า ผมจึงเปิด Collector ใน <code>backgroundScope</code> ของ <code>runTest</code> ทุก Test</li>
+    </ul>
+  </div></details>
+
+  <details class="iq"><summary>4. ถ้าแอปที่ปล่อยไปแล้วต้องเพิ่มคอลัมน์ใหม่ในตาราง Room คุณจะทำอย่างไร และถ้าทำผิดจะเกิดอะไรขึ้น (Mid)</summary><div>
+    <p><strong>คำตอบตัวอย่าง:</strong> ผู้ใช้ที่อัปเดตแอปยังมีไฟล์ฐานข้อมูลเวอร์ชันเก่าอยู่ในเครื่อง ผมต้องเพิ่มเลข <code>version</code> ใน <code>@Database</code> และบอก Room ว่าจะแปลงข้อมูลเก่าอย่างไร มี 2 วิธี</p>
+    <ol>
+      <li><strong>Auto migration:</strong> ใส่ <code>autoMigrations = [AutoMigration(from = 1, to = 2)]</code> ใช้ได้กับการเปลี่ยนแปลงที่ Room อนุมานเองได้ เช่นเพิ่มคอลัมน์ที่มีค่าเริ่มต้น โดย Room จะเทียบไฟล์ Schema JSON ของเวอร์ชัน 1 กับ 2 ในโฟลเดอร์ <code>schemas/</code> ซึ่งเป็นเหตุผลที่ต้องเปิด <code>exportSchema</code> และ Commit โฟลเดอร์นี้ตั้งแต่เวอร์ชันแรก</li>
+      <li><strong>Manual migration:</strong> เขียน <code>object : Migration(1, 2)</code> ที่สั่ง <code>ALTER TABLE notes ADD COLUMN color INTEGER NOT NULL DEFAULT 0</code> เอง แล้วลงทะเบียนด้วย <code>addMigrations(...)</code> ใช้เมื่อต้องย้ายหรือแปลงข้อมูล เช่นแยกคอลัมน์หนึ่งเป็นสองคอลัมน์</li>
+    </ol>
+    <p>ถ้าแก้ Entity แต่ไม่เพิ่ม version แอปจะ Crash ด้วย <code>Room cannot verify the data integrity</code> ถ้าเพิ่ม version แต่ไม่มี Migration จะ Crash ด้วย <code>A migration from 1 to 2 was required but not found</code> ส่วน <code>fallbackToDestructiveMigration()</code> ทำให้ไม่ Crash ก็จริง แต่ลบข้อมูลผู้ใช้ทิ้งทั้งหมด ซึ่งรับไม่ได้สำหรับแอปจดโน้ต สุดท้ายผมจะเขียน Test ด้วย <code>MigrationTestHelper</code> ที่สร้างฐานข้อมูลเวอร์ชัน 1 ใส่ข้อมูล แล้ว Migrate เป็นเวอร์ชัน 2 และตรวจว่าข้อมูลยังอยู่ครบ</p>
+  </div></details>
+
+  <details class="iq"><summary>5. AAB ต่างจาก APK อย่างไร และถ้าแอปทำงานปกติใน Debug แต่ Crash ใน Release คุณจะหาสาเหตุอย่างไร (Mid)</summary><div>
+    <p><strong>คำตอบตัวอย่าง:</strong> APK คือไฟล์ที่ติดตั้งลงเครื่องได้ทันที ส่วน AAB (Android App Bundle) คือไฟล์ที่ส่งให้ Google Play ซึ่งจะสร้าง APK ที่เหมาะกับแต่ละเครื่องจาก AAB เช่นใส่เฉพาะ Native library ของ CPU และ Resource ของความหนาแน่นจอที่เครื่องนั้นใช้ ผู้ใช้จึงดาวน์โหลดไฟล์เล็กลง Google Play กำหนดให้แอปใหม่ส่งเป็น AAB และใช้ Play App Signing โดยเราเซ็น AAB ด้วย Upload key ส่วน Google เซ็น APK ด้วย App signing key ที่ Google เก็บไว้</p>
+    <p>สาเหตุที่พบบ่อยที่สุดของการ Crash เฉพาะใน Release คือ R8 ลบหรือเปลี่ยนชื่อคลาสที่ถูกเรียกผ่าน Reflection เช่นคลาสที่ Library JSON หรือ Library เก่าบางตัวอ่านด้วยชื่อ ขั้นตอนที่ผมใช้มีดังนี้</p>
+    <ol>
+      <li>ติดตั้ง Release build บน Emulator ด้วย <code>installRelease</code> ทำให้ Crash เกิดซ้ำ แล้วอ่าน Stack trace ใน Logcat</li>
+      <li>ชื่อคลาสใน Stack trace จะถูกย่อเป็นตัวอักษรสั้นๆ ให้แปลงกลับด้วยไฟล์ <code>mapping.txt</code> ใน <code>app/build/outputs/mapping/release/</code> ผ่านเครื่องมือ <code>retrace</code> หรืออัปโหลดไฟล์นี้ใน Play Console เพื่อให้รายงาน Crash อ่านได้</li>
+      <li>เพิ่มกฎ <code>-keep</code> ที่แคบที่สุดใน <code>proguard-rules.pro</code> เฉพาะคลาสที่ต้องเก็บ ไม่ใช้ <code>-dontobfuscate</code> หรือ Keep ทั้ง Package เพราะทำให้แอปใหญ่และเสียประโยชน์ของ R8</li>
+      <li>ทดสอบ Release build ทุกครั้งก่อนส่ง ใน Notes App ผมลองทุกหน้าใน Release build ก่อนเรียกว่าเสร็จ และพบว่า Route ที่ใช้ <code>@Serializable</code> ทำงานได้โดยไม่ต้องเพิ่มกฎ เพราะ kotlinx.serialization มีกฎของตัวเองมากับ Library</li>
+    </ol>
+  </div></details>
+
+  <h3 id="s18-4-resources">แหล่งเรียนต่อ</h3>
+  <p>เอกสารทางการของ Android เปลี่ยนตามเวอร์ชันของ Library เสมอ ทุกครั้งที่อัปเกรดเวอร์ชันใน Version Catalog ให้อ่านหน้า Release notes ของ Library นั้นก่อน ส่วนเอกสารเหล่านี้เรียงจากพื้นฐานไปขั้นสูง</p>
+  <ul class="res">
+    <li><a href="https://developer.android.com/courses/android-basics-compose/course" target="_blank" rel="noopener">Android Basics with Compose</a> – คอร์สทางการของ Google สำหรับผู้เริ่มต้น สอนตั้งแต่ Kotlin, Compose, Navigation, ViewModel ไปจนถึง Room และ WorkManager พร้อม Codelab ให้ทำตาม <span class="pill">ฟรี</span></li>
+    <li><a href="https://kotlinlang.org/docs/home.html" target="_blank" rel="noopener">Kotlin Documentation</a> – เอกสารทางการของภาษา Kotlin จาก JetBrains รวมทั้ง Coroutines guide ที่อธิบาย Flow, Dispatcher และ Structured concurrency ละเอียดกว่าเอกสารของ Android <span class="pill">ฟรี</span></li>
+    <li><a href="https://developer.android.com/develop/ui/compose" target="_blank" rel="noopener">Jetpack Compose Documentation</a> – คู่มือ Compose ฉบับเต็ม ทั้ง Layout, State, Side-effects, Theming, Animation, Accessibility และ Testing <span class="pill">ฟรี</span></li>
+    <li><a href="https://developer.android.com/topic/architecture" target="_blank" rel="noopener">Guide to App Architecture</a> – แนวทางสถาปัตยกรรมที่ Google แนะนำ อธิบาย UI layer, Data layer, UiState และ Unidirectional Data Flow ที่ Notes App ใช้ <span class="pill">ฟรี</span></li>
+    <li><a href="https://developer.android.com/training/data-storage/room" target="_blank" rel="noopener">Save data in a local database using Room</a> – เอกสาร Room ตั้งแต่ Entity และ DAO ไปจนถึง Migration และการทดสอบ Migration <span class="pill">ฟรี</span></li>
+    <li><a href="https://github.com/android/nowinandroid" target="_blank" rel="noopener">Now in Android (GitHub)</a> – แอปตัวอย่างขนาดจริงของทีม Android ที่ใช้ Compose, Hilt, Room, DataStore, Offline-first และ Modularization เหมาะอ่านหลังทำ Notes App เสร็จ เพื่อดูว่าทีมใหญ่จัดโค้ดอย่างไร <span class="pill">ฟรี</span></li>
+    <li><a href="https://developer.android.com/studio/publish" target="_blank" rel="noopener">Publish your app</a> – ขั้นตอนเตรียม Release build การเซ็นแอป และการส่งแอปขึ้น Google Play <span class="pill">ฟรี</span></li>
+    <li><a href="https://support.google.com/googleplay/android-developer" target="_blank" rel="noopener">Play Console Help</a> – ศูนย์ช่วยเหลือของ Google Play Console ใช้ตรวจค่าธรรมเนียมการสมัคร นโยบาย Target API, Closed testing และการยืนยันตัวตนนักพัฒนาล่าสุดก่อนส่งแอป ตัวเอกสารอ่านฟรี แต่บัญชีนักพัฒนามีค่าสมัคร <span class="pill">มีค่าใช้จ่าย</span></li>
+  </ul>
+</section>

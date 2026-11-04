@@ -2,18 +2,25 @@
 
 ไฟล์นี้เขียนให้ AI ที่ทำงานต่อใน VS Code และให้เจ้าของ repo อ่านประกอบ คำสั่งทุกคำสั่งรันจาก root ของ repo
 
-## สถานะ (3 พ.ย. 2026)
+## สถานะ (4 พ.ย. 2026)
 
-ผ่านตัวตรวจแล้ว **71 จาก 76 ส่วน (93%)** ทุกหัวข้อครบ 4 ส่วน ยกเว้น
+ผ่านตัวตรวจแล้ว **72 จาก 76 ส่วน (95%)** ทุกหัวข้อครบ 4 ส่วน ยกเว้น
 
-- **18 Android:** มีส่วนที่ 1–3 บนเว็บ ส่วนที่ 3 ยังไม่ได้รีวิว
+- **18 Android:** ครบ 4 ส่วนบนเว็บแล้ว เหลืองานรีวิวส่วนที่ 2–3 (งานที่ 2)
 - **10 AI and Data Scientist:** ยังไม่เริ่ม
+
+### สิ่งที่พบตอนทำ Android ส่วนที่ 4 บนเครื่อง local (ต้องใช้ในงานที่ 2)
+
+- เครื่องนี้มี Android Studio Rabbit 1, Android SDK (platform 36 และ 37), AVD `Me2_Phone` (API 37) และ Gradle 9.7.1 จึง Build และทดสอบ Android ได้จริง โปรเจกต์ที่ทดสอบแล้วอยู่ที่ `work/t18-p4/NotesApp` (git-ignore) ใน WSL มี JDK 21.0.13 ที่ `~/tools/jdk-21.0.13+9` และ kotlinc 2.4.21 ที่ `~/tools/kotlinc` (ไม่ได้ใส่ใน PATH ต้อง export เองทุกคำสั่ง)
+- **compileSdk ต้องเป็น 37:** Compose BOM 2026.09.00 (UI 1.12.1), core-ktx 1.19.1, Lifecycle 2.11.0 และ Navigation 2.10.2 ล้มที่ `checkDebugAarMetadata` ถ้า `compileSdk = 36` (targetSdk 36 ใช้ได้) ส่วนที่ 1–3 ยังเขียน `compileSdk = 36` ควรแก้ในงานที่ 2 และแก้ส่วนที่ 1 (Step 4) ด้วย
+- `androidx.compose.ui.test.junit4.createComposeRule` เป็น Deprecated ใน Compose 1.12.1 ให้ใช้ `androidx.compose.ui.test.junit4.v2.createComposeRule` ตรวจส่วนที่ 2–3 ว่าใช้ตัวเก่าหรือไม่
+- Windows ที่ตั้ง System locale เป็นไทย ทำให้ `bundleRelease` ล้มที่ `mergeReleaseJavaResource` (VerifyException จากปฏิทินพุทธ) แก้ด้วย `-Duser.language=en -Duser.country=US` ใน `org.gradle.jvmargs`
 
 ## งานที่เหลือ (ทำตามลำดับ ทีละงาน)
 
 | # | งาน | ไฟล์คำสั่ง | ผลลัพธ์ | แก้ `var CONTENT` ใน index.html | สถานะ |
 |---|---|---|---|---|---|
-| 1 | Android ส่วนที่ 4 | `dev/prompts/t18-p4.txt` | `topics/t18-p4.html` | `18:3` → `18:4` | ⬜ |
+| 1 | Android ส่วนที่ 4 | `dev/prompts/t18-p4.txt` | `topics/t18-p4.html` | `18:3` → `18:4` | ✅ |
 | 2 | รีวิว Android ส่วนที่ 2–3 | `dev/prompts/t18-review.txt` | แก้ `topics/t18-p2.html`, `topics/t18-p3.html` | ไม่ต้องแก้ | ⬜ |
 | 3 | AI and Data Scientist ส่วนที่ 1 + โครงเนื้อหา | `dev/prompts/t10-p1.txt` | `topics/t10-p1.html`, `dev/outlines/t10.json` | แทรก `10:1, ` ต่อจาก `9:4, ` | ⬜ |
 | 4 | AI and Data Scientist ส่วนที่ 2 | `dev/prompts/t10-p2.txt` | `topics/t10-p2.html` | `10:1` → `10:2` | ⬜ |
