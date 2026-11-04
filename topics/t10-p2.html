@@ -1,0 +1,1551 @@
+<section class="part" data-part="2">
+<h2 id="s10-2"><span class="sec-no">10.2</span>Core Concept &amp; Quick Guide</h2>
+<p>ส่วนนี้คือหัวใจของหัวข้อ AI and Data Scientist เราจะเรียน 12 แนวคิดหลักตามลำดับเดียวกับเส้นทางใน Part 1 แนวคิดที่ 1–4 เป็นระดับ Beginner ที่สอนเครื่องมือจัดการข้อมูล คือ NumPy, pandas และ SQLite แนวคิดที่ 5–8 เป็นระดับ Intermediate ที่สอนการทำกราฟ สถิติ และขั้นตอนการสร้างโมเดลด้วย scikit-learn ส่วนแนวคิดที่ 9–12 เป็นระดับ Advanced ที่สอนการวัดผลโมเดลจำแนกประเภท การปรับจูน การแบ่งกลุ่ม และ Neural Network ด้วย PyTorch</p>
+<p>ทุกตัวอย่างเป็นไฟล์ <code>.py</code> ที่ครบในตัว รันได้ทันทีในโฟลเดอร์ <code>~/projects/ds-lab</code> และผลลัพธ์ทุกบล็อกมาจากการรันจริงบน Python 3.12.3 กับไลบรารีเวอร์ชันที่ล็อกไว้ ข้อมูลทั้งหมดใช้ได้แบบออฟไลน์ คือชุดข้อมูลที่มากับ scikit-learn หรือไฟล์ CSV ที่คุณสร้างเองในหัวข้อ "เตรียมเครื่อง" และทุกจุดที่มีการสุ่มใช้ Seed 42 คุณจึงควรได้ตัวเลขตรงกับหน้าเว็บ ยกเว้นค่าที่ระบุว่าต่างกันตามเครื่อง เช่น เวลาที่ใช้รัน วิธีเรียนที่ได้ผลคือ <strong>พิมพ์โค้ดเอง ทายผลก่อนรัน</strong> แล้วเทียบกับผลจริง ถ้าต่างจากที่คิด ให้หาเหตุผลก่อนไปแนวคิดถัดไป</p>
+
+<h3 id="s10-2-setup">เตรียมเครื่องสำหรับหัวข้อนี้</h3>
+<p>ถ้าทำตามหัวข้อ "กติกาของหัวข้อนี้" ใน Part 1 แล้ว ให้ตรวจขั้นที่ 3 ว่าเวอร์ชันตรงกัน แล้วข้ามไปขั้นที่ 4 ได้เลย ถ้ายังไม่เคยทำ ให้ทำตามทุกขั้นใน Terminal ของ Ubuntu</p>
+
+<h4>ขั้นที่ 1: ตรวจเวอร์ชัน Python และติดตั้งเครื่องมือสร้าง venv</h4>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 --version
+sudo apt update
+sudo apt install -y python3-venv python3-pip</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Python 3.12.3</code></pre>
+<p>บรรทัดแรกต้องเป็น <code>Python 3.12.3</code> (Python ของ Ubuntu 24.04) คำสั่ง <code>apt</code> จะถามรหัสผ่านของ Ubuntu และพิมพ์ข้อความติดตั้งยาว ซึ่งรายละเอียดต่างกันตามเครื่อง</p>
+
+<h4>ขั้นที่ 2: สร้างโฟลเดอร์ฝึกและ Virtual Environment</h4>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">mkdir -p ~/projects/ds-lab/data ~/projects/ds-lab/charts ~/projects/ds-lab/models
+cd ~/projects/ds-lab
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip --version</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>pip 24.0 from /home/somchai/projects/ds-lab/.venv/lib/python3.12/site-packages/pip (python 3.12)</code></pre>
+<p>Path ใน Output ต้องอยู่ใน <code>.venv</code> ของโปรเจกต์ ถ้าเห็น <code>/usr/lib/python3/dist-packages</code> แปลว่ายังไม่ได้ Activate หลัง Activate แล้ว Prompt จะขึ้นต้นด้วย <code>(.venv)</code> ทุกครั้งที่เปิด Terminal ใหม่ต้องรัน <code>cd ~/projects/ds-lab</code> และ <code>source .venv/bin/activate</code> ใหม่</p>
+
+<h4>ขั้นที่ 3: ติดตั้งไลบรารีแบบล็อกเวอร์ชันและตรวจผล</h4>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 -m pip install "numpy==2.5.4" "pandas==3.1.0" "matplotlib==3.11.2" "scipy==1.18.1" "scikit-learn==1.9.1" "jupyterlab==4.6.5"
+python3 -m pip freeze | grep -iE "^(numpy|pandas|matplotlib|scipy|scikit-learn|jupyterlab|joblib)=="
+jupyter lab --version
+python3 -m pip freeze &gt; requirements.txt</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>joblib==1.6.0
+jupyterlab==4.6.5
+matplotlib==3.11.2
+numpy==2.5.4
+pandas==3.1.0
+scikit-learn==1.9.1
+scipy==1.18.1
+4.6.5</code></pre>
+<p>คำสั่ง <code>pip install</code> จะดาวน์โหลดแพ็กเกจที่ JupyterLab ต้องใช้อีกหลายสิบตัว และจบด้วยบรรทัด <code>Successfully installed ...</code> ที่ยาวมาก ให้ตรวจผลจาก 7 บรรทัดของ <code>pip freeze</code> ด้านบนแทน <code>joblib</code> ติดมากับ scikit-learn และใช้บันทึกโมเดลในแนวคิดที่ 8 ส่วน PyTorch ไฟล์ใหญ่ประมาณ 770 MB จึงแยกไปติดตั้งในแนวคิดที่ 12</p>
+
+<h4>ขั้นที่ 4: สร้างไฟล์ข้อมูลตัวอย่าง</h4>
+<p>แนวคิดที่ 2–4 และ 8 ใช้ข้อมูลร้านกาแฟ "บ้านสมชาย" ชุดเดียวกับ Part 1 ให้สร้าง 3 ไฟล์นี้ในโฟลเดอร์ <code>~/projects/ds-lab/data</code> ด้วย VS Code (<code>code .</code>) ไฟล์ <code>sales_raw.csv</code> คือข้อมูลชุดเดียวกันที่ทำให้สกปรกโดยตั้งใจ 4 จุดเพื่อฝึกทำความสะอาดในแนวคิดที่ 3</p>
+<pre class="code" data-env="file" data-label="CSV · data/sales.csv"><code class="language-plaintext">order_id,date,branch_id,menu,category,qty,unit_price,payment
+1,2026-10-01,B01,ลาเต้เย็น,coffee,2,65,qr
+2,2026-10-01,B02,อเมริกาโน่ร้อน,coffee,1,50,cash
+3,2026-10-01,B01,ชาไทยเย็น,tea,3,55,qr
+4,2026-10-02,B03,ครัวซองต์,bakery,2,45,card
+5,2026-10-02,B02,ลาเต้เย็น,coffee,1,65,qr
+6,2026-10-03,B01,มัทฉะลาเต้,tea,2,75,card
+7,2026-10-03,B03,อเมริกาโน่ร้อน,coffee,2,50,qr
+8,2026-10-04,B02,ชาไทยเย็น,tea,1,55,cash
+9,2026-10-04,B01,ครัวซองต์,bakery,3,45,qr
+10,2026-10-05,B03,ลาเต้เย็น,coffee,3,65,qr
+11,2026-10-05,B02,มัทฉะลาเต้,tea,1,75,qr
+12,2026-10-06,B01,อเมริกาโน่ร้อน,coffee,2,50,cash</code></pre>
+<pre class="code" data-env="file" data-label="CSV · data/branches.csv"><code class="language-plaintext">branch_id,branch_name,province,open_year
+B01,สยาม,กรุงเทพมหานคร,2021
+B02,อารีย์,กรุงเทพมหานคร,2023
+B03,นิมมาน,เชียงใหม่,2024</code></pre>
+<pre class="code" data-env="file" data-label="CSV · data/sales_raw.csv"><code class="language-plaintext">order_id,date,branch_id,menu,category,qty,unit_price,payment
+1,2026-10-01,B01,ลาเต้เย็น,coffee,2,65,qr
+2,2026-10-01,B02,อเมริกาโน่ร้อน,coffee,1,50,cash
+3,2026-10-01,B01,ชาไทยเย็น,tea,,55,qr
+4,2026-10-02,B03,ครัวซองต์,bakery,2,45,card
+5,2026-10-02,B02,ลาเต้เย็น,coffee,1,65,qr
+5,2026-10-02,B02,ลาเต้เย็น,coffee,1,65,qr
+6,2026-10-03,B01,มัทฉะลาเต้,tea,2,75,card
+7,2026-10-03,B03," อเมริกาโน่ร้อน ",coffee,2,50,qr
+8,2026-10-04,B02,ชาไทยเย็น,tea,1,55,cash
+9,2026-10-04,B01,ครัวซองต์,bakery,3,45,qr
+10,2026-10-05,B03,ลาเต้เย็น,coffee,3,65 บาท,qr
+11,2026-10-05,B02,มัทฉะลาเต้,tea,1,75,qr
+12,2026-10-06,B01,อเมริกาโน่ร้อน,coffee,2,50,cash</code></pre>
+
+<h4>ขั้นที่ 5: เตรียม JupyterLab และ VS Code</h4>
+<ul>
+  <li><strong>JupyterLab:</strong> รัน <code>jupyter lab --no-browser</code> ใน <code>~/projects/ds-lab</code> ที่ Activate venv แล้ว Terminal จะพิมพ์ URL ที่ขึ้นต้นด้วย <code>http://localhost:8888/lab?token=</code> ให้คัดลอกทั้งบรรทัดไปเปิดใน Browser ของ Windows กด <kbd>Ctrl</kbd>+<kbd>C</kbd> สองครั้งใน Terminal เพื่อปิด</li>
+  <li><strong>VS Code:</strong> ติดตั้งส่วนขยาย WSL, Python และ Jupyter ของ Microsoft เปิดโฟลเดอร์ด้วย <code>code .</code> แล้วเลือก Interpreter และ Kernel เป็น <code>.venv/bin/python</code> ทุกตัวอย่างในหน้านี้วางลงใน Cell ของ Notebook ได้ผลเหมือนกัน</li>
+  <li><strong>กราฟ:</strong> ไฟล์ PNG ทั้งหมดจะถูกบันทึกใน <code>charts/</code> เปิดดูได้ใน VS Code หรือจาก Windows Explorer ที่ <code>\\wsl$\Ubuntu-24.04\home\somchai\projects\ds-lab\charts</code></li>
+</ul>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนเริ่มแนวคิดที่ 1 ให้ตรวจ 3 ข้อ: Prompt ขึ้นต้นด้วย <code>(.venv)</code>, <code>pip freeze</code> แสดง 7 เวอร์ชันตรงกับด้านบน และ <code>ls data</code> แสดง <code>branches.csv</code>, <code>sales.csv</code> และ <code>sales_raw.csv</code></p></div>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 1</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h3 id="s10-2-c01">NumPy: Array, Vectorization และ Broadcasting</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>NumPy คือไลบรารีสำหรับคำนวณตัวเลขจำนวนมากใน Python โครงสร้างหลักคือ <code>ndarray</code> (เรียกสั้นๆ ว่า Array) ซึ่งต่างจาก List ตรงที่ข้อมูลทุกตัวต้องมีชนิดเดียวกัน (<code>dtype</code>) และเก็บเรียงต่อกันในหน่วยความจำ NumPy จึงสั่งให้ CPU คำนวณทั้งก้อนด้วยโค้ดภาษา C ได้ในครั้งเดียว เร็วกว่าการเขียน <code>for</code> Loop ใน Python หลายสิบถึงหลายร้อยเท่า การเขียนคำสั่งที่คำนวณทั้ง Array แทน Loop เรียกว่า <strong>Vectorization</strong></p>
+<p>คุณสมบัติที่ต้องอ่านเป็นตั้งแต่วันแรกมี 3 ตัว คือ <code>shape</code> (ขนาดในแต่ละมิติ เช่น <code>(6, 3)</code> คือ 6 แถว 3 คอลัมน์) <code>ndim</code> (จำนวนมิติ) และ <code>dtype</code> (ชนิดข้อมูล เช่น <code>int64</code>, <code>float64</code>) ส่วนพารามิเตอร์ <code>axis</code> บอกว่าจะคำนวณตามทิศไหน <code>axis=0</code> คือคำนวณลงตามคอลัมน์ ได้ผลหนึ่งค่าต่อหนึ่งคอลัมน์ และ <code>axis=1</code> คือคำนวณข้ามตามแถว ได้ผลหนึ่งค่าต่อหนึ่งแถว</p>
+<ul>
+  <li><strong>Boolean mask:</strong> นิพจน์อย่าง <code>scores &gt;= 80</code> ให้ Array ของ <code>True</code>/<code>False</code> ขนาดเท่าเดิม นำไปเลือกข้อมูล (<code>a[mask]</code>) หรือนับ (<code>mask.sum()</code>) ได้</li>
+  <li><strong>Broadcasting:</strong> กติกาที่ทำให้ Array ขนาดต่างกันคำนวณด้วยกันได้ NumPy เทียบ <code>shape</code> จากมิติขวาสุด มิติที่เท่ากันหรือเป็น 1 จะขยายให้เท่ากันได้ เช่น <code>(6, 3)</code> ลบ <code>(3,)</code> ได้ แต่ <code>(6, 3)</code> ลบ <code>(6,)</code> ไม่ได้</li>
+  <li><strong>ใช้เมื่อไร:</strong> ทุกครั้งที่คำนวณตัวเลขเป็นชุด เช่น คะแนน ราคา หรือพิกเซลของภาพ และเป็นพื้นฐานของ pandas, scikit-learn และ PyTorch ที่ข้างในคือ Array ทั้งหมด</li>
+</ul>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Loop ของ Python เหมือนพนักงานแคชเชียร์ที่สแกนสินค้าทีละชิ้นแล้วกดเครื่องคิดเลขทีละครั้ง ส่วน Vectorization เหมือนเครื่องชั่งที่วางสินค้าทั้งตะกร้าแล้วได้ราคารวมทันที Broadcasting เหมือนป้าย "ลด 10% ทั้งร้าน" ที่ติดครั้งเดียวแต่มีผลกับสินค้าทุกชิ้น ไม่ต้องเขียนป้ายลดราคาแยกทีละชิ้น</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>ไฟล์นี้สุ่มคะแนนสอบของนักเรียน 6 คน 3 วิชา แล้วหาค่าเฉลี่ยรายวิชาและรายคน นับคะแนนที่ได้ 80 ขึ้นไป หาว่าแต่ละคะแนนห่างจากค่าเฉลี่ยของวิชานั้นเท่าไร และตัดสินผ่านหรือไม่ผ่าน ทั้งหมดไม่มี <code>for</code> Loop คำนวณตัวเลขเลยสักตัว (Loop เดียวในไฟล์ใช้แค่พิมพ์ผล) NumPy ติดตั้งไว้แล้วในหัวข้อเตรียมเครื่อง</p>
+<pre class="code" data-env="file" data-label="Python · numpy_scores.py"><code class="language-python"># คะแนนสอบนักเรียน 6 คน 3 วิชา: ฝึก shape, axis, Boolean mask และ Broadcasting
+import numpy as np
+
+rng = np.random.default_rng(42)                 # Seed 42 ทำให้สุ่มได้ค่าเดิมทุกครั้ง
+subjects = ["คณิต", "วิทย์", "อังกฤษ"]
+scores = rng.integers(40, 101, size=(6, 3))     # สุ่มคะแนน 40–100 (ไม่รวม 101)
+
+print("คะแนน (แถว = นักเรียน, คอลัมน์ = วิชา):")
+print(scores)
+print("shape:", scores.shape, "ndim:", scores.ndim, "dtype:", scores.dtype)
+
+# axis=0 คำนวณลงตามคอลัมน์ (รายวิชา) / axis=1 คำนวณข้ามตามแถว (รายคน)
+by_subject = scores.mean(axis=0)
+for name, avg in zip(subjects, by_subject):
+    print(f"เฉลี่ยวิชา{name}: {avg:.1f}")
+by_student = scores.mean(axis=1).round(1)
+print("เฉลี่ยรายคน:", by_student)
+print("คนที่เฉลี่ยสูงสุด: คนที่", by_student.argmax() + 1)
+
+# Boolean mask: เลือกเฉพาะค่าที่ตรงเงื่อนไข
+print("จำนวนคะแนนที่ได้ 80 ขึ้นไป:", (scores &gt;= 80).sum())
+math = scores[:, 0]
+print("คะแนนคณิตที่ได้ 80 ขึ้นไป:", math[math &gt;= 80])
+
+# Broadcasting: (6, 3) ลบ (3,) ได้ เพราะ NumPy ขยายแถวค่าเฉลี่ยให้ครบ 6 แถวเอง
+centred = scores - by_subject
+print("ห่างจากค่าเฉลี่ยรายวิชา:")
+print(centred.round(1))
+
+# np.where เลือกค่าตามเงื่อนไขทีละช่อง
+print(np.where(scores &gt;= 50, "ผ่าน", "ไม่ผ่าน"))</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/ds-lab
+source .venv/bin/activate
+python3 numpy_scores.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>คะแนน (แถว = นักเรียน, คอลัมน์ = วิชา):
+[[45 87 79]
+ [66 66 92]
+ [45 82 52]
+ [45 72 99]
+ [84 86 83]
+ [87 71 47]]
+shape: (6, 3) ndim: 2 dtype: int64
+เฉลี่ยวิชาคณิต: 62.0
+เฉลี่ยวิชาวิทย์: 77.3
+เฉลี่ยวิชาอังกฤษ: 75.3
+เฉลี่ยรายคน: [70.3 74.7 59.7 72.  84.3 68.3]
+คนที่เฉลี่ยสูงสุด: คนที่ 5
+จำนวนคะแนนที่ได้ 80 ขึ้นไป: 8
+คะแนนคณิตที่ได้ 80 ขึ้นไป: [84 87]
+ห่างจากค่าเฉลี่ยรายวิชา:
+[[-17.    9.7   3.7]
+ [  4.  -11.3  16.7]
+ [-17.    4.7 -23.3]
+ [-17.   -5.3  23.7]
+ [ 22.    8.7   7.7]
+ [ 25.   -6.3 -28.3]]
+[['ไม่ผ่าน' 'ผ่าน' 'ผ่าน']
+ ['ผ่าน' 'ผ่าน' 'ผ่าน']
+ ['ไม่ผ่าน' 'ผ่าน' 'ผ่าน']
+ ['ไม่ผ่าน' 'ผ่าน' 'ผ่าน']
+ ['ผ่าน' 'ผ่าน' 'ผ่าน']
+ ['ผ่าน' 'ผ่าน' 'ไม่ผ่าน']]</code></pre>
+<p>ตรวจด้วยมือได้: คะแนนคณิตคือ 45, 66, 45, 45, 84, 87 รวม 372 หาร 6 ได้ 62.0 ตรงกับผล และค่าในตาราง "ห่างจากค่าเฉลี่ย" ของแต่ละคอลัมน์รวมกันได้ 0 เสมอ (ต่างได้เล็กน้อยจากการปัดทศนิยม) ซึ่งเป็นวิธีตรวจว่า Broadcasting ลบถูกทิศ ผล <code>72.</code> คือ <code>72.0</code> ที่ NumPy ย่อจุดทศนิยมให้เมื่อพิมพ์ Array</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>rng = np.random.default_rng(42)</code></td><td>สร้างตัวสุ่มแบบใหม่ของ NumPy ที่กำหนด Seed ได้ทำให้ทุกเครื่องได้ตัวเลขชุดเดียวกัน ใช้แทน <code>np.random.seed</code> แบบเก่า</td></tr>
+<tr><td><code>rng.integers(40, 101, size=(6, 3))</code></td><td>สุ่มจำนวนเต็มตั้งแต่ 40 ถึง 100 (ค่าบนไม่รวม) เป็น Array 2 มิติ 6 แถว 3 คอลัมน์</td></tr>
+<tr><td><code>scores.shape</code>, <code>ndim</code>, <code>dtype</code></td><td>บอกขนาด จำนวนมิติ และชนิดข้อมูล ควรพิมพ์ดูทุกครั้งที่สร้างหรือแปลง Array</td></tr>
+<tr><td><code>scores.mean(axis=0)</code></td><td>หาค่าเฉลี่ยลงตามคอลัมน์ ได้ <code>shape</code> <code>(3,)</code> หนึ่งค่าต่อวิชา</td></tr>
+<tr><td><code>scores.mean(axis=1).round(1)</code></td><td>หาค่าเฉลี่ยข้ามตามแถว ได้ <code>(6,)</code> หนึ่งค่าต่อคน แล้วปัดทศนิยม 1 ตำแหน่ง</td></tr>
+<tr><td><code>by_student.argmax() + 1</code></td><td><code>argmax</code> คืนตำแหน่ง (เริ่มที่ 0) ของค่าที่มากที่สุด จึงบวก 1 ให้เป็นลำดับที่คนอ่านเข้าใจ</td></tr>
+<tr><td><code>(scores &gt;= 80).sum()</code></td><td>สร้าง Boolean mask แล้วรวม <code>True</code> ซึ่งนับเป็น 1 จึงได้จำนวนช่องที่ตรงเงื่อนไข</td></tr>
+<tr><td><code>math = scores[:, 0]</code></td><td>เลือกทุกแถว (<code>:</code>) ของคอลัมน์แรก ได้คะแนนคณิตของทุกคน</td></tr>
+<tr><td><code>math[math &gt;= 80]</code></td><td>ใช้ mask เลือกเฉพาะค่าที่เป็น <code>True</code> ผลมีขนาดเล็กลงตามจำนวนที่ตรงเงื่อนไข</td></tr>
+<tr><td><code>scores - by_subject</code></td><td>Broadcasting: <code>(6, 3)</code> ลบ <code>(3,)</code> NumPy ขยายค่าเฉลี่ยเป็น 6 แถวให้เอง</td></tr>
+<tr><td><code>np.where(cond, "ผ่าน", "ไม่ผ่าน")</code></td><td>เลือกค่าทีละช่อง ถ้าเงื่อนไขจริงได้ค่าที่ 2 ถ้าเท็จได้ค่าที่ 3 เหมือน <code>if</code> ที่ทำทั้ง Array พร้อมกัน</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>ValueError: operands could not be broadcast together with shapes (6,3) (6,)</code></td><td>เขียน <code>scores - scores.mean(axis=1)</code> เพื่อลบค่าเฉลี่ยรายคน แต่ <code>(6,)</code> ไปจับคู่กับมิติขวาสุดที่มีขนาด 3</td><td>เพิ่มมิติให้เป็นคอลัมน์ด้วย <code>scores.mean(axis=1, keepdims=True)</code> ซึ่งได้ <code>(6, 1)</code> แล้วลบได้</td></tr>
+<tr><td><code>IndexError: index 3 is out of bounds for axis 1 with size 3</code></td><td>เรียก <code>scores[:, 3]</code> เพื่อหาวิชาที่ 3 แต่ตำแหน่งเริ่มที่ 0 คอลัมน์สุดท้ายจึงเป็น 2</td><td>ใช้ <code>scores[:, 2]</code> หรือ <code>scores[:, -1]</code> สำหรับคอลัมน์สุดท้าย</td></tr>
+<tr><td>ได้ค่าเฉลี่ย 6 ค่าทั้งที่อยากได้ 3 ค่า (ไม่มี Error)</td><td>สลับ <code>axis=0</code> กับ <code>axis=1</code></td><td>จำว่า <code>axis</code> คือมิติที่ "ยุบหายไป" <code>axis=0</code> ยุบแถว ผลเหลือหนึ่งค่าต่อคอลัมน์ และตรวจ <code>.shape</code> ของผลทุกครั้ง</td></tr>
+<tr><td>ผลหารกลายเป็นทศนิยม เช่น <code>np.array([1, 2]) / 2</code> ได้ <code>dtype</code> เป็น <code>float64</code></td><td>เครื่องหมาย <code>/</code> คืนค่าทศนิยมเสมอ ส่วน <code>//</code> คืนจำนวนเต็ม (<code>int64</code>)</td><td>เลือกเครื่องหมายตามที่ต้องการ และแปลงชนิดเองด้วย <code>.astype(int)</code> เมื่อจำเป็น</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul><li>ใช้ <code>np.random.default_rng(seed)</code> แทน <code>np.random.seed</code> และส่งตัว <code>rng</code> เข้าไปในฟังก์ชัน เพื่อให้ผลทดลองทำซ้ำได้</li><li>พิมพ์ <code>.shape</code> ก่อนและหลังทุกการแปลง งาน ML ส่วนใหญ่พังเพราะ <code>shape</code> ไม่ตรงกับที่คิด</li><li>ถ้าเจอ <code>for</code> Loop ที่วนบนตัวเลขใน Array ให้ถามตัวเองก่อนว่าเขียนเป็นคำสั่งเดียวแบบ Vectorization ได้หรือไม่</li></ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>แก้ <code>numpy_scores.py</code> ให้ทำสิ่งต่อไปนี้</p><ol><li>หาคะแนนสูงสุดและต่ำสุดของแต่ละวิชาด้วย <code>max(axis=0)</code> และ <code>min(axis=0)</code></li><li>ลบค่าเฉลี่ยรายคนออกจากคะแนนด้วย <code>keepdims=True</code> แล้วพิมพ์ <code>shape</code> ของผล</li><li>นับว่าแต่ละคนสอบไม่ผ่าน (ต่ำกว่า 50) กี่วิชา โดยใช้ Boolean mask กับ <code>sum(axis=1)</code></li><li>เปลี่ยน Seed เป็น 7 แล้วสังเกตว่าตัวเลขเปลี่ยน แต่โค้ดยังทำงานถูกต้อง</li></ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 2</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h3 id="s10-2-c02">pandas พื้นฐาน: Series, DataFrame, read_csv และการเลือกข้อมูล</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>pandas คือไลบรารีสำหรับข้อมูลแบบตาราง สร้างบน NumPy แต่เพิ่มสองอย่างที่ Array ไม่มี คือ <strong>ชื่อคอลัมน์</strong> และ <strong>Index</strong> (ป้ายชื่อของแต่ละแถว) และให้แต่ละคอลัมน์มีชนิดข้อมูลต่างกันได้ โครงสร้างหลักมีสองแบบ <code>Series</code> คือข้อมูลหนึ่งคอลัมน์ที่มี Index และ <code>DataFrame</code> คือตารางที่ประกอบด้วยหลาย Series ซึ่งใช้ Index เดียวกัน คำสั่ง <code>df["qty"]</code> จึงได้ Series ส่วน <code>df[["menu", "qty"]]</code> (วงเล็บสองชั้น) ได้ DataFrame</p>
+<p>งานข้อมูลเกือบทุกงานเริ่มจาก <code>pd.read_csv</code> แล้วสำรวจด้วย <code>shape</code>, <code>dtypes</code>, <code>head()</code>, <code>info()</code> และ <code>describe()</code> ก่อนทำอย่างอื่น จากนั้นจึงเลือกและกรองข้อมูล วิธีเลือกที่ต้องแยกให้ออกมีดังนี้</p>
+<ul>
+  <li><strong><code>loc</code></strong> เลือกด้วย Label หรือเงื่อนไข เช่น <code>df.loc[df["order_id"] == 4, ["menu", "amount"]]</code></li>
+  <li><strong><code>iloc</code></strong> เลือกด้วยตำแหน่งตัวเลขแบบ Slicing ของ Python เช่น <code>df.iloc[0, 3:5]</code> คือแถวแรก คอลัมน์ตำแหน่ง 3 และ 4</li>
+  <li><strong>Boolean mask</strong> กรองแถวด้วยเงื่อนไข ใช้ <code>&amp;</code> (และ), <code>|</code> (หรือ), <code>~</code> (ไม่) และต้องมีวงเล็บครอบทุกเงื่อนไข หรือเขียนเป็นข้อความด้วย <code>query()</code></li>
+  <li><strong>pandas 3:</strong> คอลัมน์ข้อความมี <code>dtype</code> เป็น <code>str</code> และใช้ Copy-on-Write เป็นค่าเริ่มต้น การแก้ค่าต้องทำในคำสั่งเดียวด้วย <code>df.loc[เงื่อนไข, "คอลัมน์"] = ค่า</code></li>
+</ul>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>DataFrame เหมือนสมุดบัญชีร้านค้าที่มีหัวคอลัมน์ชัดเจน <code>loc</code> เหมือนการหาด้วยชื่อ เช่น "ขอดูออร์เดอร์เลขที่ 4" ส่วน <code>iloc</code> เหมือนการชี้ด้วยตำแหน่ง เช่น "ขอดูบรรทัดแรกของหน้า" ถ้ามีคนฉีกหน้าหรือเรียงสมุดใหม่ การชี้ด้วยตำแหน่งจะได้คนละบรรทัด แต่การหาด้วยชื่อยังได้ออร์เดอร์เดิม</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>ไฟล์นี้โหลด <code>data/sales.csv</code> ที่สร้างในหัวข้อเตรียมเครื่อง ดูโครงสร้าง สร้างคอลัมน์ยอดเงิน กรองออร์เดอร์ที่จ่ายด้วย QR และซื้อตั้งแต่ 2 ชิ้น ด้วยสองวิธีแล้วตรวจว่าได้ผลเท่ากัน หาออร์เดอร์ยอดสูงสุด 3 อันดับ และแก้ค่าแบบถูกวิธีของ pandas 3</p>
+<pre class="code" data-env="file" data-label="Python · pandas_basics.py"><code class="language-python"># pandas พื้นฐาน: โหลด CSV ดูโครงสร้าง เลือก กรอง และเรียงข้อมูล
+import pandas as pd
+
+pd.set_option("display.max_columns", None)       # แสดงครบทุกคอลัมน์ ไม่ย่อเป็น ...
+pd.set_option("display.width", 120)              # ความกว้างบรรทัด ไม่ตัดตารางขึ้นบรรทัดใหม่
+
+df = pd.read_csv("data/sales.csv", parse_dates=["date"], encoding="utf-8")
+
+print("shape:", df.shape)                       # (จำนวนแถว, จำนวนคอลัมน์)
+print(df.dtypes)
+print(df.head(3))
+
+# สร้างคอลัมน์ใหม่แบบ Vectorization (คูณทั้งคอลัมน์ในคำสั่งเดียว)
+df["amount"] = df["qty"] * df["unit_price"]
+
+# กรองด้วยเงื่อนไข 2 ข้อ: ต้องใช้ &amp; และวงเล็บครอบแต่ละเงื่อนไข
+qr_big = df[(df["payment"] == "qr") &amp; (df["qty"] &gt;= 2)]
+print("\nจ่าย QR และซื้อตั้งแต่ 2 ชิ้น:")
+print(qr_big[["order_id", "menu", "qty", "amount"]].sort_values("amount", ascending=False))
+
+# เงื่อนไขเดียวกันเขียนด้วย query
+same = df.query("payment == 'qr' and qty &gt;= 2")
+print("query ได้ผลเท่ากัน:", same["order_id"].tolist() == qr_big["order_id"].tolist())
+
+print("\n3 ออร์เดอร์ที่ยอดเงินสูงสุด:")
+print(df.nlargest(3, "amount")[["order_id", "menu", "amount"]])
+
+# loc เลือกด้วย Label/เงื่อนไข ส่วน iloc เลือกด้วยตำแหน่ง
+print("\nloc ออร์เดอร์ 4:")
+print(df.loc[df["order_id"] == 4, ["menu", "amount"]])
+print("iloc แถวแรก คอลัมน์ 3–4:", df.iloc[0, 3:5].tolist())
+
+# แก้ค่าแบบถูกวิธีใน pandas 3: ใช้ .loc ในคำสั่งเดียว
+df.loc[df["menu"] == "ครัวซองต์", "category"] = "bakery-fresh"
+print("หมวดที่มีอยู่:", sorted(df["category"].unique()))</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 pandas_basics.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>shape: (12, 8)
+order_id               int64
+date          datetime64[us]
+branch_id                str
+menu                     str
+category                 str
+qty                    int64
+unit_price             int64
+payment                  str
+dtype: object
+   order_id       date branch_id            menu category  qty  unit_price payment
+0         1 2026-10-01       B01       ลาเต้เย็น   coffee    2          65      qr
+1         2 2026-10-01       B02  อเมริกาโน่ร้อน   coffee    1          50    cash
+2         3 2026-10-01       B01       ชาไทยเย็น      tea    3          55      qr
+
+จ่าย QR และซื้อตั้งแต่ 2 ชิ้น:
+   order_id            menu  qty  amount
+9        10       ลาเต้เย็น    3     195
+2         3       ชาไทยเย็น    3     165
+8         9       ครัวซองต์    3     135
+0         1       ลาเต้เย็น    2     130
+6         7  อเมริกาโน่ร้อน    2     100
+query ได้ผลเท่ากัน: True
+
+3 ออร์เดอร์ที่ยอดเงินสูงสุด:
+   order_id        menu  amount
+9        10   ลาเต้เย็น     195
+2         3   ชาไทยเย็น     165
+5         6  มัทฉะลาเต้     150
+
+loc ออร์เดอร์ 4:
+        menu  amount
+3  ครัวซองต์      90
+iloc แถวแรก คอลัมน์ 3–4: ['ลาเต้เย็น', 'coffee']
+หมวดที่มีอยู่: ['bakery-fresh', 'coffee', 'tea']</code></pre>
+<p>สังเกต 3 เรื่อง (1) คอลัมน์ข้อความแสดง <code>dtype</code> เป็น <code>str</code> ซึ่งเป็นค่าใหม่ของ pandas 3 ถ้าอ่านบทความเก่าจะเห็นเป็น <code>object</code> (2) คอลัมน์ <code>date</code> เป็น <code>datetime64[us]</code> เพราะส่ง <code>parse_dates</code> ไว้ ถ้าไม่ส่งจะเป็น <code>str</code> และใช้คำสั่งเกี่ยวกับวันที่ไม่ได้ (3) ตัวเลขซ้ายสุดของแต่ละตาราง เช่น 9, 2, 8 คือ Index เดิมของแถว ไม่ใช่ลำดับใหม่ ตารางอาจดูเหลื่อมเล็กน้อยเพราะสระและวรรณยุกต์ภาษาไทยไม่กินความกว้าง</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>pd.set_option("display.max_columns", None)</code> และ <code>"display.width"</code></td><td>ตั้งให้พิมพ์ครบทุกคอลัมน์ในบรรทัดเดียว ถ้าไม่ตั้ง pandas จะย่อคอลัมน์กลางเป็น <code>...</code> เมื่อรันเป็น Script</td></tr>
+<tr><td><code>pd.read_csv(..., parse_dates=["date"], encoding="utf-8")</code></td><td>อ่าน CSV เป็น DataFrame แปลงคอลัมน์ <code>date</code> เป็นวันที่ และอ่านภาษาไทยด้วย UTF-8</td></tr>
+<tr><td><code>df.shape</code>, <code>df.dtypes</code>, <code>df.head(3)</code></td><td>สามคำสั่งแรกที่ควรรันทุกครั้งหลังโหลด บอกขนาด ชนิดข้อมูลของแต่ละคอลัมน์ และหน้าตาของ 3 แถวแรก</td></tr>
+<tr><td><code>df["amount"] = df["qty"] * df["unit_price"]</code></td><td>คูณสองคอลัมน์ทีละแถวพร้อมกันแล้วเก็บเป็นคอลัมน์ใหม่</td></tr>
+<tr><td><code>df[(cond1) &amp; (cond2)]</code></td><td>กรองแถวที่ตรงทั้งสองเงื่อนไข วงเล็บจำเป็นเพราะ <code>&amp;</code> ทำงานก่อน <code>==</code></td></tr>
+<tr><td><code>sort_values("amount", ascending=False)</code></td><td>เรียงจากมากไปน้อย ค่าเริ่มต้นคือน้อยไปมาก</td></tr>
+<tr><td><code>df.query("payment == 'qr' and qty &gt;= 2")</code></td><td>เขียนเงื่อนไขเป็นข้อความ อ่านง่ายเมื่อมีหลายเงื่อนไข ใช้ <code>and</code>/<code>or</code> ได้ในข้อความนี้</td></tr>
+<tr><td><code>df.nlargest(3, "amount")</code></td><td>เลือก 3 แถวที่ค่ามากที่สุด สั้นกว่า <code>sort_values().head(3)</code></td></tr>
+<tr><td><code>df.loc[mask, ["menu", "amount"]]</code></td><td>เลือกแถวตามเงื่อนไขและเลือกคอลัมน์ตามชื่อในคำสั่งเดียว</td></tr>
+<tr><td><code>df.iloc[0, 3:5]</code></td><td>แถวตำแหน่ง 0 คอลัมน์ตำแหน่ง 3 ถึง 4 (ไม่รวม 5) ได้ <code>menu</code> กับ <code>category</code></td></tr>
+<tr><td><code>df.loc[df["menu"] == "ครัวซองต์", "category"] = ...</code></td><td>แก้ค่าในตารางเดิมแบบถูกวิธีของ pandas 3 คือเลือกแถวและคอลัมน์ใน <code>loc</code> ครั้งเดียว</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>KeyError: 'Qty'</code></td><td>ชื่อคอลัมน์ผิด ชื่อคอลัมน์แยกตัวพิมพ์ใหญ่เล็ก และอาจมีช่องว่างแฝงมากับไฟล์</td><td>พิมพ์ <code>df.columns.tolist()</code> ดูชื่อจริง ถ้ามีช่องว่างแฝงให้ใช้ <code>df.columns = df.columns.str.strip()</code></td></tr>
+<tr><td><code>ValueError: The truth value of a Series is ambiguous. Use a.empty, a.item(), a.any() or a.all().</code></td><td>เขียน <code>df[df["qty"] &gt; 1 and df["qty"] &lt; 3]</code> โดยใช้ <code>and</code> ของ Python กับ Series</td><td>ใช้ <code>&amp;</code> แทน <code>and</code> และ <code>|</code> แทน <code>or</code> พร้อมวงเล็บครอบทุกเงื่อนไข หรือใช้ <code>query()</code></td></tr>
+<tr><td><code>TypeError: '&gt;' not supported between instances of 'str' and 'int'</code></td><td>เทียบคอลัมน์ข้อความกับตัวเลข เช่น <code>df["payment"] &gt; 1</code> หรือคอลัมน์ตัวเลขถูกอ่านมาเป็นข้อความ</td><td>ตรวจ <code>df.dtypes</code> ก่อน ถ้าคอลัมน์ที่ควรเป็นตัวเลขกลายเป็น <code>str</code> ให้แปลงด้วย <code>pd.to_numeric</code> (แนวคิดที่ 3)</td></tr>
+<tr><td><code>ChainedAssignmentError: A value is being set on a copy of a DataFrame or Series through chained assignment.</code> และตารางไม่เปลี่ยน</td><td>แก้ค่าแบบลูกโซ่ <code>df[df["qty"] &gt; 1]["qty"] = 0</code> ซึ่งใน pandas 3 แก้แค่สำเนาชั่วคราวเสมอ</td><td>เขียนในคำสั่งเดียว <code>df.loc[df["qty"] &gt; 1, "qty"] = 0</code></td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul><li>ส่ง <code>parse_dates</code> และ <code>dtype</code> ตอน <code>read_csv</code> ให้ชัดเจน ดีกว่ามาแก้ทีหลัง และทำให้รู้ทันทีถ้าไฟล์ผิดรูปแบบ</li><li>ใช้ <code>loc</code> เมื่อเลือกด้วยชื่อหรือเงื่อนไข และใช้ <code>iloc</code> เฉพาะเมื่อตำแหน่งมีความหมายจริง เช่น แถวแรกหลังเรียงแล้ว</li><li>อย่าแก้ไฟล์ข้อมูลดิบ ให้อ่านเข้ามาแปลงใน Script แล้วบันทึกเป็นไฟล์ใหม่ เพื่อให้ย้อนกลับและทำซ้ำได้</li></ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>เพิ่มโค้ดต่อท้าย <code>pandas_basics.py</code> เพื่อตอบคำถามต่อไปนี้</p><ol><li>สาขา <code>B01</code> มีกี่ออร์เดอร์ที่จ่ายเงินสด ใช้ Boolean mask กับ <code>len()</code></li><li>ออร์เดอร์ที่ <code>unit_price</code> อยู่ระหว่าง 50 ถึง 65 ด้วย <code>between</code></li><li>ออร์เดอร์ที่เป็นชาหรือขนม ด้วย <code>isin(["tea", "bakery"])</code></li><li>ตารางที่มีเฉพาะ <code>menu</code> กับ <code>amount</code> ของออร์เดอร์ที่ไม่ได้จ่ายด้วย QR โดยใช้ <code>~</code></li></ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 3</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h3 id="s10-2-c03">ทำความสะอาดข้อมูล: Missing Data, ข้อมูลซ้ำ, ชนิดข้อมูล และวันเวลา</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>การทำความสะอาดข้อมูล (Data cleaning) คือการแก้ข้อมูลที่ผิดรูปแบบให้ถูกต้องก่อนวิเคราะห์ ข้อมูลจริงสกปรกเสมอ พนักงานอาจลืมกรอกจำนวน ระบบอาจส่งออเดอร์ซ้ำเมื่อเน็ตหลุด หรือมีคนพิมพ์ราคาว่า "65 บาท" แทน 65 ถ้าไม่แก้ก่อน ผลวิเคราะห์จะผิดโดยที่ไม่มี Error เตือนเลย หรือโปรแกรมจะพังกลางทาง นักวิทยาศาสตร์ข้อมูลในงานจริงจึงใช้เวลากับขั้นนี้มากที่สุด</p>
+<p>ขั้นตอนมาตรฐานคือ <strong>ตรวจก่อน แก้ทีหลัง แล้วตรวจซ้ำ</strong> ตรวจด้วย <code>dtypes</code>, <code>isna().sum()</code> และ <code>duplicated().sum()</code> แล้วตัดสินใจแก้ทีละปัญหาพร้อมจดเหตุผล</p>
+<ul>
+  <li><strong>ค่าว่าง:</strong> ลบแถวด้วย <code>dropna()</code> เมื่อแถวนั้นใช้ไม่ได้จริงและมีน้อย หรือเติมด้วย <code>fillna()</code> เช่น ค่ามัธยฐาน (ทนต่อ Outlier) ค่าที่พบบ่อย หรือค่าคงที่ที่มีความหมาย ทุกวิธีคือการเดา จึงต้องบอกในรายงาน</li>
+  <li><strong>ข้อมูลซ้ำ:</strong> <code>drop_duplicates()</code> ลบแถวที่เหมือนกันทุกคอลัมน์ หรือส่ง <code>subset=["order_id"]</code> ถ้ารหัสซ้ำคือปัญหา</li>
+  <li><strong>ข้อความ:</strong> ตัวช่วย <code>.str</code> เช่น <code>str.strip()</code> และ <code>str.replace()</code> ทำงานกับทุกแถวพร้อมกัน แล้วแปลงเป็นตัวเลขด้วย <code>pd.to_numeric(errors="coerce")</code> ที่เปลี่ยนค่าที่แปลงไม่ได้เป็นค่าว่างแทนการพัง</li>
+  <li><strong>วันเวลา:</strong> <code>pd.to_datetime(format=...)</code> แปลงข้อความเป็นวันที่ จากนั้นใช้ <code>.dt.day_name()</code>, <code>.dt.month</code> และ <code>resample("D")</code> รวมข้อมูลตามช่วงเวลา</li>
+  <li><strong>PDPA:</strong> ถ้าข้อมูลมีชื่อ เบอร์โทร หรือเลขบัตรประชาชน ให้ลบหรือแทนด้วยรหัสในขั้นนี้ ก่อนส่งต่อให้ใครหรือขึ้น GitHub</li>
+</ul>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>การทำความสะอาดข้อมูลเหมือนการล้างและหั่นผักก่อนทำอาหาร ต้องคัดใบเน่าทิ้ง (ข้อมูลผิด) เอาผักที่ซื้อซ้ำออก (ข้อมูลซ้ำ) และหั่นให้ขนาดเท่ากัน (ชนิดข้อมูลเดียวกัน) ถ้าข้ามขั้นนี้ อาหารที่ปรุงด้วยฝีมือดีแค่ไหนก็ยังมีดินปนอยู่ และพ่อครัวที่ดีจะจดไว้ว่าทิ้งอะไรไปบ้าง เพราะบางครั้งต้องอธิบายให้ลูกค้าฟังว่าทำไมจานนี้มีปริมาณน้อยลง</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>ไฟล์ <code>data/sales_raw.csv</code> จากหัวข้อเตรียมเครื่องมีปัญหา 4 จุด คือ ออร์เดอร์ 3 ไม่มีจำนวน ออร์เดอร์ 5 ซ้ำ ชื่อเมนูของออร์เดอร์ 7 มีช่องว่างหน้าหลัง และราคาของออร์เดอร์ 10 เขียนว่า <code>65 บาท</code> Script นี้ตรวจหาปัญหาทั้งหมด แก้ทีละข้อ ใช้ <code>assert</code> ยืนยันว่าสะอาดแล้ว และสรุปยอดขายตามวัน</p>
+<pre class="code" data-env="file" data-label="Python · clean_sales.py"><code class="language-python"># ทำความสะอาด sales_raw.csv: ค่าว่าง ข้อมูลซ้ำ ช่องว่างเกิน ตัวเลขที่ติดหน่วย และวันที่
+import pandas as pd
+
+raw = pd.read_csv("data/sales_raw.csv")
+print("แถวทั้งหมด:", len(raw))
+print("ชนิดข้อมูลตอนโหลด:")
+print(raw.dtypes)
+print("ค่าว่างแต่ละคอลัมน์:", raw.isna().sum().to_dict())
+print("แถวที่ซ้ำทั้งแถว:", raw.duplicated().sum())
+
+df = raw.drop_duplicates().copy()                       # 1) ลบแถวซ้ำ
+df["menu"] = df["menu"].str.strip()                     # 2) ตัดช่องว่างหน้า-หลัง
+df["unit_price"] = pd.to_numeric(                       # 3) ตัดคำว่า บาท แล้วแปลงเป็นตัวเลข
+    df["unit_price"].str.replace("บาท", "").str.strip(), errors="coerce"
+)
+median_qty = df["qty"].median()                         # 4) เติมค่าว่างด้วยมัธยฐาน
+print("มัธยฐานของ qty ที่ใช้เติม:", median_qty)
+df["qty"] = df["qty"].fillna(median_qty).astype(int)
+df["date"] = pd.to_datetime(df["date"], format="%Y-%m-%d")   # 5) แปลงเป็นวันที่
+
+assert len(df) == 12 and df.isna().sum().sum() == 0     # ตรวจว่าสะอาดครบ
+print("\nหลังทำความสะอาด:", df.shape, "ค่าว่าง:", df.isna().sum().sum())
+print(df.dtypes[["date", "qty", "unit_price"]])
+
+df["amount"] = df["qty"] * df["unit_price"]
+print("\nยอดขายรวมหลังเติมค่า:", df["amount"].sum(), "บาท")
+
+daily = df.set_index("date").resample("D")["amount"].sum()
+print("\nยอดขายรายวัน:")
+print(daily)
+print("\nยอดขายตามชื่อวัน:")
+print(df.groupby(df["date"].dt.day_name())["amount"].sum().sort_values(ascending=False))</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 clean_sales.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>แถวทั้งหมด: 13
+ชนิดข้อมูลตอนโหลด:
+order_id        int64
+date              str
+branch_id         str
+menu              str
+category          str
+qty           float64
+unit_price        str
+payment           str
+dtype: object
+ค่าว่างแต่ละคอลัมน์: {'order_id': 0, 'date': 0, 'branch_id': 0, 'menu': 0, 'category': 0, 'qty': 1, 'unit_price': 0, 'payment': 0}
+แถวที่ซ้ำทั้งแถว: 1
+มัธยฐานของ qty ที่ใช้เติม: 2.0
+
+หลังทำความสะอาด: (12, 8) ค่าว่าง: 0
+date          datetime64[us]
+qty                    int64
+unit_price             int64
+dtype: object
+
+ยอดขายรวมหลังเติมค่า: 1255 บาท
+
+ยอดขายรายวัน:
+date
+2026-10-01    290
+2026-10-02    155
+2026-10-03    250
+2026-10-04    190
+2026-10-05    270
+2026-10-06    100
+Freq: D, Name: amount, dtype: int64
+
+ยอดขายตามชื่อวัน:
+date
+Thursday    290
+Monday      270
+Saturday    250
+Sunday      190
+Friday      155
+Tuesday     100
+Name: amount, dtype: int64</code></pre>
+<p>ชนิดข้อมูลตอนโหลดบอกปัญหาได้ทันที <code>qty</code> เป็น <code>float64</code> ทั้งที่ควรเป็นจำนวนเต็ม เพราะ pandas เก็บค่าว่างเป็น <code>NaN</code> ซึ่งเป็นทศนิยม และ <code>unit_price</code> เป็น <code>str</code> เพราะมีแถวที่มีคำว่า "บาท" ปนมา หลังทำความสะอาด ยอดรวมได้ 1,255 บาท ไม่ใช่ 1,310 บาทเหมือนข้อมูลจริงในแนวคิดที่ 2 เพราะออร์เดอร์ 3 ขายจริง 3 แก้ว แต่เราเติมด้วยมัธยฐาน 2 แก้ว ยอดจึงหายไป 55 บาท นี่คือตัวอย่างว่าการเติมค่าว่างคือการประมาณ ไม่ใช่ข้อมูลจริง ต้องบอกในรายงานเสมอ</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>raw.isna().sum().to_dict()</code></td><td><code>isna()</code> ให้ตาราง True/False ว่าช่องไหนว่าง <code>sum()</code> นับต่อคอลัมน์ แล้วแปลงเป็น Dict ให้พิมพ์บรรทัดเดียว</td></tr>
+<tr><td><code>raw.duplicated().sum()</code></td><td>นับแถวที่ซ้ำกับแถวก่อนหน้าทุกคอลัมน์ แถวแรกของคู่ซ้ำไม่นับ</td></tr>
+<tr><td><code>raw.drop_duplicates().copy()</code></td><td>ลบแถวซ้ำแล้วทำสำเนาใหม่ให้ชัดเจนว่า <code>df</code> แยกจาก <code>raw</code></td></tr>
+<tr><td><code>df["menu"].str.strip()</code></td><td>ตัดช่องว่างหน้าและหลังของทุกแถวพร้อมกัน ถ้าไม่ตัด <code>groupby("menu")</code> จะนับ <code>" อเมริกาโน่ร้อน "</code> เป็นเมนูใหม่</td></tr>
+<tr><td><code>pd.to_numeric(..., errors="coerce")</code></td><td>แปลงข้อความเป็นตัวเลข ค่าที่ยังแปลงไม่ได้จะกลายเป็น <code>NaN</code> แทนการพัง แล้ว <code>assert</code> ด้านล่างจะจับได้</td></tr>
+<tr><td><code>df["qty"].median()</code> และ <code>fillna(median_qty)</code></td><td>หามัธยฐานจากค่าที่มีอยู่ (ข้ามค่าว่างให้อัตโนมัติ) แล้วเติมลงช่องว่าง</td></tr>
+<tr><td><code>.astype(int)</code></td><td>แปลงกลับเป็นจำนวนเต็ม ทำได้หลังเติมค่าว่างครบแล้วเท่านั้น</td></tr>
+<tr><td><code>pd.to_datetime(df["date"], format="%Y-%m-%d")</code></td><td>แปลงข้อความเป็นวันที่ตามรูปแบบที่ระบุ ถ้ามีแถวผิดรูปแบบจะพังทันที ซึ่งดีกว่าเดารูปแบบผิดแบบเงียบๆ</td></tr>
+<tr><td><code>assert len(df) == 12 and ...</code></td><td>ตรวจผลลัพธ์ในโค้ด ถ้าเงื่อนไขไม่จริง Script จะหยุดด้วย <code>AssertionError</code> ทันที</td></tr>
+<tr><td><code>df.set_index("date").resample("D")</code></td><td>ตั้งวันที่เป็น Index แล้วรวมข้อมูลรายวัน (<code>"D"</code>) วันที่ไม่มีขายจะได้ 0</td></tr>
+<tr><td><code>df["date"].dt.day_name()</code></td><td>ดึงชื่อวันภาษาอังกฤษจากวันที่ แล้วใช้เป็นกลุ่มใน <code>groupby</code></td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>ValueError: could not convert string to float: '65 บาท'</code></td><td>เรียก <code>df["unit_price"].astype(float)</code> ทั้งที่ยังมีหน่วยติดอยู่</td><td>ตัดหน่วยด้วย <code>str.replace</code> ก่อน แล้วใช้ <code>pd.to_numeric(errors="coerce")</code> และตรวจค่าว่างที่เกิดขึ้น</td></tr>
+<tr><td><code>AttributeError: Can only use .dt accessor with datetimelike values</code></td><td>เรียก <code>.dt.day_name()</code> กับคอลัมน์ที่ยังเป็น <code>str</code></td><td>แปลงด้วย <code>pd.to_datetime</code> ก่อน หรือส่ง <code>parse_dates</code> ตอน <code>read_csv</code></td></tr>
+<tr><td><code>IntCastingNaNError: Cannot convert non-finite values (NA or inf) to integer.</code></td><td>เรียก <code>.astype(int)</code> กับคอลัมน์ที่ยังมีค่าว่าง</td><td>เติมหรือลบค่าว่างก่อนแปลง หรือใช้ชนิด <code>"Int64"</code> (I ตัวใหญ่) ที่เก็บค่าว่างได้</td></tr>
+<tr><td><code>ValueError: time data "06/10/2026" doesn't match format "%Y-%m-%d".</code></td><td>บางแถวเขียนวันที่คนละรูปแบบกับที่ระบุใน <code>format</code></td><td>หาแถวผิดรูปแบบด้วย <code>pd.to_datetime(..., errors="coerce").isna()</code> แล้วแก้ทีละกรณี อย่าให้ pandas เดาวันกับเดือนสลับกัน</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul><li>เขียนการทำความสะอาดทุกขั้นเป็นโค้ด ห้ามแก้ไฟล์ดิบด้วยมือใน Excel เพื่อให้ทำซ้ำได้เมื่อได้ข้อมูลชุดใหม่</li><li>ใส่ <code>assert</code> ตรวจจำนวนแถวและค่าว่างหลังทำความสะอาด ถ้าข้อมูลรอบหน้าผิดแบบใหม่ Script จะหยุดก่อนส่งตัวเลขผิดออกไป</li><li>จดทุกการตัดสินใจลง README หรือ Comment เช่น "เติม qty ที่ว่างด้วยมัธยฐาน 2 จำนวน 1 แถว" เพื่อให้คนอ่านผลรู้ว่าตัวเลขมาจากการประมาณส่วนไหน</li></ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ทำให้ <code>sales_raw.csv</code> สกปรกเพิ่ม แล้วแก้ <code>clean_sales.py</code> ให้รับมือได้</p><ol><li>เพิ่มแถวออร์เดอร์ 13 ที่ <code>payment</code> เขียนเป็น <code>QR</code> ตัวใหญ่ แล้วแปลงทั้งคอลัมน์เป็นตัวเล็กด้วย <code>str.lower()</code></li><li>เปลี่ยนวิธีเติม <code>qty</code> เป็นการลบแถวด้วย <code>dropna(subset=["qty"])</code> แล้วเทียบยอดรวมกับวิธีเดิม</li><li>แก้ <code>assert</code> ให้ตรงกับจำนวนแถวใหม่</li><li>เพิ่มคอลัมน์ <code>month</code> ด้วย <code>.dt.month</code> แล้วสรุปยอดขายรายเดือน</li></ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 4</span><span class="lvl" data-lvl="b">Beginner</span></div>
+<h3 id="s10-2-c04">groupby, merge, pivot_table และการอ่านข้อมูลจาก SQLite</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>คำถามธุรกิจส่วนใหญ่อยู่ในรูป "แยกตาม ... แล้วสรุปเป็น ..." เช่น ยอดขายแยกตามสาขา หรือจำนวนลูกค้าแยกตามจังหวัด pandas ตอบคำถามแบบนี้ด้วย <code>groupby</code> ซึ่งทำงานแบบ <strong>Split-Apply-Combine</strong> คือแบ่งแถวเป็นกลุ่มตามค่าของคอลัมน์ คำนวณสรุปของแต่ละกลุ่ม แล้วรวมผลกลับเป็นตาราง เหมือน <code>GROUP BY</code> ใน <a data-t="14"></a> ใช้ร่วมกับ <code>agg</code> แบบตั้งชื่อ เช่น <code>agg(orders=("order_id", "count"))</code> เพื่อได้คอลัมน์ผลลัพธ์ที่ชื่ออ่านง่าย</p>
+<p>ข้อมูลจริงมักแยกเก็บหลายตาราง <code>merge</code> คือการรวมตารางด้วยคอลัมน์ร่วม เหมือน <code>JOIN</code> มีแบบ <code>inner</code> (เก็บเฉพาะที่ตรงกันทั้งสองฝั่ง), <code>left</code> (เก็บทุกแถวของตารางซ้าย) และ <code>outer</code> (เก็บทุกแถวของทั้งสองตาราง) ส่วน <code>pivot_table</code> สร้างตารางสรุปสองมิติ เช่น สาขาเป็นแถว หมวดสินค้าเป็นคอลัมน์</p>
+<ul>
+  <li><strong>SQLite:</strong> ฐานข้อมูลในไฟล์เดียวที่มากับ Python เขียนตารางด้วย <code>df.to_sql()</code> และอ่านผล Query ด้วย <code>pd.read_sql()</code> ผ่าน <code>sqlite3.connect()</code></li>
+  <li><strong>ความปลอดภัย:</strong> ค่าที่เปลี่ยนได้ใน Query ต้องส่งผ่าน <code>params</code> กับเครื่องหมาย <code>?</code> ห้ามใช้ f-string ต่อเข้าไปใน SQL เพราะเปิดช่องให้เกิด SQL Injection</li>
+  <li><strong>เลือกทำที่ไหน:</strong> กรองและรวมข้อมูลจำนวนมากใน SQL ก่อน เพื่อให้ดึงข้อมูลน้อยลง แล้ววิเคราะห์ต่อใน pandas ที่มีเครื่องมือสถิติและกราฟครบกว่า</li>
+</ul>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p><code>groupby</code> เหมือนการเทใบเสร็จทั้งกล่องออกมาแยกเป็นกองตามสาขา แล้วรวมยอดของแต่ละกอง <code>merge</code> เหมือนการเอาใบเสร็จที่มีแค่รหัสสาขาไปเทียบกับสมุดรายชื่อสาขา เพื่อเขียนชื่อสาขาเต็มลงไป และ <code>pivot_table</code> เหมือนตารางสรุปที่ผู้จัดการติดบอร์ด แถวคือสาขา คอลัมน์คือประเภทสินค้า ช่องกลางคือยอดเงิน</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>ไฟล์นี้บันทึก <code>sales.csv</code> และ <code>branches.csv</code> ลงฐานข้อมูล <code>data/shop.db</code> สรุปยอดขายรายสาขาด้วย SQL แล้วทำซ้ำด้วย <code>merge</code> กับ <code>groupby</code> เพื่อยืนยันว่าได้ตัวเลขตรงกัน และสร้าง <code>pivot_table</code> สาขา × หมวดสินค้า ใช้โมดูล <code>sqlite3</code> ที่มากับ Python ไม่ต้องติดตั้งเพิ่ม</p>
+<pre class="code" data-env="file" data-label="Python · shop_db.py"><code class="language-python"># บันทึก CSV ลง SQLite แล้วสรุปยอดขายด้วย SQL เทียบกับ pandas (merge + groupby + pivot_table)
+import sqlite3
+
+import pandas as pd
+
+sales = pd.read_csv("data/sales.csv")
+branches = pd.read_csv("data/branches.csv")
+
+with sqlite3.connect("data/shop.db") as con:
+    sales.to_sql("sales", con, if_exists="replace", index=False)
+    branches.to_sql("branches", con, if_exists="replace", index=False)
+
+    # ส่งค่าเข้า Query ด้วย params (เครื่องหมาย ?) ห้ามต่อ String เอง
+    sql = """
+        SELECT b.branch_name, SUM(s.qty * s.unit_price) AS revenue
+        FROM sales s JOIN branches b USING (branch_id)
+        WHERE s.date &gt;= ?
+        GROUP BY b.branch_name
+        ORDER BY revenue DESC
+    """
+    by_sql = pd.read_sql(sql, con, params=("2026-10-01",))
+print("ผลจาก SQL:")
+print(by_sql)
+
+# คำนวณยอดเดิมอีกครั้งด้วย pandas เพื่อตรวจเทียบ
+sales["amount"] = sales["qty"] * sales["unit_price"]
+df = sales.merge(branches, on="branch_id", how="left", validate="many_to_one")
+print("\nจำนวนแถวก่อน/หลัง merge:", len(sales), len(df))
+by_pandas = (
+    df.groupby("branch_name", as_index=False)
+    .agg(orders=("order_id", "count"), revenue=("amount", "sum"))
+    .sort_values("revenue", ascending=False)
+)
+print(by_pandas)
+assert by_sql["revenue"].tolist() == by_pandas["revenue"].tolist()
+print("SQL กับ pandas ได้ยอดตรงกัน")
+
+# ตารางสองมิติ: สาขา x หมวดสินค้า พร้อมยอดรวม (margins)
+pivot = df.pivot_table(index="branch_name", columns="category", values="amount",
+                       aggfunc="sum", fill_value=0, margins=True, margins_name="รวม")
+print("\n", pivot, sep="")</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 shop_db.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ผลจาก SQL:
+  branch_name  revenue
+0        สยาม      680
+1      นิมมาน      385
+2      อารีย์      245
+
+จำนวนแถวก่อน/หลัง merge: 12 12
+  branch_name  orders  revenue
+1        สยาม       5      680
+0      นิมมาน       3      385
+2      อารีย์       4      245
+SQL กับ pandas ได้ยอดตรงกัน
+
+category     bakery  coffee  tea   รวม
+branch_name
+นิมมาน           90     295    0   385
+สยาม            135     230  315   680
+อารีย์            0     115  130   245
+รวม             225     640  445  1310</code></pre>
+<p>ยอดรายสาขา 680, 385 และ 245 บาท รวม 1,310 บาท ตรงกับ <code>sales_summary.py</code> ใน Part 1 จำนวนแถวก่อนและหลัง <code>merge</code> เท่ากัน (12 แถว) ยืนยันว่าไม่มีแถวงอกจากการรวมตาราง ตาราง <code>pivot_table</code> บอกข้อมูลเพิ่มที่สรุปรายสาขาไม่บอก คือสาขานิมมานไม่ได้ขายชาเลย และสาขาอารีย์ไม่ได้ขายขนม ช่องที่ไม่มีข้อมูลแสดงเป็น 0 เพราะตั้ง <code>fill_value=0</code></p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>with sqlite3.connect("data/shop.db") as con:</code></td><td>เปิด (หรือสร้าง) ไฟล์ฐานข้อมูล <code>with</code> ช่วย Commit ให้เมื่อจบบล็อก</td></tr>
+<tr><td><code>sales.to_sql("sales", con, if_exists="replace", index=False)</code></td><td>เขียน DataFrame เป็นตาราง <code>sales</code> ถ้ามีอยู่แล้วให้เขียนทับ และไม่เขียน Index ของ pandas เป็นคอลัมน์</td></tr>
+<tr><td><code>JOIN branches b USING (branch_id)</code></td><td>รวมสองตารางด้วยคอลัมน์ที่ชื่อเหมือนกัน เพื่อได้ <code>branch_name</code></td></tr>
+<tr><td><code>WHERE s.date &gt;= ?</code> และ <code>params=("2026-10-01",)</code></td><td>ส่งค่าเข้า Query อย่างปลอดภัย ไลบรารีจัดการเครื่องหมายคำพูดให้เอง <code>params</code> ต้องเป็น Tuple จึงมีจุลภาคท้าย</td></tr>
+<tr><td><code>pd.read_sql(sql, con, params=...)</code></td><td>รัน Query แล้วได้ผลเป็น DataFrame ทันที</td></tr>
+<tr><td><code>merge(..., how="left", validate="many_to_one")</code></td><td>รวมแบบเก็บทุกออร์เดอร์ และตรวจว่าแต่ละ <code>branch_id</code> ในตารางสาขามีแถวเดียว ถ้าไม่ใช่จะพังทันที</td></tr>
+<tr><td><code>groupby("branch_name", as_index=False)</code></td><td>แบ่งกลุ่มตามชื่อสาขา โดยให้ชื่อสาขาเป็นคอลัมน์ปกติ ไม่กลายเป็น Index</td></tr>
+<tr><td><code>agg(orders=("order_id", "count"), revenue=("amount", "sum"))</code></td><td>Named aggregation: ชื่อคอลัมน์ผลลัพธ์ = (คอลัมน์ต้นทาง, ฟังก์ชันสรุป)</td></tr>
+<tr><td><code>assert by_sql[...] == by_pandas[...]</code></td><td>ยืนยันว่าสองวิธีให้ตัวเลขเดียวกัน เป็นการตรวจความถูกต้องที่ควรทำเมื่อย้ายงานจาก SQL มา pandas</td></tr>
+<tr><td><code>pivot_table(index=..., columns=..., values=..., aggfunc="sum")</code></td><td>สร้างตารางสองมิติ <code>fill_value=0</code> เติมช่องว่าง และ <code>margins=True</code> เพิ่มแถวและคอลัมน์ยอดรวม</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>MergeError: Merge keys are not unique in right dataset; not a many-to-one merge</code></td><td>ตารางสาขามี <code>branch_id</code> ซ้ำ ถ้าไม่ได้ใส่ <code>validate</code> จะไม่มี Error แต่ออร์เดอร์จะถูกนับซ้ำ</td><td>ตรวจด้วย <code>branches["branch_id"].duplicated().sum()</code> แล้วลบหรือแก้แถวซ้ำก่อนรวม และใส่ <code>validate</code> ทุกครั้ง</td></tr>
+<tr><td>จำนวนแถวหลัง <code>merge</code> มากกว่าก่อนรวม (ไม่มี Error)</td><td>คีย์ซ้ำทั้งสองฝั่ง เกิดการจับคู่แบบ Many-to-many แถวจึงงอก</td><td>พิมพ์ <code>len()</code> ก่อนและหลังรวมเสมอ และใช้ <code>validate="many_to_one"</code> หรือ <code>"one_to_one"</code> ตามความสัมพันธ์จริง</td></tr>
+<tr><td><code>KeyError: 'branch_id'</code> หลัง <code>groupby</code></td><td><code>groupby</code> แบบปกติย้ายคอลัมน์ที่ใช้แบ่งกลุ่มไปเป็น Index จึงเรียกเป็นคอลัมน์ไม่ได้</td><td>ใช้ <code>groupby(..., as_index=False)</code> หรือเรียก <code>.reset_index()</code> หลังสรุป</td></tr>
+<tr><td><code>DatabaseError: Execution failed on sql 'SELECT * FROM sales': no such table: sales</code></td><td>รัน Script จากโฟลเดอร์อื่น <code>sqlite3.connect</code> จึงสร้างไฟล์ฐานข้อมูลเปล่าใหม่ในที่ผิด</td><td><code>cd ~/projects/ds-lab</code> ก่อนรัน หรือใช้ Path เต็ม และตรวจรายชื่อตารางด้วย <code>sqlite3 data/shop.db ".tables"</code></td></tr>
+</tbody></table></div>
+<div class="callout sec"><span class="c-label sec">Security</span><p>ห้ามเขียน <code>f"SELECT * FROM sales WHERE branch_id = '{user_input}'"</code> เด็ดขาด ถ้าผู้ใช้พิมพ์ <code>' OR '1'='1</code> Query จะคืนข้อมูลทุกแถว ให้ใช้ <code>params</code> กับ <code>?</code> เสมอ แม้ข้อมูลจะมาจากไฟล์ของตัวเองก็ตาม เพื่อให้เป็นนิสัย</p></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul><li>ใส่ <code>validate</code> ทุกครั้งที่ <code>merge</code> และพิมพ์จำนวนแถวก่อนและหลัง เป็นสองบรรทัดที่กันบั๊กการนับซ้ำได้เกือบทั้งหมด</li><li>ใช้ Named aggregation ใน <code>agg</code> เพื่อให้คอลัมน์ผลลัพธ์มีชื่อที่สื่อความหมาย ไม่ต้องมาเปลี่ยนชื่อทีหลัง</li><li>เมื่อข้อมูลอยู่ในฐานข้อมูล ให้ <code>GROUP BY</code> ใน SQL ก่อนดึงมา แทนการดึงทั้งตารางหลายล้านแถวมารวมใน pandas</li></ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ต่อยอด <code>shop_db.py</code> ดังนี้</p><ol><li>เพิ่มสาขา <code>B04,บางนา,กรุงเทพมหานคร,2026</code> ลง <code>branches.csv</code> แล้วใช้ <code>merge</code> แบบ <code>right</code> หาสาขาที่ยังไม่มียอดขาย</li><li>เขียน SQL หาจำนวนแก้วรวมของแต่ละเมนู โดยส่งชื่อหมวดสินค้าผ่าน <code>params</code></li><li>ใช้ <code>pd.crosstab(df["branch_name"], df["payment"])</code> นับจำนวนออร์เดอร์ตามสาขาและวิธีจ่ายเงิน</li><li>แปลง <code>pivot</code> กลับเป็นรูปแบบยาวด้วย <code>reset_index().melt(id_vars="branch_name")</code></li></ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 5</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h3 id="s10-2-c05">EDA และการทำกราฟด้วย matplotlib</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>EDA (Exploratory Data Analysis) คือการสำรวจข้อมูลด้วยสถิติสรุปและกราฟก่อนสร้างโมเดล เป้าหมายคือรู้ว่าแต่ละคอลัมน์กระจายตัวอย่างไร มี Outlier หรือค่าผิดปกติไหม คอลัมน์ไหนสัมพันธ์กับสิ่งที่อยากทำนาย และควรตั้งคำถามอะไรต่อ EDA ที่ดีช่วยประหยัดเวลา เพราะปัญหาข้อมูลส่วนใหญ่มองเห็นได้จากกราฟเพียงรูปเดียว</p>
+<p>matplotlib คือไลบรารีกราฟพื้นฐานของ Python วิธีเขียนที่แนะนำคือสร้างรูปและแกนด้วย <code>fig, ax = plt.subplots()</code> แล้ววาดบน <code>ax</code> ตั้งชื่อด้วย <code>ax.set_title</code>, <code>set_xlabel</code>, <code>set_ylabel</code> และบันทึกด้วย <code>fig.savefig</code> แล้วปิดด้วย <code>plt.close(fig)</code> เลือกกราฟตามคำถาม</p>
+<ul>
+  <li><strong>Histogram</strong> (<code>ax.hist</code>): การกระจายของตัวแปรเดียว สมมาตรหรือเบ้</li>
+  <li><strong>Scatter plot</strong> (<code>ax.scatter</code>): ความสัมพันธ์ของตัวแปรตัวเลขสองตัว</li>
+  <li><strong>Box plot</strong> (<code>ax.boxplot</code>): เทียบการกระจายหลายกลุ่ม เส้นกลางกล่องคือมัธยฐาน ขอบกล่องคือควอร์ไทล์ที่ 1 และ 3 จุดนอกหนวดคือ Outlier</li>
+  <li><strong>Bar chart</strong> (<code>ax.bar</code>, <code>ax.barh</code>): เทียบค่าของกลุ่ม แกนค่าต้องเริ่มที่ 0</li>
+  <li><strong>Line chart</strong> (<code>ax.plot</code>): แนวโน้มตามเวลา</li>
+</ul>
+<p>ตัวเลขที่ใช้คู่กับกราฟคือ <code>describe()</code> และสหสัมพันธ์ <code>df.corr(numeric_only=True)</code> ซึ่งมีค่า −1 ถึง 1 ค่าใกล้ 1 แปลว่าเพิ่มขึ้นด้วยกัน ใกล้ −1 แปลว่าสวนทางกัน และใกล้ 0 แปลว่าไม่มีความสัมพันธ์เชิงเส้น สหสัมพันธ์ไม่ได้บอกว่าอะไรเป็นสาเหตุ</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>EDA เหมือนการเดินดูบ้านก่อนซื้อ ตัวเลขใน <code>describe()</code> คือเอกสารที่บอกขนาดห้องและอายุบ้าน ส่วนกราฟคือการเดินดูด้วยตาตัวเอง ซึ่งเห็นรอยร้าวบนผนังหรือน้ำรั่วที่เอกสารไม่ได้เขียนไว้ ถ้าซื้อบ้านจากเอกสารอย่างเดียว อาจเจอปัญหาใหญ่หลังย้ายเข้าไปแล้ว</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>ไฟล์นี้ใช้ชุดข้อมูลเบาหวาน <code>load_diabetes</code> ที่มากับ scikit-learn มีคนไข้ 442 คน 10 Feature ที่ถูกปรับสเกลมาแล้ว (ค่าเฉลี่ยเป็น 0) และ <code>target</code> คือค่าวัดความรุนแรงของโรคหลังจากนั้น 1 ปี Script พิมพ์สถิติสรุปและสหสัมพันธ์ แล้วบันทึกกราฟ 4 แบบลง <code>charts/</code> ชื่อแกนในกราฟใช้ภาษาอังกฤษเพื่อเลี่ยงปัญหาฟอนต์ไทย</p>
+<pre class="code" data-env="file" data-label="Python · eda_diabetes.py"><code class="language-python"># EDA ของชุดข้อมูลเบาหวาน: สถิติสรุป สหสัมพันธ์ และกราฟ 4 แบบบันทึกเป็น PNG
+from pathlib import Path
+
+import matplotlib
+import matplotlib.pyplot as plt
+from sklearn.datasets import load_diabetes
+
+print("Backend:", matplotlib.get_backend())
+Path("charts").mkdir(exist_ok=True)
+
+df = load_diabetes(as_frame=True).frame          # 442 แถว: 10 Feature (ปรับสเกลแล้ว) + target
+print("shape:", df.shape)
+print(df[["target", "bmi", "bp"]].describe().round(3))
+
+corr = df.corr(numeric_only=True)["target"].drop("target").sort_values(ascending=False)
+print("\nสหสัมพันธ์กับ target 3 อันดับแรก:")
+print(corr.head(3).round(3))
+
+# 1) Histogram: การกระจายของ target
+fig, ax = plt.subplots(figsize=(6, 4))
+ax.hist(df["target"], bins=20, edgecolor="black")
+ax.set_title("Disease progression is right-skewed")
+ax.set_xlabel("target (progression after 1 year)")
+ax.set_ylabel("number of patients")
+fig.savefig("charts/target_hist.png", dpi=150, bbox_inches="tight")
+plt.close(fig)
+
+# 2) Scatter: bmi กับ target
+fig, ax = plt.subplots(figsize=(6, 4))
+ax.scatter(df["bmi"], df["target"], alpha=0.5)
+ax.set_title(f"Higher BMI, higher progression (r = {corr['bmi']:.2f})")
+ax.set_xlabel("bmi (scaled)")
+ax.set_ylabel("target")
+fig.savefig("charts/bmi_scatter.png", dpi=150, bbox_inches="tight")
+plt.close(fig)
+
+# 3) Box plot: แบ่งคนไข้เป็น 2 กลุ่มตาม bmi สูง/ต่ำกว่ามัธยฐาน
+high = df["bmi"] &gt; df["bmi"].median()
+groups = [df.loc[~high, "target"], df.loc[high, "target"]]
+fig, ax = plt.subplots(figsize=(6, 4))
+ax.boxplot(groups, tick_labels=["bmi &lt;= median", "bmi &gt; median"])
+ax.set_title("Patients with high BMI progress more")
+ax.set_ylabel("target")
+fig.savefig("charts/bmi_box.png", dpi=150, bbox_inches="tight")
+plt.close(fig)
+print("\nมัธยฐาน target กลุ่ม bmi ต่ำ / สูง:", groups[0].median(), "/", groups[1].median())
+
+# 4) Bar chart: สหสัมพันธ์ของทุก Feature
+fig, ax = plt.subplots(figsize=(6, 4))
+ax.barh(corr.index, corr.values)
+ax.axvline(0, color="black", linewidth=0.8)
+ax.set_title("bmi and s5 correlate most with progression")
+ax.set_xlabel("correlation with target")
+fig.tight_layout()
+fig.savefig("charts/corr_bar.png", dpi=150, bbox_inches="tight")
+plt.close(fig)
+
+print("\nบันทึกกราฟแล้ว:", sorted(p.name for p in Path("charts").glob("*.png")))</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 eda_diabetes.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Backend: agg
+shape: (442, 11)
+        target      bmi       bp
+count  442.000  442.000  442.000
+mean   152.133   -0.000   -0.000
+std     77.093    0.048    0.048
+min     25.000   -0.090   -0.112
+25%     87.000   -0.034   -0.037
+50%    140.500   -0.007   -0.006
+75%    211.500    0.031    0.036
+max    346.000    0.171    0.132
+
+สหสัมพันธ์กับ target 3 อันดับแรก:
+bmi    0.586
+s5     0.566
+bp     0.441
+Name: target, dtype: float64
+
+มัธยฐาน target กลุ่ม bmi ต่ำ / สูง: 97.0 / 196.0
+
+บันทึกกราฟแล้ว: ['bmi_box.png', 'bmi_scatter.png', 'corr_bar.png', 'target_hist.png']</code></pre>
+<p>หน้าเว็บแสดงรูปไม่ได้ ให้เปิดไฟล์ใน <code>charts/</code> แล้วเทียบกับคำบรรยายนี้ ถ้าโฟลเดอร์ <code>charts/</code> มีไฟล์จากแนวคิดอื่นอยู่แล้ว รายชื่อไฟล์ในบรรทัดสุดท้ายจะยาวกว่านี้</p>
+<ul>
+  <li><strong><code>target_hist.png</code>:</strong> แท่งที่สูงที่สุดอยู่ทางซ้ายช่วงประมาณ 40–105 (แท่งละ 32–45 คน) แล้วค่อยๆ เตี้ยลงไปทางขวาจนเหลือไม่กี่คนที่ราว 330–346 คือการกระจายที่เบ้ขวา สอดคล้องกับค่าเฉลี่ย 152.1 ที่สูงกว่ามัธยฐาน 140.5</li>
+  <li><strong><code>bmi_scatter.png</code>:</strong> จุดกระจายกว้างแต่เอียงขึ้นจากซ้ายล่างไปขวาบน ตรงกับสหสัมพันธ์ 0.586 ซึ่งเป็นความสัมพันธ์ระดับปานกลาง</li>
+  <li><strong><code>bmi_box.png</code>:</strong> กล่องของกลุ่ม bmi สูงอยู่สูงกว่าชัดเจน เส้นมัธยฐานอยู่ที่ 196 เทียบกับ 97 ของกลุ่ม bmi ต่ำ</li>
+  <li><strong><code>corr_bar.png</code>:</strong> แท่งแนวนอน 10 แท่งเรียงจากบนลงล่าง <code>bmi</code> และ <code>s5</code> ยาวที่สุด และมีเพียง <code>s3</code> ที่เป็นค่าติดลบ (−0.395) อยู่ทางซ้ายของเส้น 0</li>
+</ul>
+<p>ข้อสรุป EDA ที่เขียนได้จากตัวเลขนี้ เช่น "ค่า bmi สัมพันธ์กับความรุนแรงของโรคมากที่สุด (r = 0.59) คนไข้กลุ่ม bmi สูงกว่ามัธยฐานมีค่ามัธยฐานของความรุนแรง 196 เกือบสองเท่าของอีกกลุ่ม (97)" แต่ยังสรุปไม่ได้ว่า bmi เป็นสาเหตุ</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>matplotlib.get_backend()</code></td><td>บอกว่า matplotlib วาดด้วยอะไร <code>agg</code> แปลว่าเขียนไฟล์ได้อย่างเดียว ไม่เปิดหน้าต่าง จึงต้องใช้ <code>savefig</code></td></tr>
+<tr><td><code>Path("charts").mkdir(exist_ok=True)</code></td><td>สร้างโฟลเดอร์ถ้ายังไม่มี <code>exist_ok=True</code> ทำให้ไม่พังเมื่อมีอยู่แล้ว</td></tr>
+<tr><td><code>load_diabetes(as_frame=True).frame</code></td><td>โหลดชุดข้อมูลเป็น DataFrame ที่รวม Feature กับคอลัมน์ <code>target</code> ไว้ด้วยกัน</td></tr>
+<tr><td><code>df.corr(numeric_only=True)["target"].drop("target")</code></td><td>คำนวณสหสัมพันธ์ทุกคู่ เลือกคอลัมน์ <code>target</code> แล้วตัดค่าที่เทียบกับตัวเอง (ซึ่งเป็น 1 เสมอ) ออก</td></tr>
+<tr><td><code>fig, ax = plt.subplots(figsize=(6, 4))</code></td><td>สร้างรูปขนาด 6×4 นิ้วที่มีแกนเดียว วาดทุกอย่างบน <code>ax</code></td></tr>
+<tr><td><code>ax.hist(..., bins=20, edgecolor="black")</code></td><td>แบ่งช่วงค่าเป็น 20 ช่องแล้วนับจำนวนในแต่ละช่อง เส้นขอบสีดำทำให้แยกแท่งออกจากกันชัด</td></tr>
+<tr><td><code>ax.scatter(..., alpha=0.5)</code></td><td>วาดจุดโปร่งแสงครึ่งหนึ่ง จุดที่ซ้อนกันจะเข้มขึ้น ทำให้เห็นความหนาแน่น</td></tr>
+<tr><td><code>ax.boxplot(groups, tick_labels=[...])</code></td><td>วาด Box plot ของ 2 กลุ่ม <code>tick_labels</code> คือชื่อใต้แต่ละกล่อง (ชื่อพารามิเตอร์นี้ใช้ใน matplotlib 3.9 ขึ้นไป)</td></tr>
+<tr><td><code>ax.barh</code> และ <code>ax.axvline(0)</code></td><td>Bar chart แนวนอน อ่านชื่อ Feature ยาวๆ ได้ง่าย และเส้นแนวตั้งที่ 0 แยกค่าบวกกับค่าลบ</td></tr>
+<tr><td><code>fig.savefig(..., dpi=150, bbox_inches="tight")</code></td><td>บันทึกเป็น PNG ความละเอียด 150 dpi และตัดขอบว่างรอบรูป</td></tr>
+<tr><td><code>plt.close(fig)</code></td><td>ปิดรูปเพื่อคืนหน่วยความจำ ถ้าวาดหลายสิบรูปใน Loop โดยไม่ปิดจะได้ <code>RuntimeWarning</code> ว่าเปิดรูปไว้เกิน 20 รูป</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>FileNotFoundError: [Errno 2] No such file or directory: 'charts/target_hist.png'</code></td><td>บันทึกลงโฟลเดอร์ที่ยังไม่มี <code>savefig</code> ไม่สร้างโฟลเดอร์ให้</td><td>เรียก <code>Path("charts").mkdir(exist_ok=True)</code> ตอนต้น Script</td></tr>
+<tr><td><code>UserWarning: Glyph 3618 (\N{THAI CHARACTER YO YAK}) missing from font(s) DejaVu Sans.</code> และตัวอักษรไทยเป็นสี่เหลี่ยม</td><td>ฟอนต์เริ่มต้น DejaVu Sans ไม่มีตัวอักษรไทย</td><td>ติดตั้ง <code>sudo apt install -y fonts-thai-tlwg</code> แล้วตั้ง <code>plt.rcParams["font.family"] = "Loma"</code> หรือใช้ชื่อแกนภาษาอังกฤษ</td></tr>
+<tr><td>ไฟล์ PNG ว่างเปล่า</td><td>เรียก <code>savefig</code> หลัง <code>plt.show()</code> ใน Notebook ซึ่งปิดรูปไปแล้ว</td><td>เรียก <code>savefig</code> ก่อน <code>plt.show()</code> เสมอ</td></tr>
+<tr><td>ชื่อแกนหรือชื่อ Feature ซ้อนทับกันหรือถูกตัด</td><td>ข้อความยาวเกินพื้นที่ของรูป</td><td>เรียก <code>fig.tight_layout()</code> และใช้ <code>bbox_inches="tight"</code> หรือเปลี่ยนเป็นกราฟแนวนอน</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul><li>ตั้งชื่อกราฟเป็นข้อสรุป เช่น "Patients with high BMI progress more" แทน "Box plot of bmi" คนที่อ่านแค่ชื่อจะได้ประเด็นทันที</li><li>ทุกกราฟในรายงานต้องมีชื่อแกนพร้อมหน่วย และมีตัวเลขสรุปที่ยืนยันสิ่งที่กราฟบอก</li><li>ใช้รูปแบบ <code>fig, ax = plt.subplots()</code> เสมอ แทน <code>plt.plot</code> ล้วน เพราะควบคุมกราฟหลายรูปได้ชัดเจนกว่า</li></ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>สำรวจชุดข้อมูลเดิมต่อ</p><ol><li>ทำ Scatter plot ระหว่าง <code>s5</code> กับ <code>target</code> แล้วใส่ค่าสหสัมพันธ์ในชื่อกราฟ</li><li>ทำ Histogram ของ <code>age</code> แล้วเขียน 1 ประโยคว่าการกระจายสมมาตรหรือเบ้</li><li>หา Feature ที่มีสหสัมพันธ์ติดลบมากที่สุดจาก <code>corr</code> แล้วอธิบายความหมาย</li><li>ใช้ <code>fig, axes = plt.subplots(1, 2)</code> วาด Histogram ของ <code>bmi</code> และ <code>bp</code> คู่กันในรูปเดียว</li></ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 6</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h3 id="s10-2-c06">สถิติเชิงพรรณนา ความน่าจะเป็น และ Central Limit Theorem</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p><strong>สถิติเชิงพรรณนา</strong> (Descriptive statistics) คือตัวเลขที่สรุปข้อมูลทั้งชุดให้เหลือไม่กี่ค่า ค่ากลางมี 3 แบบ ค่าเฉลี่ย (Mean) ใช้ได้ดีกับข้อมูลที่สมมาตร ค่ามัธยฐาน (Median) คือค่าตรงกลางเมื่อเรียงข้อมูล ทนต่อค่าสุดโต่ง จึงใช้กับเงินเดือน ราคาบ้าน และยอดซื้อ ส่วนฐานนิยม (Mode) คือค่าที่พบบ่อยที่สุด การกระจายวัดด้วยส่วนเบี่ยงเบนมาตรฐาน (SD) และ IQR (ควอร์ไทล์ที่ 3 ลบควอร์ไทล์ที่ 1) ค่าที่ต่ำกว่า Q1 − 1.5×IQR หรือสูงกว่า Q3 + 1.5×IQR ถือเป็น Outlier ตามกฎที่ Box plot ใช้</p>
+<p><strong>ความน่าจะเป็น</strong> คือภาษาของความไม่แน่นอน ความน่าจะเป็นแบบมีเงื่อนไข <code>P(A | B)</code> อ่านว่า "โอกาสของ A เมื่อรู้แล้วว่า B เกิดขึ้น" และ Bayes' theorem ใช้กลับทิศเงื่อนไข ซึ่งสำคัญมากในงานตรวจคัดกรอง เพราะ <code>P(ผลบวก | ป่วย)</code> กับ <code>P(ป่วย | ผลบวก)</code> ต่างกันมาก <code>scipy.stats</code> มีการแจกแจงสำเร็จรูป เช่น <code>norm</code> (Normal), <code>binom</code> (Binomial) และ <code>poisson</code> (จำนวนเหตุการณ์ต่อช่วงเวลา) เรียก <code>.cdf(x)</code> เพื่อหาโอกาสที่ค่าไม่เกิน x และ <code>.ppf(p)</code> เพื่อหาค่าที่ตรงกับเปอร์เซ็นไทล์</p>
+<p><strong>Central Limit Theorem (CLT)</strong> บอกว่า ถ้าสุ่มกลุ่มตัวอย่างขนาด n ซ้ำหลายครั้งแล้วหาค่าเฉลี่ยของแต่ละกลุ่ม ค่าเฉลี่ยเหล่านั้นจะกระจายเป็นรูประฆัง (Normal) เมื่อ n ใหญ่พอ แม้ข้อมูลต้นทางจะเบ้ และความกว้างของการกระจายนั้น เรียกว่า Standard error เท่ากับ SD ของประชากรหารด้วยรากที่สองของ n CLT คือเหตุผลที่ช่วงความเชื่อมั่นและ Hypothesis Test ในแนวคิดที่ 7 ใช้ได้กับข้อมูลจริงที่ไม่สมมาตร</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>ถ้าในห้องประชุมมีพนักงาน 9 คนเงินเดือน 25,000 บาท แล้วเจ้าของบริษัทเงินเดือน 1,000,000 บาทเดินเข้ามา ค่าเฉลี่ยจะกระโดดเป็น 122,500 บาท ทั้งที่ไม่มีใครในห้องได้เงินเดือนใกล้เคียงตัวเลขนี้เลย แต่ค่ามัธยฐานยังเป็น 25,000 บาทเหมือนเดิม ส่วน CLT เหมือนการชิมแกงทีละช้อนหลายรอบ แต่ละช้อนรสไม่เท่ากัน แต่ค่าเฉลี่ยของการชิมแต่ละรอบจะใกล้กันและใกล้รสจริงของทั้งหม้อ ยิ่งตักต่อรอบมาก ยิ่งนิ่ง</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>ไฟล์นี้ทำ 4 เรื่อง (1) สรุปข้อมูลเงินเดือนจำลอง 1,000 คนที่เบ้ขวา (2) คำนวณ Bayes ของชุดตรวจโรค (3) ใช้การแจกแจง Poisson และ Normal (4) จำลอง CLT โดยสุ่มกลุ่มตัวอย่างขนาด 5, 30 และ 100 อย่างละ 10,000 รอบจากประชากร Exponential ที่มีค่าเฉลี่ย 10 และ SD 10 แล้วบันทึก Histogram เป็น <code>charts/clt.png</code></p>
+<pre class="code" data-env="file" data-label="Python · stats_clt.py"><code class="language-python"># สถิติเชิงพรรณนา ความน่าจะเป็น และการจำลอง Central Limit Theorem
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import stats
+
+rng = np.random.default_rng(42)
+
+# 1) ข้อมูลเงินเดือนจำลอง 1,000 คน ที่เบ้ขวา (คนรายได้สูงไม่กี่คนดึงค่าเฉลี่ยขึ้น)
+salary = rng.lognormal(mean=10.2, sigma=0.5, size=1000)
+q1, q3 = np.percentile(salary, [25, 75])
+iqr = q3 - q1
+outliers = ((salary &lt; q1 - 1.5 * iqr) | (salary &gt; q3 + 1.5 * iqr)).sum()
+print(f"ค่าเฉลี่ย {salary.mean():,.0f} | มัธยฐาน {np.median(salary):,.0f} บาท")
+print(f"IQR {iqr:,.0f} | Outlier ตามกฎ 1.5 x IQR: {outliers} คน")
+print(f"SD แบบ ddof=0: {salary.std():,.0f} | ddof=1: {salary.std(ddof=1):,.0f}")
+
+# 2) Bayes: โรคพบ 1% ชุดตรวจจับถูก 95% และให้ผลบวกปลอม 5%
+p_sick, sens, fpr = 0.01, 0.95, 0.05
+p_pos = sens * p_sick + fpr * (1 - p_sick)
+print(f"\nP(ป่วย | ผลบวก) = {sens * p_sick / p_pos:.1%}")
+
+# 3) Poisson: ลูกค้าเข้าร้านเฉลี่ย 3 คนต่อ 10 นาที
+print(f"P(ลูกค้าไม่เกิน 2 คนใน 10 นาที) = {stats.poisson(3).cdf(2):.3f}")
+print(f"P(Z &lt;= 1.96) = {stats.norm().cdf(1.96):.4f}")
+
+# 4) CLT: สุ่มกลุ่มตัวอย่างซ้ำ 10,000 รอบจากประชากรที่เบ้ (Exponential, ค่าเฉลี่ย 10, SD 10)
+print("\nขนาดตัวอย่าง | เฉลี่ยของค่าเฉลี่ย | SD ของค่าเฉลี่ย | 10/sqrt(n)")
+fig, axes = plt.subplots(1, 3, figsize=(12, 3.5))
+for ax, n in zip(axes, [5, 30, 100]):
+    means = rng.exponential(scale=10, size=(10_000, n)).mean(axis=1)
+    print(f"{n:&gt;12} | {means.mean():&gt;16.2f} | {means.std():&gt;14.2f} | {10 / np.sqrt(n):.2f}")
+    ax.hist(means, bins=40)
+    ax.set_title(f"n = {n}")
+    ax.set_xlabel("sample mean")
+fig.suptitle("Sample means become bell-shaped as n grows")
+Path("charts").mkdir(exist_ok=True)
+fig.savefig("charts/clt.png", dpi=150, bbox_inches="tight")
+plt.close(fig)
+print("บันทึก charts/clt.png แล้ว")</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 stats_clt.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>ค่าเฉลี่ย 29,944 | มัธยฐาน 26,986 บาท
+IQR 17,139 | Outlier ตามกฎ 1.5 x IQR: 46 คน
+SD แบบ ddof=0: 15,643 | ddof=1: 15,651
+
+P(ป่วย | ผลบวก) = 16.1%
+P(ลูกค้าไม่เกิน 2 คนใน 10 นาที) = 0.423
+P(Z &lt;= 1.96) = 0.9750
+
+ขนาดตัวอย่าง | เฉลี่ยของค่าเฉลี่ย | SD ของค่าเฉลี่ย | 10/sqrt(n)
+           5 |            10.01 |           4.51 | 4.47
+          30 |             9.98 |           1.83 | 1.83
+         100 |            10.00 |           1.00 | 1.00
+บันทึก charts/clt.png แล้ว</code></pre>
+<p>อ่านผลทีละส่วน ค่าเฉลี่ยเงินเดือน 29,944 บาทสูงกว่ามัธยฐาน 26,986 บาท เพราะมีคนรายได้สูง 46 คนที่ถูกนับเป็น Outlier ดึงค่าเฉลี่ยขึ้น ถ้าจะบอกว่า "คนทั่วไปได้เงินเดือนเท่าไร" ให้ใช้มัธยฐาน ผล Bayes น่าตกใจที่สุด แม้ชุดตรวจจะจับคนป่วยได้ 95% แต่คนที่ผลเป็นบวกมีโอกาสป่วยจริงแค่ 16.1% เพราะโรคพบน้อยมาก ผลบวกส่วนใหญ่จึงมาจากผลบวกปลอมของคนไม่ป่วยจำนวนมาก ตาราง CLT แสดงว่าค่าเฉลี่ยของค่าเฉลี่ยอยู่ใกล้ 10 เสมอ และ SD ของค่าเฉลี่ยลดลงตรงกับสูตร 10/√n ทุกขนาด</p>
+<p>ในไฟล์ <code>charts/clt.png</code> มีกราฟ 3 รูปเรียงกัน รูป <code>n = 5</code> ยังเบ้ขวาชัดเจน มีหางยาวไปทางค่ามาก รูป <code>n = 30</code> เกือบเป็นรูประฆังและแคบลง และรูป <code>n = 100</code> เป็นรูประฆังสมมาตรที่แคบที่สุด กระจุกอยู่ช่วงประมาณ 7–13</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>rng.lognormal(mean=10.2, sigma=0.5, size=1000)</code></td><td>สุ่มข้อมูลที่เบ้ขวาแบบเงินเดือนจริง ค่า <code>mean</code> และ <code>sigma</code> เป็นของ Log ของข้อมูล ไม่ใช่ของข้อมูลเอง</td></tr>
+<tr><td><code>np.percentile(salary, [25, 75])</code></td><td>หาควอร์ไทล์ที่ 1 และ 3 พร้อมกัน แล้วนำมาคำนวณ IQR</td></tr>
+<tr><td><code>(salary &lt; q1 - 1.5 * iqr) | (salary &gt; q3 + 1.5 * iqr)</code></td><td>Boolean mask ของ Outlier ตามกฎ 1.5×IQR แล้ว <code>.sum()</code> นับจำนวน</td></tr>
+<tr><td><code>salary.std()</code> กับ <code>salary.std(ddof=1)</code></td><td>NumPy หาร n เป็นค่าเริ่มต้น (<code>ddof=0</code>) ส่วน pandas หาร n − 1 (<code>ddof=1</code>) ซึ่งเป็น SD ของกลุ่มตัวอย่างที่ใช้ในสถิติ</td></tr>
+<tr><td><code>p_pos = sens * p_sick + fpr * (1 - p_sick)</code></td><td>โอกาสได้ผลบวกทั้งหมด = ผลบวกจริงจากคนป่วย + ผลบวกปลอมจากคนไม่ป่วย</td></tr>
+<tr><td><code>sens * p_sick / p_pos</code></td><td>Bayes' theorem: <code>P(ป่วย | บวก) = P(บวก | ป่วย) × P(ป่วย) / P(บวก)</code></td></tr>
+<tr><td><code>stats.poisson(3).cdf(2)</code></td><td>โอกาสที่เหตุการณ์ Poisson ซึ่งมีค่าเฉลี่ย 3 เกิดไม่เกิน 2 ครั้ง คือ P(0) + P(1) + P(2)</td></tr>
+<tr><td><code>stats.norm().cdf(1.96)</code></td><td>โอกาสที่ค่า Normal มาตรฐานไม่เกิน 1.96 ได้ 0.975 นี่คือที่มาของเลข 1.96 ใน CI 95%</td></tr>
+<tr><td><code>rng.exponential(scale=10, size=(10_000, n)).mean(axis=1)</code></td><td>สุ่ม 10,000 กลุ่ม กลุ่มละ n ค่าในคำสั่งเดียว แล้วหาค่าเฉลี่ยของแต่ละแถว ได้ค่าเฉลี่ย 10,000 ค่า</td></tr>
+<tr><td><code>10 / np.sqrt(n)</code></td><td>Standard error ตามทฤษฎี (SD ของประชากรคือ 10) ใช้เทียบกับผลจำลอง</td></tr>
+<tr><td><code>plt.subplots(1, 3)</code> และ <code>fig.suptitle</code></td><td>สร้างกราฟ 3 รูปในแถวเดียว และตั้งชื่อรวมของทั้งรูป</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td>SD จาก NumPy กับ pandas ไม่เท่ากัน เช่น 15,643 กับ 15,651 (ไม่มี Error)</td><td><code>np.std</code> ใช้ <code>ddof=0</code> แต่ <code>Series.std()</code> ใช้ <code>ddof=1</code></td><td>ระบุ <code>ddof=1</code> ให้ชัดเมื่อคำนวณจากกลุ่มตัวอย่าง และใช้ค่าเดียวกันทั้งรายงาน</td></tr>
+<tr><td><code>ValueError: Percentiles must be in the range [0, 100]</code></td><td>ส่งสัดส่วนแบบ 0–1 หรือพิมพ์ผิด เช่น <code>np.percentile(x, 150)</code></td><td><code>np.percentile</code> รับค่า 0–100 ถ้าอยากใช้สัดส่วน 0–1 ให้ใช้ <code>np.quantile(x, 0.75)</code></td></tr>
+<tr><td><code>ValueError: sigma &lt; 0</code></td><td>ส่งพารามิเตอร์การกระจายติดลบให้ <code>rng.lognormal</code> หรือการแจกแจงอื่น</td><td>ตรวจความหมายของพารามิเตอร์ใน Docstring ด้วย <code>help(rng.lognormal)</code> SD และ <code>scale</code> ต้องเป็นบวกเสมอ</td></tr>
+<tr><td>สรุปว่าคนที่ตรวจได้ผลบวกมีโอกาสป่วย 95% (ไม่มี Error)</td><td>สับสน <code>P(บวก | ป่วย)</code> กับ <code>P(ป่วย | บวก)</code> และลืมว่าโรคพบน้อย</td><td>เขียนทุกค่าเป็นความน่าจะเป็นแบบมีเงื่อนไขให้ชัด แล้วคำนวณด้วย Bayes ทุกครั้ง</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul><li>รายงานค่ากลางคู่กับค่าการกระจายเสมอ เช่น "มัธยฐาน 26,986 บาท (IQR 17,139 บาท)" ตัวเลขเดียวไม่พอให้ตัดสินใจ</li><li>ดู Histogram ก่อนเลือกว่าจะใช้ค่าเฉลี่ยหรือมัธยฐาน และบอกในรายงานว่าเลือกเพราะอะไร</li><li>เมื่อไม่แน่ใจสูตร ให้จำลองด้วย <code>default_rng</code> แบบในตัวอย่าง CLT ผลจำลองช่วยตรวจทั้งสูตรและความเข้าใจของตัวเอง</li></ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>แก้ <code>stats_clt.py</code> แล้วสังเกตผล</p><ol><li>เปลี่ยนอัตราการพบโรคเป็น 10% แล้วดูว่า <code>P(ป่วย | ผลบวก)</code> เปลี่ยนเป็นเท่าไร</li><li>ใช้ <code>stats.poisson(3).pmf(k)</code> พิมพ์โอกาสของลูกค้า 0 ถึง 6 คน และตรวจว่ารวมกันใกล้ 1</li><li>เพิ่มขนาดตัวอย่าง <code>n = 400</code> ในการจำลอง CLT และทำนายก่อนรันว่า SD ของค่าเฉลี่ยจะได้เท่าไร</li><li>หาเงินเดือนที่เปอร์เซ็นไทล์ที่ 90 ด้วย <code>np.percentile</code> แล้วเขียนอธิบาย 1 ประโยค</li></ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 7</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h3 id="s10-2-c07">Confidence Interval, Hypothesis Test และ A/B Test ด้วย scipy.stats</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>สถิติเชิงอนุมาน (Inferential statistics) คือการใช้กลุ่มตัวอย่างสรุปไปถึงประชากรทั้งหมด พร้อมบอกว่าสรุปได้มั่นใจแค่ไหน เครื่องมือหลักมีสองตัว <strong>ช่วงความเชื่อมั่น (Confidence Interval, CI)</strong> บอกช่วงของค่าที่เป็นไปได้ CI 95% หมายความว่า ถ้าเก็บข้อมูลแบบเดิมซ้ำหลายครั้งแล้วคำนวณช่วงทุกครั้ง ประมาณ 95% ของช่วงเหล่านั้นจะครอบค่าจริง ส่วน <strong>Hypothesis Test</strong> ใช้ตัดสินว่าผลต่างที่เห็นมากพอที่จะไม่ใช่ความบังเอิญหรือไม่</p>
+<p>ขั้นตอนของ Hypothesis Test คือ ตั้ง H0 (ไม่มีผลต่าง) และ H1 (มีผลต่าง) กำหนดระดับนัยสำคัญ α = 0.05 <strong>ก่อน</strong> ดูข้อมูล คำนวณ p-value แล้วปฏิเสธ H0 ถ้า p-value น้อยกว่า α p-value คือโอกาสที่จะเห็นผลต่างอย่างน้อยเท่านี้ <strong>ถ้า H0 เป็นจริง</strong> ไม่ใช่โอกาสที่ H0 จริง เลือก Test ตามชนิดข้อมูล</p>
+<ul>
+  <li><code>stats.chi2_contingency</code>: ข้อมูลนับจำนวนแบบกลุ่ม เช่น สมัครหรือไม่สมัคร ในกลุ่ม A และ B</li>
+  <li><code>stats.ttest_ind(a, b, equal_var=False)</code>: เทียบค่าเฉลี่ยของสองกลุ่มที่เป็นอิสระต่อกัน (Welch's t-test ไม่ต้องสมมติว่าความแปรปรวนเท่ากัน)</li>
+  <li><code>stats.ttest_rel</code>: ข้อมูลจับคู่ เช่น น้ำหนักคนเดิมก่อนและหลังเข้าคอร์ส</li>
+  <li><code>stats.mannwhitneyu</code>: เทียบสองกลุ่มเมื่อข้อมูลเบ้มากหรือมี Outlier และกลุ่มตัวอย่างเล็ก</li>
+  <li><code>stats.bootstrap</code>: หา CI ของสถิติใดก็ได้ ด้วยการสุ่มข้อมูลซ้ำจากกลุ่มตัวอย่างเอง ไม่ต้องจำสูตร</li>
+</ul>
+<p>A/B Test คือการทดลองที่สุ่มแบ่งผู้ใช้เป็นสองกลุ่มให้เห็นของต่างกัน แล้ววัด Metric เดียวที่กำหนดไว้ก่อน ต้องกำหนดขนาดตัวอย่างก่อนเริ่ม และห้ามหยุดทันทีที่ p-value ต่ำกว่า 0.05 (Peeking problem) เพราะทำให้โอกาสสรุปผิดสูงขึ้นมาก และต้องรายงาน <strong>ขนาดผลต่าง (Effect size) พร้อม CI</strong> เสมอ เพราะผลที่มีนัยสำคัญทางสถิติอาจเล็กเกินกว่าจะคุ้มค่าทางธุรกิจ</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Hypothesis Test เหมือนศาลที่ถือว่าจำเลยบริสุทธิ์ไว้ก่อน (H0 คือไม่มีผลต่าง) อัยการต้องหาหลักฐานที่หนักแน่นพอ (p-value ต่ำ) ถึงจะตัดสินว่าผิด การไม่มีหลักฐานพอไม่ได้แปลว่าจำเลยบริสุทธิ์แน่นอน แค่แปลว่ายังพิสูจน์ไม่ได้ ส่วน CI เหมือนพยานที่บอกว่า "คนร้ายสูงประมาณ 170–180 เซนติเมตร" ซึ่งให้ข้อมูลมากกว่าคำตอบว่า "สูงหรือไม่สูง" เพียงอย่างเดียว</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>ไฟล์นี้ต่อยอด <code>ab_test.py</code> จาก Part 1 ด้วยตัวเลขชุดเดิม กลุ่ม A เห็นหน้าโปรโมชันเดิม สมัคร 82 จาก 1,000 คน กลุ่ม B เห็นหน้าใหม่ สมัคร 113 จาก 1,000 คน แล้วเพิ่มขนาดผลต่างพร้อม CI 95% สองวิธี และใช้ Welch's t-test ตรวจว่าขนาดเนื้องอกชนิดร้ายกับไม่ร้ายใน <code>load_breast_cancer</code> ต่างกันหรือไม่ (ในชุดข้อมูลนี้ <code>target</code> 0 = ร้าย, 1 = ไม่ร้าย)</p>
+<pre class="code" data-env="file" data-label="Python · ab_report.py"><code class="language-python"># รายงาน A/B Test: p-value, ขนาดผลต่าง, ช่วงความเชื่อมั่น และ Welch's t-test
+import numpy as np
+from scipy import stats
+from sklearn.datasets import load_breast_cancer
+
+# ตัวเลขเดียวกับ ab_test.py ใน Part 1
+n_a, conv_a = 1000, 82
+n_b, conv_b = 1000, 113
+table = [[conv_a, n_a - conv_a], [conv_b, n_b - conv_b]]
+res = stats.chi2_contingency(table)                    # 2x2 ใช้ Yates' correction อัตโนมัติ
+print(f"chi2 = {res.statistic:.3f}, p-value = {res.pvalue:.4f}")
+
+# ขนาดผลต่าง (Effect size) และ CI 95% แบบ Normal approximation
+p_a, p_b = conv_a / n_a, conv_b / n_b
+diff = p_b - p_a
+se = np.sqrt(p_a * (1 - p_a) / n_a + p_b * (1 - p_b) / n_b)
+z = stats.norm.ppf(0.975)                              # 1.96
+print(f"ผลต่าง = {diff:.1%} (CI 95%: {diff - z * se:.1%} ถึง {diff + z * se:.1%})")
+
+# CI แบบ Bootstrap: สุ่มข้อมูลแต่ละกลุ่มซ้ำ 10,000 รอบ
+a = np.r_[np.ones(conv_a), np.zeros(n_a - conv_a)]
+b = np.r_[np.ones(conv_b), np.zeros(n_b - conv_b)]
+boot = stats.bootstrap((b, a), lambda x, y, axis: x.mean(axis=axis) - y.mean(axis=axis),
+                       n_resamples=10_000, method="percentile", random_state=42)
+lo, hi = boot.confidence_interval
+print(f"Bootstrap CI 95% ของผลต่าง: {lo:.1%} ถึง {hi:.1%}")
+
+# Welch's t-test: ขนาดเนื้องอกชนิดร้าย (0) กับไม่ร้าย (1) ต่างกันหรือไม่
+data = load_breast_cancer(as_frame=True).frame
+malignant = data.loc[data["target"] == 0, "mean radius"]
+benign = data.loc[data["target"] == 1, "mean radius"]
+t = stats.ttest_ind(malignant, benign, equal_var=False)
+print(f"\nmean radius: ร้าย {malignant.mean():.2f} | ไม่ร้าย {benign.mean():.2f}")
+print(f"Welch t = {t.statistic:.2f}, p-value = {t.pvalue:.2e}")
+ci = t.confidence_interval(confidence_level=0.95)
+print(f"CI 95% ของผลต่างค่าเฉลี่ย: {ci.low:.2f} ถึง {ci.high:.2f}")</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 ab_report.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>chi2 = 5.114, p-value = 0.0237
+ผลต่าง = 3.1% (CI 95%: 0.5% ถึง 5.7%)
+Bootstrap CI 95% ของผลต่าง: 0.5% ถึง 5.7%
+
+mean radius: ร้าย 17.46 | ไม่ร้าย 12.15
+Welch t = 22.21, p-value = 1.68e-64
+CI 95% ของผลต่างค่าเฉลี่ย: 4.85 ถึง 5.79</code></pre>
+<p>chi2 และ p-value ตรงกับ Part 1 ทุกหลัก ผลต่าง 3.1 จุดเปอร์เซ็นต์ (จาก 8.2% เป็น 11.3%) มี CI 95% อยู่ระหว่าง 0.5 ถึง 5.7 จุด ทั้งสูตรและ Bootstrap ให้ผลเดียวกัน ช่วงนี้ไม่ครอบ 0 จึงสอดคล้องกับ p-value ที่ต่ำกว่า 0.05 แต่ช่วงยังกว้าง ถ้าผลจริงอยู่ใกล้ 0.5 จุด หน้าใหม่อาจไม่คุ้มค่าที่จะลงทุน นี่คือข้อมูลที่ p-value อย่างเดียวไม่ได้บอก</p>
+<p>ส่วน t-test บอกว่าเนื้องอกชนิดร้ายมีรัศมีเฉลี่ย 17.46 ใหญ่กว่าชนิดไม่ร้าย 12.15 และ p-value <code>1.68e-64</code> (ศูนย์จุดตามด้วยศูนย์ 63 ตัว) แปลว่าแทบเป็นไปไม่ได้ที่จะเห็นผลต่างขนาดนี้จากความบังเอิญ สรุปเป็นภาษาคนทั่วไปได้ว่า "เนื้องอกชนิดร้ายมีขนาดใหญ่กว่าชนิดไม่ร้ายอย่างชัดเจน โดยรัศมีเฉลี่ยใหญ่กว่าประมาณ 4.9–5.8 หน่วย ขนาดจึงเป็นสัญญาณที่มีประโยชน์ แต่ยังใช้ตัดสินเพียงอย่างเดียวไม่ได้"</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>table = [[conv_a, n_a - conv_a], [conv_b, n_b - conv_b]]</code></td><td>ตาราง 2×2 ของ "จำนวนคน" ที่สมัครและไม่สมัครในแต่ละกลุ่ม ต้องเป็นจำนวนนับ ไม่ใช่เปอร์เซ็นต์</td></tr>
+<tr><td><code>stats.chi2_contingency(table)</code></td><td>Chi-square test ของความเป็นอิสระ ผลมี <code>statistic</code>, <code>pvalue</code>, <code>dof</code> และ <code>expected_freq</code></td></tr>
+<tr><td><code>se = np.sqrt(p_a*(1-p_a)/n_a + p_b*(1-p_b)/n_b)</code></td><td>Standard error ของผลต่างสองสัดส่วน ใช้สร้าง CI แบบ Normal approximation</td></tr>
+<tr><td><code>stats.norm.ppf(0.975)</code></td><td>ค่า z ที่ตัดหางบนไว้ 2.5% ได้ 1.96 สำหรับ CI 95% แบบสองด้าน</td></tr>
+<tr><td><code>np.r_[np.ones(82), np.zeros(918)]</code></td><td>สร้างข้อมูลรายคนจากตัวเลขสรุป 1 = สมัคร, 0 = ไม่สมัคร เพื่อใช้กับ Bootstrap</td></tr>
+<tr><td><code>stats.bootstrap((b, a), statistic, ...)</code></td><td>สุ่มข้อมูลแต่ละกลุ่มแบบใส่คืน 10,000 รอบ คำนวณผลต่างทุกรอบ แล้วเอาเปอร์เซ็นไทล์ 2.5 และ 97.5 เป็นขอบ CI</td></tr>
+<tr><td><code>lambda x, y, axis: x.mean(axis=axis) - y.mean(axis=axis)</code></td><td>ฟังก์ชันสถิติที่ต้องรับ <code>axis</code> เพื่อให้ SciPy คำนวณทุกรอบพร้อมกันแบบ Vectorization</td></tr>
+<tr><td><code>stats.ttest_ind(malignant, benign, equal_var=False)</code></td><td>Welch's t-test เทียบค่าเฉลี่ยสองกลุ่มอิสระ ปลอดภัยกว่าแบบ <code>equal_var=True</code> เมื่อไม่รู้ว่าความแปรปรวนเท่ากันหรือไม่</td></tr>
+<tr><td><code>t.confidence_interval(confidence_level=0.95)</code></td><td>CI 95% ของผลต่างค่าเฉลี่ย (กลุ่มแรกลบกลุ่มที่สอง) ที่ได้จากผลของ t-test โดยตรง</td></tr>
+<tr><td><code>f"{t.pvalue:.2e}"</code></td><td>แสดงตัวเลขที่เล็กมากแบบวิทยาศาสตร์ ถ้าใช้ <code>:.4f</code> จะเห็นเป็น 0.0000 ซึ่งทำให้เข้าใจผิดว่า p-value เป็นศูนย์</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>ValueError: All values in `observed` must be nonnegative.</code></td><td>ตารางมีค่าติดลบ มักเกิดจากลบผิด เช่น เอาจำนวนผู้สมัครไปลบจากตัวเลขที่ไม่ใช่จำนวนผู้เข้าชม</td><td>ตรวจว่าทุกช่องเป็นจำนวนคน และผลรวมของแต่ละแถวเท่ากับจำนวนคนในกลุ่มนั้น</td></tr>
+<tr><td><code>ValueError: Array shapes are incompatible for broadcasting.</code> จาก <code>ttest_rel</code></td><td>ใช้ t-test แบบจับคู่กับข้อมูลสองชุดที่จำนวนไม่เท่ากัน ซึ่งแปลว่าข้อมูลไม่ได้จับคู่กันจริง</td><td>ถ้าเป็นคนละกลุ่มให้ใช้ <code>ttest_ind</code> ถ้าเป็นคู่จริงให้ตรวจว่าแต่ละคนมีข้อมูลครบทั้งก่อนและหลัง</td></tr>
+<tr><td>สรุปว่า "p = 0.0237 แปลว่ามีโอกาส 2.4% ที่หน้าใหม่ไม่ได้ผล" (ไม่มี Error)</td><td>ตีความ p-value เป็นความน่าจะเป็นของ H0</td><td>อ่านว่า "ถ้าหน้าใหม่ไม่ได้ช่วยจริง โอกาสที่จะเห็นผลต่างมากขนาดนี้คือ 2.4%" และรายงาน CI ของผลต่างคู่กัน</td></tr>
+<tr><td>A/B Test ได้ p-value ต่ำกว่า 0.05 ในวันที่ 3 แล้วหยุด แต่ผลหายไปเมื่อทำซ้ำ (ไม่มี Error)</td><td>Peeking problem: ดูผลหลายครั้งแล้วหยุดตอนที่ผลดี ทำให้โอกาสพบผลบวกปลอมสูงกว่า 5% มาก</td><td>คำนวณขนาดตัวอย่างและวันสิ้นสุดก่อนเริ่ม แล้วตัดสินครั้งเดียวเมื่อครบ</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul><li>เขียนแผนการทดลองก่อนเริ่ม ได้แก่ H0, H1, Metric หลัก, α, ขนาดตัวอย่าง และวันสิ้นสุด แล้วเก็บไว้ใน Repository เพื่อป้องกันการเปลี่ยนเป้าหลังเห็นผล</li><li>รายงานสามอย่างคู่กันเสมอ คือ ขนาดผลต่าง, CI 95% และ p-value อย่ารายงานแค่ว่า "มีนัยสำคัญ"</li><li>ใช้ Welch's t-test (<code>equal_var=False</code>) เป็นค่าเริ่มต้น และใช้ Bootstrap เมื่อสถิติที่สนใจไม่มีสูตรสำเร็จ เช่น ผลต่างของมัธยฐาน</li></ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>แก้ <code>ab_report.py</code> แล้วสังเกตผล</p><ol><li>ลดผู้เข้าชมเป็นกลุ่มละ 300 คน โดยคงอัตราสมัครเดิม (A สมัคร 25, B สมัคร 34) แล้วดูว่า p-value และความกว้างของ CI เปลี่ยนอย่างไร</li><li>ใช้ <code>stats.mannwhitneyu(malignant, benign)</code> แล้วเทียบข้อสรุปกับ Welch's t-test</li><li>เปลี่ยน Bootstrap ให้หา CI ของผลต่าง <strong>มัธยฐาน</strong> ของ <code>mean radius</code> ระหว่างสองกลุ่ม</li><li>เขียนสรุปผล A/B Test ให้ผู้จัดการ 3 ประโยค โดยมีทั้งผลต่าง CI และคำแนะนำ</li></ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 8</span><span class="lvl" data-lvl="i">Intermediate</span></div>
+<h3 id="s10-2-c08">Workflow ของ scikit-learn และ Regression: Pipeline, ColumnTransformer, Cross-validation, MAE/RMSE/R²</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>scikit-learn คือไลบรารี ML หลักสำหรับข้อมูลแบบตาราง ทุกโมเดลใช้ API เหมือนกัน คือ <code>.fit(X, y)</code> เพื่อฝึก <code>.predict(X)</code> เพื่อทำนาย และ <code>.score(X, y)</code> เพื่อวัดผล ส่วนตัวแปลงข้อมูล เช่น <code>StandardScaler</code> ใช้ <code>.fit()</code> เพื่อเรียนค่าเฉลี่ยและ SD จากข้อมูลฝึก แล้วใช้ <code>.transform()</code> กับข้อมูลชุดใดก็ได้ เมื่อเข้าใจรูปแบบนี้ ก็เปลี่ยนโมเดลได้โดยแก้โค้ดบรรทัดเดียว</p>
+<p><strong>Regression</strong> คือการทำนายตัวเลข เช่น ราคา ยอดขาย หรือความรุนแรงของโรค Linear Regression ทำนายด้วยผลรวมถ่วงน้ำหนักของ Feature ส่วน <code>Ridge</code> (L2) และ <code>Lasso</code> (L1) เพิ่มบทลงโทษให้ค่าสัมประสิทธิ์เล็กลงเพื่อลด Overfitting โดย Lasso ทำให้สัมประสิทธิ์บางตัวเป็นศูนย์ จึงช่วยเลือก Feature ได้ ความแรงของบทลงโทษปรับด้วย <code>alpha</code> วัดผลด้วย 3 Metric</p>
+<ul>
+  <li><strong>MAE</strong> (Mean Absolute Error): ผิดเฉลี่ยกี่หน่วย อ่านเข้าใจง่ายที่สุด</li>
+  <li><strong>RMSE</strong> (Root Mean Squared Error): ลงโทษความผิดพลาดที่ใหญ่หนักกว่า หน่วยเดียวกับ <code>y</code></li>
+  <li><strong>R²</strong>: สัดส่วนความแปรปรวนที่โมเดลอธิบายได้ เมื่อเทียบกับการทายค่าเฉลี่ยทุกครั้ง 1 คือสมบูรณ์ 0 คือไม่ดีกว่าค่าเฉลี่ย</li>
+</ul>
+<p>หัวใจของ Workflow คือการกัน <strong>Data leakage</strong> ด้วย <code>Pipeline</code> ที่ต่อขั้นเตรียมข้อมูลกับโมเดลเป็นชิ้นเดียว เมื่อใช้คู่กับ <code>cross_val_score</code> การปรับสเกลจะ <code>fit</code> เฉพาะกับข้อมูลฝึกของแต่ละ Fold โดยอัตโนมัติ และ <code>ColumnTransformer</code> ทำให้เตรียมคอลัมน์ตัวเลขกับคอลัมน์ข้อความด้วยวิธีต่างกันได้ในขั้นเดียว</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Pipeline เหมือนสายพานในโรงงานที่ทุกชิ้นต้องผ่านเครื่องเดียวกันตามลำดับเดิมเสมอ ทั้งตอนทดสอบสินค้าตัวอย่างและตอนผลิตจริง ส่วน Cross-validation เหมือนการสอบย่อย 5 ครั้งที่ใช้ข้อสอบคนละชุด แล้วเอาคะแนนมาเฉลี่ย ซึ่งบอกความสามารถจริงได้แม่นกว่าการสอบครั้งเดียว และ Data leakage เหมือนนักเรียนที่แอบเห็นข้อสอบก่อนสอบ คะแนนจึงดีเกินจริง</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>ไฟล์แรกใช้ <code>load_diabetes</code> เทียบโมเดล 4 แบบด้วย 5-fold Cross-validation บนข้อมูลฝึก แล้ววัดโมเดลที่เลือกบนข้อมูลทดสอบเพียงครั้งเดียว อ่านค่าสัมประสิทธิ์ นับ Feature ที่ Lasso ตัดทิ้ง บันทึก Residual plot และบันทึกโมเดลด้วย <code>joblib</code> ไฟล์ที่สองแสดง <code>ColumnTransformer</code> กับข้อมูลร้านกาแฟที่มีทั้งคอลัมน์ตัวเลขและคอลัมน์ข้อความ</p>
+<pre class="code" data-env="file" data-label="Python · regression_diabetes.py"><code class="language-python"># เทียบโมเดล Regression ใน Pipeline ด้วย Cross-validation แล้ววัดผลบนข้อมูลทดสอบครั้งเดียว
+from pathlib import Path
+
+import joblib
+import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.datasets import load_diabetes
+from sklearn.dummy import DummyRegressor
+from sklearn.linear_model import Lasso, LinearRegression, Ridge
+from sklearn.metrics import mean_absolute_error, r2_score, root_mean_squared_error
+from sklearn.model_selection import KFold, cross_val_score, train_test_split
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+X, y = load_diabetes(return_X_y=True, as_frame=True)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+models = {
+    "Dummy (mean)": DummyRegressor(strategy="mean"),
+    "Linear": make_pipeline(StandardScaler(), LinearRegression()),
+    "Ridge a=1.0": make_pipeline(StandardScaler(), Ridge(alpha=1.0)),
+    "Lasso a=2.0": make_pipeline(StandardScaler(), Lasso(alpha=2.0)),
+}
+cv = KFold(n_splits=5, shuffle=True, random_state=42)
+print("CV RMSE (ยิ่งต่ำยิ่งดี):")
+for name, model in models.items():
+    scores = -cross_val_score(model, X_train, y_train, cv=cv, scoring="neg_root_mean_squared_error")
+    print(f"  {name:&lt;13} {scores.mean():6.2f} ± {scores.std():.2f}")
+
+best = models["Ridge a=1.0"].fit(X_train, y_train)
+pred = best.predict(X_test)
+print(f"\nRidge บนข้อมูลทดสอบ: MAE {mean_absolute_error(y_test, pred):.2f}"
+      f" | RMSE {root_mean_squared_error(y_test, pred):.2f} | R² {r2_score(y_test, pred):.3f}")
+
+coef = best[-1].coef_                                   # best[-1] คือขั้นสุดท้ายของ Pipeline
+top = np.argsort(np.abs(coef))[::-1][:3]
+print("สัมประสิทธิ์ใหญ่สุด 3 ตัว:", ", ".join(f"{X.columns[i]} {coef[i]:+.1f}" for i in top))
+
+lasso = models["Lasso a=2.0"].fit(X_train, y_train)
+print("Lasso เหลือ Feature ที่ไม่เป็นศูนย์:", int((lasso[-1].coef_ != 0).sum()), "จาก", X.shape[1])
+print("Feature ที่ Lasso ตัดทิ้ง:", list(X.columns[lasso[-1].coef_ == 0]))
+
+# Residual plot: ค่าจริง - ค่าทำนาย เทียบกับค่าทำนาย
+Path("charts").mkdir(exist_ok=True)
+fig, ax = plt.subplots(figsize=(6, 4))
+ax.scatter(pred, y_test - pred, alpha=0.6)
+ax.axhline(0, color="black", linewidth=0.8)
+ax.set_xlabel("predicted")
+ax.set_ylabel("residual (actual - predicted)")
+ax.set_title("Residuals spread around 0")
+fig.savefig("charts/residuals.png", dpi=150, bbox_inches="tight")
+plt.close(fig)
+
+# บันทึกและโหลดโมเดลกลับมา แล้วตรวจว่าทำนายเหมือนเดิม
+Path("models").mkdir(exist_ok=True)
+joblib.dump(best, "models/ridge.joblib")
+loaded = joblib.load("models/ridge.joblib")
+print("โหลดโมเดลแล้วทำนายเหมือนเดิม:", np.allclose(loaded.predict(X_test), pred))</code></pre>
+<pre class="code" data-env="file" data-label="Python · columns_demo.py"><code class="language-python"># ColumnTransformer: เตรียมคอลัมน์ตัวเลขและคอลัมน์กลุ่มด้วยวิธีต่างกันในขั้นเดียว
+import pandas as pd
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+df = pd.read_csv("data/sales.csv")
+pre = ColumnTransformer([
+    ("num", StandardScaler(), ["qty", "unit_price"]),
+    ("cat", OneHotEncoder(handle_unknown="ignore"), ["branch_id", "payment"]),
+])
+X = pre.fit_transform(df)
+print("shape หลังแปลง:", X.shape)
+print(list(pre.get_feature_names_out()))
+print("แถวแรก:", X[0].round(2))</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 regression_diabetes.py
+python3 columns_demo.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>CV RMSE (ยิ่งต่ำยิ่งดี):
+  Dummy (mean)   78.13 ± 5.64
+  Linear         55.39 ± 2.36
+  Ridge a=1.0    55.37 ± 2.37
+  Lasso a=2.0    55.53 ± 2.38
+
+Ridge บนข้อมูลทดสอบ: MAE 42.81 | RMSE 53.78 | R² 0.454
+สัมประสิทธิ์ใหญ่สุด 3 ตัว: s1 -34.7, s5 +31.4, bmi +25.7
+Lasso เหลือ Feature ที่ไม่เป็นศูนย์: 7 จาก 10
+Feature ที่ Lasso ตัดทิ้ง: ['age', 's2', 's4']
+โหลดโมเดลแล้วทำนายเหมือนเดิม: True
+shape หลังแปลง: (12, 8)
+['num__qty', 'num__unit_price', 'cat__branch_id_B01', 'cat__branch_id_B02', 'cat__branch_id_B03', 'cat__payment_card', 'cat__payment_cash', 'cat__payment_qr']
+แถวแรก: [0.11 0.69 1.   0.   0.   0.   0.   1.  ]</code></pre>
+<p>Baseline ที่ทายค่าเฉลี่ยทุกครั้งผิดเฉลี่ย (RMSE) 78.13 ส่วนโมเดลเชิงเส้นทุกตัวลดเหลือราว 55.4 ดีกว่า Baseline ชัดเจน แต่ Linear, Ridge และ Lasso ต่างกันน้อยกว่าค่า ± ของ Cross-validation (ประมาณ 2.4) จึงถือว่าเท่ากันในทางปฏิบัติ Lasso ที่ <code>alpha=2.0</code> ใช้ Feature แค่ 7 ตัวแต่ผิดเพิ่มเพียง 0.16 หน่วย ซึ่งน่าสนใจถ้าการเก็บ Feature มีต้นทุน บนข้อมูลทดสอบ Ridge ได้ R² 0.454 แปลว่าอธิบายความแปรปรวนได้ราวครึ่งหนึ่ง ข้อมูลทางการแพทย์ชุดเล็กแบบนี้มักได้ R² ระดับนี้ ไม่ได้แปลว่าโมเดลผิด</p>
+<p>ค่าสัมประสิทธิ์ของ <code>s1</code> เป็น −34.7 และ <code>s5</code> เป็น +31.4 ทั้งที่ในแนวคิดที่ 5 <code>bmi</code> มีสหสัมพันธ์สูงสุด เพราะ <code>s1</code> ถึง <code>s6</code> เป็นค่าเลือดที่สัมพันธ์กันเอง (Multicollinearity) โมเดลจึงแบ่งน้ำหนักให้กันแบบตีความยาก นี่คือเหตุผลที่ห้ามอ่านค่าสัมประสิทธิ์เป็นเหตุและผล ในไฟล์ <code>charts/residuals.png</code> จุดควรกระจายรอบเส้น 0 ทั้งด้านบนและด้านล่างโดยไม่มีรูปแบบชัดเจน ส่วน <code>columns_demo.py</code> แปลง 4 คอลัมน์เป็น 8 คอลัมน์ ตัวเลข 2 คอลัมน์ถูกปรับสเกล และข้อความ 2 คอลัมน์กลายเป็นคอลัมน์ 0/1 ตามค่าที่มี</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>load_diabetes(return_X_y=True, as_frame=True)</code></td><td>ได้ <code>X</code> เป็น DataFrame ที่มีชื่อคอลัมน์ และ <code>y</code> เป็น Series ทำให้อ่านชื่อ Feature ได้ภายหลัง</td></tr>
+<tr><td><code>train_test_split(..., test_size=0.2, random_state=42)</code></td><td>แยกข้อมูล 20% (89 แถว) ไว้วัดผลครั้งสุดท้าย Regression ไม่ต้องใช้ <code>stratify</code></td></tr>
+<tr><td><code>make_pipeline(StandardScaler(), Ridge(alpha=1.0))</code></td><td>สร้าง Pipeline สองขั้น ตั้งชื่อขั้นให้อัตโนมัติเป็น <code>standardscaler</code> และ <code>ridge</code></td></tr>
+<tr><td><code>KFold(n_splits=5, shuffle=True, random_state=42)</code></td><td>แบ่งข้อมูลฝึกเป็น 5 ส่วนแบบสุ่มที่ทำซ้ำได้ ทุกโมเดลจึงถูกวัดด้วย Fold ชุดเดียวกันอย่างยุติธรรม</td></tr>
+<tr><td><code>-cross_val_score(..., scoring="neg_root_mean_squared_error")</code></td><td>scikit-learn ถือว่าคะแนนยิ่งมากยิ่งดี จึงคืน RMSE แบบติดลบ ใส่เครื่องหมายลบด้านหน้าให้กลับเป็นบวก</td></tr>
+<tr><td><code>root_mean_squared_error(y_test, pred)</code></td><td>ฟังก์ชัน RMSE ของ scikit-learn 1.9 ใช้แทน <code>mean_squared_error(squared=False)</code> ที่ถูกถอดออกแล้ว</td></tr>
+<tr><td><code>best[-1].coef_</code></td><td>เลือกขั้นสุดท้ายของ Pipeline (ตัวโมเดล) แล้วอ่านค่าสัมประสิทธิ์ เทียบขนาดกันได้เพราะทุก Feature ถูกปรับสเกลแล้ว</td></tr>
+<tr><td><code>np.argsort(np.abs(coef))[::-1][:3]</code></td><td>เรียงตำแหน่งตามขนาดสัมบูรณ์จากมากไปน้อย แล้วเอา 3 ตัวแรก</td></tr>
+<tr><td><code>lasso[-1].coef_ == 0</code></td><td>Boolean mask ของ Feature ที่ Lasso ตั้งสัมประสิทธิ์เป็นศูนย์ คือ Feature ที่โมเดลไม่ใช้</td></tr>
+<tr><td><code>joblib.dump</code> / <code>joblib.load</code></td><td>บันทึกทั้ง Pipeline (รวมค่าเฉลี่ยและ SD ของ Scaler) ลงไฟล์ แล้วโหลดกลับมาทำนายได้เหมือนเดิม</td></tr>
+<tr><td><code>ColumnTransformer([("num", ...), ("cat", ...)])</code></td><td>กำหนดว่าคอลัมน์ไหนผ่านตัวแปลงไหน ชื่อขั้น <code>num</code> และ <code>cat</code> กลายเป็นคำนำหน้าใน <code>get_feature_names_out()</code></td></tr>
+<tr><td><code>OneHotEncoder(handle_unknown="ignore")</code></td><td>แปลงค่าข้อความเป็นคอลัมน์ 0/1 และไม่พังเมื่อเจอค่าใหม่ที่ไม่เคยเห็นตอนฝึก เช่น สาขาที่เพิ่งเปิด</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>ValueError: Expected a 2-dimensional container but got &lt;class 'pandas.Series'&gt; instead.</code></td><td>ส่ง Feature เดียวเป็น Series เช่น <code>fit(X["bmi"], y)</code> แต่ <code>X</code> ต้องเป็นตาราง 2 มิติเสมอ</td><td>ใช้วงเล็บสองชั้น <code>X[["bmi"]]</code> หรือ <code>.to_frame()</code> ถ้าเป็น NumPy ให้ <code>reshape(-1, 1)</code></td></tr>
+<tr><td><code>ValueError: could not convert string to float: 'qr'</code></td><td>ส่งคอลัมน์ข้อความเข้าโมเดลโดยตรง โมเดลรับได้แต่ตัวเลข</td><td>ใช้ <code>ColumnTransformer</code> ที่มี <code>OneHotEncoder</code> สำหรับคอลัมน์ข้อความ</td></tr>
+<tr><td><code>TypeError: got an unexpected keyword argument 'squared'</code></td><td>คัดลอกโค้ดเก่า <code>mean_squared_error(y, pred, squared=False)</code> มาใช้กับ scikit-learn 1.9</td><td>เปลี่ยนเป็น <code>root_mean_squared_error(y, pred)</code></td></tr>
+<tr><td>ผล Cross-validation ดีกว่าข้อมูลทดสอบมากผิดปกติ (ไม่มี Error)</td><td>เรียก <code>StandardScaler().fit_transform(X)</code> กับข้อมูลทั้งหมดก่อนแบ่ง ข้อมูลทดสอบจึงรั่วเข้าไปในค่าเฉลี่ยที่ใช้ปรับสเกล</td><td>ใส่ทุกขั้นเตรียมข้อมูลไว้ใน Pipeline แล้วส่ง Pipeline เข้า <code>cross_val_score</code></td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul><li>เริ่มจาก <code>DummyRegressor</code> ทุกครั้ง แล้วรายงานว่าโมเดลดีกว่า Baseline เท่าไร ตัวเลข RMSE ลอยๆ ไม่มีความหมาย</li><li>เลือกโมเดลจาก Cross-validation บนข้อมูลฝึก แล้วแตะข้อมูลทดสอบเพียงครั้งเดียวตอนท้าย ถ้าเลือกจากข้อมูลทดสอบ ข้อมูลนั้นก็ไม่ได้ "ไม่เคยเห็น" อีกต่อไป</li><li>ถ้าผลต่างของโมเดลเล็กกว่า ± ของ Cross-validation ให้เลือกตัวที่ง่ายกว่าหรืออธิบายได้ง่ายกว่า</li></ul></div>
+<div class="callout sec"><span class="c-label sec">Security</span><p>ไฟล์ <code>.joblib</code> ใช้ Pickle ซึ่งรันโค้ดได้ตอนโหลด ห้ามโหลดไฟล์โมเดลจากแหล่งที่ไม่เชื่อถือ และโหลดด้วย scikit-learn เวอร์ชันเดียวกับตอนบันทึก (1.9.1) เพื่อไม่ให้ได้ผลผิดเพี้ยน</p></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ทดลองกับ <code>regression_diabetes.py</code></p><ol><li>ลอง Lasso ที่ <code>alpha</code> 5 และ 10 แล้วทำตาราง CV RMSE กับจำนวน Feature ที่เหลือ</li><li>ตั้งใจทำ Data leakage โดยปรับสเกล <code>X</code> ทั้งหมดก่อน <code>train_test_split</code> แล้วจดว่าผลเปลี่ยนไปเท่าไร และอธิบายว่าทำไมยังถือว่าผิดแม้ผลจะใกล้เคียง</li><li>ใช้ <code>cross_validate</code> แทน <code>cross_val_score</code> เพื่อได้ทั้ง MAE และ RMSE ในครั้งเดียว</li><li>ใน <code>columns_demo.py</code> เพิ่ม <code>"menu"</code> เข้าไปในกลุ่ม <code>cat</code> แล้วดูว่าได้คอลัมน์เพิ่มกี่คอลัมน์</li></ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 9</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h3 id="s10-2-c09">Classification และการวัดผล: Confusion Matrix, Precision, Recall, ROC-AUC และข้อมูลไม่สมดุล</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p><strong>Classification</strong> คือการทำนายว่าแต่ละตัวอย่างอยู่กลุ่มไหน เช่น เนื้องอกร้ายหรือไม่ร้าย สมาชิกจะยกเลิกหรือไม่ โมเดลพื้นฐานมีสองแบบ <code>LogisticRegression</code> นำผลรวมถ่วงน้ำหนักของ Feature ไปผ่านฟังก์ชัน Sigmoid ให้ได้ความน่าจะเป็น 0–1 เรียกดูด้วย <code>predict_proba</code> ส่วน <code>predict</code> ตัดสินที่ Threshold 0.5 ให้อัตโนมัติ ส่วน <code>DecisionTreeClassifier</code> แบ่งข้อมูลด้วยคำถามใช่หรือไม่ทีละชั้น อ่านกฎออกมาเป็นข้อความได้ด้วย <code>export_text</code></p>
+<p>การวัดผลเริ่มจาก <strong>Confusion Matrix</strong> ใน scikit-learn แถวคือค่าจริงและคอลัมน์คือค่าทำนาย ช่องขวาล่างคือ True Positive (TP, ทายว่าใช่และใช่จริง) ช่องขวาบนคือ False Positive (FP, ทายว่าใช่แต่ไม่ใช่) และช่องซ้ายล่างคือ False Negative (FN, ทายว่าไม่ใช่แต่ใช่จริง) จากตารางนี้ได้ Metric หลัก</p>
+<ul>
+  <li><strong>Precision</strong> = TP / (TP + FP): ในบรรดาที่ทายว่าใช่ ถูกกี่เปอร์เซ็นต์ สำคัญเมื่อการเตือนผิดมีต้นทุนสูง</li>
+  <li><strong>Recall</strong> = TP / (TP + FN): ของจริงทั้งหมด หาเจอกี่เปอร์เซ็นต์ สำคัญเมื่อการพลาดมีต้นทุนสูง เช่น พลาดผู้ป่วยมะเร็ง</li>
+  <li><strong>F1</strong>: ค่าเฉลี่ยแบบ Harmonic ของ Precision กับ Recall ใช้เมื่ออยากได้ตัวเลขเดียวที่ถ่วงทั้งสองด้าน</li>
+  <li><strong>ROC-AUC</strong>: วัดว่าโมเดลเรียงความเสี่ยงได้ดีแค่ไหน โดยไม่ขึ้นกับ Threshold 0.5 คือทายสุ่ม 1.0 คือเรียงได้สมบูรณ์ <strong>Average precision</strong> คือพื้นที่ใต้ Precision-Recall curve เหมาะกว่าเมื่อคลาสที่สนใจมีน้อย</li>
+</ul>
+<p>เมื่อคลาสที่สนใจมีน้อย (Class imbalance) เช่น ธุรกรรมฉ้อโกง 5% โมเดลที่ทาย "ไม่ฉ้อโกง" ทุกครั้งได้ Accuracy 95% โดยไม่มีประโยชน์เลย วิธีรับมือคือแบ่งข้อมูลด้วย <code>stratify</code> ใช้ <code>class_weight="balanced"</code> ให้โมเดลให้น้ำหนักคลาสเล็กมากขึ้น และเลือก Threshold จากต้นทุนของความผิดพลาดแต่ละแบบแทนการใช้ 0.5</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>นึกถึงเครื่องตรวจโลหะที่สนามบิน ถ้าตั้งไวมาก (Threshold ต่ำ) จะจับอาวุธได้เกือบหมด (Recall สูง) แต่เข็มขัดและกุญแจก็ทำให้เครื่องร้อง ผู้โดยสารต่อแถวยาว (Precision ต่ำ) ถ้าตั้งไม่ไว (Threshold สูง) แถวจะเร็วขึ้น แต่อาจปล่อยอาวุธผ่านไป สนามบินเลือกตั้งไวเพราะการปล่อยอาวุธผ่านเสียหายกว่าการตรวจซ้ำมาก การเลือก Threshold ของโมเดลก็ต้องคิดแบบเดียวกัน</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>ไฟล์แรกใช้การแบ่งข้อมูลชุดเดียวกับ <code>first_model.py</code> ใน Part 1 (Logistic Regression ได้ Accuracy 0.982) แล้ววัดผลละเอียดขึ้น ในชุดข้อมูลนี้ <code>target</code> 0 = ร้าย และ 1 = ไม่ร้าย แต่คลาสที่เราสนใจคือ "ร้าย" จึงกลับค่าเป็น <code>1 - y</code> <strong>หลัง</strong>แบ่งข้อมูล เพื่อให้ร้ายเป็น Positive (1) และได้ Split ชุดเดิม ไฟล์ที่สองสร้างข้อมูลไม่สมดุลเพื่อแสดงว่า Accuracy หลอกได้อย่างไร</p>
+<pre class="code" data-env="file" data-label="Python · classify_cancer.py"><code class="language-python"># วัดผลโมเดลจำแนกเนื้องอกอย่างละเอียด: Confusion Matrix, Precision, Recall, ROC-AUC และ Threshold
+from sklearn.datasets import load_breast_cancer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (average_precision_score, classification_report, confusion_matrix,
+                             precision_score, recall_score, roc_auc_score)
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.tree import DecisionTreeClassifier, export_text
+
+data = load_breast_cancer()
+X_train, X_test, y_train, y_test = train_test_split(
+    data.data, data.target, test_size=0.2, stratify=data.target, random_state=42
+)                                          # Split เดียวกับ first_model.py ใน Part 1
+# ชุดนี้ 0 = ร้าย จึงกลับค่าหลังแบ่งข้อมูล ให้ 1 = ร้าย (คลาสที่สนใจ = Positive)
+y_train, y_test = 1 - y_train, 1 - y_test
+
+model = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000)).fit(X_train, y_train)
+pred = model.predict(X_test)
+proba = model.predict_proba(X_test)[:, 1]  # ความน่าจะเป็นที่จะเป็นเนื้องอกชนิดร้าย
+
+print("Confusion Matrix (แถว = ค่าจริง, คอลัมน์ = ค่าทำนาย; 0 = ไม่ร้าย, 1 = ร้าย):")
+print(confusion_matrix(y_test, pred))
+print(classification_report(y_test, pred, target_names=["ไม่ร้าย", "ร้าย"], digits=3))
+print(f"ROC-AUC = {roc_auc_score(y_test, proba):.4f} | Average precision = {average_precision_score(y_test, proba):.4f}")
+
+print("\nThreshold | Precision | Recall | พลาดเนื้องอกร้าย (คน)")
+for t in [0.3, 0.5, 0.7]:
+    p = (proba &gt;= t).astype(int)
+    missed = ((p == 0) &amp; (y_test == 1)).sum()
+    print(f"{t:&gt;9} | {precision_score(y_test, p):9.3f} | {recall_score(y_test, p):6.3f} | {missed}")
+
+# Decision Tree ที่ลึก 2 ชั้น อ่านกฎได้เป็นข้อความ
+tree = DecisionTreeClassifier(max_depth=2, random_state=42).fit(X_train, y_train)
+print(f"\nDecision Tree (max_depth=2) accuracy บนข้อมูลทดสอบ: {tree.score(X_test, y_test):.3f}")
+print(export_text(tree, feature_names=list(data.feature_names)))</code></pre>
+<pre class="code" data-env="file" data-label="Python · imbalance_demo.py"><code class="language-python"># ข้อมูลไม่สมดุล: Accuracy สูงไม่ได้แปลว่าโมเดลดี
+import numpy as np
+from sklearn.datasets import make_classification
+from sklearn.dummy import DummyClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, recall_score, roc_auc_score
+from sklearn.model_selection import train_test_split
+
+# 2,000 ตัวอย่าง คลาส 1 มีประมาณ 5% (เช่น ธุรกรรมฉ้อโกง)
+X, y = make_classification(n_samples=2000, n_features=10, n_informative=4,
+                           weights=[0.95], random_state=42)
+print("สัดส่วนคลาส:", np.bincount(y), f"(คลาส 1 = {y.mean():.1%})")
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
+
+models = {
+    "Dummy": DummyClassifier(strategy="most_frequent"),
+    "Logistic": LogisticRegression(max_iter=1000),
+    "Logistic balanced": LogisticRegression(max_iter=1000, class_weight="balanced"),
+}
+print(f"{'model':&lt;18} accuracy  recall  ROC-AUC")
+for name, m in models.items():
+    m.fit(X_train, y_train)
+    pred = m.predict(X_test)
+    auc = roc_auc_score(y_test, m.predict_proba(X_test)[:, 1])
+    rec = recall_score(y_test, pred, zero_division=0)
+    print(f"{name:&lt;18} {accuracy_score(y_test, pred):8.3f} {rec:7.3f} {auc:8.3f}")</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 classify_cancer.py
+python3 imbalance_demo.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>Confusion Matrix (แถว = ค่าจริง, คอลัมน์ = ค่าทำนาย; 0 = ไม่ร้าย, 1 = ร้าย):
+[[71  1]
+ [ 1 41]]
+              precision    recall  f1-score   support
+
+     ไม่ร้าย      0.986     0.986     0.986        72
+        ร้าย      0.976     0.976     0.976        42
+
+    accuracy                          0.982       114
+   macro avg      0.981     0.981     0.981       114
+weighted avg      0.982     0.982     0.982       114
+
+ROC-AUC = 0.9954 | Average precision = 0.9940
+
+Threshold | Precision | Recall | พลาดเนื้องอกร้าย (คน)
+      0.3 |     0.891 |  0.976 | 1
+      0.5 |     0.976 |  0.976 | 1
+      0.7 |     1.000 |  0.952 | 2
+
+Decision Tree (max_depth=2) accuracy บนข้อมูลทดสอบ: 0.895
+|--- worst radius &lt;= 16.80
+|   |--- worst concave points &lt;= 0.14
+|   |   |--- class: 0
+|   |--- worst concave points &gt;  0.14
+|   |   |--- class: 1
+|--- worst radius &gt;  16.80
+|   |--- texture error &lt;= 0.47
+|   |   |--- class: 0
+|   |--- texture error &gt;  0.47
+|   |   |--- class: 1
+
+สัดส่วนคลาส: [1891  109] (คลาส 1 = 5.5%)
+model              accuracy  recall  ROC-AUC
+Dummy                 0.945   0.000    0.500
+Logistic              0.945   0.000    0.757
+Logistic balanced     0.665   0.864    0.804</code></pre>
+<p>อ่าน Confusion Matrix: ข้อมูลทดสอบมีเนื้องอกไม่ร้าย 72 ราย ทายถูก 71 ทายผิดเป็นร้าย 1 ราย (FP) และมีเนื้องอกร้าย 42 ราย ทายถูก 41 พลาดไป 1 ราย (FN) Accuracy 0.982 ตรงกับ Part 1 ตาราง Threshold แสดง Trade-off ชัดเจน ที่ 0.7 Precision เป็น 1.000 (ทุกครั้งที่ทายว่าร้ายถูกหมด) แต่พลาดผู้ป่วยเพิ่มเป็น 2 ราย ส่วนที่ 0.3 พลาดเท่าเดิม 1 ราย แต่เตือนผิดมากขึ้นจน Precision ลดเหลือ 0.891 ในงานคัดกรองจริง ทีมแพทย์ต้องเป็นผู้ตัดสินว่าการเตือนผิดกี่ครั้งยอมรับได้ เพื่อแลกกับการลดจำนวนผู้ป่วยที่หลุด Decision Tree ลึก 2 ชั้นได้แค่ 0.895 แต่อ่านกฎได้ เช่น ถ้า <code>worst radius</code> ไม่เกิน 16.80 และ <code>worst concave points</code> ไม่เกิน 0.14 ให้ทายว่าไม่ร้าย</p>
+<p>ผลของข้อมูลไม่สมดุลคือบทเรียนสำคัญ Dummy ได้ Accuracy 0.945 ทั้งที่ Recall เป็น 0 คือไม่จับคลาส 1 ได้เลย Logistic ปกติก็ได้ Recall 0 เช่นกัน เพราะที่ Threshold 0.5 โมเดลไม่เคยมั่นใจพอจะทายคลาสที่เล็กมาก แต่ ROC-AUC 0.757 บอกว่าโมเดลเรียงความเสี่ยงได้ดีกว่าสุ่ม เมื่อใส่ <code>class_weight="balanced"</code> Recall ขึ้นเป็น 0.864 แลกกับ Accuracy ที่ลดเหลือ 0.665 ซึ่งเป็นการแลกที่ถูกต้องถ้าการพลาดคลาส 1 แพงกว่าการตรวจซ้ำ</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>train_test_split(..., stratify=data.target, random_state=42)</code></td><td>แบ่งด้วย Label เดิมให้ได้ Split เดียวกับ Part 1 การ <code>stratify</code> ด้วย Label ที่กลับค่าแล้วจะสุ่มได้คนละชุด</td></tr>
+<tr><td><code>y_train, y_test = 1 - y_train, 1 - y_test</code></td><td>กลับค่าให้ 1 = ร้าย เพื่อให้ Precision และ Recall ที่ scikit-learn คำนวณ (ใช้ <code>pos_label=1</code>) หมายถึงคลาสที่สนใจ</td></tr>
+<tr><td><code>model.predict_proba(X_test)[:, 1]</code></td><td>ได้ความน่าจะเป็นของทุกคลาส คอลัมน์ <code>[:, 1]</code> คือโอกาสเป็นคลาส 1 (ร้าย)</td></tr>
+<tr><td><code>confusion_matrix(y_test, pred)</code></td><td>ตาราง 2×2 แถว = ค่าจริง คอลัมน์ = ค่าทำนาย เรียงคลาสจากน้อยไปมาก (0 แล้ว 1)</td></tr>
+<tr><td><code>classification_report(..., target_names=..., digits=3)</code></td><td>สรุป Precision, Recall, F1 และ <code>support</code> (จำนวนจริงของแต่ละคลาส) ในตารางเดียว</td></tr>
+<tr><td><code>roc_auc_score(y_test, proba)</code></td><td>ต้องส่งความน่าจะเป็น ไม่ใช่ผลทำนาย 0/1 เพราะ ROC-AUC วัดการเรียงลำดับ</td></tr>
+<tr><td><code>(proba &gt;= t).astype(int)</code></td><td>ตัดสินผลด้วย Threshold ที่เลือกเอง แทน 0.5 ของ <code>predict</code></td></tr>
+<tr><td><code>((p == 0) &amp; (y_test == 1)).sum()</code></td><td>นับ False Negative คือเนื้องอกร้ายที่โมเดลทายว่าไม่ร้าย</td></tr>
+<tr><td><code>export_text(tree, feature_names=...)</code></td><td>พิมพ์กฎของ Decision Tree เป็นข้อความ แต่ละชั้นย่อหน้าเข้าไป ชั้นสุดท้ายบอกคลาสที่ทาย</td></tr>
+<tr><td><code>make_classification(..., weights=[0.95], random_state=42)</code></td><td>สร้างข้อมูลจำลองที่คลาส 0 มีประมาณ 95% ผลจริงได้คลาส 1 = 5.5%</td></tr>
+<tr><td><code>class_weight="balanced"</code></td><td>ให้น้ำหนักแต่ละคลาสผกผันกับจำนวน คลาสเล็กจึงมีผลต่อ Loss มากขึ้น</td></tr>
+<tr><td><code>recall_score(..., zero_division=0)</code></td><td>บอกให้คืน 0 อย่างเงียบๆ เมื่อหารด้วยศูนย์ แทนการพิมพ์คำเตือน</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 due to no predicted samples. Use `zero_division` parameter to control this behavior.</code></td><td>โมเดลไม่ทายคลาส Positive เลยสักครั้ง ตัวหารของ Precision จึงเป็นศูนย์ มักเกิดกับข้อมูลไม่สมดุล</td><td>ถือเป็นสัญญาณว่าโมเดลใช้ไม่ได้ ลองใช้ <code>class_weight="balanced"</code> หรือลด Threshold และระบุ <code>zero_division=0</code> ให้ชัด</td></tr>
+<tr><td><code>ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):</code></td><td>ไม่ได้ปรับสเกล Feature หรือ <code>max_iter</code> น้อยเกินไป ตัวหาค่าที่ดีที่สุดจึงยังไม่ลู่เข้า</td><td>ใส่ <code>StandardScaler</code> ไว้ใน Pipeline และเพิ่ม <code>max_iter=1000</code></td></tr>
+<tr><td><code>ValueError: pos_label=1 is not a valid label. It should be one of ['a' 'b']</code></td><td>Label เป็นข้อความ แต่ Metric ใช้ <code>pos_label=1</code> เป็นค่าเริ่มต้น</td><td>ระบุ <code>pos_label="ชื่อคลาสที่สนใจ"</code> หรือแปลง Label เป็น 0/1 ก่อน</td></tr>
+<tr><td>Precision และ Recall ดูดีเกินจริงหรือแย่ผิดปกติ (ไม่มี Error)</td><td>สลับว่าคลาสไหนเป็น Positive เช่น ใช้ <code>load_breast_cancer</code> ตรงๆ ซึ่ง 1 คือไม่ร้าย</td><td>เขียนให้ชัดใน Comment ว่า 1 คืออะไร และดู <code>support</code> ใน <code>classification_report</code> ว่าตรงกับจำนวนที่คาด</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul><li>เลือก Metric หลักก่อนสร้างโมเดล ตามต้นทุนของความผิดพลาดในงานจริง และเขียนเหตุผลไว้ในรายงาน</li><li>รายงาน Confusion Matrix เป็นจำนวนคนเสมอ เช่น "พลาดผู้ป่วย 1 จาก 42 ราย" ผู้บริหารและแพทย์เข้าใจง่ายกว่าเปอร์เซ็นต์</li><li>เลือก Threshold ด้วยข้อมูลฝึกหรือข้อมูล Validation แล้วยืนยันบนข้อมูลทดสอบ ไม่เลือกจากข้อมูลทดสอบโดยตรง</li></ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ต่อยอดสองไฟล์นี้</p><ol><li>เพิ่ม Threshold 0.1 และ 0.2 ในตารางของ <code>classify_cancer.py</code> แล้วหาค่าที่ไม่พลาดเนื้องอกร้ายเลย</li><li>เปลี่ยน Decision Tree เป็น <code>max_depth=4</code> แล้วเทียบ Accuracy และความยาวของกฎ</li><li>ใน <code>imbalance_demo.py</code> ใช้ Logistic ปกติแต่ลด Threshold เป็น 0.2 แล้วเทียบ Recall กับแบบ <code>balanced</code></li><li>เพิ่ม <code>average_precision_score</code> ลงในตารางของ <code>imbalance_demo.py</code> แล้วอธิบายว่าทำไมค่านี้ต่ำกว่า ROC-AUC มาก</li></ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 10</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h3 id="s10-2-c10">Overfitting, Tree Ensemble, GridSearchCV และ Permutation Importance</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p><strong>Overfitting</strong> คือโมเดลที่จำข้อมูลฝึกได้ละเอียดเกินไปจนรวมเสียงรบกวน (Noise) เข้าไปด้วย คะแนนบนข้อมูลฝึกจึงสูงมากแต่คะแนนบนข้อมูลใหม่ต่ำกว่า ส่วน <strong>Underfitting</strong> คือโมเดลง่ายเกินไปจนผิดทั้งสองชุด วิธีดูคือเทียบคะแนนข้อมูลฝึกกับคะแนน Cross-validation ถ้าช่องว่างกว้างคือ Overfit แนวคิดนี้เรียกว่า <strong>Bias-Variance trade-off</strong> โมเดลง่ายมี Bias สูง (สมมติฐานผิดแบบเป็นระบบ) โมเดลซับซ้อนมี Variance สูง (เปลี่ยนมากเมื่อข้อมูลฝึกเปลี่ยน) เป้าหมายคือหาจุดสมดุล</p>
+<p><strong>Tree Ensemble</strong> คือการรวมต้นไม้หลายต้นเพื่อลดจุดอ่อนของต้นไม้ต้นเดียว</p>
+<ul>
+  <li><strong>Random Forest (Bagging):</strong> ฝึกต้นไม้หลายร้อยต้นแบบขนานกัน แต่ละต้นเห็นข้อมูลที่สุ่มมาต่างกันและสุ่ม Feature ในแต่ละจุดแบ่ง แล้วโหวตรวมกัน ช่วยลด Variance Hyperparameter หลักคือ <code>n_estimators</code>, <code>max_depth</code> และ <code>min_samples_leaf</code></li>
+  <li><strong>Gradient Boosting:</strong> สร้างต้นไม้ตื้นๆ ทีละต้นให้แก้ความผิดพลาดของต้นก่อนหน้า มักแม่นที่สุดกับข้อมูลแบบตาราง <code>HistGradientBoostingClassifier</code> เร็วและรองรับค่าว่างได้ในตัว ปรับด้วย <code>learning_rate</code> และ <code>max_iter</code></li>
+</ul>
+<p><strong>GridSearchCV</strong> ลองทุกชุดของ Hyperparameter ที่กำหนดด้วย Cross-validation แล้วเลือกชุดที่ดีที่สุด เมื่อใช้กับ Pipeline ต้องตั้งชื่อพารามิเตอร์แบบ <code>ชื่อขั้น__ชื่อพารามิเตอร์</code> (ขีดล่างสองตัว) จำนวนการฝึกคือจำนวนชุด × จำนวน Fold จึงต้องประมาณก่อนรัน หลังได้โมเดลแล้ว การตีความว่าโมเดลใช้ Feature ไหนทำได้สองแบบ <code>feature_importances_</code> (Impurity importance) คำนวณจากข้อมูลฝึก เร็วแต่ลำเอียงไปทาง Feature ที่มีค่าไม่ซ้ำกันเยอะ ส่วน <strong>Permutation importance</strong> สลับค่าของ Feature ทีละตัวบนข้อมูลทดสอบแล้วดูว่าคะแนนตกเท่าไร ใช้ได้กับทุกโมเดลและเชื่อถือได้กว่า</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Overfitting เหมือนนักเรียนที่ท่องเฉลยข้อสอบเก่าได้ทุกข้อ แต่ทำข้อสอบที่เปลี่ยนตัวเลขไม่ได้ Random Forest เหมือนการถามความเห็นผู้เชี่ยวชาญ 100 คนที่แต่ละคนอ่านข้อมูลคนละส่วน แล้วฟังเสียงส่วนใหญ่ ความผิดพลาดเฉพาะตัวของแต่ละคนจะหักล้างกัน ส่วน Gradient Boosting เหมือนการแก้การบ้านหลายรอบ แต่ละรอบครูวงเฉพาะข้อที่ยังผิดให้แก้ต่อ</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>ไฟล์นี้ใช้ <code>load_breast_cancer</code> ด้วย Split ชุดเดียวกับแนวคิดที่ 9 (1 = ร้าย) มี 4 ส่วน (1) ดูช่องว่างของคะแนนเมื่อ Decision Tree ลึกขึ้น (2) เทียบ 3 ตระกูลโมเดลด้วย ROC-AUC (3) ปรับจูน Random Forest ด้วย GridSearchCV 6 ชุด × 5 Fold (4) เทียบ Impurity importance กับ Permutation importance ทุกไลบรารีติดตั้งแล้ว ไฟล์นี้ใช้เวลารันประมาณ 20 วินาทีถึง 1 นาทีตามความเร็วของ CPU (เครื่องทดสอบที่มี 12 CPU ใช้ 27 วินาที)</p>
+<pre class="code" data-env="file" data-label="Python · tune_forest.py"><code class="language-python"># Overfitting, เทียบโมเดลต้นไม้ ปรับจูนด้วย GridSearchCV และตีความด้วย Permutation Importance
+import time
+
+import pandas as pd
+from sklearn.datasets import load_breast_cancer
+from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
+from sklearn.inspection import permutation_importance
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GridSearchCV, StratifiedKFold, cross_val_score, train_test_split
+from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.tree import DecisionTreeClassifier
+
+data = load_breast_cancer(as_frame=True)
+X = data.data
+X_train, X_test, y_train, y_test = train_test_split(X, data.target, test_size=0.2,
+                                                    stratify=data.target, random_state=42)
+y_train, y_test = 1 - y_train, 1 - y_test              # กลับค่าหลังแบ่ง ให้ 1 = ร้าย
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+# 1) ช่องว่างระหว่างคะแนนข้อมูลฝึกกับ CV บอก Overfitting
+print("max_depth | train acc | CV acc")
+for depth in [1, 3, 6, 10, None]:
+    tree = DecisionTreeClassifier(max_depth=depth, random_state=42)
+    train_acc = tree.fit(X_train, y_train).score(X_train, y_train)
+    cv_acc = cross_val_score(tree, X_train, y_train, cv=cv).mean()
+    print(f"{str(depth):&gt;9} | {train_acc:9.3f} | {cv_acc:.3f}")
+
+# 2) เทียบ 3 ตระกูลโมเดลด้วย ROC-AUC
+candidates = {
+    "Logistic": make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000)),
+    "RandomForest": RandomForestClassifier(random_state=42, n_jobs=-1),
+    "HistGB": HistGradientBoostingClassifier(random_state=42),
+}
+print("\nmodel        | CV ROC-AUC | เวลา (วินาที)")
+for name, m in candidates.items():
+    start = time.perf_counter()
+    auc = cross_val_score(m, X_train, y_train, cv=cv, scoring="roc_auc").mean()
+    print(f"{name:&lt;12} | {auc:10.4f} | {time.perf_counter() - start:.1f}")
+
+# 3) GridSearchCV บน Pipeline: ชื่อพารามิเตอร์ = ชื่อขั้น__ชื่อพารามิเตอร์
+pipe = Pipeline([("model", RandomForestClassifier(random_state=42, n_jobs=-1))])
+grid = {"model__max_depth": [3, 6, None], "model__min_samples_leaf": [1, 5]}
+search = GridSearchCV(pipe, grid, cv=cv, scoring="roc_auc", n_jobs=-1).fit(X_train, y_train)
+print(f"\nฝึกทั้งหมด {len(search.cv_results_['params']) * cv.get_n_splits()} ครั้ง")
+print("best_params_:", search.best_params_)
+print(f"best_score_ (CV): {search.best_score_:.4f}")
+print(f"ROC-AUC บนข้อมูลทดสอบ (วัดครั้งเดียว): {search.score(X_test, y_test):.4f}")
+
+# 4) Impurity importance เทียบ Permutation importance (คำนวณบนข้อมูลทดสอบ)
+forest = search.best_estimator_.named_steps["model"]
+perm = permutation_importance(search.best_estimator_, X_test, y_test, scoring="roc_auc",
+                              n_repeats=10, random_state=42)
+table = pd.DataFrame({"impurity": forest.feature_importances_, "permutation": perm.importances_mean},
+                     index=X.columns)
+print("\n5 อันดับแรกตาม impurity:")
+print(table.sort_values("impurity", ascending=False).head(5).round(4))
+print("\n5 อันดับแรกตาม permutation:")
+print(table.sort_values("permutation", ascending=False).head(5).round(4))</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 tune_forest.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>max_depth | train acc | CV acc
+        1 |     0.923 | 0.903
+        3 |     0.976 | 0.927
+        6 |     0.998 | 0.925
+       10 |     1.000 | 0.916
+     None |     1.000 | 0.916
+
+model        | CV ROC-AUC | เวลา (วินาที)
+Logistic     |     0.9959 | 0.1
+RandomForest |     0.9896 | 0.9
+HistGB       |     0.9942 | 0.7
+
+ฝึกทั้งหมด 30 ครั้ง
+best_params_: {'model__max_depth': 6, 'model__min_samples_leaf': 1}
+best_score_ (CV): 0.9905
+ROC-AUC บนข้อมูลทดสอบ (วัดครั้งเดียว): 0.9947
+
+5 อันดับแรกตาม impurity:
+                      impurity  permutation
+worst area              0.1370       0.0025
+worst concave points    0.1282       0.0071
+worst radius            0.1001       0.0002
+mean concave points     0.0918       0.0034
+worst perimeter         0.0752       0.0014
+
+5 อันดับแรกตาม permutation:
+                      impurity  permutation
+worst concave points    0.1282       0.0071
+mean concave points     0.0918       0.0034
+worst area              0.1370       0.0025
+worst texture           0.0188       0.0022
+worst perimeter         0.0752       0.0014</code></pre>
+<p>คอลัมน์ "เวลา" ต่างกันตามจำนวนและความเร็วของ CPU ตัวเลขอื่นควรตรงกับหน้าเว็บ ตารางแรกแสดง Bias-Variance ชัดเจน ที่ <code>max_depth=1</code> ทั้งสองคะแนนต่ำ (Underfit) ที่ <code>max_depth=3</code> CV ดีที่สุด 0.927 พอลึกถึง 10 หรือไม่จำกัด คะแนนข้อมูลฝึกเป็น 1.000 (จำได้ทุกตัว) แต่ CV ลดลงเหลือ 0.916 นี่คือ Overfitting</p>
+<p>ตารางที่สองให้บทเรียนสำคัญ Logistic Regression ซึ่งเป็นโมเดลที่ง่ายที่สุดได้ ROC-AUC สูงสุด 0.9959 และเร็วที่สุด โมเดลที่ซับซ้อนกว่าไม่ได้ดีกว่าเสมอ GridSearchCV เลือก <code>max_depth=6</code> ได้ CV 0.9905 ดีขึ้นจากค่าเริ่มต้นเล็กน้อย และบนข้อมูลทดสอบได้ 0.9947 ใกล้กับ CV แปลว่าไม่ได้ Overfit การปรับจูน ส่วนตารางความสำคัญ <code>worst radius</code> อยู่อันดับ 3 ตาม Impurity (0.1001) แต่ Permutation เกือบเป็นศูนย์ (0.0002) เพราะ <code>worst radius</code>, <code>worst area</code> และ <code>worst perimeter</code> วัดขนาดเดียวกัน เมื่อสลับค่าตัวหนึ่ง โมเดลยังใช้อีกสองตัวแทนได้ คะแนนจึงแทบไม่ตก ต้องระวังเรื่องนี้เมื่อสรุปว่า Feature ไหน "ไม่สำคัญ"</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>StratifiedKFold(n_splits=5, shuffle=True, random_state=42)</code></td><td>แบ่ง 5 Fold โดยรักษาสัดส่วนคลาสในทุก Fold ใช้ตัวเดียวกันทั้งไฟล์ ทุกโมเดลจึงถูกวัดอย่างยุติธรรม</td></tr>
+<tr><td><code>tree.fit(...).score(X_train, y_train)</code></td><td>คะแนนบนข้อมูลที่ใช้ฝึกเอง บอกว่าโมเดลจำได้แค่ไหน ใช้เทียบกับ CV เพื่อดู Overfitting</td></tr>
+<tr><td><code>DecisionTreeClassifier(max_depth=None)</code></td><td>ต้นไม้แบ่งต่อจนทุกใบบริสุทธิ์ จึงได้คะแนนข้อมูลฝึก 1.000 เสมอ</td></tr>
+<tr><td><code>RandomForestClassifier(random_state=42, n_jobs=-1)</code></td><td>ค่าเริ่มต้นใช้ 100 ต้น <code>n_jobs=-1</code> ใช้ทุก CPU และ <code>random_state</code> ทำให้ผลทำซ้ำได้</td></tr>
+<tr><td><code>time.perf_counter()</code></td><td>นาฬิกาความละเอียดสูงสำหรับจับเวลา ลบค่าเริ่มต้นออกได้เวลาที่ใช้เป็นวินาที</td></tr>
+<tr><td><code>Pipeline([("model", ...)])</code></td><td>ตั้งชื่อขั้นเองว่า <code>model</code> ชื่อพารามิเตอร์ใน Grid จึงขึ้นต้นด้วย <code>model__</code></td></tr>
+<tr><td><code>grid = {"model__max_depth": [3, 6, None], ...}</code></td><td>3 × 2 = 6 ชุด คูณ 5 Fold ได้การฝึก 30 ครั้ง (ไม่นับการฝึกครั้งสุดท้ายด้วยข้อมูลฝึกทั้งหมด)</td></tr>
+<tr><td><code>GridSearchCV(..., scoring="roc_auc").fit(X_train, y_train)</code></td><td>ลองทุกชุดด้วย CV แล้วฝึกโมเดลที่ดีที่สุดใหม่ด้วยข้อมูลฝึกทั้งหมดให้อัตโนมัติ (<code>refit=True</code>)</td></tr>
+<tr><td><code>search.best_params_</code>, <code>best_score_</code></td><td>ชุดพารามิเตอร์ที่ดีที่สุด และคะแนน CV เฉลี่ยของชุดนั้น</td></tr>
+<tr><td><code>search.score(X_test, y_test)</code></td><td>วัดโมเดลที่เลือกแล้วบนข้อมูลทดสอบครั้งเดียว ด้วย Metric เดียวกับที่ใช้ค้นหา</td></tr>
+<tr><td><code>named_steps["model"].feature_importances_</code></td><td>Impurity importance ที่ Random Forest คำนวณระหว่างฝึก ผลรวมทุก Feature เท่ากับ 1</td></tr>
+<tr><td><code>permutation_importance(..., n_repeats=10, random_state=42)</code></td><td>สลับค่าแต่ละ Feature 10 รอบบนข้อมูลทดสอบ <code>importances_mean</code> คือ ROC-AUC ที่ลดลงโดยเฉลี่ย</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>ValueError: Invalid parameter 'max_depth' for estimator Pipeline(steps=[('model', RandomForestClassifier())]). Valid parameters are: ['memory', 'steps', 'transform_input', 'verbose'].</code></td><td>ส่ง Grid เป็น <code>{"max_depth": [...]}</code> ให้ Pipeline ซึ่งไม่มีพารามิเตอร์ชื่อนี้</td><td>เติมชื่อขั้นนำหน้าด้วยขีดล่างสองตัว <code>"model__max_depth"</code> ดูชื่อที่ใช้ได้ด้วย <code>pipe.get_params().keys()</code></td></tr>
+<tr><td>GridSearchCV รันนานเป็นชั่วโมง (ไม่มี Error)</td><td>Grid ใหญ่เกิน เช่น 5 พารามิเตอร์ × 5 ค่า = 3,125 ชุด × 5 Fold = 15,625 ครั้ง</td><td>คำนวณจำนวนการฝึกก่อนรัน เริ่มจาก Grid เล็ก หรือใช้ <code>RandomizedSearchCV(n_iter=20)</code> สุ่มลองแค่บางชุด</td></tr>
+<tr><td>คะแนนทดสอบตกลงมากเมื่อนำโมเดลไปใช้จริง (ไม่มี Error)</td><td>เลือก Hyperparameter จากคะแนนบนข้อมูลทดสอบ ข้อมูลทดสอบจึงรั่วเข้าไปในการเลือกโมเดล</td><td>ค้นหาด้วย CV บนข้อมูลฝึกเท่านั้น และแตะข้อมูลทดสอบครั้งเดียวตอนท้าย</td></tr>
+<tr><td>สรุปว่า Feature ไม่สำคัญเพราะ Permutation importance เป็นศูนย์ (ไม่มี Error)</td><td>Feature นั้นมีตัวแทนที่สัมพันธ์กันสูง เมื่อสลับค่าตัวเดียว โมเดลยังใช้ตัวอื่นแทนได้</td><td>ตรวจสหสัมพันธ์ระหว่าง Feature ก่อนสรุป และทดลองตัด Feature ทั้งกลุ่มออกพร้อมกันแล้ววัดผลใหม่</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul><li>เทียบโมเดลที่ง่ายที่สุดก่อนเสมอ ถ้า Logistic Regression ดีพอแล้ว ให้เลือกตัวนั้น เพราะเร็วกว่า อธิบายง่ายกว่า และพังยากกว่าเมื่อข้อมูลเปลี่ยน</li><li>รายงาน Permutation importance บนข้อมูลทดสอบควบคู่กับ Impurity importance และเขียนเตือนว่าความสำคัญไม่ได้แปลว่าเป็นสาเหตุ</li><li>บันทึก <code>cv_results_</code> ลงไฟล์ CSV ด้วย <code>pd.DataFrame(search.cv_results_)</code> เพื่อเก็บหลักฐานว่าลองอะไรไปแล้วบ้าง</li></ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ทดลองกับ <code>tune_forest.py</code></p><ol><li>เพิ่ม <code>max_depth</code> 2, 4 และ 5 ในตารางแรก แล้วหาค่าที่ช่องว่างระหว่าง train กับ CV น้อยที่สุดโดย CV ยังสูง</li><li>เขียน GridSearchCV สำหรับ <code>HistGradientBoostingClassifier</code> ที่ปรับ <code>model__learning_rate</code> เป็น [0.05, 0.1] และ <code>model__max_iter</code> เป็น [100, 300] แล้วคำนวณก่อนรันว่าจะฝึกกี่ครั้ง</li><li>เปลี่ยนเป็น <code>RandomizedSearchCV</code> ที่ <code>n_iter=4</code> แล้วเทียบเวลาและคะแนน</li><li>ตัด <code>worst radius</code>, <code>worst area</code> และ <code>worst perimeter</code> ออกพร้อมกัน แล้ววัด ROC-AUC ใหม่เพื่อดูว่ากลุ่มนี้สำคัญจริงหรือไม่</li></ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 11</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h3 id="s10-2-c11">Unsupervised Learning: k-means และ PCA</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p><strong>Unsupervised Learning</strong> คือการหาโครงสร้างในข้อมูลที่ไม่มีคำตอบ (ไม่มี Target) ข้อมูลในบริษัทส่วนใหญ่เป็นแบบนี้ เช่น ประวัติการซื้อของลูกค้า หรือพฤติกรรมการใช้แอป งานที่พบบ่อยที่สุดคือ <strong>Clustering</strong> หรือการจัดกลุ่มตัวอย่างที่คล้ายกันไว้ด้วยกัน เพื่อให้ฝ่ายการตลาดออกแคมเปญแยกตามกลุ่ม และ <strong>Dimensionality reduction</strong> หรือการลดจำนวนมิติเพื่อให้มองข้อมูลหลายสิบคอลัมน์เป็นภาพ 2 มิติได้</p>
+<p><strong>k-means</strong> ทำงาน 4 ขั้น (1) สุ่มจุดศูนย์กลาง k จุด (2) จัดแต่ละตัวอย่างเข้ากลุ่มของศูนย์กลางที่ใกล้ที่สุด (3) ย้ายศูนย์กลางไปที่ค่าเฉลี่ยของสมาชิกในกลุ่ม (4) ทำขั้น 2–3 ซ้ำจนศูนย์กลางนิ่ง เพราะใช้ระยะทาง จึงต้องปรับสเกลก่อนเสมอ และเพราะผลขึ้นกับจุดเริ่มต้น จึงตั้ง <code>n_init=10</code> (สุ่มเริ่ม 10 ครั้งแล้วเลือกผลดีที่สุด) กับ <code>random_state</code> ส่วนการเลือก k ใช้สองตัวช่วย</p>
+<ul>
+  <li><strong><code>inertia_</code> (Elbow method):</strong> ผลรวมระยะทางกำลังสองจากแต่ละจุดถึงศูนย์กลางของกลุ่ม ลดลงเสมอเมื่อ k เพิ่ม ให้หาจุด "ข้อศอก" ที่หลังจากนั้นลดลงช้า</li>
+  <li><strong><code>silhouette_score</code>:</strong> ค่า −1 ถึง 1 ที่วัดว่าแต่ละจุดใกล้กลุ่มตัวเองมากกว่ากลุ่มอื่นแค่ไหน ยิ่งสูงยิ่งแยกกลุ่มชัด</li>
+</ul>
+<p><strong>PCA</strong> (Principal Component Analysis) สร้างแกนใหม่ที่เป็นผลรวมเชิงเส้นของ Feature เดิม แกนแรก (PC1) เก็บความแปรปรวนได้มากที่สุด แกนที่สองตั้งฉากกับแกนแรกและเก็บส่วนที่เหลือได้มากที่สุด <code>explained_variance_ratio_</code> บอกว่าแต่ละแกนเก็บข้อมูลได้กี่เปอร์เซ็นต์ ข้อจำกัดคือ k-means สมมติว่ากลุ่มเป็นก้อนกลมขนาดใกล้กัน และ PCA จับได้เฉพาะความสัมพันธ์เชิงเส้น ผลจึงต้องตรวจด้วยกราฟและความรู้ธุรกิจเสมอ</p>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>k-means เหมือนการตั้งโต๊ะอาหารในงานเลี้ยงที่ไม่มีใครบอกว่าใครรู้จักใคร ครั้งแรกวางโต๊ะแบบสุ่ม ให้แขกไปนั่งโต๊ะที่ใกล้ที่สุด แล้วขยับโต๊ะไปอยู่กลางกลุ่มคนที่นั่ง ทำซ้ำจนไม่มีใครย้าย ส่วน PCA เหมือนการถ่ายรูปเงาของวัตถุ 3 มิติลงบนผนัง ถ้าเลือกมุมแสงดี เงาจะบอกรูปร่างได้เกือบครบ แต่ก็ยังเสียรายละเอียดบางส่วนไปเสมอ</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>ไฟล์นี้ใช้ <code>load_wine</code> ซึ่งมีไวน์ 178 ขวด 13 Feature ทางเคมี เราแบ่งกลุ่มโดย <strong>ไม่ใช้</strong> ชนิดไวน์จริงตอนฝึก แล้วใช้ชนิดจริงตรวจทานภายหลังเท่านั้น Script ลอง k = 2 ถึง 8 อธิบายแต่ละกลุ่มด้วยค่าเฉลี่ยของ 4 Feature ลดมิติด้วย PCA และบันทึกกราฟ Elbow คู่กับ Scatter plot ของ PC1–PC2</p>
+<pre class="code" data-env="file" data-label="Python · wine_clusters.py"><code class="language-python"># แบ่งกลุ่มไวน์ด้วย k-means โดยไม่ใช้ Label แล้วลดมิติด้วย PCA เพื่อดูภาพ
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn.datasets import load_wine
+from sklearn.decomposition import PCA
+from sklearn.metrics import adjusted_rand_score, silhouette_score
+from sklearn.preprocessing import StandardScaler
+
+wine = load_wine(as_frame=True)
+X = wine.data                                       # 178 แถว 13 Feature (ไม่ใช้ target ตอนฝึก)
+X_scaled = StandardScaler().fit_transform(X)         # ต้องปรับสเกล ไม่อย่างนั้น proline (หลักร้อย-พัน) จะครอบงำ
+
+print(" k | inertia | silhouette")
+inertias = []
+for k in range(2, 9):
+    km = KMeans(n_clusters=k, n_init=10, random_state=42).fit(X_scaled)
+    inertias.append(km.inertia_)
+    print(f"{k:&gt;2} | {km.inertia_:7.1f} | {silhouette_score(X_scaled, km.labels_):.3f}")
+
+km = KMeans(n_clusters=3, n_init=10, random_state=42).fit(X_scaled)
+X = X.assign(cluster=km.labels_)
+print("\nจำนวนไวน์ในแต่ละกลุ่ม:", X["cluster"].value_counts().sort_index().to_dict())
+print(X.groupby("cluster")[["alcohol", "color_intensity", "flavanoids", "proline"]].mean().round(2))
+
+pca = PCA(n_components=2, random_state=42)
+pcs = pca.fit_transform(X_scaled)
+print("\nPCA explained variance ratio:", pca.explained_variance_ratio_.round(3),
+      f"รวม {pca.explained_variance_ratio_.sum():.1%}")
+
+# ใช้ Label จริงตรวจทานภายหลังเท่านั้น
+print("\nเทียบกลุ่มกับชนิดไวน์จริง:")
+print(pd.crosstab(X["cluster"], wine.target, rownames=["cluster"], colnames=["class"]))
+print(f"Adjusted Rand Index: {adjusted_rand_score(wine.target, km.labels_):.3f}")
+
+Path("charts").mkdir(exist_ok=True)
+fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+axes[0].plot(range(2, 9), inertias, marker="o")
+axes[0].set_title("Elbow: inertia drops slowly after k = 3")
+axes[0].set_xlabel("k")
+axes[0].set_ylabel("inertia")
+axes[1].scatter(pcs[:, 0], pcs[:, 1], c=km.labels_, alpha=0.8)
+axes[1].set_title("3 clusters separate clearly on PC1-PC2")
+axes[1].set_xlabel("PC1")
+axes[1].set_ylabel("PC2")
+fig.savefig("charts/wine_clusters.png", dpi=150, bbox_inches="tight")
+plt.close(fig)
+print("บันทึก charts/wine_clusters.png แล้ว")</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 wine_clusters.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code> k | inertia | silhouette
+ 2 |  1658.8 | 0.259
+ 3 |  1277.9 | 0.285
+ 4 |  1175.4 | 0.260
+ 5 |  1109.5 | 0.202
+ 6 |  1046.0 | 0.237
+ 7 |   981.6 | 0.204
+ 8 |   935.2 | 0.157
+
+จำนวนไวน์ในแต่ละกลุ่ม: {0: 65, 1: 51, 2: 62}
+         alcohol  color_intensity  flavanoids  proline
+cluster
+0          12.25             2.97        2.05   510.17
+1          13.13             7.23        0.82   619.06
+2          13.68             5.45        3.00  1100.23
+
+PCA explained variance ratio: [0.362 0.192] รวม 55.4%
+
+เทียบกลุ่มกับชนิดไวน์จริง:
+class     0   1   2
+cluster
+0         0  65   0
+1         0   3  48
+2        59   3   0
+Adjusted Rand Index: 0.897
+บันทึก charts/wine_clusters.png แล้ว</code></pre>
+<p>เลือก k = 3 ด้วยเหตุผลสองข้อจากตาราง ข้อแรก Silhouette สูงที่สุดที่ 0.285 ข้อสอง inertia ลดลงมากจาก k = 2 ไป 3 (ลด 380.9) แต่จาก 3 ไป 4 ลดเพียง 102.5 จุดหักนี้คือ "ข้อศอก" ตารางค่าเฉลี่ยช่วยตั้งชื่อกลุ่มได้ กลุ่ม 2 คือ "แอลกอฮอล์สูง proline สูงมาก" (13.68 และ 1,100) กลุ่ม 1 คือ "สีเข้มแต่ flavanoids ต่ำ" (7.23 และ 0.82) และกลุ่ม 0 คือ "แอลกอฮอล์ต่ำ สีอ่อน" (12.25 และ 2.97)</p>
+<p>เมื่อตรวจกับชนิดไวน์จริง กลุ่มที่ได้ตรงกับชนิดจริงเกือบทั้งหมด ผิดแค่ 6 ขวดจาก 178 และ Adjusted Rand Index 0.897 (1 คือตรงกันสมบูรณ์ 0 คือเหมือนสุ่ม) ทั้งที่ k-means ไม่เคยเห็นคำตอบ แปลว่าความต่างทางเคมีของไวน์ 3 ชนิดนี้ชัดเจนมาก หมายเลขกลุ่ม (0, 1, 2) เป็นแค่ชื่อเรียก ไม่จำเป็นต้องตรงกับหมายเลขชนิดจริง PCA สองแกนเก็บความแปรปรวนได้ 55.4% ในไฟล์ <code>charts/wine_clusters.png</code> รูปซ้ายเป็นเส้นที่ลงชันจาก k = 2 ไป 3 แล้วค่อยๆ ลาดลง รูปขวาเป็นจุด 3 สีที่แยกเป็นสามก้อนเรียงเป็นรูปตัว V กลุ่ม 1 อยู่ทางซ้าย (PC1 เฉลี่ย −2.72) กลุ่ม 2 อยู่ทางขวา (PC1 เฉลี่ย 2.28) ทั้งสองค่อนไปด้านบน และกลุ่ม 0 อยู่ตรงกลางด้านล่าง (PC2 เฉลี่ย −1.77) ขอบของแต่ละก้อนอยู่ชิดกันแต่ไม่ซ้อนทับ เพราะสีในรูปนี้มาจากกลุ่มของ k-means ไม่ใช่ชนิดไวน์จริง</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>StandardScaler().fit_transform(X)</code></td><td>ปรับทุก Feature ให้มีค่าเฉลี่ย 0 และ SD 1 ถ้าไม่ปรับ <code>proline</code> ที่มีค่าหลักพันจะครอบงำระยะทาง</td></tr>
+<tr><td><code>KMeans(n_clusters=k, n_init=10, random_state=42)</code></td><td>สร้าง k กลุ่ม สุ่มจุดเริ่มต้น 10 ครั้งแล้วเก็บผลที่ <code>inertia_</code> ต่ำที่สุด และตั้ง Seed ให้ได้หมายเลขกลุ่มเดิมทุกครั้ง</td></tr>
+<tr><td><code>km.inertia_</code></td><td>ผลรวมระยะทางกำลังสองจากแต่ละจุดถึงศูนย์กลางกลุ่มของมัน ใช้วาดกราฟ Elbow</td></tr>
+<tr><td><code>silhouette_score(X_scaled, km.labels_)</code></td><td>ค่าเฉลี่ย Silhouette ของทุกจุด ต้องส่งข้อมูลที่ปรับสเกลแล้วชุดเดียวกับที่ใช้จัดกลุ่ม</td></tr>
+<tr><td><code>X.assign(cluster=km.labels_)</code></td><td>เพิ่มคอลัมน์หมายเลขกลุ่มลงในตารางเดิมโดยไม่แก้ <code>X</code> ตัวเก่า เพื่อนำไป <code>groupby</code> ต่อ</td></tr>
+<tr><td><code>X.groupby("cluster")[[...]].mean()</code></td><td>อธิบายแต่ละกลุ่มด้วยค่าเฉลี่ยในหน่วยเดิม (ไม่ใช่ค่าที่ปรับสเกล) ซึ่งคนอ่านเข้าใจได้</td></tr>
+<tr><td><code>PCA(n_components=2).fit_transform(X_scaled)</code></td><td>ลด 13 มิติเหลือ 2 แกนใหม่ ได้ Array <code>shape</code> <code>(178, 2)</code></td></tr>
+<tr><td><code>pca.explained_variance_ratio_</code></td><td>สัดส่วนความแปรปรวนที่แต่ละแกนเก็บไว้ ผลรวมบอกว่าภาพ 2 มิติเสียข้อมูลไปเท่าไร</td></tr>
+<tr><td><code>pd.crosstab(X["cluster"], wine.target)</code></td><td>ตารางนับจำนวนแบบไขว้ระหว่างกลุ่มที่ได้กับชนิดจริง ใช้ตรวจทานเท่านั้น งานจริงมักไม่มีคำตอบให้เทียบ</td></tr>
+<tr><td><code>adjusted_rand_score(wine.target, km.labels_)</code></td><td>วัดความตรงกันของการแบ่งกลุ่มสองแบบโดยไม่สนใจหมายเลขกลุ่ม ปรับแก้ผลของความบังเอิญแล้ว</td></tr>
+<tr><td><code>axes[1].scatter(..., c=km.labels_)</code></td><td>ระบายสีจุดตามหมายเลขกลุ่ม เพื่อดูว่ากลุ่มแยกกันชัดบนแกน PCA หรือไม่</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>ValueError: Number of labels is 1. Valid values are 2 to n_samples - 1 (inclusive)</code></td><td>เรียก <code>silhouette_score</code> กับผลที่มีกลุ่มเดียว เช่น วน Loop เริ่มจาก k = 1</td><td>เริ่ม <code>range(2, ...)</code> เสมอ Silhouette ต้องมีอย่างน้อย 2 กลุ่มให้เปรียบเทียบ</td></tr>
+<tr><td><code>ValueError: n_samples=20 should be &gt;= n_clusters=30.</code></td><td>ขอจำนวนกลุ่มมากกว่าจำนวนตัวอย่าง</td><td>ตรวจ <code>len(X)</code> ก่อนเลือกช่วงของ k และใช้ k ที่น้อยกว่าจำนวนตัวอย่างมาก</td></tr>
+<tr><td>กลุ่มที่ได้แบ่งตาม <code>proline</code> อย่างเดียว (ไม่มี Error)</td><td>ไม่ได้ปรับสเกล Feature ที่มีค่าหลักพันจึงครอบงำระยะทาง</td><td>ใส่ <code>StandardScaler</code> ก่อน k-means และ PCA ทุกครั้ง หรือรวมใน Pipeline</td></tr>
+<tr><td>หมายเลขกลุ่มเปลี่ยนทุกครั้งที่รัน รายงานจึงไม่ตรงกัน (ไม่มี Error)</td><td>ไม่ได้ตั้ง <code>random_state</code> จุดเริ่มต้นจึงสุ่มต่างกัน</td><td>ตั้ง <code>random_state=42</code> และอ้างถึงกลุ่มด้วยชื่อที่ตั้งจากค่าเฉลี่ย ไม่ใช่หมายเลข</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul><li>เลือก k ด้วยตัวเลข (Elbow และ Silhouette) แล้วยืนยันด้วยความหมายทางธุรกิจ ถ้า 4 กลุ่มให้แคมเปญที่ทำได้จริงมากกว่า ก็เลือก 4 ได้ แต่ต้องเขียนเหตุผล</li><li>อธิบายแต่ละกลุ่มด้วยค่าเฉลี่ยในหน่วยเดิมและจำนวนสมาชิก แล้วตั้งชื่อที่ฝ่ายการตลาดเข้าใจ เช่น "ลูกค้ามาบ่อยแต่ซื้อน้อย"</li><li>ใช้ PCA เพื่อดูภาพและตรวจผล อย่าใช้แกน PCA อธิบายธุรกิจโดยตรง เพราะแต่ละแกนคือส่วนผสมของ Feature หลายตัว</li></ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ทดลองกับ <code>wine_clusters.py</code></p><ol><li>ลบบรรทัด <code>StandardScaler</code> แล้วใช้ <code>X</code> ดิบ ดูว่า Adjusted Rand Index ลดลงเหลือเท่าไร</li><li>เลือก k = 4 แล้วดูตารางค่าเฉลี่ยว่ากลุ่มที่เพิ่มขึ้นมาแยกจากกลุ่มไหน</li><li>พิมพ์ <code>pca.components_[0]</code> ร่วมกับชื่อ Feature เพื่อดูว่า Feature ไหนมีน้ำหนักมากที่สุดใน PC1</li><li>หาจำนวนแกน PCA ที่เก็บความแปรปรวนได้อย่างน้อย 80% ด้วย <code>PCA(n_components=0.8)</code></li></ol></div>
+</article>
+
+<article class="concept">
+<div class="concept-meta"><span class="c-no">แนวคิดที่ 12</span><span class="lvl" data-lvl="a">Advanced</span></div>
+<h3 id="s10-2-c12">Neural Network เบื้องต้น: จาก Gradient Descent สู่ MLPClassifier และ PyTorch</h3>
+<h4>คืออะไร ทำไมต้องใช้ และใช้เมื่อไร</h4>
+<p>ทุกโมเดลที่เรียนมาเรียนรู้ด้วยหลักเดียวกัน คือหาค่าน้ำหนักที่ทำให้ <strong>Loss</strong> (ตัวเลขที่บอกว่าทำนายผิดมากแค่ไหน) ต่ำที่สุด วิธีที่ใช้กับ Neural Network คือ <strong>Gradient Descent</strong> คำนวณความชัน (Gradient) ของ Loss เทียบกับน้ำหนักแต่ละตัว แล้วขยับน้ำหนักสวนทางกับความชันทีละก้าว ขนาดก้าวคือ <strong>Learning rate</strong> ถ้าเล็กไปจะช้ามาก ถ้าใหญ่ไป Loss จะพุ่งขึ้นจนเป็น <code>nan</code></p>
+<p><strong>Neuron</strong> หนึ่งตัวคือ Dot product ของ Input กับน้ำหนัก บวก Bias แล้วผ่าน <strong>Activation function</strong> เช่น ReLU (ถ้าติดลบให้เป็น 0) ซึ่งทำให้โมเดลเรียนรู้ความสัมพันธ์ที่ไม่ใช่เส้นตรงได้ เมื่อเรียง Neuron หลายตัวเป็นชั้น (Layer) แล้วต่อหลายชั้น จะได้ Neural Network การหา Gradient ของน้ำหนักทุกชั้นใช้ <strong>Backpropagation</strong> ซึ่งส่งความผิดพลาดย้อนจากชั้นสุดท้ายไปชั้นแรกด้วย Chain rule</p>
+<ul>
+  <li><strong><code>MLPClassifier</code> ของ scikit-learn:</strong> Neural Network แบบง่ายที่ใช้ API <code>fit</code>/<code>predict</code> เหมือนโมเดลอื่น เหมาะสำหรับลองแนวคิดกับข้อมูลขนาดเล็ก</li>
+  <li><strong>PyTorch:</strong> ไลบรารี Deep Learning ที่ใช้กันมากที่สุดในงานวิจัยและอุตสาหกรรม เก็บข้อมูลเป็น <code>Tensor</code> (คล้าย Array ของ NumPy) มี Autograd คำนวณ Gradient ให้อัตโนมัติ สร้างโมเดลด้วย <code>nn.Sequential</code> และเขียน Training loop เอง จึงควบคุมได้ทุกขั้น</li>
+  <li><strong>ใช้เมื่อไร:</strong> ภาพ เสียง ข้อความ และข้อมูลขนาดใหญ่มาก ส่วนข้อมูลแบบตารางหลักพันแถว โมเดลต้นไม้หรือโมเดลเชิงเส้นมักดีพอหรือดีกว่า และเร็วกว่ามาก</li>
+</ul>
+<div class="callout analogy"><span class="c-label analogy">เปรียบเทียบ</span><p>Gradient Descent เหมือนการเดินลงเขาตอนหมอกลงจัด มองไม่เห็นตีนเขา แต่รู้สึกได้ว่าพื้นใต้เท้าลาดไปทางไหน จึงก้าวไปทางที่ลาดลงทีละก้าว ถ้าก้าวเล็กเกินไปจะใช้เวลาทั้งวัน ถ้าก้าวยาวเกินไปอาจกระโดดข้ามหุบเขาไปตกอีกฝั่งที่สูงกว่าเดิม ส่วน Neural Network เหมือนสายการผลิตหลายสถานี แต่ละสถานีแปลงชิ้นงานนิดหนึ่ง และ Backpropagation คือการไล่ย้อนจากสินค้าที่เสียว่าแต่ละสถานีควรปรับเครื่องแค่ไหน</p></div>
+<h4>ตัวอย่างโค้ด</h4>
+<p>ตัวอย่างนี้มี 3 ไฟล์ที่ต่อยอดกัน ไฟล์แรกเขียน Gradient Descent เองด้วย NumPy เพื่อหาเส้นตรง ไฟล์ที่สองใช้ <code>MLPClassifier</code> จำแนกภาพตัวเลขเขียนมือ <code>load_digits</code> (1,797 ภาพ ขนาด 8×8 พิกเซล) และไฟล์ที่สามฝึก Neural Network แบบเดียวกันด้วย PyTorch ให้ติดตั้ง PyTorch รุ่น CPU ก่อน รุ่นนี้ไม่ต้องใช้ GPU และกินพื้นที่ใน venv ประมาณ 770 MB ถ้าติดตั้งด้วย <code>pip install torch</code> ธรรมดาบน Linux จะได้รุ่นที่รองรับ GPU ของ NVIDIA ซึ่งดาวน์โหลดหลาย GB</p>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">cd ~/projects/ds-lab
+source .venv/bin/activate
+python3 -m pip install "torch==2.14.1" --index-url https://download.pytorch.org/whl/cpu
+python3 -c "import torch; print(torch.__version__)"</code></pre>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>2.14.1+cpu</code></pre>
+<pre class="code" data-env="file" data-label="Python · gd_line.py"><code class="language-python"># Gradient Descent ด้วย NumPy: หาเส้นตรง y = m*x + c จากข้อมูลที่มี Noise
+import numpy as np
+
+rng = np.random.default_rng(42)
+x = rng.uniform(0, 10, 100)
+y = 3 * x + 5 + rng.normal(0, 1, 100)        # ค่าจริง m = 3, c = 5
+
+m, c, lr = 0.0, 0.0, 0.02                     # เริ่มจากศูนย์ และ Learning rate 0.02
+for step in range(1, 2001):
+    pred = m * x + c
+    error = pred - y
+    loss = (error**2).mean()                  # MSE
+    grad_m = 2 * (error * x).mean()           # อนุพันธ์ของ MSE เทียบกับ m
+    grad_c = 2 * error.mean()                 # อนุพันธ์ของ MSE เทียบกับ c
+    m -= lr * grad_m                          # ก้าวสวนทางกับความชัน
+    c -= lr * grad_c
+    if step in (1, 10, 100, 500, 2000):
+        print(f"step {step:&gt;4}: loss = {loss:8.4f}  m = {m:.3f}  c = {c:.3f}")
+
+print("np.polyfit ได้:", np.polyfit(x, y, 1).round(3))   # คำตอบจากสูตรตรง ไว้ตรวจเทียบ</code></pre>
+<pre class="code" data-env="file" data-label="Python · mlp_digits.py"><code class="language-python"># Neural Network ของ scikit-learn (MLPClassifier) เทียบกับ Logistic Regression บนภาพตัวเลข 8x8
+import numpy as np
+from sklearn.datasets import load_digits
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.neural_network import MLPClassifier
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+X, y = load_digits(return_X_y=True)                # 1,797 ภาพ แต่ละภาพคือ 64 พิกเซล (ค่า 0–16)
+print("X:", X.shape, "y:", y.shape, "คลาส:", np.unique(y))
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
+
+models = {
+    "Logistic": make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000)),
+    "MLP (64,)": make_pipeline(StandardScaler(),
+                               MLPClassifier(hidden_layer_sizes=(64,), max_iter=500, random_state=42)),
+    "MLP (128, 64)": make_pipeline(StandardScaler(),
+                                   MLPClassifier(hidden_layer_sizes=(128, 64), max_iter=500, random_state=42)),
+}
+for name, m in models.items():
+    m.fit(X_train, y_train)
+    print(f"{name:&lt;14} test accuracy = {m.score(X_test, y_test):.3f}")
+
+mlp = models["MLP (64,)"][-1]
+print("จำนวนรอบที่ฝึก (n_iter_):", mlp.n_iter_)
+print("shape ของน้ำหนักแต่ละชั้น:", [w.shape for w in mlp.coefs_])</code></pre>
+<pre class="code" data-env="file" data-label="Python · torch_digits.py"><code class="language-python"># ฝึก Neural Network ด้วย PyTorch บนภาพตัวเลข 8x8: Tensor, DataLoader และ Training loop
+import torch
+from sklearn.datasets import load_digits
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from torch import nn
+from torch.utils.data import DataLoader, TensorDataset
+
+torch.manual_seed(42)                                   # ทำให้น้ำหนักเริ่มต้นและการสลับ Batch เหมือนเดิม
+
+X, y = load_digits(return_X_y=True)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
+scaler = StandardScaler().fit(X_train)
+
+# แปลงเป็น Tensor: Feature ต้องเป็น float32 ส่วน Label ต้องเป็น int64 (long)
+X_train_t = torch.tensor(scaler.transform(X_train), dtype=torch.float32)
+X_test_t = torch.tensor(scaler.transform(X_test), dtype=torch.float32)
+y_train_t = torch.tensor(y_train, dtype=torch.long)
+y_test_t = torch.tensor(y_test, dtype=torch.long)
+loader = DataLoader(TensorDataset(X_train_t, y_train_t), batch_size=64, shuffle=True)
+
+model = nn.Sequential(nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, 10))   # 64 พิกเซล -&gt; 10 คลาส
+loss_fn = nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+print(model)
+print("จำนวนพารามิเตอร์:", sum(p.numel() for p in model.parameters()))
+
+for epoch in range(1, 21):
+    model.train()
+    total = 0.0
+    for xb, yb in loader:
+        optimizer.zero_grad()            # 1) ล้าง Gradient ของรอบก่อน
+        logits = model(xb)               # 2) คำนวณผลทำนาย (Forward)
+        loss = loss_fn(logits, yb)       # 3) คำนวณ Loss
+        loss.backward()                  # 4) หา Gradient ย้อนกลับ (Backpropagation)
+        optimizer.step()                 # 5) ปรับน้ำหนัก
+        total += loss.item() * len(xb)
+    if epoch % 5 == 0:
+        print(f"epoch {epoch:&gt;2}: train loss = {total / len(loader.dataset):.4f}")
+
+model.eval()
+with torch.no_grad():                    # วัดผลไม่ต้องเก็บ Gradient
+    pred = model(X_test_t).argmax(dim=1)
+print(f"test accuracy = {(pred == y_test_t).float().mean().item():.3f}")</code></pre>
+<pre class="code" data-env="wsl" data-label="Bash · Ubuntu (WSL)"><code class="language-bash">python3 gd_line.py
+python3 mlp_digits.py
+python3 torch_digits.py</code></pre>
+<h4>ผลลัพธ์ที่ได้จริง</h4>
+<pre class="code" data-kind="out" data-env="out" data-label="Output"><code>step    1: loss = 451.6793  m = 4.705  c = 0.784
+step   10: loss =   4.7987  m = 3.635  c = 0.972
+step  100: loss =   1.6728  m = 3.278  c = 3.234
+step  500: loss =   0.9593  m = 3.014  c = 4.908
+step 2000: loss =   0.9589  m = 3.008  c = 4.949
+np.polyfit ได้: [3.008 4.949]
+X: (1797, 64) y: (1797,) คลาส: [0 1 2 3 4 5 6 7 8 9]
+Logistic       test accuracy = 0.972
+MLP (64,)      test accuracy = 0.981
+MLP (128, 64)  test accuracy = 0.969
+จำนวนรอบที่ฝึก (n_iter_): 165
+shape ของน้ำหนักแต่ละชั้น: [(64, 64), (64, 10)]
+Sequential(
+  (0): Linear(in_features=64, out_features=64, bias=True)
+  (1): ReLU()
+  (2): Linear(in_features=64, out_features=10, bias=True)
+)
+จำนวนพารามิเตอร์: 4810
+epoch  5: train loss = 0.5495
+epoch 10: train loss = 0.1887
+epoch 15: train loss = 0.1038
+epoch 20: train loss = 0.0668
+test accuracy = 0.969</code></pre>
+<p>ตัวเลขของ PyTorch (Loss และ Accuracy) อาจต่างจากหน้าเว็บเล็กน้อยบน CPU คนละรุ่น แม้จะตั้ง Seed แล้ว เพราะการคำนวณทศนิยมแบบขนานบวกเลขคนละลำดับ ส่วนผลของ NumPy และ scikit-learn ควรตรงกันทุกหลัก</p>
+<p><code>gd_line.py</code> แสดงการเรียนรู้ทีละก้าว Loss ลดจาก 451.68 เหลือ 0.9589 ค่า <code>m</code> และ <code>c</code> ลู่เข้าหา 3.008 และ 4.949 ตรงกับคำตอบจากสูตร <code>np.polyfit</code> ทุกหลัก (ไม่ได้เป็น 3 และ 5 พอดีเพราะข้อมูลมี Noise) สังเกตว่า <code>m</code> เข้าใกล้คำตอบเร็วกว่า <code>c</code> มาก เพราะ Gradient ของ <code>m</code> คูณด้วย <code>x</code> ที่มีค่าถึง 10 ใน <code>mlp_digits.py</code> MLP ที่มี Hidden layer 64 Neuron ได้ 0.981 ดีกว่า Logistic Regression (0.972) เล็กน้อย แต่ MLP ที่ใหญ่กว่า (128, 64) กลับได้ 0.969 โมเดลใหญ่ขึ้นจึงไม่ได้ดีขึ้นเสมอ น้ำหนักชั้นแรกมี <code>shape</code> <code>(64, 64)</code> คือ 64 พิกเซลต่อเข้า 64 Neuron ส่วน PyTorch ใช้โครงสร้างเดียวกัน มีพารามิเตอร์ 4,810 ตัว (64×64 + 64 + 64×10 + 10) Loss ลดลงทุก 5 Epoch และได้ Accuracy 0.969 ใกล้กับ MLP ของ scikit-learn</p>
+<h4>อธิบายโค้ดทีละส่วน</h4>
+<div class="tbl mid"><table class="explain"><thead><tr><th>บรรทัด / ส่วน</th><th>ความหมาย</th></tr></thead><tbody>
+<tr><td><code>grad_m = 2 * (error * x).mean()</code></td><td>อนุพันธ์ของ MSE เทียบกับ <code>m</code> บอกว่าถ้าเพิ่ม <code>m</code> เล็กน้อย Loss จะเปลี่ยนไปทางไหนและเร็วแค่ไหน</td></tr>
+<tr><td><code>m -= lr * grad_m</code></td><td>หัวใจของ Gradient Descent ขยับน้ำหนักสวนทางกับความชัน ด้วยขนาดก้าว <code>lr</code></td></tr>
+<tr><td><code>np.polyfit(x, y, 1)</code></td><td>หาเส้นตรงที่ดีที่สุดด้วยสูตรตรง ใช้ตรวจว่า Gradient Descent ได้คำตอบเดียวกัน</td></tr>
+<tr><td><code>MLPClassifier(hidden_layer_sizes=(64,), max_iter=500, random_state=42)</code></td><td>Hidden layer 1 ชั้น 64 Neuron ฝึกได้สูงสุด 500 รอบ และหยุดเองเมื่อ Loss ไม่ลดลงอีก (หยุดที่รอบ 165)</td></tr>
+<tr><td><code>mlp.coefs_</code></td><td>List ของ Matrix น้ำหนักแต่ละชั้น <code>shape</code> บอกจำนวน Input และ Output ของชั้นนั้น</td></tr>
+<tr><td><code>torch.manual_seed(42)</code></td><td>ตั้ง Seed ของ PyTorch ให้น้ำหนักเริ่มต้นและการสลับ Batch ใน <code>DataLoader</code> เหมือนเดิมทุกครั้ง</td></tr>
+<tr><td><code>torch.tensor(..., dtype=torch.float32)</code> และ <code>torch.long</code></td><td>Feature ต้องเป็น float32 ซึ่งเป็นชนิดของน้ำหนักในชั้น <code>Linear</code> ส่วน Label ของ <code>CrossEntropyLoss</code> ต้องเป็นจำนวนเต็ม int64</td></tr>
+<tr><td><code>DataLoader(TensorDataset(...), batch_size=64, shuffle=True)</code></td><td>แบ่งข้อมูลฝึกเป็น Batch ละ 64 ตัวอย่าง และสลับลำดับใหม่ทุก Epoch</td></tr>
+<tr><td><code>nn.Sequential(nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, 10))</code></td><td>ชั้นแรกรับ 64 พิกเซลออก 64 ค่า ผ่าน ReLU แล้วชั้นสุดท้ายออก 10 ค่า (Logits) หนึ่งค่าต่อหนึ่งตัวเลข 0–9</td></tr>
+<tr><td><code>nn.CrossEntropyLoss()</code></td><td>Loss ของ Classification หลายคลาส รับ Logits ดิบ (ไม่ต้องใส่ Softmax เอง) และ Label เป็นตัวเลขคลาส</td></tr>
+<tr><td><code>torch.optim.Adam(model.parameters(), lr=1e-3)</code></td><td>Optimizer ที่ปรับขนาดก้าวของแต่ละน้ำหนักให้เอง ใช้เป็นค่าเริ่มต้นที่ดีในงานส่วนใหญ่</td></tr>
+<tr><td>5 บรรทัดใน Loop: <code>zero_grad</code>, <code>model(xb)</code>, <code>loss_fn</code>, <code>backward</code>, <code>step</code></td><td>Training loop มาตรฐาน ล้าง Gradient เก่า คำนวณผลทำนาย คำนวณ Loss หา Gradient และปรับน้ำหนัก ต้องเรียงตามลำดับนี้</td></tr>
+<tr><td><code>model.eval()</code> และ <code>with torch.no_grad():</code></td><td>เข้าโหมดวัดผล และปิดการเก็บ Gradient เพื่อประหยัดหน่วยความจำ</td></tr>
+<tr><td><code>model(X_test_t).argmax(dim=1)</code></td><td>เลือกคลาสที่มี Logit สูงสุดของแต่ละแถวเป็นคำตอบ</td></tr>
+</tbody></table></div>
+<h4>ข้อผิดพลาดที่มือใหม่เจอบ่อย</h4>
+<div class="tbl wide"><table class="mistakes"><thead><tr><th>อาการ / Error</th><th>สาเหตุ</th><th>วิธีแก้</th></tr></thead><tbody>
+<tr><td><code>RuntimeError: mat1 and mat2 shapes cannot be multiplied (40x8 and 64x64)</code></td><td>ส่งภาพแบบ 2 มิติ <code>(5, 8, 8)</code> เข้าชั้น <code>nn.Linear(64, 64)</code> ที่ต้องการ 64 ค่าต่อตัวอย่าง</td><td>แปลงเป็น <code>(จำนวนภาพ, 64)</code> ด้วย <code>x.reshape(len(x), -1)</code> หรือใส่ <code>nn.Flatten()</code> เป็นชั้นแรก</td></tr>
+<tr><td><code>RuntimeError: mat1 and mat2 must have the same dtype, but got Double and Float</code></td><td>สร้าง Tensor จาก NumPy โดยไม่ระบุ <code>dtype</code> จึงได้ float64 แต่น้ำหนักของโมเดลเป็น float32</td><td>ใส่ <code>dtype=torch.float32</code> ตอนสร้าง Tensor หรือเรียก <code>.float()</code></td></tr>
+<tr><td><code>RuntimeError: 0D or 1D target tensor expected, multi-target not supported</code></td><td>ส่ง Label ให้ <code>CrossEntropyLoss</code> เป็นตาราง 2 มิติ เช่น One-hot แบบทศนิยม</td><td>ส่ง Label เป็นตัวเลขคลาส 1 มิติชนิด <code>torch.long</code> เช่น <code>tensor([3, 0, 7])</code></td></tr>
+<tr><td><code>ConvergenceWarning: Stochastic Optimizer: Maximum iterations (20) reached and the optimization hasn't converged yet.</code></td><td><code>max_iter</code> ของ <code>MLPClassifier</code> น้อยเกินไป โมเดลยังเรียนไม่จบ</td><td>เพิ่ม <code>max_iter</code> (เช่น 500) และปรับสเกลข้อมูลด้วย <code>StandardScaler</code> ก่อน</td></tr>
+<tr><td><code>RuntimeWarning: overflow encountered in square</code> แล้ว Loss กลายเป็น <code>nan</code></td><td>Learning rate ใหญ่เกิน เช่น <code>lr = 0.1</code> ใน <code>gd_line.py</code> แต่ละก้าวกระโดดข้ามจุดต่ำสุดจน Loss พุ่งเป็นตัวเลข 16 หลักภายใน 10 ก้าว</td><td>ลด Learning rate ลงทีละ 10 เท่าจน Loss ลดลงอย่างต่อเนื่อง และพิมพ์ Loss ระหว่างฝึกเสมอ</td></tr>
+</tbody></table></div>
+<div class="callout ok"><span class="c-label ok">Best Practice</span><ul><li>เทียบ Neural Network กับ Baseline ง่ายๆ เสมอ เช่น Logistic Regression ในตัวอย่างนี้ ถ้าชนะไม่ขาด ให้เลือกโมเดลที่ง่ายกว่า</li><li>พิมพ์ Loss ทุกไม่กี่ Epoch ถ้า Loss ไม่ลดลงหรือเป็น <code>nan</code> ให้หยุดตรวจ Learning rate, <code>dtype</code> และการปรับสเกลก่อนฝึกต่อ</li><li>ปรับสเกลด้วย <code>StandardScaler</code> ที่ <code>fit</code> เฉพาะข้อมูลฝึกเหมือนแนวคิดที่ 8 และเรียก <code>model.eval()</code> กับ <code>torch.no_grad()</code> ทุกครั้งที่วัดผล</li></ul></div>
+<div class="callout note"><span class="c-label try">ลองเอง</span><p>ทดลองกับทั้ง 3 ไฟล์</p><ol><li>ใน <code>gd_line.py</code> ลอง <code>lr</code> 0.001, 0.02 และ 0.1 แล้วบันทึกว่า Loss ที่ step 2000 เป็นเท่าไร และค่าไหนกลายเป็น <code>nan</code></li><li>ใน <code>mlp_digits.py</code> ลอง <code>hidden_layer_sizes=(32,)</code> และ <code>(256,)</code> แล้วเทียบ Accuracy กับ <code>n_iter_</code></li><li>ใน <code>torch_digits.py</code> เพิ่มเป็น 40 Epoch และพิมพ์ Accuracy ของข้อมูลทดสอบทุก 10 Epoch เพื่อดูว่าเริ่ม Overfit เมื่อไร</li><li>เพิ่มชั้น <code>nn.Linear(64, 32), nn.ReLU()</code> ก่อนชั้นสุดท้าย แก้ขนาดชั้นสุดท้ายให้ตรงกัน แล้วคำนวณจำนวนพารามิเตอร์ด้วยมือก่อนรัน</li></ol></div>
+</article>
+
+<h3 id="s10-2-summary">สรุป 12 แนวคิดและไฟล์ที่ควรมี</h3>
+<p>เมื่อจบส่วนนี้ โฟลเดอร์ <code>~/projects/ds-lab</code> ควรมีไฟล์ตัวอย่างครบทุกตัวและรันได้ผลตรงกับหน้าเว็บ ตารางนี้ใช้ทบทวนว่าแต่ละแนวคิดสอนอะไร และไฟล์ไหนใช้เป็นแม่แบบเมื่อเจองานแบบเดียวกัน</p>
+<div class="tbl wide"><table>
+  <thead><tr><th>แนวคิด</th><th>ไฟล์</th><th>สิ่งที่ต้องทำได้</th><th>ตัวเลขที่ใช้ตรวจ</th></tr></thead>
+  <tbody>
+    <tr><td class="nw">1 NumPy</td><td><code>numpy_scores.py</code></td><td>อ่าน <code>shape</code> ใช้ <code>axis</code> Boolean mask และ Broadcasting</td><td>เฉลี่ยวิชาคณิต 62.0</td></tr>
+    <tr><td class="nw">2 pandas พื้นฐาน</td><td><code>pandas_basics.py</code></td><td>โหลด CSV เลือกด้วย <code>loc</code>/<code>iloc</code> กรองด้วย <code>&amp;</code> และ <code>query</code></td><td>ออร์เดอร์ QR ≥ 2 ชิ้น 5 รายการ</td></tr>
+    <tr><td class="nw">3 ทำความสะอาด</td><td><code>clean_sales.py</code></td><td>จัดการค่าว่าง ข้อมูลซ้ำ หน่วยที่ติดมา และวันที่</td><td>12 แถว ยอดรวม 1,255 บาท</td></tr>
+    <tr><td class="nw">4 groupby/merge/SQLite</td><td><code>shop_db.py</code></td><td>สรุปด้วย SQL และ pandas ให้ตรงกัน และสร้าง <code>pivot_table</code></td><td>สยาม 680 รวม 1,310 บาท</td></tr>
+    <tr><td class="nw">5 EDA</td><td><code>eda_diabetes.py</code></td><td>เลือกกราฟตามคำถาม บันทึก PNG และสรุปด้วยตัวเลข</td><td>r ของ bmi = 0.586</td></tr>
+    <tr><td class="nw">6 สถิติและ CLT</td><td><code>stats_clt.py</code></td><td>เลือกค่ากลาง ใช้ Bayes และอธิบาย Standard error</td><td>P(ป่วย | บวก) = 16.1%</td></tr>
+    <tr><td class="nw">7 CI และ A/B Test</td><td><code>ab_report.py</code></td><td>รายงานผลต่าง CI และ p-value พร้อมแปลความหมาย</td><td>ผลต่าง 3.1% (0.5% ถึง 5.7%)</td></tr>
+    <tr><td class="nw">8 Workflow + Regression</td><td><code>regression_diabetes.py</code>, <code>columns_demo.py</code></td><td>Pipeline, Cross-validation, MAE/RMSE/R² และ <code>ColumnTransformer</code></td><td>Ridge R² 0.454</td></tr>
+    <tr><td class="nw">9 Classification</td><td><code>classify_cancer.py</code>, <code>imbalance_demo.py</code></td><td>อ่าน Confusion Matrix เลือก Threshold และรับมือข้อมูลไม่สมดุล</td><td>Accuracy 0.982 พลาดเนื้องอกร้าย 1 ราย</td></tr>
+    <tr><td class="nw">10 Tuning</td><td><code>tune_forest.py</code></td><td>ดู Overfitting ปรับจูนด้วย GridSearchCV และตีความด้วย Permutation importance</td><td>best <code>max_depth</code> = 6</td></tr>
+    <tr><td class="nw">11 k-means และ PCA</td><td><code>wine_clusters.py</code></td><td>เลือก k ตั้งชื่อกลุ่ม และลดมิติ</td><td>k = 3, ARI 0.897</td></tr>
+    <tr><td class="nw">12 Neural Network</td><td><code>gd_line.py</code>, <code>mlp_digits.py</code>, <code>torch_digits.py</code></td><td>อธิบาย Gradient Descent และเขียน Training loop ของ PyTorch</td><td>m = 3.008, MLP 0.981</td></tr>
+  </tbody>
+</table></div>
+<div class="callout"><span class="c-label check">Checkpoint</span><p>ก่อนไป Part 3 ให้ลองทำสิ่งเหล่านี้โดยไม่เปิดหน้านี้: เขียน Script ที่โหลด CSV ทำความสะอาด สรุปด้วย <code>groupby</code> แล้วบันทึกกราฟ 1 รูป สร้าง Pipeline ที่มี <code>ColumnTransformer</code> แล้ววัดผลด้วย <code>cross_val_score</code> เทียบกับ Baseline อธิบาย Confusion Matrix และเหตุผลในการเลือก Threshold และเขียน Training loop 5 บรรทัดของ PyTorch ถ้าติดตรงไหน ให้กลับไปที่แนวคิดนั้นและทำหัวข้อ "ลองเอง" ให้ครบ</p></div>
+<p>Part 3 จะมีแบบฝึกหัดเติมคำ ข้อสอบปรนัย และโจทย์ลงมือทำ 3 ระดับที่ใช้ทุกแนวคิดในหน้านี้ และ Part 4 จะรวมทุกอย่างเป็น Mini Project ทำนายสมาชิกฟิตเนสที่จะยกเลิกสมาชิก ตั้งแต่สร้างข้อมูลจนเขียนรายงาน</p>
+</section>
