@@ -2,7 +2,7 @@
    - App shell (หน้าเว็บ ฟอนต์ ไอคอน highlight.js) บันทึกตอนติดตั้ง
    - เนื้อหา topics/*.html เก็บใน CONTENT_CACHE ซึ่งหน้าเว็บสั่งบันทึกทั้งหมดได้ และไม่ถูกลบเมื่ออัปเดตเวอร์ชัน
    - HTML ใช้ Network-first (ออนไลน์ได้ของใหม่เสมอ ออฟไลน์ใช้ของที่บันทึกไว้) ไฟล์ใน assets/ ใช้ Cache-first */
-const VERSION = "2026-11-05.1";
+const VERSION = "2026-11-05.2";
 const SHELL_CACHE = "tr19-shell-" + VERSION;
 const CONTENT_CACHE = "tr19-content-v1";
 const NETWORK_TIMEOUT_MS = 4000;
@@ -78,7 +78,9 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   const path = url.pathname.slice(self.registration.scope.length - self.location.origin.length);
 
-  if (request.mode === "navigate" || path === "" || path === "index.html") {
+  // เฉพาะหน้าเว็บหลักเท่านั้น: ห้ามรวมทุก Navigation เพราะการเปิดไฟล์อื่น (เช่น download/techmap.apk)
+  // จะถูกบันทึกทับ index.html ใน Cache แล้วเว็บจะเปิดแบบออฟไลน์ไม่ได้ ไฟล์ใน download/ ปล่อยให้โหลดจากเน็ตตามปกติ
+  if (path === "" || path === "index.html") {
     event.respondWith(networkFirst(request, SHELL_CACHE, "./index.html"));
   } else if (path.startsWith("topics/")) {
     event.respondWith(networkFirst(request, CONTENT_CACHE));

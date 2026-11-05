@@ -19,8 +19,8 @@
 |---|---|---|
 | คืออะไร | เว็บบน GitHub Pages ที่ติดตั้งเป็นแอป (PWA) ได้ | แอป Android ที่ Build เป็น APK ด้วย Capacitor + React + Vite + TypeScript |
 | อ่านออฟไลน์ | เปิดเว็บขณะออนไลน์ 1 ครั้ง ระบบจะบันทึกครบทั้ง 76 ส่วนให้เอง ดูสถานะได้ที่ปุ่ม "อ่านออฟไลน์" มุมขวาบน | เนื้อหาทั้งหมดอยู่ใน APK อยู่แล้ว ไม่ต้องต่อเน็ตเลย |
-| ติดตั้ง | Chrome หรือ Edge: เมนู "ติดตั้งแอป" / iPhone: Safari แล้วกด แชร์ → "เพิ่มไปยังหน้าจอโฮม" | ติดตั้งไฟล์ APK |
-| ไฟล์ที่เกี่ยวข้อง | `sw.js`, `manifest.webmanifest`, `assets/` (ฟอนต์ ไอคอน highlight.js `offline.js`) | ทั้งโปรเจกต์ `mythisway-app` ดูวิธี Build ใน `BUILD.md` ของโปรเจกต์นั้น |
+| ติดตั้ง | Chrome หรือ Edge: เมนู "ติดตั้งแอป" / iPhone: Safari แล้วกด แชร์ → "เพิ่มไปยังหน้าจอโฮม" | [ดาวน์โหลด APK](https://mengyou555.github.io/mythisway/download/techmap.apk) (10.5 MB) หรือกดปุ่ม "อ่านออฟไลน์" บนเว็บ → "ดาวน์โหลดแอป Android" แล้วเปิดไฟล์และอนุญาต "ติดตั้งแอปที่ไม่รู้จัก" ให้เบราว์เซอร์ |
+| ไฟล์ที่เกี่ยวข้อง | `sw.js`, `manifest.webmanifest`, `assets/` (ฟอนต์ ไอคอน highlight.js `offline.js`) | ทั้งโปรเจกต์ `mythisway-app` ดูวิธี Build ใน `BUILD.md` ของโปรเจกต์นั้น ไฟล์ APK ที่แจกอยู่ใน `download/techmap.apk` ของ repo นี้ |
 
 แอป Android ใช้ repo นี้เป็นต้นทางของเนื้อหา คำสั่ง `npm run sync-content` ในโปรเจกต์แอปจะคัดลอก `topics/`, ข้อมูลหลักสูตรใน `index.html` และ `assets/` มาไว้ในแอป
 เมื่อแก้เนื้อหาในเว็บแล้ว ต้อง Sync และ Build APK ใหม่ แอปจึงจะได้เนื้อหาล่าสุด
