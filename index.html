@@ -6,9 +6,17 @@
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>แผนที่สายเทค 19 หัวข้อ</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<meta name="description" content="หลักสูตรเรียนสายเทคภาษาไทย 19 หัวข้อ จากศูนย์ถึงพร้อมทำงาน ติดตั้งเป็นแอปและอ่านได้แม้ไม่มีอินเทอร์เน็ต">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141C27" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="แผนที่สายเทค">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="assets/fonts.css">
 <style>
 /* Layout: เอกสารเรียนแบบ docs app — แผนที่เส้นทาง (ซ้าย) · คอลัมน์อ่าน (กลาง) · สารบัญหน้า (ขวา) */
 :root{
@@ -417,6 +425,54 @@ details.ans{border-bottom:1px solid var(--rule);padding:6px 0}
 .toc li.sub a{padding-left:22px;font-size:.8rem}
 .toc-inline li.sub{margin-left:1.1em;font-size:.86rem;list-style:circle}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---------- แอปและโหมดออฟไลน์ (PWA) ---------- */
+.off-btn{display:inline-flex;align-items:center;gap:7px;flex:none;font:inherit;font-size:.8rem;line-height:1;color:var(--ink);background:var(--surface);border:1px solid var(--rule);border-radius:999px;padding:5px 12px 5px 7px;cursor:pointer;white-space:nowrap;transition:border-color .15s,background .15s}
+.off-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.off-btn:focus-visible,.off-panel button:focus-visible,.toast-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.off-ico{width:20px;height:20px;flex:none;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.off-ring-bg{stroke:var(--rule);stroke-width:2}
+.off-ring{stroke:var(--accent);stroke-width:2.4;stroke-dasharray:var(--pct,0) 100;transform:rotate(-90deg);transform-origin:12px 12px;transition:stroke-dasharray .3s}
+.off-glyph{stroke:var(--ink-2);stroke-width:1.9;display:none}
+.off-btn[data-state="idle"] .off-g-down,.off-btn[data-state="partial"] .off-g-down,.off-btn[data-state="saving"] .off-g-down{display:block}
+.off-btn[data-state="saving"] .off-g-down{stroke:var(--accent)}
+.off-btn[data-state="ready"] .off-g-ok{display:block;stroke:var(--ok-fg)}
+.off-btn[data-state="ready"] .off-ring{stroke:var(--ok-fg)}
+.off-btn[data-state="offline"] .off-g-cloud{display:block;stroke:var(--warn-fg)}
+.off-btn[data-state="offline"]{background:var(--warn-bg);border-color:transparent;color:var(--warn-fg)}
+.off-label{font-variant-numeric:tabular-nums}
+@media (max-width:720px){.off-label{display:none}.off-btn{padding:5px}}
+
+.net-banner{background:var(--warn-bg);color:var(--warn-fg);font-size:.82rem;line-height:1.4;text-align:center;padding:6px max(16px,env(safe-area-inset-left,0px));border-top:1px solid var(--rule)}
+
+.off-panel{position:fixed;z-index:60;top:calc(var(--header-h) + env(safe-area-inset-top,0px) + 8px);right:max(16px,env(safe-area-inset-right,0px));width:min(360px,calc(100vw - 32px));max-height:calc(100dvh - var(--header-h) - 32px);overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--rule);border-radius:14px;box-shadow:var(--shadow);padding:16px 18px 14px;line-height:1.55}
+.off-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+.off-title{font-family:var(--font-display);font-size:1.05rem;font-weight:700;margin:0}
+.off-x{font:inherit;font-size:1.4rem;line-height:1;width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:var(--ink-2);cursor:pointer}
+.off-x:hover{background:var(--surface-2);color:var(--ink)}
+.off-status{margin:0 0 10px;font-weight:600}
+.off-bar{height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.off-bar span{display:block;height:100%;width:0;background:var(--accent);border-radius:999px;transition:width .3s}
+.off-panel[data-full="1"] .off-bar span{background:var(--ok-fg)}
+.off-meta{margin:8px 0 14px;font-size:.8rem;color:var(--ink-2)}
+.off-primary,.off-secondary{display:block;width:100%;font:inherit;font-size:.9rem;font-weight:600;border-radius:10px;padding:10px 14px;cursor:pointer}
+.off-primary{background:var(--accent);color:var(--accent-ink);border:1px solid var(--accent)}
+.off-primary:hover{filter:brightness(1.08)}
+.off-primary:disabled{opacity:.55;cursor:default;filter:none}
+.off-secondary{background:var(--surface);color:var(--ink);border:1px solid var(--rule);margin-top:10px}
+.off-secondary:hover{border-color:var(--accent)}
+.off-sec{margin-top:16px;padding-top:14px;border-top:1px solid var(--rule)}
+.off-sub{font-size:.9rem;font-weight:700;margin:0 0 4px}
+.off-text{margin:0;font-size:.84rem;color:var(--ink-2)}
+.off-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px;padding-top:10px;border-top:1px solid var(--rule)}
+.off-ver{font-family:var(--font-mono);font-size:.7rem;color:var(--ink-2)}
+.off-link{font:inherit;font-size:.78rem;border:0;background:transparent;color:var(--sec-fg);cursor:pointer;padding:4px 2px;text-decoration:underline;text-underline-offset:3px}
+@media (max-width:560px){
+  .off-panel{top:auto;bottom:0;left:0;right:0;width:auto;max-height:85dvh;border-radius:16px 16px 0 0;border-bottom:0;padding-bottom:max(16px,env(safe-area-inset-bottom,0px));box-shadow:0 0 0 100vmax var(--scrim)}
+}
+
+.toast{position:fixed;z-index:70;left:50%;bottom:max(20px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px);background:var(--ink);color:var(--bg);font-size:.86rem;line-height:1.45;padding:10px 12px 10px 16px;border-radius:12px;box-shadow:var(--shadow)}
+.toast-btn{flex:none;font:inherit;font-weight:700;font-size:.84rem;border:0;border-radius:8px;padding:6px 10px;background:var(--accent);color:var(--accent-ink);cursor:pointer}
 </style>
 
 <header class="site-header">
@@ -428,8 +484,40 @@ details.ans{border-bottom:1px solid var(--rule);padding:6px 0}
     </a>
     <span class="brand-sub">19 หัวข้อ จากศูนย์ถึงพร้อมทำงาน</span>
     <span class="hdr-pos" id="hdr-pos">หัวข้อ 0/19</span>
+    <button class="off-btn" type="button" id="off-btn" data-state="idle" aria-haspopup="dialog" aria-expanded="false" aria-controls="off-panel" hidden>
+      <svg class="off-ico" viewBox="0 0 24 24" aria-hidden="true">
+        <circle class="off-ring-bg" cx="12" cy="12" r="10"></circle>
+        <circle class="off-ring" cx="12" cy="12" r="10" pathLength="100"></circle>
+        <path class="off-glyph off-g-down" d="M12 7v8m-3.5-3.5L12 15l3.5-3.5"></path>
+        <path class="off-glyph off-g-ok" d="M7.5 12.2l3 3 6-6.4"></path>
+        <path class="off-glyph off-g-cloud" d="M8 16.5h8.2a3 3 0 0 0 .3-6 4.2 4.2 0 0 0-8.1-1A3.6 3.6 0 0 0 8 16.5zM5 5l14 14"></path>
+      </svg>
+      <span class="off-label" id="off-label">อ่านออฟไลน์</span>
+    </button>
   </div>
+  <div class="net-banner" id="net-banner" role="status" hidden>ไม่มีอินเทอร์เน็ต · <span id="net-banner-text">เปิดได้เฉพาะส่วนที่บันทึกไว้ในเครื่อง</span></div>
 </header>
+
+<div class="off-panel" id="off-panel" role="dialog" aria-modal="false" aria-labelledby="off-title" hidden>
+  <div class="off-head">
+    <h2 class="off-title" id="off-title">ใช้งานแบบออฟไลน์</h2>
+    <button class="off-x" type="button" id="off-close" aria-label="ปิด">×</button>
+  </div>
+  <p class="off-status" id="off-status">กำลังตรวจสอบ...</p>
+  <div class="off-bar" aria-hidden="true"><span id="off-fill"></span></div>
+  <p class="off-meta" id="off-meta"></p>
+  <button class="off-primary" type="button" id="off-save">บันทึกทั้งหมดไว้ในเครื่อง</button>
+  <div class="off-sec">
+    <h3 class="off-sub">ติดตั้งเป็นแอป</h3>
+    <p class="off-text" id="off-install-text"></p>
+    <button class="off-secondary" type="button" id="off-install" hidden>ติดตั้งแอป</button>
+  </div>
+  <div class="off-foot">
+    <span class="off-ver" id="off-ver"></span>
+    <button class="off-link" type="button" id="off-clear">ลบข้อมูลออฟไลน์</button>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden><span id="toast-text"></span><button class="toast-btn" type="button" id="toast-btn" hidden></button></div>
 
 <div class="layout">
   <nav class="sidebar" id="sidebar" aria-label="หัวข้อทั้งหมด">
@@ -1155,9 +1243,9 @@ Error ที่ได้: ...</code></pre>
   <aside class="toc" id="toc" aria-label="ในหน้านี้"></aside>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/powershell.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
+<script src="assets/hljs/highlight.min.js"></script>
+<script src="assets/hljs/powershell.min.js"></script>
+<script src="assets/hljs/dockerfile.min.js"></script>
 <script>
 (function(){
   "use strict";
@@ -1300,6 +1388,7 @@ Error ที่ได้: ...</code></pre>
   var CONTENT = {1:4, 2:4, 3:4, 4:4, 5:4, 6:4, 7:4, 8:4, 9:4, 10:4, 11:4, 12:4, 13:4, 14:4, 15:4, 16:4, 17:4, 18:4, 19:4};
   function pad2(n){ return (n < 10 ? "0" : "") + n; }
   Object.keys(CONTENT).forEach(function(k){ TOPICS[+k].avail = true; });
+  window.TR19_CONTENT = CONTENT;   // assets/offline.js ใช้สร้างรายชื่อไฟล์ที่ต้องบันทึกไว้อ่านออฟไลน์
 
   var PHASE_OF = {};
   PHASES.forEach(function(p){ p.topics.forEach(function(n){ PHASE_OF[n] = p; }); });
@@ -1499,7 +1588,10 @@ Error ที่ได้: ...</code></pre>
         if (h && h !== "t" + n){ var el = document.getElementById(h); if (el) el.scrollIntoView(); }
       }
     }).catch(function(err){
-      body.innerHTML = '<div class="callout warn" style="margin-top:24px"><span class="c-label warn">โหลดไม่สำเร็จ</span><p>โหลดเนื้อหาหัวข้อนี้ไม่ได้ (' + err.message + ') กดปุ่มด้านล่างเพื่อลองอีกครั้ง</p><button class="copy-btn light" type="button" data-retry>โหลดใหม่</button></div>';
+      var offline = navigator.onLine === false;
+      body.innerHTML = '<div class="callout warn" style="margin-top:24px"><span class="c-label warn">' + (offline ? 'ไม่มีอินเทอร์เน็ต' : 'โหลดไม่สำเร็จ') + '</span><p>' +
+        (offline ? 'หัวข้อนี้ยังไม่ได้บันทึกไว้ในเครื่อง เมื่อกลับมาออนไลน์ ให้กดปุ่ม "อ่านออฟไลน์" ที่มุมขวาบนแล้วเลือก "บันทึกทั้งหมด" ครั้งต่อไปจะเปิดได้แม้ไม่มีเน็ต'
+                 : 'โหลดเนื้อหาหัวข้อนี้ไม่ได้ (' + err.message + ') กดปุ่มด้านล่างเพื่อลองอีกครั้ง') + '</p><button class="copy-btn light" type="button" data-retry>โหลดใหม่</button></div>';
       $("[data-retry]", body).addEventListener("click", function(){
         body.innerHTML = '<div class="topic-loading">กำลังโหลดเนื้อหา...</div>';
         loadParts(n, art);
@@ -1680,5 +1772,6 @@ Error ที่ได้: ...</code></pre>
   route();
 })();
 </script>
+<script src="assets/offline.js"></script>
 
 </html>
